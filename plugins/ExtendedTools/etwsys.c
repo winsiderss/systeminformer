@@ -48,19 +48,19 @@ VOID EtEtwSystemInformationInitializing(
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     PhInitializeStringRef(&section.Name, L"Disk");
     section.Flags = 0;
-    section.Callback = EtpDiskSectionCallback;
+    section.Callback = EtpDiskSysInfoSectionCallback;
 
     DiskSection = Pointers->CreateSection(&section);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     PhInitializeStringRef(&section.Name, L"Network");
     section.Flags = 0;
-    section.Callback = EtpNetworkSectionCallback;
+    section.Callback = EtpNetworkSysInfoSectionCallback;
 
     NetworkSection = Pointers->CreateSection(&section);
 }
 
-BOOLEAN EtpDiskSectionCallback(
+BOOLEAN EtpDiskSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
@@ -432,7 +432,7 @@ PPH_STRING EtpGetMaxDiskString(
     return maxUsageString;
 }
 
-BOOLEAN EtpNetworkSectionCallback(
+BOOLEAN EtpNetworkSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,

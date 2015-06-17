@@ -190,11 +190,11 @@ typedef struct _PH_MINIINFO_LIST_SECTION
 {
     // Public
 
-    PPH_MINIINFO_SECTION Section;
+    PPH_MINIINFO_SECTION Section; // State
     HWND DialogHandle; // State
     HWND TreeNewHandle; // State
-    PVOID Context;
-    PPH_MINIINFO_LIST_SECTION_CALLBACK Callback;
+    PVOID Context; // Initialization
+    PPH_MINIINFO_LIST_SECTION_CALLBACK Callback; // Initialization
 
     // Private
 

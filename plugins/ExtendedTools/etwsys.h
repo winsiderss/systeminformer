@@ -3,7 +3,7 @@
 
 // Disk section
 
-BOOLEAN EtpDiskSectionCallback(
+BOOLEAN EtpDiskSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
@@ -46,7 +46,7 @@ PPH_STRING EtpGetMaxDiskString(
 
 // Network section
 
-BOOLEAN EtpNetworkSectionCallback(
+BOOLEAN EtpNetworkSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,

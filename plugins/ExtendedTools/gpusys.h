@@ -3,7 +3,7 @@
 
 #define ET_GPU_PADDING 3
 
-BOOLEAN EtpGpuSectionCallback(
+BOOLEAN EtpGpuSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
