@@ -3114,12 +3114,9 @@ VOID PhMwpInitializeSubMenu(
                     {
                         PPH_STRING newText;
 
-                        if (menuItem->Text && (menuItem->Flags & PH_EMENU_TEXT_OWNED))
-                            PhFree(menuItem->Text);
-
                         newText = PhaConcatStrings2(icon->Text, L" (Unavailable)");
-                        menuItem->Text = PhAllocateCopy(newText->Buffer, newText->Length + sizeof(WCHAR));
-                        menuItem->Flags |= PH_EMENU_TEXT_OWNED;
+                        PhModifyEMenuItem(menuItem, PH_EMENU_MODIFY_TEXT, PH_EMENU_TEXT_OWNED,
+                            PhAllocateCopy(newText->Buffer, newText->Length + sizeof(WCHAR)), NULL);
                     }
                 }
             }
