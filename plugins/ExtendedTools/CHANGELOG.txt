@@ -1,4 +1,5 @@
 1.15
+ * Added tray icon mini info window support
  * Improved automatic GPU node selection
 
 1.14

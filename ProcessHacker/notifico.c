@@ -300,20 +300,26 @@ VOID PhNfForwardMessage(
     case NIN_POPUPOPEN:
         {
             PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
+            BOOLEAN showMiniInfo = FALSE;
             POINT location;
 
             if (registeredIcon)
             {
                 showMiniInfoSectionData.SectionName = NULL;
 
-                if (registeredIcon->MessageCallback)
+                if (registeredIcon->Flags & PH_NF_ICON_SHOW_MINIINFO)
                 {
-                    registeredIcon->MessageCallback(
-                        registeredIcon,
-                        (ULONG_PTR)&showMiniInfoSectionData,
-                        MAKELPARAM(PH_NF_MSG_SHOWMINIINFOSECTION, 0),
-                        registeredIcon->Context
-                        );
+                    if (registeredIcon->MessageCallback)
+                    {
+                        registeredIcon->MessageCallback(
+                            registeredIcon,
+                            (ULONG_PTR)&showMiniInfoSectionData,
+                            MAKELPARAM(PH_NF_MSG_SHOWMINIINFOSECTION, 0),
+                            registeredIcon->Context
+                            );
+                    }
+
+                    showMiniInfo = TRUE;
                 }
             }
             else
@@ -334,11 +340,16 @@ VOID PhNfForwardMessage(
                     showMiniInfoSectionData.SectionName = L"Physical Memory";
                     break;
                 }
+
+                showMiniInfo = TRUE;
             }
 
-            GetCursorPos(&location);
-            PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-                showMiniInfoSectionData.SectionName, &location);
+            if (showMiniInfo)
+            {
+                GetCursorPos(&location);
+                PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
+                    showMiniInfoSectionData.SectionName, &location);
+            }
         }
         break;
     case NIN_POPUPCLOSE:

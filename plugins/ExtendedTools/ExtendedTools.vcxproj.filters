@@ -78,6 +78,12 @@
     <ClCompile Include="gpunodes.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="etwmini.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gpumini.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -102,6 +108,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="etwsys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="etwmini.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gpumini.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

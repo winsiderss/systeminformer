@@ -93,6 +93,11 @@ VOID NTAPI SystemInformationInitializingCallback(
     _In_opt_ PVOID Context
     );
 
+VOID NTAPI MiniInformationInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
 VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -146,6 +151,7 @@ PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION MiniInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
@@ -258,6 +264,12 @@ LOGICAL DllMain(
                 SystemInformationInitializingCallback,
                 NULL,
                 &SystemInformationInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMiniInformationInitializing),
+                MiniInformationInitializingCallback,
+                NULL,
+                &MiniInformationInitializingCallbackRegistration
                 );
 
             PhRegisterCallback(
@@ -542,6 +554,17 @@ VOID NTAPI SystemInformationInitializingCallback(
         EtGpuSystemInformationInitializing(Parameter);
     if (EtEtwEnabled)
         EtEtwSystemInformationInitializing(Parameter);
+}
+
+VOID NTAPI MiniInformationInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    if (EtGpuEnabled)
+        EtGpuMiniInformationInitializing(Parameter);
+    if (EtEtwEnabled)
+        EtEtwMiniInformationInitializing(Parameter);
 }
 
 static VOID NTAPI ProcessesUpdatedCallback(

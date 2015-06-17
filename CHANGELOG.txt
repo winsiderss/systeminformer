@@ -21,6 +21,7 @@ Process Hacker
    * Updated ExtendedServices plugin:
      * Added service protection and SID information
    * Updated ExtendedTools plugin:
+     * Added tray icon mini info window support
      * Improved automatic GPU node selection
    * Fixed a bug in phsvc that caused hangs when automatically elevating actions
    * Fixed hang when viewing handle security for certain File objects

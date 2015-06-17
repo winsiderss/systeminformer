@@ -478,6 +478,17 @@ VOID PhMipOnShowWindow(
     PhMipCreateInternalListSection(L"Physical Memory", 0, PhMipPhysicalListSectionCallback);
     PhMipCreateInternalListSection(L"I/O", 0, PhMipIoListSectionCallback);
 
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_MINIINFO_POINTERS pointers;
+
+        pointers.WindowHandle = PhMipContainerWindow;
+        pointers.CreateSection = PhMipCreateSection;
+        pointers.FindSection = PhMipFindSection;
+        pointers.CreateListSection = PhMipCreateListSection;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMiniInformationInitializing), &pointers);
+    }
+
     PhMipChangeSection(SectionList->Items[0]);
 }
 
@@ -2170,7 +2181,7 @@ BOOLEAN PhMipIoListSectionCallback(
             PPH_LIST processes = getUsageText->ProcessGroup->Processes;
             ULONG64 ioReadOtherDelta = getUsageText->SortData->UserData[0];
             ULONG64 ioWriteDelta = getUsageText->SortData->UserData[1];
-            PH_FORMAT format[2];
+            PH_FORMAT format[1];
 
             PhInitFormatSize(&format[0], ioReadOtherDelta + ioWriteDelta);
             PhMoveReference(&getUsageText->Line1, PhFormat(format, 1, 16));
