@@ -324,7 +324,7 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 WCHAR processIdString[PH_INT32_STR_LEN_1];
 
-                PhPrintUInt32(processIdString, (ULONG)serviceItem->ProcessId);
+                PhPrintUInt32(processIdString, HandleToUlong(serviceItem->ProcessId));
 
                 if (WordMatchStringZ(processIdString))
                 {
@@ -382,7 +382,7 @@ BOOLEAN ServiceTreeFilterCallback(
     {
         WCHAR processIdString[PH_INT32_STR_LEN_1];
 
-        PhPrintUInt32(processIdString, (ULONG)serviceNode->ServiceItem->ProcessId);
+        PhPrintUInt32(processIdString, HandleToUlong(serviceNode->ServiceItem->ProcessId));
 
         if (WordMatchStringZ(processIdString))
             return TRUE;
