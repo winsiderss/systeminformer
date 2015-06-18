@@ -761,12 +761,7 @@ VERIFY_RESULT PhVerifyFileCached(
         entry = CONTAINING_RECORD(links, PH_VERIFY_CACHE_ENTRY, Links);
 
         if (SignerName)
-        {
-            if (entry->VerifySignerName)
-                PhReferenceObject(entry->VerifySignerName);
-
-            *SignerName = entry->VerifySignerName;
-        }
+            PhSetReference(SignerName, entry->VerifySignerName);
 
         return entry->VerifyResult;
     }

@@ -76,6 +76,17 @@ typedef DWORD64 (WINAPI *_SymLoadModule64)(
     _In_ DWORD SizeOfDll
     );
 
+typedef DWORD64 (WINAPI *_SymLoadModuleExW)(
+    _In_ HANDLE hProcess,
+    _In_ HANDLE hFile,
+    _In_ PCWSTR ImageName,
+    _In_ PCWSTR ModuleName,
+    _In_ DWORD64 BaseOfDll,
+    _In_ DWORD DllSize,
+    _In_ PMODLOAD_DATA Data,
+    _In_ DWORD Flags
+    );
+
 typedef DWORD (WINAPI *_SymGetOptions)();
 
 typedef DWORD (WINAPI *_SymSetOptions)(
