@@ -67,49 +67,49 @@ BOOLEAN ProcessTreeFilterCallback(
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
 
-    if (processNode->ProcessItem->ProcessName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->ProcessName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->ProcessName->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->FileName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->FileName->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->CommandLine)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->CommandLine))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->CommandLine->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->VersionInfo.CompanyName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.CompanyName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->VersionInfo.FileDescription)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.FileDescription))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.FileDescription->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->VersionInfo.FileVersion)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.FileVersion))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.FileVersion->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->VersionInfo.ProductName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.ProductName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->VersionInfo.ProductName->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->UserName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->UserName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->UserName->sr))
             return TRUE;
@@ -121,13 +121,13 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->JobName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->JobName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->JobName->sr))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->VerifySignerName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->VerifySignerName->sr))
             return TRUE;
@@ -151,14 +151,16 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->PackageFullName)
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->PackageFullName))
     {
         if (WordMatchStringRef(&processNode->ProcessItem->PackageFullName->sr))
             return TRUE;
     }
 
     if (WordMatchStringZ(PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass)))
+    {
         return TRUE;
+    }
 
     if (processNode->ProcessItem->VerifyResult != VrUnknown)
     {
@@ -302,7 +304,7 @@ BOOLEAN ProcessTreeFilterCallback(
         {
             serviceItem = serviceList->Items[i];
 
-            if (serviceItem->Name)
+            if (!PhIsNullOrEmptyString(serviceItem->Name))
             {
                 if (WordMatchStringRef(&serviceItem->Name->sr))
                 {
@@ -311,7 +313,7 @@ BOOLEAN ProcessTreeFilterCallback(
                 }
             }
 
-            if (serviceItem->DisplayName)
+            if (!PhIsNullOrEmptyString(serviceItem->DisplayName))
             {
                 if (WordMatchStringRef(&serviceItem->DisplayName->sr))
                 {
@@ -366,13 +368,13 @@ BOOLEAN ServiceTreeFilterCallback(
     if (WordMatchStringZ(PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl)))
         return TRUE;
 
-    if (serviceNode->ServiceItem->Name)
+    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->Name))
     {
         if (WordMatchStringRef(&serviceNode->ServiceItem->Name->sr))
             return TRUE;
     }
 
-    if (serviceNode->ServiceItem->DisplayName)
+    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->DisplayName))
     {
         if (WordMatchStringRef(&serviceNode->ServiceItem->DisplayName->sr))
             return TRUE;
@@ -401,13 +403,13 @@ BOOLEAN NetworkTreeFilterCallback(
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
 
-    if (networkNode->NetworkItem->ProcessName)
+    if (!PhIsNullOrEmptyString(networkNode->NetworkItem->ProcessName))
     {
         if (WordMatchStringRef(&networkNode->NetworkItem->ProcessName->sr))
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->OwnerName)
+    if (!PhIsNullOrEmptyString(networkNode->NetworkItem->OwnerName))
     {
         if (WordMatchStringRef(&networkNode->NetworkItem->OwnerName->sr))
             return TRUE;
@@ -425,7 +427,7 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->LocalHostString)
+    if (!PhIsNullOrEmptyString(networkNode->NetworkItem->LocalHostString))
     {
         if (WordMatchStringRef(&networkNode->NetworkItem->LocalHostString->sr))
             return TRUE;
@@ -443,7 +445,7 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->RemoteHostString)
+    if (!PhIsNullOrEmptyString(networkNode->NetworkItem->RemoteHostString))
     {
         if (WordMatchStringRef(&networkNode->NetworkItem->RemoteHostString->sr))
             return TRUE;
