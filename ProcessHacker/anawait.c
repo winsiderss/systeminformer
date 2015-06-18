@@ -145,7 +145,7 @@ VOID PhUiAnalyzeWaitThread(
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
-        THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        ThreadQueryAccess | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
         ThreadId
         )))
     {

@@ -107,7 +107,7 @@ VOID PhShowThreadStackDialog(
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
-        THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        ThreadQueryAccess | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
         ThreadId
         )))
     {
@@ -333,6 +333,13 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                             stackFrame = &stackItem->StackFrame;
                             PhInitializeStringBuilder(&stringBuilder, 40);
 
+                            PhAppendFormatStringBuilder(
+                                &stringBuilder,
+                                L"Stack: 0x%Ix, Frame: 0x%Ix\n",
+                                stackFrame->StackAddress,
+                                stackFrame->FrameAddress
+                                );
+
                             // There are no params for kernel-mode stack traces.
                             if ((ULONG_PTR)stackFrame->PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
                             {
@@ -496,6 +503,13 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         NULL,
         NULL
         );
+
+    if (symbol &&
+        (StackFrame->Flags & PH_THREAD_STACK_FRAME_I386) &&
+        !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
+    {
+        PhMoveReference(&symbol, PhConcatStrings2(symbol->Buffer, L" (No unwind info)"));
+    }
 
     item = PhAllocate(sizeof(THREAD_STACK_ITEM));
     item->StackFrame = *StackFrame;
