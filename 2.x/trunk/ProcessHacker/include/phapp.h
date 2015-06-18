@@ -1913,7 +1913,7 @@ VOID PhShowThreadStackDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
 // tokprp

@@ -35,6 +35,7 @@ typedef struct _THREAD_STACK_CONTEXT
     HANDLE ThreadId;
     HANDLE ThreadHandle;
     HWND ListViewHandle;
+    PPH_THREAD_PROVIDER ThreadProvider;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     BOOLEAN CustomWalk;
 
@@ -83,7 +84,7 @@ VOID PhShowThreadStackDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     )
 {
     NTSTATUS status;
@@ -101,7 +102,8 @@ VOID PhShowThreadStackDialog(
     memset(&threadStackContext, 0, sizeof(THREAD_STACK_CONTEXT));
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
-    threadStackContext.SymbolProvider = SymbolProvider;
+    threadStackContext.ThreadProvider = ThreadProvider;
+    threadStackContext.SymbolProvider = ThreadProvider->SymbolProvider;
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -527,6 +529,8 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
     CLIENT_ID clientId;
     BOOLEAN defaultWalk;
 
+    PhLoadSymbolsThreadProvider(threadStackContext->ThreadProvider);
+
     clientId.UniqueProcess = threadStackContext->ProcessId;
     clientId.UniqueThread = threadStackContext->ThreadId;
     defaultWalk = TRUE;
@@ -567,6 +571,7 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
             threadStackContext->ThreadHandle,
             threadStackContext->SymbolProvider->ProcessHandle,
             &clientId,
+            threadStackContext->SymbolProvider,
             PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK,
             PhpWalkThreadStackCallback,
             threadStackContext

@@ -2700,7 +2700,6 @@ VOID PhLoadDbgHelpFromPath(
         PH_STRINGREF dbghelpFolder;
         PPH_STRING symsrvPath;
 
-        PhSymPreferredDbgHelpBase = dbghelpModule;
         fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
 
         if (fullDbghelpPath)
@@ -2722,10 +2721,10 @@ VOID PhLoadDbgHelpFromPath(
     }
     else
     {
-        LoadLibrary(L"dbghelp.dll");
+        dbghelpModule = LoadLibrary(L"dbghelp.dll");
     }
 
-    PhSymbolProviderDynamicImport();
+    PhSymbolProviderCompleteInitialization(dbghelpModule);
 }
 
 VOID PhMwpSymInitHandler(

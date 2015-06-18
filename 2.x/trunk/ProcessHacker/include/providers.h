@@ -713,11 +713,15 @@ typedef struct _PH_THREAD_PROVIDER
     HANDLE ProcessId;
     HANDLE ProcessHandle;
     BOOLEAN HasServices;
+    BOOLEAN HasServicesKnown;
+    BOOLEAN Terminating;
     struct _PH_SYMBOL_PROVIDER *SymbolProvider;
-    PH_EVENT SymbolsLoadedEvent;
-    LONG SymbolsLoading;
+
     SLIST_HEADER QueryListHead;
-    ULONG RunId;
+    PH_QUEUED_LOCK LoadSymbolsLock;
+    LONG SymbolsLoading;
+    ULONG64 RunId;
+    ULONG64 SymbolsLoadedRunId;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 // end_phapppub
 
@@ -737,6 +741,14 @@ VOID PhRegisterThreadProvider(
 VOID PhUnregisterThreadProvider(
     _In_ PPH_THREAD_PROVIDER ThreadProvider,
     _In_ PPH_CALLBACK_REGISTRATION CallbackRegistration
+    );
+
+VOID PhSetTerminatingThreadProvider(
+    _Inout_ PPH_THREAD_PROVIDER ThreadProvider
+    );
+
+VOID PhLoadSymbolsThreadProvider(
+    _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
 PPH_THREAD_ITEM PhCreateThreadItem(
