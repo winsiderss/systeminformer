@@ -82,17 +82,12 @@ VOID ProcessThreadStackControl(
     case PluginThreadStackInitializing:
         {
             PTHREAD_STACK_CONTEXT context;
-            BOOLEAN isDotNet;
 #if _WIN64
             HANDLE processHandle;
 #endif
 
-            if (!NT_SUCCESS(PhGetProcessIsDotNet(Control->u.Initializing.ProcessId, &isDotNet)) || !isDotNet)
-                return;
-
             context = PhAllocate(sizeof(THREAD_STACK_CONTEXT));
             memset(context, 0, sizeof(THREAD_STACK_CONTEXT));
-            context->Support = CreateClrProcessSupport(Control->u.Initializing.ProcessId);
             context->ProcessId = Control->u.Initializing.ProcessId;
             context->ThreadId = Control->u.Initializing.ThreadId;
             context->ThreadHandle = Control->u.Initializing.ThreadHandle;
@@ -116,9 +111,6 @@ VOID ProcessThreadStackControl(
 
             if (!context)
                 return;
-
-            if (context->Support)
-                FreeClrProcessSupport(context->Support);
 
             PhFree(context);
 
@@ -224,9 +216,15 @@ VOID ProcessThreadStackControl(
     case PluginThreadStackBeginDefaultWalkStack:
         {
             PTHREAD_STACK_CONTEXT context = FindThreadStackContext(Control->UniqueKey);
+            BOOLEAN isDotNet;
 
             if (!context)
                 return;
+
+            if (!NT_SUCCESS(PhGetProcessIsDotNet(context->ProcessId, &isDotNet)) || !isDotNet)
+                return;
+
+            context->Support = CreateClrProcessSupport(context->ProcessId);
 
 #ifdef _WIN64
             if (context->IsWow64)
@@ -240,6 +238,12 @@ VOID ProcessThreadStackControl(
 
             if (!context)
                 return;
+
+            if (context->Support)
+            {
+                FreeClrProcessSupport(context->Support);
+                context->Support = NULL;
+            }
 
 #ifdef _WIN64
             if (context->ConnectedToPhSvc)

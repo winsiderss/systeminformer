@@ -24,6 +24,14 @@
 #include <phbase.h>
 #include <phintrnl.h>
 
+HANDLE PhpGetSemaphoreWorkQueue(
+    _Inout_ PPH_WORK_QUEUE WorkQueue
+    );
+
+BOOLEAN PhpCreateWorkQueueThread(
+    _Inout_ PPH_WORK_QUEUE WorkQueue
+    );
+
 NTSTATUS PhpWorkQueueThreadStart(
     _In_ PVOID Parameter
     );
@@ -110,7 +118,7 @@ VOID PhInitializeWorkQueue(
 
     PhInitializeQueuedLock(&WorkQueue->StateLock);
 
-    NtCreateSemaphore(&WorkQueue->SemaphoreHandle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
+    WorkQueue->SemaphoreHandle = NULL;
     WorkQueue->CurrentThreads = 0;
     WorkQueue->BusyCount = 0;
 
@@ -144,8 +152,13 @@ VOID PhDeleteWorkQueue(
 #endif
 
     // Wait for all worker threads to exit.
+
     WorkQueue->Terminating = TRUE;
-    NtReleaseSemaphore(WorkQueue->SemaphoreHandle, WorkQueue->CurrentThreads, NULL);
+    MemoryBarrier();
+
+    if (WorkQueue->SemaphoreHandle)
+        NtReleaseSemaphore(WorkQueue->SemaphoreHandle, WorkQueue->CurrentThreads, NULL);
+
     PhWaitForRundownProtection(&WorkQueue->RundownProtect);
 
     // Free all un-executed work items.
@@ -159,7 +172,8 @@ VOID PhDeleteWorkQueue(
         PhpDestroyWorkQueueItem(workQueueItem);
     }
 
-    NtClose(WorkQueue->SemaphoreHandle);
+    if (WorkQueue->SemaphoreHandle)
+        NtClose(WorkQueue->SemaphoreHandle);
 }
 
 /**
@@ -177,6 +191,34 @@ VOID PhWaitForWorkQueue(
         PhWaitForCondition(&WorkQueue->QueueEmptyCondition, &WorkQueue->QueueLock, NULL);
 
     PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
+}
+
+HANDLE PhpGetSemaphoreWorkQueue(
+    _Inout_ PPH_WORK_QUEUE WorkQueue
+    )
+{
+    HANDLE semaphoreHandle;
+
+    semaphoreHandle = WorkQueue->SemaphoreHandle;
+
+    if (!semaphoreHandle)
+    {
+        NtCreateSemaphore(&semaphoreHandle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
+        assert(semaphoreHandle);
+
+        if (_InterlockedCompareExchangePointer(
+            &WorkQueue->SemaphoreHandle,
+            semaphoreHandle,
+            NULL
+            ) != NULL)
+        {
+            // Someone else created the semaphore before we did.
+            NtClose(semaphoreHandle);
+            semaphoreHandle = WorkQueue->SemaphoreHandle;
+        }
+    }
+
+    return semaphoreHandle;
 }
 
 BOOLEAN PhpCreateWorkQueueThread(
@@ -216,6 +258,7 @@ NTSTATUS PhpWorkQueueThreadStart(
     while (TRUE)
     {
         NTSTATUS status;
+        HANDLE semaphoreHandle;
         LARGE_INTEGER timeout;
         PPH_WORK_QUEUE_ITEM workQueueItem = NULL;
 
@@ -241,12 +284,21 @@ NTSTATUS PhpWorkQueueThreadStart(
                 break;
         }
 
-        // Wait for work.
-        status = NtWaitForSingleObject(
-            workQueue->SemaphoreHandle,
-            FALSE,
-            PhTimeoutFromMilliseconds(&timeout, workQueue->NoWorkTimeout)
-            );
+        semaphoreHandle = PhpGetSemaphoreWorkQueue(workQueue);
+
+        if (!workQueue->Terminating)
+        {
+            // Wait for work.
+            status = NtWaitForSingleObject(
+                semaphoreHandle,
+                FALSE,
+                PhTimeoutFromMilliseconds(&timeout, workQueue->NoWorkTimeout)
+                );
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
 
         if (status == STATUS_WAIT_0 && !workQueue->Terminating)
         {
@@ -342,7 +394,7 @@ VOID PhQueueItemWorkQueueEx(
     _InterlockedIncrement(&WorkQueue->BusyCount);
     PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
-    NtReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
+    NtReleaseSemaphore(PhpGetSemaphoreWorkQueue(WorkQueue), 1, NULL);
 
     PHLIB_INC_STATISTIC(WqWorkItemsQueued);
 

@@ -192,7 +192,7 @@ VOID PhSaveSettingsThreadList(
 PPH_THREAD_NODE PhAddThreadNode(
     _Inout_ PPH_THREAD_LIST_CONTEXT Context,
     _In_ PPH_THREAD_ITEM ThreadItem,
-    _In_ ULONG RunId
+    _In_ ULONG64 RunId
     )
 {
     PPH_THREAD_NODE threadNode;

@@ -3,9 +3,6 @@
 
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 extern PH_CALLBACK PhSymInitCallback;
-extern PVOID PhSymPreferredDbgHelpBase;
-
-//#define PH_SYMBOL_PROVIDER_DELAY_INIT
 
 #define PH_MAX_SYMBOL_NAME_LEN 128
 
@@ -16,9 +13,8 @@ typedef struct _PH_SYMBOL_PROVIDER
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
     BOOLEAN IsRegistered;
-#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+
     PH_INITONCE InitOnce;
-#endif
     PH_AVL_TREE ModulesSet;
     PH_CALLBACK EventCallback;
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
@@ -73,8 +69,8 @@ PhSymbolProviderInitialization(
 
 VOID
 NTAPI
-PhSymbolProviderDynamicImport(
-    VOID
+PhSymbolProviderCompleteInitialization(
+    _In_opt_ PVOID DbgHelpBase
     );
 
 PHLIBAPI
@@ -222,6 +218,7 @@ PhStackWalk(
     _In_ HANDLE ThreadHandle,
     _Inout_ LPSTACKFRAME64 StackFrame,
     _Inout_ PVOID ContextRecord,
+    _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
     _In_opt_ PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
     _In_opt_ PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
@@ -282,6 +279,7 @@ PhWalkThreadStack(
     _In_ HANDLE ThreadHandle,
     _In_opt_ HANDLE ProcessHandle,
     _In_opt_ PCLIENT_ID ClientId,
+    _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG Flags,
     _In_ PPH_WALK_THREAD_STACK_CALLBACK Callback,
     _In_opt_ PVOID Context

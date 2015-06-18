@@ -2662,6 +2662,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 &threadsContext->LoadingStateChangedEventRegistration
                 );
             PhUnregisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
+            PhSetTerminatingThreadProvider(threadsContext->Provider);
             PhDereferenceObject(threadsContext->Provider);
 
             if (PhPluginsEnabled)
@@ -2745,14 +2746,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem)
                     {
-                        PhReferenceObject(threadsContext->Provider->SymbolProvider);
+                        PhReferenceObject(threadsContext->Provider);
                         PhShowThreadStackDialog(
                             hwndDlg,
                             threadsContext->Provider->ProcessId,
                             threadItem->ThreadId,
-                            threadsContext->Provider->SymbolProvider
+                            threadsContext->Provider
                             );
-                        PhDereferenceObject(threadsContext->Provider->SymbolProvider);
+                        PhDereferenceObject(threadsContext->Provider);
                     }
                 }
                 break;
