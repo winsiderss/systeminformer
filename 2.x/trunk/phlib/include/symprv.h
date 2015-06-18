@@ -240,6 +240,11 @@ PhWriteMiniDumpProcess(
 
 // High-level stack walking
 
+#define PH_THREAD_STACK_FRAME_I386 0x1
+#define PH_THREAD_STACK_FRAME_AMD64 0x2
+#define PH_THREAD_STACK_FRAME_KERNEL 0x4
+#define PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT 0x100
+
 /** Contains information about a thread stack frame. */
 typedef struct _PH_THREAD_STACK_FRAME
 {
@@ -249,6 +254,7 @@ typedef struct _PH_THREAD_STACK_FRAME
     PVOID StackAddress;
     PVOID BStoreAddress;
     PVOID Params[4];
+    ULONG Flags;
 } PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
 
 #define PH_WALK_I386_STACK 0x1
