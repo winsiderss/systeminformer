@@ -1532,7 +1532,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             getTitleText.ProcessGroup = node->ProcessGroup;
             getTitleText.SortData = &node->SortData;
 
-            if (processItem->VersionInfo.FileDescription)
+            if (!PhIsNullOrEmptyString(processItem->VersionInfo.FileDescription))
                 PhSetReference(&getTitleText.Title, processItem->VersionInfo.FileDescription);
             else
                 PhSetReference(&getTitleText.Title, processItem->ProcessName);
