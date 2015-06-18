@@ -1494,11 +1494,13 @@ BOOLEAN PhWriteMiniDumpProcess(
  *
  * \param StackFrame64 A pointer to the STACKFRAME64 structure
  * to convert.
+ * \param Flags Flags to set in the resulting structure.
  * \param ThreadStackFrame A pointer to the resulting
  * PH_THREAD_STACK_FRAME structure.
  */
 VOID PhpConvertStackFrame(
     _In_ STACKFRAME64 *StackFrame64,
+    _In_ ULONG Flags,
     _Out_ PPH_THREAD_STACK_FRAME ThreadStackFrame
     )
 {
@@ -1512,16 +1514,20 @@ VOID PhpConvertStackFrame(
 
     for (i = 0; i < 4; i++)
         ThreadStackFrame->Params[i] = (PVOID)StackFrame64->Params[i];
+
+    ThreadStackFrame->Flags = Flags;
+
+    if (StackFrame64->FuncTableEntry)
+        ThreadStackFrame->Flags |= PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT;
 }
 
 /**
  * Walks a thread's stack.
  *
  * \param ThreadHandle A handle to a thread. The handle
- * must have THREAD_GET_CONTEXT and THREAD_SUSPEND_RESUME
- * access. The handle can have any access for kernel stack
- * walking. If \a ClientId is not specified, the handle
- * should also have THREAD_QUERY_LIMITED_INFORMATION access.
+ * must have THREAD_QUERY_LIMITED_INFORMATION, THREAD_GET_CONTEXT
+ * and THREAD_SUSPEND_RESUME access. The handle can have any
+ * access for kernel stack walking.
  * \param ProcessHandle A handle to the thread's parent
  * process. The handle must have PROCESS_QUERY_INFORMATION
  * and PROCESS_VM_READ access. If a symbol provider is
@@ -1557,6 +1563,7 @@ NTSTATUS PhWalkThreadStack(
     BOOLEAN processOpened = FALSE;
     BOOLEAN isCurrentThread = FALSE;
     BOOLEAN isSystemProcess = FALSE;
+    THREAD_BASIC_INFORMATION basicInfo;
 
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
@@ -1593,8 +1600,6 @@ NTSTATUS PhWalkThreadStack(
     }
     else
     {
-        THREAD_BASIC_INFORMATION basicInfo;
-
         if (ThreadHandle == NtCurrentThread())
         {
             isCurrentThread = TRUE;
@@ -1639,6 +1644,7 @@ NTSTATUS PhWalkThreadStack(
             for (i = 0; i < capturedFrames; i++)
             {
                 threadStackFrame.PcAddress = stack[i];
+                threadStackFrame.Flags = PH_THREAD_STACK_FRAME_KERNEL;
 
                 if (!Callback(&threadStackFrame, Context))
                 {
@@ -1693,7 +1699,7 @@ NTSTATUS PhWalkThreadStack(
 
             // Convert the stack frame and execute the callback.
 
-            PhpConvertStackFrame(&stackFrame, &threadStackFrame);
+            PhpConvertStackFrame(&stackFrame, PH_THREAD_STACK_FRAME_AMD64, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -1763,7 +1769,7 @@ SkipAmd64Stack:
 
             // Convert the stack frame and execute the callback.
 
-            PhpConvertStackFrame(&stackFrame, &threadStackFrame);
+            PhpConvertStackFrame(&stackFrame, PH_THREAD_STACK_FRAME_I386, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
