@@ -456,6 +456,7 @@ BOOLEAN NetworkTreeFilterCallback(
         WordMatchStringZ(PhGetTcpStateName(networkNode->NetworkItem->State)))
         return TRUE;
 
+    if (networkNode->NetworkItem->ProcessId)
     {
         WCHAR processIdString[PH_INT32_STR_LEN_1];
 
