@@ -457,11 +457,11 @@ BOOLEAN NetworkTreeFilterCallback(
         return TRUE;
 
     {
-        WCHAR pidString[32];
+        WCHAR processIdString[PH_INT32_STR_LEN_1];
 
-        PhPrintUInt32(pidString, HandleToUlong(networkNode->NetworkItem->ProcessId));
+        PhPrintUInt32(processIdString, HandleToUlong(networkNode->NetworkItem->ProcessId));
 
-        if (WordMatchStringZ(pidString))
+        if (WordMatchStringZ(processIdString))
             return TRUE;
     }
 
