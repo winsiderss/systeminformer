@@ -2010,7 +2010,7 @@ static VOID NTAPI ThreadAddedHandler(
     PostMessage(
         threadsContext->WindowHandle,
         WM_PH_THREAD_ADDED,
-        threadsContext->Provider->RunId,
+        threadsContext->Provider->RunId == 1,
         (LPARAM)Parameter
         );
 }
@@ -3063,7 +3063,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_PH_THREAD_ADDED:
         {
-            ULONG runId = (ULONG)wParam;
+            BOOLEAN firstRun = (BOOLEAN)wParam;
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
             if (!threadsContext->NeedsRedraw)
@@ -3073,7 +3073,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext->NeedsRedraw = TRUE;
             }
 
-            PhAddThreadNode(&threadsContext->ListContext, threadItem, runId);
+            PhAddThreadNode(&threadsContext->ListContext, threadItem, firstRun);
             PhDereferenceObject(threadItem);
         }
         break;
