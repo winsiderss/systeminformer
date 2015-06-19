@@ -62,20 +62,12 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
     _In_ LPARAM lParam
     );
 
-LRESULT CALLBACK MainWndSubclassProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ DWORD_PTR dwRefData
-    );
-
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuHookCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
@@ -83,6 +75,7 @@ PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
@@ -158,6 +151,48 @@ ULONG GetProcessIoPriority(
     }
 
     return ioPriority;
+}
+
+ULONG GetPriorityClassFromId(
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case PHAPP_ID_PRIORITY_REALTIME:
+        return PROCESS_PRIORITY_CLASS_REALTIME;
+    case PHAPP_ID_PRIORITY_HIGH:
+        return PROCESS_PRIORITY_CLASS_HIGH;
+    case PHAPP_ID_PRIORITY_ABOVENORMAL:
+        return PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
+    case PHAPP_ID_PRIORITY_NORMAL:
+        return PROCESS_PRIORITY_CLASS_NORMAL;
+    case PHAPP_ID_PRIORITY_BELOWNORMAL:
+        return PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
+    case PHAPP_ID_PRIORITY_IDLE:
+        return PROCESS_PRIORITY_CLASS_IDLE;
+    }
+
+    return 0;
+}
+
+ULONG GetIoPriorityFromId(
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case PHAPP_ID_I_0:
+        return 0;
+    case PHAPP_ID_I_1:
+        return 1;
+    case PHAPP_ID_I_2:
+        return 2;
+    case PHAPP_ID_I_3:
+        return 3;
+    }
+
+    return -1;
 }
 
 VOID NTAPI LoadCallback(
@@ -305,6 +340,93 @@ VOID NTAPI MenuItemCallback(
                 UnlockDb();
                 SaveDb();
             }
+        }
+        break;
+    }
+}
+
+VOID NTAPI MenuHookCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_HOOK_INFORMATION menuHookInfo = Parameter;
+    ULONG id = menuHookInfo->SelectedItem->Id;
+
+    switch (id)
+    {
+    case PHAPP_ID_PRIORITY_REALTIME:
+    case PHAPP_ID_PRIORITY_HIGH:
+    case PHAPP_ID_PRIORITY_ABOVENORMAL:
+    case PHAPP_ID_PRIORITY_NORMAL:
+    case PHAPP_ID_PRIORITY_BELOWNORMAL:
+    case PHAPP_ID_PRIORITY_IDLE:
+        {
+            BOOLEAN changed = FALSE;
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+            ULONG i;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            LockDb();
+
+            for (i = 0; i < numberOfProcesses; i++)
+            {
+                PDB_OBJECT object;
+
+                if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PRIORITY_CLASS))
+                {
+                    ULONG newPriorityClass = GetPriorityClassFromId(id);
+
+                    if (object->PriorityClass != newPriorityClass)
+                    {
+                        object->PriorityClass = newPriorityClass;
+                        changed = TRUE;
+                    }
+                }
+            }
+
+            UnlockDb();
+            PhFree(processes);
+
+            if (changed)
+                SaveDb();
+        }
+        break;
+    case PHAPP_ID_I_0:
+    case PHAPP_ID_I_1:
+    case PHAPP_ID_I_2:
+    case PHAPP_ID_I_3:
+        {
+            BOOLEAN changed = FALSE;
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+            ULONG i;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            LockDb();
+
+            for (i = 0; i < numberOfProcesses; i++)
+            {
+                PDB_OBJECT object;
+
+                if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_IO_PRIORITY))
+                {
+                    ULONG newIoPriorityPlusOne = GetIoPriorityFromId(id) + 1;
+
+                    if (object->IoPriorityPlusOne != newIoPriorityPlusOne)
+                    {
+                        object->IoPriorityPlusOne = newIoPriorityPlusOne;
+                        changed = TRUE;
+                    }
+                }
+            }
+
+            UnlockDb();
+            PhFree(processes);
+
+            if (changed)
+                SaveDb();
         }
         break;
     }
@@ -471,7 +593,7 @@ VOID MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
-    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+    NOTHING;
 }
 
 VOID ProcessPropertiesInitializingCallback(
@@ -487,63 +609,72 @@ VOID ProcessPropertiesInitializingCallback(
         );
 }
 
-VOID ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID AddSavePriorityMenuItemsAndHook(
+    _In_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN UseSelectionForHook
     )
 {
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-    PPH_PROCESS_ITEM processItem;
     PPH_EMENU_ITEM priorityMenuItem;
     PPH_EMENU_ITEM ioPriorityMenuItem;
     PPH_EMENU_ITEM saveMenuItem;
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
     PDB_OBJECT object;
 
-    if (menuInfo->u.Process.NumberOfProcesses != 1)
-        return;
-
-    processItem = menuInfo->u.Process.Processes[0];
-
     // Priority
-    if (priorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Priority", 0))
+    if (priorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Priority", 0))
     {
         PhInsertEMenuItem(priorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, L"", NULL), -1);
-        PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_ID, PhaFormatString(L"Save for %s", processItem->ProcessName->Buffer)->Buffer, NULL), -1);
+        PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_ID, PhaFormatString(L"Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(priorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save for this command line", NULL), -1);
 
-        if (!processItem->CommandLine)
+        if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
 
         LockDb();
 
-        if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->PriorityClass != 0)
+        if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->PriorityClass != 0)
             saveMenuItem->Flags |= PH_EMENU_CHECKED;
-        if (processItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->PriorityClass != 0)
+        if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->PriorityClass != 0)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
     }
 
     // I/O Priority
-    if (ioPriorityMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"I/O Priority", 0))
+    if (ioPriorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"I/O Priority", 0))
     {
         PhInsertEMenuItem(ioPriorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, L"", NULL), -1);
-        PhInsertEMenuItem(ioPriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_ID, PhaFormatString(L"Save for %s", processItem->ProcessName->Buffer)->Buffer, NULL), -1);
+        PhInsertEMenuItem(ioPriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_ID, PhaFormatString(L"Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(ioPriorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save for this command line", NULL), -1);
 
-        if (!processItem->CommandLine)
+        if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
 
         LockDb();
 
-        if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->IoPriorityPlusOne != 0)
+        if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->IoPriorityPlusOne != 0)
             saveMenuItem->Flags |= PH_EMENU_CHECKED;
-        if (processItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->IoPriorityPlusOne != 0)
+        if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->IoPriorityPlusOne != 0)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
     }
+
+    PhPluginAddMenuHook(MenuInfo, PluginInstance, UseSelectionForHook ? NULL : ProcessItem->ProcessId);
+}
+
+VOID ProcessMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+
+    if (menuInfo->u.Process.NumberOfProcesses != 1)
+        return;
+
+    AddSavePriorityMenuItemsAndHook(menuInfo, menuInfo->u.Process.Processes[0], TRUE);
 }
 
 LONG NTAPI ProcessCommentSortFunction(
@@ -638,6 +769,16 @@ VOID ServiceTreeNewInitializingCallback(
     column.Alignment = PH_ALIGN_LEFT;
 
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ServiceCommentSortFunction);
+}
+
+VOID MiListSectionMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+
+    AddSavePriorityMenuItemsAndHook(menuInfo, menuInfo->u.MiListSection.ProcessGroup->Representative, FALSE);
 }
 
 VOID ProcessModifiedCallback(
@@ -815,6 +956,8 @@ LOGICAL DllMain(
             ShowOptionsCallback, NULL, &PluginShowOptionsCallbackRegistration);
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
             MenuItemCallback, NULL, &PluginMenuItemCallbackRegistration);
+        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuHook),
+            MenuHookCallback, NULL, &PluginMenuHookCallbackRegistration);
         PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
             TreeNewMessageCallback, NULL, &TreeNewMessageCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
@@ -829,6 +972,8 @@ LOGICAL DllMain(
             ProcessTreeNewInitializingCallback, NULL, &ProcessTreeNewInitializingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
             ServiceTreeNewInitializingCallback, NULL, &ServiceTreeNewInitializingCallbackRegistration);
+        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing),
+            MiListSectionMenuInitializingCallback, NULL, &MiListSectionMenuInitializingCallbackRegistration);
         PhRegisterCallback(&PhProcessModifiedEvent,
             ProcessModifiedCallback, NULL, &ProcessModifiedCallbackRegistration);
         PhRegisterCallback(&PhProcessesUpdatedEvent,
@@ -1238,145 +1383,4 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
     }
 
     return FALSE;
-}
-
-ULONG GetPriorityClassFromId(
-    _In_ ULONG Id
-    )
-{
-    switch (Id)
-    {
-    case PHAPP_ID_PRIORITY_REALTIME:
-        return PROCESS_PRIORITY_CLASS_REALTIME;
-    case PHAPP_ID_PRIORITY_HIGH:
-        return PROCESS_PRIORITY_CLASS_HIGH;
-    case PHAPP_ID_PRIORITY_ABOVENORMAL:
-        return PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
-    case PHAPP_ID_PRIORITY_NORMAL:
-        return PROCESS_PRIORITY_CLASS_NORMAL;
-    case PHAPP_ID_PRIORITY_BELOWNORMAL:
-        return PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
-    case PHAPP_ID_PRIORITY_IDLE:
-        return PROCESS_PRIORITY_CLASS_IDLE;
-    }
-
-    return 0;
-}
-
-ULONG GetIoPriorityFromId(
-    _In_ ULONG Id
-    )
-{
-    switch (Id)
-    {
-    case PHAPP_ID_I_0:
-        return 0;
-    case PHAPP_ID_I_1:
-        return 1;
-    case PHAPP_ID_I_2:
-        return 2;
-    case PHAPP_ID_I_3:
-        return 3;
-    }
-
-    return -1;
-}
-
-LRESULT CALLBACK MainWndSubclassProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ DWORD_PTR dwRefData
-    )
-{
-    switch (uMsg)
-    {
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case PHAPP_ID_PRIORITY_REALTIME:
-            case PHAPP_ID_PRIORITY_HIGH:
-            case PHAPP_ID_PRIORITY_ABOVENORMAL:
-            case PHAPP_ID_PRIORITY_NORMAL:
-            case PHAPP_ID_PRIORITY_BELOWNORMAL:
-            case PHAPP_ID_PRIORITY_IDLE:
-                {
-                    BOOLEAN changed = FALSE;
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-                    ULONG i;
-
-                    PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-                    LockDb();
-
-                    for (i = 0; i < numberOfProcesses; i++)
-                    {
-                        PDB_OBJECT object;
-
-                        if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_PRIORITY_CLASS))
-                        {
-                            ULONG newPriorityClass = GetPriorityClassFromId(LOWORD(wParam));
-
-                            if (object->PriorityClass != newPriorityClass)
-                            {
-                                object->PriorityClass = newPriorityClass;
-                                changed = TRUE;
-                            }
-                        }
-                    }
-
-                    UnlockDb();
-                    PhFree(processes);
-
-                    if (changed)
-                        SaveDb();
-                }
-                break;
-            case PHAPP_ID_I_0:
-            case PHAPP_ID_I_1:
-            case PHAPP_ID_I_2:
-            case PHAPP_ID_I_3:
-                {
-                    BOOLEAN changed = FALSE;
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-                    ULONG i;
-
-                    PhGetSelectedProcessItems(&processes, &numberOfProcesses);
-                    LockDb();
-
-                    for (i = 0; i < numberOfProcesses; i++)
-                    {
-                        PDB_OBJECT object;
-
-                        if (object = FindDbObjectForProcess(processes[i], INTENT_PROCESS_IO_PRIORITY))
-                        {
-                            ULONG newIoPriorityPlusOne = GetIoPriorityFromId(LOWORD(wParam)) + 1;
-
-                            if (object->IoPriorityPlusOne != newIoPriorityPlusOne)
-                            {
-                                object->IoPriorityPlusOne = newIoPriorityPlusOne;
-                                changed = TRUE;
-                            }
-                        }
-                    }
-
-                    UnlockDb();
-                    PhFree(processes);
-
-                    if (changed)
-                        SaveDb();
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-//DefaultWndProc:
-//    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
