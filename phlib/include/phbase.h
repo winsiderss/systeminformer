@@ -705,6 +705,13 @@ PhTestInitOnce(
 // String
 
 PHLIBAPI
+SIZE_T
+NTAPI
+PhCountStringZ(
+    _In_ PWSTR String
+    );
+
+PHLIBAPI
 PSTR
 NTAPI
 PhDuplicateBytesZ(
@@ -1799,7 +1806,7 @@ PhTrimToNullTerminatorString(
     _Inout_ PPH_STRING String
     )
 {
-    String->Length = wcslen(String->Buffer) * sizeof(WCHAR);
+    String->Length = PhCountStringZ(String->Buffer) * sizeof(WCHAR);
 }
 
 // byte string
@@ -1995,7 +2002,7 @@ PhConvertUtf16ToAscii(
     _In_opt_ CHAR Replacement
     )
 {
-    return PhConvertUtf16ToAsciiEx(Buffer, wcslen(Buffer) * sizeof(WCHAR), Replacement);
+    return PhConvertUtf16ToAsciiEx(Buffer, PhCountStringZ(Buffer) * sizeof(WCHAR), Replacement);
 }
 
 // Multi-byte to UTF-16

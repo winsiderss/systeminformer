@@ -181,7 +181,7 @@ PVOID PhSvcpCreateString(
     if (Length != -1)
         length = Length;
     else
-        length = wcslen(String) * sizeof(WCHAR);
+        length = PhCountStringZ(String) * sizeof(WCHAR);
 
     if (length > MAXULONG32)
         return NULL;
@@ -479,7 +479,7 @@ NTSTATUS PhSvcCallCreateService(
 
         do
         {
-            partCount = wcslen(part) + 1;
+            partCount = PhCountStringZ(part) + 1;
             part += partCount;
             dependenciesLength += partCount * sizeof(WCHAR);
         } while (partCount != 1); // stop at empty dependency part
@@ -581,7 +581,7 @@ NTSTATUS PhSvcCallChangeServiceConfig(
 
         do
         {
-            partCount = wcslen(part) + 1;
+            partCount = PhCountStringZ(part) + 1;
             part += partCount;
             dependenciesLength += partCount * sizeof(WCHAR);
         } while (partCount != 1); // stop at empty dependency part

@@ -818,7 +818,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
 
             while (TRUE)
             {
-                nameLength = wcslen(name);
+                nameLength = PhCountStringZ(name);
 
                 if (nameLength == 0)
                     break;

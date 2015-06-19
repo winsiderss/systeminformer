@@ -1215,7 +1215,7 @@ PPH_STRING PhFormatDateTime(
         return NULL;
     }
 
-    count = (ULONG)wcslen(string->Buffer);
+    count = (ULONG)PhCountStringZ(string->Buffer);
     string->Buffer[count] = ' ';
 
     if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], dateBufferSize))
@@ -1702,7 +1702,7 @@ PPH_STRING PhFormatImageVersionInfo(
     ULONG indentLength;
 
     if (Indent)
-        indentLength = (ULONG)wcslen(Indent) * sizeof(WCHAR);
+        indentLength = (ULONG)PhCountStringZ(Indent) * sizeof(WCHAR);
     if (LineLimit == 0)
         LineLimit = MAXULONG32;
 
@@ -2022,7 +2022,7 @@ VOID PhGetSystemRoot(
     }
 
     localSystemRoot.Buffer = USER_SHARED_DATA->NtSystemRoot;
-    count = wcslen(localSystemRoot.Buffer);
+    count = PhCountStringZ(localSystemRoot.Buffer);
     localSystemRoot.Length = count * sizeof(WCHAR);
 
     // Make sure the system root string doesn't have a trailing backslash.
@@ -2193,7 +2193,7 @@ PPH_STRING PhGetKnownLocation(
     SIZE_T appendPathLength;
 
     if (AppendPath)
-        appendPathLength = wcslen(AppendPath) * 2;
+        appendPathLength = PhCountStringZ(AppendPath) * 2;
     else
         appendPathLength = 0;
 
@@ -4229,7 +4229,7 @@ VOID PhSetFileDialogFileName(
 
         PhFree(ofn->lpstrFile);
 
-        length = wcslen(FileName);
+        length = PhCountStringZ(FileName);
         ofn->nMaxFile = (ULONG)max(length + 1, 0x400);
         ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
         memcpy(ofn->lpstrFile, FileName, (length + 1) * 2);
