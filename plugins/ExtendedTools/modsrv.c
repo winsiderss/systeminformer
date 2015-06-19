@@ -118,7 +118,7 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
 
                 while (TRUE)
                 {
-                    nameLength = (ULONG)wcslen(serviceName);
+                    nameLength = (ULONG)PhCountStringZ(serviceName);
 
                     if (nameLength == 0)
                         break;
