@@ -474,7 +474,7 @@ static NTSTATUS UploadFileThreadStart(
         }
 
         // All until now has been just for this; Calculate the total request length.
-        totalUploadLength = (ULONG)wcslen(httpPostHeader.String->Buffer) + context->TotalFileLength + (ULONG)wcslen(httpPostFooter.String->Buffer);
+        totalUploadLength = (ULONG)PhCountStringZ(httpPostHeader.String->Buffer) + context->TotalFileLength + (ULONG)PhCountStringZ(httpPostFooter.String->Buffer);
 
         // Send the request.
         if (!WinHttpSendRequest(requestHandle,
