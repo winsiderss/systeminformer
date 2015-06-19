@@ -381,7 +381,6 @@
     <ClInclude Include="pcre\pcre_internal.h" />
     <ClInclude Include="pcre\ucp.h" />
     <ClInclude Include="include\procgrp.h" />
-    <ClInclude Include="sdk\phapppub.h" />
     <ClInclude Include="sdk\phdk.h" />
     <ClInclude Include="include\phplug.h" />
     <ClInclude Include="include\procprpp.h" />

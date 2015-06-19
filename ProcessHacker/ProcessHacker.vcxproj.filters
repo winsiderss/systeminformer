@@ -488,9 +488,6 @@
     <ClInclude Include="include\phapp.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="sdk\phapppub.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="sdk\phdk.h">
       <Filter>Headers</Filter>
     </ClInclude>
