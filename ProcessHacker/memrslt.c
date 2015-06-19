@@ -225,7 +225,7 @@ static VOID FilterResults(
                 SIZE_T asciiLength;
                 int r;
 
-                if (!NT_SUCCESS(PhConvertUtf16ToUtf8InPlace(
+                if (!NT_SUCCESS(PhConvertUtf16ToUtf8Buffer(
                     asciiBuffer,
                     PH_DISPLAY_BUFFER_COUNT,
                     &asciiLength,

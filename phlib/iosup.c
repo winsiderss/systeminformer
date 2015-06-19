@@ -1289,7 +1289,7 @@ NTSTATUS PhWriteStringAsUtf8FileStreamEx(
         {
             SIZE_T bytesInUtf8String;
 
-            if (!PhConvertUtf16ToUtf8InPlace(
+            if (!PhConvertUtf16ToUtf8Buffer(
                 inPlaceUtf8,
                 inPlaceUtf8Size,
                 &bytesInUtf8String,
