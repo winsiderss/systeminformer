@@ -48,7 +48,6 @@ static BOOLEAN ParseVersionString(
     {
         PhStringToInteger64(&majorPart, 10, &majorInteger);
         PhStringToInteger64(&minorPart, 10, &minorInteger);
-
         PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
         Context->MajorVersion = (ULONG)majorInteger;
@@ -67,11 +66,11 @@ static BOOLEAN ReadRequestString(
     _Out_ ULONG *DataLength
     )
 {
-    BYTE buffer[PAGE_SIZE];
     PSTR data;
     ULONG allocatedLength;
     ULONG dataLength;
     ULONG returnLength;
+    BYTE buffer[PAGE_SIZE];
 
     allocatedLength = sizeof(buffer);
     data = (PSTR)PhAllocate(allocatedLength);
@@ -118,10 +117,9 @@ static PPH_UPDATER_CONTEXT CreateUpdateContext(
     VOID
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)PhAllocate(
-        sizeof(PH_UPDATER_CONTEXT)
-        );
-
+    PPH_UPDATER_CONTEXT context;
+    
+    context = (PPH_UPDATER_CONTEXT)PhAllocate(sizeof(PH_UPDATER_CONTEXT));
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
     return context;
@@ -235,7 +233,7 @@ static BOOLEAN QueryUpdateData(
 
         if (!(httpRequestHandle = WinHttpOpenRequest(
             httpConnectionHandle,
-            L"GET",
+            NULL,
             L"/update.php",
             NULL,
             WINHTTP_NO_REFERER,
@@ -591,7 +589,7 @@ static NTSTATUS UpdateDownloadThread(
 
         if (!(httpRequestHandle = WinHttpOpenRequest(
             httpConnectionHandle,
-            L"GET",
+            NULL,
             downloadUrlPath->Buffer,
             NULL,
             WINHTTP_NO_REFERER,
@@ -621,12 +619,12 @@ static NTSTATUS UpdateDownloadThread(
 
         if (WinHttpReceiveResponse(httpRequestHandle, NULL))
         {
-            BYTE buffer[PAGE_SIZE];
-            BYTE hashBuffer[20];
             ULONG bytesDownloaded = 0;
             ULONG downloadedBytes = 0;
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
+            BYTE buffer[PAGE_SIZE];
+            BYTE hashBuffer[20];
 
             PH_HASH_CONTEXT hashContext;
             IO_STATUS_BLOCK isb;
@@ -754,11 +752,11 @@ static NTSTATUS UpdateDownloadThread(
 
     if (downloadSuccess && hashSuccess && verifySuccess)
     {
-        PostMessage(context->DialogHandle, PH_HASHSUCCESS, 0, 0);
+        PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
     }
     else if (downloadSuccess)
     {
-        PostMessage(context->DialogHandle, PH_HASHFAILURE, verifySuccess, hashSuccess);
+        PostMessage(context->DialogHandle, PH_UPDATEFAILURE, verifySuccess, hashSuccess);
     }
     else
     {
@@ -834,7 +832,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the text font
             if (context->FontHandle)
                 SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)context->FontHandle, FALSE);
-
+            // Set the window image
             if (context->IconBitmap)
                 SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->IconBitmap);
 
@@ -972,88 +970,70 @@ static INT_PTR CALLBACK UpdaterWndProc(
         break;
     case PH_UPDATEAVAILABLE:
         {
-            PPH_STRING summaryText = PhFormatString(
-                L"Process Hacker %lu.%lu (r%lu)",
-                context->MajorVersion,
-                context->MinorVersion,
-                context->RevisionVersion
-                );
-            PPH_STRING releaseDateText = PhFormatString(
-                L"Released: %s",
-                context->RelDate->Buffer
-                );
-            PPH_STRING releaseSizeText = PhFormatString(
-                L"Size: %s",
-                context->Size->Buffer
-                );
-
             // Set updater state
             context->UpdaterState = PhUpdateDownload;
 
             // Set the UI text
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, summaryText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_RELDATE, releaseDateText->Buffer);
-            SetDlgItemText(hwndDlg, IDC_STATUS, releaseSizeText->Buffer);
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(
+                L"Process Hacker %lu.%lu (r%lu)",
+                context->MajorVersion,
+                context->MinorVersion,
+                context->RevisionVersion
+                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"Released: %s",
+                context->RelDate->Buffer
+                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_STATUS, PhaFormatString(
+                L"Size: %s",
+                context->Size->Buffer
+                )->Buffer);
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Download");
 
             // Enable the controls
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
             Control_Visible(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
             Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
-
-            // free text
-            PhDereferenceObject(releaseSizeText);
-            PhDereferenceObject(releaseDateText);
-            PhDereferenceObject(summaryText);
         }
         break;
     case PH_UPDATEISCURRENT:
         {
-            PPH_STRING versionText = PhFormatString(
-                L"Stable release build: v%lu.%lu (r%lu)",
-                context->CurrentMajorVersion,
-                context->CurrentMinorVersion,
-                context->CurrentRevisionVersion
-                );
-
             // Set updater state
             context->UpdaterState = PhUpdateMaximum;
 
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running the latest version.");
-            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"Stable release build: v%lu.%lu (r%lu)",
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
+                context->CurrentRevisionVersion
+                )->Buffer);
             Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
 
             // Disable the download button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-
-            PhDereferenceObject(versionText);
         }
         break;
     case PH_UPDATENEWER:
         {
-            PPH_STRING versionText = PhFormatString(
-                L"SVN release build: v%lu.%lu (r%lu)",
-                context->CurrentMajorVersion,
-                context->CurrentMinorVersion,
-                context->CurrentRevisionVersion
-                );
-
             context->UpdaterState = PhUpdateMaximum;
 
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running a newer version!");
-            SetDlgItemText(hwndDlg, IDC_RELDATE, versionText->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"SVN release build: v%lu.%lu (r%lu)",
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
+                context->CurrentRevisionVersion
+                )->Buffer);
 
-            // Disable the download button
+            // Disable the download button and changelog link
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
-            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
-
-            // free text
-            PhDereferenceObject(versionText);
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), FALSE);
         }
         break;
-    case PH_HASHSUCCESS:
+    case PH_UPDATESUCCESS:
         {
             context->UpdaterState = PhUpdateInstall;
 
@@ -1070,7 +1050,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
-    case PH_HASHFAILURE:
+    case PH_UPDATEFAILURE:
         {
             context->UpdaterState = PhUpdateDefault;
 
