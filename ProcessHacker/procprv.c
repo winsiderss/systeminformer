@@ -1833,10 +1833,8 @@ VOID PhpGetProcessThreadInformation(
 
     for (i = 0; i < Process->NumberOfThreads; i++)
     {
-        if (
-            Process->Threads[i].ThreadState != Waiting ||
-            Process->Threads[i].WaitReason != Suspended
-            )
+        if (Process->Threads[i].ThreadState != Waiting ||
+            Process->Threads[i].WaitReason != Suspended)
         {
             isSuspended = FALSE;
         }

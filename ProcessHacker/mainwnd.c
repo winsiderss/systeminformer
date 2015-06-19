@@ -3559,6 +3559,9 @@ VOID PhAddMiniProcessMenuItems(
 {
     PPH_EMENU_ITEM priorityMenu;
     PPH_EMENU_ITEM ioPriorityMenu = NULL;
+    PPH_PROCESS_ITEM processItem;
+    BOOLEAN isSuspended = FALSE;
+    BOOLEAN isPartiallySuspended = TRUE;
 
     // Priority
 
@@ -3586,8 +3589,18 @@ VOID PhAddMiniProcessMenuItems(
     // Menu
 
     PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"T&erminate", NULL, ProcessId), -1);
-    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"&Suspend", NULL, ProcessId), -1);
-    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Res&ume", NULL, ProcessId), -1);
+
+    if (processItem = PhReferenceProcessItem(ProcessId))
+    {
+        isSuspended = (BOOLEAN)processItem->IsSuspended;
+        isPartiallySuspended = (BOOLEAN)processItem->IsPartiallySuspended;
+        PhDereferenceObject(processItem);
+    }
+
+    if (!isSuspended)
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"&Suspend", NULL, ProcessId), -1);
+    if (isPartiallySuspended)
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Res&ume", NULL, ProcessId), -1);
 
     PhInsertEMenuItem(Menu, priorityMenu, -1);
 
