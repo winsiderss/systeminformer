@@ -79,22 +79,22 @@ PWSTR FindPerfTextInTextData(
     textData = TextData;
 
     // Skip the first pair.
-    textData += wcslen(textData) + 1;
-    textData += wcslen(textData) + 1;
+    textData += PhCountStringZ(textData) + 1;
+    textData += PhCountStringZ(textData) + 1;
 
     while (*textData)
     {
         ULONG index;
 
         index = _wtoi(textData);
-        textData += wcslen(textData) + 1;
+        textData += PhCountStringZ(textData) + 1;
 
         if (index == Index)
         {
             return textData;
         }
 
-        textData += wcslen(textData) + 1;
+        textData += PhCountStringZ(textData) + 1;
     }
 
     return NULL;
@@ -110,8 +110,8 @@ ULONG FindPerfIndexInTextData(
     textData = TextData;
 
     // Skip the first pair.
-    textData += wcslen(textData) + 1;
-    textData += wcslen(textData) + 1;
+    textData += PhCountStringZ(textData) + 1;
+    textData += PhCountStringZ(textData) + 1;
 
     while (*textData)
     {
@@ -121,10 +121,10 @@ ULONG FindPerfIndexInTextData(
         PH_STRINGREF textSr;
 
         index = _wtoi(textData);
-        textData += wcslen(textData) + 1;
+        textData += PhCountStringZ(textData) + 1;
 
         text = textData;
-        length = wcslen(textData);
+        length = PhCountStringZ(textData);
         textData += length + 1;
 
         textSr.Buffer = text;

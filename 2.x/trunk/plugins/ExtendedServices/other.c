@@ -178,7 +178,7 @@ NTSTATUS EspLoadOtherInfo(
         {
             while (TRUE)
             {
-                privilegeLength = (ULONG)wcslen(privilege);
+                privilegeLength = (ULONG)PhCountStringZ(privilege);
 
                 if (privilegeLength == 0)
                     break;

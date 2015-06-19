@@ -609,7 +609,7 @@ VOID NTAPI DotNetEventCallback(
                 PDNA_NODE parentNode;
                 PDNA_NODE node;
 
-                appDomainNameLength = wcslen(data->AppDomainName) * sizeof(WCHAR);
+                appDomainNameLength = PhCountStringZ(data->AppDomainName) * sizeof(WCHAR);
                 clrInstanceID = *(PUSHORT)((PCHAR)data + FIELD_OFFSET(AppDomainLoadUnloadRundown_V1, AppDomainName) + appDomainNameLength + sizeof(WCHAR) + sizeof(ULONG));
 
                 // Find the CLR node to add the AppDomain node to.
@@ -642,7 +642,7 @@ VOID NTAPI DotNetEventCallback(
                 PDNA_NODE node;
                 PH_STRINGREF remainingPart;
 
-                fullyQualifiedAssemblyNameLength = wcslen(data->FullyQualifiedAssemblyName) * sizeof(WCHAR);
+                fullyQualifiedAssemblyNameLength = PhCountStringZ(data->FullyQualifiedAssemblyName) * sizeof(WCHAR);
                 clrInstanceID = *(PUSHORT)((PCHAR)data + FIELD_OFFSET(AssemblyLoadUnloadRundown_V1, FullyQualifiedAssemblyName) + fullyQualifiedAssemblyNameLength + sizeof(WCHAR));
 
                 // Find the AppDomain node to add the Assembly node to.
@@ -685,9 +685,9 @@ VOID NTAPI DotNetEventCallback(
                 PDNA_NODE node;
 
                 moduleILPath = data->ModuleILPath;
-                moduleILPathLength = wcslen(moduleILPath) * sizeof(WCHAR);
+                moduleILPathLength = PhCountStringZ(moduleILPath) * sizeof(WCHAR);
                 moduleNativePath = (PWSTR)((PCHAR)moduleILPath + moduleILPathLength + sizeof(WCHAR));
-                moduleNativePathLength = wcslen(moduleNativePath) * sizeof(WCHAR);
+                moduleNativePathLength = PhCountStringZ(moduleNativePath) * sizeof(WCHAR);
                 clrInstanceID = *(PUSHORT)((PCHAR)moduleNativePath + moduleNativePathLength + sizeof(WCHAR));
 
                 // Find the Assembly node to set the path on.
@@ -734,9 +734,9 @@ VOID NTAPI DotNetEventCallback(
                     ULONG_PTR indexOfLastDot;
 
                     moduleILPath = data->ModuleILPath;
-                    moduleILPathLength = wcslen(moduleILPath) * sizeof(WCHAR);
+                    moduleILPathLength = PhCountStringZ(moduleILPath) * sizeof(WCHAR);
                     moduleNativePath = (PWSTR)((PCHAR)moduleILPath + moduleILPathLength + sizeof(WCHAR));
-                    moduleNativePathLength = wcslen(moduleNativePath) * sizeof(WCHAR);
+                    moduleNativePathLength = PhCountStringZ(moduleNativePath) * sizeof(WCHAR);
 
                     if (context->ClrV2Node && (moduleILPathLength != 0 || moduleNativePathLength != 0))
                     {
