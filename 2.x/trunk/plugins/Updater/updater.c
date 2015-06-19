@@ -1009,10 +1009,11 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 context->CurrentMinorVersion,
                 context->CurrentRevisionVersion
                 )->Buffer);
-            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
 
             // Disable the download button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            // Enable the changelog link
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
         }
         break;
     case PH_UPDATENEWER:
@@ -1028,8 +1029,9 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 context->CurrentRevisionVersion
                 )->Buffer);
 
-            // Disable the download button and changelog link
+            // Disable the download button
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            // Disable the changelog link
             Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), FALSE);
         }
         break;
