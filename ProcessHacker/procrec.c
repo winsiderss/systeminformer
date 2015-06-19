@@ -130,6 +130,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             }
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
             SetWindowText(hwndDlg, processNameString->Buffer);
 
             SetDlgItemText(hwndDlg, IDC_PROCESSNAME, processNameString->Buffer);
