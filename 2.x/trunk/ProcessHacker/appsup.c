@@ -1530,6 +1530,7 @@ VOID PhInitializeTreeNewColumnMenuEx(
     _In_ ULONG Flags
     )
 {
+    PPH_EMENU_ITEM resetSortMenuItem = NULL;
     PPH_EMENU_ITEM sizeColumnToFitMenuItem;
     PPH_EMENU_ITEM sizeAllColumnsToFitMenuItem;
     PPH_EMENU_ITEM hideColumnMenuItem;
@@ -1549,12 +1550,27 @@ VOID PhInitializeTreeNewColumnMenuEx(
         chooseColumnsMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID, L"Choose Columns...", NULL, NULL);
     }
 
+    if (Flags & PH_TN_COLUMN_MENU_SHOW_RESET_SORT)
+    {
+        ULONG sortColumn;
+        PH_SORT_ORDER sortOrder;
+
+        TreeNew_GetSort(Data->TreeNewHandle, &sortColumn, &sortOrder);
+
+        if (sortColumn != Data->DefaultSortColumn || sortOrder != Data->DefaultSortOrder)
+            resetSortMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_RESET_SORT_ID, L"Reset Sort", NULL, NULL);
+    }
+
     PhInsertEMenuItem(Data->Menu, sizeColumnToFitMenuItem, -1);
     PhInsertEMenuItem(Data->Menu, sizeAllColumnsToFitMenuItem, -1);
 
     if (!(Flags & PH_TN_COLUMN_MENU_NO_VISIBILITY))
     {
         PhInsertEMenuItem(Data->Menu, hideColumnMenuItem, -1);
+
+        if (resetSortMenuItem)
+            PhInsertEMenuItem(Data->Menu, resetSortMenuItem, -1);
+
         PhInsertEMenuItem(Data->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
         PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
 
@@ -1570,6 +1586,11 @@ VOID PhInitializeTreeNewColumnMenuEx(
         {
             hideColumnMenuItem->Flags |= PH_EMENU_DISABLED;
         }
+    }
+    else
+    {
+        if (resetSortMenuItem)
+            PhInsertEMenuItem(Data->Menu, resetSortMenuItem, -1);
     }
 
     if (!Data->MouseEvent || !Data->MouseEvent->Column)
@@ -1652,6 +1673,11 @@ BOOLEAN PhHandleTreeNewColumnMenu(
 
     switch (Data->Selection->Id)
     {
+    case PH_TN_COLUMN_MENU_RESET_SORT_ID:
+        {
+            TreeNew_SetSort(Data->TreeNewHandle, Data->DefaultSortColumn, Data->DefaultSortOrder);
+        }
+        break;
     case PH_TN_COLUMN_MENU_SIZE_COLUMN_TO_FIT_ID:
         {
             if (Data->MouseEvent && Data->MouseEvent->Column)
