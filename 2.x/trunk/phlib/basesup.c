@@ -66,6 +66,10 @@
 #include <phintrnl.h>
 #include <math.h>
 
+#define PH_VECTOR_LEVEL_NONE 0
+#define PH_VECTOR_LEVEL_SSE2 1
+#define PH_VECTOR_LEVEL_AVX 2
+
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
     PUSER_THREAD_START_ROUTINE StartAddress;
@@ -102,7 +106,7 @@ PPH_OBJECT_TYPE PhHashtableType;
 
 // Misc.
 
-static BOOLEAN PhpSse2Available;
+static BOOLEAN PhpVectorLevel = PH_VECTOR_LEVEL_NONE;
 static PPH_STRING PhSharedEmptyString = NULL;
 
 // Threads
@@ -137,7 +141,12 @@ BOOLEAN PhInitializeBase(
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
 
-    PhpSse2Available = USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE];
+    // The following relies on the (technically undefined) value of XState being zero before Windows 7 SP1.
+    // NOTE: This is unused for now.
+    /*if (USER_SHARED_DATA->XState.EnabledFeatures & XSTATE_MASK_AVX)
+        PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
+    else*/ if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhStringType,
@@ -545,6 +554,56 @@ VOID PhFreePage(
 }
 
 /**
+ * Determines the length of the specified string, in characters.
+ *
+ * \param String The string.
+ */
+SIZE_T PhCountStringZ(
+    _In_ PWSTR String
+    )
+{
+    if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+    {
+        PWSTR p = String;
+        __m128i b;
+        __m128i z;
+        ULONG mask;
+        ULONG index;
+
+        if ((ULONG_PTR)p & 0xe)
+        {
+            ULONG unalignedCount = (ULONG)((ULONG_PTR)p & 0xe) / 2;
+
+            do
+            {
+                if (*p == 0)
+                    return p - String;
+
+                p++;
+            } while (--unalignedCount != 0);
+        }
+
+        z = _mm_setzero_si128();
+
+        while (TRUE)
+        {
+            b = _mm_load_si128((__m128i *)p);
+            b = _mm_cmpeq_epi16(b, z);
+            mask = _mm_movemask_epi8(b);
+
+            if (_BitScanForward(&index, mask))
+                return (SIZE_T)(p - String) + index / 2;
+
+            p += 16 / sizeof(WCHAR);
+        }
+    }
+    else
+    {
+        return wcslen(String);
+    }
+}
+
+/**
  * Allocates space for and copies a byte string.
  *
  * \param String The string to duplicate.
@@ -607,7 +666,7 @@ PWSTR PhDuplicateStringZ(
     PWSTR newString;
     SIZE_T length;
 
-    length = (wcslen(String) + 1) * sizeof(WCHAR); // include the null terminator
+    length = (PhCountStringZ(String) + 1) * sizeof(WCHAR); // include the null terminator
 
     newString = PhAllocate(length);
     memcpy(newString, String, length);
@@ -733,7 +792,7 @@ BOOLEAN PhCopyStringZ(
     }
     else
     {
-        i = wcslen(InputBuffer);
+        i = PhCountStringZ(InputBuffer);
     }
 
     // Copy the string if there is enough room.
@@ -1212,7 +1271,7 @@ BOOLEAN PhEqualStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
-    if (PhpSse2Available)
+    if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
     {
         length = l1 / 16;
 
@@ -1351,7 +1410,7 @@ ULONG_PTR PhFindCharInStringRef(
 
     if (!IgnoreCase)
     {
-        if (PhpSse2Available)
+        if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
 
@@ -1438,7 +1497,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
     if (!IgnoreCase)
     {
-        if (PhpSse2Available)
+        if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
 
@@ -2245,7 +2304,7 @@ PPH_STRING PhConcatStrings_V(
     for (i = 0; i < Count; i++)
     {
         arg = va_arg(argptr, PWSTR);
-        stringLength = wcslen(arg) * sizeof(WCHAR);
+        stringLength = PhCountStringZ(arg) * sizeof(WCHAR);
         totalLength += stringLength;
 
         if (i < PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE)
@@ -2268,7 +2327,7 @@ PPH_STRING PhConcatStrings_V(
         if (i < PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE)
             stringLength = cachedLengths[i];
         else
-            stringLength = wcslen(arg) * sizeof(WCHAR);
+            stringLength = PhCountStringZ(arg) * sizeof(WCHAR);
 
         memcpy(
             (PCHAR)string->Buffer + totalLength,
@@ -2296,8 +2355,8 @@ PPH_STRING PhConcatStrings2(
     SIZE_T length1;
     SIZE_T length2;
 
-    length1 = wcslen(String1) * sizeof(WCHAR);
-    length2 = wcslen(String2) * sizeof(WCHAR);
+    length1 = PhCountStringZ(String1) * sizeof(WCHAR);
+    length2 = PhCountStringZ(String2) * sizeof(WCHAR);
     string = PhCreateStringEx(NULL, length1 + length2);
     memcpy(
         string->Buffer,
@@ -3040,7 +3099,7 @@ PPH_BYTES PhConvertUtf16ToMultiByte(
 {
     return PhConvertUtf16ToMultiByteEx(
         Buffer,
-        wcslen(Buffer) * sizeof(WCHAR)
+        PhCountStringZ(Buffer) * sizeof(WCHAR)
         );
 }
 
@@ -3352,7 +3411,7 @@ PPH_BYTES PhConvertUtf16ToUtf8(
 {
     return PhConvertUtf16ToUtf8Ex(
         Buffer,
-        wcslen(Buffer) * sizeof(WCHAR)
+        PhCountStringZ(Buffer) * sizeof(WCHAR)
         );
 }
 
@@ -3561,7 +3620,7 @@ VOID PhAppendStringBuilder2(
     PhAppendStringBuilderEx(
         StringBuilder,
         String,
-        wcslen(String) * sizeof(WCHAR)
+        PhCountStringZ(String) * sizeof(WCHAR)
         );
 }
 
@@ -3748,7 +3807,7 @@ VOID PhInsertStringBuilder2(
         StringBuilder,
         Index,
         String,
-        wcslen(String) * sizeof(WCHAR)
+        PhCountStringZ(String) * sizeof(WCHAR)
         );
 }
 
@@ -5656,7 +5715,7 @@ VOID PhFillMemoryUlong(
     __m128i pattern;
     SIZE_T count;
 
-    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+    if (PhpVectorLevel < PH_VECTOR_LEVEL_SSE2)
     {
         if (Count != 0)
         {
@@ -5744,7 +5803,7 @@ VOID PhDivideSinglesBySingle(
     PFLOAT endA;
     __m128 b;
 
-    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE])
+    if (PhpVectorLevel < PH_VECTOR_LEVEL_SSE2)
     {
         while (Count--)
             *A++ /= B;

@@ -84,7 +84,7 @@
             {
                 SIZE_T count;
 
-                count = wcslen(format->u.StringZ);
+                count = PhCountStringZ(format->u.StringZ);
                 ENSURE_BUFFER(count * sizeof(WCHAR));
                 if (OK_BUFFER)
                     memcpy(buffer, format->u.StringZ, count * sizeof(WCHAR));

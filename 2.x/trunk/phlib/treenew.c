@@ -6027,7 +6027,7 @@ VOID PhTnpGetHeaderTooltipText(
         // Determine if the tooltip needs to be shown.
 
         text = column->Text;
-        textCount = wcslen(text);
+        textCount = PhCountStringZ(text);
 
         if (!(hdc = GetDC(Context->Handle)))
             return;

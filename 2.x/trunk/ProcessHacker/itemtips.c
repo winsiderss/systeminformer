@@ -55,7 +55,7 @@ VOID PhpAppendStringWithLineBreaks(
     afterFirstLine = FALSE;
 
     if (IndentAfterFirstLine)
-        indentAfterFirstLineLength = wcslen(IndentAfterFirstLine) * sizeof(WCHAR);
+        indentAfterFirstLineLength = PhCountStringZ(IndentAfterFirstLine) * sizeof(WCHAR);
 
     while (line.Length != 0)
     {
