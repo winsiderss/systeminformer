@@ -2048,7 +2048,7 @@ PhConvertUtf8ToUtf16Size(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhConvertUtf8ToUtf16InPlace(
+PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T MaxBytesInUtf16String,
     _Out_opt_ PSIZE_T BytesInUtf16String,
@@ -2085,7 +2085,7 @@ PhConvertUtf16ToUtf8Size(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhConvertUtf16ToUtf8InPlace(
+PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T MaxBytesInUtf8String,
     _Out_opt_ PSIZE_T BytesInUtf8String,
