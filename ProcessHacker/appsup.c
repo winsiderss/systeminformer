@@ -1004,7 +1004,7 @@ VOID PhCopyListViewInfoTip(
 
     if (GetInfoTip->dwFlags == 0)
     {
-        copyIndex = (ULONG)wcslen(GetInfoTip->pszText) + 1; // plus one for newline
+        copyIndex = (ULONG)PhCountStringZ(GetInfoTip->pszText) + 1; // plus one for newline
 
         if (GetInfoTip->cchTextMax - copyIndex < 2) // need at least two bytes
             return;

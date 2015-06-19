@@ -2698,18 +2698,18 @@ typedef struct _KUSER_SHARED_DATA
     ULONG LangGenerationCount;
     ULONGLONG Reserved4;
     volatile ULONG64 InterruptTimeBias;
-    volatile ULONG64 TscQpcBias;
+    volatile ULONG64 QpcBias;
 
     volatile ULONG ActiveProcessorCount;
     volatile UCHAR ActiveGroupCount;
     UCHAR Reserved9;
     union
     {
-        USHORT TscQpcData;
+        USHORT QpcData;
         struct
         {
-            UCHAR TscQpcEnabled : 1;
-            UCHAR TscQpcShift : 1;
+            UCHAR QpcBypassEnabled : 1;
+            UCHAR QpcShift : 1;
         };
     };
 
@@ -2752,6 +2752,7 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x308);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 

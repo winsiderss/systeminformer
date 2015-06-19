@@ -697,7 +697,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
         // Remove the terminating new line character.
 
-        inputLength = (ULONG)wcslen(line);
+        inputLength = (ULONG)PhCountStringZ(line);
 
         if (inputLength != 0)
             line[inputLength - 1] = 0;
