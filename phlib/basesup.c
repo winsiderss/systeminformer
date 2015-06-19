@@ -3126,7 +3126,7 @@ BOOLEAN PhConvertUtf8ToUtf16Size(
     return result;
 }
 
-BOOLEAN PhConvertUtf8ToUtf16InPlace(
+BOOLEAN PhConvertUtf8ToUtf16Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf16String, *BytesInUtf16String) PWCH Utf16String,
     _In_ SIZE_T MaxBytesInUtf16String,
     _Out_opt_ PSIZE_T BytesInUtf16String,
@@ -3221,7 +3221,7 @@ PPH_STRING PhConvertUtf8ToUtf16Ex(
 
     string = PhCreateStringEx(NULL, utf16Bytes);
 
-    if (!PhConvertUtf8ToUtf16InPlace(
+    if (!PhConvertUtf8ToUtf16Buffer(
         string->Buffer,
         string->Length,
         NULL,
@@ -3276,7 +3276,7 @@ BOOLEAN PhConvertUtf16ToUtf8Size(
     return result;
 }
 
-BOOLEAN PhConvertUtf16ToUtf8InPlace(
+BOOLEAN PhConvertUtf16ToUtf8Buffer(
     _Out_writes_bytes_to_(MaxBytesInUtf8String, *BytesInUtf8String) PCH Utf8String,
     _In_ SIZE_T MaxBytesInUtf8String,
     _Out_opt_ PSIZE_T BytesInUtf8String,
@@ -3375,7 +3375,7 @@ PPH_BYTES PhConvertUtf16ToUtf8Ex(
 
     bytes = PhCreateBytesEx(NULL, utf8Bytes);
 
-    if (!PhConvertUtf16ToUtf8InPlace(
+    if (!PhConvertUtf16ToUtf8Buffer(
         bytes->Buffer,
         bytes->Length,
         NULL,
