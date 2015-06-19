@@ -572,7 +572,7 @@ SIZE_T PhCountStringZ(
 
         if ((ULONG_PTR)p & 0xe)
         {
-            ULONG unalignedCount = (ULONG)((ULONG_PTR)p & 0xe) / 2;
+            ULONG unalignedCount = (0x10 - (ULONG)((ULONG_PTR)p & 0xe)) / 2;
 
             do
             {
