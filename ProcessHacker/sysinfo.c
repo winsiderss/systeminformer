@@ -2720,7 +2720,7 @@ VOID PhSipGetCpuBrandString(
     __cpuid(&brandString[4], 0x80000003);
     __cpuid(&brandString[8], 0x80000004);
 
-    PhZeroExtendToUtf16InPlace((PSTR)brandString, 48, BrandString);
+    PhZeroExtendToUtf16Buffer((PSTR)brandString, 48, BrandString);
     BrandString[48] = 0;
 }
 
