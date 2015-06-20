@@ -38,6 +38,14 @@ static VOID Test_stringz(
     WCHAR inputW[16] = L"test";
     WCHAR outputW[16];
     ULONG returnCount;
+    PWSTR zero = L"\0\0\0\0\0\0\0\0";
+    PWSTR asdf = L"asdfasdfasdfasdf";
+    ULONG i;
+
+    for (i = 0; i < 8; i++)
+        assert(PhCountStringZ(zero + i) == 0);
+    for (i = 0; i < 16; i++)
+        assert(PhCountStringZ(asdf + i) == 16 - i);
 
     result = PhCopyBytesZ(inputA, 4, outputA, 4, &returnCount);
     assert(!result && returnCount == 5);
@@ -93,6 +101,32 @@ VOID Test_stringref(
     WCHAR buffer[26 * 2];
 
     // PhEqualStringRef, PhFindCharInStringRef, PhFindLastCharInStringRef
+
+    // Alignment tests
+
+    s1.Buffer = buffer;
+    s1.Length = sizeof(buffer);
+
+    for (i = 0; i < 26; i++)
+        s1.Buffer[i] = (WCHAR)i;
+
+    for (i = 0; i < 26; i++)
+        assert(PhFindCharInStringRef(&s1, (WCHAR)i, FALSE) == i);
+
+    memset(buffer, 0, sizeof(buffer));
+    s1.Length = 0;
+
+    for (i = 0; i < 26; i++)
+        assert(PhFindCharInStringRef(&s1, 0, FALSE) == -1);
+
+    buffer[26] = 1;
+
+    for (i = 0; i < 26; i++)
+    {
+        s1.Buffer = buffer + 26 - i;
+        s1.Length = i * sizeof(WCHAR);
+        assert(PhFindCharInStringRef(&s1, 1, FALSE) == -1);
+    }
 
     for (i = 1; i < 26; i++)
     {
