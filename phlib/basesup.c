@@ -3502,8 +3502,7 @@ VOID PhpResizeStringBuilder(
 {
     PPH_STRING newString;
 
-    // Double the string size. If that still isn't
-    // enough room, just use the new length.
+    // Double the string size. If that still isn't enough room, just use the new length.
 
     StringBuilder->AllocatedLength *= 2;
 
@@ -3517,14 +3516,13 @@ VOID PhpResizeStringBuilder(
     memcpy(
         newString->Buffer,
         StringBuilder->String->Buffer,
-        StringBuilder->String->Length + sizeof(WCHAR) // include null terminator
+        StringBuilder->String->Length + sizeof(WCHAR) // Include null terminator
         );
 
     // Copy the old string length.
     newString->Length = StringBuilder->String->Length;
 
-    // Dereference the old string and replace it with
-    // the new string.
+    // Dereference the old string and replace it with the new string.
     PhDereferenceObject(StringBuilder->String);
     StringBuilder->String = newString;
 
@@ -3541,27 +3539,6 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
 
 /**
  * Obtains a reference to the string constructed
- * by a string builder object.
- *
- * \param StringBuilder A string builder object.
- *
- * \return A pointer to a string. You must free
- * the string using PhDereferenceObject() when
- * you no longer need it.
- *
- * \remarks Do not modify the string builder
- * object after you have referenced the string.
- * Otherwise, the string may change unexpectedly.
- */
-PPH_STRING PhReferenceStringBuilderString(
-    _In_ PPH_STRING_BUILDER StringBuilder
-    )
-{
-    return PhReferenceObject(StringBuilder->String);
-}
-
-/**
- * Obtains a reference to the string constructed
  * by a string builder object and frees resources
  * used by the object.
  *
@@ -3570,10 +3547,6 @@ PPH_STRING PhReferenceStringBuilderString(
  * \return A pointer to a string. You must free
  * the string using PhDereferenceObject() when
  * you no longer need it.
- *
- * \remarks This function is equivalent to calling
- * PhReferenceStringBuilderString() followed by
- * PhDeleteStringBuilder().
  */
 PPH_STRING PhFinalStringBuilderString(
     _Inout_ PPH_STRING_BUILDER StringBuilder
@@ -3591,7 +3564,7 @@ PPH_STRING PhFinalStringBuilderString(
  */
 VOID PhAppendStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PPH_STRING String
+    _In_ PPH_STRINGREF String
     )
 {
     PhAppendStringBuilderEx(
@@ -3774,7 +3747,7 @@ VOID PhAppendFormatStringBuilder_V(
 VOID PhInsertStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_ PPH_STRING String
+    _In_ PPH_STRINGREF String
     )
 {
     PhInsertStringBuilderEx(

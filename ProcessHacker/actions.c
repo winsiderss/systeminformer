@@ -1486,7 +1486,7 @@ BOOLEAN PhUiDebugProcess(
     PhInitializeStringBuilder(&commandLineBuilder, DebuggerCommand->Length + 30);
 
     PhAppendCharStringBuilder(&commandLineBuilder, '"');
-    PhAppendStringBuilder(&commandLineBuilder, DebuggerCommand);
+    PhAppendStringBuilder(&commandLineBuilder, &DebuggerCommand->sr);
     PhAppendCharStringBuilder(&commandLineBuilder, '"');
     PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
 

@@ -2713,7 +2713,7 @@ NTAPI
 PhFormatImageVersionInfo(
     _In_opt_ PPH_STRING FileName,
     _In_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_opt_ PWSTR Indent,
+    _In_opt_ PPH_STRINGREF Indent,
     _In_opt_ ULONG LineLimit
     );
 

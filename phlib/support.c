@@ -1694,15 +1694,12 @@ VOID PhDeleteImageVersionInfo(
 PPH_STRING PhFormatImageVersionInfo(
     _In_opt_ PPH_STRING FileName,
     _In_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_opt_ PWSTR Indent,
+    _In_opt_ PPH_STRINGREF Indent,
     _In_opt_ ULONG LineLimit
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    ULONG indentLength;
 
-    if (Indent)
-        indentLength = (ULONG)PhCountStringZ(Indent) * sizeof(WCHAR);
     if (LineLimit == 0)
         LineLimit = MAXULONG32;
 
@@ -1714,10 +1711,10 @@ PPH_STRING PhFormatImageVersionInfo(
     {
         PPH_STRING temp;
 
-        if (Indent) PhAppendStringBuilderEx(&stringBuilder, Indent, indentLength);
+        if (Indent) PhAppendStringBuilder(&stringBuilder, Indent);
 
         temp = PhEllipsisStringPath(FileName, LineLimit);
-        PhAppendStringBuilderEx(&stringBuilder, temp->Buffer, temp->Length);
+        PhAppendStringBuilder(&stringBuilder, &temp->sr);
         PhDereferenceObject(temp);
         PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
@@ -1761,28 +1758,18 @@ PPH_STRING PhFormatImageVersionInfo(
                 );
         }
 
-        if (Indent) PhAppendStringBuilderEx(&stringBuilder, Indent, indentLength);
+        if (Indent) PhAppendStringBuilder(&stringBuilder, Indent);
 
         if (tempDescription)
         {
-            PhAppendStringBuilderEx(
-                &stringBuilder,
-                tempDescription->Buffer,
-                tempDescription->Length
-                );
+            PhAppendStringBuilder(&stringBuilder, &tempDescription->sr);
 
             if (tempVersion)
                 PhAppendCharStringBuilder(&stringBuilder, ' ');
         }
 
         if (tempVersion)
-        {
-            PhAppendStringBuilderEx(
-                &stringBuilder,
-                tempVersion->Buffer,
-                tempVersion->Length
-                );
-        }
+            PhAppendStringBuilder(&stringBuilder, &tempVersion->sr);
 
         if (tempDescription)
             PhDereferenceObject(tempDescription);
@@ -1798,10 +1785,10 @@ PPH_STRING PhFormatImageVersionInfo(
     {
         PPH_STRING temp;
 
-        if (Indent) PhAppendStringBuilderEx(&stringBuilder, Indent, indentLength);
+        if (Indent) PhAppendStringBuilder(&stringBuilder, Indent);
 
         temp = PhEllipsisString(ImageVersionInfo->CompanyName, LineLimit);
-        PhAppendStringBuilderEx(&stringBuilder, temp->Buffer, temp->Length);
+        PhAppendStringBuilder(&stringBuilder, &temp->sr);
         PhDereferenceObject(temp);
         PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
@@ -4804,7 +4791,7 @@ PPH_STRING PhEscapeCommandLinePart(
     _In_ PPH_STRINGREF String
     )
 {
-    static WCHAR backslashAndQuote[2] = { '\\', '\"' };
+    static PH_STRINGREF backslashAndQuote = PH_STRINGREF_INIT(L"\\\"");
 
     PH_STRING_BUILDER stringBuilder;
     ULONG length;
@@ -4833,7 +4820,7 @@ PPH_STRING PhEscapeCommandLinePart(
                 numberOfBackslashes = 0;
             }
 
-            PhAppendStringBuilderEx(&stringBuilder, backslashAndQuote, sizeof(backslashAndQuote));
+            PhAppendStringBuilder(&stringBuilder, &backslashAndQuote);
 
             break;
         default:

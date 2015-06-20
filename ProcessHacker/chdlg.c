@@ -310,7 +310,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                         if (selectedChoice->Length != 0)
                         {
                             escaped = PhEscapeStringForDelimiter(selectedChoice, '\\');
-                            PhAppendStringBuilder(&savedChoices, escaped);
+                            PhAppendStringBuilder(&savedChoices, &escaped->sr);
                             PhDereferenceObject(escaped);
                             PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
@@ -332,7 +332,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                             }
 
                             escaped = PhEscapeStringForDelimiter(choice, '\\');
-                            PhAppendStringBuilder(&savedChoices, escaped);
+                            PhAppendStringBuilder(&savedChoices, &escaped->sr);
                             PhDereferenceObject(escaped);
                             PhDereferenceObject(choice);
 

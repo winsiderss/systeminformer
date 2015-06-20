@@ -2119,8 +2119,7 @@ PhConvertUtf16ToUtf8Ex(
 
 /**
  * A string builder structure.
- * The string builder object allows you to easily
- * construct complex strings without allocating
+ * The string builder object allows you to easily construct complex strings without allocating
  * a great number of strings in the process.
  */
 typedef struct _PH_STRING_BUILDER
@@ -2129,8 +2128,7 @@ typedef struct _PH_STRING_BUILDER
     SIZE_T AllocatedLength;
     /**
      * The constructed string.
-     * \a String will be allocated for \a AllocatedLength,
-     * but we will modify the \a Length field to be the
+     * \a String will be allocated for \a AllocatedLength, we will modify the \a Length field to be the
      * correct length.
      */
     PPH_STRING String;
@@ -2154,13 +2152,6 @@ PhDeleteStringBuilder(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhReferenceStringBuilderString(
-    _In_ PPH_STRING_BUILDER StringBuilder
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
 PhFinalStringBuilderString(
     _Inout_ PPH_STRING_BUILDER StringBuilder
     );
@@ -2170,7 +2161,7 @@ VOID
 NTAPI
 PhAppendStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PPH_STRING String
+    _In_ PPH_STRINGREF String
     );
 
 PHLIBAPI
@@ -2230,7 +2221,7 @@ NTAPI
 PhInsertStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T Index,
-    _In_ PPH_STRING String
+    _In_ PPH_STRINGREF String
     );
 
 PHLIBAPI

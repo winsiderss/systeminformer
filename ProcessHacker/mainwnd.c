@@ -171,7 +171,7 @@ BOOLEAN PhMainWndInitialization(
     if (PhCurrentUserName)
     {
         PhAppendStringBuilder2(&stringBuilder, L" [");
-        PhAppendStringBuilder(&stringBuilder, PhCurrentUserName);
+        PhAppendStringBuilder(&stringBuilder, &PhCurrentUserName->sr);
         PhAppendCharStringBuilder(&stringBuilder, ']');
         if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
     }
