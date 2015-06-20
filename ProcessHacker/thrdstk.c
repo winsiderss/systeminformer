@@ -298,7 +298,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                         PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
 
                     PhCopyListView(lvHandle);
-                    SetFocus(lvHandle);
+                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
                 }
                 break;
             }
