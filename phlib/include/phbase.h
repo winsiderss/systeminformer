@@ -1961,7 +1961,7 @@ PhEncodeUnicode(
 PHLIBAPI
 VOID
 NTAPI
-PhZeroExtendToUtf16InPlace(
+PhZeroExtendToUtf16Buffer(
     _In_reads_bytes_(InputLength) PCH Input,
     _In_ SIZE_T InputLength,
     _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWCH Output

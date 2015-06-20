@@ -564,26 +564,28 @@ SIZE_T PhCountStringZ(
 {
     if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
     {
-        PWSTR p = String;
+        PWSTR p;
+        ULONG unaligned;
         __m128i b;
         __m128i z;
         ULONG mask;
         ULONG index;
 
-        if ((ULONG_PTR)p & 0xe)
-        {
-            ULONG unalignedCount = (0x10 - (ULONG)((ULONG_PTR)p & 0xe)) / 2;
-
-            do
-            {
-                if (*p == 0)
-                    return p - String;
-
-                p++;
-            } while (--unalignedCount != 0);
-        }
-
+        p = (PWSTR)((ULONG_PTR)String & ~0xe); // String should be 2 byte aligned
+        unaligned = (ULONG)String & 0xf;
         z = _mm_setzero_si128();
+
+        if (unaligned != 0)
+        {
+            b = _mm_load_si128((__m128i *)p);
+            b = _mm_cmpeq_epi16(b, z);
+            mask = _mm_movemask_epi8(b) >> unaligned;
+
+            if (_BitScanForward(&index, mask))
+                return index / sizeof(WCHAR);
+
+            p += 16 / sizeof(WCHAR);
+        }
 
         while (TRUE)
         {
@@ -592,7 +594,7 @@ SIZE_T PhCountStringZ(
             mask = _mm_movemask_epi8(b);
 
             if (_BitScanForward(&index, mask))
-                return (SIZE_T)(p - String) + index / 2;
+                return (SIZE_T)(p - String) + index / sizeof(WCHAR);
 
             p += 16 / sizeof(WCHAR);
         }
@@ -869,7 +871,7 @@ BOOLEAN PhCopyStringZFromBytes(
 
     if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
     {
-        PhZeroExtendToUtf16InPlace(InputBuffer, i, OutputBuffer);
+        PhZeroExtendToUtf16Buffer(InputBuffer, i, OutputBuffer);
         OutputBuffer[i] = 0;
         copied = TRUE;
     }
@@ -1412,43 +1414,70 @@ ULONG_PTR PhFindCharInStringRef(
     {
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
+            ULONG unaligned;
+            __m128i pattern;
+            __m128i block;
+            ULONG mask;
+            ULONG index;
             SIZE_T length16;
 
-            length16 = String->Length / 16;
-            length &= 7;
+            unaligned = (ULONG)buffer & 0xf;
+            buffer = (PWSTR)((ULONG_PTR)buffer & ~0xe); // buffer should be 2 byte aligned
+            pattern = _mm_set1_epi16(Character);
+
+            if (unaligned != 0)
+            {
+                block = _mm_load_si128((__m128i *)buffer);
+                block = _mm_cmpeq_epi16(block, pattern);
+                mask = _mm_movemask_epi8(block) >> unaligned;
+
+                if (_BitScanForward(&index, mask))
+                    return index / sizeof(WCHAR);
+
+                buffer += 16 / sizeof(WCHAR);
+                length -= unaligned / sizeof(WCHAR);
+            }
+
+            length16 = length / (16 / sizeof(WCHAR));
+            length &= 0x7;
 
             if (length16 != 0)
             {
-                __m128i pattern;
-                __m128i block;
-                ULONG mask;
-                ULONG index;
-
-                pattern = _mm_set1_epi16(Character);
-
                 do
                 {
-                    block = _mm_loadu_si128((__m128i *)buffer);
+                    block = _mm_load_si128((__m128i *)buffer);
                     block = _mm_cmpeq_epi16(block, pattern);
                     mask = _mm_movemask_epi8(block);
 
                     if (_BitScanForward(&index, mask))
-                        return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
+                        return (SIZE_T)(buffer - String->Buffer) + index / sizeof(WCHAR);
 
                     buffer += 16 / sizeof(WCHAR);
                 } while (--length16 != 0);
             }
-        }
 
-        if (length != 0)
-        {
-            do
+            if (length != 0)
             {
-                if (*buffer == Character)
-                    return String->Length / sizeof(WCHAR) - length;
+                block = _mm_load_si128((__m128i *)buffer);
+                block = _mm_cmpeq_epi16(block, pattern);
+                mask = _mm_movemask_epi8(block) & ((1 << (length * sizeof(WCHAR))) - 1);
 
-                buffer++;
-            } while (--length != 0);
+                if (_BitScanForward(&index, mask))
+                    return index / sizeof(WCHAR);
+            }
+        }
+        else
+        {
+            if (length != 0)
+            {
+                do
+                {
+                    if (*buffer == Character)
+                        return String->Length / sizeof(WCHAR) - length;
+
+                    buffer++;
+                } while (--length != 0);
+            }
         }
     }
     else
@@ -2928,14 +2957,13 @@ BOOLEAN PhEncodeUnicode(
 }
 
 /**
- * Converts an ASCII string to a UTF-16 string by zero-extending
- * each byte.
+ * Converts an ASCII string to a UTF-16 string by zero-extending each byte.
  *
  * \param Input The original ASCII string.
  * \param InputLength The length of \a Input.
  * \param Output A buffer which will contain the converted string.
  */
-VOID PhZeroExtendToUtf16InPlace(
+VOID PhZeroExtendToUtf16Buffer(
     _In_reads_bytes_(InputLength) PSTR Input,
     _In_ SIZE_T InputLength,
     _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWSTR Output
@@ -2978,7 +3006,7 @@ PPH_STRING PhZeroExtendToUtf16Ex(
     PPH_STRING string;
 
     string = PhCreateStringEx(NULL, InputLength * sizeof(WCHAR));
-    PhZeroExtendToUtf16InPlace(Input, InputLength, string->Buffer);
+    PhZeroExtendToUtf16Buffer(Input, InputLength, string->Buffer);
 
     return string;
 }
@@ -3470,10 +3498,7 @@ VOID PhInitializeStringBuilder(
     // Allocate a PH_STRING for the string builder.
     // We will dereference it and allocate a new one when we need to resize the string.
 
-    StringBuilder->String = PhCreateStringEx(
-        NULL,
-        StringBuilder->AllocatedLength
-        );
+    StringBuilder->String = PhCreateStringEx(NULL,StringBuilder->AllocatedLength);
 
     // We will keep modifying the Length field of the string so that:
     // 1. We know how much of the string is used, and
