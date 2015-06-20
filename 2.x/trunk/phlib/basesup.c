@@ -3498,7 +3498,7 @@ VOID PhInitializeStringBuilder(
     // Allocate a PH_STRING for the string builder.
     // We will dereference it and allocate a new one when we need to resize the string.
 
-    StringBuilder->String = PhCreateStringEx(NULL,StringBuilder->AllocatedLength);
+    StringBuilder->String = PhCreateStringEx(NULL, StringBuilder->AllocatedLength);
 
     // We will keep modifying the Length field of the string so that:
     // 1. We know how much of the string is used, and
