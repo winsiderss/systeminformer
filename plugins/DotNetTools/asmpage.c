@@ -203,7 +203,7 @@ PPH_STRING FlagsToString(
     }
 
     if (sb.String->Length != 0)
-        PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+        PhRemoveEndStringBuilder(&sb, 2);
 
     return PhFinalStringBuilderString(&sb);
 }
