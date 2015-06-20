@@ -1410,32 +1410,37 @@ ULONG_PTR PhFindCharInStringRef(
     buffer = String->Buffer;
     length = String->Length / sizeof(WCHAR);
 
+    if (length == 0)
+        return -1;
+
     if (!IgnoreCase)
     {
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
-            ULONG unaligned;
+            SIZE_T unalignedBytes;
+            SIZE_T unalignedStringBytes;
             __m128i pattern;
             __m128i block;
             ULONG mask;
             ULONG index;
             SIZE_T length16;
 
-            unaligned = (ULONG)buffer & 0xf;
+            unalignedBytes = (ULONG_PTR)buffer & 0xf;
             buffer = (PWSTR)((ULONG_PTR)buffer & ~0xe); // buffer should be 2 byte aligned
             pattern = _mm_set1_epi16(Character);
 
-            if (unaligned != 0)
+            if (unalignedBytes != 0)
             {
+                unalignedStringBytes = min(0x10 - unalignedBytes, length * sizeof(WCHAR));
                 block = _mm_load_si128((__m128i *)buffer);
                 block = _mm_cmpeq_epi16(block, pattern);
-                mask = _mm_movemask_epi8(block) >> unaligned;
+                mask = (_mm_movemask_epi8(block) >> unalignedBytes) & ((1 << unalignedStringBytes) - 1);
 
                 if (_BitScanForward(&index, mask))
                     return index / sizeof(WCHAR);
 
                 buffer += 16 / sizeof(WCHAR);
-                length -= unaligned / sizeof(WCHAR);
+                length -= unalignedStringBytes / sizeof(WCHAR);
             }
 
             length16 = length / (16 / sizeof(WCHAR));
@@ -1468,34 +1473,28 @@ ULONG_PTR PhFindCharInStringRef(
         }
         else
         {
-            if (length != 0)
-            {
-                do
-                {
-                    if (*buffer == Character)
-                        return String->Length / sizeof(WCHAR) - length;
-
-                    buffer++;
-                } while (--length != 0);
-            }
-        }
-    }
-    else
-    {
-        if (length != 0)
-        {
-            WCHAR c;
-
-            c = RtlUpcaseUnicodeChar(Character);
-
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (*buffer == Character)
                     return String->Length / sizeof(WCHAR) - length;
 
                 buffer++;
             } while (--length != 0);
         }
+    }
+    else
+    {
+        WCHAR c;
+
+        c = RtlUpcaseUnicodeChar(Character);
+
+        do
+        {
+            if (RtlUpcaseUnicodeChar(*buffer) == c)
+                return String->Length / sizeof(WCHAR) - length;
+
+            buffer++;
+        } while (--length != 0);
     }
 
     return -1;
