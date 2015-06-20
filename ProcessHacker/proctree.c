@@ -1937,7 +1937,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = processItem->ProcessName->sr;
                 break;
             case PHPRTLC_PID:
-                PhInitializeStringRef(&getCellText->Text, processItem->ProcessIdString);
+                PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdString);
                 break;
             case PHPRTLC_CPU:
                 {
@@ -2079,14 +2079,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = node->PageFaultsText->sr;
                 break;
             case PHPRTLC_SESSIONID:
-                PhInitializeStringRef(&getCellText->Text, processItem->SessionIdString);
+                PhInitializeStringRefLongHint(&getCellText->Text, processItem->SessionIdString);
                 break;
             case PHPRTLC_PRIORITYCLASS:
-                PhInitializeStringRef(&getCellText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
+                PhInitializeStringRefLongHint(&getCellText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
                 break;
             case PHPRTLC_BASEPRIORITY:
                 PhPrintInt32(node->BasePriorityText, processItem->BasePriority);
-                PhInitializeStringRef(&getCellText->Text, node->BasePriorityText);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->BasePriorityText);
                 break;
             case PHPRTLC_THREADS:
                 PhpFormatInt32GroupDigits(processItem->NumberOfThreads, node->ThreadsText, sizeof(node->ThreadsText), &getCellText->Text);
@@ -2156,7 +2156,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_INTEGRITY:
                 if (processItem->IntegrityString)
-                    PhInitializeStringRef(&getCellText->Text, processItem->IntegrityString);
+                    PhInitializeStringRefLongHint(&getCellText->Text, processItem->IntegrityString);
                 break;
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
@@ -2164,7 +2164,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 if (node->IoPriority != -1)
                 {
                     if (node->IoPriority < MaxIoPriorityTypes)
-                        PhInitializeStringRef(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
+                        PhInitializeStringRefLongHint(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
                 }
 
                 break;
@@ -2174,7 +2174,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 if (node->PagePriority != -1)
                 {
                     PhPrintUInt32(node->PagePriorityText, node->PagePriority);
-                    PhInitializeStringRef(&getCellText->Text, node->PagePriorityText);
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->PagePriorityText);
                 }
 
                 break;
@@ -2194,15 +2194,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhPrintTimeSpan(node->TotalCpuTimeText,
                     processItem->KernelTime.QuadPart + processItem->UserTime.QuadPart,
                     PH_TIMESPAN_HMSM);
-                PhInitializeStringRef(&getCellText->Text, node->TotalCpuTimeText);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->TotalCpuTimeText);
                 break;
             case PHPRTLC_KERNELCPUTIME:
                 PhPrintTimeSpan(node->KernelCpuTimeText, processItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
-                PhInitializeStringRef(&getCellText->Text, node->KernelCpuTimeText);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->KernelCpuTimeText);
                 break;
             case PHPRTLC_USERCPUTIME:
                 PhPrintTimeSpan(node->UserCpuTimeText, processItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
-                PhInitializeStringRef(&getCellText->Text, node->UserCpuTimeText);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->UserCpuTimeText);
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
                 if (processItem->VerifyResult == VrTrusted)
@@ -2274,7 +2274,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         type = L"";
                     }
 
-                    PhInitializeStringRef(&getCellText->Text, type);
+                    PhInitializeStringRefLongHint(&getCellText->Text, type);
                 }
                 break;
             case PHPRTLC_WINDOWTITLE:

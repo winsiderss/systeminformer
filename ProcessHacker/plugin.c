@@ -478,7 +478,7 @@ PPH_PLUGIN PhRegisterPlugin(
     ULONG i;
     PPH_STRING fileName;
 
-    PhInitializeStringRef(&pluginName, Name);
+    PhInitializeStringRefLongHint(&pluginName, Name);
 
     if (!PhpValidatePluginName(&pluginName))
         return NULL;
@@ -491,7 +491,7 @@ PPH_PLUGIN PhRegisterPlugin(
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
 
-    PhInitializeStringRef(&plugin->Name, Name);
+    plugin->Name = pluginName;
     plugin->DllBase = DllBase;
 
     plugin->FileName = fileName;
@@ -529,7 +529,7 @@ PPH_PLUGIN PhFindPlugin(
 {
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     return PhFindPlugin2(&name);
 }

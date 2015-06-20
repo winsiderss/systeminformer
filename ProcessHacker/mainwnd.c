@@ -2036,7 +2036,7 @@ BOOLEAN PhMwpOnNotify(
             PPH_STRING fullFileName;
             PPH_STRING argumentsString;
 
-            PhInitializeStringRef(&string, (PWSTR)runFileDlg->lpszFile);
+            PhInitializeStringRefLongHint(&string, (PWSTR)runFileDlg->lpszFile);
             PhParseCommandLineFuzzy(&string, &fileName, &arguments, &fullFileName);
 
             if (!fullFileName)

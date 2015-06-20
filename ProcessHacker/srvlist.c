@@ -559,10 +559,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 getCellText->Text = serviceItem->DisplayName->sr;
                 break;
             case PHSVTLC_TYPE:
-                PhInitializeStringRef(&getCellText->Text, PhGetServiceTypeString(serviceItem->Type));
+                PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceTypeString(serviceItem->Type));
                 break;
             case PHSVTLC_STATUS:
-                PhInitializeStringRef(&getCellText->Text, PhGetServiceStateString(serviceItem->State));
+                PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceStateString(serviceItem->State));
                 break;
             case PHSVTLC_STARTTYPE:
                 {
@@ -591,14 +591,14 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_PID:
-                PhInitializeStringRef(&getCellText->Text, serviceItem->ProcessIdString);
+                PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
                 break;
             case PHSVTLC_BINARYPATH:
                 PhpUpdateServiceNodeConfig(node);
                 getCellText->Text = PhGetStringRef(node->BinaryPath);
                 break;
             case PHSVTLC_ERRORCONTROL:
-                PhInitializeStringRef(&getCellText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
+                PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
                 break;
             case PHSVTLC_GROUP:
                 PhpUpdateServiceNodeConfig(node);

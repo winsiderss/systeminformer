@@ -105,7 +105,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     if (selStart == selEnd)
                     {
                         // Select and copy the entire string.
-                        PhInitializeStringRef(&string, buffer);
+                        PhInitializeStringRefLongHint(&string, buffer);
                         Edit_SetSel(editControl, 0, -1);
                     }
                     else

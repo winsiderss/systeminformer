@@ -1026,8 +1026,8 @@ VOID PhAddSettings(
         PH_STRINGREF name;
         PH_STRINGREF defaultValue;
 
-        PhInitializeStringRef(&name, Settings[i].Name);
-        PhInitializeStringRef(&defaultValue, Settings[i].DefaultValue);
+        PhInitializeStringRefLongHint(&name, Settings[i].Name);
+        PhInitializeStringRefLongHint(&defaultValue, Settings[i].DefaultValue);
         PhpAddSetting(Settings[i].Type, &name, &defaultValue);
     }
 

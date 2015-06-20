@@ -1010,7 +1010,7 @@ static VOID PhpSplitUserName(
     PH_STRINGREF domainPart;
     PH_STRINGREF userPart;
 
-    PhInitializeStringRef(&userName, UserName);
+    PhInitializeStringRefLongHint(&userName, UserName);
 
     if (PhSplitStringRefAtChar(&userName, '\\', &domainPart, &userPart))
     {
