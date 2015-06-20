@@ -327,7 +327,7 @@ PPH_STRING PhGetTreeNewText(
 
         // Remove the trailing comma and space.
         if (stringBuilder.String->Length != 0)
-            PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
 
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
@@ -518,7 +518,7 @@ PPH_STRING PhGetListViewText(
 
         // Remove the trailing comma and space.
         if (stringBuilder.String->Length != 0)
-            PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
 
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }

@@ -482,7 +482,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 PhAppendStringBuilder2(&stringBuilder, L"Terminal server aware, ");
 
             if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+                PhRemoveEndStringBuilder(&stringBuilder, 2);
 
             SetDlgItemText(hwndDlg, IDC_CHARACTERISTICS, stringBuilder.String->Buffer);
             PhDeleteStringBuilder(&stringBuilder);
@@ -926,7 +926,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 PhAppendStringBuilder2(&stringBuilder, L"Track debug data, ");
 
             if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-                PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+                PhRemoveEndStringBuilder(&stringBuilder, 2);
 
             SetDlgItemText(hwndDlg, IDC_FLAGS, stringBuilder.String->Buffer);
             PhDeleteStringBuilder(&stringBuilder);

@@ -736,7 +736,7 @@ NTSTATUS PhpGetBestObjectName(
             PhFree(processIdList);
 
             if (sb.String->Length != 0)
-                PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+                PhRemoveEndStringBuilder(&sb, 2);
 
             if (sb.String->Length == 0)
                 PhAppendStringBuilder2(&sb, L"(No processes)");

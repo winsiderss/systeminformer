@@ -771,7 +771,7 @@ PPH_STRING PhGetAccessString(
 
     // Remove the trailing ", ".
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
 
     PhFree(matched);
     PhFree(accessEntries);
