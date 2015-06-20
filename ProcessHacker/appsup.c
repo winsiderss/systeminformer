@@ -1398,7 +1398,7 @@ BOOLEAN PhShellProcessHackerEx(
             else
                 temp = PhEscapeCommandLinePart(&PhStartupParameters.SettingsFileName->sr);
 
-            PhAppendStringBuilder(&sb, temp);
+            PhAppendStringBuilder(&sb, &temp->sr);
             PhDereferenceObject(temp);
             PhAppendCharStringBuilder(&sb, '\"');
         }
@@ -1422,7 +1422,7 @@ BOOLEAN PhShellProcessHackerEx(
         {
             PhAppendStringBuilder2(&sb, L" -selecttab \"");
             temp = PhEscapeCommandLinePart(&PhStartupParameters.SelectTab->sr);
-            PhAppendStringBuilder(&sb, temp);
+            PhAppendStringBuilder(&sb, &temp->sr);
             PhDereferenceObject(temp);
             PhAppendCharStringBuilder(&sb, '\"');
         }
@@ -1940,7 +1940,7 @@ BOOLEAN PhHandleCopyCellEMenuItem(
             PhInitializeEmptyStringRef(&getCellText.Text);
             TreeNew_GetCellText(context->TreeNewHandle, &getCellText);
 
-            PhAppendStringBuilderEx(&stringBuilder, getCellText.Text.Buffer, getCellText.Text.Length);
+            PhAppendStringBuilder(&stringBuilder, &getCellText.Text);
             PhAppendStringBuilder2(&stringBuilder, L"\r\n");
         }
     }

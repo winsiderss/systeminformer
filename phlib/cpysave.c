@@ -34,7 +34,7 @@ VOID PhpEscapeStringForCsv(
     SIZE_T i;
     SIZE_T length;
     PWCHAR runStart;
-    ULONG runLength;
+    SIZE_T runLength;
 
     length = String->Length / sizeof(WCHAR);
     runStart = NULL;
@@ -177,7 +177,7 @@ PPH_LIST PhaFormatTextTable(
                         // Calculate the number of tabs needed.
                         k = (ULONG)(tabCount[j] + 1 - Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE);
 
-                        PhAppendStringBuilder(&stringBuilder, Table[i][j]);
+                        PhAppendStringBuilder(&stringBuilder, &Table[i][j]->sr);
                     }
                     else
                     {
@@ -199,7 +199,7 @@ PPH_LIST PhaFormatTextTable(
                         // Calculate the number of spaces needed.
                         k = (ULONG)((tabCount[j] + 1) * TAB_SIZE - Table[i][j]->Length / sizeof(WCHAR));
 
-                        PhAppendStringBuilder(&stringBuilder, Table[i][j]);
+                        PhAppendStringBuilder(&stringBuilder, &Table[i][j]->sr);
                     }
                     else
                     {
@@ -321,7 +321,7 @@ PPH_STRING PhGetTreeNewText(
             PhInitializeEmptyStringRef(&getCellText.Text);
             TreeNew_GetCellText(TreeNewHandle, &getCellText);
 
-            PhAppendStringBuilderEx(&stringBuilder, getCellText.Text.Buffer, getCellText.Text.Length);
+            PhAppendStringBuilder(&stringBuilder, &getCellText.Text);
             PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 
@@ -512,7 +512,7 @@ PPH_STRING PhGetListViewText(
 
         for (j = 0; j < columns; j++)
         {
-            PhAppendStringBuilder(&stringBuilder, PhaGetListViewItemText(ListViewHandle, i, j));
+            PhAppendStringBuilder(&stringBuilder, &PhaGetListViewItemText(ListViewHandle, i, j)->sr);
             PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 

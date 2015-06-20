@@ -708,7 +708,7 @@ PPH_STRING EtpGetGpuNameString(
             // This does not take into account localization.
             if (count == 1 || !PhEqualString2(description, L"Microsoft Basic Render Driver", TRUE))
             {
-                PhAppendStringBuilder(&sb, description);
+                PhAppendStringBuilder(&sb, &description->sr);
                 PhAppendStringBuilder2(&sb, L", ");
             }
         }

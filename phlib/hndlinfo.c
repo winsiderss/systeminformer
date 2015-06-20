@@ -727,7 +727,7 @@ NTSTATUS PhpGetBestObjectName(
 
                 if (name)
                 {
-                    PhAppendStringBuilder(&sb, name);
+                    PhAppendStringBuilder(&sb, &name->sr);
                     PhAppendStringBuilder2(&sb, L"; ");
                     PhDereferenceObject(name);
                 }

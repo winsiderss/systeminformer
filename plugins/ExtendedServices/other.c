@@ -601,7 +601,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                                 for (i = 0; i < context->PrivilegeList->Count; i++)
                                 {
-                                    PhAppendStringBuilder(&sb, context->PrivilegeList->Items[i]);
+                                    PhAppendStringBuilder(&sb, &((PPH_STRING)context->PrivilegeList->Items[i])->sr);
                                     PhAppendCharStringBuilder(&sb, 0);
                                 }
 

@@ -121,12 +121,12 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
 
         PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
         temp = PhFormatDateTime(&systemTime);
-        PhAppendStringBuilder(&stringBuilder, temp);
+        PhAppendStringBuilder(&stringBuilder, &temp->sr);
         PhDereferenceObject(temp);
         PhAppendStringBuilder2(&stringBuilder, L": ");
 
         temp = PhFormatLogEntry(entry);
-        PhAppendStringBuilder(&stringBuilder, temp);
+        PhAppendStringBuilder(&stringBuilder, &temp->sr);
         PhDereferenceObject(temp);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
