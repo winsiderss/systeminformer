@@ -169,7 +169,7 @@ static ULONG PhNetworkPingThreadStart(
             icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 message.
-            icmpReplyLength = (ULONG)ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
+            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -249,7 +249,7 @@ static ULONG PhNetworkPingThreadStart(
             icmpRemoteAddr = context->IpAddress.InAddr.s_addr;
 
             // Allocate ICMPv4 message.
-            icmpReplyLength = (ULONG)ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
+            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
             icmpReplyBuffer = PhAllocate(icmpReplyLength);
             memset(icmpReplyBuffer, 0, icmpReplyLength);
 
@@ -355,6 +355,11 @@ static ULONG PhNetworkPingThreadStart(
         {
             IcmpCloseHandle(icmpHandle);
         }
+
+        if (icmpReplyBuffer)
+        {
+            PhFree(icmpReplyBuffer);
+        }
     }
 
     PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
@@ -434,7 +439,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 3,
                 hwndDlg,
                 NULL,
-                (HINSTANCE)PluginInstance->DllBase,
+                NULL,
                 NULL
                 );
             Graph_SetTooltip(context->PingGraphHandle, TRUE);

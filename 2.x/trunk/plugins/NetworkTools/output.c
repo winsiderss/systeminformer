@@ -2,8 +2,8 @@
  * Process Hacker Network Tools -
  *   output dialog
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2013 dmex
+ * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2012-2015 dmex
  *
  * This file is part of Process Hacker.
  *
