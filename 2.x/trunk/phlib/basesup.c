@@ -1463,7 +1463,7 @@ ULONG_PTR PhFindCharInStringRef(
                 mask = _mm_movemask_epi8(block) & ((1 << (length * sizeof(WCHAR))) - 1);
 
                 if (_BitScanForward(&index, mask))
-                    return index / sizeof(WCHAR);
+                    return (SIZE_T)(buffer - String->Buffer) + index / sizeof(WCHAR);
             }
         }
         else
