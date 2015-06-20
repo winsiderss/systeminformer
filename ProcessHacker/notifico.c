@@ -213,7 +213,7 @@ VOID PhNfSaveSettings(
         }
 
         if (iconListBuilder.String->Length != 0)
-            PhRemoveStringBuilder(&iconListBuilder, iconListBuilder.String->Length / 2 - 1, 1);
+            PhRemoveEndStringBuilder(&iconListBuilder, 1);
 
         PhSetStringSetting2(L"IconMaskList", &iconListBuilder.String->sr);
         PhDeleteStringBuilder(&iconListBuilder);

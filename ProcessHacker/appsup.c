@@ -1946,7 +1946,7 @@ BOOLEAN PhHandleCopyCellEMenuItem(
     }
 
     if (stringBuilder.String->Length != 0 && selectedCount == 1)
-        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
 
     PhSetClipboardString(context->TreeNewHandle, &stringBuilder.String->sr);
     PhDeleteStringBuilder(&stringBuilder);
