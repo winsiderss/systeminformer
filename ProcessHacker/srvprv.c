@@ -175,31 +175,6 @@ VOID PhpServiceItemDeleteProcedure(
     if (serviceItem->DisplayName) PhDereferenceObject(serviceItem->DisplayName);
 }
 
-/**
- * Generates a hash code for a string, case-insensitive.
- *
- * \param String The string.
- * \param Count The number of characters to hash.
- */
-FORCEINLINE ULONG PhpHashStringIgnoreCase(
-    _In_ PWSTR String,
-    _In_ SIZE_T Count
-    )
-{
-    ULONG hash = (ULONG)Count;
-
-    if (Count == 0)
-        return 0;
-
-    do
-    {
-        hash = RtlUpcaseUnicodeChar(*String) + (hash << 6) + (hash << 16) - hash;
-        String++;
-    } while (--Count != 0);
-
-    return hash;
-}
-
 BOOLEAN PhpServiceHashtableCompareFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -217,7 +192,7 @@ ULONG PhpServiceHashtableHashFunction(
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
 
-    return PhpHashStringIgnoreCase(serviceItem->Key.Buffer, serviceItem->Key.Length / sizeof(WCHAR));
+    return PhHashStringRef(&serviceItem->Key, TRUE);
 }
 
 PPH_SERVICE_ITEM PhpLookupServiceItem(
@@ -466,7 +441,7 @@ static ULONG PhpHashServiceNameEntry(
     _In_ PPHP_SERVICE_NAME_ENTRY Value
     )
 {
-    return PhHashBytes((PUCHAR)Value->Name.Buffer, Value->Name.Length);
+    return PhHashStringRef(&Value->Name, TRUE);
 }
 
 VOID PhServiceProviderUpdate(

@@ -2908,33 +2908,20 @@ PhNextEnumHashtable(
     return NULL;
 }
 
-#define PhHashBytes PhHashBytesSdbm
-
-#define PhHashBytesHsieh PhfHashBytesHsieh
 PHLIBAPI
 ULONG
-FASTCALL
-PhfHashBytesHsieh(
-    _In_ PUCHAR Bytes,
+NTAPI
+PhHashBytes(
+    _In_reads_(Length) PUCHAR Bytes,
     _In_ SIZE_T Length
     );
 
-#define PhHashBytesMurmur PhfHashBytesMurmur
 PHLIBAPI
 ULONG
-FASTCALL
-PhfHashBytesMurmur(
-    _In_ PUCHAR Bytes,
-    _In_ SIZE_T Length
-    );
-
-#define PhHashBytesSdbm PhfHashBytesSdbm
-PHLIBAPI
-ULONG
-FASTCALL
-PhfHashBytesSdbm(
-    _In_ PUCHAR Bytes,
-    _In_ SIZE_T Length
+NTAPI
+PhHashStringRef(
+    _In_ PPH_STRINGREF String,
+    _In_ BOOLEAN IgnoreCase
     );
 
 FORCEINLINE

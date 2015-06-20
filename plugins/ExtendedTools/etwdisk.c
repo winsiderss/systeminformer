@@ -143,32 +143,6 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     if (diskItem->ProcessRecord) PhDereferenceProcessRecord(diskItem->ProcessRecord);
 }
 
-// Copied from srvprv.c
-/**
- * Generates a hash code for a string, case-insensitive.
- *
- * \param String The string.
- * \param Count The number of characters to hash.
- */
-FORCEINLINE ULONG EtpHashStringIgnoreCase(
-    _In_ PWSTR String,
-    _In_ SIZE_T Count
-    )
-{
-    ULONG hash = (ULONG)Count;
-
-    if (Count == 0)
-        return 0;
-
-    do
-    {
-        hash = RtlUpcaseUnicodeChar(*String) + (hash << 6) + (hash << 16) - hash;
-        String++;
-    } while (--Count != 0);
-
-    return hash;
-}
-
 BOOLEAN NTAPI EtpDiskHashtableCompareFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -186,7 +160,7 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
 {
     PET_DISK_ITEM diskItem = *(PET_DISK_ITEM *)Entry;
 
-    return (HandleToUlong(diskItem->ProcessId) / 4) ^ EtpHashStringIgnoreCase(diskItem->FileName->Buffer, diskItem->FileName->Length / sizeof(WCHAR));
+    return (HandleToUlong(diskItem->ProcessId) / 4) ^ PhHashStringRef(&diskItem->FileName->sr, TRUE);
 }
 
 PET_DISK_ITEM EtReferenceDiskItem(
