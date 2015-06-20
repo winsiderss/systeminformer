@@ -122,7 +122,7 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
                 EndDialog(hwndDlg, IDCANCEL);
             }
 
-            SetFocus(GetDlgItem(hwndDlg, IDOK));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
         }
         break;
     case WM_COMMAND:

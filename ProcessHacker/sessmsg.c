@@ -90,7 +90,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
                     );
             }
 
-            SetFocus(GetDlgItem(hwndDlg, IDC_TEXT));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_TEXT), TRUE);
         }
         break;
     case WM_DESTROY:

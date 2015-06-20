@@ -86,7 +86,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                 L"0x400 - PAGE_WRITECOMBINE\r\n"
                 );
 
-            SetFocus(GetDlgItem(hwndDlg, IDC_VALUE));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUE), TRUE);
         }
         break;
     case WM_DESTROY:
@@ -142,7 +142,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
                     else
                     {
                         PhShowStatus(hwndDlg, L"Unable to change memory protection", status, 0);
-                        SetFocus(GetDlgItem(hwndDlg, IDC_VALUE));
+                        SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUE), TRUE);
                         Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUE), 0, -1);
                     }
                 }
