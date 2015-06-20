@@ -665,7 +665,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             {
             case PHMMTLC_BASEADDRESS:
                 PhPrintPointer(node->BaseAddressText, memoryItem->BaseAddress);
-                PhInitializeStringRef(&getCellText->Text, node->BaseAddressText);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->BaseAddressText);
                 break;
             case PHMMTLC_TYPE:
                 if (memoryItem->State & MEM_FREE)
@@ -677,7 +677,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 }
                 else if (node->IsAllocationBase)
                 {
-                    PhInitializeStringRef(&getCellText->Text, PhGetMemoryTypeString(memoryItem->Type));
+                    PhInitializeStringRefLongHint(&getCellText->Text, PhGetMemoryTypeString(memoryItem->Type));
                 }
                 else
                 {
@@ -700,7 +700,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMMTLC_PROTECTION:
-                PhInitializeStringRef(&getCellText->Text, node->ProtectionText);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
                 break;
             case PHMMTLC_USE:
                 PhpUpdateMemoryNodeUseText(node);

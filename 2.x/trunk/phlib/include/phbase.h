@@ -889,6 +889,17 @@ PhInitializeStringRef(
 
 FORCEINLINE
 VOID
+PhInitializeStringRefLongHint(
+    _Out_ PPH_STRINGREF String,
+    _In_ PWSTR Buffer
+    )
+{
+    String->Length = PhCountStringZ(Buffer) * sizeof(WCHAR);
+    String->Buffer = Buffer;
+}
+
+FORCEINLINE
+VOID
 PhInitializeBytesRef(
     _Out_ PPH_BYTESREF Bytes,
     _In_ PSTR Buffer
@@ -2265,6 +2276,72 @@ PhRemoveEndStringBuilder(
         Count
         );
 }
+
+// Byte string builder
+
+/**
+ * A byte string builder structure.
+ * This is similar to string builder, but is based on PH_BYTES and is suitable for general binary data.
+ */
+typedef struct _PH_BYTES_BUILDER
+{
+    /** Allocated length of the byte string, not including the null terminator. */
+    SIZE_T AllocatedLength;
+    /**
+     * The constructed byte string.
+     * \a Bytes will be allocated for \a AllocatedLength, we will modify the \a Length field to be the
+     * correct length.
+     */
+    PPH_BYTES Bytes;
+} PH_BYTES_BUILDER, *PPH_BYTES_BUILDER;
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeBytesBuilder(
+    _Out_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ SIZE_T InitialCapacity
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteBytesBuilder(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder
+    );
+
+PHLIBAPI
+PPH_BYTES
+NTAPI
+PhFinalBytesBuilderBytes(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAppendBytesBuilder(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ PPH_BYTESREF Bytes
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAppendBytesBuilder2(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ PCHAR Bytes
+    );
+
+PHLIBAPI
+PCHAR
+NTAPI
+PhAppendBytesBuilderEx(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_opt_ PCHAR Buffer,
+    _In_ SIZE_T Length,
+    _Out_opt_ PSIZE_T Offset
+    );
 
 // List
 

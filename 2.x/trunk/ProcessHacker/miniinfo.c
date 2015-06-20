@@ -187,7 +187,7 @@ VOID PhPinMiniInformation(
         PH_STRINGREF sectionName;
         PPH_MINIINFO_SECTION section;
 
-        PhInitializeStringRef(&sectionName, SectionName);
+        PhInitializeStringRefLongHint(&sectionName, SectionName);
 
         if (section = PhMipFindSection(&sectionName))
             PhMipChangeSection(section);

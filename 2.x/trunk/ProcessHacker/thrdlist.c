@@ -492,7 +492,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHTHTLC_TID:
-                PhInitializeStringRef(&getCellText->Text, threadItem->ThreadIdString);
+                PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
                 break;
             case PHTHTLC_CPU:
                 {

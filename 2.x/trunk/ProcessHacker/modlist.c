@@ -580,7 +580,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = moduleItem->Name->sr;
                 break;
             case PHMOTLC_BASEADDRESS:
-                PhInitializeStringRef(&getCellText->Text, moduleItem->BaseAddressString);
+                PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
                 break;
             case PHMOTLC_SIZE:
                 if (!node->SizeText)
@@ -625,7 +625,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         break;
                     }
 
-                    PhInitializeStringRef(&getCellText->Text, typeString);
+                    PhInitializeStringRefLongHint(&getCellText->Text, typeString);
                 }
                 break;
             case PHMOTLC_LOADCOUNT:
@@ -635,7 +635,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     if (moduleItem->LoadCount != (USHORT)-1)
                     {
                         PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
-                        PhInitializeStringRef(&getCellText->Text, node->LoadCountText);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
                     }
                     else
                     {
@@ -756,7 +756,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         }
                     }
 
-                    PhInitializeStringRef(&getCellText->Text, string);
+                    PhInitializeStringRefLongHint(&getCellText->Text, string);
                 }
                 break;
             default:

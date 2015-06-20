@@ -520,7 +520,7 @@ VOID PhServiceProviderUpdate(
         PPHP_SERVICE_NAME_ENTRY entry;
 
         entry = &nameEntries[nameEntriesCount++];
-        PhInitializeStringRef(&entry->Name, services[i].lpServiceName);
+        PhInitializeStringRefLongHint(&entry->Name, services[i].lpServiceName);
         entry->ServiceEntry = &services[i];
         PhAddEntryHashSet(
             nameHashSet,
