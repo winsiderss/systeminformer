@@ -1047,13 +1047,13 @@ static VOID WepRefreshWindowClassInfo(
 
     if (PhEndsWithString2(stringBuilder.String, L" | ", FALSE))
     {
-        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 3, 3);
+        PhRemoveEndStringBuilder(&stringBuilder, 3);
         PhAppendCharStringBuilder(&stringBuilder, ')');
     }
     else
     {
         // No styles. Remove the brackets.
-        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
     }
 
     SetDlgItemText(hwndDlg, IDC_STYLES, stringBuilder.String->Buffer);
