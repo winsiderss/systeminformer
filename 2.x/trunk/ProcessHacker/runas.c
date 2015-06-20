@@ -341,7 +341,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_TYPE), FALSE);
             }
 
-            SetFocus(GetDlgItem(hwndDlg, IDC_PROGRAM));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_PROGRAM), TRUE);
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
 
             //if (!PhElevated)

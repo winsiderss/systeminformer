@@ -427,7 +427,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
-                    SetFocus(lvHandle);
+                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
                 }
                 break;
             case IDC_SAVE:

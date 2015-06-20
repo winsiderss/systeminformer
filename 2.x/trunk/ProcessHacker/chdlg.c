@@ -190,8 +190,6 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 context->SavedChoicesSettingName = NULL; // make sure we don't try to save the choices
             }
 
-            SetFocus(comboBoxHandle);
-
             if (type == PH_CHOICE_DIALOG_PASSWORD)
             {
                 if (*context->SelectedChoice)
@@ -262,7 +260,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     SWP_NOACTIVATE | SWP_NOZORDER);
             }
 
-            SetFocus(comboBoxHandle);
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)comboBoxHandle, TRUE);
         }
         break;
     case WM_DESTROY:
