@@ -496,20 +496,20 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 getCellText->Text = node->LocalAddressText;
                 break;
             case PHNETLC_LOCALPORT:
-                PhInitializeStringRef(&getCellText->Text, networkItem->LocalPortString);
+                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
                 break;
             case PHNETLC_REMOTEADDRESS:
                 getCellText->Text = node->RemoteAddressText;
                 break;
             case PHNETLC_REMOTEPORT:
-                PhInitializeStringRef(&getCellText->Text, networkItem->RemotePortString);
+                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
                 break;
             case PHNETLC_PROTOCOL:
-                PhInitializeStringRef(&getCellText->Text, PhGetProtocolTypeName(networkItem->ProtocolType));
+                PhInitializeStringRefLongHint(&getCellText->Text, PhGetProtocolTypeName(networkItem->ProtocolType));
                 break;
             case PHNETLC_STATE:
                 if (networkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE)
-                    PhInitializeStringRef(&getCellText->Text, PhGetTcpStateName(networkItem->State));
+                    PhInitializeStringRefLongHint(&getCellText->Text, PhGetTcpStateName(networkItem->State));
                 else
                     PhInitializeEmptyStringRef(&getCellText->Text);
                 break;
@@ -681,12 +681,12 @@ VOID PhpUpdateNetworkNodeAddressStrings(
     if (NetworkNode->NetworkItem->LocalHostString)
         NetworkNode->LocalAddressText = NetworkNode->NetworkItem->LocalHostString->sr;
     else
-        PhInitializeStringRef(&NetworkNode->LocalAddressText, NetworkNode->NetworkItem->LocalAddressString);
+        PhInitializeStringRefLongHint(&NetworkNode->LocalAddressText, NetworkNode->NetworkItem->LocalAddressString);
 
     if (NetworkNode->NetworkItem->RemoteHostString)
         NetworkNode->RemoteAddressText = NetworkNode->NetworkItem->RemoteHostString->sr;
     else
-        PhInitializeStringRef(&NetworkNode->RemoteAddressText, NetworkNode->NetworkItem->RemoteAddressString);
+        PhInitializeStringRefLongHint(&NetworkNode->RemoteAddressText, NetworkNode->NetworkItem->RemoteAddressString);
 }
 
 PPH_NETWORK_ITEM PhGetSelectedNetworkItem(

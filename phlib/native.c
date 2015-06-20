@@ -1805,7 +1805,7 @@ NTSTATUS PhInjectDllProcess(
     }
 #endif
 
-    PhInitializeStringRef(&fileName, FileName);
+    PhInitializeStringRefLongHint(&fileName, FileName);
     allocSize = fileName.Length + sizeof(WCHAR);
 
     if (!NT_SUCCESS(status = NtAllocateVirtualMemory(

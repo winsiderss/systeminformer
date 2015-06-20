@@ -89,7 +89,7 @@ PWSTR PhpGetPluginDisableButtonText(
 {
     PH_STRINGREF baseName;
 
-    PhInitializeStringRef(&baseName, BaseName);
+    PhInitializeStringRefLongHint(&baseName, BaseName);
 
     if (PhIsPluginDisabled(&baseName))
         return L"Enable";
@@ -174,7 +174,7 @@ BOOLEAN PhpIsPluginLoadedByBaseName(
         PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
         PH_STRINGREF pluginBaseName;
 
-        PhInitializeStringRef(&pluginBaseName, PhpGetPluginBaseName(plugin));
+        PhInitializeStringRefLongHint(&pluginBaseName, PhpGetPluginBaseName(plugin));
 
         if (PhEqualStringRef(&pluginBaseName, BaseName, TRUE))
             return TRUE;
@@ -326,7 +326,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 if (plugin->Information.Author)
                     PhSetListViewSubItem(PluginsLv, lvItemIndex, 2, plugin->Information.Author);
 
-                PhInitializeStringRef(&baseNameSr, PhpGetPluginBaseName(plugin));
+                PhInitializeStringRefLongHint(&baseNameSr, PhpGetPluginBaseName(plugin));
 
                 if (PhIsPluginDisabled(&baseNameSr))
                     PhAddItemSimpleHashtable(DisabledPluginLookup, plugin, NULL);

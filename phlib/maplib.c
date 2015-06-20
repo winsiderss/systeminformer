@@ -333,7 +333,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
             if (!PhCopyStringZFromBytes(slash + 1, -1, integerString, 11, NULL))
                 return STATUS_INVALID_PARAMETER;
-            PhInitializeStringRef(&string, integerString);
+            PhInitializeStringRefLongHint(&string, integerString);
             if (!PhStringToInteger64(&string, 10, &offset64))
                 return STATUS_INVALID_PARAMETER;
 

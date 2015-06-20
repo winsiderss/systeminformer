@@ -3495,6 +3495,24 @@ VOID PhDeleteStringBuilder(
     PhDereferenceObject(StringBuilder->String);
 }
 
+/**
+ * Obtains a reference to the string constructed
+ * by a string builder object and frees resources
+ * used by the object.
+ *
+ * \param StringBuilder A string builder object.
+ *
+ * \return A pointer to a string. You must free
+ * the string using PhDereferenceObject() when
+ * you no longer need it.
+ */
+PPH_STRING PhFinalStringBuilderString(
+    _Inout_ PPH_STRING_BUILDER StringBuilder
+    )
+{
+    return StringBuilder->String;
+}
+
 VOID PhpResizeStringBuilder(
     _In_ PPH_STRING_BUILDER StringBuilder,
     _In_ SIZE_T NewCapacity
@@ -3523,8 +3541,7 @@ VOID PhpResizeStringBuilder(
     newString->Length = StringBuilder->String->Length;
 
     // Dereference the old string and replace it with the new string.
-    PhDereferenceObject(StringBuilder->String);
-    StringBuilder->String = newString;
+    PhMoveReference(&StringBuilder->String, newString);
 
     PHLIB_INC_STATISTIC(BaseStringBuildersResized);
 }
@@ -3538,26 +3555,7 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
 }
 
 /**
- * Obtains a reference to the string constructed
- * by a string builder object and frees resources
- * used by the object.
- *
- * \param StringBuilder A string builder object.
- *
- * \return A pointer to a string. You must free
- * the string using PhDereferenceObject() when
- * you no longer need it.
- */
-PPH_STRING PhFinalStringBuilderString(
-    _Inout_ PPH_STRING_BUILDER StringBuilder
-    )
-{
-    return StringBuilder->String;
-}
-
-/**
- * Appends a string to the end of a string builder
- * string.
+ * Appends a string to the end of a string builder string.
  *
  * \param StringBuilder A string builder object.
  * \param String The string to append.
@@ -3575,8 +3573,7 @@ VOID PhAppendStringBuilder(
 }
 
 /**
- * Appends a string to the end of a string builder
- * string.
+ * Appends a string to the end of a string builder string.
  *
  * \param StringBuilder A string builder object.
  * \param String The string to append.
@@ -3594,12 +3591,10 @@ VOID PhAppendStringBuilder2(
 }
 
 /**
- * Appends a string to the end of a string builder
- * string.
+ * Appends a string to the end of a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param String The string to append. Specify NULL to
- * simply reserve \a Length bytes.
+ * \param String The string to append. Specify NULL to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
 VOID PhAppendStringBuilderEx(
@@ -3854,6 +3849,175 @@ VOID PhRemoveStringBuilder(
         );
     StringBuilder->String->Length -= Count * sizeof(WCHAR);
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
+}
+
+/**
+ * Initializes a byte string builder object.
+ *
+ * \param BytesBuilder A byte string builder object.
+ * \param InitialCapacity The number of bytes to allocate initially.
+ */
+VOID PhInitializeBytesBuilder(
+    _Out_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ SIZE_T InitialCapacity
+    )
+{
+    BytesBuilder->AllocatedLength = InitialCapacity;
+    BytesBuilder->Bytes = PhCreateBytesEx(NULL, BytesBuilder->AllocatedLength);
+    BytesBuilder->Bytes->Length = 0;
+    BytesBuilder->Bytes->Buffer[0] = 0;
+}
+
+/**
+ * Frees resources used by a byte string builder object.
+ *
+ * \param BytesBuilder A byte string builder object.
+ */
+VOID PhDeleteBytesBuilder(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder
+    )
+{
+    PhDereferenceObject(BytesBuilder->Bytes);
+}
+
+/**
+ * Obtains a reference to the byte string constructed
+ * by a byte string builder object and frees resources
+ * used by the object.
+ *
+ * \param BytesBuilder A byte string builder object.
+ *
+ * \return A pointer to a byte string. You must free
+ * the byte string using PhDereferenceObject() when
+ * you no longer need it.
+ */
+PPH_BYTES PhFinalBytesBuilderBytes(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder
+    )
+{
+    return BytesBuilder->Bytes;
+}
+
+VOID PhpResizeBytesBuilder(
+    _In_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ SIZE_T NewCapacity
+    )
+{
+    PPH_BYTES newBytes;
+
+    // Double the byte string size. If that still isn't enough room, just use the new length.
+
+    BytesBuilder->AllocatedLength *= 2;
+
+    if (BytesBuilder->AllocatedLength < NewCapacity)
+        BytesBuilder->AllocatedLength = NewCapacity;
+
+    // Allocate a new byte string.
+    newBytes = PhCreateBytesEx(NULL, BytesBuilder->AllocatedLength);
+
+    // Copy the old byte string to the new byte string.
+    memcpy(
+        newBytes->Buffer,
+        BytesBuilder->Bytes->Buffer,
+        BytesBuilder->Bytes->Length + sizeof(CHAR) // Include null terminator
+        );
+
+    // Copy the old byte string length.
+    newBytes->Length = BytesBuilder->Bytes->Length;
+
+    // Dereference the old byte string and replace it with the new byte string.
+    PhMoveReference(&BytesBuilder->Bytes, newBytes);
+}
+
+FORCEINLINE VOID PhpWriteNullTerminatorBytesBuilder(
+    _In_ PPH_BYTES_BUILDER BytesBuilder
+    )
+{
+    *((PCHAR)BytesBuilder->Bytes->Buffer + BytesBuilder->Bytes->Length) = 0;
+}
+
+/**
+ * Appends a byte string to the end of a byte string builder string.
+ *
+ * \param BytesBuilder A byte string builder object.
+ * \param Bytes The byte string to append.
+ */
+VOID PhAppendBytesBuilder(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ PPH_BYTESREF Bytes
+    )
+{
+    PhAppendBytesBuilderEx(
+        BytesBuilder,
+        Bytes->Buffer,
+        Bytes->Length,
+        NULL
+        );
+}
+
+/**
+ * Appends a byte string to the end of a byte string builder string.
+ *
+ * \param BytesBuilder A byte string builder object.
+ * \param Bytes The byte string to append.
+ */
+VOID PhAppendBytesBuilder2(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ PCHAR Bytes
+    )
+{
+    PhAppendBytesBuilderEx(
+        BytesBuilder,
+        Bytes,
+        strlen(Bytes),
+        NULL
+        );
+}
+
+/**
+ * Appends a byte string to the end of a byte string builder string.
+ *
+ * \param BytesBuilder A byte string builder object.
+ * \param Buffer The byte string to append. Specify NULL to simply reserve \a Length bytes.
+ * \param Length The number of bytes to append.
+ * \param Offset A variable which receives the byte offset of the appended or reserved bytes
+ * in the byte string builder string.
+ *
+ * \return A pointer to the appended or reserved bytes.
+ */
+PCHAR PhAppendBytesBuilderEx(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_opt_ PCHAR Buffer,
+    _In_ SIZE_T Length,
+    _Out_opt_ PSIZE_T Offset
+    )
+{
+    SIZE_T currentLength;
+    PCHAR destination;
+
+    currentLength = BytesBuilder->Bytes->Length;
+    destination = BytesBuilder->Bytes->Buffer + currentLength;
+
+    if (Length == 0)
+        goto Done;
+
+    // See if we need to re-allocate the byte string.
+    if (BytesBuilder->AllocatedLength < currentLength + Length)
+        PhpResizeBytesBuilder(BytesBuilder, currentLength + Length);
+
+    // Copy the byte string, add the length, then write the null terminator.
+
+    if (Buffer)
+        memcpy(destination, Buffer, Length);
+
+    BytesBuilder->Bytes->Length += Length;
+    PhpWriteNullTerminatorBytesBuilder(BytesBuilder);
+
+Done:
+    if (Offset)
+        *Offset = currentLength;
+
+    return destination;
 }
 
 /**

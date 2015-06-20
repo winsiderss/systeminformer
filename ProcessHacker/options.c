@@ -1086,7 +1086,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                         NMLVGETINFOTIP *getInfoTip = (NMLVGETINFOTIP *)lParam;
                         PH_STRINGREF tip;
 
-                        PhInitializeStringRef(&tip, ColorItems[getInfoTip->iItem].Description);
+                        PhInitializeStringRefLongHint(&tip, ColorItems[getInfoTip->iItem].Description);
                         PhCopyListViewInfoTip(getInfoTip, &tip);
                     }
                 }
