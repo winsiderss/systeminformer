@@ -142,7 +142,8 @@ int growl_tcp_parse_hostname( const char *const server , int default_port , stru
         return -1;
     }
 
-    memset( sockaddr , 0 , sizeof(sockaddr) );
+    // dmex: fixed wrong sizeof argument
+    memset( sockaddr , 0 , sizeof(struct sockaddr_in) );
     sockaddr->sin_family = AF_INET;
     memcpy( &sockaddr->sin_addr , host_ent->h_addr , host_ent->h_length );
     sockaddr->sin_port = htons(default_port);
