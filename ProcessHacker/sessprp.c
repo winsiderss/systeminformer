@@ -211,7 +211,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                     );
             }
 
-            SetFocus(GetDlgItem(hwndDlg, IDOK));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
         }
         break;
     case WM_DESTROY:

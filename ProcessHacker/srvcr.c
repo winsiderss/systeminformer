@@ -72,7 +72,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
             }
 
-            SetFocus(GetDlgItem(hwndDlg, IDC_NAME));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_NAME), TRUE);
         }
         break;
     case WM_COMMAND:
