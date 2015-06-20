@@ -1593,7 +1593,7 @@ PPH_STRING PhGetSecurityAttributeFlagsString(
         PhAppendStringBuilder2(&sb, L"Non-inheritable, ");
 
     if (sb.String->Length != 0)
-        PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+        PhRemoveEndStringBuilder(&sb, 2);
     else
         PhAppendStringBuilder2(&sb, L"(None)");
 

@@ -1027,7 +1027,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         if (policyInfo.ASLRPolicy.DisallowStrippedImages)
                             PhAppendStringBuilder2(&sb, L"Disallow stripped images, ");
                         if (sb.String->Length != 0)
-                            PhRemoveStringBuilder(&sb, sb.String->Length / 2 - 2, 2);
+                            PhRemoveEndStringBuilder(&sb, 2);
 
                         if (sb.String->Length == 0)
                             SetDlgItemText(hwndDlg, IDC_ASLR, L"Disabled");

@@ -422,7 +422,7 @@ PPH_STRING PhGetProcessTooltipText(
 
     // Remove the trailing newline.
     if (stringBuilder.String->Length != 0)
-        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -692,7 +692,7 @@ PPH_STRING PhGetServiceTooltipText(
 
     // Remove the trailing newline.
     if (stringBuilder.String->Length != 0)
-        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }

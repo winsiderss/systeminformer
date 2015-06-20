@@ -340,7 +340,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                         }
 
                         if (PhEndsWithString2(savedChoices.String, L"\\s", FALSE))
-                            PhRemoveStringBuilder(&savedChoices, savedChoices.String->Length / 2 - 2, 2);
+                            PhRemoveEndStringBuilder(&savedChoices, 2);
 
                         PhSetStringSetting2(context->SavedChoicesSettingName, &savedChoices.String->sr);
                         PhDeleteStringBuilder(&savedChoices);

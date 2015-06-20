@@ -2252,6 +2252,20 @@ PhRemoveStringBuilder(
     _In_ SIZE_T Count
     );
 
+FORCEINLINE
+VOID
+PhRemoveEndStringBuilder(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ SIZE_T Count
+    )
+{
+    PhRemoveStringBuilder(
+        StringBuilder,
+        StringBuilder->String->Length / sizeof(WCHAR) - Count,
+        Count
+        );
+}
+
 // List
 
 extern PPH_OBJECT_TYPE PhListType;
