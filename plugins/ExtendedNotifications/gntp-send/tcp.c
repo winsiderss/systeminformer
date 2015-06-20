@@ -89,8 +89,7 @@ SOCKET growl_tcp_open(const char* server) {
 #endif
     struct sockaddr_in serv_addr;
 
-    if( growl_tcp_parse_hostname( server , 23053 , &serv_addr ) == -1 )
-    {
+    if( growl_tcp_parse_hostname( server , 23053 , &serv_addr ) == -1 ) {
         return INVALID_SOCKET;
     }
 
@@ -101,12 +100,14 @@ SOCKET growl_tcp_open(const char* server) {
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == SOCKET_ERROR) {
         perror("connect");
+        closesocket(sock); // dmex: fixed handle leaking on error
         return INVALID_SOCKET;
     }
 
     on = 1;
     if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == SOCKET_ERROR) {
         perror("setsockopt");
+        closesocket(sock); // dmex: fixed handle leaking on error
         return INVALID_SOCKET;
     }
 
