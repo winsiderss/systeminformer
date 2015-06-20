@@ -28,32 +28,6 @@ VOID InitializeDb(
         );
 }
 
-// Copied from srvprv.c
-/**
- * Generates a hash code for a string, case-insensitive.
- *
- * \param String The string.
- * \param Count The number of characters to hash.
- */
-FORCEINLINE ULONG HashStringIgnoreCase(
-    _In_ PWSTR String,
-    _In_ SIZE_T Count
-    )
-{
-    ULONG hash = (ULONG)Count;
-
-    if (Count == 0)
-        return 0;
-
-    do
-    {
-        hash = RtlUpcaseUnicodeChar(*String) + (hash << 6) + (hash << 16) - hash;
-        String++;
-    } while (--Count != 0);
-
-    return hash;
-}
-
 BOOLEAN NTAPI ObjectDbCompareFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -71,7 +45,7 @@ ULONG NTAPI ObjectDbHashFunction(
 {
     PDB_OBJECT object = *(PDB_OBJECT *)Entry;
 
-    return object->Tag + HashStringIgnoreCase(object->Key.Buffer, object->Key.Length / sizeof(WCHAR));
+    return object->Tag + PhHashStringRef(&object->Key, TRUE);
 }
 
 ULONG GetNumberOfDbObjects(

@@ -1392,8 +1392,7 @@ CompareCharacters:
  *
  * \param String The string to search.
  * \param Character The character to search for.
- * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
- * FALSE.
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise FALSE.
  *
  * \return The index, in characters, of the first occurrence of
  * \a Character in \a String1. If \a Character was not found, -1 is returned.
@@ -1410,68 +1409,39 @@ ULONG_PTR PhFindCharInStringRef(
     buffer = String->Buffer;
     length = String->Length / sizeof(WCHAR);
 
-    if (length == 0)
-        return -1;
-
     if (!IgnoreCase)
     {
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
-            SIZE_T unalignedBytes;
-            SIZE_T unalignedStringBytes;
-            __m128i pattern;
-            __m128i block;
-            ULONG mask;
-            ULONG index;
             SIZE_T length16;
 
-            unalignedBytes = (ULONG_PTR)buffer & 0xf;
-            buffer = (PWSTR)((ULONG_PTR)buffer & ~0xe); // buffer should be 2 byte aligned
-            pattern = _mm_set1_epi16(Character);
-
-            if (unalignedBytes != 0)
-            {
-                unalignedStringBytes = min(0x10 - unalignedBytes, length * sizeof(WCHAR));
-                block = _mm_load_si128((__m128i *)buffer);
-                block = _mm_cmpeq_epi16(block, pattern);
-                mask = (_mm_movemask_epi8(block) >> unalignedBytes) & ((1 << unalignedStringBytes) - 1);
-
-                if (_BitScanForward(&index, mask))
-                    return index / sizeof(WCHAR);
-
-                buffer += 16 / sizeof(WCHAR);
-                length -= unalignedStringBytes / sizeof(WCHAR);
-            }
-
-            length16 = length / (16 / sizeof(WCHAR));
-            length &= 0x7;
+            length16 = String->Length / 16;
+            length &= 7;
 
             if (length16 != 0)
             {
+                __m128i pattern;
+                __m128i block;
+                ULONG mask;
+                ULONG index;
+
+                pattern = _mm_set1_epi16(Character);
+
                 do
                 {
-                    block = _mm_load_si128((__m128i *)buffer);
+                    block = _mm_loadu_si128((__m128i *)buffer);
                     block = _mm_cmpeq_epi16(block, pattern);
                     mask = _mm_movemask_epi8(block);
 
                     if (_BitScanForward(&index, mask))
-                        return (SIZE_T)(buffer - String->Buffer) + index / sizeof(WCHAR);
+                        return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
 
                     buffer += 16 / sizeof(WCHAR);
                 } while (--length16 != 0);
             }
-
-            if (length != 0)
-            {
-                block = _mm_load_si128((__m128i *)buffer);
-                block = _mm_cmpeq_epi16(block, pattern);
-                mask = _mm_movemask_epi8(block) & ((1 << (length * sizeof(WCHAR))) - 1);
-
-                if (_BitScanForward(&index, mask))
-                    return (SIZE_T)(buffer - String->Buffer) + index / sizeof(WCHAR);
-            }
         }
-        else
+
+        if (length != 0)
         {
             do
             {
@@ -1484,17 +1454,20 @@ ULONG_PTR PhFindCharInStringRef(
     }
     else
     {
-        WCHAR c;
-
-        c = RtlUpcaseUnicodeChar(Character);
-
-        do
+        if (length != 0)
         {
-            if (RtlUpcaseUnicodeChar(*buffer) == c)
-                return String->Length / sizeof(WCHAR) - length;
+            WCHAR c;
 
-            buffer++;
-        } while (--length != 0);
+            c = RtlUpcaseUnicodeChar(Character);
+
+            do
+            {
+                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                    return String->Length / sizeof(WCHAR) - length;
+
+                buffer++;
+            } while (--length != 0);
+        }
     }
 
     return -1;
@@ -1505,8 +1478,7 @@ ULONG_PTR PhFindCharInStringRef(
  *
  * \param String The string to search.
  * \param Character The character to search for.
- * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise
- * FALSE.
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise FALSE.
  *
  * \return The index, in characters, of the last occurrence of
  * \a Character in \a String1. If \a Character was not found, -1 is returned.
@@ -4823,131 +4795,59 @@ BOOLEAN PhRemoveEntryHashtable(
  * \param Bytes A pointer to a byte array.
  * \param Length The number of bytes to hash.
  */
-ULONG FASTCALL PhfHashBytesHsieh(
-    _In_ PUCHAR Bytes,
+ULONG PhHashBytes(
+    _In_reads_(Length) PUCHAR Bytes,
     _In_ SIZE_T Length
     )
 {
-    // Hsieh hash, http://www.azillionmonkeys.com/qed/hash.html
-    ULONG hash;
-    ULONG tmp;
-    ULONG rem;
+    ULONG hash = 0;
 
-    if (!Length)
+    if (Length == 0)
+        return hash;
+
+    // FNV-1a algorithm: http://www.isthe.com/chongo/src/fnv/hash_32a.c
+
+    do
+    {
+        hash ^= *Bytes++;
+        hash *= 0x01000193;
+    } while (--Length != 0);
+
+    return hash;
+}
+
+/**
+ * Generates a hash code for a string.
+ *
+ * \param String The string to hash.
+ * \param IgnoreCase TRUE for a case-insensitive hash function, otherwise FALSE.
+ */
+ULONG PhHashStringRef(
+    _In_ PPH_STRINGREF String,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    ULONG hash = 0;
+    SIZE_T count;
+    PWCHAR p;
+
+    if (String->Length == 0)
         return 0;
 
-    hash = (ULONG)Length;
-    rem = (ULONG)Length & 3;
-    Length >>= 2;
+    count = String->Length / sizeof(WCHAR);
+    p = String->Buffer;
 
-    for (; Length > 0; Length--)
+    if (!IgnoreCase)
     {
-        hash += *(PUSHORT)Bytes;
-        tmp = (*(PUSHORT)(Bytes + 2) << 11) ^ hash;
-        hash = (hash << 16) ^ tmp;
-        Bytes += 4;
-        hash += hash >> 11;
+        return PhHashBytes((PUCHAR)String->Buffer, String->Length);
     }
-
-    switch (rem)
+    else
     {
-    case 3:
-        hash += *(PUSHORT)Bytes;
-        hash ^= hash << 16;
-        hash ^= Bytes[2] << 18;
-        hash += hash >> 11;
-        break;
-    case 2:
-        hash += *(PUSHORT)Bytes;
-        hash ^= hash << 11;
-        hash += hash >> 17;
-        break;
-    case 1:
-        hash += *Bytes;
-        hash ^= hash << 10;
-        hash += hash >> 1;
-        break;
-    }
-
-    hash ^= hash << 3;
-    hash += hash >> 5;
-    hash ^= hash << 4;
-    hash += hash >> 17;
-    hash ^= hash << 25;
-    hash += hash >> 6;
-
-    return hash;
-}
-
-/**
- * Generates a hash code for a sequence of bytes.
- *
- * \param Bytes A pointer to a byte array.
- * \param Length The number of bytes to hash.
- */
-ULONG FASTCALL PhfHashBytesMurmur(
-    _In_ PUCHAR Bytes,
-    _In_ SIZE_T Length
-    )
-{
-    // Murmur hash, http://murmurhash.googlepages.com
-#define MURMUR_MAGIC 0x5bd1e995
-#define MURMUR_SHIFT 24
-
-    ULONG hash = (ULONG)Length;
-    ULONG tmp;
-
-    while (Length >= 4)
-    {
-        tmp = *(PULONG)Bytes;
-
-        tmp *= MURMUR_MAGIC;
-        tmp ^= tmp >> MURMUR_SHIFT;
-        tmp *= MURMUR_MAGIC;
-
-        hash *= MURMUR_MAGIC;
-        hash ^= tmp;
-
-        Bytes += 4;
-        Length -= 4;
-    }
-
-    switch (Length)
-    {
-    case 3:
-        hash ^= Bytes[2] << 16;
-    case 2:
-        hash ^= Bytes[1] << 8;
-    case 1:
-        hash ^= Bytes[0];
-        hash *= MURMUR_MAGIC;
-    }
-
-    hash ^= hash >> 13;
-    hash *= MURMUR_MAGIC;
-    hash ^= hash >> 15;
-
-    return hash;
-}
-
-/**
- * Generates a hash code for a sequence of bytes.
- *
- * \param Bytes A pointer to a byte array.
- * \param Length The number of bytes to hash.
- */
-ULONG FASTCALL PhfHashBytesSdbm(
-    _In_ PUCHAR Bytes,
-    _In_ SIZE_T Length
-    )
-{
-    ULONG hash = (ULONG)Length;
-    PUCHAR endByte = Bytes + Length;
-
-    while (Bytes != endByte)
-    {
-        hash = *Bytes + (hash << 6) + (hash << 16) - hash;
-        Bytes++;
+        do
+        {
+            hash ^= (USHORT)RtlUpcaseUnicodeChar(*p++);
+            hash *= 0x01000193;
+        } while (--count != 0);
     }
 
     return hash;
