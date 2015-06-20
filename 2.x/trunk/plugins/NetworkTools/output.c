@@ -234,7 +234,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
                     // Append the current output text to the New string.
                     if (!PhIsNullOrEmptyString(windowText))
-                        PhAppendStringBuilder(&receivedString, windowText);
+                        PhAppendStringBuilder(&receivedString, &windowText->sr);
 
                     PhAppendFormatStringBuilder(&receivedString, L"%s", convertedString.Buffer);
 
@@ -284,7 +284,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                     {
                         if (convertedString.Buffer[i] == '\n')
                         {
-                            PhAppendStringBuilder(&receivedString, PhaCreateString(L"\r\n"));
+                            PhAppendStringBuilder2(&receivedString, L"\r\n");
                         }
                         else
                         {
