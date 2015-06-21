@@ -433,6 +433,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 return TRUE;
             case PSN_APPLY:
                 {
+                    NTSTATUS status;
                     PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
                     SC_HANDLE serviceHandle;
                     ULONG restartServiceAfter;
@@ -518,7 +519,50 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     }
                     else
                     {
-                        goto ErrorCase;
+                        if (GetLastError() == ERROR_ACCESS_DENIED && !PhElevated)
+                        {
+                            // Elevate using phsvc.
+                            if (PhUiConnectToPhSvc(hwndDlg, FALSE))
+                            {
+                                if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(
+                                    serviceItem->Name->Buffer,
+                                    SERVICE_CONFIG_FAILURE_ACTIONS,
+                                    &failureActions
+                                    )))
+                                {
+                                    if (context->EnableFlagCheckBox)
+                                    {
+                                        SERVICE_FAILURE_ACTIONS_FLAG failureActionsFlag;
+
+                                        failureActionsFlag.fFailureActionsOnNonCrashFailures =
+                                            Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS)) == BST_CHECKED;
+
+                                        PhSvcCallChangeServiceConfig2(
+                                            serviceItem->Name->Buffer,
+                                            SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
+                                            &failureActionsFlag
+                                            );
+                                    }
+                                }
+
+                                PhUiDisconnectFromPhSvc();
+
+                                if (!NT_SUCCESS(status))
+                                {
+                                    SetLastError(PhNtStatusToDosError(status));
+                                    goto ErrorCase;
+                                }
+                            }
+                            else
+                            {
+                                // User cancelled elevation.
+                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                            }
+                        }
+                        else
+                        {
+                            goto ErrorCase;
+                        }
                     }
 
                     return TRUE;

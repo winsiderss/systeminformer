@@ -86,7 +86,7 @@ NTSTATUS DispatchGetRuntimeNameByAddress(
     PCLR_PROCESS_SUPPORT support;
     PPH_STRING name;
 
-    if (!NT_SUCCESS(status = Request->ProbeBuffer(&In->i.Name, FALSE, &nameBuffer)))
+    if (!NT_SUCCESS(status = Request->ProbeBuffer(&In->i.Name, sizeof(WCHAR), FALSE, &nameBuffer)))
         return status;
 
     support = CreateClrProcessSupport(UlongToHandle(In->i.ProcessId));

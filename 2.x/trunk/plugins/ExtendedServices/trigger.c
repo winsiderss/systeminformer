@@ -830,6 +830,31 @@ BOOLEAN EsSaveServiceTriggerInfo(
     {
         result = FALSE;
         *Win32Result = GetLastError();
+
+        if (*Win32Result == ERROR_ACCESS_DENIED && !PhElevated)
+        {
+            // Elevate using phsvc.
+            if (PhUiConnectToPhSvc(Context->WindowHandle, FALSE))
+            {
+                NTSTATUS status;
+
+                result = TRUE;
+
+                if (!NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(Context->ServiceItem->Name->Buffer,
+                    SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo)))
+                {
+                    result = FALSE;
+                    *Win32Result = PhNtStatusToDosError(status);
+                }
+
+                PhUiDisconnectFromPhSvc();
+            }
+            else
+            {
+                // User cancelled elevation.
+                *Win32Result = ERROR_CANCELLED;
+            }
+        }
     }
 
     PhDeleteAutoPool(&autoPool);
