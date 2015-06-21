@@ -96,7 +96,8 @@ VOID PhSvcDispatchApiCall(
 }
 
 PVOID PhSvcValidateString(
-    _In_ PPH_RELATIVE_STRINGREF String
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ ULONG Alignment
     )
 {
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
@@ -111,11 +112,17 @@ PVOID PhSvcValidateString(
         return NULL;
     }
 
+    if ((ULONG_PTR)address & (Alignment - 1))
+    {
+        return NULL;
+    }
+
     return address;
 }
 
 NTSTATUS PhSvcProbeBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ ULONG Alignment,
     _In_ BOOLEAN AllowNull,
     _Out_ PVOID *Pointer
     )
@@ -124,7 +131,7 @@ NTSTATUS PhSvcProbeBuffer(
 
     if (String->Offset != 0)
     {
-        address = PhSvcValidateString(String);
+        address = PhSvcValidateString(String, Alignment);
 
         if (!address)
             return STATUS_ACCESS_VIOLATION;
@@ -153,7 +160,7 @@ NTSTATUS PhSvcCaptureBuffer(
 
     if (String->Offset != 0)
     {
-        address = PhSvcValidateString(String);
+        address = PhSvcValidateString(String, 1);
 
         if (!address)
             return STATUS_ACCESS_VIOLATION;
@@ -192,12 +199,10 @@ NTSTATUS PhSvcCaptureString(
 
     if (String->Offset != 0)
     {
-        address = PhSvcValidateString(String);
+        address = PhSvcValidateString(String, sizeof(WCHAR));
 
         if (!address)
             return STATUS_ACCESS_VIOLATION;
-        if ((ULONG_PTR)address & 1)
-            return STATUS_DATATYPE_MISALIGNMENT;
 
         if (String->Length != 0)
             *CapturedString = PhCreateStringEx(address, String->Length);
@@ -795,51 +800,285 @@ CleanupExit:
     return status;
 }
 
+NTSTATUS PhSvcpUnpackRoot(
+    _In_ PPH_RELATIVE_STRINGREF PackedData,
+    _In_ PVOID CapturedBuffer,
+    _In_ SIZE_T Length,
+    _Out_ PVOID *ValidatedBuffer
+    )
+{
+    if (Length > PackedData->Length)
+        return STATUS_ACCESS_VIOLATION;
+
+    *ValidatedBuffer = CapturedBuffer;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhSvcpUnpackBuffer(
+    _In_ PPH_RELATIVE_STRINGREF PackedData,
+    _In_ PVOID CapturedBuffer,
+    _In_ PVOID *OffsetInBuffer,
+    _In_ SIZE_T Length,
+    _In_ ULONG Alignment,
+    _In_ BOOLEAN AllowNull
+    )
+{
+    SIZE_T offset;
+
+    offset = (SIZE_T)*OffsetInBuffer;
+
+    if (offset == 0)
+    {
+        if (AllowNull)
+            return STATUS_SUCCESS;
+        else
+            return STATUS_ACCESS_VIOLATION;
+    }
+
+    if (offset + Length < offset)
+        return STATUS_ACCESS_VIOLATION;
+    if (offset + Length > PackedData->Length)
+        return STATUS_ACCESS_VIOLATION;
+    if (offset & (Alignment - 1))
+        return STATUS_DATATYPE_MISALIGNMENT;
+
+    *OffsetInBuffer = (PVOID)((ULONG_PTR)CapturedBuffer + offset);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhSvcpUnpackStringZ(
+    _In_ PPH_RELATIVE_STRINGREF PackedData,
+    _In_ PVOID CapturedBuffer,
+    _In_ PVOID *OffsetInBuffer,
+    _In_ BOOLEAN Multi,
+    _In_ BOOLEAN AllowNull
+    )
+{
+    SIZE_T offset;
+    PWCHAR start;
+    PWCHAR end;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF firstPart;
+
+    offset = (SIZE_T)*OffsetInBuffer;
+
+    if (offset == 0)
+    {
+        if (AllowNull)
+            return STATUS_SUCCESS;
+        else
+            return STATUS_ACCESS_VIOLATION;
+    }
+
+    if (offset >= PackedData->Length)
+        return STATUS_ACCESS_VIOLATION;
+    if (offset & 1)
+        return STATUS_DATATYPE_MISALIGNMENT;
+
+    start = (PWCHAR)((ULONG_PTR)CapturedBuffer + offset);
+    end = (PWCHAR)((ULONG_PTR)CapturedBuffer + (PackedData->Length & -2));
+    remainingPart.Buffer = start;
+    remainingPart.Length = (end - start) * sizeof(WCHAR);
+
+    if (Multi)
+    {
+        SIZE_T validatedLength = 0;
+
+        while (PhSplitStringRefAtChar(&remainingPart, 0, &firstPart, &remainingPart))
+        {
+            validatedLength += firstPart.Length + sizeof(WCHAR);
+
+            if (firstPart.Length == 0)
+            {
+                *OffsetInBuffer = start;
+
+                return STATUS_SUCCESS;
+            }
+        }
+    }
+    else
+    {
+        if (PhSplitStringRefAtChar(&remainingPart, 0, &firstPart, &remainingPart))
+        {
+            *OffsetInBuffer = start;
+
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_ACCESS_VIOLATION;
+}
+
 NTSTATUS PhSvcApiChangeServiceConfig2(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
     NTSTATUS status;
-    PPH_STRING serviceName;
-    PVOID info;
-    SC_HANDLE serviceHandle;
+    PPH_STRING serviceName = NULL;
+    PVOID info = NULL;
+    SC_HANDLE serviceHandle = NULL;
+    PH_RELATIVE_STRINGREF packedData;
+    PVOID unpackedInfo = NULL;
+    ACCESS_MASK desiredAccess = SERVICE_CHANGE_CONFIG;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig2.i.ServiceName, FALSE, &serviceName)))
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig2.i.ServiceName, FALSE, &serviceName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureBuffer(&Payload->u.ChangeServiceConfig2.i.Info, FALSE, &info)))
+        goto CleanupExit;
+
+    packedData = Payload->u.ChangeServiceConfig2.i.Info;
+
+    switch (Payload->u.ChangeServiceConfig2.i.InfoLevel)
     {
-        switch (Payload->u.ChangeServiceConfig2.i.InfoLevel)
+    case SERVICE_CONFIG_FAILURE_ACTIONS:
         {
-        case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
-            if (NT_SUCCESS(status = PhSvcCaptureBuffer(&Payload->u.ChangeServiceConfig2.i.Info, FALSE, &info)))
+            LPSERVICE_FAILURE_ACTIONS failureActions;
+
+            if (!NT_SUCCESS(status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_FAILURE_ACTIONS), &failureActions)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackStringZ(&packedData, info, &failureActions->lpRebootMsg, FALSE, TRUE)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackStringZ(&packedData, info, &failureActions->lpCommand, FALSE, TRUE)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &failureActions->lpsaActions, failureActions->cActions * sizeof(SC_ACTION), __alignof(SC_ACTION), TRUE)))
+                goto CleanupExit;
+
+            if (failureActions->lpsaActions)
             {
-                if (serviceHandle = PhOpenService(serviceName->Buffer, SERVICE_CHANGE_CONFIG))
+                ULONG i;
+
+                for (i = 0; i < failureActions->cActions; i++)
                 {
-                    if (!ChangeServiceConfig2(
-                        serviceHandle,
-                        SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
-                        (LPSERVICE_DELAYED_AUTO_START_INFO)info
-                        ))
+                    if (failureActions->lpsaActions[i].Type == SC_ACTION_RESTART)
                     {
-                        status = PhGetLastWin32ErrorAsNtStatus();
+                        desiredAccess |= SERVICE_START;
+                        break;
                     }
-
-                    CloseServiceHandle(serviceHandle);
                 }
-                else
-                {
-                    status = PhGetLastWin32ErrorAsNtStatus();
-                }
-
-                PhFree(info);
             }
-            break;
-        default:
-            status = STATUS_INVALID_PARAMETER;
-            break;
+
+            unpackedInfo = failureActions;
+        }
+        break;
+    case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
+        status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_DELAYED_AUTO_START_INFO), &unpackedInfo);
+        break;
+    case SERVICE_CONFIG_FAILURE_ACTIONS_FLAG:
+        status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_FAILURE_ACTIONS_FLAG), &unpackedInfo);
+        break;
+    case SERVICE_CONFIG_SERVICE_SID_INFO:
+        status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_SID_INFO), &unpackedInfo);
+        break;
+    case SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO:
+        {
+            LPSERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
+
+            if (!NT_SUCCESS(status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_REQUIRED_PRIVILEGES_INFO), &requiredPrivilegesInfo)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackStringZ(&packedData, info, &requiredPrivilegesInfo->pmszRequiredPrivileges, TRUE, FALSE)))
+                goto CleanupExit;
+
+            unpackedInfo = requiredPrivilegesInfo;
+        }
+        break;
+    case SERVICE_CONFIG_PRESHUTDOWN_INFO:
+        status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_PRESHUTDOWN_INFO), &unpackedInfo);
+        break;
+    case SERVICE_CONFIG_TRIGGER_INFO:
+        {
+            PSERVICE_TRIGGER_INFO triggerInfo;
+            ULONG i;
+            PSERVICE_TRIGGER trigger;
+            ULONG j;
+            PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM dataItem;
+            ULONG alignment;
+
+            if (!NT_SUCCESS(status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_TRIGGER_INFO), &triggerInfo)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &triggerInfo->pTriggers, triggerInfo->cTriggers * sizeof(SERVICE_TRIGGER), __alignof(SERVICE_TRIGGER), TRUE)))
+                goto CleanupExit;
+
+            if (triggerInfo->pTriggers)
+            {
+                for (i = 0; i < triggerInfo->cTriggers; i++)
+                {
+                    trigger = &triggerInfo->pTriggers[i];
+
+                    if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &trigger->pTriggerSubtype, sizeof(GUID), __alignof(GUID), TRUE)))
+                        goto CleanupExit;
+                    if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &trigger->pDataItems, trigger->cDataItems * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), __alignof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), TRUE)))
+                        goto CleanupExit;
+
+                    if (trigger->pDataItems)
+                    {
+                        for (j = 0; j < trigger->cDataItems; j++)
+                        {
+                            dataItem = &trigger->pDataItems[j];
+                            alignment = 1;
+
+                            switch (dataItem->dwDataType)
+                            {
+                            case SERVICE_TRIGGER_DATA_TYPE_BINARY:
+                            case SERVICE_TRIGGER_DATA_TYPE_LEVEL:
+                                alignment = sizeof(CHAR);
+                                break;
+                            case SERVICE_TRIGGER_DATA_TYPE_STRING:
+                                alignment = sizeof(WCHAR);
+                                break;
+                            case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY:
+                            case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL:
+                                alignment = sizeof(ULONG64);
+                                break;
+                            }
+
+                            if (!NT_SUCCESS(status = PhSvcpUnpackBuffer(&packedData, info, &dataItem->pData, dataItem->cbData, alignment, FALSE)))
+                                goto CleanupExit;
+                        }
+                    }
+                }
+            }
+
+            unpackedInfo = triggerInfo;
+        }
+        break;
+    case SERVICE_CONFIG_LAUNCH_PROTECTED:
+        status = PhSvcpUnpackRoot(&packedData, info, sizeof(SERVICE_LAUNCH_PROTECTED_INFO), &unpackedInfo);
+        break;
+    default:
+        status = STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        assert(unpackedInfo);
+
+        if (!(serviceHandle = PhOpenService(serviceName->Buffer, desiredAccess)))
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+            goto CleanupExit;
         }
 
-        PhDereferenceObject(serviceName);
+        if (!ChangeServiceConfig2(
+            serviceHandle,
+            Payload->u.ChangeServiceConfig2.i.InfoLevel,
+            unpackedInfo
+            ))
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
     }
+
+CleanupExit:
+    if (serviceHandle)
+        CloseServiceHandle(serviceHandle);
+    if (info)
+        PhFree(info);
+    if (serviceName)
+        PhDereferenceObject(serviceName);
 
     return status;
 }

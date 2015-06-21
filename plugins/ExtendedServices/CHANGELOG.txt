@@ -1,5 +1,6 @@
 1.10
  * Added service protection and SID information
+ * Added auto-elevation when saving recovery information, triggers and other service settings
 
 1.9
  * Added new trigger data types

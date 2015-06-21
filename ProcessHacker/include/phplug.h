@@ -344,6 +344,7 @@ typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
 
 typedef NTSTATUS (NTAPI *PPHSVC_SERVER_PROBE_BUFFER)(
     _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ ULONG Alignment,
     _In_ BOOLEAN AllowNull,
     _Out_ PVOID *Pointer
     );

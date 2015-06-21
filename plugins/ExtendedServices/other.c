@@ -46,6 +46,13 @@ typedef struct _SERVICE_OTHER_CONTEXT
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
+BOOLEAN EspChangeServiceConfig2(
+    _In_ PWSTR ServiceName,
+    _In_opt_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel,
+    _In_ PVOID Info
+    );
+
 static PH_KEY_VALUE_PAIR EspServiceSidTypePairs[] =
 {
     SIP(L"None", SERVICE_SID_TYPE_NONE),
@@ -550,8 +557,9 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 return TRUE;
             case PSN_APPLY:
                 {
-                    SC_HANDLE serviceHandle;
+                    SC_HANDLE serviceHandle = NULL;
                     ULONG win32Result = 0;
+                    BOOLEAN connectedToPhSvc = FALSE;
                     PPH_STRING launchProtectedString;
                     ULONG launchProtected;
 
@@ -575,80 +583,106 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                     if (context->Dirty)
                     {
-                        if (serviceHandle = PhOpenService(context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG))
-                        {
-                            SERVICE_PRESHUTDOWN_INFO preshutdownInfo;
-                            SERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
-                            SERVICE_SID_INFO sidInfo;
-                            SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
+                        SERVICE_PRESHUTDOWN_INFO preshutdownInfo;
+                        SERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo;
+                        SERVICE_SID_INFO sidInfo;
+                        SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
 
-                            if (context->PreshutdownTimeoutValid)
-                            {
-                                preshutdownInfo.dwPreshutdownTimeout = GetDlgItemInt(hwndDlg, IDC_PRESHUTDOWNTIMEOUT, NULL, FALSE);
-
-                                if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_PRESHUTDOWN_INFO, &preshutdownInfo))
-                                {
-                                    win32Result = GetLastError();
-                                }
-                            }
-
-                            if (context->RequiredPrivilegesValid)
-                            {
-                                PH_STRING_BUILDER sb;
-                                ULONG i;
-
-                                PhInitializeStringBuilder(&sb, 100);
-
-                                for (i = 0; i < context->PrivilegeList->Count; i++)
-                                {
-                                    PhAppendStringBuilder(&sb, &((PPH_STRING)context->PrivilegeList->Items[i])->sr);
-                                    PhAppendCharStringBuilder(&sb, 0);
-                                }
-
-                                requiredPrivilegesInfo.pmszRequiredPrivileges = sb.String->Buffer;
-
-                                if (win32Result == 0 && !ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &requiredPrivilegesInfo))
-                                {
-                                    win32Result = GetLastError();
-                                }
-
-                                PhDeleteStringBuilder(&sb);
-                            }
-
-                            if (context->SidTypeValid)
-                            {
-                                PPH_STRING sidTypeString;
-
-                                sidTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_SIDTYPE)));
-                                sidInfo.dwServiceSidType = EspGetServiceSidTypeInteger(sidTypeString->Buffer);
-
-                                if (win32Result == 0 && !ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo))
-                                {
-                                    win32Result = GetLastError();
-                                }
-                            }
-
-                            if (context->LaunchProtectedValid)
-                            {
-                                launchProtectedInfo.dwLaunchProtected = launchProtected;
-
-                                if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_LAUNCH_PROTECTED, &launchProtectedInfo))
-                                {
-                                    // For now, ignore errors here.
-                                    // win32Result = GetLastError();
-                                }
-                            }
-
-                            CloseServiceHandle(serviceHandle);
-                        }
-                        else
+                        if (!(serviceHandle = PhOpenService(context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG)))
                         {
                             win32Result = GetLastError();
+
+                            if (win32Result == ERROR_ACCESS_DENIED && !PhElevated)
+                            {
+                                // Elevate using phsvc.
+                                if (PhUiConnectToPhSvc(hwndDlg, FALSE))
+                                {
+                                    win32Result = 0;
+                                    connectedToPhSvc = TRUE;
+                                }
+                                else
+                                {
+                                    // User cancelled elevation.
+                                    win32Result = ERROR_CANCELLED;
+                                    goto Done;
+                                }
+                            }
+                            else
+                            {
+                                goto Done;
+                            }
                         }
+
+                        if (context->PreshutdownTimeoutValid)
+                        {
+                            preshutdownInfo.dwPreshutdownTimeout = GetDlgItemInt(hwndDlg, IDC_PRESHUTDOWNTIMEOUT, NULL, FALSE);
+
+                            if (!EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
+                                SERVICE_CONFIG_PRESHUTDOWN_INFO, &preshutdownInfo))
+                            {
+                                win32Result = GetLastError();
+                            }
+                        }
+
+                        if (context->RequiredPrivilegesValid)
+                        {
+                            PH_STRING_BUILDER sb;
+                            ULONG i;
+
+                            PhInitializeStringBuilder(&sb, 100);
+
+                            for (i = 0; i < context->PrivilegeList->Count; i++)
+                            {
+                                PhAppendStringBuilder(&sb, &((PPH_STRING)context->PrivilegeList->Items[i])->sr);
+                                PhAppendCharStringBuilder(&sb, 0);
+                            }
+
+                            requiredPrivilegesInfo.pmszRequiredPrivileges = sb.String->Buffer;
+
+                            if (win32Result == 0 && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
+                                SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &requiredPrivilegesInfo))
+                            {
+                                win32Result = GetLastError();
+                            }
+
+                            PhDeleteStringBuilder(&sb);
+                        }
+
+                        if (context->SidTypeValid)
+                        {
+                            PPH_STRING sidTypeString;
+
+                            sidTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_SIDTYPE)));
+                            sidInfo.dwServiceSidType = EspGetServiceSidTypeInteger(sidTypeString->Buffer);
+
+                            if (win32Result == 0 && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
+                                SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo))
+                            {
+                                win32Result = GetLastError();
+                            }
+                        }
+
+                        if (context->LaunchProtectedValid)
+                        {
+                            launchProtectedInfo.dwLaunchProtected = launchProtected;
+
+                            if (!EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
+                                SERVICE_CONFIG_LAUNCH_PROTECTED, &launchProtectedInfo))
+                            {
+                                // For now, ignore errors here.
+                                // win32Result = GetLastError();
+                            }
+                        }
+
+Done:
+                        if (connectedToPhSvc)
+                            PhUiDisconnectFromPhSvc();
+                        if (serviceHandle)
+                            CloseServiceHandle(serviceHandle);
 
                         if (win32Result != 0)
                         {
-                            if (PhShowMessage(
+                            if (win32Result == ERROR_CANCELLED || PhShowMessage(
                                 hwndDlg,
                                 MB_ICONERROR | MB_RETRYCANCEL,
                                 L"Unable to change service information: %s",
@@ -677,4 +711,31 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
     }
 
     return FALSE;
+}
+
+BOOLEAN EspChangeServiceConfig2(
+    _In_ PWSTR ServiceName,
+    _In_opt_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel,
+    _In_ PVOID Info
+    )
+{
+    if (ServiceHandle)
+    {
+        return !!ChangeServiceConfig2(ServiceHandle, InfoLevel, Info);
+    }
+    else
+    {
+        NTSTATUS status;
+
+        if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(ServiceName, InfoLevel, Info)))
+        {
+            return TRUE;
+        }
+        else
+        {
+            SetLastError(PhNtStatusToDosError(status));
+            return FALSE;
+        }
+    }
 }

@@ -630,6 +630,106 @@ CleanupExit:
     return status;
 }
 
+PVOID PhSvcpPackRoot(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ PVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    return PhAppendBytesBuilderEx(BytesBuilder, Buffer, Length, sizeof(ULONG_PTR), NULL);
+}
+
+VOID PhSvcpPackBuffer_V(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _Inout_ PVOID *PointerInBytesBuilder,
+    _In_ SIZE_T Length,
+    _In_ SIZE_T Alignment,
+    _In_ ULONG NumberOfPointersToRebase,
+    _In_ va_list ArgPtr
+    )
+{
+    va_list argptr;
+    ULONG_PTR oldBase;
+    SIZE_T oldLength;
+    ULONG_PTR newBase;
+    SIZE_T offset;
+    ULONG i;
+    PVOID *pointer;
+
+    oldBase = (ULONG_PTR)BytesBuilder->Bytes->Buffer;
+    oldLength = BytesBuilder->Bytes->Length;
+    assert((ULONG_PTR)PointerInBytesBuilder >= oldBase && (ULONG_PTR)PointerInBytesBuilder + sizeof(PVOID) <= oldBase + oldLength);
+
+    if (!*PointerInBytesBuilder)
+        return;
+
+    PhAppendBytesBuilderEx(BytesBuilder, *PointerInBytesBuilder, Length, Alignment, &offset);
+    newBase = (ULONG_PTR)BytesBuilder->Bytes->Buffer;
+
+    PointerInBytesBuilder = (PVOID *)((ULONG_PTR)PointerInBytesBuilder - oldBase + newBase);
+    *PointerInBytesBuilder = (PVOID)offset;
+
+    argptr = ArgPtr;
+
+    for (i = 0; i < NumberOfPointersToRebase; i++)
+    {
+        pointer = va_arg(argptr, PVOID *);
+        assert(!*pointer || ((ULONG_PTR)*pointer >= oldBase && (ULONG_PTR)*pointer + sizeof(PVOID) <= oldBase + oldLength));
+
+        if (*pointer)
+            *pointer = (PVOID)((ULONG_PTR)*pointer - oldBase + newBase);
+    }
+}
+
+VOID PhSvcpPackBuffer(
+    _Inout_ PPH_BYTES_BUILDER BytesBuilder,
+    _Inout_ PVOID *PointerInBytesBuilder,
+    _In_ SIZE_T Length,
+    _In_ SIZE_T Alignment,
+    _In_ ULONG NumberOfPointersToRebase,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, NumberOfPointersToRebase);
+    PhSvcpPackBuffer_V(BytesBuilder, PointerInBytesBuilder, Length, Alignment, NumberOfPointersToRebase, argptr);
+}
+
+SIZE_T PhSvcpBufferLengthStringZ(
+    _In_opt_ PWSTR String,
+    _In_ BOOLEAN Multi
+    )
+{
+    SIZE_T length = 0;
+
+    if (String)
+    {
+        if (Multi)
+        {
+            PWSTR part = String;
+            SIZE_T partCount;
+
+            while (TRUE)
+            {
+                partCount = PhCountStringZ(part);
+                length += (partCount + 1) * sizeof(WCHAR);
+
+                if (partCount == 0)
+                    break;
+
+                part += partCount + 1;
+            }
+        }
+        else
+        {
+            length = (PhCountStringZ(String) + 1) * sizeof(WCHAR);
+        }
+    }
+
+    return length;
+}
+
 NTSTATUS PhSvcCallChangeServiceConfig2(
     _In_ PWSTR ServiceName,
     _In_ ULONG InfoLevel,
@@ -640,6 +740,7 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
     PHSVC_API_MSG m;
     PVOID serviceName = NULL;
     PVOID info = NULL;
+    PH_BYTES_BUILDER bb;
 
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
@@ -652,11 +753,121 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
     {
         switch (InfoLevel)
         {
+        case SERVICE_CONFIG_FAILURE_ACTIONS:
+            {
+                LPSERVICE_FAILURE_ACTIONS failureActions = Info;
+                LPSERVICE_FAILURE_ACTIONS packedFailureActions;
+
+                PhInitializeBytesBuilder(&bb, 200);
+                packedFailureActions = PhSvcpPackRoot(&bb, failureActions, sizeof(SERVICE_FAILURE_ACTIONS));
+                PhSvcpPackBuffer(&bb, &packedFailureActions->lpRebootMsg, PhSvcpBufferLengthStringZ(failureActions->lpRebootMsg, FALSE), sizeof(WCHAR),
+                    1, &packedFailureActions);
+                PhSvcpPackBuffer(&bb, &packedFailureActions->lpCommand, PhSvcpBufferLengthStringZ(failureActions->lpCommand, FALSE), sizeof(WCHAR),
+                    1, &packedFailureActions);
+
+                if (failureActions->cActions != 0 && failureActions->lpsaActions)
+                {
+                    PhSvcpPackBuffer(&bb, &packedFailureActions->lpsaActions, failureActions->cActions * sizeof(SC_ACTION), __alignof(SC_ACTION),
+                        1, &packedFailureActions);
+                }
+
+                info = PhSvcpCreateString(bb.Bytes->Buffer, bb.Bytes->Length, &m.p.u.ChangeServiceConfig2.i.Info);
+                PhDeleteBytesBuilder(&bb);
+            }
+            break;
         case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
             info = PhSvcpCreateString(Info, sizeof(SERVICE_DELAYED_AUTO_START_INFO), &m.p.u.ChangeServiceConfig2.i.Info);
             break;
+        case SERVICE_CONFIG_FAILURE_ACTIONS_FLAG:
+            info = PhSvcpCreateString(Info, sizeof(SERVICE_FAILURE_ACTIONS_FLAG), &m.p.u.ChangeServiceConfig2.i.Info);
+            break;
+        case SERVICE_CONFIG_SERVICE_SID_INFO:
+            info = PhSvcpCreateString(Info, sizeof(SERVICE_SID_INFO), &m.p.u.ChangeServiceConfig2.i.Info);
+            break;
+        case SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO:
+            {
+                LPSERVICE_REQUIRED_PRIVILEGES_INFO requiredPrivilegesInfo = Info;
+                LPSERVICE_REQUIRED_PRIVILEGES_INFO packedRequiredPrivilegesInfo;
+
+                PhInitializeBytesBuilder(&bb, 100);
+                packedRequiredPrivilegesInfo = PhSvcpPackRoot(&bb, requiredPrivilegesInfo, sizeof(SERVICE_REQUIRED_PRIVILEGES_INFO));
+                PhSvcpPackBuffer(&bb, &packedRequiredPrivilegesInfo->pmszRequiredPrivileges, PhSvcpBufferLengthStringZ(requiredPrivilegesInfo->pmszRequiredPrivileges, TRUE), sizeof(WCHAR),
+                    1, &packedRequiredPrivilegesInfo);
+
+                info = PhSvcpCreateString(bb.Bytes->Buffer, bb.Bytes->Length, &m.p.u.ChangeServiceConfig2.i.Info);
+                PhDeleteBytesBuilder(&bb);
+            }
+            break;
+        case SERVICE_CONFIG_PRESHUTDOWN_INFO:
+            info = PhSvcpCreateString(Info, sizeof(SERVICE_PRESHUTDOWN_INFO), &m.p.u.ChangeServiceConfig2.i.Info);
+            break;
+        case SERVICE_CONFIG_TRIGGER_INFO:
+            {
+                PSERVICE_TRIGGER_INFO triggerInfo = Info;
+                PSERVICE_TRIGGER_INFO packedTriggerInfo;
+                ULONG i;
+                PSERVICE_TRIGGER packedTrigger;
+                ULONG j;
+                PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM packedDataItem;
+                ULONG alignment;
+
+                PhInitializeBytesBuilder(&bb, 400);
+                packedTriggerInfo = PhSvcpPackRoot(&bb, triggerInfo, sizeof(SERVICE_TRIGGER_INFO));
+
+                if (triggerInfo->cTriggers != 0 && triggerInfo->pTriggers)
+                {
+                    PhSvcpPackBuffer(&bb, &packedTriggerInfo->pTriggers, triggerInfo->cTriggers * sizeof(SERVICE_TRIGGER), __alignof(SERVICE_TRIGGER),
+                        1, &packedTriggerInfo);
+
+                    for (i = 0; i < triggerInfo->cTriggers; i++)
+                    {
+                        packedTrigger = PhOffsetBytesBuilder(&bb, (SIZE_T)packedTriggerInfo->pTriggers + i * sizeof(SERVICE_TRIGGER));
+
+                        PhSvcpPackBuffer(&bb, &packedTrigger->pTriggerSubtype, sizeof(GUID), __alignof(GUID),
+                            2, &packedTriggerInfo, &packedTrigger);
+
+                        if (packedTrigger->cDataItems != 0 && packedTrigger->pDataItems)
+                        {
+                            PhSvcpPackBuffer(&bb, &packedTrigger->pDataItems, packedTrigger->cDataItems * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM), __alignof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM),
+                                2, &packedTriggerInfo, &packedTrigger);
+
+                            for (j = 0; j < packedTrigger->cDataItems; j++)
+                            {
+                                packedDataItem = PhOffsetBytesBuilder(&bb, (SIZE_T)packedTrigger->pDataItems + j * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM));
+                                alignment = 1;
+
+                                switch (packedDataItem->dwDataType)
+                                {
+                                case SERVICE_TRIGGER_DATA_TYPE_BINARY:
+                                case SERVICE_TRIGGER_DATA_TYPE_LEVEL:
+                                    alignment = sizeof(CHAR);
+                                    break;
+                                case SERVICE_TRIGGER_DATA_TYPE_STRING:
+                                    alignment = sizeof(WCHAR);
+                                    break;
+                                case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY:
+                                case SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL:
+                                    alignment = sizeof(ULONG64);
+                                    break;
+                                }
+
+                                PhSvcpPackBuffer(&bb, &packedDataItem->pData, packedDataItem->cbData, alignment,
+                                    3, &packedTriggerInfo, &packedTrigger, &packedDataItem);
+                            }
+                        }
+                    }
+                }
+
+                info = PhSvcpCreateString(bb.Bytes->Buffer, bb.Bytes->Length, &m.p.u.ChangeServiceConfig2.i.Info);
+                PhDeleteBytesBuilder(&bb);
+            }
+            break;
+        case SERVICE_CONFIG_LAUNCH_PROTECTED:
+            info = PhSvcpCreateString(Info, sizeof(SERVICE_LAUNCH_PROTECTED_INFO), &m.p.u.ChangeServiceConfig2.i.Info);
+            break;
         default:
-            return STATUS_INVALID_PARAMETER;
+            status = STATUS_INVALID_PARAMETER;
+            break;
         }
     }
 

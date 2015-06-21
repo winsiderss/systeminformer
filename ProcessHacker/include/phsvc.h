@@ -99,11 +99,13 @@ VOID PhSvcDispatchApiCall(
     );
 
 PVOID PhSvcValidateString(
-    _In_ PPH_RELATIVE_STRINGREF String
+    _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ ULONG Alignment
     );
 
 NTSTATUS PhSvcProbeBuffer(
     _In_ PPH_RELATIVE_STRINGREF String,
+    _In_ ULONG Alignment,
     _In_ BOOLEAN AllowNull,
     _Out_ PVOID *Pointer
     );
