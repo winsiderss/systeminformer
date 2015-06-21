@@ -3933,7 +3933,7 @@ FORCEINLINE VOID PhpWriteNullTerminatorBytesBuilder(
     _In_ PPH_BYTES_BUILDER BytesBuilder
     )
 {
-    *((PCHAR)BytesBuilder->Bytes->Buffer + BytesBuilder->Bytes->Length) = 0;
+    BytesBuilder->Bytes->Buffer[BytesBuilder->Bytes->Length] = 0;
 }
 
 /**
@@ -3951,6 +3951,7 @@ VOID PhAppendBytesBuilder(
         BytesBuilder,
         Bytes->Buffer,
         Bytes->Length,
+        0,
         NULL
         );
 }
@@ -3970,6 +3971,7 @@ VOID PhAppendBytesBuilder2(
         BytesBuilder,
         Bytes,
         strlen(Bytes),
+        0,
         NULL
         );
 }
@@ -3980,26 +3982,29 @@ VOID PhAppendBytesBuilder2(
  * \param BytesBuilder A byte string builder object.
  * \param Buffer The byte string to append. Specify NULL to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
+ * \param Alignment The required alignment. This should not be greater than 8.
  * \param Offset A variable which receives the byte offset of the appended or reserved bytes
  * in the byte string builder string.
  *
  * \return A pointer to the appended or reserved bytes.
  */
-PCHAR PhAppendBytesBuilderEx(
+PVOID PhAppendBytesBuilderEx(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
-    _In_opt_ PCHAR Buffer,
+    _In_opt_ PVOID Buffer,
     _In_ SIZE_T Length,
+    _In_opt_ SIZE_T Alignment,
     _Out_opt_ PSIZE_T Offset
     )
 {
     SIZE_T currentLength;
-    PCHAR destination;
 
     currentLength = BytesBuilder->Bytes->Length;
-    destination = BytesBuilder->Bytes->Buffer + currentLength;
 
     if (Length == 0)
         goto Done;
+
+    if (Alignment)
+        currentLength = ALIGN_UP_BY(currentLength, Alignment);
 
     // See if we need to re-allocate the byte string.
     if (BytesBuilder->AllocatedLength < currentLength + Length)
@@ -4008,16 +4013,16 @@ PCHAR PhAppendBytesBuilderEx(
     // Copy the byte string, add the length, then write the null terminator.
 
     if (Buffer)
-        memcpy(destination, Buffer, Length);
+        memcpy(BytesBuilder->Bytes->Buffer + currentLength, Buffer, Length);
 
-    BytesBuilder->Bytes->Length += Length;
+    BytesBuilder->Bytes->Length = currentLength + Length;
     PhpWriteNullTerminatorBytesBuilder(BytesBuilder);
 
 Done:
     if (Offset)
         *Offset = currentLength;
 
-    return destination;
+    return BytesBuilder->Bytes->Buffer + currentLength;
 }
 
 /**

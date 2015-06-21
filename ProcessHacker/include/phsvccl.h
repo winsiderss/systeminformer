@@ -66,6 +66,7 @@ NTSTATUS PhSvcCallCreateService(
     _In_opt_ PWSTR Password
     );
 
+// begin_phapppub
 PHLIBAPI
 NTSTATUS PhSvcCallChangeServiceConfig(
     _In_ PWSTR ServiceName,
@@ -87,6 +88,7 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
     _In_ ULONG InfoLevel,
     _In_ PVOID Info
     );
+// end_phapppub
 
 NTSTATUS PhSvcCallSetTcpEntry(
     _In_ PVOID TcpRow
@@ -111,6 +113,7 @@ NTSTATUS PhSvcCallIssueMemoryListCommand(
     _In_ SYSTEM_MEMORY_LIST_COMMAND Command
     );
 
+// begin_phapppub
 PHLIBAPI
 NTSTATUS PhSvcCallPostMessage(
     _In_opt_ HWND hWnd,
@@ -126,6 +129,7 @@ NTSTATUS PhSvcCallSendMessage(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
+// end_phapppub
 
 NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
     _In_ PWSTR FileName

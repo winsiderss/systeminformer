@@ -865,13 +865,13 @@ typedef struct _PH_BYTESREF
     PCH Buffer;
 } PH_BYTESREF, *PPH_BYTESREF;
 
-typedef struct _PH_RELATIVE_STRINGREF
+typedef struct _PH_RELATIVE_BYTESREF
 {
     /** The length, in bytes, of the string. */
     ULONG Length;
     /** A user-defined offset. */
     ULONG Offset;
-} PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
+} PH_RELATIVE_BYTESREF, *PPH_RELATIVE_BYTESREF, PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
 
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(WCHAR), (String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(CHAR), (String) }
@@ -2317,6 +2317,16 @@ PhFinalBytesBuilderBytes(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder
     );
 
+FORCEINLINE
+PVOID
+PhOffsetBytesBuilder(
+    _In_ PPH_BYTES_BUILDER BytesBuilder,
+    _In_ SIZE_T Offset
+    )
+{
+    return BytesBuilder->Bytes->Buffer + Offset;
+}
+
 PHLIBAPI
 VOID
 NTAPI
@@ -2334,12 +2344,13 @@ PhAppendBytesBuilder2(
     );
 
 PHLIBAPI
-PCHAR
+PVOID
 NTAPI
 PhAppendBytesBuilderEx(
     _Inout_ PPH_BYTES_BUILDER BytesBuilder,
-    _In_opt_ PCHAR Buffer,
+    _In_opt_ PVOID Buffer,
     _In_ SIZE_T Length,
+    _In_opt_ SIZE_T Alignment,
     _Out_opt_ PSIZE_T Offset
     );
 

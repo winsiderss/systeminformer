@@ -22,6 +22,7 @@ Process Hacker
    * Added warning for users who attempt to start the 32-bit version on 64-bit Windows
    * Updated ExtendedServices plugin:
      * Added service protection and SID information
+     * Added auto-elevation when saving recovery information, triggers and other service settings
    * Updated ExtendedTools plugin:
      * Added tray icon mini info window support
      * Improved automatic GPU node selection
