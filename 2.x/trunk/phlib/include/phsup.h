@@ -367,12 +367,6 @@ FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
 #define PH_PTR_STR_LEN 24
 #define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
 
-#define STR_EQUAL(Str1, Str2) (strcmp(Str1, Str2) == 0)
-#define WSTR_EQUAL(Str1, Str2) (wcscmp(Str1, Str2) == 0)
-
-#define STR_IEQUAL(Str1, Str2) (stricmp(Str1, Str2) == 0)
-#define WSTR_IEQUAL(Str1, Str2) (wcsicmp(Str1, Str2) == 0)
-
 FORCEINLINE VOID PhPrintInt32(
     _Out_writes_(PH_INT32_STR_LEN_1) PWSTR Destination,
     _In_ LONG Int32
