@@ -282,14 +282,14 @@ char *MxmlSaveCallback(
     _In_ int position
     )
 {
-    if (STR_IEQUAL(node->value.element.name, "object"))
+    if (PhEqualBytesZ(node->value.element.name, "object", TRUE))
     {
         if (position == MXML_WS_BEFORE_OPEN)
             return "  ";
         else if (position == MXML_WS_AFTER_CLOSE)
             return "\r\n";
     }
-    else if (STR_IEQUAL(node->value.element.name, "objects"))
+    else if (PhEqualBytesZ(node->value.element.name, "objects", TRUE))
     {
         if (position == MXML_WS_AFTER_OPEN)
             return "\r\n";

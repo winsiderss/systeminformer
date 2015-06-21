@@ -541,7 +541,7 @@ static VOID Test_wildcards(
     for (i = 0; i < sizeof(testCases) / sizeof(WCHAR *[3]); i++)
     {
         r = PhMatchWildcards(testCases[i][0], testCases[i][1], TRUE);
-        fail = r != WSTR_EQUAL(testCases[i][2], L"true");
+        fail = r != PhEqualStringZ(testCases[i][2], L"true", FALSE);
 
         if (fail)
         {

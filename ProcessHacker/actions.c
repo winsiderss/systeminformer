@@ -877,7 +877,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
         {
             PPH_STRING message;
 
-            if (WSTR_EQUAL(Verb, L"terminate"))
+            if (PhEqualStringZ(Verb, L"terminate", FALSE))
             {
                 message = PhaConcatStrings(
                     3,
