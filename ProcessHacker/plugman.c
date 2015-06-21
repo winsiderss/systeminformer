@@ -63,24 +63,21 @@ PWSTR PhpGetPluginBaseName(
     _In_ PPH_PLUGIN Plugin
     )
 {
-    PWSTR baseName;
-
     if (Plugin->FileName)
     {
-        baseName = wcsrchr(Plugin->FileName->Buffer, '\\');
+        PH_STRINGREF pathNamePart;
+        PH_STRINGREF baseNamePart;
 
-        if (baseName)
-            baseName++; // skip the backslash
+        if (PhSplitStringRefAtLastChar(&Plugin->FileName->sr, '\\', &pathNamePart, &baseNamePart))
+            return baseNamePart.Buffer;
         else
-            baseName = Plugin->FileName->Buffer;
+            return Plugin->FileName->Buffer;
     }
     else
     {
         // Fake disabled plugin.
-        baseName = Plugin->Name.Buffer;
+        return Plugin->Name.Buffer;
     }
-
-    return baseName;
 }
 
 PWSTR PhpGetPluginDisableButtonText(

@@ -815,6 +815,34 @@ PhIsDigitCharacter(
 
 FORCEINLINE
 LONG
+PhCompareBytesZ(
+    _In_ PSTR String1,
+    _In_ PSTR String2,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return strcmp(String1, String2);
+    else
+        return stricmp(String1, String2);
+}
+
+FORCEINLINE
+BOOLEAN
+PhEqualBytesZ(
+    _In_ PSTR String1,
+    _In_ PSTR String2,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return strcmp(String1, String2) == 0;
+    else
+        return stricmp(String1, String2) == 0;
+}
+
+FORCEINLINE
+LONG
 PhCompareStringZ(
     _In_ PWSTR String1,
     _In_ PWSTR String2,

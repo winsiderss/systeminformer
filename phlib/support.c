@@ -2793,9 +2793,9 @@ NTSTATUS PhCreateProcessAsUser(
             logonType = LOGON32_LOGON_INTERACTIVE;
 
             // Check if this is a service logon.
-            if (WSTR_IEQUAL(Information->DomainName, L"NT AUTHORITY"))
+            if (PhEqualStringZ(Information->DomainName, L"NT AUTHORITY", TRUE))
             {
-                if (WSTR_IEQUAL(Information->UserName, L"SYSTEM"))
+                if (PhEqualStringZ(Information->UserName, L"SYSTEM", TRUE))
                 {
                     if (WindowsVersion >= WINDOWS_VISTA)
                         logonType = LOGON32_LOGON_SERVICE;
@@ -2803,10 +2803,8 @@ NTSTATUS PhCreateProcessAsUser(
                         logonType = LOGON32_LOGON_NEW_CREDENTIALS; // HACK
                 }
 
-                if (
-                    WSTR_IEQUAL(Information->UserName, L"LOCAL SERVICE") ||
-                    WSTR_IEQUAL(Information->UserName, L"NETWORK SERVICE")
-                    )
+                if (PhEqualStringZ(Information->UserName, L"LOCAL SERVICE", TRUE) ||
+                    PhEqualStringZ(Information->UserName, L"NETWORK SERVICE", TRUE))
                 {
                     logonType = LOGON32_LOGON_SERVICE;
                 }
@@ -4166,22 +4164,24 @@ VOID PhSetFileDialogFileName(
     )
 {
     PPHP_FILE_DIALOG fileDialog = FileDialog;
+    PH_STRINGREF fileName;
+
+    PhInitializeStringRefLongHint(&fileName, FileName);
 
     if (fileDialog->UseIFileDialog)
     {
         IShellItem *shellItem = NULL;
-        PWSTR baseName;
+        PH_STRINGREF pathNamePart;
+        PH_STRINGREF baseNamePart;
 
-        baseName = wcsrchr(FileName, '\\');
-
-        if (baseName && SHParseDisplayName_I && SHCreateShellItem_I)
+        if (PhSplitStringRefAtLastChar(&fileName, '\\', &pathNamePart, &baseNamePart) &&
+            SHParseDisplayName_I && SHCreateShellItem_I)
         {
             LPITEMIDLIST item;
             SFGAOF attributes;
             PPH_STRING pathName;
 
-            // Remove the base name.
-            pathName = PhCreateStringEx(FileName, (baseName - FileName) * 2);
+            pathName = PhCreateString2(&pathNamePart);
 
             if (SUCCEEDED(SHParseDisplayName_I(pathName->Buffer, NULL, &item, 0, &attributes)))
             {
@@ -4195,7 +4195,7 @@ VOID PhSetFileDialogFileName(
         if (shellItem)
         {
             IFileDialog_SetFolder(fileDialog->u.FileDialog, shellItem);
-            IFileDialog_SetFileName(fileDialog->u.FileDialog, baseName + 1);
+            IFileDialog_SetFileName(fileDialog->u.FileDialog, baseNamePart.Buffer);
             IShellItem_Release(shellItem);
         }
         else
@@ -4206,9 +4206,8 @@ VOID PhSetFileDialogFileName(
     else
     {
         OPENFILENAME *ofn = fileDialog->u.OpenFileName;
-        SIZE_T length;
 
-        if (wcschr(FileName, '/') || wcschr(FileName, '\"'))
+        if (PhFindCharInStringRef(&fileName, '/', FALSE) != -1 || PhFindCharInStringRef(&fileName, '\"', FALSE) != -1)
         {
             // It refuses to take any filenames with a slash or quotation mark.
             return;
@@ -4216,10 +4215,9 @@ VOID PhSetFileDialogFileName(
 
         PhFree(ofn->lpstrFile);
 
-        length = PhCountStringZ(FileName);
-        ofn->nMaxFile = (ULONG)max(length + 1, 0x400);
+        ofn->nMaxFile = (ULONG)max(fileName.Length / sizeof(WCHAR) + 1, 0x400);
         ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
-        memcpy(ofn->lpstrFile, FileName, (length + 1) * 2);
+        memcpy(ofn->lpstrFile, fileName.Buffer, fileName.Length + sizeof(WCHAR));
     }
 }
 
@@ -4341,7 +4339,7 @@ NTSTATUS PhIsExecutablePacked(
             )))
             goto CleanupExit;
 
-        if (STR_IEQUAL(importDll.Name, "mscoree.dll"))
+        if (PhCompareBytesZ(importDll.Name, "mscoree.dll", TRUE))
             isModuleMscoree = TRUE;
 
         numberOfFunctions += importDll.NumberOfEntries;

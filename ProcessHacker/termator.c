@@ -815,7 +815,7 @@ static BOOLEAN PhpRunTerminatorTest(
         ))
         return FALSE;
 
-    if (WSTR_EQUAL(testItem->Id, L"TT4"))
+    if (PhEqualStringZ(testItem->Id, L"TT4", FALSE))
     {
         if (!PhShowConfirmMessage(
             WindowHandle,
@@ -918,7 +918,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
 
                 check = TRUE;
 
-                if (WSTR_EQUAL(PhTerminatorTests[i].Id, L"TT4") || WSTR_EQUAL(PhTerminatorTests[i].Id, L"M1"))
+                if (PhEqualStringZ(PhTerminatorTests[i].Id, L"TT4", FALSE) || PhEqualStringZ(PhTerminatorTests[i].Id, L"M1", FALSE))
                     check = FALSE;
 
                 ListView_SetCheckState(lvHandle, itemIndex, check);
