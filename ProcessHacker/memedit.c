@@ -337,7 +337,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            SetFocus(context->HexEditHandle);
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
         }
         break;
     case WM_COMMAND:
