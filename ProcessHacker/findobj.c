@@ -246,7 +246,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            SetFocus(GetDlgItem(hwndDlg, IDC_FILTER));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_FILTER), TRUE);
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_FILTER), 0, -1);
         }
         break;
