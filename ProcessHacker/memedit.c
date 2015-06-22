@@ -433,7 +433,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                                 continue;
                             }
 
-                            SetFocus(context->HexEditHandle);
+                            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
                             HexEdit_SetSel(context->HexEditHandle, (LONG)offset, (LONG)offset);
                             break;
                         }
@@ -488,7 +488,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         {
                             PhSetIntegerSetting(L"MemEditBytesPerRow", (ULONG)bytesPerRow64);
                             HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
-                            SetFocus(context->HexEditHandle);
+                            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
                         }
                     }
                 }
