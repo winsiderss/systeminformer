@@ -97,11 +97,12 @@ BEGIN
         MENUITEM "Number of Processes",         ID_STATUS_NUMBEROFPROCESSES
         MENUITEM "Number of Threads",           ID_STATUS_NUMBEROFTHREADS
         MENUITEM "Number of Handles",           ID_STATUS_NUMBEROFHANDLES
+        MENUITEM "Number of Visible",     ID_STATUS_NUMBEROFVISIBLEITEMS
+        MENUITEM "Number of Selected",    ID_STATUS_NUMBEROFSELECTEDITEMS
         MENUITEM "I/O Read+Other",              ID_STATUS_IO_RO
         MENUITEM "I/O Write",                   ID_STATUS_IO_W
         MENUITEM "Max. CPU Process",            ID_STATUS_MAX_CPU_PROCESS
         MENUITEM "Max. I/O Process",            ID_STATUS_MAX_IO_PROCESS
-        MENUITEM "Number of Items",             ID_STATUS_NUMBEROFITEMS
     END
 END
 

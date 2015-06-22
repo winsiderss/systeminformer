@@ -45,14 +45,15 @@
 #define ID_STATUS_MAX_CPU_PROCESS       40009
 #define ID_STATUS_MAX_IO_PROCESS        40010
 #define ID_SEARCH                       40011
-#define ID_STATUS_NUMBEROFITEMS         40012
+#define ID_STATUS_NUMBEROFVISIBLEITEMS  40012
+#define ID_STATUS_NUMBEROFSELECTEDITEMS 40013
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        124
-#define _APS_NEXT_COMMAND_VALUE         40013
+#define _APS_NEXT_COMMAND_VALUE         40014
 #define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           11010
 #endif
