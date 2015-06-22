@@ -83,7 +83,10 @@ VOID ShowStatusMenu(
                 id = ID_STATUS_MAX_IO_PROCESS;
                 break;
             case STATUS_VISIBLEITEMS:
-                id = ID_STATUS_NUMBEROFITEMS;
+                id = ID_STATUS_NUMBEROFVISIBLEITEMS;
+                break;
+            case STATUS_SELECTEDITEMS:
+                id = ID_STATUS_NUMBEROFSELECTEDITEMS;
                 break;
             }
 
@@ -135,8 +138,11 @@ VOID ShowStatusMenu(
     case ID_STATUS_MAX_IO_PROCESS:
         bit = STATUS_MAXIOPROCESS;
         break;
-    case ID_STATUS_NUMBEROFITEMS:
+    case ID_STATUS_NUMBEROFVISIBLEITEMS:
         bit = STATUS_VISIBLEITEMS;
+        break;
+    case ID_STATUS_NUMBEROFSELECTEDITEMS:
+        bit = STATUS_SELECTEDITEMS;
         break;
     default:
         return;
@@ -368,6 +374,49 @@ VOID UpdateStatusBar(
                     {
                         text[count] = PhFormatString(
                             L"Visible: N/A"
+                            );
+                    }
+                }
+                break;
+            case STATUS_SELECTEDITEMS:
+                {
+                    HWND tnHandle = NULL;
+
+                    switch (SelectedTabIndex)
+                    {
+                    case 0:
+                        tnHandle = ProcessTreeNewHandle;
+                        break;
+                    case 1:
+                        tnHandle = ServiceTreeNewHandle;
+                        break;
+                    case 2:
+                        tnHandle = NetworkTreeNewHandle;
+                        break;
+                    }
+
+                    if (tnHandle)
+                    {
+                        ULONG visibleCount = 0;
+                        ULONG selectedCount = 0;
+
+                        visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
+
+                        for (ULONG i = 0; i < visibleCount; i++)
+                        {
+                            if (TreeNew_GetFlatNode(tnHandle, i)->Selected)
+                                selectedCount++;
+                        }
+
+                        text[count] = PhFormatString(
+                            L"Selected: %lu",
+                            selectedCount
+                            );
+                    }
+                    else
+                    {
+                        text[count] = PhFormatString(
+                            L"Selected: N/A"
                             );
                     }
                 }
