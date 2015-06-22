@@ -4339,7 +4339,7 @@ NTSTATUS PhIsExecutablePacked(
             )))
             goto CleanupExit;
 
-        if (PhCompareBytesZ(importDll.Name, "mscoree.dll", TRUE))
+        if (PhEqualBytesZ(importDll.Name, "mscoree.dll", TRUE))
             isModuleMscoree = TRUE;
 
         numberOfFunctions += importDll.NumberOfEntries;
