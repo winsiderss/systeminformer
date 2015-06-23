@@ -131,9 +131,7 @@ INT WINAPI wWinMain(
         PhApplicationDirectory = PhReferenceEmptyString();
 
     PhpProcessStartupParameters();
-
-    PhpInitializeSettings();
-
+    PhSettingsInitialization();
     PhpEnablePrivileges();
 
     if (PhStartupParameters.RunAsServiceMode)
@@ -141,24 +139,22 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
+    PhpInitializeSettings();
+
     // Activate a previous instance if required.
-    if (
-        PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
         !PhStartupParameters.CommandMode &&
-        !PhStartupParameters.PhSvc
-        )
+        !PhStartupParameters.PhSvc)
+    {
         PhActivatePreviousInstance();
+    }
 
     if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64())
         PhInitializeKph();
 
-    if (
-        PhStartupParameters.CommandMode &&
-        PhStartupParameters.CommandType &&
-        PhStartupParameters.CommandAction
-        )
+    if (PhStartupParameters.CommandMode && PhStartupParameters.CommandType && PhStartupParameters.CommandAction)
     {
         NTSTATUS status;
 
@@ -552,8 +548,6 @@ VOID PhpInitializeSettings(
     )
 {
     NTSTATUS status;
-
-    PhSettingsInitialization();
 
     if (!PhStartupParameters.NoSettings)
     {
