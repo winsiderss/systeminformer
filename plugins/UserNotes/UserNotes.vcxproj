@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7C38D0AA-572C-4D75-8E4E-D68AF3C051AF}</ProjectGuid>
-    <RootNamespace>UserNotes</RootNamespace>    
+    <RootNamespace>UserNotes</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>UserNotes</ProjectName>
   </PropertyGroup>
@@ -72,6 +72,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="UserNotes.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CHANGELOG.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
