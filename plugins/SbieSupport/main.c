@@ -304,6 +304,8 @@ VOID NTAPI MainMenuInitializingCallback(
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
 
+    if (!SbieDll_KillAll)
+        return;
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
