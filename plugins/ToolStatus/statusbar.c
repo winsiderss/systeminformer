@@ -357,6 +357,16 @@ VOID UpdateStatusBar(
                     case 2:
                         tnHandle = NetworkTreeNewHandle;
                         break;
+                    default:
+                        {
+                            PTOOLSTATUS_TAB_INFO tabInfo;
+
+                            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTabHandle)
+                            {
+                                tnHandle = tabInfo->GetTabHandle();
+                            }
+                        }
+                        break;
                     }
 
                     if (tnHandle)
@@ -392,6 +402,16 @@ VOID UpdateStatusBar(
                         break;
                     case 2:
                         tnHandle = NetworkTreeNewHandle;
+                        break;
+                    default:
+                        {
+                            PTOOLSTATUS_TAB_INFO tabInfo;
+
+                            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTabHandle)
+                            {
+                                tnHandle = tabInfo->GetTabHandle();
+                            }
+                        }
                         break;
                     }
 
