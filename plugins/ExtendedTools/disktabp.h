@@ -157,7 +157,7 @@ VOID NTAPI EtpToolStatusActivateContent(
     _In_ BOOLEAN Select
     );
 
-HANDLE NTAPI EtpToolStatusGetTreeHandle(
+HWND NTAPI EtpToolStatusGetTreeNewHandle(
     VOID
     );
 

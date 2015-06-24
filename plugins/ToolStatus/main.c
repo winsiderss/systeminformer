@@ -152,36 +152,36 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
         return NULL;
 }
 
-HANDLE GetCurrentTreeViewHandle(
+HWND GetCurrentTreeNewHandle(
     VOID
     )
 {
-    HWND treeViewHandle = NULL;
+    HWND treeNewHandle = NULL;
 
     switch (SelectedTabIndex)
     {
     case 0:
-        treeViewHandle = ProcessTreeNewHandle;
+        treeNewHandle = ProcessTreeNewHandle;
         break;
     case 1:
-        treeViewHandle = ServiceTreeNewHandle;
+        treeNewHandle = ServiceTreeNewHandle;
         break;
     case 2:
-        treeViewHandle = NetworkTreeNewHandle;
+        treeNewHandle = NetworkTreeNewHandle;
         break;
     default:
         {
             PTOOLSTATUS_TAB_INFO tabInfo;
 
-            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTreeHandle)
+            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTreeNewHandle)
             {
-                treeViewHandle = tabInfo->GetTreeHandle();
+                treeNewHandle = tabInfo->GetTreeNewHandle();
             }
         }
         break;
     }
 
-    return treeViewHandle;
+    return treeNewHandle;
 }
 
 static VOID NTAPI TabPageUpdatedCallback(

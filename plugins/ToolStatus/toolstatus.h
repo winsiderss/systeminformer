@@ -166,7 +166,7 @@ PWSTR ToolbarGetText(
     _In_ INT CommandID
     );
 
-HANDLE GetCurrentTreeViewHandle(
+HWND GetCurrentTreeNewHandle(
     VOID
     );
 
