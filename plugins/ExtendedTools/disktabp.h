@@ -157,6 +157,10 @@ VOID NTAPI EtpToolStatusActivateContent(
     _In_ BOOLEAN Select
     );
 
+HANDLE NTAPI EtpToolStatusGetTabHandle(
+    VOID
+    );
+
 INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
