@@ -166,6 +166,10 @@ PWSTR ToolbarGetText(
     _In_ INT CommandID
     );
 
+HANDLE GetCurrentTreeViewHandle(
+    VOID
+    );
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

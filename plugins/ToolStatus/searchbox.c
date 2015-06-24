@@ -338,20 +338,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         {
             if (wParam == '\t' || wParam == '\r')
             {
-                HWND tnHandle = NULL;
+                HWND tnHandle;
 
-                switch (SelectedTabIndex)
-                {
-                case 0:
-                    tnHandle = ProcessTreeNewHandle;
-                    break;
-                case 1:
-                    tnHandle = ServiceTreeNewHandle;
-                    break;
-                case 2:
-                    tnHandle = NetworkTreeNewHandle;
-                    break;
-                }
+                tnHandle = GetCurrentTreeViewHandle();
 
                 if (tnHandle)
                 {

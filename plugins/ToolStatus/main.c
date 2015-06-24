@@ -152,6 +152,38 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
         return NULL;
 }
 
+HANDLE GetCurrentTreeViewHandle(
+    VOID
+    )
+{
+    HWND treeViewHandle = NULL;
+
+    switch (SelectedTabIndex)
+    {
+    case 0:
+        treeViewHandle = ProcessTreeNewHandle;
+        break;
+    case 1:
+        treeViewHandle = ServiceTreeNewHandle;
+        break;
+    case 2:
+        treeViewHandle = NetworkTreeNewHandle;
+        break;
+    default:
+        {
+            PTOOLSTATUS_TAB_INFO tabInfo;
+
+            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTreeHandle)
+            {
+                treeViewHandle = tabInfo->GetTreeHandle();
+            }
+        }
+        break;
+    }
+
+    return treeViewHandle;
+}
+
 static VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

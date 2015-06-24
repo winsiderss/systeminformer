@@ -346,28 +346,7 @@ VOID UpdateStatusBar(
                 {
                     HWND tnHandle = NULL;
 
-                    switch (SelectedTabIndex)
-                    {
-                    case 0:
-                        tnHandle = ProcessTreeNewHandle;
-                        break;
-                    case 1:
-                        tnHandle = ServiceTreeNewHandle;
-                        break;
-                    case 2:
-                        tnHandle = NetworkTreeNewHandle;
-                        break;
-                    default:
-                        {
-                            PTOOLSTATUS_TAB_INFO tabInfo;
-
-                            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTabHandle)
-                            {
-                                tnHandle = tabInfo->GetTabHandle();
-                            }
-                        }
-                        break;
-                    }
+                    tnHandle = GetCurrentTreeViewHandle();
 
                     if (tnHandle)
                     {
@@ -392,28 +371,7 @@ VOID UpdateStatusBar(
                 {
                     HWND tnHandle = NULL;
 
-                    switch (SelectedTabIndex)
-                    {
-                    case 0:
-                        tnHandle = ProcessTreeNewHandle;
-                        break;
-                    case 1:
-                        tnHandle = ServiceTreeNewHandle;
-                        break;
-                    case 2:
-                        tnHandle = NetworkTreeNewHandle;
-                        break;
-                    default:
-                        {
-                            PTOOLSTATUS_TAB_INFO tabInfo;
-
-                            if ((tabInfo = FindTabInfo(SelectedTabIndex)) && tabInfo->GetTabHandle)
-                            {
-                                tnHandle = tabInfo->GetTabHandle();
-                            }
-                        }
-                        break;
-                    }
+                    tnHandle = GetCurrentTreeViewHandle();
 
                     if (tnHandle)
                     {
