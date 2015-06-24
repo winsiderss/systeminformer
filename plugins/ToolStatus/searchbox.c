@@ -227,7 +227,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         }
         break;
     case WM_ERASEBKGND:
-        return TRUE;
+        return 1;
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
@@ -350,6 +350,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     {
                         if (TreeNew_GetFlatNodeCount(tnHandle) > 0)
                         {
+                            TreeNew_DeselectRange(tnHandle, 0, -1);
                             TreeNew_SelectRange(tnHandle, 0, 0);
                             TreeNew_SetFocusNode(tnHandle, TreeNew_GetFlatNode(tnHandle, 0));
                             TreeNew_SetMarkNode(tnHandle, TreeNew_GetFlatNode(tnHandle, 0));
