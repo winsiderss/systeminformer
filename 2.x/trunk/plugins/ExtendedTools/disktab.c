@@ -76,6 +76,7 @@ VOID EtInitializeDiskTab(
         tabInfo = ToolStatusInterface->RegisterTabInfo(addedTabPage->Index);
         tabInfo->BannerText = L"Search Disk";
         tabInfo->ActivateContent = EtpToolStatusActivateContent;
+        tabInfo->GetTabHandle = EtpToolStatusGetTabHandle;
     }
 }
 
@@ -1108,6 +1109,13 @@ VOID NTAPI EtpToolStatusActivateContent(
         if (TreeNew_GetFlatNodeCount(DiskTreeNewHandle) > 0)
             EtSelectAndEnsureVisibleDiskNode((PET_DISK_NODE)TreeNew_GetFlatNode(DiskTreeNewHandle, 0));
     }
+}
+
+HANDLE NTAPI EtpToolStatusGetTabHandle(
+    VOID
+    )
+{
+    return DiskTreeNewHandle;
 }
 
 INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
