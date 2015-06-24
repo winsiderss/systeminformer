@@ -346,7 +346,7 @@ VOID UpdateStatusBar(
                 {
                     HWND tnHandle = NULL;
 
-                    tnHandle = GetCurrentTreeViewHandle();
+                    tnHandle = GetCurrentTreeNewHandle();
 
                     if (tnHandle)
                     {
@@ -371,7 +371,7 @@ VOID UpdateStatusBar(
                 {
                     HWND tnHandle = NULL;
 
-                    tnHandle = GetCurrentTreeViewHandle();
+                    tnHandle = GetCurrentTreeNewHandle();
 
                     if (tnHandle)
                     {

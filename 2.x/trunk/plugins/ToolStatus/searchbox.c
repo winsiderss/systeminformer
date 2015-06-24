@@ -340,7 +340,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             {
                 HWND tnHandle;
 
-                tnHandle = GetCurrentTreeViewHandle();
+                tnHandle = GetCurrentTreeNewHandle();
 
                 if (tnHandle)
                 {
