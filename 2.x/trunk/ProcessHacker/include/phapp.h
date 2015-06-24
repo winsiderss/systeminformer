@@ -1833,7 +1833,11 @@ NTSTATUS PhExecuteRunAsCommand(
     _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
-NTSTATUS PhExecuteRunAsCommand2(
+// begin_phapppub
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhExecuteRunAsCommand2(
     _In_ HWND hWnd,
     _In_ PWSTR Program,
     _In_opt_ PWSTR UserName,
@@ -1844,6 +1848,7 @@ NTSTATUS PhExecuteRunAsCommand2(
     _In_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken
     );
+// end_phapppub
 
 NTSTATUS PhRunAsServiceStart(
     _In_ PPH_STRING ServiceName
