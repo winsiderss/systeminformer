@@ -152,7 +152,10 @@ NtMakeTemporaryObject(
     _In_ HANDLE Handle
     );
 
-typedef NTSTATUS (NTAPI *_NtMakePermanentObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtMakePermanentObject(
     _In_ HANDLE Handle
     );
 
