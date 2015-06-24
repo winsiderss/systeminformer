@@ -76,7 +76,7 @@ VOID EtInitializeDiskTab(
         tabInfo = ToolStatusInterface->RegisterTabInfo(addedTabPage->Index);
         tabInfo->BannerText = L"Search Disk";
         tabInfo->ActivateContent = EtpToolStatusActivateContent;
-        tabInfo->GetTabHandle = EtpToolStatusGetTabHandle;
+        tabInfo->GetTreeHandle = EtpToolStatusGetTreeHandle;
     }
 }
 
@@ -1111,7 +1111,7 @@ VOID NTAPI EtpToolStatusActivateContent(
     }
 }
 
-HANDLE NTAPI EtpToolStatusGetTabHandle(
+HANDLE NTAPI EtpToolStatusGetTreeHandle(
     VOID
     )
 {
