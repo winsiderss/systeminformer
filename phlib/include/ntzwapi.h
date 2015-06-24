@@ -2009,6 +2009,13 @@ ZwLockVirtualMemory(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwMakePermanentObject(
+    _In_ HANDLE Handle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwMakeTemporaryObject(
     _In_ HANDLE Handle
     );
