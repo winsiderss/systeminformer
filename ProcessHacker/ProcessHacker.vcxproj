@@ -402,13 +402,10 @@
     <None Include="resources\cross.bmp" />
     <None Include="resources\folder.bmp" />
     <None Include="resources\magnifier.bmp" />
-    <None Include="resources\minus.bmp" />
     <None Include="resources\pencil.bmp" />
-    <None Include="resources\plus.bmp" />
     <None Include="ProcessHacker.ico" />
     <None Include="resources\ProcessHacker.png" />
     <None Include="resources\tick.bmp" />
-    <None Include="TODO.txt" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ProcessHacker.rc" />

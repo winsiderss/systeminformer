@@ -595,13 +595,7 @@
     <None Include="resources\magnifier.bmp">
       <Filter>Resources</Filter>
     </None>
-    <None Include="resources\minus.bmp">
-      <Filter>Resources</Filter>
-    </None>
     <None Include="resources\pencil.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\plus.bmp">
       <Filter>Resources</Filter>
     </None>
     <None Include="ProcessHacker.ico">
@@ -623,9 +617,6 @@
       <Filter>Resources</Filter>
     </None>
     <None Include="resources\cog_go.ico">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="TODO.txt">
       <Filter>Resources</Filter>
     </None>
   </ItemGroup>
