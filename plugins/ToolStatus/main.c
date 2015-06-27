@@ -357,7 +357,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
     {
     case WM_COMMAND:
         {
-            switch (HIWORD(wParam))
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case EN_CHANGE:
                 {
@@ -394,7 +394,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 break;
             }
 
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case PHAPP_ID_ESC_EXIT:
                 {
