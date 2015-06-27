@@ -22,6 +22,8 @@
 
 #include "wndexp.h"
 
+// WARNING: No functions from ProcessHacker.exe should be used in this file!
+
 PVOID WeGetProcedureAddress(
     _In_ PSTR Name
     )
@@ -48,8 +50,8 @@ VOID WeFormatLocalObjectName(
     {
         memcpy(Buffer, L"\\Sessions\\", 10 * sizeof(WCHAR));
         _ultow(NtCurrentPeb()->SessionId, Buffer + 10, 10);
-        length = PhCountStringZ(Buffer);
-        originalNameLength = PhCountStringZ(OriginalName);
+        length = wcslen(Buffer);
+        originalNameLength = wcslen(OriginalName);
         memcpy(Buffer + length, OriginalName, (originalNameLength + 1) * sizeof(WCHAR));
         length += originalNameLength;
 
