@@ -201,7 +201,6 @@
     <ClInclude Include="include\treenew.h" />
     <ClInclude Include="include\treenewp.h" />
     <ClInclude Include="include\verify.h" />
-    <ClInclude Include="pcre\config.h" />
     <ClInclude Include="include\dltmgr.h" />
     <ClInclude Include="include\dspick.h" />
     <ClInclude Include="include\emenu.h" />
@@ -256,7 +255,6 @@
     <ClInclude Include="include\sha.h" />
     <ClInclude Include="include\symprv.h" />
     <ClInclude Include="include\templ.h" />
-    <ClInclude Include="pcre\ucp.h" />
     <ClInclude Include="include\verifyp.h" />
     <ClInclude Include="include\winsta.h" />
   </ItemGroup>

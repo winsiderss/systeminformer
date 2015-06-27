@@ -154,9 +154,6 @@
     <ClInclude Include="include\colorbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\dltmgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -311,9 +308,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\templ.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pcre\ucp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\verifyp.h">
