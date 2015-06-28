@@ -29,19 +29,12 @@ extern "C" {
 
 // Configuration
 
-#define PHOBJ_SMALL_OBJECT_SIZE 48
-#define PHOBJ_SMALL_OBJECT_COUNT 512
-
-//#define PHOBJ_STRICT_CHECKS
-#define PHOBJ_ALLOCATE_NEVER_NULL
-
-// Object flags
-#define PHOBJ_RAISE_ON_FAIL 0x00000001
-#define PHOBJ_VALID_FLAGS 0x00000001
+#define PH_OBJECT_SMALL_OBJECT_SIZE 48
+#define PH_OBJECT_SMALL_OBJECT_COUNT 512
 
 // Object type flags
-#define PHOBJTYPE_USE_FREE_LIST 0x00000001
-#define PHOBJTYPE_VALID_FLAGS 0x00000001
+#define PH_OBJECT_TYPE_USE_FREE_LIST 0x00000001
+#define PH_OBJECT_TYPE_VALID_FLAGS 0x00000001
 
 // Object type callbacks
 
@@ -87,18 +80,15 @@ typedef struct _PH_OBJECT_TYPE_PARAMETERS
 {
     SIZE_T FreeListSize;
     ULONG FreeListCount;
-
-    UCHAR Reserved1;
-    UCHAR Reserved2;
-    UCHAR Reserved3;
-    UCHAR Reserved4;
-    ULONG Reserved5[4];
 } PH_OBJECT_TYPE_PARAMETERS, *PPH_OBJECT_TYPE_PARAMETERS;
 
 typedef struct _PH_OBJECT_TYPE_INFORMATION
 {
     PWSTR Name;
     ULONG NumberOfObjects;
+    USHORT Flags;
+    UCHAR TypeIndex;
+    UCHAR Reserved;
 } PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
 
 NTSTATUS PhInitializeRef(
@@ -107,12 +97,10 @@ NTSTATUS PhInitializeRef(
 
 _May_raise_
 PHLIBAPI
-NTSTATUS
+PVOID
 NTAPI
 PhCreateObject(
-    _Out_ PVOID *Object,
     _In_ SIZE_T ObjectSize,
-    _In_ ULONG Flags,
     _In_ PPH_OBJECT_TYPE ObjectType
     );
 
@@ -171,20 +159,18 @@ PhGetObjectType(
     );
 
 PHLIBAPI
-NTSTATUS
+PPH_OBJECT_TYPE
 NTAPI
 PhCreateObjectType(
-    _Out_ PPH_OBJECT_TYPE *ObjectType,
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );
 
 PHLIBAPI
-NTSTATUS
+PPH_OBJECT_TYPE
 NTAPI
 PhCreateObjectTypeEx(
-    _Out_ PPH_OBJECT_TYPE *ObjectType,
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
@@ -200,16 +186,17 @@ PhGetObjectTypeInformation(
     );
 
 PHLIBAPI
-NTSTATUS
+PVOID
 NTAPI
 PhCreateAlloc(
-    _Out_ PVOID *Alloc,
     _In_ SIZE_T Size
     );
 
 // Object reference functions
 
-FORCEINLINE VOID PhSwapReference(
+FORCEINLINE
+VOID
+PhSwapReference(
     _Inout_ PVOID *ObjectReference,
     _In_opt_ PVOID NewObject
     )
@@ -223,7 +210,9 @@ FORCEINLINE VOID PhSwapReference(
     if (oldObject) PhDereferenceObject(oldObject);
 }
 
-FORCEINLINE VOID PhMoveReference(
+FORCEINLINE
+VOID
+PhMoveReference(
     _Inout_ PVOID *ObjectReference,
     _In_opt_ _Assume_refs_(1) PVOID NewObject
     )
@@ -236,7 +225,9 @@ FORCEINLINE VOID PhMoveReference(
     if (oldObject) PhDereferenceObject(oldObject);
 }
 
-FORCEINLINE VOID PhSetReference(
+FORCEINLINE
+VOID
+PhSetReference(
     _Out_ PVOID *ObjectReference,
     _In_opt_ PVOID NewObject
     )
@@ -246,7 +237,9 @@ FORCEINLINE VOID PhSetReference(
     if (NewObject) PhReferenceObject(NewObject);
 }
 
-FORCEINLINE VOID PhClearReference(
+FORCEINLINE
+VOID
+PhClearReference(
     _Inout_ PVOID *ObjectReference
     )
 {

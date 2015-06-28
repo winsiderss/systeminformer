@@ -148,53 +148,19 @@ BOOLEAN PhInitializeBase(
     else*/ if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
         PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhStringType,
-        L"String",
-        0,
-        NULL
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhBytesType,
-        L"Bytes",
-        0,
-        NULL
-        )))
-        return FALSE;
+    PhStringType = PhCreateObjectType(L"String", 0, NULL);
+    PhBytesType = PhCreateObjectType(L"Bytes", 0, NULL);
 
     parameters.FreeListSize = sizeof(PH_LIST);
     parameters.FreeListCount = 128;
 
-    if (!NT_SUCCESS(PhCreateObjectTypeEx(
-        &PhListType,
-        L"List",
-        PHOBJTYPE_USE_FREE_LIST,
-        PhpListDeleteProcedure,
-        &parameters
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhPointerListType,
-        L"PointerList",
-        0,
-        PhpPointerListDeleteProcedure
-        )))
-        return FALSE;
+    PhListType = PhCreateObjectTypeEx(L"List", PH_OBJECT_TYPE_USE_FREE_LIST, PhpListDeleteProcedure, &parameters);
+    PhPointerListType = PhCreateObjectType(L"PointerList", 0, PhpPointerListDeleteProcedure);
 
     parameters.FreeListSize = sizeof(PH_HASHTABLE);
     parameters.FreeListCount = 64;
 
-    if (!NT_SUCCESS(PhCreateObjectTypeEx(
-        &PhHashtableType,
-        L"Hashtable",
-        PHOBJTYPE_USE_FREE_LIST,
-        PhpHashtableDeleteProcedure,
-        &parameters
-        )))
-        return FALSE;
+    PhHashtableType = PhCreateObjectTypeEx(L"Hashtable", PH_OBJECT_TYPE_USE_FREE_LIST, PhpHashtableDeleteProcedure, &parameters);
 
     PhInitializeFreeList(&PhpBaseThreadContextFreeList, sizeof(PHP_BASE_THREAD_CONTEXT), 16);
 
@@ -2205,13 +2171,10 @@ PPH_STRING PhCreateStringEx(
 {
     PPH_STRING string;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &string,
-        FIELD_OFFSET(PH_STRING, Data) + Length + sizeof(WCHAR), // null terminator
-        0,
+    string = PhCreateObject(
+        FIELD_OFFSET(PH_STRING, Data) + Length + sizeof(WCHAR), // Null terminator
         PhStringType
-        )))
-        return NULL;
+        );
 
     assert(!(Length & 1));
     string->Length = Length;
@@ -2497,13 +2460,10 @@ PPH_BYTES PhCreateBytesEx(
 {
     PPH_BYTES bytes;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &bytes,
-        FIELD_OFFSET(PH_BYTES, Data) + Length + sizeof(CHAR), // null terminator for compatibility
-        0,
+    bytes = PhCreateObject(
+        FIELD_OFFSET(PH_BYTES, Data) + Length + sizeof(CHAR), // Null terminator for compatibility
         PhBytesType
-        )))
-        return NULL;
+        );
 
     bytes->Length = Length;
     bytes->Buffer = bytes->Data;
@@ -4037,13 +3997,7 @@ PPH_LIST PhCreateList(
 {
     PPH_LIST list;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &list,
-        sizeof(PH_LIST),
-        0,
-        PhListType
-        )))
-        return NULL;
+    list = PhCreateObject(sizeof(PH_LIST), PhListType);
 
     // Initial capacity of 0 is not allowed.
     if (InitialCapacity == 0)
@@ -4290,13 +4244,7 @@ PPH_POINTER_LIST PhCreatePointerList(
 {
     PPH_POINTER_LIST pointerList;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &pointerList,
-        sizeof(PH_POINTER_LIST),
-        0,
-        PhPointerListType
-        )))
-        return NULL;
+    pointerList = PhCreateObject(sizeof(PH_POINTER_LIST), PhPointerListType);
 
     // Initial capacity of 0 is not allowed.
     if (InitialCapacity == 0)
@@ -4553,13 +4501,7 @@ PPH_HASHTABLE PhCreateHashtable(
 {
     PPH_HASHTABLE hashtable;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &hashtable,
-        sizeof(PH_HASHTABLE),
-        0,
-        PhHashtableType
-        )))
-        return NULL;
+    hashtable = PhCreateObject(sizeof(PH_HASHTABLE), PhHashtableType);
 
     // Initial capacity of 0 is not allowed.
     if (InitialCapacity == 0)

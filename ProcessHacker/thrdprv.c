@@ -92,21 +92,8 @@ BOOLEAN PhThreadProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhThreadProviderType,
-        L"ThreadProvider",
-        0,
-        PhpThreadProviderDeleteProcedure
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhThreadItemType,
-        L"ThreadItem",
-        0,
-        PhpThreadItemDeleteProcedure
-        )))
-        return FALSE;
+    PhThreadProviderType = PhCreateObjectType(L"ThreadProvider", 0, PhpThreadProviderDeleteProcedure);
+    PhThreadItemType = PhCreateObjectType(L"ThreadItem", 0, PhpThreadItemDeleteProcedure);
 
     return TRUE;
 }
@@ -131,15 +118,12 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
 {
     PPH_THREAD_PROVIDER threadProvider;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &threadProvider,
+    threadProvider = PhCreateObject(
         PhEmGetObjectSize(EmThreadProviderType, sizeof(PH_THREAD_PROVIDER)),
-        0,
         PhThreadProviderType
-        )))
-        return NULL;
-
+        );
     memset(threadProvider, 0, sizeof(PH_THREAD_PROVIDER));
+
     threadProvider->ThreadHashtable = PhCreateHashtable(
         sizeof(PPH_THREAD_ITEM),
         PhpThreadHashtableCompareFunction,
@@ -397,14 +381,10 @@ PPH_THREAD_ITEM PhCreateThreadItem(
 {
     PPH_THREAD_ITEM threadItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &threadItem,
+    threadItem = PhCreateObject(
         PhEmGetObjectSize(EmThreadItemType, sizeof(PH_THREAD_ITEM)),
-        0,
         PhThreadItemType
-        )))
-        return NULL;
-
+        );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
     PhPrintUInt32(threadItem->ThreadIdString, (ULONG)ThreadId);

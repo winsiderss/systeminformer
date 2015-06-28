@@ -60,21 +60,8 @@ BOOLEAN PhModuleProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhModuleProviderType,
-        L"ModuleProvider",
-        0,
-        PhpModuleProviderDeleteProcedure
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhModuleItemType,
-        L"ModuleItem",
-        0,
-        PhpModuleItemDeleteProcedure
-        )))
-        return FALSE;
+    PhModuleProviderType = PhCreateObjectType(L"ModuleProvider", 0, PhpModuleProviderDeleteProcedure);
+    PhModuleItemType = PhCreateObjectType(L"ModuleItem", 0, PhpModuleItemDeleteProcedure);
 
     return TRUE;
 }
@@ -86,13 +73,10 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     NTSTATUS status;
     PPH_MODULE_PROVIDER moduleProvider;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &moduleProvider,
+    moduleProvider = PhCreateObject(
         PhEmGetObjectSize(EmModuleProviderType, sizeof(PH_MODULE_PROVIDER)),
-        0,
         PhModuleProviderType
-        )))
-        return NULL;
+        );
 
     moduleProvider->ModuleHashtable = PhCreateHashtable(
         sizeof(PPH_MODULE_ITEM),
@@ -192,14 +176,10 @@ PPH_MODULE_ITEM PhCreateModuleItem(
 {
     PPH_MODULE_ITEM moduleItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &moduleItem,
+    moduleItem = PhCreateObject(
         PhEmGetObjectSize(EmModuleItemType, sizeof(PH_MODULE_ITEM)),
-        0,
         PhModuleItemType
-        )))
-        return NULL;
-
+        );
     memset(moduleItem, 0, sizeof(PH_MODULE_ITEM));
     PhEmCallObjectOperation(EmModuleItemType, moduleItem, EmObjectCreate);
 

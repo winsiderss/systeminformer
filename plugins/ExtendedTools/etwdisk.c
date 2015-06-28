@@ -72,17 +72,9 @@ VOID EtInitializeDiskInformation(
     VOID
     )
 {
-    NTSTATUS status;
     LARGE_INTEGER performanceCounter;
 
-    if (!NT_SUCCESS(status = PhCreateObjectType(
-        &EtDiskItemType,
-        L"DiskItem",
-        0,
-        EtpDiskItemDeleteProcedure
-        )))
-        PhRaiseStatus(status);
-
+    EtDiskItemType = PhCreateObjectType(L"DiskItem", 0, EtpDiskItemDeleteProcedure);
     EtDiskHashtable = PhCreateHashtable(
         sizeof(PET_DISK_ITEM),
         EtpDiskHashtableCompareFunction,
@@ -116,14 +108,7 @@ PET_DISK_ITEM EtCreateDiskItem(
 {
     PET_DISK_ITEM diskItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &diskItem,
-        sizeof(ET_DISK_ITEM),
-        0,
-        EtDiskItemType
-        )))
-        return NULL;
-
+    diskItem = PhCreateObject(sizeof(ET_DISK_ITEM), EtDiskItemType);
     memset(diskItem, 0, sizeof(ET_DISK_ITEM));
 
     return diskItem;

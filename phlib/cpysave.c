@@ -88,13 +88,11 @@ VOID PhaCreateTextTable(
     PPH_STRING **table;
     ULONG i;
 
-    PhCreateAlloc((PVOID *)&table, sizeof(PPH_STRING *) * Rows);
-    PhAutoDereferenceObject(table);
+    table = PhAutoDereferenceObject(PhCreateAlloc(sizeof(PPH_STRING *) * Rows));
 
     for (i = 0; i < Rows; i++)
     {
-        PhCreateAlloc((PVOID *)&table[i], sizeof(PPH_STRING) * Columns);
-        PhAutoDereferenceObject(table[i]);
+        table[i] = PhAutoDereferenceObject(PhCreateAlloc(sizeof(PPH_STRING) * Columns));
         memset(table[i], 0, sizeof(PPH_STRING) * Columns);
     }
 
@@ -130,8 +128,7 @@ PPH_LIST PhaFormatTextTable(
     {
         // Create the tab count array.
 
-        PhCreateAlloc(&tabCount, sizeof(ULONG) * Columns);
-        PhAutoDereferenceObject(tabCount);
+        tabCount = PhAutoDereferenceObject(PhCreateAlloc(sizeof(ULONG) * Columns));
         memset(tabCount, 0, sizeof(ULONG) * Columns); // zero all values
 
         for (i = 0; i < Rows; i++)

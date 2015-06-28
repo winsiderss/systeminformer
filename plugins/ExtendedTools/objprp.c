@@ -110,9 +110,7 @@ static HPROPSHEETPAGE EtpCommonCreatePage(
     PROPSHEETPAGE propSheetPage;
     PCOMMON_PAGE_CONTEXT pageContext;
 
-    if (!NT_SUCCESS(PhCreateAlloc(&pageContext, sizeof(COMMON_PAGE_CONTEXT))))
-        return NULL;
-
+    pageContext = PhCreateAlloc(sizeof(COMMON_PAGE_CONTEXT));
     memset(pageContext, 0, sizeof(COMMON_PAGE_CONTEXT));
     pageContext->HandleItem = Context->HandleItem;
     pageContext->ProcessId = Context->ProcessId;

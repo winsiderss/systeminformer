@@ -250,13 +250,7 @@ BOOLEAN PhProcessProviderInitialization(
     PPH_UINT64_DELTA deltaBuffer;
     PPH_CIRCULAR_BUFFER_FLOAT historyBuffer;
 
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhProcessItemType,
-        L"ProcessItem",
-        0,
-        PhpProcessItemDeleteProcedure
-        )))
-        return FALSE;
+    PhProcessItemType = PhCreateObjectType(L"ProcessItem", 0, PhpProcessItemDeleteProcedure);
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
@@ -430,14 +424,10 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 {
     PPH_PROCESS_ITEM processItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &processItem,
+    processItem = PhCreateObject(
         PhEmGetObjectSize(EmProcessItemType, sizeof(PH_PROCESS_ITEM)),
-        0,
         PhProcessItemType
-        )))
-        return NULL;
-
+        );
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
     PhInitializeQueuedLock(&processItem->ServiceListLock);
@@ -1778,7 +1768,7 @@ VOID PhFlushProcessQueryData(
     PPH_PROCESS_QUERY_DATA data;
     BOOLEAN processed;
 
-    if (RtlQueryDepthSList(&PhProcessQueryDataListHead) == 0)
+    if (!RtlFirstEntrySList(&PhProcessQueryDataListHead))
         return;
 
     entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);

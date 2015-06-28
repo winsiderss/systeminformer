@@ -91,9 +91,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     PROPSHEETPAGE propSheetPage;
     PJOB_PAGE_CONTEXT jobPageContext;
 
-    if (!NT_SUCCESS(PhCreateAlloc(&jobPageContext, sizeof(JOB_PAGE_CONTEXT))))
-        return NULL;
-
+    jobPageContext = PhCreateAlloc(sizeof(JOB_PAGE_CONTEXT));
     memset(jobPageContext, 0, sizeof(JOB_PAGE_CONTEXT));
     jobPageContext->OpenObject = OpenObject;
     jobPageContext->Context = Context;

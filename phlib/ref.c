@@ -25,17 +25,13 @@
 #include <phintrnl.h>
 #include <refp.h>
 
-/** The type object type. */
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
-
-/** The next object to delete. */
-PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
-
-/** Free list for small objects. */
+SLIST_HEADER PhObjectDeferDeleteListHead;
 PH_FREE_LIST PhObjectSmallFreeList;
-
-/** The allocated memory object type. */
 PPH_OBJECT_TYPE PhAllocType = NULL;
+
+ULONG PhObjectTypeCount = 0;
+PPH_OBJECT_TYPE PhObjectTypeTable[PH_OBJECT_TYPE_TABLE_SIZE];
 
 static ULONG PhpAutoPoolTlsIndex;
 
@@ -54,48 +50,32 @@ NTSTATUS PhInitializeRef(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PH_OBJECT_TYPE dummyObjectType;
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgObjectListHead);
 #endif
 
+    RtlInitializeSListHead(&PhObjectDeferDeleteListHead);
     PhInitializeFreeList(
         &PhObjectSmallFreeList,
-        PhpAddObjectHeaderSize(PHOBJ_SMALL_OBJECT_SIZE),
-        PHOBJ_SMALL_OBJECT_COUNT
+        PhAddObjectHeaderSize(PH_OBJECT_SMALL_OBJECT_SIZE),
+        PH_OBJECT_SMALL_OBJECT_COUNT
         );
 
     // Create the fundamental object type.
 
     memset(&dummyObjectType, 0, sizeof(PH_OBJECT_TYPE));
     PhObjectTypeObject = &dummyObjectType; // PhCreateObject expects an object type.
-
-    status = PhCreateObjectType(
-        &PhObjectTypeObject,
-        L"Type",
-        0,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
+    PhObjectTypeTable[0] = &dummyObjectType; // PhCreateObject also expects PhObjectTypeTable[0] to be filled in.
+    PhObjectTypeObject = PhCreateObjectType(L"Type", 0, NULL);
 
     // Now that the fundamental object type exists, fix it up.
-    PhObjectToObjectHeader(PhObjectTypeObject)->Type = PhObjectTypeObject;
+    PhObjectToObjectHeader(PhObjectTypeObject)->TypeIndex = PhObjectTypeObject->TypeIndex;
     PhObjectTypeObject->NumberOfObjects = 1;
 
     // Create the allocated memory object type.
-    status = PhCreateObjectType(
-        &PhAllocType,
-        L"Alloc",
-        0,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
+    PhAllocType = PhCreateObjectType(L"Alloc", 0, NULL);
 
     // Reserve a slot for the auto pool.
     PhpAutoPoolTlsIndex = TlsAlloc();
@@ -103,72 +83,35 @@ NTSTATUS PhInitializeRef(
     if (PhpAutoPoolTlsIndex == TLS_OUT_OF_INDEXES)
         return STATUS_INSUFFICIENT_RESOURCES;
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 /**
  * Allocates a object.
  *
- * \param Object A variable which receives a pointer to the newly allocated object.
  * \param ObjectSize The size of the object.
- * \param Flags A combination of flags specifying how the object is to be allocated.
- * \li \c PHOBJ_RAISE_ON_FAIL An exception will be raised if the object cannot be
- * allocated.
  * \param ObjectType The type of the object.
+ *
+ * \return A pointer to the newly allocated object.
  */
-_May_raise_ NTSTATUS PhCreateObject(
-    _Out_ PVOID *Object,
+_May_raise_ PVOID PhCreateObject(
     _In_ SIZE_T ObjectSize,
-    _In_ ULONG Flags,
     _In_ PPH_OBJECT_TYPE ObjectType
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_HEADER objectHeader;
 
-#ifdef PHOBJ_STRICT_CHECKS
-    // Check the flags.
-    if ((Flags & PHOBJ_VALID_FLAGS) != Flags) // Valid flag mask
-    {
-        status = STATUS_INVALID_PARAMETER_3;
-    }
-#else
-    assert(!((Flags & PHOBJ_VALID_FLAGS) != Flags));
-#endif
-
-#ifdef PHOBJ_STRICT_CHECKS
-    if (NT_SUCCESS(status))
-    {
-#endif
-        // Allocate storage for the object. Note that this includes the object header followed by the object body.
-        objectHeader = PhpAllocateObject(ObjectType, ObjectSize, Flags);
-
-#ifndef PHOBJ_ALLOCATE_NEVER_NULL
-        if (!objectHeader)
-            status = STATUS_NO_MEMORY;
-#endif
-#ifdef PHOBJ_STRICT_CHECKS
-    }
-#endif
-
-#ifndef PHOBJ_ALLOCATE_NEVER_NULL
-    if (!NT_SUCCESS(status))
-    {
-        if (!(Flags & PHOBJ_RAISE_ON_FAIL))
-            return status;
-        else
-            PhRaiseStatus(status);
-    }
-#endif
+    // Allocate storage for the object. Note that this includes the object header followed by the object body.
+    objectHeader = PhpAllocateObject(ObjectType, ObjectSize);
 
     // Object type statistics.
     _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
 
     // Initialize the object header.
     objectHeader->RefCount = 1;
-    // objectHeader->Flags is initialized by PhpAllocateObject.
-    objectHeader->Size = ObjectSize;
-    objectHeader->Type = ObjectType;
+    objectHeader->TypeIndex = ObjectType->TypeIndex;
+    // objectHeader->Flags is set by PhpAllocateObject.
 
     REF_STAT_UP(RefObjectsCreated);
 
@@ -198,17 +141,14 @@ _May_raise_ NTSTATUS PhCreateObject(
             dbgCreateObjectHook(
                 PhObjectHeaderToObject(objectHeader),
                 ObjectSize,
-                Flags,
+                0,
                 ObjectType
                 );
         }
     }
 #endif
 
-    // Pass a pointer to the object body back to the caller.
-    *Object = PhObjectHeaderToObject(objectHeader);
-
-    return status;
+    return PhObjectHeaderToObject(objectHeader);
 }
 
 /**
@@ -247,13 +187,7 @@ _May_raise_ LONG PhReferenceObjectEx(
     PPH_OBJECT_HEADER objectHeader;
     LONG oldRefCount;
 
-#ifdef PHOBJ_STRICT_CHECKS
-    // Make sure we're not adding a negative reference count.
-    if (RefCount < 0)
-        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
-#else
     assert(!(RefCount < 0));
-#endif
 
     objectHeader = PhObjectToObjectHeader(Object);
     // Increase the reference count.
@@ -355,13 +289,7 @@ _May_raise_ LONG PhDereferenceObjectEx(
     LONG oldRefCount;
     LONG newRefCount;
 
-#ifdef PHOBJ_STRICT_CHECKS
-    // Make sure we're not subtracting a negative reference count.
-    if (RefCount < 0)
-        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
-#else
     assert(!(RefCount < 0));
-#endif
 
     objectHeader = PhObjectToObjectHeader(Object);
 
@@ -401,14 +329,12 @@ PPH_OBJECT_TYPE PhGetObjectType(
     _In_ PVOID Object
     )
 {
-    return PhObjectToObjectHeader(Object)->Type;
+    return PhObjectTypeTable[PhObjectToObjectHeader(Object)->TypeIndex];
 }
 
 /**
  * Creates an object type.
  *
- * \param ObjectType A variable which receives a pointer to the newly
- * created object type.
  * \param Name The name of the type.
  * \param Flags A combination of flags affecting the behaviour of the
  * object type.
@@ -416,18 +342,18 @@ PPH_OBJECT_TYPE PhGetObjectType(
  * an object of this type is about to be freed (i.e. when its
  * reference count is 0).
  *
+ * \return A pointer to the newly created object type.
+ *
  * \remarks Do not reference or dereference the object type once it
  * is created.
  */
-NTSTATUS PhCreateObjectType(
-    _Out_ PPH_OBJECT_TYPE *ObjectType,
+PPH_OBJECT_TYPE PhCreateObjectType(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     )
 {
     return PhCreateObjectTypeEx(
-        ObjectType,
         Name,
         Flags,
         DeleteProcedure,
@@ -438,8 +364,6 @@ NTSTATUS PhCreateObjectType(
 /**
  * Creates an object type.
  *
- * \param ObjectType A variable which receives a pointer to the newly
- * created object type.
  * \param Name The name of the type.
  * \param Flags A combination of flags affecting the behaviour of the
  * object type.
@@ -449,11 +373,12 @@ NTSTATUS PhCreateObjectType(
  * \param Parameters A structure containing additional parameters
  * for the object type.
  *
+ * \return A pointer to the newly created object type.
+ *
  * \remarks Do not reference or dereference the object type once it
  * is created.
  */
-NTSTATUS PhCreateObjectTypeEx(
-    _Out_ PPH_OBJECT_TYPE *ObjectType,
+PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
@@ -464,51 +389,46 @@ NTSTATUS PhCreateObjectTypeEx(
     PPH_OBJECT_TYPE objectType;
 
     // Check the flags.
-    if ((Flags & PHOBJTYPE_VALID_FLAGS) != Flags) /* Valid flag mask */
-        return STATUS_INVALID_PARAMETER_3;
-    if ((Flags & PHOBJTYPE_USE_FREE_LIST) && !Parameters)
-        return STATUS_INVALID_PARAMETER_MIX;
+    if ((Flags & PH_OBJECT_TYPE_VALID_FLAGS) != Flags) /* Valid flag mask */
+        PhRaiseStatus(STATUS_INVALID_PARAMETER_3);
+    if ((Flags & PH_OBJECT_TYPE_USE_FREE_LIST) && !Parameters)
+        PhRaiseStatus(STATUS_INVALID_PARAMETER_MIX);
 
     // Create the type object.
-    status = PhCreateObject(
-        &objectType,
-        sizeof(PH_OBJECT_TYPE),
-        0,
-        PhObjectTypeObject
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
+    objectType = PhCreateObject(sizeof(PH_OBJECT_TYPE), PhObjectTypeObject);
 
     // Initialize the type object.
-    objectType->Flags = Flags;
+    objectType->Flags = (USHORT)Flags;
+    objectType->TypeIndex = (USHORT)_InterlockedIncrement(&PhObjectTypeCount) - 1;
+    objectType->NumberOfObjects = 0;
     objectType->DeleteProcedure = DeleteProcedure;
     objectType->Name = Name;
-    objectType->NumberOfObjects = 0;
+
+    if (objectType->TypeIndex < PH_OBJECT_TYPE_TABLE_SIZE)
+        PhObjectTypeTable[objectType->TypeIndex] = objectType;
+    else
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
 
     if (Parameters)
     {
-        if (Flags & PHOBJTYPE_USE_FREE_LIST)
+        if (Flags & PH_OBJECT_TYPE_USE_FREE_LIST)
         {
             PhInitializeFreeList(
                 &objectType->FreeList,
-                PhpAddObjectHeaderSize(Parameters->FreeListSize),
+                PhAddObjectHeaderSize(Parameters->FreeListSize),
                 Parameters->FreeListCount
                 );
         }
     }
 
-    *ObjectType = objectType;
-
-    return status;
+    return objectType;
 }
 
 /**
  * Gets information about an object type.
  *
  * \param ObjectType A pointer to an object type.
- * \param Information A variable which receives
- * information about the object type.
+ * \param Information A variable which receives information about the object type.
  */
 VOID PhGetObjectTypeInformation(
     _In_ PPH_OBJECT_TYPE ObjectType,
@@ -517,6 +437,8 @@ VOID PhGetObjectTypeInformation(
 {
     Information->Name = ObjectType->Name;
     Information->NumberOfObjects = ObjectType->NumberOfObjects;
+    Information->Flags = ObjectType->Flags;
+    Information->TypeIndex = ObjectType->TypeIndex;
 }
 
 /**
@@ -524,38 +446,31 @@ VOID PhGetObjectTypeInformation(
  *
  * \param ObjectType The type of the object.
  * \param ObjectSize The size of the object, excluding the header.
- * \param Flags A combination of flags specifying how the object is to be allocated.
  */
 PPH_OBJECT_HEADER PhpAllocateObject(
     _In_ PPH_OBJECT_TYPE ObjectType,
-    _In_ SIZE_T ObjectSize,
-    _In_ ULONG Flags
+    _In_ SIZE_T ObjectSize
     )
 {
     PPH_OBJECT_HEADER objectHeader;
 
-    if (ObjectType->Flags & PHOBJTYPE_USE_FREE_LIST)
+    if (ObjectType->Flags & PH_OBJECT_TYPE_USE_FREE_LIST)
     {
-#ifdef PHOBJ_STRICT_CHECKS
-        if (ObjectType->FreeList.Size != PhpAddObjectHeaderSize(ObjectSize))
-            PhRaiseStatus(STATUS_INVALID_PARAMETER);
-#else
-        assert(ObjectType->FreeList.Size == PhpAddObjectHeaderSize(ObjectSize));
-#endif
+        assert(ObjectType->FreeList.Size == PhAddObjectHeaderSize(ObjectSize));
 
         objectHeader = PhAllocateFromFreeList(&ObjectType->FreeList);
-        objectHeader->Flags = PHOBJ_FROM_TYPE_FREE_LIST;
+        objectHeader->Flags = PH_OBJECT_FROM_TYPE_FREE_LIST;
         REF_STAT_UP(RefObjectsAllocatedFromTypeFreeList);
     }
-    else if (ObjectSize <= PHOBJ_SMALL_OBJECT_SIZE)
+    else if (ObjectSize <= PH_OBJECT_SMALL_OBJECT_SIZE)
     {
         objectHeader = PhAllocateFromFreeList(&PhObjectSmallFreeList);
-        objectHeader->Flags = PHOBJ_FROM_SMALL_FREE_LIST;
+        objectHeader->Flags = PH_OBJECT_FROM_SMALL_FREE_LIST;
         REF_STAT_UP(RefObjectsAllocatedFromSmallFreeList);
     }
     else
     {
-        objectHeader = PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
+        objectHeader = PhAllocate(PhAddObjectHeaderSize(ObjectSize));
         objectHeader->Flags = 0;
         REF_STAT_UP(RefObjectsAllocated);
     }
@@ -573,8 +488,12 @@ VOID PhpFreeObject(
     _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
+    PPH_OBJECT_TYPE objectType;
+
+    objectType = PhObjectTypeTable[ObjectHeader->TypeIndex];
+
     // Object type statistics.
-    _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
+    _InterlockedDecrement(&objectType->NumberOfObjects);
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
@@ -585,20 +504,17 @@ VOID PhpFreeObject(
     REF_STAT_UP(RefObjectsDestroyed);
 
     // Call the delete procedure if we have one.
-    if (ObjectHeader->Type->DeleteProcedure)
+    if (objectType->DeleteProcedure)
     {
-        ObjectHeader->Type->DeleteProcedure(
-            PhObjectHeaderToObject(ObjectHeader),
-            0
-            );
+        objectType->DeleteProcedure(PhObjectHeaderToObject(ObjectHeader), 0);
     }
 
-    if (ObjectHeader->Flags & PHOBJ_FROM_TYPE_FREE_LIST)
+    if (ObjectHeader->Flags & PH_OBJECT_FROM_TYPE_FREE_LIST)
     {
-        PhFreeToFreeList(&ObjectHeader->Type->FreeList, ObjectHeader);
+        PhFreeToFreeList(&objectType->FreeList, ObjectHeader);
         REF_STAT_UP(RefObjectsFreedToTypeFreeList);
     }
-    else if (ObjectHeader->Flags & PHOBJ_FROM_SMALL_FREE_LIST)
+    else if (ObjectHeader->Flags & PH_OBJECT_FROM_SMALL_FREE_LIST)
     {
         PhFreeToFreeList(&PhObjectSmallFreeList, ObjectHeader);
         REF_STAT_UP(RefObjectsFreedToSmallFreeList);
@@ -620,33 +536,14 @@ VOID PhpDeferDeleteObject(
     _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
-    PPH_OBJECT_HEADER nextToFree;
+    PSLIST_ENTRY oldFirstEntry;
 
-    // Add the object to the list while saving the old value, atomically.
-    // Note that it is first-in, last-out.
-    while (TRUE)
-    {
-        nextToFree = PhObjectNextToFree;
-        ObjectHeader->NextToFree = nextToFree;
-
-        // Attempt to set the global next-to-free variable.
-        if (_InterlockedCompareExchangePointer(
-            &PhObjectNextToFree,
-            ObjectHeader,
-            nextToFree
-            ) == nextToFree)
-        {
-            // Success.
-            break;
-        }
-
-        // Someone else changed the next-to-free variable. Go back and try again.
-    }
-
+    oldFirstEntry = RtlFirstEntrySList(&PhObjectDeferDeleteListHead);
+    RtlInterlockedPushEntrySList(&PhObjectDeferDeleteListHead, &ObjectHeader->DeferDeleteListEntry);
     REF_STAT_UP(RefObjectsDeleteDeferred);
 
     // Was the to-free list empty before? If so, we need to queue a work item.
-    if (!nextToFree)
+    if (!oldFirstEntry)
     {
         PhQueueItemGlobalWorkQueue(PhpDeferDeleteObjectRoutine, NULL);
     }
@@ -659,17 +556,18 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
     _In_ PVOID Parameter
     )
 {
+    PSLIST_ENTRY listEntry;
     PPH_OBJECT_HEADER objectHeader;
-    PPH_OBJECT_HEADER nextObjectHeader;
 
     // Clear the list and obtain the first object to free.
-    objectHeader = _InterlockedExchangePointer(&PhObjectNextToFree, NULL);
+    listEntry = RtlInterlockedFlushSList(&PhObjectDeferDeleteListHead);
 
-    while (objectHeader)
+    while (listEntry)
     {
-        nextObjectHeader = objectHeader->NextToFree;
+        objectHeader = CONTAINING_RECORD(listEntry, PH_OBJECT_HEADER, DeferDeleteListEntry);
+        listEntry = listEntry->Next;
+
         PhpFreeObject(objectHeader);
-        objectHeader = nextObjectHeader;
     }
 
     return STATUS_SUCCESS;
@@ -678,20 +576,15 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
 /**
  * Creates a reference-counted memory block.
  *
- * \param Alloc A variable which receives a pointer to the memory block.
  * \param Size The number of bytes to allocate.
+ *
+ * \return A pointer to the memory block.
  */
-NTSTATUS PhCreateAlloc(
-    _Out_ PVOID *Alloc,
+PVOID PhCreateAlloc(
     _In_ SIZE_T Size
     )
 {
-    return PhCreateObject(
-        Alloc,
-        Size,
-        0,
-        PhAllocType
-        );
+    return PhCreateObject(Size, PhAllocType);
 }
 
 /**

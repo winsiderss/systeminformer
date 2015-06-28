@@ -108,14 +108,7 @@ BOOLEAN PhServiceProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhServiceItemType,
-        L"ServiceItem",
-        0,
-        PhpServiceItemDeleteProcedure
-        )))
-        return FALSE;
-
+    PhServiceItemType = PhCreateObjectType(L"ServiceItem", 0, PhpServiceItemDeleteProcedure);
     PhServiceHashtable = PhCreateHashtable(
         sizeof(PPH_SERVICE_ITEM),
         PhpServiceHashtableCompareFunction,
@@ -132,14 +125,10 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
 {
     PPH_SERVICE_ITEM serviceItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &serviceItem,
+    serviceItem = PhCreateObject(
         PhEmGetObjectSize(EmServiceItemType, sizeof(PH_SERVICE_ITEM)),
-        0,
         PhServiceItemType
-        )))
-        return NULL;
-
+        );
     memset(serviceItem, 0, sizeof(PH_SERVICE_ITEM));
 
     if (Information)
