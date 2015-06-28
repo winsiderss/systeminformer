@@ -101,7 +101,7 @@ HWND NTAPI EtpDiskTabCreateFunction(
             3,
             PhMainWndHandle,
             NULL,
-            PluginInstance->DllBase,
+            NULL,
             NULL
             );
 
@@ -1067,7 +1067,7 @@ static VOID NTAPI EtpOnDiskItemsUpdated(
     InvalidateRect(DiskTreeNewHandle, NULL, FALSE);
 }
 
-static VOID NTAPI EtpSearchChangedHandler(
+VOID NTAPI EtpSearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -1078,7 +1078,7 @@ static VOID NTAPI EtpSearchChangedHandler(
     PhApplyTreeNewFilters(&FilterSupport);
 }
 
-static BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
+BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     )
