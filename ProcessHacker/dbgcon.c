@@ -155,63 +155,66 @@ static VOID PhpPrintObjectInfo(
     _In_ LONG RefToSubtract
     )
 {
+    PVOID object;
+    PPH_OBJECT_TYPE objectType;
     WCHAR c = ' ';
 
-    wprintf(L"%Ix", PhObjectHeaderToObject(ObjectHeader));
+    object = PhObjectHeaderToObject(ObjectHeader);
+    wprintf(L"%Ix", object);
+    objectType = PhGetObjectType(object);
 
-    wprintf(L"\t% 20s", ObjectHeader->Type->Name);
+    wprintf(L"\t% 20s", objectType->Name);
 
-    if (ObjectHeader->Flags & PHOBJ_FROM_SMALL_FREE_LIST)
+    if (ObjectHeader->Flags & PH_OBJECT_FROM_SMALL_FREE_LIST)
         c = 'f';
-    else if (ObjectHeader->Flags & PHOBJ_FROM_TYPE_FREE_LIST)
+    else if (ObjectHeader->Flags & PH_OBJECT_FROM_TYPE_FREE_LIST)
         c = 'F';
 
     wprintf(L"\t%4d %c", ObjectHeader->RefCount - RefToSubtract, c);
 
-    if (!ObjectHeader->Type)
+    if (!objectType)
     {
         // Dummy
     }
-    else if (ObjectHeader->Type == PhObjectTypeObject)
+    else if (objectType == PhObjectTypeObject)
     {
-        wprintf(L"\t%.32s", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->Name);
+        wprintf(L"\t%.32s", ((PPH_OBJECT_TYPE)object)->Name);
     }
-    else if (ObjectHeader->Type == PhStringType)
+    else if (objectType == PhStringType)
     {
-        wprintf(L"\t%.32s", ((PPH_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+        wprintf(L"\t%.32s", ((PPH_STRING)object)->Buffer);
     }
-    else if (ObjectHeader->Type == PhBytesType)
+    else if (objectType == PhBytesType)
     {
-        wprintf(L"\t%.32S", ((PPH_BYTES)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+        wprintf(L"\t%.32S", ((PPH_BYTES)object)->Buffer);
     }
-    else if (ObjectHeader->Type == PhListType)
+    else if (objectType == PhListType)
     {
-        wprintf(L"\tCount: %u", ((PPH_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
+        wprintf(L"\tCount: %u", ((PPH_LIST)object)->Count);
     }
-    else if (ObjectHeader->Type == PhPointerListType)
+    else if (objectType == PhPointerListType)
     {
-        wprintf(L"\tCount: %u", ((PPH_POINTER_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
+        wprintf(L"\tCount: %u", ((PPH_POINTER_LIST)object)->Count);
     }
-    else if (ObjectHeader->Type == PhHashtableType)
+    else if (objectType == PhHashtableType)
     {
-        wprintf(L"\tCount: %u", ((PPH_HASHTABLE)PhObjectHeaderToObject(ObjectHeader))->Count);
+        wprintf(L"\tCount: %u", ((PPH_HASHTABLE)object)->Count);
     }
-    else if (ObjectHeader->Type == PhProcessItemType)
+    else if (objectType == PhProcessItemType)
     {
         wprintf(
             L"\t%.28s (%Id)",
-            ((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessName->Buffer,
-            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessId
+            ((PPH_PROCESS_ITEM)object)->ProcessName->Buffer,
+            (ULONG)((PPH_PROCESS_ITEM)object)->ProcessId
             );
     }
-    else if (ObjectHeader->Type == PhServiceItemType)
+    else if (objectType == PhServiceItemType)
     {
-        wprintf(L"\t%s", ((PPH_SERVICE_ITEM)PhObjectHeaderToObject(ObjectHeader))->Name->Buffer);
+        wprintf(L"\t%s", ((PPH_SERVICE_ITEM)object)->Name->Buffer);
     }
-    else if (ObjectHeader->Type == PhThreadItemType)
+    else if (objectType == PhThreadItemType)
     {
-        wprintf(L"\tTID: %u",
-            (ULONG)((PPH_THREAD_ITEM)PhObjectHeaderToObject(ObjectHeader))->ThreadId);
+        wprintf(L"\tTID: %u", (ULONG)((PPH_THREAD_ITEM)object)->ThreadId);
     }
 
     wprintf(L"\n");
@@ -221,30 +224,37 @@ static VOID PhpDumpObjectInfo(
     _In_ PPH_OBJECT_HEADER ObjectHeader
     )
 {
+    PVOID object;
+    PPH_OBJECT_TYPE objectType;
+
+    object = PhObjectHeaderToObject(ObjectHeader);
+    objectType = PhGetObjectType(object);
+
     __try
     {
-        wprintf(L"Type: %s\n", ObjectHeader->Type->Name);
+        wprintf(L"Type: %s\n", objectType->Name);
         wprintf(L"Reference count: %d\n", ObjectHeader->RefCount);
         wprintf(L"Flags: %x\n", ObjectHeader->Flags);
-        wprintf(L"Size / Next to free: %Iu / %Ix\n", ObjectHeader->Size, ObjectHeader->NextToFree);
 
-        if (ObjectHeader->Type == PhObjectTypeObject)
+        if (objectType == PhObjectTypeObject)
         {
-            wprintf(L"Name: %s\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->Name);
-            wprintf(L"Number of objects: %u\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->NumberOfObjects);
-            wprintf(L"Free list count: %u\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->FreeList.Count);
+            wprintf(L"Name: %s\n", ((PPH_OBJECT_TYPE)object)->Name);
+            wprintf(L"Number of objects: %u\n", ((PPH_OBJECT_TYPE)object)->NumberOfObjects);
+            wprintf(L"Flags: %u\n", ((PPH_OBJECT_TYPE)object)->Flags);
+            wprintf(L"Type index: %u\n", ((PPH_OBJECT_TYPE)object)->TypeIndex);
+            wprintf(L"Free list count: %u\n", ((PPH_OBJECT_TYPE)object)->FreeList.Count);
         }
-        else if (ObjectHeader->Type == PhStringType)
+        else if (objectType == PhStringType)
         {
-            wprintf(L"%s\n", ((PPH_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+            wprintf(L"%s\n", ((PPH_STRING)object)->Buffer);
         }
-        else if (ObjectHeader->Type == PhBytesType)
+        else if (objectType == PhBytesType)
         {
-            wprintf(L"%S\n", ((PPH_BYTES)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+            wprintf(L"%S\n", ((PPH_BYTES)object)->Buffer);
         }
-        else if (ObjectHeader->Type == PhHashtableType)
+        else if (objectType == PhHashtableType)
         {
-            PhpPrintHashtableStatistics((PPH_HASHTABLE)PhObjectHeaderToObject(ObjectHeader));
+            PhpPrintHashtableStatistics((PPH_HASHTABLE)object);
         }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -908,7 +918,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             PWSTR typeFilter = wcstok_s(NULL, delims, &context);
             PLIST_ENTRY currentEntry;
             ULONG totalNumberOfObjects = 0;
-            SIZE_T totalNumberOfBytes = 0;
+            //SIZE_T totalNumberOfBytes = 0;
 
             if (typeFilter)
                 wcslwr(typeFilter);
@@ -932,11 +942,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 }
 
                 totalNumberOfObjects++;
-                totalNumberOfBytes += objectHeader->Size;
+                //totalNumberOfBytes += objectHeader->Size;
 
                 if (typeFilter)
                 {
-                    wcscpy_s(typeName, sizeof(typeName) / 2, objectHeader->Type->Name);
+                    wcscpy_s(typeName, sizeof(typeName) / 2, PhGetObjectType(PhObjectHeaderToObject(objectHeader))->Name);
                     wcslwr(typeName);
                 }
 
@@ -956,11 +966,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             wprintf(L"\n");
             wprintf(L"Total number: %lu\n", totalNumberOfObjects);
-            wprintf(L"Total size (excl. header): %s\n",
-                ((PPH_STRING)PhAutoDereferenceObject(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);
+            /*wprintf(L"Total size (excl. header): %s\n",
+                ((PPH_STRING)PhAutoDereferenceObject(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);*/
             wprintf(L"Total overhead (header): %s\n",
                 ((PPH_STRING)PhAutoDereferenceObject(
-                PhFormatSize(PhpAddObjectHeaderSize(0) * totalNumberOfObjects, 1)
+                PhFormatSize(PhAddObjectHeaderSize(0) * totalNumberOfObjects, 1)
                 ))->Buffer);
 #else
             wprintf(commandDebugOnly);
@@ -1470,7 +1480,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 string = PhObjectHeaderToObject(objectHeader);
 
                 // Make sure this is a string.
-                if (objectHeader->Type != PhStringType)
+                if (PhGetObjectType(string) != PhStringType)
                     continue;
 
                 // Make sure the object isn't being destroyed.

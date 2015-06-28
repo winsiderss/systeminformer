@@ -51,21 +51,8 @@ BOOLEAN PhProcessPropInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhpProcessPropContextType,
-        L"ProcessPropContext",
-        0,
-        PhpProcessPropContextDeleteProcedure
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhpProcessPropPageContextType,
-        L"ProcessPropPageContext",
-        0,
-        PhpProcessPropPageContextDeleteProcedure
-        )))
-        return FALSE;
+    PhpProcessPropContextType = PhCreateObjectType(L"ProcessPropContext", 0, PhpProcessPropContextDeleteProcedure);
+    PhpProcessPropPageContextType = PhCreateObjectType(L"ProcessPropPageContext", 0, PhpProcessPropPageContextDeleteProcedure);
 
     return TRUE;
 }
@@ -78,18 +65,10 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     PPH_PROCESS_PROPCONTEXT propContext;
     PROPSHEETHEADER propSheetHeader;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &propContext,
-        sizeof(PH_PROCESS_PROPCONTEXT),
-        0,
-        PhpProcessPropContextType
-        )))
-        return NULL;
-
+    propContext = PhCreateObject(sizeof(PH_PROCESS_PROPCONTEXT), PhpProcessPropContextType);
     memset(propContext, 0, sizeof(PH_PROCESS_PROPCONTEXT));
 
-    propContext->PropSheetPages =
-        PhAllocate(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
+    propContext->PropSheetPages = PhAllocate(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
 
     if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
     {
@@ -422,14 +401,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &propPageContext,
-        sizeof(PH_PROCESS_PROPPAGECONTEXT),
-        0,
-        PhpProcessPropPageContextType
-        )))
-        return NULL;
-
+    propPageContext = PhCreateObject(sizeof(PH_PROCESS_PROPPAGECONTEXT), PhpProcessPropPageContextType);
     memset(propPageContext, 0, sizeof(PH_PROCESS_PROPPAGECONTEXT));
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);

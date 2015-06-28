@@ -35,14 +35,7 @@ BOOLEAN PhIoSupportInitialization(
     parameters.FreeListSize = sizeof(PH_FILE_STREAM);
     parameters.FreeListCount = 16;
 
-    if (!NT_SUCCESS(PhCreateObjectTypeEx(
-        &PhFileStreamType,
-        L"FileStream",
-        PHOBJTYPE_USE_FREE_LIST,
-        PhpFileStreamDeleteProcedure,
-        &parameters
-        )))
-        return FALSE;
+    PhFileStreamType = PhCreateObjectTypeEx(L"FileStream", PH_OBJECT_TYPE_USE_FREE_LIST, PhpFileStreamDeleteProcedure, &parameters);
 
     return TRUE;
 }
@@ -580,17 +573,9 @@ NTSTATUS PhCreateFileStream2(
     _In_ ULONG BufferLength
     )
 {
-    NTSTATUS status;
     PPH_FILE_STREAM fileStream;
 
-    if (!NT_SUCCESS(status = PhCreateObject(
-        &fileStream,
-        sizeof(PH_FILE_STREAM),
-        0,
-        PhFileStreamType
-        )))
-        return status;
-
+    fileStream = PhCreateObject(sizeof(PH_FILE_STREAM), PhFileStreamType);
     fileStream->FileHandle = FileHandle;
     fileStream->Flags = Flags;
     fileStream->Position.QuadPart = 0;
@@ -612,7 +597,7 @@ NTSTATUS PhCreateFileStream2(
 
     *FileStream = fileStream;
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 VOID NTAPI PhpFileStreamDeleteProcedure(

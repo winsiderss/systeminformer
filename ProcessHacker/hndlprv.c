@@ -47,21 +47,8 @@ BOOLEAN PhHandleProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhHandleProviderType,
-        L"HandleProvider",
-        0,
-        PhpHandleProviderDeleteProcedure
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhHandleItemType,
-        L"HandleItem",
-        0,
-        PhpHandleItemDeleteProcedure
-        )))
-        return FALSE;
+    PhHandleProviderType = PhCreateObjectType(L"HandleProvider", 0, PhpHandleProviderDeleteProcedure);
+    PhHandleItemType = PhCreateObjectType(L"HandleItem", 0, PhpHandleItemDeleteProcedure);
 
     return TRUE;
 }
@@ -72,13 +59,10 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
 {
     PPH_HANDLE_PROVIDER handleProvider;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &handleProvider,
+    handleProvider = PhCreateObject(
         PhEmGetObjectSize(EmHandleProviderType, sizeof(PH_HANDLE_PROVIDER)),
-        0,
         PhHandleProviderType
-        )))
-        return NULL;
+        );
 
     handleProvider->HandleHashSetSize = 128;
     handleProvider->HandleHashSet = PhCreateHashSet(handleProvider->HandleHashSetSize);
@@ -135,14 +119,10 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
 {
     PPH_HANDLE_ITEM handleItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &handleItem,
+    handleItem = PhCreateObject(
         PhEmGetObjectSize(EmHandleItemType, sizeof(PH_HANDLE_ITEM)),
-        0,
         PhHandleItemType
-        )))
-        return NULL;
-
+        );
     memset(handleItem, 0, sizeof(PH_HANDLE_ITEM));
 
     if (Handle)

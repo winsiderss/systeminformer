@@ -151,9 +151,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     PROPSHEETPAGE propSheetPage;
     PTOKEN_PAGE_CONTEXT tokenPageContext;
 
-    if (!NT_SUCCESS(PhCreateAlloc(&tokenPageContext, sizeof(TOKEN_PAGE_CONTEXT))))
-        return NULL;
-
+    tokenPageContext = PhCreateAlloc(sizeof(TOKEN_PAGE_CONTEXT));
     memset(tokenPageContext, 0, sizeof(TOKEN_PAGE_CONTEXT));
     tokenPageContext->OpenObject = OpenObject;
     tokenPageContext->Context = Context;

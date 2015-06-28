@@ -37,6 +37,8 @@ Process Hacker
    * Fixed string scanning false positive case
    * Fixed process window detection for Modern UI apps
    * Fixed handle list selection bug when disabling "Hide unnamed handles"
+ * NOTE:
+   * This release has significant internal code changes. Please make sure all plugins are up-to-date.
 
 2.35
  * NEW/IMPROVED:

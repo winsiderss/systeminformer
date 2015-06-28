@@ -154,14 +154,7 @@ BOOLEAN PhNetworkProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhNetworkItemType,
-        L"NetworkItem",
-        0,
-        PhpNetworkItemDeleteProcedure
-        )))
-        return FALSE;
-
+    PhNetworkItemType = PhCreateObjectType(L"NetworkItem", 0, PhpNetworkItemDeleteProcedure);
     PhNetworkHashtable = PhCreateHashtable(
         sizeof(PPH_NETWORK_ITEM),
         PhpNetworkHashtableCompareFunction,
@@ -187,14 +180,10 @@ PPH_NETWORK_ITEM PhCreateNetworkItem(
 {
     PPH_NETWORK_ITEM networkItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &networkItem,
+    networkItem = PhCreateObject(
         PhEmGetObjectSize(EmNetworkItemType, sizeof(PH_NETWORK_ITEM)),
-        0,
         PhNetworkItemType
-        )))
-        return NULL;
-
+        );
     memset(networkItem, 0, sizeof(PH_NETWORK_ITEM));
     PhEmCallObjectOperation(EmNetworkItemType, networkItem, EmObjectCreate);
 

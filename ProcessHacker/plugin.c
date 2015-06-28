@@ -813,8 +813,7 @@ BOOLEAN PhPluginAddMenuHook(
     if (!MenuInfo->PluginHookList)
         MenuInfo->PluginHookList = PhAutoDereferenceObject(PhCreateList(2));
 
-    PhCreateAlloc(&hook, sizeof(PHP_PLUGIN_MENU_HOOK));
-    PhAutoDereferenceObject(hook);
+    hook = PhAutoDereferenceObject(PhCreateAlloc(sizeof(PHP_PLUGIN_MENU_HOOK)));
     hook->Plugin = Plugin;
     hook->Context = Context;
     PhAddItemList(MenuInfo->PluginHookList, hook);
