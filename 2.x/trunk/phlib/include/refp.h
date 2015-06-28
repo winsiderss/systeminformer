@@ -2,7 +2,7 @@
  * Process Hacker -
  *   internal object manager
  *
- * Copyright (C) 2009 wj32
+ * Copyright (C) 2009-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,67 @@
 
 #ifndef _PH_REFP_H
 #define _PH_REFP_H
+
+#define PH_OBJECT_TYPE_TABLE_SIZE 256
+
+/** The object was allocated from the small free list. */
+#define PH_OBJECT_FROM_SMALL_FREE_LIST 0x1
+/** The object was allocated from the type free list. */
+#define PH_OBJECT_FROM_TYPE_FREE_LIST 0x2
+
+/**
+ * The object header contains object manager information
+ * including the reference count of an object and its type.
+ */
+typedef struct _PH_OBJECT_HEADER
+{
+    union
+    {
+        struct
+        {
+            union
+            {
+                LONG RefCount;
+                PVOID PaddingDoNotUse; // Corresponds to DeferDeleteListEntry
+            };
+            USHORT TypeIndex;
+            UCHAR Flags;
+            UCHAR Reserved1;
+#ifdef _WIN64
+            ULONG Reserved2;
+#endif
+        };
+        SLIST_ENTRY DeferDeleteListEntry;
+    };
+
+#ifdef DEBUG
+    PVOID StackBackTrace[16];
+    LIST_ENTRY ObjectListEntry;
+#endif
+
+    /** The body of the object. For use by the \ref PhObjectToObjectHeader
+     * and \ref PhObjectHeaderToObject macros. */
+    QUAD_PTR Body;
+} PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
+
+#ifndef DEBUG
+#ifdef _WIN64
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, DeferDeleteListEntry) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, TypeIndex) == 0x8);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0xa);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Reserved1) == 0xb);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Reserved2) == 0xc);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x10);
+#else
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, DeferDeleteListEntry) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, TypeIndex) == 0x4);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x6);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Reserved1) == 0x7);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
+#endif
+#endif
 
 /**
  * Gets a pointer to the object header for an object.
@@ -48,67 +109,7 @@
  *
  * \return The new size, including space for the object header.
  */
-#define PhpAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
-
-typedef struct _PH_OBJECT_HEADER *PPH_OBJECT_HEADER;
-typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
-
-/** Reserved. */
-#define PHOBJ_LOCK_BIT 0x1
-/** The object was allocated from the small free list. */
-#define PHOBJ_FROM_SMALL_FREE_LIST 0x2
-/** The object was allocated from the type free list. */
-#define PHOBJ_FROM_TYPE_FREE_LIST 0x4
-
-/**
- * The object header contains object manager information
- * including the reference count of an object and its
- * type.
- */
-typedef struct _PH_OBJECT_HEADER
-{
-    /** The reference count of the object. */
-    LONG RefCount;
-
-    /** Internal flags. */
-    ULONG Flags;
-
-    union
-    {
-        /** The size of the object, excluding the header. */
-        SIZE_T Size;
-        /** A pointer to the object header of the next object to free. */
-        PPH_OBJECT_HEADER NextToFree;
-    };
-
-    /** The type of the object. */
-    PPH_OBJECT_TYPE Type;
-
-#ifdef DEBUG
-    PVOID StackBackTrace[16];
-    LIST_ENTRY ObjectListEntry;
-#endif
-
-    /** The body of the object. For use by the \ref PhObjectToObjectHeader
-     * and \ref PhObjectHeaderToObject macros. */
-    QUAD_PTR Body;
-} PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
-
-#ifndef DEBUG
-#ifdef _WIN64
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x4);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, NextToFree) == 0x8);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Type) == 0x10);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x20);
-#else
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x4);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, NextToFree) == 0x8);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Type) == 0xc);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x10);
-#endif
-#endif
+#define PhAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
 
 /**
  * An object type specifies a kind of object and
@@ -117,17 +118,15 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x10);
 typedef struct _PH_OBJECT_TYPE
 {
     /** The flags that were used to create the object type. */
-    ULONG Flags;
-    UCHAR Reserved1;
-    UCHAR Reserved2;
-    UCHAR Reserved3;
-    UCHAR Reserved4;
+    USHORT Flags;
+    UCHAR TypeIndex;
+    UCHAR Reserved;
+    /** The total number of objects of this type that are alive. */
+    ULONG NumberOfObjects;
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
     /** The name of the type. */
     PWSTR Name;
-    /** The total number of objects of this type that are alive. */
-    ULONG NumberOfObjects;
     /** A free list to use when allocating for this type. */
     PH_FREE_LIST FreeList;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
@@ -138,7 +137,9 @@ typedef struct _PH_OBJECT_TYPE
  *
  * \param RefCount A pointer to a reference count.
  */
-FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
+FORCEINLINE
+BOOLEAN
+PhpInterlockedIncrementSafe(
     _Inout_ PLONG RefCount
     )
 {
@@ -150,8 +151,7 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
 
 PPH_OBJECT_HEADER PhpAllocateObject(
     _In_ PPH_OBJECT_TYPE ObjectType,
-    _In_ SIZE_T ObjectSize,
-    _In_ ULONG Flags
+    _In_ SIZE_T ObjectSize
     );
 
 VOID PhpFreeObject(

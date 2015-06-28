@@ -96,13 +96,7 @@ BOOLEAN PhSymbolProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhSymbolProviderType,
-        L"SymbolProvider",
-        0,
-        PhpSymbolProviderDeleteProcedure
-        )))
-        return FALSE;
+    PhSymbolProviderType = PhCreateObjectType(L"SymbolProvider", 0, PhpSymbolProviderDeleteProcedure);
 
     return TRUE;
 }
@@ -162,14 +156,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 {
     PPH_SYMBOL_PROVIDER symbolProvider;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &symbolProvider,
-        sizeof(PH_SYMBOL_PROVIDER),
-        0,
-        PhSymbolProviderType
-        )))
-        return NULL;
-
+    symbolProvider = PhCreateObject(sizeof(PH_SYMBOL_PROVIDER), PhSymbolProviderType);
     memset(symbolProvider, 0, sizeof(PH_SYMBOL_PROVIDER));
     InitializeListHead(&symbolProvider->ModulesListHead);
     PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
@@ -283,7 +270,7 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
         case SymbolDeferredSymbolLoadFailure:
         case SymbolSymbolsUnloaded:
         case SymbolDeferredSymbolLoadCancel:
-            PhCreateAlloc((PVOID *)&data, sizeof(PH_SYMBOL_EVENT_DATA));
+            data = PhCreateAlloc(sizeof(PH_SYMBOL_EVENT_DATA));
             memset(data, 0, sizeof(PH_SYMBOL_EVENT_DATA));
             data->SymbolProvider = symbolProvider;
             data->Type = ActionCode;

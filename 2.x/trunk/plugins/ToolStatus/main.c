@@ -126,7 +126,7 @@ PTOOLSTATUS_TAB_INFO RegisterTabInfo(
     PTOOLSTATUS_TAB_INFO tabInfoCopy;
     PVOID *entry;
 
-    PhCreateAlloc(&tabInfoCopy, sizeof(TOOLSTATUS_TAB_INFO));
+    tabInfoCopy = PhCreateAlloc(sizeof(TOOLSTATUS_TAB_INFO));
     memset(tabInfoCopy, 0, sizeof(TOOLSTATUS_TAB_INFO));
 
     if (!PhAddItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex, tabInfoCopy))

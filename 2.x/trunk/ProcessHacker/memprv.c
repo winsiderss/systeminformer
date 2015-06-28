@@ -37,13 +37,7 @@ BOOLEAN PhMemoryProviderInitialization(
     VOID
     )
 {
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhMemoryItemType,
-        L"MemoryItem",
-        0,
-        PhpMemoryItemDeleteProcedure
-        )))
-        return FALSE;
+    PhMemoryItemType = PhCreateObjectType(L"MemoryItem", 0, PhpMemoryItemDeleteProcedure);
 
     return TRUE;
 }
@@ -141,14 +135,7 @@ PPH_MEMORY_ITEM PhCreateMemoryItem(
 {
     PPH_MEMORY_ITEM memoryItem;
 
-    if (!NT_SUCCESS(PhCreateObject(
-        &memoryItem,
-        sizeof(PH_MEMORY_ITEM),
-        0,
-        PhMemoryItemType
-        )))
-        return NULL;
-
+    memoryItem = PhCreateObject(sizeof(PH_MEMORY_ITEM), PhMemoryItemType);
     memset(memoryItem, 0, sizeof(PH_MEMORY_ITEM));
 
     return memoryItem;
