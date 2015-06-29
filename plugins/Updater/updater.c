@@ -745,9 +745,18 @@ static NTSTATUS UpdateDownloadThread(
         PhClearReference(&downloadUrlPath);
     }
 
-    if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)
+    if (WindowsVersion < WINDOWS_8)
     {
+        // Disable signature checking on XP, Vista and Win7 due to SHA2 certificate issues.
         verifySuccess = TRUE;
+    }
+    else
+    {
+        // Check the digital signature of the installer...
+        if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)
+        {
+            verifySuccess = TRUE;
+        }
     }
 
     if (downloadSuccess && hashSuccess && verifySuccess)
