@@ -12,6 +12,3 @@ POPD
 
 MSBuild "..\..\plugins\Plugins.sln" %MSBUILD_SWITCHES%;Platform=Win32
 MSBuild "..\..\plugins\Plugins.sln" %MSBUILD_SWITCHES%;Platform=x64
-
-MSBuild "..\..\plugins-extra\ExtraPlugins.sln" %MSBUILD_SWITCHES%;Platform=Win32
-MSBuild "..\..\plugins-extra\ExtraPlugins.sln" %MSBUILD_SWITCHES%;Platform=x64
