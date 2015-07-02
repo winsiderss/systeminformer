@@ -401,7 +401,7 @@ VOID UpdateStatusBar(
                 break;
             }
 
-            if (!GetTextExtentPoint32(hdc, text[count]->Buffer, (ULONG)text[count]->Length / 2, &size))
+            if (!GetTextExtentPoint32(hdc, text[count]->Buffer, (ULONG)text[count]->Length / sizeof(WCHAR), &size))
                 size.cx = 200;
 
             if (count != 0)

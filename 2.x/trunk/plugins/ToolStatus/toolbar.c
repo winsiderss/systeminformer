@@ -197,6 +197,7 @@ static VOID RebarLoadSettings(
     if (EnableToolBar && !RebarHandle)
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
+        ULONG toolbarButtonSize;
 
         // Create the ReBar window.
         RebarHandle = CreateWindowEx(
@@ -250,13 +251,12 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
         // Restore the toolbar settings (Note: This will invoke the TBN_ENDADJUST notification).
         SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
+        // Query the toolbar button width/height.
+        toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
         // Enable theming:
         //SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
         //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-
-        // HACK: Query the toolbar width/height.
-        ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
         // Inset the toolbar into the rebar control.
         RebarBandInsert(BandID_ToolBar, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
