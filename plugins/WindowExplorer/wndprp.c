@@ -1142,7 +1142,7 @@ static BOOL CALLBACK EnumPropsExCallback(
     if ((ULONG_PTR)lpszString < USHRT_MAX)
     {
         // This is an integer atom.
-        propName = PhaFormatString(L"#%lu", (ULONG)lpszString)->Buffer;
+        propName = PhaFormatString(L"#%lu", (ULONG_PTR)lpszString)->Buffer;
     }
 
     lvItemIndex = PhAddListViewItem((HWND)dwData, MAXINT, propName, NULL);

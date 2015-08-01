@@ -347,11 +347,11 @@ VOID UpdateCounterData(
                     counterName = FindPerfTextInTextData(textData, counter->CounterNameTitleIndex);
 
                     if (counterName)
-                        lvItemIndex = PhAddListViewItem(countersLv, MAXINT, counterName, (PVOID)counter->CounterNameTitleIndex);
+                        lvItemIndex = PhAddListViewItem(countersLv, MAXINT, counterName, IntToPtr(counter->CounterNameTitleIndex));
                 }
                 else
                 {
-                    lvItemIndex = PhFindListViewItemByParam(countersLv, -1, (PVOID)counter->CounterNameTitleIndex);
+                    lvItemIndex = PhFindListViewItemByParam(countersLv, -1, IntToPtr(counter->CounterNameTitleIndex));
                 }
 
                 if (lvItemIndex != -1 && instanceFound)

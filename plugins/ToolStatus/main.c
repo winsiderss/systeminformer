@@ -36,9 +36,9 @@ PTOOLSTATUS_TAB_INFO RegisterTabInfo(
     _In_ INT TabIndex
     );
 
-HWND ProcessTreeNewHandle;
-HWND ServiceTreeNewHandle;
-HWND NetworkTreeNewHandle;
+HWND ProcessTreeNewHandle = NULL;
+HWND ServiceTreeNewHandle = NULL;
+HWND NetworkTreeNewHandle = NULL;
 INT SelectedTabIndex;
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
@@ -129,11 +129,11 @@ PTOOLSTATUS_TAB_INFO RegisterTabInfo(
     tabInfoCopy = PhCreateAlloc(sizeof(TOOLSTATUS_TAB_INFO));
     memset(tabInfoCopy, 0, sizeof(TOOLSTATUS_TAB_INFO));
 
-    if (!PhAddItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex, tabInfoCopy))
+    if (!PhAddItemSimpleHashtable(TabInfoHashtable, IntToPtr(TabIndex), tabInfoCopy))
     {
         PhClearReference(&tabInfoCopy);
 
-        if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex))
+        if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, IntToPtr(TabIndex)))
             tabInfoCopy = *entry;
     }
 
@@ -146,10 +146,10 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
 {
     PVOID *entry;
 
-    if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, (PVOID)TabIndex))
+    if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, IntToPtr(TabIndex)))
         return *entry;
-    else
-        return NULL;
+    
+    return NULL;
 }
 
 HWND GetCurrentTreeNewHandle(
@@ -189,7 +189,7 @@ static VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    INT tabIndex = (INT)Parameter;
+    INT tabIndex = PtrToInt(Parameter);
 
     SelectedTabIndex = tabIndex;
 
