@@ -9,7 +9,7 @@ extern PPH_PLUGIN PluginInstance;
 #define PLUGIN_NAME L"ProcessHacker.DotNetTools"
 #define SETTING_NAME_ASM_TREE_LIST_COLUMNS (PLUGIN_NAME L".AsmTreeListColumns")
 
-typedef struct _THREAD_TREE_CONTEXT;
+typedef struct _THREAD_TREE_CONTEXT _THREAD_TREE_CONTEXT;
 
 typedef struct _DN_THREAD_ITEM
 {

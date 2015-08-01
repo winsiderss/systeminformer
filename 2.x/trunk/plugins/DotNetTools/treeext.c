@@ -224,7 +224,7 @@ VOID UpdateThreadClrData(
         else
             return;
 
-        if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(process, (ULONG)DnThread->ThreadItem->ThreadId, &task)))
+        if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(process, HandleToUlong(DnThread->ThreadItem->ThreadId), &task)))
         {
             if (SUCCEEDED(IXCLRDataTask_GetCurrentAppDomain(task, &appDomain)))
             {
