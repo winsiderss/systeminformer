@@ -414,7 +414,7 @@ static NTSTATUS UploadFileThreadStart(
             connectHandle,
             L"POST",
             context->ObjectName->Buffer,
-            NULL, // HTTP/1.1
+            NULL,
             WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
             WINHTTP_FLAG_REFRESH | serviceInfo->HostFlags
@@ -439,31 +439,37 @@ static NTSTATUS UploadFileThreadStart(
             (ULONG64)RtlRandomEx(&httpPostSeed) | ((ULONG64)RtlRandomEx(&httpPostSeed) << 31)
             );
         // build request header string
-        PhAppendFormatStringBuilder(&httpRequestHeaders,
+        PhAppendFormatStringBuilder(
+            &httpRequestHeaders,
             L"Content-Type: multipart/form-data; boundary=%s\r\n",
             postBoundary->Buffer
             );
         // POST boundary header
-        PhAppendFormatStringBuilder(&httpPostHeader,
+        PhAppendFormatStringBuilder(
+            &httpPostHeader,
             L"--%s\r\n",
             postBoundary->Buffer
             );
-        PhAppendFormatStringBuilder(&httpPostHeader,
+        PhAppendFormatStringBuilder(
+            &httpPostHeader,
             L"Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n",
             serviceInfo->FileNameFieldName,
             context->BaseFileName->Buffer
             );
-        PhAppendFormatStringBuilder(&httpPostHeader,
+        PhAppendFormatStringBuilder(
+            &httpPostHeader,
             L"Content-Type: application/octet-stream\r\n\r\n"
             );
         // POST boundary footer
-        PhAppendFormatStringBuilder(&httpPostFooter,
+        PhAppendFormatStringBuilder(
+            &httpPostFooter,
             L"\r\n--%s--\r\n\r\n",
             postBoundary->Buffer
             );
 
         // add headers
-        if (!WinHttpAddRequestHeaders(requestHandle,
+        if (!WinHttpAddRequestHeaders(
+            requestHandle,
             httpRequestHeaders.String->Buffer,
             -1L,
             WINHTTP_ADDREQ_FLAG_REPLACE | WINHTTP_ADDREQ_FLAG_ADD
@@ -474,13 +480,17 @@ static NTSTATUS UploadFileThreadStart(
         }
 
         // All until now has been just for this; Calculate the total request length.
-        totalUploadLength = (ULONG)PhCountStringZ(httpPostHeader.String->Buffer) + context->TotalFileLength + (ULONG)PhCountStringZ(httpPostFooter.String->Buffer);
+        totalUploadLength = (ULONG)httpPostHeader.String->Length / sizeof(WCHAR) + context->TotalFileLength + (ULONG)httpPostFooter.String->Length / sizeof(WCHAR);
 
         // Send the request.
-        if (!WinHttpSendRequest(requestHandle,
-            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
-            WINHTTP_NO_REQUEST_DATA, 0,
-            totalUploadLength, 0
+        if (!WinHttpSendRequest(
+            requestHandle,
+            WINHTTP_NO_ADDITIONAL_HEADERS, 
+            0,
+            WINHTTP_NO_REQUEST_DATA, 
+            0,
+            totalUploadLength,
+            0
             ))
         {
             RaiseUploadError(context, L"Unable to send the request", GetLastError());
@@ -532,33 +542,35 @@ static NTSTATUS UploadFileThreadStart(
 
             totalUploadedLength += totalWriteLength;
 
+            // Query the current time
             PhQuerySystemTime(&timeNow);
 
+            // Calculate the number of ticks
             timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
             timeBitsPerSecond = totalUploadedLength / __max(timeTicks, 1);
 
             {
                 FLOAT percent = ((FLOAT)totalUploadedLength / context->TotalFileLength * 100);
                 PPH_STRING totalLength = PhFormatSize(context->TotalFileLength, -1);
-                PPH_STRING totalDownloadedLength = PhFormatSize(totalUploadedLength, -1);
+                PPH_STRING totalUploaded = PhFormatSize(totalUploadedLength, -1);
                 PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
 
-                PPH_STRING dlLengthString = PhFormatString(
+                PPH_STRING statusMessage = PhFormatString(
                     L"%s of %s @ %s/s",
-                    totalDownloadedLength->Buffer,
+                    totalUploaded->Buffer,
                     totalLength->Buffer,
                     totalSpeed->Buffer
                     );
 
-                Static_SetText(context->StatusHandle, dlLengthString->Buffer);
-
-                PhDereferenceObject(dlLengthString);
-                PhDereferenceObject(totalSpeed);
-                PhDereferenceObject(totalLength);
-                PhDereferenceObject(totalDownloadedLength);
+                Static_SetText(context->StatusHandle, statusMessage->Buffer);
 
                 // Update the progress bar position
                 PostMessage(context->ProgressHandle, PBM_SETPOS, (INT)percent, 0);
+
+                PhDereferenceObject(statusMessage);
+                PhDereferenceObject(totalSpeed);
+                PhDereferenceObject(totalLength);
+                PhDereferenceObject(totalUploaded);
             }
         }
 
@@ -969,7 +981,7 @@ static NTSTATUS UploadCheckThreadStart(
                     connectHandle,
                     NULL, // Get
                     subObjectName->Buffer,
-                    NULL,// HTTP/1.1
+                    NULL,
                     WINHTTP_NO_REFERER,
                     WINHTTP_DEFAULT_ACCEPT_TYPES,
                     WINHTTP_FLAG_REFRESH
@@ -1029,8 +1041,8 @@ static NTSTATUS UploadCheckThreadStart(
     }
     __finally
     {
-        PhMoveReference(&hashString, NULL);
-        PhMoveReference(&subObjectName, NULL);
+        PhClearReference(&hashString);
+        PhClearReference(&subObjectName);
 
         if (requestHandle)
         {
@@ -1071,11 +1083,11 @@ static INT_PTR CALLBACK UploadDlgProc(
 
         if (uMsg == WM_NCDESTROY)
         {
-            PhMoveReference(&context->FileName, NULL);
-            PhMoveReference(&context->BaseFileName, NULL);
-            PhMoveReference(&context->WindowFileName, NULL);
-            PhMoveReference(&context->LaunchCommand, NULL);
-            PhMoveReference(&context->ObjectName, NULL);
+            PhClearReference(&context->FileName);
+            PhClearReference(&context->BaseFileName);
+            PhClearReference(&context->WindowFileName);
+            PhClearReference(&context->LaunchCommand);
+            PhClearReference(&context->ObjectName);
 
             if (context->MessageFont)
                 DeleteObject(context->MessageFont);
@@ -1230,7 +1242,7 @@ static INT_PTR CALLBACK UploadDlgProc(
             if (errorMessage)
             {
                 Static_SetText(GetDlgItem(hwndDlg, IDC_MESSAGE), errorMessage->Buffer);
-                PhMoveReference(&errorMessage, NULL);
+                PhClearReference(&errorMessage);
             }
             else
             {

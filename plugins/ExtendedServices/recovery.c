@@ -258,7 +258,7 @@ NTSTATUS EspLoadRecoveryInfo(
     if (failureActions->lpRebootMsg && failureActions->lpRebootMsg[0] != 0)
         PhMoveReference(&Context->RebootMessage, PhCreateString(failureActions->lpRebootMsg));
     else
-        PhMoveReference(&Context->RebootMessage, NULL);
+        PhClearReference(&Context->RebootMessage);
 
     // Run program
 
@@ -346,7 +346,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhMoveReference(&context->RebootMessage, NULL);
+            PhClearReference(&context->RebootMessage);
             PhFree(context);
         }
         break;
@@ -647,7 +647,7 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE)) == BST_CHECKED)
                         PhMoveReference(&context->RebootMessage, PhGetWindowText(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)));
                     else
-                        PhMoveReference(&context->RebootMessage, NULL);
+                        PhClearReference(&context->RebootMessage);
 
                     context->Dirty = TRUE;
 
