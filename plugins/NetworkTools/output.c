@@ -151,7 +151,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_ID(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:
