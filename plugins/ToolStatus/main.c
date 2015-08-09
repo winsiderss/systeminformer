@@ -511,7 +511,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                                 menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
-                                menuItem->Bitmap = PhIconToBitmap(menuIcon, 16, 16);
+                                menuItem->Bitmap = PhIconToBitmap(menuIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
                                 DestroyIcon(menuIcon);
 
                                 if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
