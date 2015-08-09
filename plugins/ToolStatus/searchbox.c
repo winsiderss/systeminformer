@@ -583,13 +583,18 @@ HWND CreateSearchControl(
         WS_EX_CLIENTEDGE,
         WC_EDIT,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL | (SearchBoxDisplayMode != SearchBoxDisplayHideInactive ? WS_VISIBLE : 0),
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
         NULL,
         NULL
         );
+
+    if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
+    {
+        ShowWindow(SearchboxHandle, SW_HIDE);
+    }
 
     NcAreaInitializeTheme(context);
     NcAreaInitializeImageList(context);
