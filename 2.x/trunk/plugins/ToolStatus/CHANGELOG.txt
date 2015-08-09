@@ -1,3 +1,6 @@
+2.2
+ * Fixed Toolbar DPI scaling issues
+
 2.1
  * Fixed Auto-hide Searchbox (Ctrl+K to show)
 

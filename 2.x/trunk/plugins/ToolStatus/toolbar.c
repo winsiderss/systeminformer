@@ -106,13 +106,17 @@ static VOID RebarLoadSettings(
     {
         HBITMAP iconBitmap = NULL;
 
+        // https://msdn.microsoft.com/en-us/library/ms701681.aspx
+        INT cx = GetSystemMetrics(SM_CXSMICON); // SM_CXICON
+        INT cy = GetSystemMetrics(SM_CYSMICON); // SM_CYICON
+
         // Create the toolbar imagelist
-        ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+        ToolBarImageList = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images
         ImageList_SetImageCount(ToolBarImageList, 8);
 
         // Add the images to the imagelist
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
         {
             ImageList_Replace(ToolBarImageList, 0, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -122,7 +126,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_COG_EDIT)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT)))
         {
             ImageList_Replace(ToolBarImageList, 1, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -132,7 +136,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_FIND)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND)))
         {
             ImageList_Replace(ToolBarImageList, 2, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -142,7 +146,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CHART_LINE)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE)))
         {
             ImageList_Replace(ToolBarImageList, 3, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -152,7 +156,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION)))
         {
             ImageList_Replace(ToolBarImageList, 4, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -162,7 +166,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
         {
             ImageList_Replace(ToolBarImageList, 5, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -172,7 +176,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_CROSS)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS)))
         {
             ImageList_Replace(ToolBarImageList, 6, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -182,7 +186,7 @@ static VOID RebarLoadSettings(
             PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(16, 16, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
         {
             ImageList_Replace(ToolBarImageList, 7, iconBitmap, NULL);
             DeleteObject(iconBitmap);
@@ -332,16 +336,19 @@ static VOID RebarLoadSettings(
         }
     }
 
-    // TODO: Fix above code...
-    if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
+    if (EnableSearchBox)
     {
-        if (RebarBandExists(BandID_SearchBox))
-            RebarBandRemove(BandID_SearchBox);
-    }
-    else
-    {
-        if (!RebarBandExists(BandID_SearchBox))
-            RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+        // TODO: Is there a better way of handling this in the above code?
+        if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
+        {
+            if (RebarBandExists(BandID_SearchBox))
+                RebarBandRemove(BandID_SearchBox);
+        }
+        else
+        {
+            if (!RebarBandExists(BandID_SearchBox))
+                RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+        }
     }
 
     if (EnableStatusBar)
