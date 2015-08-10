@@ -808,32 +808,52 @@ static INT_PTR CALLBACK UpdaterWndProc(
     {
     case WM_INITDIALOG:
         {
-            LOGFONT headerFont;
+            LOGFONT logFont;
             HWND parentWindow = GetParent(hwndDlg);
-
-            memset(&headerFont, 0, sizeof(LOGFONT));
-            headerFont.lfHeight = -15;
-            headerFont.lfWeight = FW_MEDIUM;
-            headerFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
 
             context->DialogHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS);
 
-            // Create the font handle
-            context->FontHandle = CreateFontIndirect(&headerFont);
+            if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+            {
+                HDC hdc;
+
+                if (hdc = GetDC(hwndDlg))
+                {
+                    // Create the font handle
+                    context->FontHandle = CreateFont(
+                        -MulDiv(-12, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+                        0,
+                        0,
+                        0,
+                        FW_MEDIUM,
+                        FALSE,
+                        FALSE,
+                        FALSE,
+                        ANSI_CHARSET,
+                        OUT_DEFAULT_PRECIS,
+                        CLIP_DEFAULT_PRECIS,
+                        CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
+                        DEFAULT_PITCH,
+                        logFont.lfFaceName
+                        );
+
+                    ReleaseDC(hwndDlg, hdc);
+                }
+            }
 
             // Load the Process Hacker icon.
             context->IconHandle = (HICON)LoadImage(
                 GetModuleHandle(NULL),
                 MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
                 IMAGE_ICON,
-                32,
-                32,
+                GetSystemMetrics(SM_CXICON),
+                GetSystemMetrics(SM_CYICON),
                 0
                 );
             
-            context->IconBitmap = PhIconToBitmap(context->IconHandle, 32, 32);
+            context->IconBitmap = PhIconToBitmap(context->IconHandle, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 
             // Set the window icons
             if (context->IconHandle)
