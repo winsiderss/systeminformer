@@ -34,31 +34,41 @@ static HFONT InitializeFont(
     _In_ HWND hwnd
     )
 {
-    HFONT fontHandle;
-    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+    LOGFONT logFont;
 
-    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+    // Create the font handle
+    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
     {
-        metrics.lfMessageFont.lfHeight = -15;
-        //metrics.lfMessageFont.lfWeight = FW_MEDIUM;
-        //metrics.lfMessageFont.lfQuality = CLEARTYPE_QUALITY | ANTIALIASED_QUALITY;
+        HDC hdc;
 
-        fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+        if (hdc = GetDC(hwnd))
+        {
+            HFONT fontHandle = CreateFont(
+                -MulDiv(-14, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+                0,
+                0,
+                0,
+                FW_MEDIUM,
+                FALSE,
+                FALSE,
+                FALSE,
+                ANSI_CHARSET,
+                OUT_DEFAULT_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
+                DEFAULT_PITCH,
+                logFont.lfFaceName
+                );
+
+            SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
+
+            ReleaseDC(hwnd, hdc);
+
+            return fontHandle;
+        }
     }
-    else
-    {
-        LOGFONT font;
 
-        GetObject((HFONT)GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &font);
-
-        font.lfHeight = -15;
-
-        fontHandle = CreateFontIndirect(&font);
-    }
-
-    SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
-
-    return fontHandle;
+    return NULL;
 }
 
 static BOOL ReadRequestString(
