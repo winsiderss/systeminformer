@@ -633,6 +633,46 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
                     }
                     return TBNRF_ENDCUSTOMIZE;
+                case TBN_DROPDOWN:
+                    {
+                        LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
+                        PPH_EMENU menu;
+                        PPH_EMENU_ITEM selectedItem;
+                        
+                        if (toolbar->iItem != TIDC_POWERMENUDROPDOWN)
+                            break;
+
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_LOGOFF, L"Logo&ff", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Restart to Boot &Options", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
+
+                        MapWindowPoints(RebarHandle, NULL, (LPPOINT)&toolbar->rcButton, 2);
+
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hWnd,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            toolbar->rcButton.left,
+                            toolbar->rcButton.bottom
+                            );
+
+                        if (selectedItem && selectedItem->Id != -1)
+                        {
+                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
+                        }
+
+                        PhDestroyEMenu(menu);
+                    }
+                    return TBDDRET_DEFAULT;
                 }
 
                 goto DefaultWndProc;

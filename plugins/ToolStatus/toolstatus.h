@@ -48,10 +48,11 @@
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 
-#define TIDC_FINDWINDOW (WM_APP + 1)
-#define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
-#define TIDC_FINDWINDOWKILL (WM_APP + 3)
-#define ID_SEARCH_CLEAR (WM_APP + 4)
+#define ID_SEARCH_CLEAR (WM_APP + 1)
+#define TIDC_FINDWINDOW (WM_APP + 2)
+#define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
+#define TIDC_FINDWINDOWKILL (WM_APP + 4)
+#define TIDC_POWERMENUDROPDOWN (WM_APP + 5)
 
 #define STATUS_COUNT 12
 #define STATUS_MINIMUM 0x1
@@ -68,6 +69,17 @@
 #define STATUS_VISIBLEITEMS 0x400
 #define STATUS_SELECTEDITEMS 0x800
 #define STATUS_MAXIMUM 0x1000
+
+// Command IDs for the IDR_COMPUTER menu (copied from ProcessHacker.rc)
+#define ID_COMPUTER_LOCK                40160
+#define ID_COMPUTER_LOGOFF              40161
+#define ID_COMPUTER_SLEEP               40162
+#define ID_COMPUTER_HIBERNATE           40163
+#define ID_COMPUTER_RESTART             40164
+#define ID_COMPUTER_SHUTDOWN            40165
+#define ID_COMPUTER_SHUTDOWNHYBRID      40278
+#define ID_COMPUTER_RESTARTBOOTOPTIONS  40280
+
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -119,7 +131,7 @@ extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
 
 extern HIMAGELIST ToolBarImageList;
-extern TBBUTTON ToolbarButtons[10];
+extern TBBUTTON ToolbarButtons[11];
 extern TBSAVEPARAMSW ToolbarSaveParams;
 
 extern PPH_PLUGIN PluginInstance;

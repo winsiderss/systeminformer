@@ -25,6 +25,8 @@
 #define IDB_SEARCH_INACTIVE_BMP         121
 #define IDB_APPLICATION_GET_BMP         122
 #define IDB_APPLICATION_GET             123
+#define IDB_POWER                       124
+#define IDB_POWER_BMP                   125
 #define IDC_ENABLE_TOOLBAR              1001
 #define IDC_ENABLE_SEARCHBOX            1002
 #define IDC_RESOLVEGHOSTWINDOWS         1003
@@ -52,7 +54,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        124
+#define _APS_NEXT_RESOURCE_VALUE        126
 #define _APS_NEXT_COMMAND_VALUE         40014
 #define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           11010

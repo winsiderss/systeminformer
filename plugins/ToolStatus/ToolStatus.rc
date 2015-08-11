@@ -177,6 +177,7 @@ IDB_COG_EDIT            PNG                     "resources\\cog_edit.png"
 IDB_CROSS               PNG                     "resources\\cross.png"
 IDB_FIND                PNG                     "resources\\find.png"
 IDB_APPLICATION_GET     PNG                     "resources\\application_get.png"
+IDB_POWER               PNG                     "resources\\lightbulb_off.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -193,6 +194,7 @@ IDB_APPLICATION_BMP     BITMAP                  "resources\\application.bmp"
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 IDB_APPLICATION_GET_BMP BITMAP                  "resources\\application_get.bmp"
+IDB_POWER_BMP           BITMAP                  "resources\\lightbulb_off.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -38,7 +38,8 @@ TBBUTTON ToolbarButtons[] =
     { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     // Available toolbar buttons (hidden)
-    { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 }
+    { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 8, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, 0 },
 };
 
 // NOTE: This Registry key is never created or used unless the Toolbar is customized.
@@ -113,7 +114,7 @@ static VOID RebarLoadSettings(
         // Create the toolbar imagelist
         ToolBarImageList = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, 0, 0);
         // Set the number of images
-        ImageList_SetImageCount(ToolBarImageList, 8);
+        ImageList_SetImageCount(ToolBarImageList, 9);
 
         // Add the images to the imagelist
         if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
@@ -193,7 +194,17 @@ static VOID RebarLoadSettings(
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 7, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 7, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
+        }
+
+        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER)))
+        {
+            ImageList_Replace(ToolBarImageList, 8, iconBitmap, NULL);
+            DeleteObject(iconBitmap);
+        }
+        else
+        {
+            PhSetImageListBitmap(ToolBarImageList, 8, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_POWER_BMP));
         }
     }
 
@@ -244,6 +255,7 @@ static VOID RebarLoadSettings(
         ToolbarButtons[7].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
         ToolbarButtons[8].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
         ToolbarButtons[9].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Always on Top");
+        ToolbarButtons[10].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Computer");
 
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
@@ -312,9 +324,13 @@ static VOID RebarLoadSettings(
 
     if (EnableSearchBox)
     {
+        RECT rect;
+
+        GetClientRect(RebarHandle, &rect);
+
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(BandID_SearchBox))
-            RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+            RebarBandInsert(BandID_SearchBox, SearchboxHandle, rect.bottom - 2, 180);
 
         if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
@@ -346,8 +362,12 @@ static VOID RebarLoadSettings(
         }
         else
         {
+            RECT rect;
+
+            GetClientRect(RebarHandle, &rect);
+
             if (!RebarBandExists(BandID_SearchBox))
-                RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+                RebarBandInsert(BandID_SearchBox, SearchboxHandle, rect.bottom - 2, 180);
         }
     }
 
@@ -431,6 +451,11 @@ VOID LoadToolbarSettings(
                 break;
             }
 
+            if (button.idCommand == TIDC_POWERMENUDROPDOWN)
+            {
+                button.fsStyle |= BTNS_WHOLEDROPDOWN;
+            }
+
             // Set updated button info
             SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
         }
@@ -502,6 +527,8 @@ PWSTR ToolbarGetText(
         return L"Find Window and Kill";
     case PHAPP_ID_VIEW_ALWAYSONTOP:
         return L"Always on Top";
+    case TIDC_POWERMENUDROPDOWN:
+        return L"Computer";
     }
 
     return L"Error";
