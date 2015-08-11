@@ -111,5 +111,11 @@
     <Image Include="resources\application_get.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\lightbulb_off.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lightbulb_off.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

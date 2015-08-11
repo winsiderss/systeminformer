@@ -47,27 +47,36 @@ static VOID NcAreaInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+    LOGFONT logFont;
+    HDC hdc;
 
-    // Cleanup existing Font handle.
-    if (Context->WindowFont)
-        DeleteObject(Context->WindowFont);
+    SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0);
 
-    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+    if (hdc = GetDC(Context->WindowHandle))
     {
-        metrics.lfMessageFont.lfHeight = -11;
+        // Cleanup existing Font handle.
+        if (Context->WindowFont)
+            DeleteObject(Context->WindowFont);
 
-        Context->WindowFont = CreateFontIndirect(&metrics.lfMessageFont);
-    }
-    else
-    {
-        LOGFONT font;
+        // Create the font handle
+        Context->WindowFont = CreateFont(
+            -MulDiv(-10, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+            0,
+            0,
+            0,
+            FW_MEDIUM,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
+            DEFAULT_PITCH,
+            logFont.lfFaceName
+            );
 
-        GetObject((HFONT)GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &font);
-
-        font.lfHeight = -11;
-
-        Context->WindowFont = CreateFontIndirect(&font);
+        ReleaseDC(Context->WindowHandle, hdc);
     }
 
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
