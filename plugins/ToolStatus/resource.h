@@ -49,13 +49,14 @@
 #define ID_SEARCH                       40011
 #define ID_STATUS_NUMBEROFVISIBLEITEMS  40012
 #define ID_STATUS_NUMBEROFSELECTEDITEMS 40013
+#define ID_STATUS_INTERVALSTATUS        40014
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        126
-#define _APS_NEXT_COMMAND_VALUE         40014
+#define _APS_NEXT_COMMAND_VALUE         40015
 #define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           11010
 #endif

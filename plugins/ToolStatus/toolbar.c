@@ -415,16 +415,6 @@ VOID LoadToolbarSettings(
             button.dwMask |= TBIF_TEXT;
             button.pszText = ToolbarGetText(button.idCommand);
 
-
-            if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
-            {
-                // Set the pressed state
-                if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
-                {
-                    button.fsState |= TBSTATE_PRESSED;
-                }
-            }
-
             switch (DisplayStyle)
             {
             case ToolbarDisplayImageOnly:
@@ -451,9 +441,22 @@ VOID LoadToolbarSettings(
                 break;
             }
 
-            if (button.idCommand == TIDC_POWERMENUDROPDOWN)
+            switch (button.idCommand)
             {
-                button.fsStyle |= BTNS_WHOLEDROPDOWN;
+            case PHAPP_ID_VIEW_ALWAYSONTOP:
+                {
+                    // Set the pressed state
+                    if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+                    {
+                        button.fsState |= TBSTATE_PRESSED;
+                    }
+                }
+                break;
+            case TIDC_POWERMENUDROPDOWN:
+                {
+                    button.fsStyle |= BTNS_WHOLEDROPDOWN;
+                }
+                break;
             }
 
             // Set updated button info

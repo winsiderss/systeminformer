@@ -103,6 +103,7 @@ BEGIN
         MENUITEM "I/O Write",                   ID_STATUS_IO_W
         MENUITEM "Max. CPU Process",            ID_STATUS_MAX_CPU_PROCESS
         MENUITEM "Max. I/O Process",            ID_STATUS_MAX_IO_PROCESS
+        MENUITEM "Interval Status",             ID_STATUS_INTERVALSTATUS
     END
 END
 

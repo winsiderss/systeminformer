@@ -54,7 +54,7 @@
 #define TIDC_FINDWINDOWKILL (WM_APP + 4)
 #define TIDC_POWERMENUDROPDOWN (WM_APP + 5)
 
-#define STATUS_COUNT 12
+#define STATUS_COUNT 13
 #define STATUS_MINIMUM 0x1
 #define STATUS_CPUUSAGE 0x1
 #define STATUS_COMMIT 0x2
@@ -68,18 +68,8 @@
 #define STATUS_MAXIOPROCESS 0x200
 #define STATUS_VISIBLEITEMS 0x400
 #define STATUS_SELECTEDITEMS 0x800
-#define STATUS_MAXIMUM 0x1000
-
-// Command IDs for the IDR_COMPUTER menu (copied from ProcessHacker.rc)
-#define ID_COMPUTER_LOCK                40160
-#define ID_COMPUTER_LOGOFF              40161
-#define ID_COMPUTER_SLEEP               40162
-#define ID_COMPUTER_HIBERNATE           40163
-#define ID_COMPUTER_RESTART             40164
-#define ID_COMPUTER_SHUTDOWN            40165
-#define ID_COMPUTER_SHUTDOWNHYBRID      40278
-#define ID_COMPUTER_RESTARTBOOTOPTIONS  40280
-
+#define STATUS_INTERVALSTATUS 0x1000
+#define STATUS_MAXIMUM 0x2000
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -116,6 +106,7 @@ extern INT SelectedTabIndex;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
+extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN ToolbarInitialized;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;

@@ -43,6 +43,7 @@ INT SelectedTabIndex;
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
+BOOLEAN UpdateAutomatically = TRUE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SearchBoxDisplayAlwaysShow;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = RebarLocationTop;
@@ -446,6 +447,27 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     goto DefaultWndProc;
                 }
                 break;
+            case PHAPP_ID_UPDATEINTERVAL_FAST:
+            case PHAPP_ID_UPDATEINTERVAL_NORMAL:
+            case PHAPP_ID_UPDATEINTERVAL_BELOWNORMAL:
+            case PHAPP_ID_UPDATEINTERVAL_SLOW:
+            case PHAPP_ID_UPDATEINTERVAL_VERYSLOW:
+                {
+                    // Let Process Hacker perform the default processing.
+                    DefSubclassProc(hWnd, uMsg, wParam, lParam);
+
+                    UpdateStatusBar();
+
+                    goto DefaultWndProc;
+                }
+                break;
+            case PHAPP_ID_VIEW_UPDATEAUTOMATICALLY:
+                {
+                    UpdateAutomatically = !UpdateAutomatically;
+
+                    UpdateStatusBar();
+                }
+                break;
             }
         }
         break;
@@ -514,19 +536,38 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 menuItem->Bitmap = PhIconToBitmap(menuIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
                                 DestroyIcon(menuIcon);
 
-                                if (button.idCommand == PHAPP_ID_VIEW_ALWAYSONTOP)
+                                switch (button.idCommand)
                                 {
-                                    // Set the pressed state.
-                                    if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
-                                        menuItem->Flags |= PH_EMENU_CHECKED;
-                                }
-
-                                // TODO: Temporarily disable some unsupported buttons.
-                                if (button.idCommand == TIDC_FINDWINDOW ||
-                                    button.idCommand == TIDC_FINDWINDOWTHREAD ||
-                                    button.idCommand == TIDC_FINDWINDOWKILL)
-                                {
-                                    menuItem->Flags |= PH_EMENU_DISABLED;
+                                case PHAPP_ID_VIEW_ALWAYSONTOP:
+                                    {
+                                        // Set the pressed state.
+                                        if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+                                            menuItem->Flags |= PH_EMENU_CHECKED;
+                                    }
+                                    break;
+                                case TIDC_FINDWINDOW:
+                                case TIDC_FINDWINDOWTHREAD:
+                                case TIDC_FINDWINDOWKILL:
+                                    {
+                                        // Note: These buttons are incompatible with menus.
+                                        menuItem->Flags |= PH_EMENU_DISABLED;
+                                    }
+                                    break;
+                                case TIDC_POWERMENUDROPDOWN:
+                                    {
+                                        // Create the sub-menu...
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Logo&ff", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Restart to Boot &Options", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
+                                    }
+                                    break;
                                 }
 
                                 PhInsertEMenuItem(menu, menuItem, -1);
@@ -643,16 +684,16 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             break;
 
                         menu = PhCreateEMenu();
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_LOGOFF, L"Logo&ff", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Logo&ff", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Restart to Boot &Options", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Restart to Boot &Options", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
 
                         MapWindowPoints(RebarHandle, NULL, (LPPOINT)&toolbar->rcButton, 2);
 

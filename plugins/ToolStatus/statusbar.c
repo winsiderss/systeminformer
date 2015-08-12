@@ -88,6 +88,9 @@ VOID ShowStatusMenu(
             case STATUS_SELECTEDITEMS:
                 id = ID_STATUS_NUMBEROFSELECTEDITEMS;
                 break;
+            case STATUS_INTERVALSTATUS:
+                id = ID_STATUS_INTERVALSTATUS; 
+                break;
             }
 
             CheckMenuItem(subMenu, id, MF_CHECKED);
@@ -143,6 +146,9 @@ VOID ShowStatusMenu(
         break;
     case ID_STATUS_NUMBEROFSELECTEDITEMS:
         bit = STATUS_SELECTEDITEMS;
+        break;
+    case ID_STATUS_INTERVALSTATUS:
+        bit = STATUS_INTERVALSTATUS;
         break;
     default:
         return;
@@ -396,6 +402,39 @@ VOID UpdateStatusBar(
                         text[count] = PhFormatString(
                             L"Selected: N/A"
                             );
+                    }
+                }
+                break;
+            case STATUS_INTERVALSTATUS:
+                {
+                    ULONG interval;
+
+                    interval = PhGetIntegerSetting(L"UpdateInterval");
+
+                    if (UpdateAutomatically)
+                    {
+                        switch (interval)
+                        {
+                        case 500:
+                            text[count] = PhCreateString(L"Interval: Fast");
+                            break;
+                        case 1000:
+                            text[count] = PhCreateString(L"Interval: Normal");
+                            break;
+                        case 2000:
+                            text[count] = PhCreateString(L"Interval: Below Normal");
+                            break;
+                        case 5000:
+                            text[count] = PhCreateString(L"Interval: Slow");
+                            break;
+                        case 10000:
+                            text[count] = PhCreateString(L"Interval: Very Slow");
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        text[count] = PhCreateString(L"Interval: Paused");
                     }
                 }
                 break;
