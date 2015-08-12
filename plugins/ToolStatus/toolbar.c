@@ -380,10 +380,10 @@ VOID LoadToolbarSettings(
 
     if (EnableToolBar && ToolBarHandle)
     {
-        ULONG index = 0;
-        ULONG buttonCount = 0;
+        INT index = 0;
+        INT buttonCount = 0;
 
-        buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+        buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
         for (index = 0; index < buttonCount; index++)
         {
@@ -530,8 +530,8 @@ VOID ToolbarLoadButtonSettings(
     VOID
     )
 {
-    ULONG buttonIndex = 0;
-    ULONG buttonCount = 0;
+    INT buttonIndex = 0;
+    INT buttonCount = 0;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
     PH_STRINGREF remaining;
@@ -544,13 +544,13 @@ VOID ToolbarLoadButtonSettings(
         return;
 
     // Remove all current buttons.
-    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
     while (buttonCount--)
         SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
     // Query the number of buttons to insert
     PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-    buttonCount = wcstoul(part.Buffer, NULL, 0);
+    buttonCount = _wtoi(part.Buffer);
 
     // Allocate the button array
     buttonArray = PhAllocate(buttonCount * sizeof(TBBUTTON));
@@ -583,18 +583,18 @@ VOID ToolbarSaveButtonSettings(
     VOID
     )
 {
-    ULONG buttonIndex = 0;
-    ULONG buttonCount = 0;
+    INT buttonIndex = 0;
+    INT buttonCount = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
     PhAppendFormatStringBuilder(
         &stringBuilder,
-        L"%u|",
+        L"%d|",
         buttonCount
         );
 
