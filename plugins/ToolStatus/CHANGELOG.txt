@@ -1,4 +1,6 @@
 2.2
+ * Added portable Toolbar customization
+ * Added Toolbar power menu (ported from PH1.x)
  * Fixed Toolbar DPI scaling issues
 
 2.1
