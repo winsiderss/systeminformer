@@ -540,6 +540,9 @@ VOID ToolbarLoadButtonSettings(
     settingsString = PhGetStringSetting(SETTING_NAME_TOOLBARBUTTONCONFIG);
     remaining = settingsString->sr;
 
+    if (remaining.Length == 0)
+        return;
+
     // Remove all current buttons.
     buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
     while (buttonCount--)
