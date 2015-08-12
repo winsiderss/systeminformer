@@ -22,7 +22,6 @@
 
 #include "toolstatus.h"
 
-BOOLEAN ToolbarInitialized = FALSE;
 HIMAGELIST ToolBarImageList = NULL;
 
 TBBUTTON ToolbarButtons[] =
@@ -40,14 +39,6 @@ TBBUTTON ToolbarButtons[] =
     // Available toolbar buttons (hidden)
     { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
     { 8, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, 0 },
-};
-
-// NOTE: This Registry key is never created or used unless the Toolbar is customized.
-TBSAVEPARAMSW ToolbarSaveParams =
-{
-    HKEY_CURRENT_USER,
-    L"Software\\ProcessHacker",
-    L"ToolbarSettings"
 };
 
 VOID RebarBandInsert(
@@ -265,8 +256,8 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Add the buttons to the toolbar (also specifying the default number of items to display).
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
-        // Restore the toolbar settings (Note: This will invoke the TBN_ENDADJUST notification).
-        SendMessage(ToolBarHandle, TB_SAVERESTORE, FALSE, (LPARAM)&ToolbarSaveParams);
+        // Restore the toolbar settings.
+        ToolbarLoadButtonSettings();
         // Query the toolbar button width/height.
         toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
@@ -276,8 +267,6 @@ static VOID RebarLoadSettings(
 
         // Inset the toolbar into the rebar control.
         RebarBandInsert(BandID_ToolBar, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
-
-        ToolbarInitialized = TRUE;
     }
 
     // Initialize the Searchbox and TreeNewFilters.
@@ -535,4 +524,100 @@ PWSTR ToolbarGetText(
     }
 
     return L"Error";
+}
+
+VOID ToolbarLoadButtonSettings(
+    VOID
+    )
+{
+    ULONG buttonIndex = 0;
+    ULONG buttonCount = 0;
+    PPH_STRING settingsString;
+    PTBBUTTON buttonArray;
+    PH_STRINGREF remaining;
+    PH_STRINGREF part;
+
+    settingsString = PhGetStringSetting(SETTING_NAME_TOOLBARBUTTONCONFIG);
+    remaining = settingsString->sr;
+
+    // Remove all current buttons.
+    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    while (buttonCount--)
+        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+
+    // Query the number of buttons to insert
+    PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+    buttonCount = wcstoul(part.Buffer, NULL, 0);
+
+    // Allocate the button array
+    buttonArray = PhAllocate(buttonCount * sizeof(TBBUTTON));
+    memset(buttonArray, 0, buttonCount * sizeof(TBBUTTON));
+
+    while (remaining.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+        buttonArray[buttonIndex].idCommand = _wtoi(part.Buffer);
+
+        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+        buttonArray[buttonIndex].iBitmap = _wtoi(part.Buffer);
+
+        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+        buttonArray[buttonIndex].fsState = (BYTE)wcstoul(part.Buffer, NULL, 0);
+
+        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+        buttonArray[buttonIndex].fsStyle = (BYTE)wcstoul(part.Buffer, NULL, 0);
+
+        buttonIndex++;
+    }
+
+    SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);
+
+    PhFree(buttonArray);
+    PhDereferenceObject(settingsString);
+}
+
+VOID ToolbarSaveButtonSettings(
+    VOID
+    )
+{
+    ULONG buttonIndex = 0;
+    ULONG buttonCount = 0;
+    PPH_STRING settingsString;
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    buttonCount = (ULONG)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"%u|",
+        buttonCount
+        );
+
+    for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+    {
+        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
+        button.dwMask = TBIF_BYINDEX | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE | TBIF_COMMAND | TBIF_SIZE;
+
+        // Get button information.
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) == -1)
+            break;
+
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%d|%d|%u|%u|",
+            button.idCommand,
+            button.iImage,
+            button.fsState,
+            button.fsStyle
+            );
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
+    PhSetStringSetting2(SETTING_NAME_TOOLBARBUTTONCONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }

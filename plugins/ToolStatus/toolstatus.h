@@ -43,6 +43,7 @@
 #define SETTING_NAME_ENABLE_STATUSBAR (PLUGIN_NAME L".EnableStatusBar")
 #define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (PLUGIN_NAME L".ResolveGhostWindows")
 #define SETTING_NAME_ENABLE_STATUSMASK (PLUGIN_NAME L".StatusMask")
+#define SETTING_NAME_TOOLBARBUTTONCONFIG (PLUGIN_NAME L".ToolbarConfig")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 
@@ -107,7 +108,6 @@ extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
 extern BOOLEAN UpdateAutomatically;
-extern BOOLEAN ToolbarInitialized;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -123,7 +123,6 @@ extern PPH_STRING SearchboxText;
 
 extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[11];
-extern TBSAVEPARAMSW ToolbarSaveParams;
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
@@ -167,6 +166,14 @@ VOID ResetToolbarSettings(
 
 PWSTR ToolbarGetText(
     _In_ INT CommandID
+    );
+
+VOID ToolbarLoadButtonSettings(
+    VOID
+    );
+
+VOID ToolbarSaveButtonSettings(
+    VOID
     );
 
 HWND GetCurrentTreeNewHandle(
