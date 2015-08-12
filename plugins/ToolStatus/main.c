@@ -651,14 +651,10 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     return FALSE;
                 case TBN_ENDADJUST:
                     {
-                        if (!ToolbarInitialized)
-                            break;
-
                         // Save the customization settings.
-                        SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
-
+                        ToolbarSaveButtonSettings();
                         LoadToolbarSettings();
-                        InvalidateRect(ToolBarHandle, NULL, TRUE);
+                        //InvalidateRect(ToolBarHandle, NULL, TRUE);
                     }
                     break;
                 case TBN_RESET:
@@ -667,11 +663,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         // Re-load the original button settings.
                         LoadToolbarSettings();
-
-                        InvalidateRect(ToolBarHandle, NULL, TRUE);
-
+                        //InvalidateRect(ToolBarHandle, NULL, TRUE);
                         // Save the new settings as defaults.
-                        SendMessage(ToolBarHandle, TB_SAVERESTORE, TRUE, (LPARAM)&ToolbarSaveParams);
+                        ToolbarSaveButtonSettings();
                     }
                     return TBNRF_ENDCUSTOMIZE;
                 case TBN_DROPDOWN:
@@ -990,6 +984,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSBAR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
+                { StringSettingType, SETTING_NAME_TOOLBARBUTTONCONFIG, L"" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" }
             };
