@@ -695,7 +695,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
 
-                        MapWindowPoints(RebarHandle, NULL, (LPPOINT)&toolbar->rcButton, 2);
+                        MapWindowPoints(ToolBarHandle, NULL, (LPPOINT)&toolbar->rcButton, 2);
 
                         selectedItem = PhShowEMenu(
                             menu,
