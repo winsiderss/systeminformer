@@ -1,3 +1,6 @@
+1.5
+ * Added individual process highlighting support
+
 1.4
  * Added tray icon mini info window support
 
