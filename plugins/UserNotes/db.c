@@ -3,6 +3,7 @@
  *   database functions
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -238,11 +239,13 @@ NTSTATUS LoadDb(
 
     while (currentNode)
     {
+        PDB_OBJECT object = NULL;
         PPH_STRING tag = NULL;
         PPH_STRING name = NULL;
         PPH_STRING priorityClass = NULL;
         PPH_STRING ioPriorityPlusOne = NULL;
         PPH_STRING comment = NULL;
+        PPH_STRING backColor = NULL;
 
         if (currentNode->type == MXML_ELEMENT &&
             currentNode->value.element.num_attrs >= 2)
@@ -259,6 +262,8 @@ NTSTATUS LoadDb(
                     PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
                     PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (stricmp(currentNode->value.element.attrs[i].name, "backcolor") == 0)
+                    PhMoveReference(&backColor, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
         }
 
@@ -266,7 +271,6 @@ NTSTATUS LoadDb(
 
         if (tag && name && comment)
         {
-            PDB_OBJECT object;
             ULONG64 tagInteger;
             ULONG64 priorityClassInteger = 0;
             ULONG64 ioPriorityPlusOneInteger = 0;
@@ -280,7 +284,18 @@ NTSTATUS LoadDb(
 
             object = CreateDbObject((ULONG)tagInteger, &name->sr, comment);
             object->PriorityClass = (ULONG)priorityClassInteger;
-            object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;
+            object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;        
+        }
+
+        // NOTE: This is handled separately to maintain compatibility with previous versions of the database.
+        if (object)
+        {
+            ULONG64 backColorInteger = 0;
+
+            if (backColor)
+                PhStringToInteger64(&backColor->sr, 10, &backColorInteger);
+
+            object->BackColor = (COLORREF)backColorInteger;
         }
 
         PhClearReference(&tag);
@@ -288,6 +303,7 @@ NTSTATUS LoadDb(
         PhClearReference(&priorityClass);
         PhClearReference(&ioPriorityPlusOne);
         PhClearReference(&comment);
+        PhClearReference(&backColor);
 
         currentNode = currentNode->next;
     }
@@ -326,7 +342,8 @@ mxml_node_t *CreateObjectElement(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF PriorityClass,
     _In_ PPH_STRINGREF IoPriorityPlusOne,
-    _In_ PPH_STRINGREF Comment
+    _In_ PPH_STRINGREF Comment,
+    _In_ PPH_STRINGREF BackColor
     )
 {
     mxml_node_t *objectNode;
@@ -335,6 +352,7 @@ mxml_node_t *CreateObjectElement(
     PPH_BYTES nameUtf8;
     PPH_BYTES priorityClassUtf8;
     PPH_BYTES ioPriorityPlusOneUtf8;
+    PPH_BYTES backColorUtf8;
     PPH_BYTES valueUtf8;
 
     // Create the setting element.
@@ -356,6 +374,10 @@ mxml_node_t *CreateObjectElement(
     ioPriorityPlusOneUtf8 = PhConvertUtf16ToUtf8Ex(IoPriorityPlusOne->Buffer, IoPriorityPlusOne->Length);
     mxmlElementSetAttr(objectNode, "iopriorityplusone", ioPriorityPlusOneUtf8->Buffer);
     PhDereferenceObject(ioPriorityPlusOneUtf8);
+
+    backColorUtf8 = PhConvertUtf16ToUtf8Ex(BackColor->Buffer, BackColor->Length);
+    mxmlElementSetAttr(objectNode, "backcolor", backColorUtf8->Buffer);
+    PhDereferenceObject(backColorUtf8);
 
     // Set the value.
 
@@ -385,16 +407,19 @@ NTSTATUS SaveDb(
         PPH_STRING tagString;
         PPH_STRING priorityClassString;
         PPH_STRING ioPriorityPlusOneString;
+        PPH_STRING backColorString;
 
         tagString = PhIntegerToString64((*object)->Tag, 10, FALSE);
         priorityClassString = PhIntegerToString64((*object)->PriorityClass, 10, FALSE);
         ioPriorityPlusOneString = PhIntegerToString64((*object)->IoPriorityPlusOne, 10, FALSE);
+        backColorString = PhIntegerToString64((*object)->BackColor, 10, FALSE);
 
-        CreateObjectElement(topNode, &tagString->sr, &(*object)->Name->sr, &priorityClassString->sr, &ioPriorityPlusOneString->sr, &(*object)->Comment->sr);
+        CreateObjectElement(topNode, &tagString->sr, &(*object)->Name->sr, &priorityClassString->sr, &ioPriorityPlusOneString->sr, &(*object)->Comment->sr, &backColorString->sr);
 
         PhDereferenceObject(tagString);
         PhDereferenceObject(priorityClassString);
         PhDereferenceObject(ioPriorityPlusOneString);
+        PhDereferenceObject(backColorString);
     }
 
     UnlockDb();

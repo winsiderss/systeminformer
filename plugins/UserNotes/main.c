@@ -3,6 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -34,6 +35,8 @@
 #define PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID 2
 #define PROCESS_IO_PRIORITY_SAVE_ID 3
 #define PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID 4
+#define PROCESS_ADD_HIGHLIGHT_COLOR 5
+#define PROCESS_REMOVE_HIGHLIGHT_COLOR 6
 
 #define COMMENT_COLUMN_ID 1
 
@@ -84,6 +87,13 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
     _In_ LPARAM lParam
     );
 
+UINT_PTR CALLBACK ColorDlgHookProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -96,6 +106,7 @@ PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
@@ -109,7 +120,27 @@ HWND ServiceTreeNewHandle;
 LIST_ENTRY ServiceListHead = { &ServiceListHead, &ServiceListHead };
 PH_QUEUED_LOCK ServiceListLock = PH_QUEUED_LOCK_INIT;
 
-BOOLEAN MatchDbObjectIntent(
+static COLORREF ProcessCustomColors[16] =
+{
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255),
+    RGB(255, 255, 255)
+};
+
+static BOOLEAN MatchDbObjectIntent(
     _In_ PDB_OBJECT Object,
     _In_ ULONG Intent
     )
@@ -119,7 +150,7 @@ BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0);
 }
 
-PDB_OBJECT FindDbObjectForProcess(
+static PDB_OBJECT FindDbObjectForProcess(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG Intent
     )
@@ -138,17 +169,56 @@ PDB_OBJECT FindDbObjectForProcess(
     return NULL;
 }
 
-VOID DeleteDbObjectForProcessIfUnused(
+static VOID DeleteDbObjectForProcessIfUnused(
     _In_ PDB_OBJECT Object
     )
 {
-    if (Object->Comment->Length == 0 && Object->PriorityClass == 0 && Object->IoPriorityPlusOne == 0)
+    if (Object->Comment->Length == 0 && Object->PriorityClass == 0 && Object->IoPriorityPlusOne == 0 && Object->BackColor == 0)
     {
         DeleteDbObject(Object);
     }
 }
 
-ULONG GetProcessIoPriority(
+static VOID LoadCustomColors(
+    _In_ PPH_STRING String
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remaining = String->sr;
+
+    for (SIZE_T i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
+    {
+        ULONG64 integer = 0;
+
+        PhSplitStringRefAtChar(&remaining, ',', &part, &remaining);
+
+        if (PhStringToInteger64(&part, 10, &integer))
+        {
+            ProcessCustomColors[i] = (COLORREF)integer;
+        }
+    }
+}
+
+static PPH_STRING SaveCustomColors(
+    VOID
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    for (SIZE_T i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
+    {
+        PhAppendFormatStringBuilder(&stringBuilder, L"%lu,", ProcessCustomColors[i]);
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+static ULONG GetProcessIoPriority(
     _In_ HANDLE ProcessId
     )
 {
@@ -175,7 +245,7 @@ ULONG GetProcessIoPriority(
     return ioPriority;
 }
 
-ULONG GetPriorityClassFromId(
+static ULONG GetPriorityClassFromId(
     _In_ ULONG Id
     )
 {
@@ -198,7 +268,7 @@ ULONG GetPriorityClassFromId(
     return 0;
 }
 
-ULONG GetIoPriorityFromId(
+static ULONG GetIoPriorityFromId(
     _In_ ULONG Id
     )
 {
@@ -217,18 +287,23 @@ ULONG GetIoPriorityFromId(
     return -1;
 }
 
-VOID NTAPI LoadCallback(
+static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_STRING path;
     PPH_STRING realPath;
+    PPH_STRING customColors;
 
-    path = PhGetStringSetting(L"ProcessHacker.UserNotes.DatabasePath");
+    path = PhGetStringSetting(SETTING_NAME_DATABASE_PATH);
     realPath = PhExpandEnvironmentStrings(&path->sr);
     PhDereferenceObject(path);
     path = realPath;
+
+    customColors = PhGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
+    LoadCustomColors(customColors);
+    PhDereferenceObject(customColors);
 
     if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
     {
@@ -247,11 +322,17 @@ VOID NTAPI LoadCallback(
     LoadDb();
 }
 
-VOID NTAPI UnloadCallback(
+static VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    PPH_STRING customColors;
+
+    customColors = SaveCustomColors();
+    PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &customColors->sr);
+    PhDereferenceObject(customColors);
+
     SaveDb();
 }
 
@@ -362,6 +443,51 @@ VOID NTAPI MenuItemCallback(
                 UnlockDb();
                 SaveDb();
             }
+        }
+        break;
+    case PROCESS_ADD_HIGHLIGHT_COLOR:
+        {
+            CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
+            chooseColor.hwndOwner = PhMainWndHandle;
+            chooseColor.lpCustColors = ProcessCustomColors;
+            chooseColor.lpfnHook = ColorDlgHookProc;
+            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
+
+            if (ChooseColor(&chooseColor))
+            {
+                LockDb();
+
+                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+                {
+                    object->BackColor = chooseColor.rgbResult;
+                }
+                else
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->BackColor = chooseColor.rgbResult;
+                }
+
+                UnlockDb();
+                SaveDb();
+            }
+
+            PhInvalidateAllProcessNodes();
+        }
+        break;
+    case PROCESS_REMOVE_HIGHLIGHT_COLOR:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+            {
+                object->BackColor = 0;
+                DeleteDbObjectForProcessIfUnused(object);
+            }
+
+            UnlockDb();
+            SaveDb();
+
+            PhInvalidateAllProcessNodes();
         }
         break;
     }
@@ -692,11 +818,38 @@ VOID ProcessMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM miscMenuItem;
+    PPH_EMENU_ITEM highlightMenuItem;
+    PPH_PROCESS_ITEM processItem;
 
     if (menuInfo->u.Process.NumberOfProcesses != 1)
         return;
 
     AddSavePriorityMenuItemsAndHook(menuInfo, menuInfo->u.Process.Processes[0], TRUE);
+
+    if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0)))
+        return;
+
+    processItem = menuInfo->u.Process.NumberOfProcesses == 1 ? menuInfo->u.Process.Processes[0] : NULL;
+
+    if (processItem)
+    {
+        PDB_OBJECT object;
+
+        LockDb();
+
+        if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+        {
+            PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_HIGHLIGHT_COLOR, L"Highlight Process", processItem), 0);
+            highlightMenuItem->Flags |= PH_EMENU_CHECKED;
+        }
+        else
+        {
+            PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_COLOR, L"Highlight Process", processItem), 0);
+        }
+
+        UnlockDb();
+    }
 }
 
 LONG NTAPI ProcessCommentSortFunction(
@@ -733,6 +886,30 @@ VOID ProcessTreeNewInitializingCallback(
     column.Alignment = PH_ALIGN_LEFT;
 
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
+}
+
+VOID GetProcessHighlightingColorCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
+    PDB_OBJECT object;
+
+    if (getHighlightingColor->Handled)
+        return;
+
+    LockDb();
+
+    if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+    {
+        getHighlightingColor->BackColor = object->BackColor;
+        getHighlightingColor->Cache = TRUE;
+        getHighlightingColor->Handled = TRUE;
+    }
+
+    UnlockDb();
 }
 
 VOID ServicePropertiesInitializingCallback(
@@ -956,15 +1133,20 @@ LOGICAL DllMain(
     if (Reason == DLL_PROCESS_ATTACH)
     {
         PPH_PLUGIN_INFORMATION info;
+        PH_SETTING_CREATE settings[] =
+        {
+            { StringSettingType, SETTING_NAME_DATABASE_PATH, L"%APPDATA%\\Process Hacker 2\\usernotesdb.xml" },
+            { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" }
+        };
 
-        PluginInstance = PhRegisterPlugin(L"ProcessHacker.UserNotes", Instance, &info);
+        PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
         if (!PluginInstance)
             return FALSE;
 
         info->DisplayName = L"User Notes";
-        info->Author = L"wj32";
-        info->Description = L"Allows the user to add comments for processes and services. Also allows the user to save process priority.";
+        info->Author = L"dmex, wj32";
+        info->Description = L"Allows the user to add comments for processes and services. Also allows the user to save process priority. Also allows the user to highlight individual processes.";
         info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1120";
         info->HasOptions = TRUE;
 
@@ -992,6 +1174,8 @@ LOGICAL DllMain(
             ProcessMenuInitializingCallback, NULL, &ProcessMenuInitializingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
             ProcessTreeNewInitializingCallback, NULL, &ProcessTreeNewInitializingCallbackRegistration);
+        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor), 
+            GetProcessHighlightingColorCallback, NULL, &GetProcessHighlightingColorCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
             ServiceTreeNewInitializingCallback, NULL, &ServiceTreeNewInitializingCallbackRegistration);
         PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing),
@@ -1006,14 +1190,7 @@ LOGICAL DllMain(
         PhPluginSetObjectExtension(PluginInstance, EmServiceItemType, sizeof(SERVICE_EXTENSION),
             ServiceItemCreateCallback, ServiceItemDeleteCallback);
 
-        {
-            static PH_SETTING_CREATE settings[] =
-            {
-                { StringSettingType, L"ProcessHacker.UserNotes.DatabasePath", L"%APPDATA%\\Process Hacker 2\\usernotesdb.xml" }
-            };
-
-            PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-        }
+        PhAddSettings(settings, ARRAYSIZE(settings));
     }
 
     return TRUE;
@@ -1032,7 +1209,7 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             PPH_STRING path;
 
-            path = PhGetStringSetting(L"ProcessHacker.UserNotes.DatabasePath");
+            path = PhGetStringSetting(SETTING_NAME_DATABASE_PATH);
             SetDlgItemText(hwndDlg, IDC_DATABASE, path->Buffer);
             PhDereferenceObject(path);
         }
@@ -1046,7 +1223,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PhSetStringSetting2(L"ProcessHacker.UserNotes.DatabasePath",
+                    PhSetStringSetting2(SETTING_NAME_DATABASE_PATH,
                         &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
 
                     EndDialog(hwndDlg, IDOK);
@@ -1400,6 +1577,37 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
                 }
                 return TRUE;
             }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+UINT_PTR CALLBACK ColorDlgHookProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        PhCenterWindow(hwndDlg, PhMainWndHandle);
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hDC = (HDC)wParam;
+            HWND hwndChild = (HWND)lParam;
+
+            // Set a transparent background for the control.
+            SetBkMode(hDC, TRANSPARENT);
+
+            // Set window background color.
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
