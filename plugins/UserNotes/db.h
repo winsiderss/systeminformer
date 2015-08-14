@@ -3,6 +3,7 @@
  *   database functions
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,6 +24,10 @@
 #ifndef DB_H
 #define DB_H
 
+#define PLUGIN_NAME L"ProcessHacker.UserNotes"
+#define SETTING_NAME_DATABASE_PATH (PLUGIN_NAME L".DatabasePath")
+#define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
+
 #define FILE_TAG 1
 #define SERVICE_TAG 2
 #define COMMAND_LINE_TAG 3
@@ -36,6 +41,7 @@ typedef struct _DB_OBJECT
     PPH_STRING Comment;
     ULONG PriorityClass;
     ULONG IoPriorityPlusOne;
+    COLORREF BackColor;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(
