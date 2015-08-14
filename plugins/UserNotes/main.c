@@ -35,8 +35,8 @@
 #define PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID 2
 #define PROCESS_IO_PRIORITY_SAVE_ID 3
 #define PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID 4
-#define PROCESS_ADD_HIGHLIGHT_COLOR 5
-#define PROCESS_REMOVE_HIGHLIGHT_COLOR 6
+#define PROCESS_ADD_PROCESS_HIGHLIGHT_ID 5
+#define PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID 6
 
 #define COMMENT_COLUMN_ID 1
 
@@ -445,7 +445,7 @@ VOID NTAPI MenuItemCallback(
             }
         }
         break;
-    case PROCESS_ADD_HIGHLIGHT_COLOR:
+    case PROCESS_ADD_PROCESS_HIGHLIGHT_ID:
         {
             CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
             chooseColor.hwndOwner = PhMainWndHandle;
@@ -474,7 +474,7 @@ VOID NTAPI MenuItemCallback(
             PhInvalidateAllProcessNodes();
         }
         break;
-    case PROCESS_REMOVE_HIGHLIGHT_COLOR:
+    case PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID:
         {
             LockDb();
 
@@ -820,7 +820,7 @@ VOID ProcessMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM miscMenuItem;
     PPH_EMENU_ITEM highlightMenuItem;
-    PPH_PROCESS_ITEM processItem;
+    PDB_OBJECT object;
 
     if (menuInfo->u.Process.NumberOfProcesses != 1)
         return;
@@ -830,26 +830,19 @@ VOID ProcessMenuInitializingCallback(
     if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0)))
         return;
 
-    processItem = menuInfo->u.Process.NumberOfProcesses == 1 ? menuInfo->u.Process.Processes[0] : NULL;
+    LockDb();
 
-    if (processItem)
+    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != 0)
     {
-        PDB_OBJECT object;
-
-        LockDb();
-
-        if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
-        {
-            PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_HIGHLIGHT_COLOR, L"Highlight Process", processItem), 0);
-            highlightMenuItem->Flags |= PH_EMENU_CHECKED;
-        }
-        else
-        {
-            PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_COLOR, L"Highlight Process", processItem), 0);
-        }
-
-        UnlockDb();
+        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
+        highlightMenuItem->Flags |= PH_EMENU_CHECKED;
     }
+    else
+    {
+        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_PROCESS_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
+    }
+
+    UnlockDb();
 }
 
 LONG NTAPI ProcessCommentSortFunction(

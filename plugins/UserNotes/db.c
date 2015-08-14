@@ -288,12 +288,11 @@ NTSTATUS LoadDb(
         }
 
         // NOTE: This is handled separately to maintain compatibility with previous versions of the database.
-        if (object)
+        if (object && backColor)
         {
             ULONG64 backColorInteger = 0;
 
-            if (backColor)
-                PhStringToInteger64(&backColor->sr, 10, &backColorInteger);
+            PhStringToInteger64(&backColor->sr, 10, &backColorInteger);
 
             object->BackColor = (COLORREF)backColorInteger;
         }
