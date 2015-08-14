@@ -601,7 +601,7 @@ VOID ToolbarSaveButtonSettings(
     for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
     {
         TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE | TBIF_COMMAND | TBIF_SIZE;
+        button.dwMask = TBIF_BYINDEX | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE | TBIF_COMMAND;
 
         // Get button information.
         if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) == -1)
@@ -609,7 +609,7 @@ VOID ToolbarSaveButtonSettings(
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%d|%d|%u|%u|",
+            L"%d|%d|%hhu|%hhu|",
             button.idCommand,
             button.iImage,
             button.fsState,
