@@ -565,10 +565,10 @@ VOID ToolbarLoadButtonSettings(
         buttonArray[buttonIndex].iBitmap = _wtoi(part.Buffer);
 
         PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-        buttonArray[buttonIndex].fsState = (BYTE)wcstoul(part.Buffer, NULL, 0);
+        PhHexStringToBuffer(&part, &buttonArray[buttonIndex].fsState);
 
         PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-        buttonArray[buttonIndex].fsStyle = (BYTE)wcstoul(part.Buffer, NULL, 0);
+        PhHexStringToBuffer(&part, &buttonArray[buttonIndex].fsStyle);
 
         buttonIndex++;
     }
@@ -604,17 +604,26 @@ VOID ToolbarSaveButtonSettings(
         button.dwMask = TBIF_BYINDEX | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE | TBIF_COMMAND;
 
         // Get button information.
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) == -1)
-            break;
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) != -1)
+        {
+            PPH_STRING buttonStateHex;
+            PPH_STRING buttonStyleHex;
 
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%d|%d|%hhu|%hhu|",
-            button.idCommand,
-            button.iImage,
-            button.fsState,
-            button.fsStyle
-            );
+            buttonStateHex = PhBufferToHexString(&button.fsState, sizeof(BYTE));
+            buttonStyleHex = PhBufferToHexString(&button.fsStyle, sizeof(BYTE));
+
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%d|%d|%s|%s|",
+                button.idCommand,
+                button.iImage,
+                buttonStateHex->Buffer,
+                buttonStyleHex->Buffer
+                );
+
+            PhDereferenceObject(buttonStyleHex);
+            PhDereferenceObject(buttonStateHex);
+        }
     }
 
     if (stringBuilder.String->Length != 0)
