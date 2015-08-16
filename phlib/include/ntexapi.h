@@ -2681,7 +2681,7 @@ typedef struct _KUSER_SHARED_DATA
     ULONG CookiePad[1];
 
     LONGLONG ConsoleSessionForegroundProcessId;
-    ULONGLONG TimeUpdateSequence;
+    ULONGLONG TimeUpdateLock;
     ULONGLONG BaselineSystemTimeQpc;
     ULONGLONG BaselineInterruptTimeQpc;
     ULONGLONG QpcSystemTimeIncrement;
@@ -2752,7 +2752,7 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x308);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
+// C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8); // Visual Studio has a problem with this
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
