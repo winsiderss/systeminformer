@@ -380,6 +380,16 @@ ACCESS_ENTRIES(Session)
     { L"Modify", SESSION_MODIFY_ACCESS, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(Silo)
+{
+    { L"Full control", SILO_OBJECT_ALL_ACCESS, TRUE, TRUE },
+    { L"Assign processes", SILO_OBJECT_ASSIGN_PROCESS, TRUE, TRUE },
+    { L"Set attributes", SILO_OBJECT_SET_ATTRIBUTES, TRUE, TRUE },
+    { L"Query", SILO_OBJECT_QUERY, TRUE, TRUE },
+    { L"Terminate", SILO_OBJECT_TERMINATE, TRUE, TRUE },
+    { L"Set security attributes", SILO_OBJECT_SET_SECURITY_ATTRIBUTES, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(SymbolicLink)
 {
     { L"Full control", SYMBOLIC_LINK_ALL_ACCESS, TRUE, TRUE },
@@ -583,6 +593,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(Semaphore, TRUE),
     ACCESS_ENTRY(Service, FALSE),
     ACCESS_ENTRY(Session, FALSE),
+    ACCESS_ENTRY(Silo, TRUE),
     ACCESS_ENTRY(SymbolicLink, FALSE),
     ACCESS_ENTRY(Thread, TRUE),
     ACCESS_ENTRY(Thread60, TRUE),
