@@ -893,7 +893,9 @@ static VOID PhpUpdateProcessOsContext(
             {
                 if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
                 {
-                    if (memcmp(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID, sizeof(GUID)) == 0)
+                    if (memcmp(&ProcessNode->OsContextGuid, &WINTHRESHOLD_CONTEXT_GUID, sizeof(GUID)) == 0)
+                        ProcessNode->OsContextVersion = WINDOWS_10;
+                    else if (memcmp(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID, sizeof(GUID)) == 0)
                         ProcessNode->OsContextVersion = WINDOWS_8_1;
                     else if (memcmp(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID, sizeof(GUID)) == 0)
                         ProcessNode->OsContextVersion = WINDOWS_8;
@@ -2427,6 +2429,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     switch (node->OsContextVersion)
                     {
+                    case WINDOWS_10:
+                        PhInitializeStringRef(&getCellText->Text, L"Windows 10");
+                        break;
                     case WINDOWS_8_1:
                         PhInitializeStringRef(&getCellText->Text, L"Windows 8.1");
                         break;

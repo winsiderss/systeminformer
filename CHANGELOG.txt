@@ -2,6 +2,7 @@ Process Hacker
 
 2.37
  * HIGHLIGHTS:
+   * Updated for Windows 10
  * OTHER CHANGES:
 
 2.36
