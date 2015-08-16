@@ -1,5 +1,9 @@
 Process Hacker
 
+2.37
+ * HIGHLIGHTS:
+ * OTHER CHANGES:
+
 2.36
  * HIGHLIGHTS:
    * New rich pop-up UI when hovering the cursor over a tray icon, showing the most active processes
