@@ -443,6 +443,8 @@ NTSTATUS PhGetProcessKnownType(
                 knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\taskhostex.exe", TRUE))
                 knownProcessType = TaskHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\taskhostw.exe", TRUE))
+                knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wudfhost.exe", TRUE))
                 knownProcessType = UmdfHostProcessType;
         }
