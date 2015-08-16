@@ -1795,9 +1795,20 @@ VOID PhFlushProcessQueryData(
         {
             // Invoke the modified event only if the main provider has sent the added event already.
             if (SendModifiedEvent && data->ProcessItem->AddedEventSent)
-                PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
+            {
+                // Since this may be executing on a thread other than the main provider thread, we
+                // need to check whether the process has been removed already. If we don't do this
+                // then users may get a modified event after a removed event for the same process,
+                // which will lead to very bad things happening.
+                PhAcquireQueuedLockExclusive(&data->ProcessItem->RemoveLock);
+                if (!(data->ProcessItem->State & PH_PROCESS_ITEM_REMOVED))
+                    PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
+                PhReleaseQueuedLockExclusive(&data->ProcessItem->RemoveLock);
+            }
             else
+            {
                 data->ProcessItem->JustProcessed = 1;
+            }
         }
 
         PhDereferenceObject(data->ProcessItem);
@@ -2065,7 +2076,10 @@ VOID PhProcessProviderUpdate(
                     processItem->Record->ExitTime = exitTime;
 
                     // Raise the process removed event.
+                    // See PhFlushProcessQueryData for why we need to lock here.
+                    PhAcquireQueuedLockExclusive(&processItem->RemoveLock);
                     PhInvokeCallback(&PhProcessRemovedEvent, processItem);
+                    PhReleaseQueuedLockExclusive(&processItem->RemoveLock);
 
                     if (!processesToRemove)
                         processesToRemove = PhCreateList(2);
