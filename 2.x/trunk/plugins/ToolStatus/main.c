@@ -642,7 +642,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     {
                         LPTBNOTIFY tbNotify = (LPTBNOTIFY)lParam;
 
-                        if (tbNotify->iItem < _countof(ToolbarButtons))
+                        if (tbNotify->iItem < ARRAYSIZE(ToolbarButtons))
                         {
                             tbNotify->tbButton = ToolbarButtons[tbNotify->iItem];
                             return TRUE;
@@ -1050,7 +1050,7 @@ LOGICAL DllMain(
                 &NetworkTreeNewInitializingCallbackRegistration
                 );
 
-            PhAddSettings(settings, _countof(settings));
+            PhAddSettings(settings, ARRAYSIZE(settings));
 
             AcceleratorTable = LoadAccelerators(
                 Instance,
