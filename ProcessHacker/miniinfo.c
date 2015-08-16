@@ -146,7 +146,7 @@ VOID PhPinMiniInformation(
             MinimumSize.left = 0;
             MinimumSize.top = 0;
             MinimumSize.right = 210;
-            MinimumSize.bottom = 140;
+            MinimumSize.bottom = 60;
             MapDialogRect(PhMipWindow, &MinimumSize);
         }
 

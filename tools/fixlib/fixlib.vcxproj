@@ -14,6 +14,7 @@
     <ProjectGuid>{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}</ProjectGuid>
     <RootNamespace>fixlib</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

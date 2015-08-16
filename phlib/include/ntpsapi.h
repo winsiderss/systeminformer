@@ -630,20 +630,6 @@ typedef struct _PS_PROTECTION
     };
 } PS_PROTECTION, *PPS_PROTECTION;
 
-typedef enum _PROCESS_MEMORY_EXHAUSTION_TYPE
-{
-    PMETypeFailFastOnCommitFailure,
-    PMETypeMax
-} PROCESS_MEMORY_EXHAUSTION_TYPE;
-
-typedef struct _PROCESS_MEMORY_EXHAUSTION_INFO
-{
-    USHORT Version;
-    USHORT Reserved;
-    PROCESS_MEMORY_EXHAUSTION_TYPE Type;
-    SIZE_T Value;
-} PROCESS_MEMORY_EXHAUSTION_INFO, *PPROCESS_MEMORY_EXHAUSTION_INFO;
-
 typedef struct _PROCESS_FAULT_INFORMATION
 {
     ULONG FaultFlags;
@@ -1479,53 +1465,6 @@ NtAllocateReserveObject(
 // Silo objects
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
-// begin_private
-
-typedef enum _SERVERSILO_STATE
-{
-    SERVERSILO_INITING,
-    SERVERSILO_STARTED,
-    SERVERSILO_TERMINATING,
-    SERVERSILO_TERMINATED
-} SERVERSILO_STATE;
-
-typedef enum _SILOOBJECTINFOCLASS
-{
-    SiloObjectBasicInformation, // SILOOBJECT_BASIC_INFORMATION
-    SiloObjectBasicProcessIdList,
-    SiloObjectChildSiloIdList,
-    SiloObjectRootDirectory, // SILOOBJECT_ROOT_DIRECTORY
-    ServerSiloBasicInformation, // SERVERSILO_BASIC_INFORMATION
-    ServerSiloServiceSessionId,
-    ServerSiloInitialize,
-    ServerSiloDefaultCompartmentId,
-    MaxSiloObjectInfoClass
-} SILOOBJECTINFOCLASS;
-
-typedef struct _SILOOBJECT_BASIC_INFORMATION
-{
-    HANDLE SiloIdNumber;
-    HANDLE SiloParentIdNumber;
-    ULONG NumberOfProcesses;
-    ULONG NumberOfChildSilos;
-    BOOLEAN IsInServerSilo;
-} SILOOBJECT_BASIC_INFORMATION, *PSILOOBJECT_BASIC_INFORMATION;
-
-typedef struct _SILOOBJECT_ROOT_DIRECTORY
-{
-    HANDLE DirectoryHandle;
-} SILOOBJECT_ROOT_DIRECTORY, *PSILOOBJECT_ROOT_DIRECTORY;
-
-typedef struct _SERVERSILO_BASIC_INFORMATION
-{
-    HANDLE SiloIdNumber;
-    ULONG ServiceSessionId;
-    ULONG DefaultCompartmentId;
-    SERVERSILO_STATE State;
-} SERVERSILO_BASIC_INFORMATION, *PSERVERSILO_BASIC_INFORMATION;
-
-// end_private
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 
