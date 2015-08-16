@@ -12,7 +12,6 @@
         <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Debug'">false</WholeProgramOptimization>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
-        <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
     </PropertyGroup>
 
     <!-- Debugging -->
