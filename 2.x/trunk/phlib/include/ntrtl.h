@@ -5828,21 +5828,6 @@ RtlGetNtVersionNumbers(
     _Out_opt_ PULONG pNtBuildNumber
     );
 
-typedef enum _OS_DEPLOYEMENT_STATE_VALUES
-{
-    OS_DEPLOYMENT_STANDARD = 1,
-    OS_DEPLOYMENT_COMPACT
-} OS_DEPLOYEMENT_STATE_VALUES;
-
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
-NTSYSAPI
-OS_DEPLOYEMENT_STATE_VALUES
-NTAPI
-RtlOsDeploymentState(
-    _In_ ULONG Flags
-    );
-#endif
-
 // Thread pool (old)
 
 NTSYSAPI
