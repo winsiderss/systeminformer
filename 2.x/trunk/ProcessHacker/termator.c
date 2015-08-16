@@ -439,7 +439,7 @@ static NTSTATUS NTAPI TerminatorCH1(
         {
             PhDuplicateObject(
                 processHandle,
-                (HANDLE)i,
+                UlongToHandle(i),
                 NULL,
                 NULL,
                 0,
@@ -884,7 +884,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             title = PhFormatString(
                 L"Terminator - %s (%u)",
                 processItem->ProcessName->Buffer,
-                (ULONG)processItem->ProcessId
+                HandleToUlong(processItem->ProcessId)
                 );
             SetWindowText(hwndDlg, title->Buffer);
             PhDereferenceObject(title);

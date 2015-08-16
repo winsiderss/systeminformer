@@ -638,7 +638,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             }
 
                             PhInsertEMenuItem(sessionsMenu,
-                                PhCreateEMenuItem(0, 0, menuString->Buffer, NULL, (PVOID)sessions[i].SessionId), -1);
+                                PhCreateEMenuItem(0, 0, menuString->Buffer, NULL, UlongToPtr(sessions[i].SessionId)), -1);
                             PhAutoDereferenceObject(menuString);
                         }
 
@@ -660,7 +660,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             SetDlgItemInt(
                                 hwndDlg,
                                 IDC_SESSIONID,
-                                (ULONG)selectedItem->Context,
+                                PtrToUlong(selectedItem->Context),
                                 FALSE
                                 );
                         }
@@ -937,7 +937,7 @@ NTSTATUS PhExecuteRunAsCommand2(
     UNICODE_STRING portNameUs;
 
     memset(&parameters, 0, sizeof(PH_RUNAS_SERVICE_PARAMETERS));
-    parameters.ProcessId = (ULONG)ProcessIdWithToken;
+    parameters.ProcessId = HandleToUlong(ProcessIdWithToken);
     parameters.UserName = UserName;
     parameters.Password = Password;
     parameters.LogonType = LogonType;

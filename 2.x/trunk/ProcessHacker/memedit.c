@@ -189,7 +189,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 if (processItem = PhReferenceProcessItem(context->ProcessId))
                 {
                     SetWindowText(hwndDlg, PhaFormatString(L"%s (%u) (0x%Ix - 0x%Ix)",
-                        processItem->ProcessName->Buffer, (ULONG)context->ProcessId,
+                        processItem->ProcessName->Buffer, HandleToUlong(context->ProcessId),
                         context->BaseAddress, (ULONG_PTR)context->BaseAddress + context->RegionSize)->Buffer);
                     PhDereferenceObject(processItem);
                 }

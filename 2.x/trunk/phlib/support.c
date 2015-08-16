@@ -618,7 +618,7 @@ BOOLEAN PhFindIntegerSiKeyValuePairs(
     {
         if (PhEqualStringZ(KeyValuePairs[i].Key, String, TRUE))
         {
-            *Integer = (ULONG)KeyValuePairs[i].Value;
+            *Integer = PtrToUlong(KeyValuePairs[i].Value);
             return TRUE;
         }
     }
@@ -647,7 +647,7 @@ BOOLEAN PhFindStringSiKeyValuePairs(
 
     for (i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
-        if ((ULONG)KeyValuePairs[i].Value == Integer)
+        if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
         {
             *String = (PWSTR)KeyValuePairs[i].Key;
             return TRUE;

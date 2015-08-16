@@ -947,7 +947,7 @@ static BOOLEAN PhpShowErrorProcess(
             L"Unable to %s %s (PID %u)",
             Verb,
             Process->ProcessName->Buffer,
-            (ULONG)Process->ProcessId
+            HandleToUlong(Process->ProcessId)
             )->Buffer,
             Status,
             Win32Result
@@ -1488,7 +1488,7 @@ BOOLEAN PhUiDebugProcess(
     PhAppendCharStringBuilder(&commandLineBuilder, '"');
     PhAppendStringBuilder(&commandLineBuilder, &DebuggerCommand->sr);
     PhAppendCharStringBuilder(&commandLineBuilder, '"');
-    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
+    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %u", HandleToUlong(Process->ProcessId));
 
     status = PhCreateProcessWin32(
         NULL,
@@ -2533,7 +2533,7 @@ static BOOLEAN PhpShowErrorThread(
         PhaFormatString(
         L"Unable to %s thread %u",
         Verb,
-        (ULONG)Thread->ThreadId
+        HandleToUlong(Thread->ThreadId)
         )->Buffer,
         Status,
         Win32Result
@@ -2583,7 +2583,7 @@ BOOLEAN PhUiTerminateThreads(
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                PhaFormatString(L"Unable to terminate thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
+                PhaFormatString(L"Unable to terminate thread %u", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
                 ))
@@ -2714,7 +2714,7 @@ BOOLEAN PhUiSuspendThreads(
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                PhaFormatString(L"Unable to suspend thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
+                PhaFormatString(L"Unable to suspend thread %u", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
                 ))
@@ -2777,7 +2777,7 @@ BOOLEAN PhUiResumeThreads(
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                PhaFormatString(L"Unable to resume thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
+                PhaFormatString(L"Unable to resume thread %u", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
                 ))
@@ -2868,7 +2868,7 @@ BOOLEAN PhUiSetIoPriorityThread(
         // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
         if (PhpShowErrorAndConnectToPhSvc(
             hWnd,
-            PhaFormatString(L"Unable to set the I/O priority of thread %u", (ULONG)Thread->ThreadId)->Buffer,
+            PhaFormatString(L"Unable to set the I/O priority of thread %u", HandleToUlong(Thread->ThreadId))->Buffer,
             status,
             &connected
             ))
@@ -3231,7 +3231,7 @@ static BOOLEAN PhpShowErrorHandle(
             L"Unable to %s handle \"%s\" (0x%Ix)",
             Verb,
             Handle->BestObjectName->Buffer,
-            (ULONG)Handle->Handle
+            HandleToUlong(Handle->Handle)
             )->Buffer,
             Status,
             Win32Result
@@ -3244,7 +3244,7 @@ static BOOLEAN PhpShowErrorHandle(
             PhaFormatString(
             L"Unable to %s handle 0x%Ix",
             Verb,
-            (ULONG)Handle->Handle
+            HandleToUlong(Handle->Handle)
             )->Buffer,
             Status,
             Win32Result

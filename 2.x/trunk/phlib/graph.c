@@ -182,8 +182,8 @@ VOID PhDrawGraph(
             // Add the line height values to the list for drawing later.
             if (h0 > height1) h0 = height1;
             if (h1 > height1) h1 = height1;
-            PhAddItemList(lineList1, (PVOID)h0);
-            if (willBreak) PhAddItemList(lineList1, (PVOID)h1);
+            PhAddItemList(lineList1, UlongToPtr(h0));
+            if (willBreak) PhAddItemList(lineList1, UlongToPtr(h1));
 
             // Draw line 2 (either stacked or overlayed).
             if (DrawInfo->LineData2 && (flags & PH_GRAPH_USE_LINE_2))
@@ -224,8 +224,8 @@ VOID PhDrawGraph(
 
                 if (h0 > height1) h0 = height1;
                 if (h1 > height1) h1 = height1;
-                PhAddItemList(lineList2, (PVOID)h0);
-                if (willBreak) PhAddItemList(lineList2, (PVOID)h1);
+                PhAddItemList(lineList2, UlongToPtr(h0));
+                if (willBreak) PhAddItemList(lineList2, UlongToPtr(h1));
             }
 
             if (x < 0)
@@ -285,11 +285,11 @@ VOID PhDrawGraph(
         ULONG previousHeight1;
         ULONG previousHeight2;
 
-        previousHeight1 = (ULONG)lineList1->Items[0];
+        previousHeight1 = PtrToUlong(lineList1->Items[0]);
         index = 1;
 
         if (lineList2)
-            previousHeight2 = (ULONG)lineList2->Items[0];
+            previousHeight2 = PtrToUlong(lineList2->Items[0]);
 
         while (index < lineList1->Count)
         {
@@ -299,7 +299,7 @@ VOID PhDrawGraph(
             // Draw line 2 first so it doesn't draw over line 1.
             if (lineList2)
             {
-                points[0].y = (ULONG)lineList2->Items[index];
+                points[0].y = PtrToUlong(lineList2->Items[index]);
                 points[1].y = previousHeight2;
 
                 SelectObject(hdc, dcPen);
@@ -308,7 +308,7 @@ VOID PhDrawGraph(
 
                 previousHeight2 = points[0].y;
 
-                points[0].y = (ULONG)lineList1->Items[index];
+                points[0].y = PtrToUlong(lineList1->Items[index]);
                 points[1].y = previousHeight1;
 
                 SelectObject(hdc, dcPen);
@@ -320,7 +320,7 @@ VOID PhDrawGraph(
             else
             {
                 points[0].x = x;
-                points[0].y = (ULONG)lineList1->Items[index];
+                points[0].y = PtrToUlong(lineList1->Items[index]);
                 points[1].x = x + step;
                 points[1].y = previousHeight1;
 

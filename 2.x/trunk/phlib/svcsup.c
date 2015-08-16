@@ -419,8 +419,8 @@ PPH_STRING PhGetServiceNameFromTag(
     }
 
     memset(&nameFromTag, 0, sizeof(TAG_INFO_NAME_FROM_TAG));
-    nameFromTag.InParams.dwPid = (ULONG)ProcessId;
-    nameFromTag.InParams.dwTag = (ULONG)ServiceTag;
+    nameFromTag.InParams.dwPid = HandleToUlong(ProcessId);
+    nameFromTag.InParams.dwTag = PtrToUlong(ServiceTag);
 
     I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &nameFromTag);
 

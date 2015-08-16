@@ -351,12 +351,12 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessHeaps)),
                     &processHeapsPtr32, sizeof(ULONG), NULL)) &&
                     NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
-                    (PVOID)processHeapsPtr32,
+                    UlongToPtr(processHeapsPtr32),
                     processHeaps32, numberOfHeaps * sizeof(ULONG), NULL)))
                 {
                     for (i = 0; i < numberOfHeaps; i++)
                     {
-                        if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)processHeaps32[i], TRUE, Heap32Region))
+                        if (memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(processHeaps32[i]), TRUE, Heap32Region))
                             memoryItem->u.Heap.Index = i;
                     }
                 }
@@ -406,18 +406,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
                 if (isWow64 && ntTib.ExceptionList)
                 {
-                    ULONG teb32 = (ULONG)ntTib.ExceptionList;
+                    ULONG teb32 = PtrToUlong(ntTib.ExceptionList);
                     NT_TIB32 ntTib32;
 
                     // 64-bit and 32-bit TEBs usually share the same memory region, so don't do anything for the 32-bit
                     // TEB.
 
-                    if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, (PVOID)teb32, &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
+                    if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, UlongToPtr(teb32), &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
                         bytesRead == sizeof(NT_TIB32))
                     {
                         if (ntTib32.StackLimit < ntTib32.StackBase)
                         {
-                            if (memoryItem = PhpSetMemoryRegionType(List, (PVOID)ntTib32.StackLimit, TRUE, Stack32Region))
+                            if (memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(ntTib32.StackLimit), TRUE, Stack32Region))
                                 memoryItem->u.Stack.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
                         }
                     }
@@ -498,9 +498,9 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
                 else if (candidateHeap32)
                 {
-                    heapMemoryItem = PhLookupMemoryItemList(List, (PVOID)candidateHeap32);
+                    heapMemoryItem = PhLookupMemoryItemList(List, UlongToPtr(candidateHeap32));
 
-                    if (heapMemoryItem && heapMemoryItem->BaseAddress == (PVOID)candidateHeap32 &&
+                    if (heapMemoryItem && heapMemoryItem->BaseAddress == UlongToPtr(candidateHeap32) &&
                         heapMemoryItem->RegionType == Heap32Region)
                     {
                         memoryItem->RegionType = HeapSegment32Region;

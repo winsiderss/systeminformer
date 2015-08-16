@@ -407,11 +407,11 @@ PPH_STRING PhpGetMemoryRegionUseText(
     case TebRegion:
     case Teb32Region:
         return PhFormatString(L"TEB%s (thread %u)",
-            type == Teb32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.Teb.ThreadId);
+            type == Teb32Region ? L" 32-bit" : L"", HandleToUlong(MemoryItem->u.Teb.ThreadId));
     case StackRegion:
     case Stack32Region:
         return PhFormatString(L"Stack%s (thread %u)",
-            type == Stack32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.Stack.ThreadId);
+            type == Stack32Region ? L" 32-bit" : L"", HandleToUlong(MemoryItem->u.Stack.ThreadId));
     case HeapRegion:
     case Heap32Region:
         return PhFormatString(L"Heap%s (ID %u)",

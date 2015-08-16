@@ -122,7 +122,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             if (!PH_IS_FAKE_PROCESS_ID(context->Record->ProcessId))
             {
                 processNameString = PhaFormatString(L"%s (%u)",
-                    context->Record->ProcessName->Buffer, (ULONG)context->Record->ProcessId);
+                    context->Record->ProcessName->Buffer, HandleToUlong(context->Record->ProcessId));
             }
             else
             {
@@ -158,7 +158,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 else
                 {
                     SetDlgItemText(hwndDlg, IDC_PARENT, PhaFormatString(L"Non-existent process (%u)",
-                        (ULONG)context->Record->ParentProcessId)->Buffer);
+                        HandleToUlong(context->Record->ParentProcessId))->Buffer);
                 }
 
                 PhDereferenceObject(processItem);
@@ -166,7 +166,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             else
             {
                 SetDlgItemText(hwndDlg, IDC_PARENT, PhaFormatString(L"Unknown process (%u)",
-                    (ULONG)context->Record->ParentProcessId)->Buffer);
+                    HandleToUlong(context->Record->ParentProcessId))->Buffer);
 
                 EnableWindow(GetDlgItem(hwndDlg, IDC_PROPERTIES), FALSE);
             }

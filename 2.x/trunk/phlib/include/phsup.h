@@ -256,6 +256,7 @@ void *_InterlockedCompareExchangePointer(
     );
 #endif
 
+#if (_MSC_VER < 1900)
 #ifndef _InterlockedExchangePointer
 FORCEINLINE void *_InterlockedExchangePointer(
     void *volatile *Destination,
@@ -267,6 +268,7 @@ FORCEINLINE void *_InterlockedExchangePointer(
         (LONG_PTR)Exchange
         );
 }
+#endif
 #endif
 
 #endif

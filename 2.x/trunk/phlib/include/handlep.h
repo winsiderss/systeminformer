@@ -83,14 +83,14 @@ FORCEINLINE HANDLE PhpEncodeHandle(
     _In_ ULONG HandleValue
     )
 {
-    return (HANDLE)((HandleValue << PH_HANDLE_VALUE_SHIFT) + PH_HANDLE_VALUE_BIAS);
+    return UlongToHandle(((HandleValue << PH_HANDLE_VALUE_SHIFT) + PH_HANDLE_VALUE_BIAS));
 }
 
 FORCEINLINE ULONG PhpDecodeHandle(
     _In_ HANDLE Handle
     )
 {
-    return ((ULONG)Handle - PH_HANDLE_VALUE_BIAS) >> PH_HANDLE_VALUE_SHIFT;
+    return (HandleToUlong(Handle) - PH_HANDLE_VALUE_BIAS) >> PH_HANDLE_VALUE_SHIFT;
 }
 
 VOID PhpBlockOnLockedHandleTableEntry(

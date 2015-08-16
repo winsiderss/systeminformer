@@ -663,7 +663,7 @@ PPH_STRING PhpGetNetworkItemProcessName(
         return PhCreateString(L"Waiting Connections");
 
     PhInitFormatS(&format[1], L" (");
-    PhInitFormatU(&format[2], (ULONG)NetworkItem->ProcessId);
+    PhInitFormatU(&format[2], HandleToUlong(NetworkItem->ProcessId));
     PhInitFormatC(&format[3], ')');
 
     if (NetworkItem->ProcessName)

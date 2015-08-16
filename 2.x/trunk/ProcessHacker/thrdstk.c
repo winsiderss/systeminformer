@@ -168,7 +168,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)threadStackContext);
 
-            title = PhFormatString(L"Stack - thread %u", (ULONG)threadStackContext->ThreadId);
+            title = PhFormatString(L"Stack - thread %u", HandleToUlong(threadStackContext->ThreadId));
             SetWindowText(hwndDlg, title->Buffer);
             PhDereferenceObject(title);
 

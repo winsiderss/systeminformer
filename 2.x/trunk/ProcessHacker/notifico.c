@@ -894,7 +894,7 @@ VOID PhNfpUpdateIconCpuHistory(
     // Text
 
     if (PhMaxCpuHistory.Count != 0)
-        maxCpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0);
+        maxCpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
     else
         maxCpuProcessId = NULL;
 
@@ -1003,7 +1003,7 @@ VOID PhNfpUpdateIconIoHistory(
     // Text
 
     if (PhMaxIoHistory.Count != 0)
-        maxIoProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0);
+        maxIoProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
     else
         maxIoProcessId = NULL;
 
@@ -1285,7 +1285,7 @@ VOID PhNfpUpdateIconCpuUsage(
     // Text
 
     if (PhMaxCpuHistory.Count != 0)
-        maxCpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0);
+        maxCpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
     else
         maxCpuProcessId = NULL;
 

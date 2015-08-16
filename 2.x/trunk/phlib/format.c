@@ -2,7 +2,7 @@
  * Process Hacker -
  *   string formatting
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2015 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -44,13 +44,10 @@ extern ULONG PhMaxSizeUnit;
 #define PHP_FORMAT_POSITIVE 0x2
 #define PHP_FORMAT_PAD 0x4
 
-// Internal CRT routines needed for floating-point conversion
+// Internal CRT routine needed for floating-point conversion
 
 errno_t __cdecl _cfltcvt_l(double *arg, char *buffer, size_t sizeInBytes,
     int format, int precision, int caps, _locale_t plocinfo);
-
-void __cdecl _cropzeros_l(char *_Buf, _locale_t _Locale);
-void __cdecl _forcdecpt_l(char *_Buf, _locale_t _Locale);
 
 // Keep in sync with PhSizeUnitNames
 static PH_STRINGREF PhpSizeUnitNamesCounted[7] =
@@ -68,6 +65,64 @@ static PH_INITONCE PhpFormatInitOnce = PH_INITONCE_INIT;
 static WCHAR PhpFormatDecimalSeparator = '.';
 static WCHAR PhpFormatThousandSeparator = ',';
 static _locale_t PhpFormatUserLocale = NULL;
+
+#if (_MSC_VER >= 1900)
+
+// See Source\10.0.10150.0\ucrt\convert\cvt.cpp in SDK v10.
+errno_t __cdecl __acrt_fp_format(
+    double const* const value,
+    char*         const result_buffer,
+    size_t        const result_buffer_count,
+    char*         const scratch_buffer,
+    size_t        const scratch_buffer_count,
+    int           const format,
+    int           const precision,
+    UINT64        const options,
+    _locale_t     const locale
+    );
+
+static errno_t __cdecl _cfltcvt_l(double *arg, char *buffer, size_t sizeInBytes,
+    int format, int precision, int caps, _locale_t plocinfo)
+{
+    char scratch_buffer[_CVTBUFSIZE + 1];
+
+    if (caps & 1)
+        format -= 32; // Make uppercase
+
+    return __acrt_fp_format(arg, buffer, sizeInBytes, scratch_buffer, sizeof(scratch_buffer),
+        format, precision, 0, plocinfo);
+}
+
+#endif
+
+// From Source\10.0.10150.0\ucrt\inc\corecrt_internal_stdio_output.h in SDK v10.
+VOID PhpCropZeros(
+    _Inout_ PCHAR Buffer,
+    _In_ _locale_t Locale
+    )
+{
+    CHAR decimalSeparator = (CHAR)PhpFormatDecimalSeparator;
+
+    while (*Buffer && *Buffer != decimalSeparator)
+        ++Buffer;
+
+    if (*Buffer++)
+    {
+        while (*Buffer && *Buffer != 'e' && *Buffer != 'E')
+            ++Buffer;
+
+        PCHAR stop = Buffer--;
+
+        while (*Buffer == '0')
+            --Buffer;
+
+        if (*Buffer == decimalSeparator)
+            --Buffer;
+
+        while ((*++Buffer = *stop++) != '\0')
+            NOTHING;
+    }
+}
 
 PPH_STRING PhpResizeFormatBuffer(
     _In_ PPH_STRING String,

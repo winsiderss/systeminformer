@@ -133,7 +133,7 @@ ULONG PhpThreadNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (ULONG)(*(PPH_THREAD_NODE *)Entry)->ThreadId / 4;
+    return HandleToUlong((*(PPH_THREAD_NODE *)Entry)->ThreadId) / 4;
 }
 
 VOID PhLoadSettingsThreadList(
