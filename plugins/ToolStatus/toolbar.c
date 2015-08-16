@@ -558,18 +558,36 @@ VOID ToolbarLoadButtonSettings(
 
     while (remaining.Length != 0)
     {
-        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-        buttonArray[buttonIndex].idCommand = _wtoi(part.Buffer);
+        PH_STRINGREF commandIdPart;
+        PH_STRINGREF iBitmapPart;
+        PH_STRINGREF buttonSepPart;
+        PH_STRINGREF buttonAutoSizePart;
+        PH_STRINGREF buttonShowTextPart;
+        PH_STRINGREF buttonDropDownPart;
 
-        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-        buttonArray[buttonIndex].iBitmap = _wtoi(part.Buffer);
+        PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &iBitmapPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &buttonSepPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &buttonAutoSizePart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &buttonShowTextPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &buttonDropDownPart, &remaining);
 
-        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-        PhHexStringToBuffer(&part, &buttonArray[buttonIndex].fsState);
+        buttonArray[buttonIndex].idCommand = _wtoi(commandIdPart.Buffer);
+        buttonArray[buttonIndex].iBitmap = _wtoi(iBitmapPart.Buffer);
 
-        PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-        PhHexStringToBuffer(&part, &buttonArray[buttonIndex].fsStyle);
+        if (_wtoi(buttonSepPart.Buffer))
+            buttonArray[buttonIndex].fsStyle |= BTNS_SEP;
 
+        if (_wtoi(buttonAutoSizePart.Buffer))
+            buttonArray[buttonIndex].fsStyle |= BTNS_AUTOSIZE;
+        
+        if (_wtoi(buttonShowTextPart.Buffer))
+            buttonArray[buttonIndex].fsStyle |= BTNS_SHOWTEXT;
+        
+        if (_wtoi(buttonDropDownPart.Buffer))
+            buttonArray[buttonIndex].fsStyle |= BTNS_WHOLEDROPDOWN;
+
+        buttonArray[buttonIndex].fsState |= TBSTATE_ENABLED;
         buttonIndex++;
     }
 
@@ -604,26 +622,19 @@ VOID ToolbarSaveButtonSettings(
         button.dwMask = TBIF_BYINDEX | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE | TBIF_COMMAND;
 
         // Get button information.
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) != -1)
-        {
-            PPH_STRING buttonStateHex;
-            PPH_STRING buttonStyleHex;
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) == -1)
+            break;
 
-            buttonStateHex = PhBufferToHexString(&button.fsState, sizeof(BYTE));
-            buttonStyleHex = PhBufferToHexString(&button.fsStyle, sizeof(BYTE));
-
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%d|%d|%s|%s|",
-                button.idCommand,
-                button.iImage,
-                buttonStateHex->Buffer,
-                buttonStyleHex->Buffer
-                );
-
-            PhDereferenceObject(buttonStyleHex);
-            PhDereferenceObject(buttonStateHex);
-        }
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%d|%d|%d|%d|%d|%d|",
+            button.idCommand,
+            button.iImage,
+            button.fsStyle & BTNS_SEP ? TRUE : FALSE,
+            button.fsStyle & BTNS_AUTOSIZE ? TRUE : FALSE,
+            button.fsStyle & BTNS_SHOWTEXT ? TRUE : FALSE,
+            button.fsStyle & BTNS_WHOLEDROPDOWN ? TRUE : FALSE
+            );
     }
 
     if (stringBuilder.String->Length != 0)
