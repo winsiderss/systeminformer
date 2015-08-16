@@ -538,7 +538,7 @@ SIZE_T PhCountStringZ(
         ULONG index;
 
         p = (PWSTR)((ULONG_PTR)String & ~0xe); // String should be 2 byte aligned
-        unaligned = (ULONG)String & 0xf;
+        unaligned = PtrToUlong(String) & 0xf;
         z = _mm_setzero_si128();
 
         if (unaligned != 0)
@@ -4299,14 +4299,14 @@ FORCEINLINE HANDLE PhpPointerListIndexToHandle(
 {
     // Add one to allow NULL handles to indicate
     // failure/an invalid index.
-    return (HANDLE)(Index + 1);
+    return UlongToHandle(Index + 1);
 }
 
 FORCEINLINE ULONG PhpPointerListHandleToIndex(
     _In_ HANDLE Handle
     )
 {
-    return (ULONG)Handle - 1;
+    return HandleToUlong(Handle) - 1;
 }
 
 /**

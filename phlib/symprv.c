@@ -22,7 +22,12 @@
 
 #include <ph.h>
 #include <kphuser.h>
+
+#pragma warning(push)
+#pragma warning(disable: 4091) // Ignore 'no variable declared on typedef'
 #include <dbghelp.h>
+#pragma warning(pop)
+
 #include <symprv.h>
 #include <symprvp.h>
 
@@ -1466,7 +1471,7 @@ BOOLEAN PhWriteMiniDumpProcess(
 
     return MiniDumpWriteDump_I(
         ProcessHandle,
-        (ULONG)ProcessId,
+        HandleToUlong(ProcessId),
         FileHandle,
         DumpType,
         ExceptionParam,

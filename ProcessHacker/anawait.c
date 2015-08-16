@@ -240,7 +240,7 @@ VOID PhpAnalyzeWaitPassive(
     }
     else if (lastSystemCall.SystemCallNumber == NumberForWfmo)
     {
-        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for multiple (%u) objects.", (ULONG)lastSystemCall.FirstArgument);
+        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for multiple (%u) objects.", PtrToUlong(lastSystemCall.FirstArgument));
     }
     else if (lastSystemCall.SystemCallNumber == NumberForRf)
     {
@@ -317,7 +317,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PhAppendFormatStringBuilder(
             &context->StringBuilder,
             L"Thread is sleeping. Timeout: %u milliseconds.",
-            (ULONG)StackFrame->Params[0]
+            PtrToUlong(StackFrame->Params[0])
             );
     }
     else if (NT_FUNC_MATCH("DelayExecution"))
@@ -544,14 +544,14 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         FUNC_MATCH("kernel32.dll!WaitForMultipleObjects")
         )
     {
-        ULONG numberOfHandles = (ULONG)StackFrame->Params[0];
+        ULONG numberOfHandles = PtrToUlong(StackFrame->Params[0]);
         PVOID addressOfHandles = StackFrame->Params[1];
         WAIT_TYPE waitType = (WAIT_TYPE)StackFrame->Params[2];
         BOOLEAN alertable = !!StackFrame->Params[3];
 
         if (numberOfHandles > MAXIMUM_WAIT_OBJECTS)
         {
-            numberOfHandles = (ULONG)context->PrevParams[1];
+            numberOfHandles = PtrToUlong(context->PrevParams[1]);
             addressOfHandles = context->PrevParams[2];
             waitType = (WAIT_TYPE)context->PrevParams[3];
             alertable = FALSE;

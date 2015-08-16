@@ -29,7 +29,12 @@
 #include <phsvccl.h>
 #include "mxml/mxml.h"
 #include <winsta.h>
+
+#pragma warning(push)
+#pragma warning(disable: 4091) // Ignore 'no variable declared on typedef'
 #include <dbghelp.h>
+#pragma warning(pop)
+
 #include <appmodel.h>
 
 typedef LONG (WINAPI *_GetPackageFullName)(

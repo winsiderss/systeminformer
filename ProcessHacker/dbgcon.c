@@ -160,7 +160,7 @@ static VOID PhpPrintObjectInfo(
     WCHAR c = ' ';
 
     object = PhObjectHeaderToObject(ObjectHeader);
-    wprintf(L"%Ix", object);
+    wprintf(L"%Ix", (ULONG_PTR)object);
     objectType = PhGetObjectType(object);
 
     wprintf(L"\t% 20s", objectType->Name);
@@ -203,9 +203,9 @@ static VOID PhpPrintObjectInfo(
     else if (objectType == PhProcessItemType)
     {
         wprintf(
-            L"\t%.28s (%Id)",
+            L"\t%.28s (%d)",
             ((PPH_PROCESS_ITEM)object)->ProcessName->Buffer,
-            (ULONG)((PPH_PROCESS_ITEM)object)->ProcessId
+            HandleToLong(((PPH_PROCESS_ITEM)object)->ProcessId)
             );
     }
     else if (objectType == PhServiceItemType)
@@ -214,7 +214,7 @@ static VOID PhpPrintObjectInfo(
     }
     else if (objectType == PhThreadItemType)
     {
-        wprintf(L"\tTID: %u", (ULONG)((PPH_THREAD_ITEM)object)->ThreadId);
+        wprintf(L"\tTID: %u", HandleToUlong(((PPH_THREAD_ITEM)object)->ThreadId));
     }
 
     wprintf(L"\n");
@@ -419,7 +419,7 @@ static NTSTATUS PhpLeakEnumerationRoutine(
 
     if (ShowAllLeaks || HeapHandle == PhHeapHandle)
     {
-        wprintf(L"Leak at 0x%Ix (%Iu bytes). Stack trace:\n", BaseAddress, BlockSize);
+        wprintf(L"Leak at 0x%Ix (%Iu bytes). Stack trace:\n", (ULONG_PTR)BaseAddress, BlockSize);
 
         for (i = 0; i < StackTraceDepth; i++)
         {
@@ -1234,10 +1234,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 dbg = CONTAINING_RECORD(currentEntry, PHP_BASE_THREAD_DBG, ListEntry);
 
-                wprintf(L"Thread %u\n", (ULONG)dbg->ClientId.UniqueThread);
+                wprintf(L"Thread %u\n", HandleToUlong(dbg->ClientId.UniqueThread));
                 wprintf(L"\tStart Address: %s\n", PhpGetSymbolForAddress(dbg->StartAddress));
-                wprintf(L"\tParameter: %Ix\n", dbg->Parameter);
-                wprintf(L"\tCurrent auto-pool: %Ix\n", dbg->CurrentAutoPool);
+                wprintf(L"\tParameter: %Ix\n", (ULONG_PTR)dbg->Parameter);
+                wprintf(L"\tCurrent auto-pool: %Ix\n", (ULONG_PTR)dbg->CurrentAutoPool);
 
                 currentEntry = currentEntry->Flink;
             }
@@ -1265,7 +1265,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     if (providerThread->ThreadHandle)
                     {
                         PhGetThreadBasicInformation(providerThread->ThreadHandle, &basicInfo);
-                        wprintf(L"Thread %u\n", (ULONG)basicInfo.ClientId.UniqueThread);
+                        wprintf(L"Thread %u\n", HandleToUlong(basicInfo.ClientId.UniqueThread));
                     }
                     else
                     {
@@ -1282,7 +1282,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                         registration = CONTAINING_RECORD(providerEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
-                        wprintf(L"\tProvider registration at %Ix\n", registration);
+                        wprintf(L"\tProvider registration at %Ix\n", (ULONG_PTR)registration);
                         wprintf(L"\t\tEnabled: %s\n", registration->Enabled ? L"Yes" : L"No");
                         wprintf(L"\t\tFunction: %s\n", PhpGetSymbolForAddress(registration->Function));
 
@@ -1339,9 +1339,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                         workQueueItem = CONTAINING_RECORD(workQueueItemEntry, PH_WORK_QUEUE_ITEM, ListEntry);
 
-                        wprintf(L"\tWork queue item at %Ix\n", workQueueItem);
+                        wprintf(L"\tWork queue item at %Ix\n", (ULONG_PTR)workQueueItem);
                         wprintf(L"\t\tFunction: %s\n", PhpGetSymbolForAddress(workQueueItem->Function));
-                        wprintf(L"\t\tContext: %Ix\n", workQueueItem->Context);
+                        wprintf(L"\t\tContext: %Ix\n", (ULONG_PTR)workQueueItem->Context);
 
                         workQueueItemEntry = workQueueItemEntry->Blink;
                     }
@@ -1380,7 +1380,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 do
                 {
-                    wprintf(L"\tRecord at %Ix: %s (%u) (refs: %d)\n", record, record->ProcessName->Buffer, (ULONG)record->ProcessId, record->RefCount);
+                    wprintf(L"\tRecord at %Ix: %s (%u) (refs: %d)\n", (ULONG_PTR)record, record->ProcessName->Buffer, HandleToUlong(record->ProcessId), record->RefCount);
 
                     if (record->FileName)
                         wprintf(L"\t\t%s\n", record->FileName->Buffer);
@@ -1435,11 +1435,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     (imageNameFilter && PhMatchWildcards(imageNameFilter, process->ProcessName->Buffer, TRUE))
                     )
                 {
-                    wprintf(L"Process item at %Ix: %s (%u)\n", process, process->ProcessName->Buffer, (ULONG)process->ProcessId);
-                    wprintf(L"\tRecord at %Ix\n", process->Record);
-                    wprintf(L"\tQuery handle %Ix\n", process->QueryHandle);
-                    wprintf(L"\tFile name at %Ix: %s\n", process->FileName, PhGetStringOrDefault(process->FileName, L"(null)"));
-                    wprintf(L"\tCommand line at %Ix: %s\n", process->CommandLine, PhGetStringOrDefault(process->CommandLine, L"(null)"));
+                    wprintf(L"Process item at %Ix: %s (%u)\n", (ULONG_PTR)process, process->ProcessName->Buffer, HandleToUlong(process->ProcessId));
+                    wprintf(L"\tRecord at %Ix\n", (ULONG_PTR)process->Record);
+                    wprintf(L"\tQuery handle %Ix\n", (ULONG_PTR)process->QueryHandle);
+                    wprintf(L"\tFile name at %Ix: %s\n", (ULONG_PTR)process->FileName, PhGetStringOrDefault(process->FileName, L"(null)"));
+                    wprintf(L"\tCommand line at %Ix: %s\n", (ULONG_PTR)process->CommandLine, PhGetStringOrDefault(process->CommandLine, L"(null)"));
                     wprintf(L"\tFlags: %u\n", process->Flags);
                     wprintf(L"\n");
                 }
@@ -1639,7 +1639,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     }
                     __except (EXCEPTION_EXECUTE_HANDLER)
                     {
-                        wprintf(L"Error reading address near %Ix.\n", address);
+                        wprintf(L"Error reading address near %Ix.\n", (ULONG_PTR)address);
                         goto EndCommand;
                     }
 

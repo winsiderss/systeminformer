@@ -1140,7 +1140,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                         NULL
                         );
 
-                    PhPrintPointer(tokenSourceLuid, (PVOID)tokenSource.SourceIdentifier.LowPart);
+                    PhPrintPointer(tokenSourceLuid, UlongToPtr(tokenSource.SourceIdentifier.LowPart));
                 }
 
                 NtClose(tokenHandle);
@@ -1266,8 +1266,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                         tokenImpersonationLevel = L"N/A";
                     }
 
-                    PhPrintPointer(tokenLuid, (PVOID)statistics.TokenId.LowPart);
-                    PhPrintPointer(authenticationLuid, (PVOID)statistics.AuthenticationId.LowPart);
+                    PhPrintPointer(tokenLuid, UlongToPtr(statistics.TokenId.LowPart));
+                    PhPrintPointer(authenticationLuid, UlongToPtr(statistics.AuthenticationId.LowPart));
 
                     // DynamicCharged contains the number of bytes allocated.
                     // DynamicAvailable contains the number of bytes free.

@@ -387,7 +387,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
-    PhPrintUInt32(threadItem->ThreadIdString, (ULONG)ThreadId);
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
@@ -423,7 +423,7 @@ ULONG PhpThreadHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (ULONG)(*(PPH_THREAD_ITEM *)Entry)->ThreadId / 4;
+    return HandleToUlong((*(PPH_THREAD_ITEM *)Entry)->ThreadId) / 4;
 }
 
 PPH_THREAD_ITEM PhReferenceThreadItem(
@@ -653,9 +653,9 @@ static NTSTATUS PhpGetThreadCycleTime(
     }
     else
     {
-        if ((ULONG)ThreadItem->ThreadId < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
+        if (HandleToUlong(ThreadItem->ThreadId) < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
         {
-            *CycleTime = PhCpuIdleCycleTime[(ULONG)ThreadItem->ThreadId].QuadPart;
+            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].QuadPart;
             return STATUS_SUCCESS;
         }
     }
@@ -746,7 +746,7 @@ VOID PhpThreadProviderUpdate(
     {
         for (i = 0; i < numberOfThreads; i++)
         {
-            threads[i].ClientId.UniqueThread = (HANDLE)i;
+            threads[i].ClientId.UniqueThread = UlongToHandle(i);
         }
     }
 
@@ -950,7 +950,7 @@ VOID PhpThreadProviderUpdate(
             {
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
 
-                threadItem->IsGuiThread = !!GetGUIThreadInfo((ULONG)threadItem->ThreadId, &info);
+                threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
             }
 
             // Add the thread item to the hashtable.
@@ -1113,7 +1113,7 @@ VOID PhpThreadProviderUpdate(
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
                 BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;
 
-                threadItem->IsGuiThread = !!GetGUIThreadInfo((ULONG)threadItem->ThreadId, &info);
+                threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
 
                 if (threadItem->IsGuiThread != oldIsGuiThread)
                     modified = TRUE;

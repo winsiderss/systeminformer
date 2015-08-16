@@ -388,7 +388,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                                         fileStream,
                                         L"%s (%u)\r\n",
                                         entry->FileName->Buffer,
-                                        (ULONG)entry->ProcessId
+                                        HandleToUlong(entry->ProcessId)
                                         );
                                 }
                             }
@@ -523,7 +523,7 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
 
     lvItemIndex = PhAddListViewItem(PhHiddenProcessesListViewHandle, MAXINT,
         PhGetStringOrDefault(entry->FileName, L"(unknown)"), entry);
-    PhPrintUInt32(pidString, (ULONG)entry->ProcessId);
+    PhPrintUInt32(pidString, HandleToUlong(entry->ProcessId));
     PhSetListViewSubItem(PhHiddenProcessesListViewHandle, lvItemIndex, 1, pidString);
 
     if (entry->Type == HiddenProcess)
@@ -618,7 +618,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
         PhGetProcessSessionId(processHandle, &processItem->SessionId);
 
-        PhPrintUInt32(processItem->ParentProcessIdString, (ULONG)processItem->ParentProcessId);
+        PhPrintUInt32(processItem->ParentProcessIdString, HandleToUlong(processItem->ParentProcessId));
         PhPrintUInt32(processItem->SessionIdString, processItem->SessionId);
 
         if (NT_SUCCESS(PhGetProcessTimes(processHandle, &times)))
@@ -783,12 +783,12 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
         status2 = PhOpenProcess(
             &processHandle,
             ProcessQueryAccess,
-            (HANDLE)pid
+            UlongToHandle(pid)
             );
 
         if (NT_SUCCESS(status2))
         {
-            entry.ProcessId = (HANDLE)pid;
+            entry.ProcessId = UlongToHandle(pid);
 
             if (NT_SUCCESS(status2 = PhGetProcessTimes(
                 processHandle,
@@ -804,7 +804,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
 
                 if (times.ExitTime.QuadPart != 0)
                     entry.Type = TerminatedProcess;
-                else if (PhFindItemList(pids, (HANDLE)pid) != -1)
+                else if (PhFindItemList(pids, UlongToHandle(pid)) != -1)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -821,13 +821,13 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
         // Use an alternative method if we don't have sufficient access.
         if (status2 == STATUS_ACCESS_DENIED && WindowsVersion >= WINDOWS_VISTA)
         {
-            if (NT_SUCCESS(status2 = PhGetProcessImageFileNameByProcessId((HANDLE)pid, &fileName)))
+            if (NT_SUCCESS(status2 = PhGetProcessImageFileNameByProcessId(UlongToHandle(pid), &fileName)))
             {
-                entry.ProcessId = (HANDLE)pid;
+                entry.ProcessId = UlongToHandle(pid);
                 entry.FileName = PhGetFileName(fileName);
                 PhDereferenceObject(fileName);
 
-                if (PhFindItemList(pids, (HANDLE)pid) != -1)
+                if (PhFindItemList(pids, UlongToHandle(pid)) != -1)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -844,7 +844,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
 
         if (!NT_SUCCESS(status2))
         {
-            entry.ProcessId = (HANDLE)pid;
+            entry.ProcessId = UlongToHandle(pid);
             entry.FileName = NULL;
             entry.Type = UnknownProcess;
 

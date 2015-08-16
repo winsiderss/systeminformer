@@ -24,18 +24,14 @@
     {
         WCHAR localeBuffer[4];
 
-        if (
-            GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, localeBuffer, 4) &&
-            (localeBuffer[0] != 0 && localeBuffer[1] == 0)
-            )
+        if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, localeBuffer, 4) &&
+            (localeBuffer[0] != 0 && localeBuffer[1] == 0))
         {
             PhpFormatDecimalSeparator = localeBuffer[0];
         }
 
-        if (
-            GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, localeBuffer, 4) &&
-            (localeBuffer[0] != 0 && localeBuffer[1] == 0)
-            )
+        if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, localeBuffer, 4) &&
+            (localeBuffer[0] != 0 && localeBuffer[1] == 0))
         {
             PhpFormatThousandSeparator = localeBuffer[0];
         }
@@ -316,9 +312,6 @@ CommonInt64Format:
         else if ((Format)->Type & FormatHexadecimalForm) \
             c = 'a'; \
         \
-        if ((Format)->Type & FormatUpperCase) \
-            c -= 32; /* uppercase the format type */ \
-        \
         /* Use MS CRT routines to do the work. */ \
         \
         value = (Format)->u.Double; \
@@ -336,7 +329,7 @@ CommonInt64Format:
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
              /* _forcdecpt_l(tempBufferAnsi, PhpFormatUserLocale); */ \
         if ((Format)->Type & FormatCropZeros) \
-            _cropzeros_l(temp, PhpFormatUserLocale); \
+            PhpCropZeros(temp, PhpFormatUserLocale); \
         \
         length = (ULONG)strlen(temp); \
         \
