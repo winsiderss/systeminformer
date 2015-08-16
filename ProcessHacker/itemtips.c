@@ -599,7 +599,7 @@ VOID PhpFillRunningTasks(
 
                             if (
                                 SUCCEEDED(IRunningTask_get_EnginePID(runningTask, &pid)) &&
-                                pid == (ULONG)Process->ProcessId
+                                pid == HandleToUlong(Process->ProcessId)
                                 )
                             {
                                 IRunningTask_get_CurrentAction(runningTask, &action);

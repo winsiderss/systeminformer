@@ -275,7 +275,7 @@ FORCEINLINE ULONG PhHashProcessNode(
     _In_ PPH_PROCESS_NODE Value
     )
 {
-    return (ULONG)Value->ProcessId / 4;
+    return HandleToUlong(Value->ProcessId) / 4;
 }
 
 FORCEINLINE BOOLEAN PhpValidateParentCreateTime(

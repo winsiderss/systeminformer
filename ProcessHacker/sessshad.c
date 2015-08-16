@@ -139,7 +139,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
             ULONG i;
             PWSTR stringToSelect;
 
-            SetProp(hwndDlg, L"SessionId", (HANDLE)(ULONG)lParam);
+            SetProp(hwndDlg, L"SessionId", UlongToHandle((ULONG)lParam));
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             hotkey = PhGetIntegerPairSetting(L"SessionShadowHotkey");
@@ -153,7 +153,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
             {
                 ComboBox_AddString(virtualKeyComboBox, VirtualKeyPairs[i].Key);
 
-                if ((ULONG)VirtualKeyPairs[i].Value == (ULONG)hotkey.X)
+                if (PtrToUlong(VirtualKeyPairs[i].Value) == (ULONG)hotkey.X)
                 {
                     stringToSelect = VirtualKeyPairs[i].Key;
                 }
@@ -182,7 +182,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                 break;
             case IDOK:
                 {
-                    ULONG sessionId = (ULONG)GetProp(hwndDlg, L"SessionId");
+                    ULONG sessionId = HandleToUlong(GetProp(hwndDlg, L"SessionId"));
                     ULONG virtualKey;
                     ULONG modifiers;
                     WCHAR computerName[64];

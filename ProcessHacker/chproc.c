@@ -158,7 +158,7 @@ static VOID PhpRefreshProcessList(
         }
 
         // PID
-        PhPrintUInt32(processIdString, (ULONG)process->UniqueProcessId);
+        PhPrintUInt32(processIdString, HandleToUlong(process->UniqueProcessId));
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, processIdString);
 
         // User Name

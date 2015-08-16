@@ -546,14 +546,17 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
                 L"%.*s (%u): %u",
                 processInfo->ImageName.Length / 2,
                 processInfo->ImageName.Buffer,
-                (ULONG)ClientId->UniqueProcess,
-                (ULONG)ClientId->UniqueThread
+                HandleToUlong(ClientId->UniqueProcess),
+                HandleToUlong(ClientId->UniqueThread)
                 );
         }
         else
         {
-            name = PhFormatString(L"Non-existent process (%u): %u",
-                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
+            name = PhFormatString(
+                L"Non-existent process (%u): %u",
+                HandleToUlong(ClientId->UniqueProcess), 
+                HandleToUlong(ClientId->UniqueThread)
+                );
         }
     }
     else
@@ -564,12 +567,12 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
                 L"%.*s (%u)",
                 processInfo->ImageName.Length / 2,
                 processInfo->ImageName.Buffer,
-                (ULONG)ClientId->UniqueProcess
+                HandleToUlong(ClientId->UniqueProcess)
                 );
         }
         else
         {
-            name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
+            name = PhFormatString(L"Non-existent process (%u)", HandleToUlong(ClientId->UniqueProcess));
         }
     }
 

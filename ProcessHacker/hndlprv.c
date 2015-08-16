@@ -133,7 +133,7 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         PhPrintPointer(handleItem->ObjectString, handleItem->Object);
         handleItem->Attributes = Handle->HandleAttributes;
         handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
-        PhPrintPointer(handleItem->GrantedAccessString, (PVOID)handleItem->GrantedAccess);
+        PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
     }
 
     PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectCreate);
@@ -167,7 +167,7 @@ FORCEINLINE ULONG PhHashHandleItem(
     _In_ PPH_HANDLE_ITEM Value
     )
 {
-    return (ULONG)Value->Handle / 4;
+    return HandleToUlong(Value->Handle) / 4;
 }
 
 PPH_HANDLE_ITEM PhpLookupHandleItem(

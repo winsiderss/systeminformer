@@ -505,10 +505,10 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 {
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
 
-                    PhPrintPointer(pointer, (PVOID)PvMappedImage.Sections[i].VirtualAddress);
+                    PhPrintPointer(pointer, UlongToPtr(PvMappedImage.Sections[i].VirtualAddress));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
 
-                    PhPrintPointer(pointer, (PVOID)PvMappedImage.Sections[i].SizeOfRawData);
+                    PhPrintPointer(pointer, UlongToPtr(PvMappedImage.Sections[i].SizeOfRawData));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
                 }
             }

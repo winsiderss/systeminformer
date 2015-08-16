@@ -258,7 +258,7 @@ BOOLEAN PhMainWndInitialization(
     NeedsSelectPid = PhStartupParameters.SelectPid;
 
     if (PhPluginsEnabled)
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), (PVOID)ShowCommand);
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), IntToPtr(ShowCommand));
 
     if (PhStartupParameters.SelectTab)
     {
@@ -3293,7 +3293,7 @@ VOID PhMwpInitializeSectionMenuItems(
             {
                 if (tabPage->InitializeSectionMenuItemsCallback)
                 {
-                    tabPage->InitializeSectionMenuItemsCallback(Menu, (PVOID)StartIndex, NULL, tabPage->Context);
+                    tabPage->InitializeSectionMenuItemsCallback(Menu, UlongToPtr(StartIndex), NULL, tabPage->Context);
                 }
                 else
                 {
@@ -3457,7 +3457,7 @@ VOID PhMwpSelectionChangedTabControl(
     }
 
     if (PhPluginsEnabled)
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), (PVOID)selectedIndex);
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), IntToPtr(selectedIndex));
 }
 
 PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
@@ -4576,9 +4576,9 @@ VOID PhMwpOnProcessAdded(
                 PhShowIconNotification(L"Process Created", PhaFormatString(
                     L"The process %s (%u) was created by %s (%u)",
                     ProcessItem->ProcessName->Buffer,
-                    (ULONG)ProcessItem->ProcessId,
+                    HandleToUlong(ProcessItem->ProcessId),
                     PhGetStringOrDefault(parentName, L"Unknown Process"),
-                    (ULONG)ProcessItem->ParentProcessId
+                    HandleToUlong(ProcessItem->ParentProcessId)
                     )->Buffer, NIIF_INFO);
             }
         }
@@ -4637,7 +4637,7 @@ VOID PhMwpOnProcessRemoved(
             PhShowIconNotification(L"Process Terminated", PhaFormatString(
                 L"The process %s (%u) was terminated.",
                 ProcessItem->ProcessName->Buffer,
-                (ULONG)ProcessItem->ProcessId
+                HandleToUlong(ProcessItem->ProcessId)
                 )->Buffer, NIIF_INFO);
         }
     }

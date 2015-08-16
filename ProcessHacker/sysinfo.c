@@ -1020,7 +1020,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         3,
         3,
         PhSipWindow,
-        (HMENU)(IDDYNAMIC + SectionList->Count * 2 + 1),
+        NULL,
         PhInstanceHandle,
         NULL
         );
@@ -1044,7 +1044,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         3,
         3,
         PhSipWindow,
-        (HMENU)section->PanelId,
+        (HMENU)(ULONG_PTR)section->PanelId,
         PhInstanceHandle,
         NULL
         );
@@ -2290,7 +2290,7 @@ VOID PhSipCreateCpuGraphs(
         3,
         3,
         CpuDialog,
-        (HMENU)IDC_CPU,
+        NULL,
         PhInstanceHandle,
         NULL
         );
@@ -2307,7 +2307,7 @@ VOID PhSipCreateCpuGraphs(
             3,
             3,
             CpuDialog,
-            (HMENU)(IDC_CPU0 + i),
+            NULL,
             PhInstanceHandle,
             NULL
             );
@@ -2688,7 +2688,7 @@ PPH_STRING PhSipGetMaxCpuString(
             maxUsageString = PhaFormatString(
                 L"\n%s (%u): %.2f%%",
                 maxProcessRecord->ProcessName->Buffer,
-                (ULONG)maxProcessRecord->ProcessId,
+                HandleToUlong(maxProcessRecord->ProcessId),
                 maxCpuUsage * 100
                 );
         }
@@ -4179,7 +4179,7 @@ PPH_STRING PhSipGetMaxIoString(
             maxUsageString = PhaFormatString(
                 L"\n%s (%u): R+O: %s, W: %s",
                 maxProcessRecord->ProcessName->Buffer,
-                (ULONG)maxProcessRecord->ProcessId,
+                HandleToUlong(maxProcessRecord->ProcessId),
                 PhaFormatSize(maxIoReadOther, -1)->Buffer,
                 PhaFormatSize(maxIoWrite, -1)->Buffer
                 );

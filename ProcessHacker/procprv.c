@@ -63,7 +63,7 @@
 #include <winsta.h>
 
 #define PROCESS_ID_BUCKETS 64
-#define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) (((ULONG)(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
+#define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
 
 typedef struct _PH_PROCESS_QUERY_DATA
 {
@@ -435,7 +435,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     processItem->ProcessId = ProcessId;
 
     if (!PH_IS_FAKE_PROCESS_ID(ProcessId))
-        PhPrintUInt32(processItem->ProcessIdString, (ULONG)ProcessId);
+        PhPrintUInt32(processItem->ProcessIdString, HandleToUlong(ProcessId));
 
     // Create the statistics buffers.
     PhInitializeCircularBuffer_FLOAT(&processItem->CpuKernelHistory, PhStatisticsSampleCount);
@@ -509,7 +509,7 @@ FORCEINLINE ULONG PhHashProcessItem(
     _In_ PPH_PROCESS_ITEM Value
     )
 {
-    return (ULONG)Value->ProcessId / 4;
+    return HandleToUlong(Value->ProcessId) / 4;
 }
 
 /**
@@ -1251,7 +1251,7 @@ VOID PhpFillProcessItem(
     else
         ProcessItem->ProcessName = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
 
-    PhPrintUInt32(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
+    PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
     PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
@@ -2403,7 +2403,7 @@ VOID PhProcessProviderUpdate(
 
         if (maxCpuProcessItem)
         {
-            PhAddItemCircularBuffer_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
+            PhAddItemCircularBuffer_ULONG(&PhMaxCpuHistory, HandleToUlong(maxCpuProcessItem->ProcessId));
 #ifdef PH_RECORD_MAX_USAGE
             PhAddItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, maxCpuProcessItem->CpuUsage);
 #endif
@@ -2416,7 +2416,7 @@ VOID PhProcessProviderUpdate(
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG(&PhMaxCpuHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_ULONG(&PhMaxCpuHistory, PtrToUlong(NULL));
 #ifdef PH_RECORD_MAX_USAGE
             PhAddItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, 0);
 #endif
@@ -2424,7 +2424,7 @@ VOID PhProcessProviderUpdate(
 
         if (maxIoProcessItem)
         {
-            PhAddItemCircularBuffer_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+            PhAddItemCircularBuffer_ULONG(&PhMaxIoHistory, HandleToUlong(maxIoProcessItem->ProcessId));
 #ifdef PH_RECORD_MAX_USAGE
             PhAddItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory,
                 maxIoProcessItem->IoReadDelta.Delta + maxIoProcessItem->IoOtherDelta.Delta);
@@ -2439,7 +2439,7 @@ VOID PhProcessProviderUpdate(
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG(&PhMaxIoHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_ULONG(&PhMaxIoHistory, PtrToUlong(NULL));
 #ifdef PH_RECORD_MAX_USAGE
             PhAddItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, 0);
             PhAddItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, 0);

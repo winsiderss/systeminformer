@@ -409,7 +409,7 @@ BOOLEAN PhCmLoadSettingsEx(
                 column->Id = id;
                 column->DisplayIndex = displayIndex;
                 column->Width = width;
-                PhAddItemSimpleHashtable(columnHashtable, (PVOID)column->Id, column);
+                PhAddItemSimpleHashtable(columnHashtable, UlongToPtr(column->Id), column);
             }
         }
 
@@ -431,7 +431,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
             if (TreeNew_GetColumn(TreeNewHandle, i, &setColumn))
             {
-                columnPtr = (PPH_TREENEW_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, (PVOID)i);
+                columnPtr = (PPH_TREENEW_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, UlongToPtr(i));
 
                 if (!(Flags & PH_CM_COLUMN_WIDTHS_ONLY))
                 {

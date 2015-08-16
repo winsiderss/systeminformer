@@ -137,7 +137,7 @@ ULONG PhpHandleNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (ULONG)(*(PPH_HANDLE_NODE *)Entry)->Handle / 4;
+    return HandleToUlong((*(PPH_HANDLE_NODE *)Entry)->Handle) / 4;
 }
 
 VOID PhLoadSettingsHandleList(

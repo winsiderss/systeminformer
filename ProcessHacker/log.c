@@ -201,12 +201,12 @@ PPH_STRING PhFormatLogEntry(
         return PhFormatString(
             L"Process created: %s (%u) started by %s (%u)",
             Entry->Process.Name->Buffer,
-            (ULONG)Entry->Process.ProcessId,
+            HandleToUlong(Entry->Process.ProcessId),
             PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown Process"),
-            (ULONG)Entry->Process.ParentProcessId
+            HandleToUlong(Entry->Process.ParentProcessId)
             );
     case PH_LOG_ENTRY_PROCESS_DELETE:
-        return PhFormatString(L"Process terminated: %s (%u)", Entry->Process.Name->Buffer, (ULONG)Entry->Process.ProcessId);
+        return PhFormatString(L"Process terminated: %s (%u)", Entry->Process.Name->Buffer, HandleToUlong(Entry->Process.ProcessId));
     case PH_LOG_ENTRY_SERVICE_CREATE:
         return PhFormatString(L"Service created: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
     case PH_LOG_ENTRY_SERVICE_DELETE:

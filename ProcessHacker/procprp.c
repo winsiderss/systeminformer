@@ -75,7 +75,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
         propContext->Title = PhFormatString(
             L"%s (%u)",
             ProcessItem->ProcessName->Buffer,
-            (ULONG)ProcessItem->ProcessId
+            HandleToUlong(ProcessItem->ProcessId)
             );
     }
     else
@@ -847,7 +847,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             else
             {
                 SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
-                    PhaFormatString(L"Non-existent process (%u)", (ULONG)processItem->ParentProcessId)->Buffer);
+                    PhaFormatString(L"Non-existent process (%u)", HandleToUlong(processItem->ParentProcessId))->Buffer);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), FALSE);
             }
 
@@ -873,7 +873,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     PhGetProcessPeb32(processHandle, &peb32);
                     SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
-                        PhaFormatString(L"0x%Ix (32-bit: 0x%x)", basicInfo.PebBaseAddress, (ULONG)peb32)->Buffer);
+                        PhaFormatString(L"0x%Ix (32-bit: 0x%x)", basicInfo.PebBaseAddress, PtrToUlong(peb32))->Buffer);
                 }
                 else
                 {
@@ -2823,7 +2823,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         {
                             PhEditSecurity(
                                 hwndDlg,
-                                PhaFormatString(L"Thread %u", (ULONG)threadItem->ThreadId)->Buffer,
+                                PhaFormatString(L"Thread %u", HandleToUlong(threadItem->ThreadId))->Buffer,
                                 PhStdGetObjectSecurity,
                                 PhStdSetObjectSecurity,
                                 &stdObjectSecurity,

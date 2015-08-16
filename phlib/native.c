@@ -1689,7 +1689,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
             0,
             0,
             (PUSER_THREAD_START_ROUTINE)setProcessDepPolicy,
-            (PVOID)flags,
+            UlongToPtr(flags),
             &threadHandle,
             NULL
             );
@@ -1701,7 +1701,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
             NULL,
             0,
             (PTHREAD_START_ROUTINE)setProcessDepPolicy,
-            (PVOID)flags,
+            UlongToPtr(flags),
             0,
             NULL
             ))
@@ -3767,7 +3767,7 @@ NTSTATUS PhpEnumProcessModules32(
     {
         ULONG addressOfEntry;
 
-        addressOfEntry = (ULONG)CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks);
+        addressOfEntry = PtrToUlong(CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks));
         status = PhReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(addressOfEntry),

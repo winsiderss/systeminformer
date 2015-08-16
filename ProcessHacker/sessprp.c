@@ -80,7 +80,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             ULONG returnLength;
             PWSTR stateString;
 
-            SetProp(hwndDlg, L"SessionId", (HANDLE)sessionId);
+            SetProp(hwndDlg, L"SessionId", UlongToHandle(sessionId));
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             // Query basic session information
