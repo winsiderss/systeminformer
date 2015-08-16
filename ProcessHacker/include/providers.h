@@ -227,6 +227,8 @@ typedef struct _PH_PROCESS_ITEM
     // New fields
     PH_UINTPTR_DELTA PrivateBytesDelta;
     PPH_STRING PackageFullName;
+
+    PH_QUEUED_LOCK RemoveLock;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 

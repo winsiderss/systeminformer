@@ -3,6 +3,7 @@ Process Hacker
 2.37
  * HIGHLIGHTS:
    * Updated for Windows 10
+   * Fixed crash that occurred under some conditions when processes terminated
  * OTHER CHANGES:
 
 2.36
