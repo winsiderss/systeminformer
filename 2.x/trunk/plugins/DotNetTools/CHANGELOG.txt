@@ -1,3 +1,6 @@
+1.5
+ * Fixed incorrect .NET performance statistics for processes with the same name
+
 1.4
  * Process Hacker now displays managed stack traces for 32-bit .NET processes on 64-bit Windows
  * Fixed inaccurate stack traces when clicking Refresh

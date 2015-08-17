@@ -16,6 +16,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
+#pragma code_page(1252)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -48,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,0,0
- PRODUCTVERSION 1,4,0,0
+ FILEVERSION 1,5,0,0
+ PRODUCTVERSION 1,5,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -66,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", ".NET tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.4"
+            VALUE "FileVersion", "1.5"
             VALUE "InternalName", "DotNetTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "DotNetTools.dll"
             VALUE "ProductName", ".NET tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.4"
+            VALUE "ProductVersion", "1.5"
         END
     END
     BLOCK "VarFileInfo"

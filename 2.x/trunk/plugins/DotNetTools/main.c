@@ -23,109 +23,178 @@
 #include "dn.h"
 #include "resource.h"
 
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI TreeNewMessageCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhSvcRequestCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MainWindowShowingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessPropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ModuleMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadTreeNewUninitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadStackControlCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadItemCreateCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    );
-
-VOID NTAPI ThreadItemDeleteCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    );
-
 PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
+
+static VOID NTAPI LoadCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI UnloadCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI ShowOptionsCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI MenuItemCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+
+    switch (menuItem->Id)
+    {
+    default:
+        NOTHING;
+        break;
+    }
+}
+
+static VOID NTAPI TreeNewMessageCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    DispatchTreeNewMessage(Parameter);
+}
+
+static VOID NTAPI PhSvcRequestCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    DispatchPhSvcRequest(Parameter);
+}
+
+static VOID NTAPI ThreadTreeNewInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    ThreadTreeNewInitializing(Parameter);
+}
+
+static VOID NTAPI ThreadTreeNewUninitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    ThreadTreeNewUninitializing(Parameter);
+}
+
+static VOID NTAPI ProcessPropertiesInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
+    BOOLEAN isDotNet;
+
+    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)))
+    {
+        if (isDotNet)
+        {
+            if (WindowsVersion >= WINDOWS_VISTA)
+                AddAsmPageToPropContext(propContext);
+            AddPerfPageToPropContext(propContext);
+        }
+
+        if (propContext->ProcessItem->IsDotNet != isDotNet)
+            propContext->ProcessItem->UpdateIsDotNet = TRUE; // force a refresh
+    }
+}
+
+static VOID NTAPI ProcessMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI ThreadMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI ModuleMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI ProcessTreeNewInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NOTHING;
+}
+
+static VOID NTAPI ThreadStackControlCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    ProcessThreadStackControl(Parameter);
+}
+
+static VOID NTAPI ThreadItemCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PDN_THREAD_ITEM dnThread = Extension;
+
+    memset(dnThread, 0, sizeof(DN_THREAD_ITEM));
+    dnThread->ThreadItem = Object;
+}
+
+static VOID NTAPI ThreadItemDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PDN_THREAD_ITEM dnThread = Extension;
+
+    PhClearReference(&dnThread->AppDomainText);
+}
 
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
@@ -138,6 +207,11 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { StringSettingType, SETTING_NAME_ASM_TREE_LIST_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
+            };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
@@ -251,173 +325,10 @@ LOGICAL DllMain(
                 );
             InitializeTreeNewObjectExtensions();
 
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { StringSettingType, SETTING_NAME_ASM_TREE_LIST_COLUMNS, L"" }
-                };
-
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            }
+            PhAddSettings(settings, ARRAYSIZE(settings));
         }
         break;
     }
 
     return TRUE;
-}
-
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    switch (menuItem->Id)
-    {
-    default:
-        NOTHING;
-        break;
-    }
-}
-
-VOID NTAPI TreeNewMessageCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    DispatchTreeNewMessage(Parameter);
-}
-
-VOID NTAPI PhSvcRequestCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    DispatchPhSvcRequest(Parameter);
-}
-
-VOID NTAPI ThreadTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    ThreadTreeNewInitializing(Parameter);
-}
-
-VOID NTAPI ThreadTreeNewUninitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    ThreadTreeNewUninitializing(Parameter);
-}
-
-VOID NTAPI ProcessPropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
-    BOOLEAN isDotNet;
-
-    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)))
-    {
-        if (isDotNet)
-        {
-            if (WindowsVersion >= WINDOWS_VISTA)
-                AddAsmPageToPropContext(propContext);
-            AddPerfPageToPropContext(propContext);
-        }
-
-        if (propContext->ProcessItem->IsDotNet != isDotNet)
-            propContext->ProcessItem->UpdateIsDotNet = TRUE; // force a refresh
-    }
-}
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ModuleMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ProcessTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ThreadStackControlCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    ProcessThreadStackControl(Parameter);
-}
-
-VOID NTAPI ThreadItemCreateCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    )
-{
-    PDN_THREAD_ITEM dnThread = Extension;
-
-    memset(dnThread, 0, sizeof(DN_THREAD_ITEM));
-    dnThread->ThreadItem = Object;
-}
-
-VOID NTAPI ThreadItemDeleteCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    )
-{
-    PDN_THREAD_ITEM dnThread = Extension;
-
-    PhClearReference(&dnThread->AppDomainText);
 }
