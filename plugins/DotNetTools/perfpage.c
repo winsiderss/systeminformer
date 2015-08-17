@@ -2,7 +2,8 @@
  * Process Hacker .NET Tools -
  *   .NET Performance property page
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -33,14 +34,8 @@ typedef struct _PERFPAGE_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     BOOLEAN Enabled;
     PPH_STRING InstanceName;
+    ULONG InstanceIndex;
 } PERFPAGE_CONTEXT, *PPERFPAGE_CONTEXT;
-
-INT_PTR CALLBACK DotNetPerfPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
 
 static GUID CLSID_CorpubPublish_I = { 0x047a9a40, 0x657e, 0x11d3, { 0x8d, 0x5b, 0x00, 0x10, 0x4b, 0x35, 0xe7, 0xef } };
 static GUID IID_ICorPublish_I = { 0x9613a0e7, 0x5a68, 0x11d3, { 0x8f, 0x84, 0x00, 0xa0, 0xc9, 0xb4, 0xd5, 0x0c } };
@@ -50,17 +45,7 @@ static PPERF_OBJECT_TYPE_INFO DotNetObjectTypeInfo = NULL;
 static ULONG DotNetObjectTypeInfoCount = 0;
 static PVOID PerfInfoTextData = NULL;
 
-VOID AddPerfPageToPropContext(
-    _In_ PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
-    )
-{
-    PhAddProcessPropPage(
-        PropContext->PropContext,
-        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDOTNETPERF), DotNetPerfPageDlgProc, NULL)
-        );
-}
-
-HRESULT CreateCorpubPublish(
+static HRESULT CreateCorpubPublish(
     _In_ HANDLE ProcessId,
     _Out_ ICorPublish **Publish
     )
@@ -131,7 +116,7 @@ HRESULT CreateCorpubPublish(
     return CoCreateInstance(&CLSID_CorpubPublish_I, NULL, CLSCTX_INPROC_SERVER, &IID_ICorPublish_I, Publish);
 }
 
-HRESULT GetCorPublishProcess(
+static HRESULT GetCorPublishProcess(
     _In_ HANDLE ProcessId,
     _Out_ ICorPublishProcess **PublishProcess
     )
@@ -148,7 +133,7 @@ HRESULT GetCorPublishProcess(
     return result;
 }
 
-VOID InitializeDotNetObjectTypeInfo(
+static VOID InitializeDotNetObjectTypeInfo(
     VOID
     )
 {
@@ -175,7 +160,7 @@ VOID InitializeDotNetObjectTypeInfo(
     }
 }
 
-VOID AddProcessAppDomains(
+static VOID AddProcessAppDomains(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context
     )
@@ -221,7 +206,7 @@ VOID AddProcessAppDomains(
     SendMessage(appDomainsLv, WM_SETREDRAW, TRUE, 0);
 }
 
-PPERF_OBJECT_TYPE_INFO GetSelectedObjectTypeInfo(
+static PPERF_OBJECT_TYPE_INFO GetSelectedObjectTypeInfo(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context
     )
@@ -242,7 +227,41 @@ PPERF_OBJECT_TYPE_INFO GetSelectedObjectTypeInfo(
     return NULL;
 }
 
-VOID UpdateCounterData(
+static BOOLEAN CheckInstanceProcessId(
+    _In_ HANDLE ProcessId,
+    _In_ PVOID TextData,
+    _In_ PPERF_COUNTER_BLOCK CounterBlock,
+    _In_ PPERF_OBJECT_TYPE ObjectType
+    )
+{
+    ULONG i;
+    PPERF_COUNTER_DEFINITION counter;
+
+    counter = (PPERF_COUNTER_DEFINITION)((PCHAR)ObjectType + ObjectType->HeaderLength);
+
+    for (i = 0; i < ObjectType->NumCounters; i++)
+    {
+        PWSTR counterName;
+
+        counterName = FindPerfTextInTextData(TextData, counter->CounterNameTitleIndex);
+
+        if (counterName && PhEqualStringZ(counterName, L"Process ID", FALSE))
+        {
+            PULONG64 value = (PULONG64)((PCHAR)CounterBlock + counter->CounterOffset);
+
+            if (*value == HandleToUlong(ProcessId))
+            {
+                return TRUE;
+            }
+        }
+
+        counter = (PPERF_COUNTER_DEFINITION)((PCHAR)counter + counter->ByteLength);
+    }
+
+    return FALSE;
+}
+
+static VOID UpdateCounterData(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context,
     _In_ BOOLEAN RefreshCategory
@@ -253,10 +272,11 @@ VOID UpdateCounterData(
     WCHAR indexString[PH_INT32_STR_LEN_1];
     PVOID textData;
     PVOID data;
-    PPERF_DATA_BLOCK block;
     ULONG i;
+    LONG ii;
+    ULONG iii;
+    PPERF_DATA_BLOCK block;
     PPERF_OBJECT_TYPE objectType;
-    ULONG j;
     PPERF_COUNTER_DEFINITION counter;
     PPERF_INSTANCE_DEFINITION instance;
 
@@ -293,7 +313,7 @@ VOID UpdateCounterData(
 
     for (i = 0; i < block->NumObjectTypes; i++)
     {
-        if (objectType->ObjectNameTitleIndex == typeInfo->NameIndex && objectType->NumInstances != PERF_NO_INSTANCES)
+        if (objectType->NumInstances != PERF_NO_INSTANCES)
         {
             PPERF_COUNTER_BLOCK counterBlock = NULL;
             BOOLEAN instanceFound = FALSE;
@@ -302,7 +322,7 @@ VOID UpdateCounterData(
 
             instance = (PPERF_INSTANCE_DEFINITION)((PCHAR)objectType + objectType->DefinitionLength);
 
-            for (j = 0; j < (ULONG)objectType->NumInstances; j++)
+            for (ii = 0; ii < objectType->NumInstances; ii++)
             {
                 PH_STRINGREF instanceName;
 
@@ -315,8 +335,24 @@ VOID UpdateCounterData(
 
                     if (PhEqualStringRef(&instanceName, &Context->InstanceName->sr, TRUE))
                     {
-                        instanceFound = TRUE;
-                        break;
+                        if (CheckInstanceProcessId(Context->ProcessItem->ProcessId, textData, counterBlock, objectType))
+                        {
+                            // NOTE: The instance index can become 'stale' if the number of .NET processes change,
+                            //   thus always try update the instance index when the '.NET CLR Memory' category is selected.
+                            //    (This does have a very slight performance impact).
+
+                            // Cache the Counter instance index.
+                            Context->InstanceIndex = ii;
+                            instanceFound = TRUE;
+                            break;
+                        }
+
+                        // No ProcessId was found for this category, check if this instance matches the cached instance index.
+                        if (Context->InstanceIndex != 0 && ii == Context->InstanceIndex)
+                        {
+                            instanceFound = TRUE;
+                            break;
+                        }
                     }
                 }
 
@@ -327,7 +363,7 @@ VOID UpdateCounterData(
 
             counter = (PPERF_COUNTER_DEFINITION)((PCHAR)objectType + objectType->HeaderLength);
 
-            for (j = 0; j < objectType->NumCounters; j++)
+            for (iii = 0; iii < objectType->NumCounters; iii++)
             {
                 INT lvItemIndex = -1;
 
@@ -410,7 +446,7 @@ EndOfLoop:
         PhFree(textData);
 }
 
-INT_PTR CALLBACK DotNetPerfPageDlgProc(
+static INT_PTR CALLBACK DotNetPerfPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -468,6 +504,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhSetControlTheme(countersLv, L"explorer");
             PhAddListViewColumn(countersLv, 0, 0, 0, LVCFMT_LEFT, 250, L"Counter");
             PhAddListViewColumn(countersLv, 1, 1, 1, LVCFMT_RIGHT, 140, L"Value");
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, countersLv);
 
             InitializeDotNetObjectTypeInfo();
             AddProcessAppDomains(hwndDlg, context);
@@ -488,6 +525,8 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, GetDlgItem(hwndDlg, IDC_COUNTERS));
+
             if (context->InstanceName)
                 PhDereferenceObject(context->InstanceName);
 
@@ -551,4 +590,14 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
     }
 
     return FALSE;
+}
+
+VOID AddPerfPageToPropContext(
+    _In_ PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
+    )
+{
+    PhAddProcessPropPage(
+        PropContext->PropContext,
+        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDOTNETPERF), DotNetPerfPageDlgProc, NULL)
+        );
 }
