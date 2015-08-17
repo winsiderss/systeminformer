@@ -147,7 +147,7 @@ static PSERVICE_INFO GetUploadServiceInfo(
 {
     ULONG i;
 
-    for (i = 0; i < _countof(UploadServiceInfo); i++)
+    for (i = 0; i < ARRAYSIZE(UploadServiceInfo); i++)
     {
         if (UploadServiceInfo[i].Id == Id)
             return &UploadServiceInfo[i];
