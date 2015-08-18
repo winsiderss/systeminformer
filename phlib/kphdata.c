@@ -197,7 +197,19 @@ NTSTATUS KphInitializeDynamicPackage(
     Package->ServicePackMajor = (USHORT)servicePack;
     Package->BuildNumber = -1;
 
-    // Nothing here yet
+    // Windows 10
+    if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10240)
+    {
+        Package->BuildNumber = 10240;
+        Package->ResultingNtVersion = PHNT_THRESHOLD;
+
+        Package->StructData.EgeGuid = 0xc;
+        Package->StructData.EpObjectTable = 0x154;
+        Package->StructData.EreGuidEntry = 0x10;
+        Package->StructData.OtName = 0x8;
+        Package->StructData.OtIndex = 0x14;
+    }
+    else
     {
         return STATUS_NOT_SUPPORTED;
     }
