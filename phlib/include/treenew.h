@@ -389,7 +389,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_AUTOSIZECOLUMN (WM_USER + 42)
 #define TNM_SETEMPTYTEXT (WM_USER + 43)
 #define TNM_SETROWHEIGHT (WM_USER + 44)
-#define TNM_LAST (WM_USER + 44)
+#define TNM_ISFLATNODEVALID (WM_USER + 45)
+#define TNM_LAST (WM_USER + 45)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -516,6 +517,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_SetRowHeight(hWnd, RowHeight) \
     SendMessage((hWnd), TNM_SETROWHEIGHT, (WPARAM)(RowHeight), 0)
+
+#define TreeNew_IsFlatNodeValid(hWnd) \
+    ((BOOLEAN)SendMessage((hWnd), TNM_ISFLATNODEVALID, 0, 0))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

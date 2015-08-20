@@ -139,7 +139,8 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_PRINTCLIENT:
         {
-            PhTnpOnPrintClient(hwnd, context, (HDC)wParam, (ULONG)lParam);
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnPrintClient(hwnd, context, (HDC)wParam, (ULONG)lParam);
         }
         return 0;
     case WM_NCPAINT:
@@ -252,7 +253,8 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     case WM_CONTEXTMENU:
         {
-            PhTnpOnContextMenu(hwnd, context, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnContextMenu(hwnd, context, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         return 0;
     case WM_VSCROLL:
@@ -1755,7 +1757,10 @@ ULONG_PTR PhTnpOnUserMessage(
         PhTnpScroll(Context, (LONG)WParam, (LONG)LParam);
         return TRUE;
     case TNM_GETFLATNODECOUNT:
-        return (LRESULT)Context->FlatList->Count;
+        if (!Context->SuspendUpdateStructure)
+            return (LRESULT)Context->FlatList->Count;
+        else
+            return 0;
     case TNM_GETFLATNODE:
         {
             ULONG index = (ULONG)WParam;
@@ -1954,6 +1959,8 @@ ULONG_PTR PhTnpOnUserMessage(
             }
         }
         return TRUE;
+    case TNM_ISFLATNODEVALID:
+        return !Context->SuspendUpdateStructure;
     }
 
     return 0;
