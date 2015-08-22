@@ -84,7 +84,7 @@ static VOID NcAreaInitializeTheme(
     )
 {
     Context->CXWidth = 20;
-    Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+    Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2; // TODO: Remove *2 if window is themed on Vista and above.
     //Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
 
     Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
@@ -135,9 +135,9 @@ static VOID NcAreaGetButtonRect(
     )
 {
     ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder;
-    ButtonRect->bottom -= 1; // 2
-    ButtonRect->right -= 1; // 2
-    ButtonRect->top += 1; // 2
+    ButtonRect->bottom -= Context->CXBorder;
+    ButtonRect->right -= Context->CXBorder;
+    ButtonRect->top += Context->CXBorder;
 }
 
 static VOID NcAreaDrawButton(

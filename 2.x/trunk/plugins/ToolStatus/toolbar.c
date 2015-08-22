@@ -564,6 +564,9 @@ VOID ToolbarLoadButtonSettings(
         PH_STRINGREF buttonShowTextPart;
         PH_STRINGREF buttonDropDownPart;
 
+        if (remaining.Length == 0)
+            break;
+
         PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);
         PhSplitStringRefAtChar(&remaining, '|', &iBitmapPart, &remaining);
         PhSplitStringRefAtChar(&remaining, '|', &buttonSepPart, &remaining);
