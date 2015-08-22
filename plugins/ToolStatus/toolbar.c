@@ -94,104 +94,140 @@ static VOID RebarLoadSettings(
     )
 {
     // Initialize the Toolbar Imagelist.
-    if (EnableToolBar && !ToolBarImageList)
+    if (EnableToolBar)
     {
-        HBITMAP iconBitmap = NULL;
+        HBITMAP bitmapRefresh = NULL;
+        HBITMAP bitmapSettings = NULL;
+        HBITMAP bitmapFind = NULL;
+        HBITMAP bitmapSysInfo = NULL;
+        HBITMAP bitmapFindWindow = NULL;
+        HBITMAP bitmapFindWindowThread = NULL;
+        HBITMAP bitmapFindWindowKill = NULL;
+        HBITMAP bitmapAlwaysOnTop = NULL;
+        HBITMAP bitmapPowerMenu = NULL;
 
         // https://msdn.microsoft.com/en-us/library/ms701681.aspx
         INT cx = GetSystemMetrics(SM_CXSMICON); // SM_CXICON
         INT cy = GetSystemMetrics(SM_CYSMICON); // SM_CYICON
 
-        // Create the toolbar imagelist
-        ToolBarImageList = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, 0, 0);
-        // Set the number of images
-        ImageList_SetImageCount(ToolBarImageList, 9);
+        if (!ToolBarImageList)
+        {
+            // Create the toolbar imagelist
+            ToolBarImageList = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, 0, 0);
+            // Set the number of images
+            ImageList_SetImageCount(ToolBarImageList, 9);
+        }
 
         // Add the images to the imagelist
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH)))
+        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS))
         {
-            ImageList_Replace(ToolBarImageList, 0, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            bitmapRefresh = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN));
+            bitmapSettings = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN));
+            bitmapFind = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND_MODERN));
+            bitmapSysInfo = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN));
+            bitmapFindWindow = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN));
+            bitmapFindWindowThread = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN));
+            bitmapFindWindowKill = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS_MODERN));
+            bitmapAlwaysOnTop = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN));
+            bitmapPowerMenu = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER_MODERN));
+        }
+        else
+        {
+            bitmapRefresh = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+            bitmapSettings = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT));
+            bitmapFind = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND));
+            bitmapSysInfo = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE));
+            bitmapFindWindow = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION));
+            bitmapFindWindowThread = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+            bitmapFindWindowKill = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS));
+            bitmapAlwaysOnTop = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET));
+            bitmapPowerMenu = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER));
+        }
+
+        if (bitmapRefresh)
+        {
+            ImageList_Replace(ToolBarImageList, 0, bitmapRefresh, NULL);
+            DeleteObject(bitmapRefresh);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT)))
+        if (bitmapSettings)
         {
-            ImageList_Replace(ToolBarImageList, 1, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 1, bitmapSettings, NULL);
+            DeleteObject(bitmapSettings);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND)))
+        if (bitmapFind)
         {
-            ImageList_Replace(ToolBarImageList, 2, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 2, bitmapFind, NULL);
+            DeleteObject(bitmapFind);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE)))
+        if (bitmapSysInfo)
         {
-            ImageList_Replace(ToolBarImageList, 3, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 3, bitmapSysInfo, NULL);
+            DeleteObject(bitmapSysInfo);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION)))
+        if (bitmapFindWindow)
         {
-            ImageList_Replace(ToolBarImageList, 4, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 4, bitmapFindWindow, NULL);
+            DeleteObject(bitmapFindWindow);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO)))
+        if (bitmapFindWindowThread)
         {
-            ImageList_Replace(ToolBarImageList, 5, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 5, bitmapFindWindowThread, NULL);
+            DeleteObject(bitmapFindWindowThread);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS)))
+        if (bitmapFindWindowKill)
         {
-            ImageList_Replace(ToolBarImageList, 6, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 6, bitmapFindWindowKill, NULL);
+            DeleteObject(bitmapFindWindowKill);
         }
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET)))
+        if (bitmapAlwaysOnTop)
         {
-            ImageList_Replace(ToolBarImageList, 7, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 7, bitmapAlwaysOnTop, NULL);
+            DeleteObject(bitmapAlwaysOnTop);
         }
         else
         {
-            PhSetImageListBitmap(ToolBarImageList, 7, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
+            PhSetImageListBitmap(ToolBarImageList, 7, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
         }
 
-        if (iconBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER)))
+        if (bitmapPowerMenu)
         {
-            ImageList_Replace(ToolBarImageList, 8, iconBitmap, NULL);
-            DeleteObject(iconBitmap);
+            ImageList_Replace(ToolBarImageList, 8, bitmapPowerMenu, NULL);
+            DeleteObject(bitmapPowerMenu);
         }
         else
         {
