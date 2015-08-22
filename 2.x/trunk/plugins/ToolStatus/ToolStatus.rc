@@ -121,8 +121,8 @@ BEGIN
     CONTROL         "Enable toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,62,10
     CONTROL         "Enable search box",IDC_ENABLE_SEARCHBOX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,75,10
     CONTROL         "Enable status bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,72,10
-    CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,147,10
+    CONTROL         "Enable modern theme",IDC_ENABLE_MODERN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,85,10
+    CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,152,10
     RTEXT           "Toolbar display style:",IDC_DISPLAYSTYLETEXT,187,7,70,8
     COMBOBOX        IDC_DISPLAYSTYLECOMBO,182,18,78,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     RTEXT           "Searchbox display style:",IDC_SEARCHBOX_DISPLAYSTYLETEXT,179,34,78,8
@@ -179,6 +179,15 @@ IDB_CROSS               PNG                     "resources\\cross.png"
 IDB_FIND                PNG                     "resources\\find.png"
 IDB_APPLICATION_GET     PNG                     "resources\\application_get.png"
 IDB_POWER               PNG                     "resources\\lightbulb_off.png"
+IDB_APPLICATION_GET_MODERN PNG                     "resources\\application_get_modern.png"
+IDB_APPLICATION_GO_MODERN PNG                     "resources\\application_go_modern.png"
+IDB_APPLICATION_MODERN  PNG                     "resources\\application_modern.png"
+IDB_ARROW_REFRESH_MODERN PNG                     "resources\\arrow_refresh_modern.png"
+IDB_CHART_LINE_MODERN   PNG                     "resources\\chart_line_modern.png"
+IDB_COG_EDIT_MODERN     PNG                     "resources\\cog_edit_modern.png"
+IDB_CROSS_MODERN        PNG                     "resources\\cross_modern.png"
+IDB_FIND_MODERN         PNG                     "resources\\find_modern.png"
+IDB_POWER_MODERN        PNG                     "resources\\lightbulb_off_modern.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -196,6 +205,17 @@ IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 IDB_APPLICATION_GET_BMP BITMAP                  "resources\\application_get.bmp"
 IDB_POWER_BMP           BITMAP                  "resources\\lightbulb_off.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
