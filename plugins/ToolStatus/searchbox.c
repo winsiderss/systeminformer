@@ -33,11 +33,8 @@ static VOID NcAreaFreeTheme(
     if (Context->BrushHot)
         DeleteObject(Context->BrushHot);
 
-    if (Context->BrushFocused)
-        DeleteObject(Context->BrushFocused);
-
-    if (Context->BrushFill)
-        DeleteObject(Context->BrushFill);
+    if (Context->BrushPushed)
+        DeleteObject(Context->BrushPushed);
 
     if (Context->WindowFont)
         DeleteObject(Context->WindowFont);
@@ -86,14 +83,14 @@ static VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
+    Context->CXWidth = 20;
     Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
     //Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
 
     Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
-    Context->BrushFill = GetSysColorBrush(COLOR_WINDOW);
-    Context->BrushNormal = GetStockBrush(BLACK_BRUSH);
-    Context->BrushHot = WindowsVersion < WINDOWS_VISTA ? CreateSolidBrush(RGB(50, 150, 255)) : GetSysColorBrush(COLOR_HIGHLIGHT);
-    Context->BrushFocused = WindowsVersion < WINDOWS_VISTA ? CreateSolidBrush(RGB(50, 150, 255)) : GetSysColorBrush(COLOR_HIGHLIGHT);
+    Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
+    Context->BrushHot = CreateSolidBrush(RGB(229, 243, 251));
+    Context->BrushPushed = CreateSolidBrush(RGB(203, 232, 246));
 }
 
 static VOID NcAreaInitializeImageList(
@@ -137,10 +134,10 @@ static VOID NcAreaGetButtonRect(
     _Inout_ PRECT ButtonRect
     )
 {
-    ButtonRect->left = (ButtonRect->right - Context->cxImgSize) - Context->CXBorder;
-    ButtonRect->bottom -= 2;
-    ButtonRect->right -= 2;
-    ButtonRect->top += 2;
+    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder;
+    ButtonRect->bottom -= 1; // 2
+    ButtonRect->right -= 1; // 2
+    ButtonRect->top += 1; // 2
 }
 
 static VOID NcAreaDrawButton(
@@ -155,23 +152,20 @@ static VOID NcAreaDrawButton(
 
     SetBkMode(hdc, TRANSPARENT);
 
-    FillRect(hdc, &ButtonRect, Context->BrushFill);
-
-//#ifdef _DEBUG
-//    BOOL isFocused = (GetFocus() == Context->WindowHandle);
-//    if (isFocused)
-//    {
-//        FrameRect(hdc, &ButtonRect, Context->BrushFocused);
-//    }
-//    else if (Context->MouseInClient)
-//    {
-//        FrameRect(hdc, &ButtonRect, Context->BrushHot);
-//    }
-//    else
-//    {
-//        FrameRect(hdc, &ButtonRect, Context->BrushNormal);
-//    }
-//#endif
+    if (Context->Pushed)
+    {
+        FillRect(hdc, &ButtonRect, Context->BrushPushed);
+        //FrameRect(hdc, &ButtonRect, CreateSolidBrush(RGB(0xff, 0, 0)));
+    }   
+    else if (Context->Hot)
+    {
+        FillRect(hdc, &ButtonRect, Context->BrushHot);
+        //FrameRect(hdc, &ButtonRect, CreateSolidBrush(RGB(38, 160, 218)));
+    }
+    else
+    {
+        FillRect(hdc, &ButtonRect, Context->BrushNormal);
+    }
 
     // Draw the image centered within the rect.
     if (SearchboxText->Length > 0)
@@ -180,7 +174,7 @@ static VOID NcAreaDrawButton(
             Context->ImageList,
             0,
             hdc,
-            ButtonRect.left,
+            ButtonRect.left + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
             ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
             0,
             0,
@@ -195,8 +189,8 @@ static VOID NcAreaDrawButton(
             Context->ImageList,
             1,
             hdc,
-            ButtonRect.left,
-            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - (Context->ImageHeight - 1)) / 2, // Fix image offset by 1
+            ButtonRect.left + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
+            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - (Context->ImageHeight - 1)) / 2, // (Height - 1)  image off by one pixel 
             0,
             0,
             Context->BackgroundColorRef,
@@ -209,7 +203,7 @@ static VOID NcAreaDrawButton(
 }
 
 static LRESULT CALLBACK NcAreaWndSubclassProc(
-    _In_ HWND hwndDlg,
+    _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
@@ -219,7 +213,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 {
     PEDIT_CONTEXT context;
 
-    context = (PEDIT_CONTEXT)GetProp(hwndDlg, L"EditSubclassContext");
+    context = (PEDIT_CONTEXT)GetProp(hWnd, L"EditSubclassContext");
 
     switch (uMsg)
     {
@@ -230,8 +224,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             if (context->ImageList)
                 ImageList_Destroy(context->ImageList);
 
-            RemoveWindowSubclass(hwndDlg, NcAreaWndSubclassProc, uIdSubclass);
-            RemoveProp(hwndDlg, L"EditSubclassContext");
+            RemoveWindowSubclass(hWnd, NcAreaWndSubclassProc, uIdSubclass);
+            RemoveProp(hWnd, L"EditSubclassContext");
             PhFree(context);
         }
         break;
@@ -242,10 +236,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+            DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
-            ncCalcSize->rgrc[0].right -= context->cxImgSize;
+            ncCalcSize->rgrc[0].right -= context->CXWidth;
         }
         return 0;
     case WM_NCPAINT:
@@ -253,10 +247,10 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             RECT windowRect;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+            DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
             // Get the screen coordinates of the window.
-            GetWindowRect(hwndDlg, &windowRect);
+            GetWindowRect(hWnd, &windowRect);
 
             // Adjust the coordinates (start from 0,0).
             OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
@@ -278,7 +272,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             windowPoint.y = GET_Y_LPARAM(lParam);
 
             // Get the position of the inserted button.
-            GetWindowRect(hwndDlg, &windowRect);
+            GetWindowRect(hWnd, &windowRect);
             NcAreaGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
@@ -298,15 +292,17 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             windowPoint.y = GET_Y_LPARAM(lParam);
 
             // Get the position of the inserted button.
-            GetWindowRect(hwndDlg, &windowRect);
+            GetWindowRect(hWnd, &windowRect);
             NcAreaGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
             if (PtInRect(&windowRect, windowPoint))
             {
-                SetCapture(hwndDlg);
+                context->Pushed = TRUE;
 
-                RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+                SetCapture(hWnd);
+
+                RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
             }
         }
         break;
@@ -320,7 +316,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             windowPoint.y = GET_Y_LPARAM(lParam);
 
             // Get the screen coordinates of the window.
-            GetWindowRect(hwndDlg, &windowRect);
+            GetWindowRect(hWnd, &windowRect);
 
             // Adjust the coordinates (start from 0,0).
             OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
@@ -335,12 +331,13 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                 SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
             }
 
-            if (GetCapture() == hwndDlg)
+            if (GetCapture() == hWnd)
             {
+                context->Pushed = FALSE;
                 ReleaseCapture();
             }
 
-            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
     case WM_KEYDOWN:
@@ -380,7 +377,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             // Handle CTRL+A below Vista.
             if (WindowsVersion < WINDOWS_VISTA && (GetKeyState(VK_CONTROL) & VK_LCONTROL) && wParam == 'A')
             {
-                Edit_SetSel(hwndDlg, 0, -1);
+                Edit_SetSel(hWnd, 0, -1);
                 return FALSE;
             }
         }
@@ -395,9 +392,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_UNDO:
     case WM_KEYUP:
     case WM_SETTEXT:
-    //case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         break;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
@@ -408,24 +404,96 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             NcAreaInitializeFont(context);
 
             // Reset the client area margins.
-            SendMessage(hwndDlg, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
+            SendMessage(hWnd, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
 
             // Force the edit control to update its non-client area.
-            RedrawWindow(hwndDlg, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-            //SetWindowPos(hwndDlg, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
+            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            //SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
         }
         break;
     case WM_SETFOCUS:
         {
+            if (SearchBoxDisplayMode != SearchBoxDisplayHideInactive)
+                break;
+
             if (!RebarBandExists(BandID_SearchBox))
             {
                 RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
             }
         }
         break;
+    case WM_NCMOUSEMOVE:
+        {
+            POINT windowPoint;
+            RECT windowRect;
+
+            // Get the screen coordinates of the mouse.
+            windowPoint.x = GET_X_LPARAM(lParam);
+            windowPoint.y = GET_Y_LPARAM(lParam);
+
+            // Get the screen coordinates of the window.
+            GetWindowRect(hWnd, &windowRect);
+
+            // Get the position of the inserted button.
+            NcAreaGetButtonRect(context, &windowRect);
+
+            // Check that the mouse is within the inserted button.
+            if (PtInRect(&windowRect, windowPoint))
+            {
+                if (!context->Hot)
+                {
+                    TRACKMOUSEEVENT trackMouseEvent = { sizeof(TRACKMOUSEEVENT) };
+                    trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
+                    trackMouseEvent.hwndTrack = hWnd;
+   
+                    context->Hot = TRUE;
+                    RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+                    TrackMouseEvent(&trackMouseEvent);
+                }
+            }
+        }
+        break;
+    case WM_NCMOUSELEAVE:
+        {
+            if (context->Hot)
+            {
+                context->Hot = FALSE;
+
+                RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            if ((wParam & MK_LBUTTON) && GetCapture() == hWnd)
+            {
+                POINT windowPoint;
+                RECT windowRect;
+
+                // Get the screen coordinates of the mouse.
+                windowPoint.x = GET_X_LPARAM(lParam);
+                windowPoint.y = GET_Y_LPARAM(lParam);
+
+                // Get the screen coordinates of the window.
+                GetWindowRect(hWnd, &windowRect);
+
+                // Adjust the coordinates (start from 0,0).
+                OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+
+                // Get the position of the inserted button.
+                NcAreaGetButtonRect(context, &windowRect);
+
+                // Check that the mouse is within the inserted button.
+                context->Pushed = PtInRect(&windowRect, windowPoint);
+
+                RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            }
+        }
+        break;
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
 HBITMAP LoadImageFromResources(
@@ -584,7 +652,6 @@ HWND CreateSearchControl(
     context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
-    context->cxImgSize = 22; // GetSystemMetrics(SM_CXVSCROLL);
     context->CommandID = CommandID;
 
     // Create the SearchBox window.
