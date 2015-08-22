@@ -982,6 +982,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_TOOLBAR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SEARCHBOX, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSBAR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_MODERNICONS, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
                 { StringSettingType, SETTING_NAME_TOOLBARBUTTONCONFIG, L"" },
@@ -996,7 +997,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Toolbar and Status Bar";
             info->Author = L"dmex, wj32";
-            info->Description = L"Adds a toolbar and a status bar.";
+            info->Description = L"Adds a Toolbar, Status Bar and Search box.\r\n\r\nModern Toolbar icons by http://www.icons8.com";
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1119";
             info->HasOptions = TRUE;
             info->Interface = &PluginInterface;

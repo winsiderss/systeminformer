@@ -53,6 +53,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN),
+                PhGetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS) ? BST_CHECKED : BST_UNCHECKED);
         }
@@ -79,6 +81,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                         (EnableSearchBox = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX)) == BST_CHECKED));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR,
                         (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED));
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS,
+                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN)) == BST_CHECKED);
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 

@@ -27,15 +27,25 @@
 #define IDB_APPLICATION_GET             123
 #define IDB_POWER                       124
 #define IDB_POWER_BMP                   125
+#define IDB_APPLICATION_GET_MODERN      126
+#define IDB_APPLICATION_GO_MODERN       127
+#define IDB_APPLICATION_MODERN          128
+#define IDB_ARROW_REFRESH_MODERN        129
+#define IDB_CHART_LINE_MODERN           130
+#define IDB_COG_EDIT_MODERN             131
+#define IDB_CROSS_MODERN                132
+#define IDB_FIND_MODERN                 133
+#define IDB_POWER_MODERN                134
 #define IDC_ENABLE_TOOLBAR              1001
 #define IDC_ENABLE_SEARCHBOX            1002
-#define IDC_RESOLVEGHOSTWINDOWS         1003
+#define IDC_ENABLE_MODERN               1003
 #define IDC_DISPLAYSTYLECOMBO           1004
 #define IDC_DISPLAYSTYLETEXT            1005
 #define IDC_ENABLE_STATUSBAR            1006
 #define IDC_CUSTOMIZETOOLBAR            1007
 #define IDC_SEARCHBOX_DISPLAYSTYLECOMBO 1008
 #define IDC_SEARCHBOX_DISPLAYSTYLETEXT  1009
+#define IDC_RESOLVEGHOSTWINDOWS         1010
 #define ID_STATUS_CPUUSAGE              40001
 #define ID_STATUS_COMMITCHARGE          40002
 #define ID_STATUS_PHYSICALMEMORY        40003
@@ -55,9 +65,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        126
+#define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         40015
-#define _APS_NEXT_CONTROL_VALUE         1008
+#define _APS_NEXT_CONTROL_VALUE         1011
 #define _APS_NEXT_SYMED_VALUE           11010
 #endif
 #endif
