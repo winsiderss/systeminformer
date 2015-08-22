@@ -367,7 +367,7 @@ VOID UpdateStatusBar(
                     }
                     else
                     {
-                        text[count] = PhFormatString(
+                        text[count] = PhCreateString(
                             L"Visible: N/A"
                             );
                     }
@@ -399,7 +399,7 @@ VOID UpdateStatusBar(
                     }
                     else
                     {
-                        text[count] = PhFormatString(
+                        text[count] = PhCreateString(
                             L"Selected: N/A"
                             );
                     }
