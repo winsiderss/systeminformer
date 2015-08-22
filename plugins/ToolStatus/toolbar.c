@@ -311,7 +311,7 @@ static VOID RebarLoadSettings(
             ShowWindow(RebarHandle, SW_HIDE);
     }
 
-    if (EnableSearchBox)
+    if (EnableSearchBox && RebarHandle)
     {
         RECT rect;
 
@@ -457,7 +457,7 @@ VOID LoadToolbarSettings(
         //InvalidateRect(ToolBarHandle, NULL, TRUE);
     }
 
-    if (EnableToolBar && RebarHandle)
+    if (EnableToolBar && RebarHandle && ToolBarHandle)
     {
         INT index;
         REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
@@ -530,7 +530,6 @@ VOID ToolbarLoadButtonSettings(
     VOID
     )
 {
-    INT buttonIndex = 0;
     INT buttonCount = 0;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
@@ -556,7 +555,7 @@ VOID ToolbarLoadButtonSettings(
     buttonArray = PhAllocate(buttonCount * sizeof(TBBUTTON));
     memset(buttonArray, 0, buttonCount * sizeof(TBBUTTON));
 
-    while (remaining.Length != 0)
+    for (INT index = 0; index < buttonCount; index++)
     {
         PH_STRINGREF commandIdPart;
         PH_STRINGREF iBitmapPart;
@@ -572,23 +571,22 @@ VOID ToolbarLoadButtonSettings(
         PhSplitStringRefAtChar(&remaining, '|', &buttonShowTextPart, &remaining);
         PhSplitStringRefAtChar(&remaining, '|', &buttonDropDownPart, &remaining);
 
-        buttonArray[buttonIndex].idCommand = _wtoi(commandIdPart.Buffer);
-        buttonArray[buttonIndex].iBitmap = _wtoi(iBitmapPart.Buffer);
+        buttonArray[index].idCommand = _wtoi(commandIdPart.Buffer);
+        buttonArray[index].iBitmap = _wtoi(iBitmapPart.Buffer);
 
         if (_wtoi(buttonSepPart.Buffer))
-            buttonArray[buttonIndex].fsStyle |= BTNS_SEP;
+            buttonArray[index].fsStyle |= BTNS_SEP;
 
         if (_wtoi(buttonAutoSizePart.Buffer))
-            buttonArray[buttonIndex].fsStyle |= BTNS_AUTOSIZE;
+            buttonArray[index].fsStyle |= BTNS_AUTOSIZE;
         
         if (_wtoi(buttonShowTextPart.Buffer))
-            buttonArray[buttonIndex].fsStyle |= BTNS_SHOWTEXT;
+            buttonArray[index].fsStyle |= BTNS_SHOWTEXT;
         
         if (_wtoi(buttonDropDownPart.Buffer))
-            buttonArray[buttonIndex].fsStyle |= BTNS_WHOLEDROPDOWN;
+            buttonArray[index].fsStyle |= BTNS_WHOLEDROPDOWN;
 
-        buttonArray[buttonIndex].fsState |= TBSTATE_ENABLED;
-        buttonIndex++;
+        buttonArray[index].fsState |= TBSTATE_ENABLED;
     }
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);

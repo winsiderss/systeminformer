@@ -231,9 +231,9 @@ static VOID NTAPI LayoutPaddingCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_LAYOUT_PADDING_DATA data = (PPH_LAYOUT_PADDING_DATA)Parameter;
+    PPH_LAYOUT_PADDING_DATA layoutPadding = Parameter;
 
-    if (RebarHandle && EnableToolBar)
+    if (layoutPadding && RebarHandle && EnableToolBar)
     {
         RECT rebarRect;
 
@@ -242,7 +242,7 @@ static VOID NTAPI LayoutPaddingCallback(
         GetClientRect(RebarHandle, &rebarRect);
 
         // Adjust the PH client area and exclude the rebar width.
-        data->Padding.top += rebarRect.bottom;
+        layoutPadding->Padding.top += rebarRect.bottom;
 
         //if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
         //{
@@ -276,7 +276,7 @@ static VOID NTAPI LayoutPaddingCallback(
         //}
     }
 
-    if (StatusBarHandle && EnableStatusBar)
+    if (layoutPadding && StatusBarHandle && EnableStatusBar)
     {
         RECT statusBarRect;
 
@@ -285,7 +285,7 @@ static VOID NTAPI LayoutPaddingCallback(
         GetClientRect(StatusBarHandle, &statusBarRect);
 
         // Adjust the PH client area and exclude the StatusBar width.
-        data->Padding.bottom += statusBarRect.bottom;
+        layoutPadding->Padding.bottom += statusBarRect.bottom;
     }
 }
 
