@@ -211,23 +211,23 @@ HWND CreateSearchControl(
 typedef struct _EDIT_CONTEXT
 {
     UINT CommandID;
+    LONG CXWidth;
     INT CXBorder;
     //INT CYBorder;
     INT ImageWidth;
-    INT ImageHeight;
-    LONG cxImgSize;
+    INT ImageHeight;  
 
     HWND WindowHandle;
     HFONT WindowFont;
     HIMAGELIST ImageList;
 
     HBRUSH BrushNormal;
-    HBRUSH BrushFocused;
+    HBRUSH BrushPushed;
     HBRUSH BrushHot;
-    HBRUSH BrushFill;
     COLORREF BackgroundColorRef;
 
-    BOOLEAN MouseInClient;
+    BOOLEAN Hot;
+    BOOLEAN Pushed;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HBITMAP LoadImageFromResources(
