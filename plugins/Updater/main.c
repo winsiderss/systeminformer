@@ -49,7 +49,7 @@ static VOID NTAPI MainMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
 
     // Check this menu is the Help menu
-    if (menuInfo->u.MainMenu.SubMenuIndex != 4)
+    if (!menuInfo || menuInfo->u.MainMenu.SubMenuIndex != 4)
         return;
 
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for Updates", NULL), 0);
@@ -62,7 +62,7 @@ static VOID NTAPI MenuItemCallback(
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
 
-    if (menuItem->Id == UPDATE_MENUITEM)
+    if (menuItem && menuItem->Id == UPDATE_MENUITEM)
     {
         ShowUpdateDialog(NULL);
     }
