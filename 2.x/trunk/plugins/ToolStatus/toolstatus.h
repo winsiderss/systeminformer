@@ -214,7 +214,6 @@ typedef struct _EDIT_CONTEXT
     UINT CommandID;
     LONG CXWidth;
     INT CXBorder;
-    //INT CYBorder;
     INT ImageWidth;
     INT ImageHeight;  
 
