@@ -107,9 +107,9 @@ VOID PhCloseDebugConsole(
     VOID
     )
 {
-    fclose(stdout);
-    fclose(stderr);
-    fclose(stdin);
+    freopen("NUL", "w", stdout);
+    freopen("NUL", "w", stderr);
+    freopen("NUL", "r", stdin);
 
     FreeConsole();
 }
@@ -658,6 +658,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
     )
 {
     PH_AUTO_POOL autoPool;
+    BOOLEAN exit = FALSE;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -690,7 +691,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
     wprintf(L"Press Ctrl+C or type \"exit\" to close the debug console. Type \"help\" for a list of commands.\n");
 
-    while (TRUE)
+    while (!exit)
     {
         static PWSTR delims = L" \t";
         static PWSTR commandDebugOnly = L"This command is not available on non-debug builds.\n";
@@ -750,6 +751,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         else if (PhEqualStringZ(command, L"exit", TRUE))
         {
             PhCloseDebugConsole();
+            exit = TRUE;
         }
         else if (PhEqualStringZ(command, L"testperf", TRUE))
         {
