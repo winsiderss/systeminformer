@@ -96,7 +96,7 @@ static VOID NcAreaInitializeTheme(
     Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(229, 243, 251));
-    Context->BrushPushed = CreateSolidBrush(RGB(203, 232, 246));
+    Context->BrushPushed = CreateSolidBrush(RGB(209, 232, 255));
 
     if (!UxThemeHandle)
     {
@@ -179,7 +179,7 @@ static VOID NcAreaGetButtonRect(
     _Inout_ PRECT ButtonRect
     )
 {
-    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder - 1;
+    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder - 1; // offset by 1
     ButtonRect->bottom -= Context->CXBorder;
     ButtonRect->right -= Context->CXBorder;
     ButtonRect->top += Context->CXBorder;
