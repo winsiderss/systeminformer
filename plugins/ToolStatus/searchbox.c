@@ -22,6 +22,15 @@
  */
 
 #include "toolstatus.h"
+#include <Uxtheme.h>
+#include <vssym32.h>
+
+static HMODULE UxThemeHandle = NULL;
+static _IsThemeActive IsThemeActive_I = NULL;
+static _OpenThemeData OpenThemeData_I = NULL;
+static _CloseThemeData CloseThemeData_I = NULL;
+static _IsThemePartDefined IsThemePartDefined_I = NULL;
+static _GetThemeInt GetThemeInt_I = NULL;
 
 static VOID NcAreaFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
@@ -84,13 +93,49 @@ static VOID NcAreaInitializeTheme(
     )
 {
     Context->CXWidth = 20;
-    Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2; // TODO: Remove *2 if window is themed on Vista and above.
-    //Context->CYBorder = GetSystemMetrics(SM_CYBORDER) * 2;
-
     Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(229, 243, 251));
     Context->BrushPushed = CreateSolidBrush(RGB(203, 232, 246));
+
+    if (!UxThemeHandle)
+    {
+        if (UxThemeHandle = LoadLibrary(L"uxtheme.dll"))
+        {
+            IsThemeActive_I = (_IsThemeActive)GetProcAddress(UxThemeHandle, "IsThemeActive");
+            OpenThemeData_I = (_OpenThemeData)GetProcAddress(UxThemeHandle, "OpenThemeData");
+            CloseThemeData_I = (_CloseThemeData)GetProcAddress(UxThemeHandle, "CloseThemeData");
+            IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(UxThemeHandle, "IsThemePartDefined");
+            GetThemeInt_I = (_GetThemeInt)GetProcAddress(UxThemeHandle, "GetThemeInt");
+        }
+    }
+
+    if (IsThemeActive_I && OpenThemeData_I && GetThemeInt_I && CloseThemeData_I)
+    {
+        if (IsThemeActive_I())
+        {
+            HTHEME themeDataHandle = OpenThemeData_I(Context->WindowHandle, VSCLASS_EDIT);
+            //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
+
+            GetThemeInt_I(
+                themeDataHandle,
+                EP_EDITBORDER_NOSCROLL,
+                EPSHV_NORMAL,
+                TMT_BORDERSIZE,
+                &Context->CXBorder
+                );
+
+            CloseThemeData_I(themeDataHandle);
+        }
+        else
+        {
+            Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+        }
+    }
+    else
+    {
+        Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+    }
 }
 
 static VOID NcAreaInitializeImageList(
@@ -134,7 +179,7 @@ static VOID NcAreaGetButtonRect(
     _Inout_ PRECT ButtonRect
     )
 {
-    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder;
+    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder - 1;
     ButtonRect->bottom -= Context->CXBorder;
     ButtonRect->right -= Context->CXBorder;
     ButtonRect->top += Context->CXBorder;
@@ -156,7 +201,7 @@ static VOID NcAreaDrawButton(
     {
         FillRect(hdc, &ButtonRect, Context->BrushPushed);
         //FrameRect(hdc, &ButtonRect, CreateSolidBrush(RGB(0xff, 0, 0)));
-    }   
+    }
     else if (Context->Hot)
     {
         FillRect(hdc, &ButtonRect, Context->BrushHot);
@@ -445,7 +490,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
                     TRACKMOUSEEVENT trackMouseEvent = { sizeof(TRACKMOUSEEVENT) };
                     trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
                     trackMouseEvent.hwndTrack = hWnd;
-   
+
                     context->Hot = TRUE;
                     RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
 
@@ -631,7 +676,7 @@ HBITMAP LoadImageFromResources(
 
         if (wicFactory)
         {
-           IWICImagingFactory_Release(wicFactory);
+            IWICImagingFactory_Release(wicFactory);
         }
 
         if (resourceHandle)
