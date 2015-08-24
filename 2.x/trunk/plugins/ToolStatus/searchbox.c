@@ -204,7 +204,6 @@ static VOID NcAreaDrawButton(
     if (!(hdc = GetWindowDC(Context->WindowHandle)))
         return;
 
-    //SetBkMode(hdc, TRANSPARENT);
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
     oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
@@ -212,12 +211,12 @@ static VOID NcAreaDrawButton(
     if (Context->Pushed)
     {
         FillRect(bufferDc, &bufferRect, Context->BrushPushed);
-        //FrameRect(bufferDc, &ButtonRect, CreateSolidBrush(RGB(0xff, 0, 0)));
+        //FrameRect(bufferDc, &bufferRect, CreateSolidBrush(RGB(0xff, 0, 0)));
     }
     else if (Context->Hot)
     {
         FillRect(bufferDc, &bufferRect, Context->BrushHot);
-        //FrameRect(bufferDc, &ButtonRect, CreateSolidBrush(RGB(38, 160, 218)));
+        //FrameRect(bufferDc, &bufferRect, CreateSolidBrush(RGB(38, 160, 218)));
     }
     else
     {
