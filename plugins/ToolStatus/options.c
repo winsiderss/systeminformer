@@ -87,7 +87,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
                     LoadToolbarSettings();
-                    InvalidateRect(ToolBarHandle, NULL, TRUE);
+                    //InvalidateRect(ToolBarHandle, NULL, TRUE);
 
                     EndDialog(hwndDlg, IDOK);
                 }
