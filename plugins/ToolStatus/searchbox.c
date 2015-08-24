@@ -191,25 +191,37 @@ static VOID NcAreaDrawButton(
     )
 {
     HDC hdc;
+    HDC bufferDc;
+    HBITMAP bufferBitmap;
+    HBITMAP oldBufferBitmap;
+    RECT bufferRect = 
+    {
+        0, 0, 
+        ButtonRect.right - ButtonRect.left, 
+        ButtonRect.bottom - ButtonRect.top 
+    };
 
     if (!(hdc = GetWindowDC(Context->WindowHandle)))
         return;
 
-    SetBkMode(hdc, TRANSPARENT);
+    //SetBkMode(hdc, TRANSPARENT);
+    bufferDc = CreateCompatibleDC(hdc);
+    bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
+    oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
 
     if (Context->Pushed)
     {
-        FillRect(hdc, &ButtonRect, Context->BrushPushed);
-        //FrameRect(hdc, &ButtonRect, CreateSolidBrush(RGB(0xff, 0, 0)));
+        FillRect(bufferDc, &bufferRect, Context->BrushPushed);
+        //FrameRect(bufferDc, &ButtonRect, CreateSolidBrush(RGB(0xff, 0, 0)));
     }
     else if (Context->Hot)
     {
-        FillRect(hdc, &ButtonRect, Context->BrushHot);
-        //FrameRect(hdc, &ButtonRect, CreateSolidBrush(RGB(38, 160, 218)));
+        FillRect(bufferDc, &bufferRect, Context->BrushHot);
+        //FrameRect(bufferDc, &ButtonRect, CreateSolidBrush(RGB(38, 160, 218)));
     }
     else
     {
-        FillRect(hdc, &ButtonRect, Context->BrushNormal);
+        FillRect(bufferDc, &bufferRect, Context->BrushNormal);
     }
 
     // Draw the image centered within the rect.
@@ -218,9 +230,9 @@ static VOID NcAreaDrawButton(
         ImageList_DrawEx(
             Context->ImageList,
             0,
-            hdc,
-            ButtonRect.left + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
-            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
+            bufferDc,
+            bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2,
+            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - Context->ImageHeight) / 2,
             0,
             0,
             Context->BackgroundColorRef,
@@ -233,9 +245,9 @@ static VOID NcAreaDrawButton(
         ImageList_DrawEx(
             Context->ImageList,
             1,
-            hdc,
-            ButtonRect.left + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
-            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - (Context->ImageHeight - 1)) / 2, // (Height - 1)  image off by one pixel 
+            bufferDc,
+            bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2,
+            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 1)) / 2, // (Height - 1) image off by one pixel 
             0,
             0,
             Context->BackgroundColorRef,
@@ -243,6 +255,11 @@ static VOID NcAreaDrawButton(
             ILD_NORMAL | ILD_TRANSPARENT
             );
     }
+
+    BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
+    SelectObject(bufferDc, oldBufferBitmap);
+    DeleteObject(bufferBitmap);
+    DeleteDC(bufferDc);
 
     ReleaseDC(Context->WindowHandle, hdc);
 }
