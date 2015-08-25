@@ -127,7 +127,7 @@ static PPH_BYTES PhFormatAnsiString(
     return PhFormatAnsiString_V(Format, argptr);
 }
 
-static ULONG PhNetworkPingThreadStart(
+static NTSTATUS PhNetworkPingThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -637,7 +637,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             HDC hdc = Graph_GetBufferedContext(context->PingGraphHandle);
 
                             PhMoveReference(&context->PingGraphState.Text,
-                                PhFormatString(L"Ping: %ums", context->CurrentPingMs)
+                                PhFormatString(L"Ping: %lums", context->CurrentPingMs)
                                 );
 
                             SelectObject(hdc, PhApplicationFont);
@@ -699,7 +699,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                                 ULONG pingMs = PhGetItemCircularBuffer_ULONG(&context->PingHistory, getTooltipText->Index);
 
                                 PhMoveReference(&context->PingGraphState.TooltipText,
-                                    PhFormatString(L"Ping: %ums", pingMs)
+                                    PhFormatString(L"Ping: %lums", pingMs)
                                     );
                             }
 
