@@ -34,6 +34,39 @@ static mxml_type_t QueryXmlDataCallback(
     return MXML_OPAQUE;
 }
 
+static BOOLEAN HasLastUpdateTimeExpired(
+    VOID
+    )
+{
+    ULONG64 lastTimeTicks = 0;
+    LARGE_INTEGER currentTimeTicks;
+    PPH_STRING lastUpdateTickString;
+
+    // Get the last update check time 
+    lastUpdateTickString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
+    PhStringToInteger64(&lastUpdateTickString->sr, 0, &lastTimeTicks);
+
+    // Query the current time
+    PhQuerySystemTime(&currentTimeTicks);
+
+    // Was the last update time less than 24 hours ago?
+    if (currentTimeTicks.QuadPart - lastTimeTicks >= PH_TICKS_PER_DAY) // 48 * PH_TICKS_PER_HOUR
+    {
+        PPH_STRING currentTimeString = PhFormatUInt64(currentTimeTicks.QuadPart, FALSE);
+
+        // Save the current time
+        PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentTimeString->sr);
+
+        // Cleanup
+        PhDereferenceObject(currentTimeString);
+        PhDereferenceObject(lastUpdateTickString);
+        return TRUE;
+    }
+
+    PhDereferenceObject(lastUpdateTickString);
+    return FALSE;
+}
+
 static BOOLEAN ParseVersionString(
     _Inout_ PPH_UPDATER_CONTEXT Context
     )
@@ -174,7 +207,8 @@ static VOID FreeUpdateContext(
 }
 
 static BOOLEAN QueryUpdateData(
-    _Inout_ PPH_UPDATER_CONTEXT Context
+    _Inout_ PPH_UPDATER_CONTEXT Context,
+    _In_ BOOLEAN UseFailoverServer
     )
 {
     BOOLEAN isSuccess = FALSE;
@@ -221,27 +255,55 @@ static BOOLEAN QueryUpdateData(
             __leave;
         }
 
-        if (!(httpConnectionHandle = WinHttpConnect(
-            httpSessionHandle,
-            L"processhacker.sourceforge.net",
-            INTERNET_DEFAULT_HTTP_PORT,
-            0
-            )))
+        if (UseFailoverServer)
         {
-            __leave;
-        }
+            if (!(httpConnectionHandle = WinHttpConnect(
+                httpSessionHandle,
+                L"processhacker.sourceforge.net",
+                INTERNET_DEFAULT_HTTP_PORT,
+                0
+                )))
+            {
+                __leave;
+            }
 
-        if (!(httpRequestHandle = WinHttpOpenRequest(
-            httpConnectionHandle,
-            NULL,
-            L"/update.php",
-            NULL,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            0 // WINHTTP_FLAG_REFRESH
-            )))
+            if (!(httpRequestHandle = WinHttpOpenRequest(
+                httpConnectionHandle,
+                NULL,
+                L"/update.php",
+                NULL,
+                WINHTTP_NO_REFERER,
+                WINHTTP_DEFAULT_ACCEPT_TYPES,
+                WINHTTP_FLAG_REFRESH
+                )))
+            {
+                __leave;
+            }
+        }
+        else
         {
-            __leave;
+            if (!(httpConnectionHandle = WinHttpConnect(
+                httpSessionHandle,
+                L"wj32.org",
+                INTERNET_DEFAULT_HTTP_PORT,
+                0
+                )))
+            {
+                __leave;
+            }
+
+            if (!(httpRequestHandle = WinHttpOpenRequest(
+                httpConnectionHandle,
+                NULL,
+                L"/processhacker/update.php",
+                NULL,
+                WINHTTP_NO_REFERER,
+                WINHTTP_DEFAULT_ACCEPT_TYPES,
+                WINHTTP_FLAG_REFRESH
+                )))
+            {
+                __leave;
+            }
         }
 
         if (!WinHttpSendRequest(
@@ -357,8 +419,18 @@ static NTSTATUS UpdateCheckSilentThread(
 
     __try
     {
-        if (!QueryUpdateData(context))
+        if (!HasLastUpdateTimeExpired())
+        {
             __leave;
+        }
+
+        if (!QueryUpdateData(context, FALSE))
+        {
+            if (!QueryUpdateData(context, TRUE))
+            {
+                __leave;
+            }
+        }
 
         currentVersion = MAKEDLLVERULL(
             context->CurrentMajorVersion,
@@ -402,8 +474,10 @@ static NTSTATUS UpdateCheckSilentThread(
     __finally
     {
         // Check the dialog doesn't own the window context...
-        if (context->HaveData == FALSE)
+        if (!context->HaveData)
+        {
             FreeUpdateContext(context);
+        }
     }
 
     return STATUS_SUCCESS;
@@ -421,7 +495,14 @@ static NTSTATUS UpdateCheckThread(
 
     // Check if we have cached update data
     if (!context->HaveData)
-        context->HaveData = QueryUpdateData(context);
+    {
+        context->HaveData = QueryUpdateData(context, FALSE);
+
+        if (!context->HaveData)
+        {
+            context->HaveData = QueryUpdateData(context, TRUE);
+        }
+    }
 
     // sanity check
     if (!context->HaveData)
