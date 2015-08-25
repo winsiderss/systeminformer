@@ -51,6 +51,7 @@
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
+#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
 
 #define MAKEDLLVERULL(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
