@@ -38,32 +38,33 @@ static BOOLEAN HasLastUpdateTimeExpired(
     VOID
     )
 {
-    ULONG64 lastTimeTicks = 0;
-    LARGE_INTEGER currentTimeTicks;
-    PPH_STRING lastUpdateTickString;
+    ULONG64 lastUpdateTimeTicks = 0;
+    LARGE_INTEGER currentUpdateTimeTicks;
+    PPH_STRING lastUpdateTimeString;
 
     // Get the last update check time 
-    lastUpdateTickString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
-    PhStringToInteger64(&lastUpdateTickString->sr, 0, &lastTimeTicks);
+    lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
+    PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks);
 
     // Query the current time
-    PhQuerySystemTime(&currentTimeTicks);
+    PhQuerySystemTime(&currentUpdateTimeTicks);
 
-    // Was the last update time less than 24 hours ago?
-    if (currentTimeTicks.QuadPart - lastTimeTicks >= PH_TICKS_PER_DAY) // 48 * PH_TICKS_PER_HOUR
+    // Was the last update check less than 24 hours ago?
+    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= PH_TICKS_PER_DAY) // 48 * PH_TICKS_PER_HOUR
     {
-        PPH_STRING currentTimeString = PhFormatUInt64(currentTimeTicks.QuadPart, FALSE);
+        PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
 
         // Save the current time
-        PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentTimeString->sr);
+        PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
 
         // Cleanup
-        PhDereferenceObject(currentTimeString);
-        PhDereferenceObject(lastUpdateTickString);
+        PhDereferenceObject(currentUpdateTimeString);
+        PhDereferenceObject(lastUpdateTimeString);
         return TRUE;
     }
 
-    PhDereferenceObject(lastUpdateTickString);
+    // Cleanup
+    PhDereferenceObject(lastUpdateTimeString);
     return FALSE;
 }
 
