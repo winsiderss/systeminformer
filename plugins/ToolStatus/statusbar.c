@@ -164,7 +164,7 @@ VOID UpdateStatusBar(
     VOID
     )
 {
-    static ULONG lastTickCount = 0;
+    static ULONG64 lastTickCount = 0;
 
     PPH_STRING text[STATUS_COUNT];
     ULONG widths[STATUS_COUNT];
@@ -194,14 +194,14 @@ VOID UpdateStatusBar(
 
     // Reset max. widths for Max. CPU Process and Max. I/O Process parts once in a while.
     {
-        ULONG tickCount;
+        LARGE_INTEGER tickCount;
 
-        tickCount = GetTickCount();
+        PhQuerySystemTime(&tickCount);
 
-        if (tickCount - lastTickCount >= 10000)
+        if (tickCount.QuadPart - lastTickCount >= 10 * PH_TICKS_PER_SEC)
         {
             resetMaxWidths = TRUE;
-            lastTickCount = tickCount;
+            lastTickCount = tickCount.QuadPart;
         }
     }
 
