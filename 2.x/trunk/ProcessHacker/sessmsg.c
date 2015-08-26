@@ -69,7 +69,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
         {
             HWND iconComboBox;
 
-            SetProp(hwndDlg, L"SessionId", ULongToHandle((ULONG)lParam));
+            SetProp(hwndDlg, L"SessionId", UlongToHandle((ULONG)lParam));
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             iconComboBox = GetDlgItem(hwndDlg, IDC_TYPE);
