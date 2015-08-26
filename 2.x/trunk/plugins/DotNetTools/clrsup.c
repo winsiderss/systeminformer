@@ -534,7 +534,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     memset(&buffer, 0, sizeof(CONTEXT));
     buffer.ContextFlags = contextFlags;
 
-    if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, ULongToHandle(threadID))))
+    if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, UlongToHandle(threadID))))
     {
         status = PhGetThreadContext(threadHandle, &buffer);
         NtClose(threadHandle);

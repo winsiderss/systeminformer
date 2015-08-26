@@ -423,7 +423,7 @@ VOID NTAPI RefreshSandboxieInfo(
             {
                 BOXED_PROCESS boxedProcess;
 
-                boxedProcess.ProcessId = ULongToHandle(*pid);
+                boxedProcess.ProcessId = UlongToHandle(*pid);
                 memcpy(boxedProcess.BoxName, boxName, sizeof(boxName));
 
                 PhAddEntryHashtable(BoxedProcessesHashtable, &boxedProcess);
