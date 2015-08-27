@@ -596,7 +596,7 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     return FALSE;
 }
 
-static INT_PTR CALLBACK RestartComputerDlgProc(
+INT_PTR CALLBACK RestartComputerDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -629,7 +629,7 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE), context->RebootMessage ? BST_CHECKED : BST_UNCHECKED);
             SetDlgItemText(hwndDlg, IDC_RESTARTMESSAGE, PhGetString(context->RebootMessage));
 
-            SetFocus(GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER), TRUE);
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER), 0, -1);
         }
         break;
