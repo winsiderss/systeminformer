@@ -1699,7 +1699,7 @@ static INT_PTR CALLBACK ValueDlgProc(
     case WM_INITDIALOG:
         {
             SetDlgItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
-            SetFocus(GetDlgItem(hwndDlg, IDC_VALUES));
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUES), TRUE);
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUES), 0, -1);
         }
         break;
