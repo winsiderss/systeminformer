@@ -197,6 +197,7 @@ INT WINAPI wWinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
+#ifndef DEBUG
     if (PhIsExecutingInWow64() && !PhStartupParameters.PhSvc)
     {
         PhShowWarning(
@@ -206,6 +207,7 @@ INT WINAPI wWinMain(
             L"Please run the 64-bit version of Process Hacker instead."
             );
     }
+#endif
 
     PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
 
