@@ -1,24 +1,24 @@
 /*
-* Process Hacker Extra Plugins -
-*   Dialog Window
-*
-* Copyright (C) 2015 dmex
-*
-* This file is part of Process Hacker.
-*
-* Process Hacker is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Process Hacker is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Process Hacker Extra Plugins -
+ *   Network Adapters Plugin
+ *
+ * Copyright (C) 2015 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "main.h"
 
@@ -32,20 +32,12 @@ static INT PhAddListViewItemGroupId(
     _In_ PWSTR Text
     )
 {
-    LVITEM item = { 0 };
+    LVITEM item;
     item.mask = LVIF_TEXT | LVIF_GROUPID;
     item.iItem = Index;
     item.iSubItem = SubIndex;
     item.pszText = Text;
     item.iGroupId = GroupId;
-
-    //static LVITEM item;
-    //item.mask = LVIF_TEXT | LVIF_GROUPID;
-    //item.iItem = 0;
-    //item.iSubItem = 0;
-    //item.pszText = L"item1";
-    //item.iGroupId = 0;
-    //ListView_InsertItem(ListViewHandle, &item);
 
     return ListView_InsertItem(ListViewHandle, &item);
 }
@@ -57,19 +49,19 @@ INT PhAddListViewGroup(
     )
 {
     LVGROUP group;
-
     group.cbSize = sizeof(LVGROUP);
     group.mask = LVGF_HEADER | LVGF_GROUPID | LVGF_ALIGN | LVGF_STATE;
-    group.iGroupId = Index;
     group.uAlign = LVGA_HEADER_CENTER;
     group.state = LVGS_COLLAPSIBLE;
+    group.iGroupId = Index;
     group.pszHeader = Text;
-    group.cchHeader = (INT)wcslen(Text);
 
     return (INT)ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
 }
 
-static NDIS_STATISTICS_INFO NetAdapterRowToNdisStatistics(MIB_IF_ROW2 Row)
+static NDIS_STATISTICS_INFO NetAdapterRowToNdisStatistics(
+    _In_ MIB_IF_ROW2 Row
+    )
 {
     NDIS_STATISTICS_INFO interfaceStats;
 
@@ -154,7 +146,7 @@ static VOID NetAdapterUpdateDetails(
             interfaceLinkSpeed = interfaceState.XmitLinkSpeed;
         }
     }
-  
+
 
     interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
     interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsIOutboundValue;
@@ -290,19 +282,19 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
             PhAddListViewItemGroupId(context->DetailsLvHandle, 16, 0, 2, L"Out");
             PhAddListViewItemGroupId(context->DetailsLvHandle, 17, 0, 2, L"Total");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 18, 0, 3, L"InUcastPkts");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 19, 0, 3, L"OutUcastPkts");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 20, 0, 3, L"Total");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 21, 0, 3, L"InUcastOctets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 22, 0, 3, L"OutUcastOctets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 18, 0, 3, L"In Pkts");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 19, 0, 3, L"Out Pkts");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 20, 0, 3, L"Total Pkts");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 21, 0, 3, L"In");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 22, 0, 3, L"Out");
             PhAddListViewItemGroupId(context->DetailsLvHandle, 23, 0, 3, L"Total");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 24, 0, 4, L"InErrors");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 25, 0, 4, L"OutErrors");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 26, 0, 4, L"Total");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 27, 0, 4, L"InDiscards");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 28, 0, 4, L"OutDiscards");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 29, 0, 4, L"Total");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 24, 0, 4, L"In Errors");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 25, 0, 4, L"Out Errors");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 26, 0, 4, L"Total Errors");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 27, 0, 4, L"In Discards");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 28, 0, 4, L"Out Discards");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, 29, 0, 4, L"Total Discards");
 
             NetAdapterUpdateDetails(context);
         }
@@ -320,7 +312,7 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-            case IDOK: 
+            case IDOK:
                 EndDialog(hwndDlg, IDOK);
                 break;
             }
