@@ -258,9 +258,9 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
 
             ListView_EnableGroupView(context->DetailsLvHandle, TRUE);
             PhAddListViewGroup(context->DetailsLvHandle, 0, L"Adapter");
-            PhAddListViewGroup(context->DetailsLvHandle, 3, L"Unicast");
-            PhAddListViewGroup(context->DetailsLvHandle, 1, L"Broadcast");
-            PhAddListViewGroup(context->DetailsLvHandle, 2, L"Multicast");
+            PhAddListViewGroup(context->DetailsLvHandle, 1, L"Unicast");
+            PhAddListViewGroup(context->DetailsLvHandle, 2, L"Broadcast");
+            PhAddListViewGroup(context->DetailsLvHandle, 3, L"Multicast");
             PhAddListViewGroup(context->DetailsLvHandle, 4, L"Errors");
 
             PhAddListViewItemGroupId(context->DetailsLvHandle, 0, 0, 0, L"State");
