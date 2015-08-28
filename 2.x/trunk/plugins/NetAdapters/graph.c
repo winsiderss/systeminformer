@@ -22,9 +22,6 @@
 
 #include "main.h"
 
-#define MSG_UPDATE (WM_APP + 1)
-#define MSG_UPDATE_PANEL (WM_APP + 2)
-
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -35,6 +32,11 @@ static VOID NTAPI ProcessesUpdatedHandler(
     if (context->WindowHandle)
     {
         PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+    }
+
+    if (context->DetailsHandle)
+    {
+        PostMessage(context->DetailsHandle, MSG_UPDATE, 0, 0);
     }
 }
 
@@ -130,7 +132,7 @@ static VOID NetAdapterUpdatePanel(
     else
         SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
 
-    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatSize(linkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(inOctets, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
@@ -143,6 +145,43 @@ static INT_PTR CALLBACK NetAdapterPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
+    PPH_NETADAPTER_SYSINFO_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PPH_NETADAPTER_SYSINFO_CONTEXT)lParam;
+
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_NCDESTROY)
+        {
+            RemoveProp(hwndDlg, L"Context");
+        }
+    }
+
+    if (context == NULL)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_DETAILS_BUTTON:
+                {
+                    ShowDetailsDialog(context);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -205,7 +244,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->SysinfoSection->Name.Buffer);
 
-            context->PanelWindowHandle = CreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc);
+            context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
             PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
