@@ -32,6 +32,9 @@
     <ClCompile Include="ndis.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dialog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
