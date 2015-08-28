@@ -191,9 +191,9 @@ static VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->DetailsLvHandle, 16, 1, PhaFormatSize(interfaceStats.ifHCOutMulticastOctets, -1)->Buffer);
     PhSetListViewSubItem(Context->DetailsLvHandle, 17, 1, PhaFormatSize(interfaceStats.ifHCInMulticastOctets + interfaceStats.ifHCOutMulticastOctets, -1)->Buffer);
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 18, 1, PhaFormatSize(interfaceStats.ifHCInUcastPkts, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 19, 1, PhaFormatSize(interfaceStats.ifHCOutUcastPkts, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 20, 1, PhaFormatSize(interfaceStats.ifHCInUcastPkts + interfaceStats.ifHCOutUcastPkts, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, 18, 1, PhaFormatString(L"%I64u", interfaceStats.ifHCInUcastPkts, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, 19, 1, PhaFormatString(L"%I64u", interfaceStats.ifHCOutUcastPkts, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, 20, 1, PhaFormatString(L"%I64u", interfaceStats.ifHCInUcastPkts + interfaceStats.ifHCOutUcastPkts, -1)->Buffer);
     PhSetListViewSubItem(Context->DetailsLvHandle, 21, 1, PhaFormatSize(interfaceStats.ifHCInUcastOctets, -1)->Buffer);
     PhSetListViewSubItem(Context->DetailsLvHandle, 22, 1, PhaFormatSize(interfaceStats.ifHCOutUcastOctets, -1)->Buffer);
     PhSetListViewSubItem(Context->DetailsLvHandle, 23, 1, PhaFormatSize(interfaceStats.ifHCInUcastOctets + interfaceStats.ifHCOutUcastOctets, -1)->Buffer);
