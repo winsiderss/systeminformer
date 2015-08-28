@@ -43,6 +43,8 @@
 
 #include "resource.h"
 
+#define MSG_UPDATE (WM_APP + 1)
+
 extern PPH_PLUGIN PluginInstance;
 extern PPH_LIST NetworkAdaptersList;
 
@@ -62,6 +64,7 @@ typedef struct _PH_NETADAPTER_CONTEXT
 typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
 {
     BOOLEAN HaveFirstSample;
+    BOOLEAN HaveFirstDetailsSample;
 
     //ULONG64 LinkSpeed;
     ULONG64 InboundValue;
@@ -69,10 +72,15 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     ULONG64 LastInboundValue;
     ULONG64 LastOutboundValue;
 
+    ULONG64 LastDetailsInboundValue;
+    ULONG64 LastDetailsIOutboundValue;
+
     PPH_STRING AdapterName;
     PPH_NETADAPTER_ENTRY AdapterEntry;
 
     HWND WindowHandle;
+    HWND DetailsHandle;
+    HWND DetailsLvHandle;
     HWND PanelWindowHandle;
     HWND GraphHandle;
 
@@ -101,6 +109,11 @@ VOID NetAdapterSysInfoInitializing(
     _In_ PPH_NETADAPTER_ENTRY AdapterInfo
     );
 
+// dialog.c
+
+VOID ShowDetailsDialog(
+    _In_opt_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    );
 
 // ndis.c
 

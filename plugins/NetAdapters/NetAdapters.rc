@@ -24,8 +24,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -42,12 +42,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network adapters plugin for Process Hacker"
-            VALUE "FileVersion", "1.1"
+            VALUE "FileVersion", "1.2"
             VALUE "InternalName", "NetAdapters"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetAdapters.dll"
             VALUE "ProductName", "Network adapters plugin for Process Hacker"
-            VALUE "ProductVersion", "1.1"
+            VALUE "ProductVersion", "1.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -123,7 +123,16 @@ BEGIN
     RTEXT           "Static",IDC_STAT_BRECIEVED,182,22,62,8,SS_ENDELLIPSIS
     LTEXT           "Bytes Total",IDC_STATIC,125,32,37,8
     RTEXT           "Static",IDC_STAT_BTOTAL,182,32,62,8,SS_ENDELLIPSIS
-    PUSHBUTTON      "Details",IDC_DETAILS_BUTTON,1,35,50,14,NOT WS_VISIBLE
+    PUSHBUTTON      "Details",IDC_DETAILS_BUTTON,1,35,50,14
+END
+
+IDD_NETADAPTER_DETAILS DIALOGEX 0, 0, 309, 266
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Adapter Details"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,252,245,50,14
+    CONTROL         "",IDC_DETAILS_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,295,236
 END
 
 
@@ -152,8 +161,32 @@ BEGIN
         RIGHTMARGIN, 253
         TOPMARGIN, 1
     END
+
+    IDD_NETADAPTER_DETAILS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 259
+    END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_NETADAPTER_PANEL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_NETADAPTER_DETAILS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
