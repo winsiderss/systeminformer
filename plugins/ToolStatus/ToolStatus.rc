@@ -94,16 +94,17 @@ BEGIN
         MENUITEM "CPU Usage",                   ID_STATUS_CPUUSAGE
         MENUITEM "Commit Charge",               ID_STATUS_COMMITCHARGE
         MENUITEM "Physical Memory",             ID_STATUS_PHYSICALMEMORY
+        MENUITEM "Free Physical Memory",        ID_STATUS_FREEMEMORY
         MENUITEM "Number of Processes",         ID_STATUS_NUMBEROFPROCESSES
         MENUITEM "Number of Threads",           ID_STATUS_NUMBEROFTHREADS
         MENUITEM "Number of Handles",           ID_STATUS_NUMBEROFHANDLES
         MENUITEM "Number of Visible Items",     ID_STATUS_NUMBEROFVISIBLEITEMS
         MENUITEM "Number of Selected Items",    ID_STATUS_NUMBEROFSELECTEDITEMS
+        MENUITEM "Interval Status",             ID_STATUS_INTERVALSTATUS
         MENUITEM "I/O Read+Other",              ID_STATUS_IO_RO
         MENUITEM "I/O Write",                   ID_STATUS_IO_W
         MENUITEM "Max. CPU Process",            ID_STATUS_MAX_CPU_PROCESS
         MENUITEM "Max. I/O Process",            ID_STATUS_MAX_IO_PROCESS
-        MENUITEM "Interval Status",             ID_STATUS_INTERVALSTATUS
     END
 END
 
