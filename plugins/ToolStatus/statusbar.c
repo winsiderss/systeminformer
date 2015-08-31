@@ -91,6 +91,9 @@ VOID ShowStatusMenu(
             case STATUS_INTERVALSTATUS:
                 id = ID_STATUS_INTERVALSTATUS; 
                 break;
+            case STATUS_FREEMEMORY:
+                id = ID_STATUS_FREEMEMORY;
+                break;
             }
 
             CheckMenuItem(subMenu, id, MF_CHECKED);
@@ -149,6 +152,9 @@ VOID ShowStatusMenu(
         break;
     case ID_STATUS_INTERVALSTATUS:
         bit = STATUS_INTERVALSTATUS;
+        break;
+    case ID_STATUS_FREEMEMORY:
+        bit = STATUS_FREEMEMORY;
         break;
     default:
         return;
@@ -235,10 +241,26 @@ VOID UpdateStatusBar(
                 }
                 break;
             case STATUS_PHYSICAL:
-                {
+                {            
+                    ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - statistics.Performance->AvailablePages;
+                    FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
+
                     text[count] = PhFormatString(
-                        L"Physical Memory: %.2f%%",
-                        (FLOAT)statistics.PhysicalPages * 100 / PhSystemBasicInformation.NumberOfPhysicalPages
+                        L"Physical Memory: %s (%.2f%%)",
+                        PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
+                        physicalFraction
+                        );
+                }
+                break;
+            case STATUS_FREEMEMORY:
+                {
+                    ULONG physicalFree = statistics.Performance->AvailablePages;
+                    FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
+
+                    text[count] = PhFormatString(
+                        L"Free Memory: %s (%.2f%%)",
+                        PhaFormatSize(UInt32x32To64(physicalFree, PAGE_SIZE), -1)->Buffer,
+                        physicalFreeFraction
                         );
                 }
                 break;
