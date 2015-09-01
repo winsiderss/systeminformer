@@ -249,7 +249,7 @@ static VOID NTAPI LayoutPaddingCallback(
         //    static BOOLEAN isSearchboxVisible = FALSE;
         //    SIZE idealWidth;
         //
-        //    // Query the the Toolbar ideal width
+        //    // Query the Toolbar ideal width
         //    SendMessage(ToolBarHandle, TB_GETIDEALSIZE, FALSE, (LPARAM)&idealWidth);
         //
         //    // Hide the Searcbox band if the window size is too small...

@@ -32,18 +32,14 @@ VOID ShowStatusMenu(
     _In_ PPOINT Point
     )
 {
-    HMENU menu;
-    HMENU subMenu;
     ULONG i;
     ULONG id;
     ULONG bit;
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM selectedItem;
 
-    menu = LoadMenu(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDR_STATUS)
-        );
-
-    subMenu = GetSubMenu(menu, 0);
+    menu = PhCreateEMenu();
+    PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_STATUS), 0);
 
     // Check the enabled items.
     for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
@@ -96,74 +92,74 @@ VOID ShowStatusMenu(
                 break;
             }
 
-            CheckMenuItem(subMenu, id, MF_CHECKED);
+            PhSetFlagsEMenuItem(menu, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 
-    id = (ULONG)TrackPopupMenu(
-        subMenu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
-        Point->x,
-        Point->y,
-        0,
+    selectedItem = PhShowEMenu(
+        menu,
         PhMainWndHandle,
-        NULL
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        Point->x,
+        Point->y
         );
 
-    DestroyMenu(menu);
-
-    switch (id)
+    if (selectedItem && selectedItem->Id != -1)
     {
-    case ID_STATUS_CPUUSAGE:
-        bit = STATUS_CPUUSAGE;
-        break;
-    case ID_STATUS_COMMITCHARGE:
-        bit = STATUS_COMMIT;
-        break;
-    case ID_STATUS_PHYSICALMEMORY:
-        bit = STATUS_PHYSICAL;
-        break;
-    case ID_STATUS_NUMBEROFPROCESSES:
-        bit = STATUS_NUMBEROFPROCESSES;
-        break;
-    case ID_STATUS_NUMBEROFTHREADS:
-        bit = STATUS_NUMBEROFTHREADS;
-        break;
-    case ID_STATUS_NUMBEROFHANDLES:
-        bit = STATUS_NUMBEROFHANDLES;
-        break;
-    case ID_STATUS_IO_RO:
-        bit = STATUS_IOREADOTHER;
-        break;
-    case ID_STATUS_IO_W:
-        bit = STATUS_IOWRITE;
-        break;
-    case ID_STATUS_MAX_CPU_PROCESS:
-        bit = STATUS_MAXCPUPROCESS;
-        break;
-    case ID_STATUS_MAX_IO_PROCESS:
-        bit = STATUS_MAXIOPROCESS;
-        break;
-    case ID_STATUS_NUMBEROFVISIBLEITEMS:
-        bit = STATUS_VISIBLEITEMS;
-        break;
-    case ID_STATUS_NUMBEROFSELECTEDITEMS:
-        bit = STATUS_SELECTEDITEMS;
-        break;
-    case ID_STATUS_INTERVALSTATUS:
-        bit = STATUS_INTERVALSTATUS;
-        break;
-    case ID_STATUS_FREEMEMORY:
-        bit = STATUS_FREEMEMORY;
-        break;
-    default:
-        return;
+        switch (selectedItem->Id)
+        {
+        case ID_STATUS_CPUUSAGE:
+            bit = STATUS_CPUUSAGE;
+            break;
+        case ID_STATUS_COMMITCHARGE:
+            bit = STATUS_COMMIT;
+            break;
+        case ID_STATUS_PHYSICALMEMORY:
+            bit = STATUS_PHYSICAL;
+            break;
+        case ID_STATUS_NUMBEROFPROCESSES:
+            bit = STATUS_NUMBEROFPROCESSES;
+            break;
+        case ID_STATUS_NUMBEROFTHREADS:
+            bit = STATUS_NUMBEROFTHREADS;
+            break;
+        case ID_STATUS_NUMBEROFHANDLES:
+            bit = STATUS_NUMBEROFHANDLES;
+            break;
+        case ID_STATUS_IO_RO:
+            bit = STATUS_IOREADOTHER;
+            break;
+        case ID_STATUS_IO_W:
+            bit = STATUS_IOWRITE;
+            break;
+        case ID_STATUS_MAX_CPU_PROCESS:
+            bit = STATUS_MAXCPUPROCESS;
+            break;
+        case ID_STATUS_MAX_IO_PROCESS:
+            bit = STATUS_MAXIOPROCESS;
+            break;
+        case ID_STATUS_NUMBEROFVISIBLEITEMS:
+            bit = STATUS_VISIBLEITEMS;
+            break;
+        case ID_STATUS_NUMBEROFSELECTEDITEMS:
+            bit = STATUS_SELECTEDITEMS;
+            break;
+        case ID_STATUS_INTERVALSTATUS:
+            bit = STATUS_INTERVALSTATUS;
+            break;
+        case ID_STATUS_FREEMEMORY:
+            bit = STATUS_FREEMEMORY;
+            break;
+        }
+
+        StatusMask ^= bit;
+        PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK, StatusMask);
+
+        UpdateStatusBar();
     }
 
-    StatusMask ^= bit;
-    PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK, StatusMask);
-
-    UpdateStatusBar();
+    PhDestroyEMenu(menu);
 }
 
 VOID UpdateStatusBar(
