@@ -127,6 +127,7 @@ PDB_OBJECT CreateDbObject(
     memset(object, 0, sizeof(DB_OBJECT));
     object->Tag = Tag;
     object->Key = *Name;
+    object->BackColor = ULONG_MAX;
 
     realObject = PhAddEntryHashtableEx(ObjectDb, &object, &added);
 
@@ -284,13 +285,13 @@ NTSTATUS LoadDb(
 
             object = CreateDbObject((ULONG)tagInteger, &name->sr, comment);
             object->PriorityClass = (ULONG)priorityClassInteger;
-            object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;        
+            object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;
         }
 
         // NOTE: This is handled separately to maintain compatibility with previous versions of the database.
         if (object && backColor)
         {
-            ULONG64 backColorInteger = 0;
+            ULONG64 backColorInteger = ULONG_MAX;
 
             PhStringToInteger64(&backColor->sr, 10, &backColorInteger);
 
