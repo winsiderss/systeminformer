@@ -95,8 +95,8 @@ static VOID NcAreaInitializeTheme(
     Context->CXWidth = 20;
     Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-    Context->BrushHot = CreateSolidBrush(RGB(229, 243, 251));
-    Context->BrushPushed = CreateSolidBrush(RGB(209, 232, 255));
+    Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
+    Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
 
     if (!UxThemeHandle)
     {
