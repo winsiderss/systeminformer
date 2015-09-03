@@ -173,7 +173,7 @@ static VOID DeleteDbObjectForProcessIfUnused(
     _In_ PDB_OBJECT Object
     )
 {
-    if (Object->Comment->Length == 0 && Object->PriorityClass == 0 && Object->IoPriorityPlusOne == 0 && Object->BackColor == 0)
+    if (Object->Comment->Length == 0 && Object->PriorityClass == 0 && Object->IoPriorityPlusOne == 0 && Object->BackColor == ULONG_MAX)
     {
         DeleteDbObject(Object);
     }
@@ -457,7 +457,7 @@ VOID NTAPI MenuItemCallback(
             {
                 LockDb();
 
-                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
                 {
                     object->BackColor = chooseColor.rgbResult;
                 }
@@ -478,9 +478,9 @@ VOID NTAPI MenuItemCallback(
         {
             LockDb();
 
-            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
             {
-                object->BackColor = 0;
+                object->BackColor = ULONG_MAX;
                 DeleteDbObjectForProcessIfUnused(object);
             }
 
@@ -832,7 +832,7 @@ VOID ProcessMenuInitializingCallback(
 
     LockDb();
 
-    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != 0)
+    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != ULONG_MAX)
     {
         PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
         highlightMenuItem->Flags |= PH_EMENU_CHECKED;
@@ -895,7 +895,7 @@ VOID GetProcessHighlightingColorCallback(
 
     LockDb();
 
-    if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != 0)
+    if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
     {
         getHighlightingColor->BackColor = object->BackColor;
         getHighlightingColor->Cache = TRUE;
