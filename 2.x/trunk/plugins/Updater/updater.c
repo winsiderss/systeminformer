@@ -1032,7 +1032,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                                 if (WindowsVersion > WINDOWS_XP)
                                     SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
 
-                                // Start our Downloader thread
+                                // Start file download thread
                                 if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
                                     NtClose(downloadThreadHandle);
                             }
