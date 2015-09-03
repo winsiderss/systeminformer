@@ -1,3 +1,6 @@
+1.6
+ * Fixed background update check interval
+
 1.5
  * Added dynamic URL support
  * Added digital signature verification
