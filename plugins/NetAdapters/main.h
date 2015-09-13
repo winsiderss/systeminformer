@@ -24,6 +24,8 @@
 #define _NETADAPTER_H_
 
 #pragma comment(lib, "Iphlpapi.lib")
+//#pragma comment(lib, "Ws2_32.lib")
+//#pragma comment(lib, "dnsapi.lib")
 
 #define PLUGIN_NAME L"ProcessHacker.NetAdapters"
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
@@ -40,6 +42,7 @@
 #include <iphlpapi.h>
 #include <nldef.h>
 #include <netioapi.h>
+//#include <WinSock2.h>
 
 #include "resource.h"
 
@@ -72,8 +75,10 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     ULONG64 LastInboundValue;
     ULONG64 LastOutboundValue;
 
-    ULONG64 LastDetailsInboundValue;
-    ULONG64 LastDetailsIOutboundValue;
+    //ULONG64 LastDetailsInboundValue;
+    //ULONG64 LastDetailsIOutboundValue;
+    //ULONG64 LastDetailsInboundUnicastValue;
+    //ULONG64 LastDetailsIOutboundUnicastValue;
 
     PPH_STRING AdapterName;
     PPH_NETADAPTER_ENTRY AdapterEntry;
@@ -94,6 +99,23 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
 } PH_NETADAPTER_SYSINFO_CONTEXT, *PPH_NETADAPTER_SYSINFO_CONTEXT;
+
+//typedef struct _PH_NETADAPTER_CONFIG
+//{
+//    ULONG AddressType;
+//    ULONG EnableDHCP;
+//    ULONG IsServerNapAware;
+//
+//    LARGE_INTEGER interfaceLease;
+//    LARGE_INTEGER interfaceLeaseObtainedTime;
+//    LARGE_INTEGER interfaceLeaseTerminatesTime;
+//
+//    PPH_STRING Domain;
+//    PPH_STRING IPAddress;
+//    PPH_STRING NameServer;
+//    PPH_STRING SubnetMask;
+//    PPH_STRING DefaultGateway;
+//} PH_NETADAPTER_CONFIG, *PPH_NETADAPTER_CONFIG;
 
 VOID LoadAdaptersList(
     _Inout_ PPH_LIST FilterList,
