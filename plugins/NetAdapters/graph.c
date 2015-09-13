@@ -174,7 +174,7 @@ static INT_PTR CALLBACK NetAdapterPanelDialogProc(
             {
             case IDC_DETAILS_BUTTON:
                 {
-                    ShowDetailsDialog(context);
+                    //ShowDetailsDialog(context);
                 }
                 break;
             }
