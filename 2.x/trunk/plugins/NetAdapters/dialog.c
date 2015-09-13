@@ -61,7 +61,6 @@ static INT PhAddListViewGroup(
     return (INT)ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
 }
 
-
 static NDIS_STATISTICS_INFO NetAdapterRowToNdisStatistics(
     _In_ MIB_IF_ROW2 Row
     )
@@ -101,43 +100,29 @@ static VOID NetAdapterUpdateDetails(
     ULONG64 interfaceLinkSpeed = 0;
     ULONG64 interfaceRcvSpeed = 0;
     ULONG64 interfaceXmitSpeed = 0;
+    ULONG64 interfaceRcvUnicastSpeed = 0;
+    ULONG64 interfaceXmitUnicastSpeed = 0;
     FLOAT utilization = 0.0f;
+    FLOAT utilization2 = 0.0f;
     NDIS_STATISTICS_INFO interfaceStats = { 0 };
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
+    INT index = 0;
+
+    //PH_NETADAPTER_CONFIG Config = { 0 };
+    //BOOLEAN internet = FALSE;
+
+    //NetworkAdapterQueryConfig(Context, &Config);
+
+    //if (Config.IPAddress)
+    //{
+    //    //internet = NetworkAdapterQueryInternet(Context, Config.IPAddress);
+    //}
 
     if (Context->DeviceHandle)
     {
         NDIS_LINK_STATE interfaceState;
 
-        if (!NT_SUCCESS(NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats)))
-        {
-            if (GetIfEntry2_I)
-            {
-                MIB_IF_ROW2 interfaceRow;
-
-                interfaceRow = QueryInterfaceRowVista(Context);
-
-                interfaceStats = NetAdapterRowToNdisStatistics(interfaceRow);
-
-                mediaState = interfaceRow.MediaConnectState;
-                interfaceLinkSpeed = interfaceRow.TransmitLinkSpeed;
-            }
-            else
-            {
-                MIB_IFROW interfaceRow;
-
-                interfaceRow = QueryInterfaceRowXP(Context);
-
-                interfaceStats.ifHCInOctets = interfaceRow.dwInOctets;
-                interfaceStats.ifHCOutOctets = interfaceRow.dwOutOctets;
-                interfaceLinkSpeed = interfaceRow.dwSpeed;
-
-                if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
-                    mediaState = MediaConnectStateConnected;
-                else
-                    mediaState = MediaConnectStateDisconnected;
-            }
-        }
+        NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats);
 
         if (!NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
         {
@@ -149,70 +134,108 @@ static VOID NetAdapterUpdateDetails(
             interfaceLinkSpeed = interfaceState.XmitLinkSpeed;
         }
     }
+    else
+    {
+        if (GetIfEntry2_I)
+        {
+            MIB_IF_ROW2 interfaceRow;
 
+            interfaceRow = QueryInterfaceRowVista(Context);
 
-    interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
-    interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsIOutboundValue;
+            interfaceStats = NetAdapterRowToNdisStatistics(interfaceRow);
+
+            mediaState = interfaceRow.MediaConnectState;
+            interfaceLinkSpeed = interfaceRow.TransmitLinkSpeed;
+        }
+        else
+        {
+            MIB_IFROW interfaceRow;
+
+            interfaceRow = QueryInterfaceRowXP(Context);
+
+            interfaceStats.ifHCInOctets = interfaceRow.dwInOctets;
+            interfaceStats.ifHCOutOctets = interfaceRow.dwOutOctets;
+            interfaceLinkSpeed = interfaceRow.dwSpeed;
+
+            if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
+                mediaState = MediaConnectStateConnected;
+            else
+                mediaState = MediaConnectStateDisconnected;
+        }
+    }
+
+    //interfaceRcvSpeed = interfaceStats.ifHCInOctets - Context->LastDetailsInboundValue;
+    //interfaceXmitSpeed = interfaceStats.ifHCOutOctets - Context->LastDetailsIOutboundValue;
+    //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
+    //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
 
     if (!Context->HaveFirstDetailsSample)
     {
         interfaceRcvSpeed = 0;
         interfaceXmitSpeed = 0;
+        interfaceRcvUnicastSpeed = 0;
+        interfaceXmitUnicastSpeed = 0;
         Context->HaveFirstDetailsSample = TRUE;
     }
 
     //utilization = (FLOAT)((interfaceRcvSpeed + interfaceXmitSpeed) * BITS_IN_ONE_BYTE) / interfaceLinkSpeed * 100;
     utilization = (FLOAT)(interfaceRcvSpeed + interfaceXmitSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE) * 100;
+    utilization2 = (FLOAT)(interfaceRcvUnicastSpeed + interfaceXmitUnicastSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE) * 100;
 
-    if (mediaState == MediaConnectStateConnected)
-    {
-        PhSetListViewSubItem(Context->DetailsLvHandle, 0, 1, L"Connected");
-    }
-    else
-    {
-        PhSetListViewSubItem(Context->DetailsLvHandle, 0, 1, L"Disconnected");
-    }
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 1, 1, PhaFormatString(L"%s/s", PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 2, 1, PhaFormatString(L"%.2f%%", utilization)->Buffer);
+    //PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, internet ? L"Internet" : L"Local");
+    //PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, Config.Domain ? Config.Domain->Buffer : L"");
+    //PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, Config.IPAddress ? Config.IPAddress->Buffer : L"");
+    //PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, Config.SubnetMask ? Config.SubnetMask->Buffer : L"");
+    //PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, Config.DefaultGateway ? Config.DefaultGateway->Buffer : L"");
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 3, 1, PhaFormatSize(interfaceStats.ifHCOutOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 4, 1, PhaFormatSize(interfaceStats.ifHCInOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 5, 1, PhaFormatSize(interfaceStats.ifHCInOctets + interfaceStats.ifHCOutOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatString(L"%s/s", PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);   
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCOutOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInOctets + interfaceStats.ifHCOutOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, interfaceXmitSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceXmitSpeed, -1)->Buffer)->Buffer : L"");
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, interfaceRcvSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceRcvSpeed, -1)->Buffer)->Buffer : L"");
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatString(L"%.2f%%", utilization)->Buffer);
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 6, 1, PhaFormatUInt64(interfaceStats.ifHCOutUcastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 7, 1, PhaFormatUInt64(interfaceStats.ifHCInUcastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 8, 1, PhaFormatUInt64(interfaceStats.ifHCInUcastPkts + interfaceStats.ifHCOutUcastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 9, 1, PhaFormatSize(interfaceStats.ifHCOutUcastOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 10, 1, PhaFormatSize(interfaceStats.ifHCInUcastOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 11, 1, PhaFormatSize(interfaceStats.ifHCInUcastOctets + interfaceStats.ifHCOutUcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCOutUcastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCInUcastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCInUcastPkts + interfaceStats.ifHCOutUcastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCOutUcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInUcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInUcastOctets + interfaceStats.ifHCOutUcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, interfaceXmitUnicastSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceXmitUnicastSpeed, -1)->Buffer)->Buffer : L"");
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, interfaceRcvUnicastSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceRcvUnicastSpeed, -1)->Buffer)->Buffer : L"");
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatString(L"%.2f%%", utilization2)->Buffer);
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 12, 1, PhaFormatUInt64(interfaceStats.ifHCOutBroadcastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 13, 1, PhaFormatUInt64(interfaceStats.ifHCInBroadcastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 14, 1, PhaFormatUInt64(interfaceStats.ifHCInBroadcastPkts + interfaceStats.ifHCOutBroadcastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 15, 1, PhaFormatSize(interfaceStats.ifHCOutBroadcastOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 16, 1, PhaFormatSize(interfaceStats.ifHCInBroadcastOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 17, 1, PhaFormatSize(interfaceStats.ifHCInBroadcastOctets + interfaceStats.ifHCOutBroadcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCOutBroadcastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCInBroadcastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCInBroadcastPkts + interfaceStats.ifHCOutBroadcastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCOutBroadcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInBroadcastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInBroadcastOctets + interfaceStats.ifHCOutBroadcastOctets, -1)->Buffer);
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 18, 1, PhaFormatUInt64(interfaceStats.ifHCOutMulticastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 19, 1, PhaFormatUInt64(interfaceStats.ifHCInMulticastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 20, 1, PhaFormatUInt64(interfaceStats.ifHCInMulticastPkts + interfaceStats.ifHCOutMulticastPkts, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 21, 1, PhaFormatSize(interfaceStats.ifHCOutMulticastOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 22, 1, PhaFormatSize(interfaceStats.ifHCInMulticastOctets, -1)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 23, 1, PhaFormatSize(interfaceStats.ifHCInMulticastOctets + interfaceStats.ifHCOutMulticastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCOutMulticastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCInMulticastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifHCInMulticastPkts + interfaceStats.ifHCOutMulticastPkts, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCOutMulticastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInMulticastOctets, -1)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatSize(interfaceStats.ifHCInMulticastOctets + interfaceStats.ifHCOutMulticastOctets, -1)->Buffer);
 
-    PhSetListViewSubItem(Context->DetailsLvHandle, 24, 1, PhaFormatUInt64(interfaceStats.ifOutErrors, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 25, 1, PhaFormatUInt64(interfaceStats.ifInErrors, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 26, 1, PhaFormatUInt64(interfaceStats.ifInErrors + interfaceStats.ifOutErrors, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 27, 1, PhaFormatUInt64(interfaceStats.ifOutDiscards, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 28, 1, PhaFormatUInt64(interfaceStats.ifInDiscards, TRUE)->Buffer);
-    PhSetListViewSubItem(Context->DetailsLvHandle, 29, 1, PhaFormatUInt64(interfaceStats.ifInDiscards + interfaceStats.ifOutDiscards, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifOutErrors, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifInErrors, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifInErrors + interfaceStats.ifOutErrors, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifOutDiscards, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifInDiscards, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->DetailsLvHandle, index++, 1, PhaFormatUInt64(interfaceStats.ifInDiscards + interfaceStats.ifOutDiscards, TRUE)->Buffer);
 
-    Context->LastDetailsInboundValue = interfaceStats.ifHCInOctets;
-    Context->LastDetailsIOutboundValue = interfaceStats.ifHCOutOctets;
+    //Context->LastDetailsInboundValue = interfaceStats.ifHCInOctets;
+    //Context->LastDetailsIOutboundValue = interfaceStats.ifHCOutOctets;
+    //Context->LastDetailsInboundUnicastValue = interfaceStats.ifHCInUcastOctets;
+    //Context->LastDetailsIOutboundUnicastValue = interfaceStats.ifHCOutUcastOctets;
 }
 
-static INT_PTR CALLBACK RestartComputerDlgProc(
+static INT_PTR CALLBACK AdapterDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -252,9 +275,15 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
 
             PhSetListViewStyle(context->DetailsLvHandle, FALSE, TRUE);
             PhSetControlTheme(context->DetailsLvHandle, L"explorer");
-            PhAddListViewColumn(context->DetailsLvHandle, 0, 0, 0, LVCFMT_LEFT, 320, L"Property");
+            PhAddListViewColumn(context->DetailsLvHandle, 0, 0, 0, LVCFMT_LEFT, 325, L"Property");
             PhAddListViewColumn(context->DetailsLvHandle, 1, 1, 1, LVCFMT_LEFT, 90, L"Value");
-            PhSetExtendedListView(context->DetailsLvHandle);
+            //PhSetExtendedListView(context->DetailsLvHandle);
+
+            if (context->AdapterName)
+                SetWindowText(hwndDlg, context->AdapterName->Buffer);
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PhGetFileShellIcon(NULL, L".exe", FALSE));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PhGetFileShellIcon(NULL, L".exe", TRUE));
 
             ListView_EnableGroupView(context->DetailsLvHandle, TRUE);
             PhAddListViewGroup(context->DetailsLvHandle, 0, L"Adapter");
@@ -263,40 +292,51 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
             PhAddListViewGroup(context->DetailsLvHandle, 3, L"Multicast");
             PhAddListViewGroup(context->DetailsLvHandle, 4, L"Errors");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 0, 0, 0, L"State");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 1, 0, 0, L"Link Speed");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 2, 0, 0, L"Utilization");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 3, 0, 0, L"Sent");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 4, 0, 0, L"Received");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 5, 0, 0, L"Total");
+            INT index = 0;
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"State");
+            //PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Connectivity");
+            //PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Domain");
+            //PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"IP Address");
+            //PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"SubnetMask");
+            //PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"DefaultGateway");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Link Speed");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Sent");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Received");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Total");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Sending");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Receiving");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 0, L"Utilization");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 6, 0, 1, L"Sent Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 7, 0, 1, L"Received Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 8, 0, 1, L"Total Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 9, 0, 1, L"Sent");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 10, 0, 1, L"Received");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 11, 0, 1, L"Total");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Sent Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Received Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Total Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Sent");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Received");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Total");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Sending");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Receiving");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 1, L"Utilization");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 13, 0, 2, L"Sent Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 12, 0, 2, L"Received Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 14, 0, 2, L"Total Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 16, 0, 2, L"Sent");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 15, 0, 2, L"Received");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 17, 0, 2, L"Total");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 2, L"Sent Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 2, L"Received Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 2, L"Total Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 2, L"Sent");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 2, L"Received");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 2, L"Total");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 19, 0, 3, L"Sent Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 18, 0, 3, L"Received Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 20, 0, 3, L"Total Packets");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 22, 0, 3, L"Sent");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 21, 0, 3, L"Received");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 23, 0, 3, L"Total");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 3, L"Sent Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 3, L"Received Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 3, L"Total Packets");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 3, L"Sent");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 3, L"Received");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 3, L"Total");
 
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 25, 0, 4, L"Send Errors");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 24, 0, 4, L"Receive Errors");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 26, 0, 4, L"Total Errors");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 28, 0, 4, L"Send Discards");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 27, 0, 4, L"Receive Discards");
-            PhAddListViewItemGroupId(context->DetailsLvHandle, 29, 0, 4, L"Total Discards");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 4, L"Send Errors");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 4, L"Receive Errors");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 4, L"Total Errors");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 4, L"Send Discards");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 4, L"Receive Discards");
+            PhAddListViewItemGroupId(context->DetailsLvHandle, index++, 0, 4, L"Total Discards");
 
             NetAdapterUpdateDetails(context);
         }
@@ -343,7 +383,7 @@ VOID ShowDetailsDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS),
         Context->WindowHandle,
-        RestartComputerDlgProc,
+        AdapterDetailsDlgProc,
         (LPARAM)Context
         );
 }
