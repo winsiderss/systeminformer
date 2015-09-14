@@ -382,16 +382,13 @@ static VOID AddProcessAppDomains(
             Context->ProcessItem->ProcessId
             );
 
-        if (processAppDomains)
+        for (ULONG i = 0; i < processAppDomains->Count; i++)
         {
-            for (ULONG i = 0; i < processAppDomains->Count; i++)
-            {
-                PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
-                PhFree(processAppDomains->Items[i]);
-            }
-
-            PhDereferenceObject(processAppDomains);
+            PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
+            PhFree(processAppDomains->Items[i]);
         }
+
+        PhDereferenceObject(processAppDomains);
     }
     else
     {
@@ -401,16 +398,13 @@ static VOID AddProcessAppDomains(
             Context->ProcessItem->ProcessId
             );
 
-        if (processAppDomains)
+        for (ULONG i = 0; i < processAppDomains->Count; i++)
         {
-            for (ULONG i = 0; i < processAppDomains->Count; i++)
-            {
-                PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
-                PhFree(processAppDomains->Items[i]);
-            }
-
-            PhDereferenceObject(processAppDomains);
+            PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
+            PhFree(processAppDomains->Items[i]);
         }
+
+        PhDereferenceObject(processAppDomains);
     }
 
     SendMessage(Context->AppDomainsLv, WM_SETREDRAW, TRUE, 0);
@@ -613,20 +607,29 @@ static VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 2, 1, PhaFormatUInt64(dotNetPerfJit.cbILJitted.Total, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 3, 1, PhaFormatUInt64(dotNetPerfJit.cJitFailures, TRUE)->Buffer);
 
-            //PH_FORMAT format;
-            //WCHAR formatBuffer[10];
+            PH_FORMAT format;
+            WCHAR formatBuffer[10];
 
-            //if (dotNetPerfJit.timeInJitBase != 0)
-            //{
-            //    PhInitFormatF(&format, (FLOAT)dotNetPerfJit.timeInJit * 100 / (FLOAT)dotNetPerfJit.timeInJitBase, 2);
+            if (dotNetPerfJit.timeInJitBase != 0)
+            {
+                // TODO: Something is wrong here... 
+                FLOAT value = (FLOAT)dotNetPerfJit.timeInJit * 100 / (FLOAT)dotNetPerfJit.timeInJitBase;
+                
+                // The result is always above 100% ???
+                if (value > 100.f)
+                {
+                    value -= 100.f;
+                }
 
-            //    if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            //        PhSetListViewSubItem(Context->CountersLv, 4, 1, formatBuffer);
-            //}
-            //else
-            //{
-            //    PhSetListViewSubItem(Context->CountersLv, 4, 1, L"0.00");
-            //}
+                PhInitFormatF(&format, value, 2);
+
+                if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+                    PhSetListViewSubItem(Context->CountersLv, 4, 1, formatBuffer);
+            }
+            else
+            {
+                PhSetListViewSubItem(Context->CountersLv, 4, 1, L"0.00");
+            }
         }
         break;
     case 3: // .NET CLR Loading (Statistics for CLR Class Loader)
