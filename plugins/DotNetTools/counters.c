@@ -1,6 +1,6 @@
 /*
  * Process Hacker .NET Tools -
- *   performance counter support functions
+ *   IPC support functions
  *
  * Copyright (C) 2015 dmex
  *
