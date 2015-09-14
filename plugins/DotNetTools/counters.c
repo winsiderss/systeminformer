@@ -315,38 +315,72 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         if (Wow64)
         {
             LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock_Wow64 = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
-            AppDomainEnumerationIPCBlock_Wow64 appDomainEnumBlock = *(AppDomainEnumerationIPCBlock_Wow64*)DotNetGetBlock_Wow64_Offset(legacyPrivateBlock_Wow64, eLegacyPrivateIPC_AppDomain);
+            AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock = (AppDomainEnumerationIPCBlock_Wow64*)DotNetGetBlock_Wow64_Offset(legacyPrivateBlock_Wow64, eLegacyPrivateIPC_AppDomain);
 
-            // dmex: Code below is highly modified version of the the CorpubProcess class.
+            // dmex: Code below is a highly modified version of the the CorpubProcess class.
             // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
-            if (!appDomainEnumBlock.Mutex)
+            if (!appDomainEnumBlock->Mutex)
             {
                 __leave;
             }
 
             // Dup the valid mutex handle into this process.
-            if (!DuplicateHandle(
+            //if (!DuplicateHandle(
+            //    ProcessHandle,
+            //    UlongToHandle(appDomainEnumBlock->Mutex),
+            //    NtCurrentProcess(),
+            //    &legacyPrivateBlockMutexHandle,
+            //    DUPLICATE_SAME_ACCESS,
+            //    FALSE,
+            //    DUPLICATE_SAME_ACCESS
+            //    ))
+            //{
+            //    __leave;
+            //}
+
+            if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
-                UlongToHandle(appDomainEnumBlock.Mutex),
+                UlongToHandle(appDomainEnumBlock->Mutex),
                 NtCurrentProcess(),
                 &legacyPrivateBlockMutexHandle,
-                DUPLICATE_SAME_ACCESS,
-                FALSE,
-                DUPLICATE_SAME_ACCESS
-                ))
+                GENERIC_ALL,
+                0,
+                DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+                )))
             {
                 __leave;
             }
 
             // Acquire the mutex, only waiting two seconds.
             // We can't actually gaurantee that the target put a mutex object in here.
-            WaitForSingleObject(legacyPrivateBlockMutexHandle, 2000);
+            LARGE_INTEGER timeout;
+
+            if (NtWaitForSingleObject(
+                legacyPrivateBlockMutexHandle,
+                FALSE,
+                PhTimeoutFromMilliseconds(&timeout, 2000)
+                ) == STATUS_WAIT_0)
+            {
+                // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
+                if (!appDomainEnumBlock->Mutex)
+                {
+                    __leave;
+                }
+            }
+            else
+            {
+                // Again, landing here is most probably a shutdown race.
+                __leave;
+            }
+
+            // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
+            // If we get here, then hMutex is held by this process.
 
             // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
             AppDomainEnumerationIPCBlock_Wow64 tempBlock;
-            memcpy(&tempBlock, &appDomainEnumBlock, sizeof(tempBlock));
+            memcpy(&tempBlock, appDomainEnumBlock, sizeof(tempBlock));
 
             // It's possible the process will not have any appdomains.
             if ((tempBlock.ListOfAppDomains == 0) != (tempBlock.SizeInBytes == 0))
@@ -440,7 +474,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             LegacyPrivateIPCControlBlock* legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock* appDomainEnumBlock = (AppDomainEnumerationIPCBlock*)DotNetGetBlock_Offset(legacyPrivateBlock, eLegacyPrivateIPC_AppDomain);
 
-            // dmex: Code below is highly modified version of the the CorpubProcess class.
+            // dmex: Code below is a highly modified version of the the CorpubProcess class.
             // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
@@ -450,22 +484,56 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             }
 
             // Dup the valid mutex handle into this process.
-            if (!DuplicateHandle(
+            //if (!DuplicateHandle(
+            //    ProcessHandle,
+            //    appDomainEnumBlock->Mutex,
+            //    NtCurrentProcess(),
+            //    &legacyPrivateBlockMutexHandle,
+            //    DUPLICATE_SAME_ACCESS,
+            //    FALSE,
+            //    DUPLICATE_SAME_ACCESS
+            //    ))
+            //{
+            //    __leave;
+            //}
+
+            if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 appDomainEnumBlock->Mutex,
                 NtCurrentProcess(),
                 &legacyPrivateBlockMutexHandle,
-                DUPLICATE_SAME_ACCESS,
-                FALSE,
-                DUPLICATE_SAME_ACCESS
-                ))
+                GENERIC_ALL,
+                0,
+                DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+                )))
             {
                 __leave;
             }
 
             // Acquire the mutex, only waiting two seconds.
             // We can't actually gaurantee that the target put a mutex object in here.
-            WaitForSingleObject(legacyPrivateBlockMutexHandle, 2000);
+            LARGE_INTEGER timeout;
+
+            if (NtWaitForSingleObject(
+                legacyPrivateBlockMutexHandle, 
+                FALSE, 
+                PhTimeoutFromMilliseconds(&timeout, 2000)
+                ) == STATUS_WAIT_0)
+            {
+                // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
+                if (!appDomainEnumBlock->Mutex)
+                {
+                    __leave;
+                }
+            }
+            else
+            {
+                // Again, landing here is most probably a shutdown race.
+                __leave;
+            }
+
+            // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
+            // If we get here, then hMutex is held by this process.
 
             // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
             AppDomainEnumerationIPCBlock tempBlock;
@@ -576,6 +644,11 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         {
             NtUnmapViewOfSection(NtCurrentProcess(), ipcControlBlockTable);
         }
+
+        if (legacyPrivateBlockHandle)
+        {
+            NtClose(legacyPrivateBlockHandle);
+        }
     }
 
     return appDomainsList;
@@ -605,7 +678,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock_Wow64 = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock_Wow64 appDomainEnumBlock = legacyPrivateBlock_Wow64->AppDomainBlock;
 
-            // dmex: Code below is highly modified version of the the CorpubProcess class.
+            // dmex: Code below is a highly modified version of the the CorpubProcess class.
             // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
@@ -615,22 +688,56 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             // Dup the valid mutex handle into this process.
-            if (!DuplicateHandle(
+            //if (!DuplicateHandle(
+            //    ProcessHandle,
+            //    UlongToHandle(appDomainEnumBlock.Mutex),
+            //    NtCurrentProcess(),
+            //    &legacyPrivateBlockMutexHandle,
+            //    DUPLICATE_SAME_ACCESS,
+            //    FALSE,
+            //    DUPLICATE_SAME_ACCESS
+            //    ))
+            //{
+            //    __leave;
+            //}
+
+            if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 UlongToHandle(appDomainEnumBlock.Mutex),
                 NtCurrentProcess(),
                 &legacyPrivateBlockMutexHandle,
-                DUPLICATE_SAME_ACCESS,
-                FALSE,
-                DUPLICATE_SAME_ACCESS
-                ))
+                GENERIC_ALL,
+                0,
+                DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+                )))
             {
                 __leave;
             }
 
             // Acquire the mutex, only waiting two seconds.
             // We can't actually gaurantee that the target put a mutex object in here.
-            WaitForSingleObject(legacyPrivateBlockMutexHandle, 2000);
+            LARGE_INTEGER timeout;
+
+            if (NtWaitForSingleObject(
+                legacyPrivateBlockMutexHandle,
+                FALSE,
+                PhTimeoutFromMilliseconds(&timeout, 2000)
+                ) == STATUS_WAIT_0)
+            {
+                // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
+                if (!appDomainEnumBlock.Mutex)
+                {
+                    __leave;
+                }
+            }
+            else
+            {
+                // Again, landing here is most probably a shutdown race.
+                __leave;
+            }
+
+            // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
+            // If we get here, then hMutex is held by this process.
 
             // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
             AppDomainEnumerationIPCBlock_Wow64 tempBlock;
@@ -728,7 +835,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             LegacyPrivateIPCControlBlock* legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock appDomainEnumBlock = legacyPrivateBlock->AppDomainBlock;
 
-            // dmex: Code below is highly modified version of the the CorpubProcess class.
+            // dmex: Code below is a highly modified version of the the CorpubProcess class.
             // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
@@ -738,22 +845,56 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             // Dup the valid mutex handle into this process.
-            if (!DuplicateHandle(
+            //if (!DuplicateHandle(
+            //    ProcessHandle,
+            //    appDomainEnumBlock.Mutex,
+            //    NtCurrentProcess(),
+            //    &legacyPrivateBlockMutexHandle,
+            //    DUPLICATE_SAME_ACCESS,
+            //    FALSE,
+            //    DUPLICATE_SAME_ACCESS
+            //    ))
+            //{
+            //    __leave;
+            //}
+
+            if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 appDomainEnumBlock.Mutex,
                 NtCurrentProcess(),
                 &legacyPrivateBlockMutexHandle,
-                DUPLICATE_SAME_ACCESS,
-                FALSE,
-                DUPLICATE_SAME_ACCESS
-                ))
+                GENERIC_ALL,
+                0,
+                DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+                )))
             {
                 __leave;
             }
 
             // Acquire the mutex, only waiting two seconds.
             // We can't actually gaurantee that the target put a mutex object in here.
-            WaitForSingleObject(legacyPrivateBlockMutexHandle, 2000);
+            LARGE_INTEGER timeout;
+
+            if (NtWaitForSingleObject(
+                legacyPrivateBlockMutexHandle,
+                FALSE,
+                PhTimeoutFromMilliseconds(&timeout, 2000)
+                ) == STATUS_WAIT_0)
+            {
+                // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
+                if (!appDomainEnumBlock.Mutex)
+                {
+                    __leave;
+                }
+            }
+            else
+            {
+                // Again, landing here is most probably a shutdown race.
+                __leave;
+            }
+
+            // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
+            // If we get here, then hMutex is held by this process.
 
             // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
             AppDomainEnumerationIPCBlock tempBlock;
@@ -862,6 +1003,11 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         if (ipcControlBlockTable)
         {
             NtUnmapViewOfSection(NtCurrentProcess(), ipcControlBlockTable);
+        }
+
+        if (legacyPrivateBlockHandle)
+        {
+            NtClose(legacyPrivateBlockHandle);
         }
     }
 
