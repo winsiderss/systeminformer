@@ -77,6 +77,11 @@
   <ItemGroup>
     <ClInclude Include="clretw.h" />
     <ClInclude Include="clrsup.h" />
+    <ClInclude Include="clr\dbgappdomain.h" />
+    <ClInclude Include="clr\ipcenums.h" />
+    <ClInclude Include="clr\ipcheader.h" />
+    <ClInclude Include="clr\ipcshared.h" />
+    <ClInclude Include="clr\perfcounterdefs.h" />
     <ClInclude Include="dn.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="svcext.h" />

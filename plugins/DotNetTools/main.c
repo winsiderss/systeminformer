@@ -3,6 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -210,6 +211,7 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { StringSettingType, SETTING_NAME_ASM_TREE_LIST_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_DOT_NET_CATEGORY_INDEX, L"5" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
             };
 
@@ -219,7 +221,7 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L".NET Tools";
-            info->Author = L"wj32";
+            info->Author = L"dmex, wj32";
             info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
             info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1111";
             info->HasOptions = FALSE;
