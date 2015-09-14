@@ -1,16 +1,21 @@
 #ifndef DN_H
 #define DN_H
 
+#define CINTERFACE
+#define COBJMACROS
 #include <phdk.h>
-#include <winperf.h>
+#include <windowsx.h>
 
-extern PPH_PLUGIN PluginInstance;
+#include "resource.h"
 
 #define PLUGIN_NAME L"ProcessHacker.DotNetTools"
 #define SETTING_NAME_ASM_TREE_LIST_COLUMNS (PLUGIN_NAME L".AsmTreeListColumns")
+#define SETTING_NAME_DOT_NET_CATEGORY_INDEX (PLUGIN_NAME L".DotNetCategoryIndex")
 #define SETTING_NAME_DOT_NET_COUNTERS_COLUMNS (PLUGIN_NAME L".DotNetListColumns")
 
-typedef struct _THREAD_TREE_CONTEXT _THREAD_TREE_CONTEXT;
+#define MSG_UPDATE (WM_APP + 1)
+
+extern PPH_PLUGIN PluginInstance;
 
 typedef struct _DN_THREAD_ITEM
 {
@@ -22,41 +27,38 @@ typedef struct _DN_THREAD_ITEM
 
 // counters
 
-typedef struct _PERF_OBJECT_TYPE_INFO
-{
-    ULONG NameIndex;
-    PH_STRINGREF Name;
-    PPH_STRING NameBuffer;
-} PERF_OBJECT_TYPE_INFO, *PPERF_OBJECT_TYPE_INFO;
-
-BOOLEAN QueryPerfInfoVariableSize(
-    _In_ HKEY Key,
-    _In_ PWSTR ValueName,
-    _Out_ PVOID *Data,
-    _Out_opt_ PULONG DataSize
+PVOID QueryDotNetPerf_V2(
+    _In_ BOOLEAN Wow64,
+    _In_ PVOID BlockTableAddress
     );
 
-PWSTR FindPerfTextInTextData(
-    _In_ PVOID TextData,
-    _In_ ULONG Index
+PVOID QueryDotNetPerf_V4(
+    _In_ BOOLEAN Wow64,
+    _In_ PVOID BlockTableAddress
     );
 
-ULONG FindPerfIndexInTextData(
-    _In_ PVOID TextData,
-    _In_ PPH_STRINGREF Text
+BOOLEAN OpenDotNetPublicControlBlock_V2(
+    _In_ HANDLE ProcessId,
+    _Out_ HANDLE* BlockTableHandle,
+    _Out_ PVOID* BlockTableAddress
     );
 
-BOOLEAN GetPerfObjectTypeInfo(
-    _In_opt_ PPH_STRINGREF Filter,
-    _Out_ PPERF_OBJECT_TYPE_INFO *Info,
-    _Out_ PULONG Count
+BOOLEAN OpenDotNetPublicControlBlock_V4(
+    _In_ HANDLE ProcessId,
+    _Out_ HANDLE* BlockTableHandle,
+    _Out_ PVOID* BlockTableAddress
     );
 
-BOOLEAN GetPerfObjectTypeInfo2(
-    _In_ PPH_STRINGREF NameList,
-    _Out_ PPERF_OBJECT_TYPE_INFO *Info,
-    _Out_ PULONG Count,
-    _Out_opt_ PVOID *TextData
+PPH_LIST QueryDotNetAppDomainsForPid_V2(
+    _In_ BOOLEAN Wow64,
+    _In_ HANDLE ProcessHandle, 
+    _In_ HANDLE ProcessId
+    );
+
+PPH_LIST QueryDotNetAppDomainsForPid_V4(
+    _In_ BOOLEAN Wow64,
+    _In_ HANDLE ProcessHandle, 
+    _In_ HANDLE ProcessId
     );
 
 // asmpage

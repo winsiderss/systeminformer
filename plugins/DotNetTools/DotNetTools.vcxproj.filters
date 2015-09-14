@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Header Files\clr">
+      <UniqueIdentifier>{6b9aae9c-fc27-4d95-b258-53eb88081e1b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -55,6 +58,21 @@
     </ClInclude>
     <ClInclude Include="svcext.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\dbgappdomain.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\ipcenums.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\ipcheader.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\ipcshared.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\perfcounterdefs.h">
+      <Filter>Header Files\clr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
