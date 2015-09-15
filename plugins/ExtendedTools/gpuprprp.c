@@ -632,9 +632,12 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
         break;
     case MSG_UPDATE:
         {
-            GpuPropUpdateInfo(context);
-            GpuPropUpdateGraphs(context);
-            GpuPropUpdatePanel(context);
+            if (context->Enabled)
+            {
+                GpuPropUpdateInfo(context);
+                GpuPropUpdateGraphs(context);
+                GpuPropUpdatePanel(context);
+            }
         }
         break;
     case WM_SIZE:
