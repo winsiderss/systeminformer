@@ -809,7 +809,7 @@ static INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 if (NT_SUCCESS(PhGetProcessIsDotNetEx(
                     context->ProcessItem->ProcessId,
                     context->ProcessHandle,
-                    PH_CLR_USE_SECTION_CHECK,
+                    context->ProcessItem->IsImmersive == 1 ? 0 : PH_CLR_USE_SECTION_CHECK,
                     NULL,
                     &flags
                     )))
@@ -820,12 +820,18 @@ static INT_PTR CALLBACK DotNetPerfPageDlgProc(
                     }
                 }
 
-                AddProcessAppDomains(hwndDlg, context);
+                // Skip AppDomain enumeration of 'Modern' .NET applications as they don't expose the CLR 'Private IPC' block.
+                if (!context->ProcessItem->IsImmersive)
+                {
+                    AddProcessAppDomains(hwndDlg, context);
+                }
             }
 
             if (context->ClrV4)
             {
                 if (OpenDotNetPublicControlBlock_V4(
+                    context->ProcessItem->IsImmersive == 1 ? TRUE : FALSE,
+                    context->ProcessHandle,
                     context->ProcessItem->ProcessId,
                     &context->BlockTableHandle,
                     &context->BlockTableAddress
