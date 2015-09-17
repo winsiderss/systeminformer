@@ -44,6 +44,8 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     );
 
 BOOLEAN OpenDotNetPublicControlBlock_V4(
+    _In_ BOOLEAN IsImmersive,
+    _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
     _Out_ HANDLE* BlockTableHandle,
     _Out_ PVOID* BlockTableAddress
