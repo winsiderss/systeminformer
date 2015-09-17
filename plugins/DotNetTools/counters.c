@@ -180,6 +180,8 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
 }
 
 BOOLEAN OpenDotNetPublicControlBlock_V4(
+    _In_ BOOLEAN IsImmersive,
+    _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
     _Out_ HANDLE* BlockTableHandle,
     _Out_ PVOID* BlockTableAddress
@@ -189,8 +191,10 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     PVOID boundaryDescriptorHandle = NULL;
     HANDLE privateNamespaceHandle = NULL;
     HANDLE blockTableHandle = NULL;
+    HANDLE tokenHandle = NULL;
     PSID everyoneSIDHandle = NULL;
     PVOID blockTableAddress = NULL;
+    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
     __try
@@ -238,6 +242,45 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
             if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor_I(&boundaryDescriptorHandle, everyoneSIDHandle)))
                 __leave;
 
+            if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
+            {
+                if (NT_SUCCESS(PhOpenProcessToken(
+                    &tokenHandle,
+                    TOKEN_QUERY, 
+                    ProcessHandle
+                    )))
+                {
+                    ULONG returnLength = 0;
+
+                    NtQueryInformationToken(
+                        tokenHandle,
+                        TokenAppContainerSid,
+                        NULL,
+                        0,
+                        &returnLength
+                        );
+
+                    appContainerInfo = PhAllocate(returnLength);
+   
+                    if (!NT_SUCCESS(NtQueryInformationToken(
+                        tokenHandle,
+                        TokenAppContainerSid,
+                        appContainerInfo,
+                        returnLength,
+                        &returnLength
+                        )))
+                    {
+                        __leave;
+                    }
+
+                    if (!appContainerInfo->TokenAppContainer)
+                        __leave;
+
+                    if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor_I(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
+                        __leave;
+                }
+            }
+
             // TODO: Why doesn't NtOpenPrivateNamespace work?
             if (!(privateNamespaceHandle = OpenPrivateNamespace_I(boundaryDescriptorHandle, CorSxSReaderPrivateNamespacePrefix)))
                 __leave;
@@ -270,6 +313,16 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
             *BlockTableHandle = NULL;
             *BlockTableAddress = NULL;
+        }
+
+        if (tokenHandle)
+        {
+            NtClose(tokenHandle);
+        }
+
+        if (appContainerInfo)
+        {
+            PhFree(appContainerInfo);
         }
 
         if (privateNamespaceHandle)
@@ -316,9 +369,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         {
             LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock_Wow64 = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock = (AppDomainEnumerationIPCBlock_Wow64*)DotNetGetBlock_Wow64_Offset(legacyPrivateBlock_Wow64, eLegacyPrivateIPC_AppDomain);
-
-            // dmex: Code below is a highly modified version of the the CorpubProcess class.
-            // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock->Mutex)
@@ -438,13 +488,13 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T ceSize = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
-                if ((ceSize * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
+                if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
 
                 // It should at least have 1 char for the null terminator.
-                if (ceSize < 1)
+                if (pAppDomainNameLength < 1)
                     continue;
 
                 // We know the string is a well-formed null-terminated string,
@@ -461,6 +511,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                     NULL
                     )))
                 {
+                    PhFree(pAppDomainName);
                     continue;
                 }
 
@@ -473,9 +524,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         {
             LegacyPrivateIPCControlBlock* legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock* appDomainEnumBlock = (AppDomainEnumerationIPCBlock*)DotNetGetBlock_Offset(legacyPrivateBlock, eLegacyPrivateIPC_AppDomain);
-
-            // dmex: Code below is a highly modified version of the the CorpubProcess class.
-            // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock->Mutex)
@@ -596,13 +644,13 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T ceSize = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
-                if ((ceSize * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
+                if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
 
                 // It should at least have 1 char for the null terminator.
-                if (ceSize < 1)
+                if (pAppDomainNameLength < 1)
                     continue;
 
                 // We know the string is a well-formed null-terminated string,
@@ -619,6 +667,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                     NULL
                     )))
                 {
+                    PhFree(pAppDomainName);
                     continue;
                 }
 
@@ -677,9 +726,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         {
             LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock_Wow64 = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock_Wow64 appDomainEnumBlock = legacyPrivateBlock_Wow64->AppDomainBlock;
-
-            // dmex: Code below is a highly modified version of the the CorpubProcess class.
-            // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock.Mutex)
@@ -799,13 +845,13 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T ceSize = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
-                if ((ceSize * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
+                if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
 
                 // It should at least have 1 char for the null terminator.
-                if (ceSize < 1)
+                if (pAppDomainNameLength < 1)
                     continue;
 
                 // We know the string is a well-formed null-terminated string,
@@ -822,6 +868,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                     NULL
                     )))
                 {
+                    PhFree(pAppDomainName);
                     continue;
                 }
 
@@ -834,9 +881,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         {
             LegacyPrivateIPCControlBlock* legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock appDomainEnumBlock = legacyPrivateBlock->AppDomainBlock;
-
-            // dmex: Code below is a highly modified version of the the CorpubProcess class.
-            // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/di/publish.cpp
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock.Mutex)
@@ -956,13 +1000,13 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T ceSize = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
-                if ((ceSize * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
+                if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
 
                 // It should at least have 1 char for the null terminator.
-                if (ceSize < 1)
+                if (pAppDomainNameLength < 1)
                     continue;
 
                 // We know the string is a well-formed null-terminated string,
@@ -979,6 +1023,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                     NULL
                     )))
                 {
+                    PhFree(pAppDomainName);
                     continue;
                 }
 
