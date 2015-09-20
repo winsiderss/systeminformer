@@ -905,7 +905,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 {
                     // Create the font handle
                     context->FontHandle = CreateFont(
-                        -MulDiv(-12, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+                        -MulDiv(-15, GetDeviceCaps(hdc, LOGPIXELSY), 72),
                         0,
                         0,
                         0,
