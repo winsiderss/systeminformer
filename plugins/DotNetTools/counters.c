@@ -78,7 +78,7 @@ static PPH_STRING GenerateSxSPublicNameV4(_In_ HANDLE ProcessId)
 }
 
 
-static PBYTE DotNetGetBlock_Offset(
+static PBYTE GetEntryBlockOffset(
     _In_ LegacyPrivateIPCControlBlock* IpcBlock,
     _In_ ULONG EntryId
     )
@@ -91,7 +91,7 @@ static PBYTE DotNetGetBlock_Offset(
     return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
 }
 
-static PBYTE DotNetGetBlock_Wow64_Offset(
+static PBYTE GetEntryBlockOffset_Wow64(
     _In_ LegacyPrivateIPCControlBlock_Wow64* IpcBlock,
     _In_ ULONG EntryId
     )
@@ -252,13 +252,19 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
                 {
                     ULONG returnLength = 0;
 
-                    NtQueryInformationToken(
+                    if (NtQueryInformationToken(
                         tokenHandle,
                         TokenAppContainerSid,
                         NULL,
                         0,
                         &returnLength
-                        );
+                        ) != STATUS_BUFFER_TOO_SMALL)
+                    {
+                        __leave;
+                    }
+
+                    if (returnLength < 1)
+                        __leave;
 
                     appContainerInfo = PhAllocate(returnLength);
    
@@ -368,7 +374,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         if (Wow64)
         {
             LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock_Wow64 = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
-            AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock = (AppDomainEnumerationIPCBlock_Wow64*)DotNetGetBlock_Wow64_Offset(legacyPrivateBlock_Wow64, eLegacyPrivateIPC_AppDomain);
+            AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock = (AppDomainEnumerationIPCBlock_Wow64*)GetEntryBlockOffset_Wow64(legacyPrivateBlock_Wow64, eLegacyPrivateIPC_AppDomain);
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock->Mutex)
@@ -377,19 +383,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             }
 
             // Dup the valid mutex handle into this process.
-            //if (!DuplicateHandle(
-            //    ProcessHandle,
-            //    UlongToHandle(appDomainEnumBlock->Mutex),
-            //    NtCurrentProcess(),
-            //    &legacyPrivateBlockMutexHandle,
-            //    DUPLICATE_SAME_ACCESS,
-            //    FALSE,
-            //    DUPLICATE_SAME_ACCESS
-            //    ))
-            //{
-            //    __leave;
-            //}
-
             if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 UlongToHandle(appDomainEnumBlock->Mutex),
@@ -476,6 +469,9 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             // Collect all the AppDomain info info a list of CorpubAppDomains
             for (int i = 0; i < tempBlock.NumOfUsedSlots; i++)
             {
+                SIZE_T pAppDomainNameLength;
+                PVOID pAppDomainName;
+
                 if (!pAppDomainInfoBlock[i].AppDomainName)
                     continue;
 
@@ -488,7 +484,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
                 if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
@@ -499,8 +495,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
 
                 // We know the string is a well-formed null-terminated string,
                 // but beyond that, we can't verify that the data is actually truthful.
-
-                PVOID pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
+                pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
                 memset(pAppDomainName, 0, pAppDomainInfoBlock[i].NameLengthInBytes + 1);
 
                 if (!NT_SUCCESS(PhReadVirtualMemory(
@@ -523,7 +518,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         else
         {
             LegacyPrivateIPCControlBlock* legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
-            AppDomainEnumerationIPCBlock* appDomainEnumBlock = (AppDomainEnumerationIPCBlock*)DotNetGetBlock_Offset(legacyPrivateBlock, eLegacyPrivateIPC_AppDomain);
+            AppDomainEnumerationIPCBlock* appDomainEnumBlock = (AppDomainEnumerationIPCBlock*)GetEntryBlockOffset(legacyPrivateBlock, eLegacyPrivateIPC_AppDomain);
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock->Mutex)
@@ -532,19 +527,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             }
 
             // Dup the valid mutex handle into this process.
-            //if (!DuplicateHandle(
-            //    ProcessHandle,
-            //    appDomainEnumBlock->Mutex,
-            //    NtCurrentProcess(),
-            //    &legacyPrivateBlockMutexHandle,
-            //    DUPLICATE_SAME_ACCESS,
-            //    FALSE,
-            //    DUPLICATE_SAME_ACCESS
-            //    ))
-            //{
-            //    __leave;
-            //}
-
             if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 appDomainEnumBlock->Mutex,
@@ -632,6 +614,9 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             // Collect all the AppDomain info info a list of CorpubAppDomains
             for (int i = 0; i < tempBlock.NumOfUsedSlots; i++)
             {
+                SIZE_T pAppDomainNameLength;
+                PVOID pAppDomainName;
+
                 if (!pAppDomainInfoBlock[i].AppDomainName)
                     continue;
 
@@ -644,7 +629,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
                 if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
@@ -655,8 +640,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
 
                 // We know the string is a well-formed null-terminated string,
                 // but beyond that, we can't verify that the data is actually truthful.
-
-                PVOID pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
+                pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
                 memset(pAppDomainName, 0, pAppDomainInfoBlock[i].NameLengthInBytes + 1);
 
                 if (!NT_SUCCESS(PhReadVirtualMemory(
@@ -734,19 +718,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             // Dup the valid mutex handle into this process.
-            //if (!DuplicateHandle(
-            //    ProcessHandle,
-            //    UlongToHandle(appDomainEnumBlock.Mutex),
-            //    NtCurrentProcess(),
-            //    &legacyPrivateBlockMutexHandle,
-            //    DUPLICATE_SAME_ACCESS,
-            //    FALSE,
-            //    DUPLICATE_SAME_ACCESS
-            //    ))
-            //{
-            //    __leave;
-            //}
-
             if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 UlongToHandle(appDomainEnumBlock.Mutex),
@@ -833,6 +804,9 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             // Collect all the AppDomain info info a list of CorpubAppDomains
             for (int i = 0; i < tempBlock.NumOfUsedSlots; i++)
             {
+                SIZE_T pAppDomainNameLength;
+                PVOID pAppDomainName;
+
                 if (!pAppDomainInfoBlock[i].AppDomainName)
                     continue;
 
@@ -845,7 +819,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
                 if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
@@ -856,8 +830,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
 
                 // We know the string is a well-formed null-terminated string,
                 // but beyond that, we can't verify that the data is actually truthful.
-
-                PVOID pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
+                pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
                 memset(pAppDomainName, 0, pAppDomainInfoBlock[i].NameLengthInBytes + 1);
 
                 if (!NT_SUCCESS(PhReadVirtualMemory(
@@ -889,19 +862,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             // Dup the valid mutex handle into this process.
-            //if (!DuplicateHandle(
-            //    ProcessHandle,
-            //    appDomainEnumBlock.Mutex,
-            //    NtCurrentProcess(),
-            //    &legacyPrivateBlockMutexHandle,
-            //    DUPLICATE_SAME_ACCESS,
-            //    FALSE,
-            //    DUPLICATE_SAME_ACCESS
-            //    ))
-            //{
-            //    __leave;
-            //}
-
             if (!NT_SUCCESS(PhDuplicateObject(
                 ProcessHandle,
                 appDomainEnumBlock.Mutex,
@@ -988,6 +948,9 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             // Collect all the AppDomain info info a list of CorpubAppDomains
             for (int i = 0; i < tempBlock.NumOfUsedSlots; i++)
             {
+                SIZE_T pAppDomainNameLength;
+                PVOID pAppDomainName;
+
                 if (!pAppDomainInfoBlock[i].AppDomainName)
                     continue;
 
@@ -1000,7 +963,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                     continue;
 
                 // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-                SIZE_T pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+                pAppDomainNameLength = pAppDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
 
                 if ((pAppDomainNameLength * sizeof(WCHAR)) != pAppDomainInfoBlock[i].NameLengthInBytes)
                     continue;
@@ -1011,8 +974,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
 
                 // We know the string is a well-formed null-terminated string,
                 // but beyond that, we can't verify that the data is actually truthful.
-
-                PVOID pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
+                pAppDomainName = PhAllocate(pAppDomainInfoBlock[i].NameLengthInBytes + 1);
                 memset(pAppDomainName, 0, pAppDomainInfoBlock[i].NameLengthInBytes + 1);
 
                 if (!NT_SUCCESS(PhReadVirtualMemory(
