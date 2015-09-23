@@ -431,6 +431,9 @@ static VOID UpdateCounterData(
             Context->BlockTableAddress
             );
 
+        if (!perfStatBlock)
+            return;
+
         if (Context->IsWow64)
         {
             PerfCounterIPCControlBlock_Wow64* perfBlock = perfStatBlock;
@@ -508,6 +511,9 @@ static VOID UpdateCounterData(
             Context->IsWow64, 
             Context->BlockTableAddress
             );
+
+        if (!perfStatBlock)
+            return;
 
         if (Context->IsWow64)
         {
