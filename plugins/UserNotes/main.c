@@ -1442,6 +1442,20 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                {
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE));
+                }
+                return TRUE;
+            }
+        }
+        break;
     }
 
     return FALSE;
