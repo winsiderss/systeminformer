@@ -426,7 +426,7 @@ static VOID UpdateCounterData(
 
     if (Context->ClrV4)
     {
-        PVOID perfStatBlock = QueryDotNetPerf_V4(
+        PVOID perfStatBlock = GetPerfIpcBlock_V4(
             Context->IsWow64, 
             Context->BlockTableAddress
             );
@@ -507,7 +507,7 @@ static VOID UpdateCounterData(
     }
     else
     {
-        PVOID perfStatBlock = QueryDotNetPerf_V2(
+        PVOID perfStatBlock = GetPerfIpcBlock_V2(
             Context->IsWow64, 
             Context->BlockTableAddress
             );
