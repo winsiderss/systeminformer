@@ -106,7 +106,7 @@ static PBYTE GetEntryBlockOffset_Wow64(
 
 
 
-PVOID QueryDotNetPerf_V2(
+PVOID GetPerfIpcBlock_V2(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
     )
@@ -119,7 +119,7 @@ PVOID QueryDotNetPerf_V2(
     return &((LegacyPublicIPCControlBlock*)BlockTableAddress)->PerfIpcBlock;
 }
 
-PVOID QueryDotNetPerf_V4(
+PVOID GetPerfIpcBlock_V4(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
     )
@@ -333,7 +333,8 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
         if (privateNamespaceHandle)
         {
-            ClosePrivateNamespace_I(privateNamespaceHandle, 0);
+            if (ClosePrivateNamespace_I)
+                ClosePrivateNamespace_I(privateNamespaceHandle, 0);
         }
 
         if (everyoneSIDHandle)
@@ -343,7 +344,8 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
         if (boundaryDescriptorHandle)
         {
-            RtlDeleteBoundaryDescriptor_I(boundaryDescriptorHandle);
+            if (RtlDeleteBoundaryDescriptor_I)
+                RtlDeleteBoundaryDescriptor_I(boundaryDescriptorHandle);
         }
     }
 
@@ -710,6 +712,11 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         {
             LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock_Wow64 = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock_Wow64 appDomainEnumBlock = legacyPrivateBlock_Wow64->AppDomainBlock;
+            
+            if ((legacyPrivateBlock_Wow64->FullIPCHeader.Header.Flags & IPC_FLAG_INITIALIZED) != IPC_FLAG_INITIALIZED)
+            {
+                __leave;
+            }
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock.Mutex)
@@ -854,6 +861,11 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         {
             LegacyPrivateIPCControlBlock* legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
             AppDomainEnumerationIPCBlock appDomainEnumBlock = legacyPrivateBlock->AppDomainBlock;
+
+            if ((legacyPrivateBlock->FullIPCHeader.Header.Flags & IPC_FLAG_INITIALIZED) != IPC_FLAG_INITIALIZED)
+            {
+                __leave;
+            }
 
             // If the mutex isn't filled in, the CLR is either starting up or shutting down
             if (!appDomainEnumBlock.Mutex)
