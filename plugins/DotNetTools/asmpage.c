@@ -481,7 +481,6 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
 }
 
 ULONG StartDotNetTrace(
-    _In_ PASMPAGE_CONTEXT Context,
     _Out_ PTRACEHANDLE SessionHandle,
     _Out_ PEVENT_TRACE_PROPERTIES *Properties
     )
@@ -504,12 +503,12 @@ ULONG StartDotNetTrace(
 
     result = StartTrace(&sessionHandle, DotNetLoggerName.Buffer, properties);
 
-    if (result == 0)
+    if (result == ERROR_SUCCESS)
     {
         *SessionHandle = sessionHandle;
         *Properties = properties;
 
-        return 0;
+        return ERROR_SUCCESS;
     }
     else if (result == ERROR_ALREADY_EXISTS)
     {
@@ -517,7 +516,7 @@ ULONG StartDotNetTrace(
 
         result = ControlTrace(0, DotNetLoggerName.Buffer, properties, EVENT_TRACE_CONTROL_QUERY);
 
-        if (result != 0)
+        if (result != ERROR_SUCCESS)
         {
             PhFree(properties);
             return result;
@@ -526,7 +525,7 @@ ULONG StartDotNetTrace(
         *SessionHandle = properties->Wnode.HistoricalContext;
         *Properties = properties;
 
-        return 0;
+        return ERROR_SUCCESS;
     }
     else
     {
@@ -838,7 +837,7 @@ ULONG UpdateDotNetTraceInfo(
     if (!EnableTraceEx_I)
         return ERROR_NOT_SUPPORTED;
 
-    result = StartDotNetTrace(Context, &sessionHandle, &properties);
+    result = StartDotNetTrace(&sessionHandle, &properties);
 
     if (result != 0)
         return result;

@@ -27,12 +27,12 @@ typedef struct _DN_THREAD_ITEM
 
 // counters
 
-PVOID QueryDotNetPerf_V2(
+PVOID GetPerfIpcBlock_V2(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
     );
 
-PVOID QueryDotNetPerf_V4(
+PVOID GetPerfIpcBlock_V4(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
     );
