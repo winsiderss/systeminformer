@@ -78,18 +78,18 @@ VOID EtGpuMonitorInitialization(
 
         if (gdi32Handle = GetModuleHandle(L"gdi32.dll"))
         {
-            D3DKMTOpenAdapterFromDeviceName_I = (PVOID)GetProcAddress(gdi32Handle, "D3DKMTOpenAdapterFromDeviceName");
-            D3DKMTCloseAdapter_I = (PVOID)GetProcAddress(gdi32Handle, "D3DKMTCloseAdapter");
-            D3DKMTQueryStatistics_I = (PVOID)GetProcAddress(gdi32Handle, "D3DKMTQueryStatistics");
+            D3DKMTOpenAdapterFromDeviceName_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTOpenAdapterFromDeviceName", 0);
+            D3DKMTCloseAdapter_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTCloseAdapter", 0);
+            D3DKMTQueryStatistics_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTQueryStatistics", 0);
         }
 
         if (setupapiHandle = LoadLibrary(L"setupapi.dll"))
         {
-            SetupDiGetClassDevsW_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiGetClassDevsW");
-            SetupDiDestroyDeviceInfoList_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiDestroyDeviceInfoList");
-            SetupDiEnumDeviceInterfaces_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiEnumDeviceInterfaces");
-            SetupDiGetDeviceInterfaceDetailW_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiGetDeviceInterfaceDetailW");
-            SetupDiGetDeviceRegistryPropertyW_I = (PVOID)GetProcAddress(setupapiHandle, "SetupDiGetDeviceRegistryPropertyW");
+            SetupDiGetClassDevsW_I = PhGetProcedureAddress(setupapiHandle, "SetupDiGetClassDevsW", 0);
+            SetupDiDestroyDeviceInfoList_I = PhGetProcedureAddress(setupapiHandle, "SetupDiDestroyDeviceInfoList", 0);
+            SetupDiEnumDeviceInterfaces_I = PhGetProcedureAddress(setupapiHandle, "SetupDiEnumDeviceInterfaces", 0);
+            SetupDiGetDeviceInterfaceDetailW_I = PhGetProcedureAddress(setupapiHandle, "SetupDiGetDeviceInterfaceDetailW", 0);
+            SetupDiGetDeviceRegistryPropertyW_I = PhGetProcedureAddress(setupapiHandle, "SetupDiGetDeviceRegistryPropertyW", 0);
         }
 
         if (

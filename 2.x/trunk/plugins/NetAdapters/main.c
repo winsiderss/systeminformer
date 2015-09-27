@@ -40,8 +40,8 @@ static VOID NTAPI LoadCallback(
     {
         if (IphlpHandle = GetModuleHandle(L"iphlpapi.dll"))
         {
-            GetIfEntry2_I = (_GetIfEntry2)GetProcAddress(IphlpHandle, "GetIfEntry2");
-            GetInterfaceDescriptionFromGuid_I = (_GetInterfaceDescriptionFromGuid)GetProcAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid");
+            GetIfEntry2_I = PhGetProcedureAddress(IphlpHandle, "GetIfEntry2", 0);
+            GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
         }
     }
 

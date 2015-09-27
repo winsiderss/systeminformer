@@ -102,11 +102,11 @@ static VOID NcAreaInitializeTheme(
     {
         if (UxThemeHandle = LoadLibrary(L"uxtheme.dll"))
         {
-            IsThemeActive_I = (_IsThemeActive)GetProcAddress(UxThemeHandle, "IsThemeActive");
-            OpenThemeData_I = (_OpenThemeData)GetProcAddress(UxThemeHandle, "OpenThemeData");
-            CloseThemeData_I = (_CloseThemeData)GetProcAddress(UxThemeHandle, "CloseThemeData");
-            IsThemePartDefined_I = (_IsThemePartDefined)GetProcAddress(UxThemeHandle, "IsThemePartDefined");
-            GetThemeInt_I = (_GetThemeInt)GetProcAddress(UxThemeHandle, "GetThemeInt");
+            IsThemeActive_I = PhGetProcedureAddress(UxThemeHandle, "IsThemeActive", 0);
+            OpenThemeData_I = PhGetProcedureAddress(UxThemeHandle, "OpenThemeData", 0);
+            CloseThemeData_I = PhGetProcedureAddress(UxThemeHandle, "CloseThemeData", 0);
+            IsThemePartDefined_I = PhGetProcedureAddress(UxThemeHandle, "IsThemePartDefined", 0);
+            GetThemeInt_I = PhGetProcedureAddress(UxThemeHandle, "GetThemeInt", 0);
         }
     }
 

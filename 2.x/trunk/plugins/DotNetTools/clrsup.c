@@ -267,7 +267,7 @@ HRESULT CreateXCLRDataProcess(
     if (!dllBase)
         return E_FAIL;
 
-    clrDataCreateInstance = (PVOID)GetProcAddress(dllBase, "CLRDataCreateInstance");
+    clrDataCreateInstance = PhGetProcedureAddress(dllBase, "CLRDataCreateInstance", 0);
 
     if (!clrDataCreateInstance)
         return E_FAIL;
