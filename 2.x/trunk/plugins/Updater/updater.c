@@ -49,8 +49,8 @@ static BOOLEAN HasLastUpdateTimeExpired(
     // Query the current time
     PhQuerySystemTime(&currentUpdateTimeTicks);
 
-    // Was the last update check less than 24 hours ago?
-    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= PH_TICKS_PER_DAY) // 48 * PH_TICKS_PER_HOUR
+    // Was the last update check less than 7 days ago?
+    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY) // 48 * PH_TICKS_PER_HOUR
     {
         PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
 
@@ -905,7 +905,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 {
                     // Create the font handle
                     context->FontHandle = CreateFont(
-                        -MulDiv(-15, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+                        -MulDiv(-14, GetDeviceCaps(hdc, LOGPIXELSY), 72),
                         0,
                         0,
                         0,
