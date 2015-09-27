@@ -38,7 +38,7 @@ static VOID NTAPI LoadCallback(
 
     if (WindowsVersion > WINDOWS_VISTA)
     {
-        if (IphlpHandle = GetModuleHandle(L"iphlpapi.dll"))
+        if (IphlpHandle = PhGetDllHandle(L"iphlpapi.dll"))
         {
             GetIfEntry2_I = PhGetProcedureAddress(IphlpHandle, "GetIfEntry2", 0);
             GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);

@@ -155,7 +155,7 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
     PVOID Unknown2
     );
 
-extern HMODULE IphlpHandle;
+extern PVOID IphlpHandle;
 extern _GetIfEntry2 GetIfEntry2_I;
 extern _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
 
