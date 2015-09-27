@@ -212,18 +212,21 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
             if (PhBeginInitOnce(&initOnce))
             {
-                HMODULE ntdll;
-                HMODULE kernel32;
+                PVOID ntdll;
+                PVOID kernel32;
 
-                ntdll = GetModuleHandle(L"ntdll.dll");
-                kernel32 = GetModuleHandle(L"kernel32.dll");
+                if (ntdll = PhGetDllHandle(L"ntdll.dll"))
+                {
+                    RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
+                    RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
+                    RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
+                }
 
-                RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
-                RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
-                RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
-
-                OpenPrivateNamespace_I = PhGetProcedureAddress(kernel32, "OpenPrivateNamespaceW", 0);
-                ClosePrivateNamespace_I = PhGetProcedureAddress(kernel32, "ClosePrivateNamespace", 0);
+                if (kernel32 = PhGetDllHandle(L"kernel32.dll"))
+                {
+                    OpenPrivateNamespace_I = PhGetProcedureAddress(kernel32, "OpenPrivateNamespaceW", 0);
+                    ClosePrivateNamespace_I = PhGetProcedureAddress(kernel32, "ClosePrivateNamespace", 0);
+                }
 
                 PhEndInitOnce(&initOnce);
             }
