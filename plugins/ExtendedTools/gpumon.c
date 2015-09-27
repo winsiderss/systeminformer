@@ -73,10 +73,10 @@ VOID EtGpuMonitorInitialization(
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) && WindowsVersion >= WINDOWS_7)
     {
-        HMODULE gdi32Handle;
+        PVOID gdi32Handle;
         HMODULE setupapiHandle;
 
-        if (gdi32Handle = GetModuleHandle(L"gdi32.dll"))
+        if (gdi32Handle = PhGetDllHandle(L"gdi32.dll"))
         {
             D3DKMTOpenAdapterFromDeviceName_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTOpenAdapterFromDeviceName", 0);
             D3DKMTCloseAdapter_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTCloseAdapter", 0);

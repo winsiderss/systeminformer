@@ -455,7 +455,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
             // Load the Process Hacker icon.
             context->IconHandle = (HICON)LoadImage(
-                GetModuleHandle(NULL),
+                NtCurrentPeb()->ImageBaseAddress,
                 MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
                 IMAGE_ICON,
                 GetSystemMetrics(SM_CXICON),

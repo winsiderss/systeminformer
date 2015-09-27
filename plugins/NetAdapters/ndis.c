@@ -22,7 +22,7 @@
 
 #include "main.h"
 
-HMODULE IphlpHandle = NULL;
+PVOID IphlpHandle = NULL;
 _GetIfEntry2 GetIfEntry2_I = NULL;
 _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;
 
