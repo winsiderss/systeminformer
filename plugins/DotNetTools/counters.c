@@ -218,12 +218,12 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
                 ntdll = GetModuleHandle(L"ntdll.dll");
                 kernel32 = GetModuleHandle(L"kernel32.dll");
 
-                RtlCreateBoundaryDescriptor_I = (_RtlCreateBoundaryDescriptor)GetProcAddress(ntdll, "RtlCreateBoundaryDescriptor");
-                RtlDeleteBoundaryDescriptor_I = (_RtlDeleteBoundaryDescriptor)GetProcAddress(ntdll, "RtlDeleteBoundaryDescriptor");
-                RtlAddSIDToBoundaryDescriptor_I = (_RtlAddSIDToBoundaryDescriptor)GetProcAddress(ntdll, "RtlAddSIDToBoundaryDescriptor");
+                RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
+                RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
+                RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
 
-                OpenPrivateNamespace_I = (_OpenPrivateNamespaceW)GetProcAddress(kernel32, "OpenPrivateNamespaceW");
-                ClosePrivateNamespace_I = (_ClosePrivateNamespace)GetProcAddress(kernel32, "ClosePrivateNamespace");
+                OpenPrivateNamespace_I = PhGetProcedureAddress(kernel32, "OpenPrivateNamespaceW", 0);
+                ClosePrivateNamespace_I = PhGetProcedureAddress(kernel32, "ClosePrivateNamespace", 0);
 
                 PhEndInitOnce(&initOnce);
             }
