@@ -77,7 +77,6 @@ static PPH_STRING GenerateSxSPublicNameV4(_In_ HANDLE ProcessId)
     return PhaFormatString(L"Global\\" CorSxSPublicIPCBlock, HandleToUlong(ProcessId));
 }
 
-
 static PBYTE GetEntryBlockOffset(
     _In_ LegacyPrivateIPCControlBlock* IpcBlock,
     _In_ ULONG EntryId
@@ -104,8 +103,6 @@ static PBYTE GetEntryBlockOffset_Wow64(
     return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
 }
 
-
-
 PVOID GetPerfIpcBlock_V2(
     _In_ BOOLEAN Wow64,
     _In_ PVOID BlockTableAddress
@@ -131,8 +128,6 @@ PVOID GetPerfIpcBlock_V4(
 
     return &((IPCControlBlockTable*)BlockTableAddress)->Blocks->PerfIpcBlock;
 }
-
-
 
 BOOLEAN OpenDotNetPublicControlBlock_V2(
     _In_ HANDLE ProcessId,
@@ -448,7 +443,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             }
 
             // Allocate memory to read the remote process' memory into
-            size_t pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
+            SIZE_T pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
 
             // Check other invariants.
             if (pAppDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo_Wow64))
@@ -592,7 +587,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             }
 
             // Allocate memory to read the remote process' memory into
-            size_t pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
+            SIZE_T pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
 
             // Check other invariants.
             if (pAppDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo))
@@ -671,10 +666,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         if (legacyPrivateBlockMutexHandle)
         {
             NtReleaseMutant(legacyPrivateBlockMutexHandle, NULL);
-        }
-
-        if (legacyPrivateBlockMutexHandle)
-        {
             NtClose(legacyPrivateBlockMutexHandle);
         }
 
@@ -788,7 +779,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             // Allocate memory to read the remote process' memory into
-            size_t pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
+            SIZE_T pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
 
             // Check other invariants.
             if (pAppDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo_Wow64))
@@ -937,7 +928,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             // Allocate memory to read the remote process' memory into
-            size_t pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
+            SIZE_T pAppDomainInfoBlockLength = tempBlock.SizeInBytes;
 
             // Check other invariants.
             if (pAppDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo))
@@ -1015,10 +1006,6 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         if (legacyPrivateBlockMutexHandle)
         {
             NtReleaseMutant(legacyPrivateBlockMutexHandle, NULL);
-        }
-
-        if (legacyPrivateBlockMutexHandle)
-        {
             NtClose(legacyPrivateBlockMutexHandle);
         }
 
