@@ -561,8 +561,9 @@ static VOID UpdateCounterData(
 
             if (dotNetPerfJit.timeInJitBase != 0)
             {
-                // TODO: Something is wrong here... TimeInJit is always above 100% (only some processes) ??
-                PhInitFormatF(&format, dotNetPerfJit.timeInJit * 100 / (FLOAT)dotNetPerfJit.timeInJitBase, 2);
+                // TODO: TimeInJit is always above 100% for some processes ??
+                // SeeAlso: https://github.com/dotnet/coreclr/blob/master/src/gc/gcee.cpp#L324
+                PhInitFormatF(&format, (dotNetPerfJit.timeInJit << 8) * 100 / (FLOAT)(dotNetPerfJit.timeInJitBase << 8), 2);
 
                 if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
                     PhSetListViewSubItem(Context->CountersLv, 4, 1, formatBuffer);
