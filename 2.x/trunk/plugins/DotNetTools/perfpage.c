@@ -25,6 +25,33 @@
 #include "dn.h"
 #include "clr\perfcounterdefs.h"
 
+typedef enum _DOTNET_CATEGORY
+{
+    // .NET CLR Exceptions (Runtime statistics on CLR exception handling)
+    DOTNET_CATEGORY_EXCEPTIONS,
+
+    // .NET CLR Interop (Stats for CLR interop)
+    DOTNET_CATEGORY_INTEROP,
+
+    // .NET CLR Jit (Stats for CLR Jit)
+    DOTNET_CATEGORY_JIT,
+
+    // .NET CLR Loading (Statistics for CLR Class Loader)
+    DOTNET_CATEGORY_LOADING,
+
+    // .NET CLR LocksAndThreads (Stats for CLR Locks and Threads)
+    DOTNET_CATEGORY_LOCKSANDTHREADS,
+
+    // .NET CLR Memory (Counters for CLR Garbage Collected heap)
+    DOTNET_CATEGORY_MEMORY,
+
+    // .NET CLR Remoting (Stats for CLR Remoting)
+    DOTNET_CATEGORY_REMOTING,
+
+    // .NET CLR Security (Stats for CLR Security)
+    DOTNET_CATEGORY_SECURITY
+} DOTNET_CATEGORY;
+
 typedef struct _PERFPAGE_CONTEXT
 {
     HWND WindowHandle;
@@ -38,7 +65,7 @@ typedef struct _PERFPAGE_CONTEXT
     BOOLEAN ControlBlockValid;
     BOOLEAN ClrV4;
     BOOLEAN IsWow64;
-    INT CategoryIndex;
+    DOTNET_CATEGORY CategoryIndex;
     HANDLE ProcessHandle;
     HANDLE BlockTableHandle;
     PVOID BlockTableAddress;
@@ -80,13 +107,15 @@ static VOID UpdateCategoryValues(
 
     switch (Context->CategoryIndex)
     {
-    case 0: // .NET CLR Exceptions (Runtime statistics on CLR exception handling)
+    case DOTNET_CATEGORY_EXCEPTIONS:
         {
             // This counter displays the total number of exceptions thrown since the start of the application. These include both .NET exceptions and unmanaged exceptions that get converted into .NET exceptions e.g. null pointer reference exception in unmanaged code would get re-thrown in managed code as a .NET System.NullReferenceException; this counter includes both handled and unhandled exceptions.Exceptions that are re-thrown would get counted again. Exceptions should only occur in rare situations and not in the normal control flow of the program.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Exceps Thrown", NULL);
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Filters Executed", NULL);
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Finallys Executed", NULL);
-            PhAddListViewItem(Context->CountersLv, MAXINT, L" Delta from throw to catch site on stack", NULL);
+
+            // Reserved for future use.
+            //PhAddListViewItem(Context->CountersLv, MAXINT, L" Delta from throw to catch site on stack", NULL);
 
             // # of Exceps Thrown / sec
             // This counter displays the number of exceptions thrown per second.These include both.NET exceptions and unmanaged exceptions that get converted into.NET exceptions e.g.null pointer reference exception in unmanaged code would get re - thrown in managed code as a.NET System.NullReferenceException; this counter includes both handled and unhandled exceptions.Exceptions should only occur in rare situations and not in the normal control flow of the program; this counter was designed as an indicator of potential performance problems due to large(> 100s) rate of exceptions thrown.This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
@@ -101,7 +130,7 @@ static VOID UpdateCategoryValues(
             // This counter displays the number of stack frames traversed from the frame that threw the.NET exception to the frame that handled the exception per second.This counter resets to 0 when an exception handler is entered; so nested exceptions would show the handler to handler stack depth.This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.* /
         }
         break;
-    case 1: // .NET CLR Interop (Stats for CLR interop)
+    case DOTNET_CATEGORY_INTEROP:
         {
             // This counter displays the current number of Com-Callable-Wrappers (CCWs). A CCW is a proxy for the .NET managed object being referenced from unmanaged COM client(s). This counter was designed to indicate the number of managed objects being referenced by unmanaged COM code.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of CCWs", NULL);
@@ -119,7 +148,7 @@ static VOID UpdateCategoryValues(
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of TLB exports / sec", NULL);
         }
         break;
-    case 2: // .NET CLR Jit (Stats for CLR Jit)
+    case DOTNET_CATEGORY_JIT:
         {
             // This counter displays the total number of methods compiled Just-In-Time (JIT) by the CLR JIT compiler since the start of the application. This counter does not include the pre-jitted methods.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Methods Jitted", NULL);
@@ -135,12 +164,12 @@ static VOID UpdateCategoryValues(
 
             // This counter displays the percentage of elapsed time spent in JIT compilation since the last JIT compilation phase. This counter is updated at the end of every JIT compilation phase. A JIT compilation phase is the phase when a method and its dependencies are being compiled.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"% Time in Jit", NULL);
-        
+
             // IL Bytes Jitted / sec
             // This counter displays the rate at which IL bytes are jitted per second. This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
         }
         break;
-    case 3: // .NET CLR Loading (Statistics for CLR Class Loader)
+    case DOTNET_CATEGORY_LOADING:
         {
             // This counter displays the current number of classes loaded in all Assemblies.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Current Classes Loaded", NULL);
@@ -191,29 +220,29 @@ static VOID UpdateCategoryValues(
             // This counter displays the number of Assemblies loaded across all AppDomains per second.If the Assembly is loaded as domain - neutral from multiple AppDomains then this counter is incremented once only.Assemblies can be loaded as domain - neutral when their code can be shared by all AppDomains or they can be loaded as domain - specific when their code is private to the AppDomain.This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
         }
         break;
-    case 4: // .NET CLR LocksAndThreads (Stats for CLR Locks and Threads)
+    case DOTNET_CATEGORY_LOCKSANDTHREADS:
         {
             // This counter displays the total number of times threads in the CLR have attempted to acquire a managed lock unsuccessfully. Managed locks can be acquired in many ways; by the "lock" statement in C# or by calling System.Monitor.Enter or by using MethodImplOptions.Synchronized custom attribute.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Total # of Contentions", NULL);
 
             // This counter displays the total number of threads currently waiting to acquire some managed lock in the application. This counter is not an average over time; it displays the last observed value.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Current Queue Length", NULL);
-            
+
             // This counter displays the total number of threads that waited to acquire some managed lock since the start of the application.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Queue Length Peak", NULL);
-            
+
             // This counter displays the number of current.NET thread objects in the application.A.NET thread object is created either by new System.Threading.Thread or when an unmanaged thread enters the managed environment. This counters maintains the count of both running and stopped threads. This counter is not an average over time; it just displays the last observed value.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Current Logical Threads", NULL);
-            
+
             // This counter displays the number of native OS threads created and owned by the CLR to act as underlying threads for .NET thread objects. This counters value does not include the threads used by the CLR in its internal operations; it is a subset of the threads in the OS process.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Current Physical Threads", NULL);
-            
+
             // This counter displays the number of threads that are currently recognized by the CLR; they have a corresponding .NET thread object associated with them. These threads are not created by the CLR; they are created outside the CLR but have since run inside the CLR at least once. Only unique threads are tracked; threads with same thread ID re-entering the CLR or recreated after thread exit are not counted twice.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Current Recognized Threads", NULL);
-            
+
             // This counter displays the total number of threads that have been recognized by the CLR since the start of this application; these threads have a corresponding .NET thread object associated with them. These threads are not created by the CLR; they are created outside the CLR but have since run inside the CLR at least once. Only unique threads are tracked; threads with same thread ID re-entering the CLR or recreated after thread exit are not counted twice.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Total Recognized Threads", NULL);
-        
+
             // Contention Rate / sec
             // Rate at which threads in the runtime attempt to acquire a managed lock unsuccessfully.Managed locks can be acquired in many ways; by the "lock" statement in C# or by calling System.Monitor.Enter or by using MethodImplOptions.Synchronized custom attribute.
 
@@ -224,7 +253,7 @@ static VOID UpdateCategoryValues(
             // This counter displays the number of threads per second that have been recognized by the CLR; these threads have a corresponding .NET thread object associated with them. These threads are not created by the CLR; they are created outside the CLR but have since run inside the CLR at least once. Only unique threads are tracked; threads with same thread ID re-entering the CLR or recreated after thread exit are not counted twice. This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
         }
         break;
-    case 5: // .NET CLR Memory (Counters for CLR Garbage Collected heap)
+    case DOTNET_CATEGORY_MEMORY:
         {
             // This counter displays the number of times the generation 0 objects (youngest; most recently allocated) are garbage collected (Gen 0 GC) since the start of the application. Gen 0 GC occurs when the available memory in generation 0 is not sufficient to satisfy an allocation request. This counter is incremented at the end of a Gen 0 GC. Higher generation GCs include all lower generation GCs.This counter is explicitly incremented when a higher generation (Gen 1 or Gen 2) GC occurs. _Global_ counter value is not accurate and should be ignored. This counter displays the last observed value.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# Gen 0 Collections", NULL);
@@ -243,7 +272,7 @@ static VOID UpdateCategoryValues(
 
             // This counter displays the bytes of memory that are promoted from generation 0 to generation 1 just because they are waiting to be finalized.This counter displays the value observed at the end of the last GC; its not a cumulative counter.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Promoted Finalization-Memory from Gen 0", NULL);
-           
+
             // Reserved for future use.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Process ID", NULL);
 
@@ -285,7 +314,7 @@ static VOID UpdateCategoryValues(
 
             // This counter displays the current number of sync blocks in use. Sync blocks are per-object data structures allocated for storing synchronization information. Sync blocks hold weak references to managed objects and need to be scanned by the Garbage Collector. Sync blocks are not limited to storing synchronization information and can also store COM interop metadata. This counter was designed to indicate performance problems with heavy use of synchronization primitives.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Sink Blocks in use", NULL);
-            
+
             // Reserved for future use.
             //PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Bytes Allocated", NULL);
 
@@ -294,18 +323,18 @@ static VOID UpdateCategoryValues(
 
             // Gen 0 Promoted Bytes / Sec
             // This counter displays the bytes per second that are promoted from generation 0 (youngest)to generation 1; objects that are promoted just because they are waiting to be finalized are not included in this counter.Memory is promoted when it survives a garbage collection.This counter was designed as an indicator of relatively long - lived objects being created per sec.This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-           
+
             // Gen 1 Promoted Bytes / Sec
             // This counter displays the bytes per second that are promoted from generation 1 to generation 2 (oldest); objects that are promoted just because they are waiting to be finalized are not included in this counter.Memory is promoted when it survives a garbage collection.Nothing is promoted from generation 2 since it is the oldest.This counter was designed as an indicator of very long - lived objects being created per sec.This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-            
+
             // Promoted Finalization - Memory from Gen 1
             // This counter displays the bytes of memory that are promoted from generation 1 to generation 2 just because they are waiting to be finalized.This counter displays the value observed at the end of the last GC; its not a cumulative counter.This counter is reset to 0 if the last GC was a Gen 0 GC only.
-           
+
             // Allocated Bytes / sec
             // This counter displays the rate of bytes per second allocated on the GC Heap.This counter is updated at the end of every GC; not at each allocation.This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
         }
         break;
-    case 6: // .NET CLR Remoting (Stats for CLR Remoting)
+    case DOTNET_CATEGORY_REMOTING:
         {
             // This counter displays the total number of remote procedure calls invoked since the start of this application. A remote procedure call is a call on any object outside the callers AppDomain.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Remote Calls", NULL);
@@ -326,12 +355,12 @@ static VOID UpdateCategoryValues(
 
             // Remote Calls / sec
             // This counter displays the number of remote procedure calls invoked per second. A remote procedure call is a call on any object outside the callers AppDomain. This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
-           
+
             // Context - Bound Objects Alloc / sec
             // This counter displays the number of context - bound objects allocated per second. Instances of classes that can be bound to a context are called context - bound objects; context - bound classes are marked with Context Attributes which provide usage rules for synchronization; thread affinity; transactions etc.This counter is not an average over time; it displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
         }
         break;
-    case 7: // .NET CLR Security (Stats for CLR Security)
+    case DOTNET_CATEGORY_SECURITY:
         {
             // This counter displays the total number of runtime Code Access Security(CAS) checks performed since the start of the application. Runtime CAS checks are performed when a caller makes a call to a callee demanding a particular permission; the runtime check is made on every call by the caller; the check is done by examining the current thread stack of the caller. This counter used together with "Stack Walk Depth" is indicative of performance penalty for security checks.
             PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Runtime Checks", NULL);
@@ -350,20 +379,6 @@ static VOID UpdateCategoryValues(
         }
         break;
     }
-
-    // .NET CLR Data
-    // SqlClient: Current # pooled and nonpooled connections
-    // Current number of connections, pooled or not.
-    // SqlClient: Current # pooled connections
-    // Current number of connections in all pools associated with the process.
-    // SqlClient: Current # connection pools
-    // Current number of pools associated with the process.
-    // SqlClient: Peak # pooled connections
-    // The highest number of connections in all pools since the process started.
-    // SqlClient: Total # failed connects
-    // The total number of connection open attempts that have failed for any reason.
-    // SqlClient: Total # failed commands
-    // The total number of command executes that have failed for any reason.
 }
 
 static VOID AddProcessAppDomains(
@@ -415,6 +430,7 @@ static VOID UpdateCounterData(
     _In_ PPERFPAGE_CONTEXT Context
     )
 {
+    PVOID perfStatBlock = NULL;
     Perf_GC dotNetPerfGC;
     Perf_Contexts dotNetPerfContext;
     Perf_Interop dotNetPerfInterop;
@@ -426,178 +442,105 @@ static VOID UpdateCounterData(
 
     if (Context->ClrV4)
     {
-        PVOID perfStatBlock = GetPerfIpcBlock_V4(
-            Context->IsWow64, 
+        perfStatBlock = GetPerfIpcBlock_V4(
+            Context->IsWow64,
             Context->BlockTableAddress
             );
-
-        if (!perfStatBlock)
-            return;
-
-        if (Context->IsWow64)
-        {
-            PerfCounterIPCControlBlock_Wow64* perfBlock = perfStatBlock;
-
-            Perf_GC_Wow64 dotNetPerfGC_Wow64 = perfBlock->GC;
-            Perf_Loading_Wow64 dotNetPerfLoading_Wow64 = perfBlock->Loading;
-            Perf_Security_Wow64 dotNetPerfSecurity_Wow64 = perfBlock->Security;
-
-            dotNetPerfGC.cGenCollections[0] = dotNetPerfGC_Wow64.cGenCollections[0];
-            dotNetPerfGC.cGenCollections[1] = dotNetPerfGC_Wow64.cGenCollections[1];
-            dotNetPerfGC.cGenCollections[2] = dotNetPerfGC_Wow64.cGenCollections[2];
-            dotNetPerfGC.cbPromotedMem[0] = dotNetPerfGC_Wow64.cbPromotedMem[0];
-            dotNetPerfGC.cbPromotedMem[1] = dotNetPerfGC_Wow64.cbPromotedMem[1];
-            dotNetPerfGC.cbPromotedFinalizationMem = dotNetPerfGC_Wow64.cbPromotedFinalizationMem;
-            dotNetPerfGC.cProcessID = dotNetPerfGC_Wow64.cProcessID;
-            dotNetPerfGC.cGenHeapSize[0] = dotNetPerfGC_Wow64.cGenHeapSize[0];
-            dotNetPerfGC.cGenHeapSize[1] = dotNetPerfGC_Wow64.cGenHeapSize[1];
-            dotNetPerfGC.cGenHeapSize[2] = dotNetPerfGC_Wow64.cGenHeapSize[2];
-            dotNetPerfGC.cTotalCommittedBytes = dotNetPerfGC_Wow64.cTotalCommittedBytes;
-            dotNetPerfGC.cTotalReservedBytes = dotNetPerfGC_Wow64.cTotalReservedBytes;
-            dotNetPerfGC.cLrgObjSize = dotNetPerfGC_Wow64.cLrgObjSize;
-            dotNetPerfGC.cSurviveFinalize = dotNetPerfGC_Wow64.cSurviveFinalize;
-            dotNetPerfGC.cHandles = dotNetPerfGC_Wow64.cHandles;
-            dotNetPerfGC.cbAlloc = dotNetPerfGC_Wow64.cbAlloc;
-            dotNetPerfGC.cbLargeAlloc = dotNetPerfGC_Wow64.cbLargeAlloc;
-            dotNetPerfGC.cInducedGCs = dotNetPerfGC_Wow64.cInducedGCs;
-            dotNetPerfGC.timeInGC = dotNetPerfGC_Wow64.timeInGC;
-            dotNetPerfGC.timeInGCBase = dotNetPerfGC_Wow64.timeInGCBase;
-            dotNetPerfGC.cPinnedObj = dotNetPerfGC_Wow64.cPinnedObj;
-            dotNetPerfGC.cSinkBlocks = dotNetPerfGC_Wow64.cSinkBlocks;
-
-            dotNetPerfContext = perfBlock->Context;
-            dotNetPerfInterop = perfBlock->Interop;
-
-            dotNetPerfLoading.cClassesLoaded.Current = dotNetPerfLoading_Wow64.cClassesLoaded.Current;
-            dotNetPerfLoading.cClassesLoaded.Total = dotNetPerfLoading_Wow64.cClassesLoaded.Total;
-            dotNetPerfLoading.cAppDomains.Current = dotNetPerfLoading_Wow64.cAppDomains.Current;
-            dotNetPerfLoading.cAppDomains.Total = dotNetPerfLoading_Wow64.cAppDomains.Total;
-            dotNetPerfLoading.cAssemblies.Current = dotNetPerfLoading_Wow64.cAssemblies.Current;
-            dotNetPerfLoading.cAssemblies.Total = dotNetPerfLoading_Wow64.cAssemblies.Total;
-            dotNetPerfLoading.timeLoading = dotNetPerfLoading_Wow64.timeLoading;
-            dotNetPerfLoading.cAsmSearchLen = dotNetPerfLoading_Wow64.cAsmSearchLen;
-            dotNetPerfLoading.cLoadFailures.Total = dotNetPerfLoading_Wow64.cLoadFailures.Total;
-            dotNetPerfLoading.cbLoaderHeapSize = dotNetPerfLoading_Wow64.cbLoaderHeapSize;
-            dotNetPerfLoading.cAppDomainsUnloaded = dotNetPerfLoading_Wow64.cAppDomainsUnloaded;
-
-            dotNetPerfExcep = perfBlock->Excep;
-            dotNetPerfLocksAndThreads = perfBlock->LocksAndThreads;
-            dotNetPerfJit = perfBlock->Jit;
-
-            dotNetPerfSecurity.cTotalRTChecks = dotNetPerfSecurity_Wow64.cTotalRTChecks;
-            dotNetPerfSecurity.timeAuthorize = dotNetPerfSecurity_Wow64.timeAuthorize;
-            dotNetPerfSecurity.cLinkChecks = dotNetPerfSecurity_Wow64.cLinkChecks;
-            dotNetPerfSecurity.timeRTchecks = dotNetPerfSecurity_Wow64.timeRTchecks;
-            dotNetPerfSecurity.timeRTchecksBase = dotNetPerfSecurity_Wow64.timeRTchecksBase;
-            dotNetPerfSecurity.stackWalkDepth = dotNetPerfSecurity_Wow64.stackWalkDepth;
-        }
-        else
-        {
-            PerfCounterIPCControlBlock* perfBlock = perfStatBlock;
-
-            dotNetPerfGC = perfBlock->GC;
-            dotNetPerfContext = perfBlock->Context;
-            dotNetPerfInterop = perfBlock->Interop;
-            dotNetPerfLoading = perfBlock->Loading;
-            dotNetPerfExcep = perfBlock->Excep;
-            dotNetPerfLocksAndThreads = perfBlock->LocksAndThreads;
-            dotNetPerfJit = perfBlock->Jit;
-            dotNetPerfSecurity = perfBlock->Security;
-        }
     }
     else
     {
-        PVOID perfStatBlock = GetPerfIpcBlock_V2(
-            Context->IsWow64, 
+        perfStatBlock = GetPerfIpcBlock_V2(
+            Context->IsWow64,
             Context->BlockTableAddress
             );
+    }
 
-        if (!perfStatBlock)
-            return;
+    if (!perfStatBlock)
+        return;
 
-        if (Context->IsWow64)
-        {
-            PerfCounterIPCControlBlock_Wow64* perfBlock = perfStatBlock;
+    if (Context->IsWow64)
+    {
+        PerfCounterIPCControlBlock_Wow64* perfBlock = perfStatBlock;
+        Perf_GC_Wow64 dotNetPerfGC_Wow64 = perfBlock->GC;
+        Perf_Loading_Wow64 dotNetPerfLoading_Wow64 = perfBlock->Loading;
+        Perf_Security_Wow64 dotNetPerfSecurity_Wow64 = perfBlock->Security;
 
-            Perf_GC_Wow64 dotNetPerfGC_Wow64 = perfBlock->GC;
-            Perf_Loading_Wow64 dotNetPerfLoading_Wow64 = perfBlock->Loading;
-            Perf_Security_Wow64 dotNetPerfSecurity_Wow64 = perfBlock->Security;
+        // Thunk the Wow64 structures into their 64bit versions (or 32bit version on x86).
 
-            dotNetPerfGC.cGenCollections[0] = dotNetPerfGC_Wow64.cGenCollections[0];
-            dotNetPerfGC.cGenCollections[1] = dotNetPerfGC_Wow64.cGenCollections[1];
-            dotNetPerfGC.cGenCollections[2] = dotNetPerfGC_Wow64.cGenCollections[2];
-            dotNetPerfGC.cbPromotedMem[0] = dotNetPerfGC_Wow64.cbPromotedMem[0];
-            dotNetPerfGC.cbPromotedMem[1] = dotNetPerfGC_Wow64.cbPromotedMem[1];
-            dotNetPerfGC.cbPromotedFinalizationMem = dotNetPerfGC_Wow64.cbPromotedFinalizationMem;
-            dotNetPerfGC.cProcessID = dotNetPerfGC_Wow64.cProcessID;
-            dotNetPerfGC.cGenHeapSize[0] = dotNetPerfGC_Wow64.cGenHeapSize[0];
-            dotNetPerfGC.cGenHeapSize[1] = dotNetPerfGC_Wow64.cGenHeapSize[1];
-            dotNetPerfGC.cGenHeapSize[2] = dotNetPerfGC_Wow64.cGenHeapSize[2];
-            dotNetPerfGC.cTotalCommittedBytes = dotNetPerfGC_Wow64.cTotalCommittedBytes;
-            dotNetPerfGC.cTotalReservedBytes = dotNetPerfGC_Wow64.cTotalReservedBytes;
-            dotNetPerfGC.cLrgObjSize = dotNetPerfGC_Wow64.cLrgObjSize;
-            dotNetPerfGC.cSurviveFinalize = dotNetPerfGC_Wow64.cSurviveFinalize;
-            dotNetPerfGC.cHandles = dotNetPerfGC_Wow64.cHandles;
-            dotNetPerfGC.cbAlloc = dotNetPerfGC_Wow64.cbAlloc;
-            dotNetPerfGC.cbLargeAlloc = dotNetPerfGC_Wow64.cbLargeAlloc;
-            dotNetPerfGC.cInducedGCs = dotNetPerfGC_Wow64.cInducedGCs;
-            dotNetPerfGC.timeInGC = dotNetPerfGC_Wow64.timeInGC;
-            dotNetPerfGC.timeInGCBase = dotNetPerfGC_Wow64.timeInGCBase;
-            dotNetPerfGC.cPinnedObj = dotNetPerfGC_Wow64.cPinnedObj;
-            dotNetPerfGC.cSinkBlocks = dotNetPerfGC_Wow64.cSinkBlocks;
+        dotNetPerfGC.cGenCollections[0] = dotNetPerfGC_Wow64.cGenCollections[0];
+        dotNetPerfGC.cGenCollections[1] = dotNetPerfGC_Wow64.cGenCollections[1];
+        dotNetPerfGC.cGenCollections[2] = dotNetPerfGC_Wow64.cGenCollections[2];
+        dotNetPerfGC.cbPromotedMem[0] = dotNetPerfGC_Wow64.cbPromotedMem[0];
+        dotNetPerfGC.cbPromotedMem[1] = dotNetPerfGC_Wow64.cbPromotedMem[1];
+        dotNetPerfGC.cbPromotedFinalizationMem = dotNetPerfGC_Wow64.cbPromotedFinalizationMem;
+        dotNetPerfGC.cProcessID = dotNetPerfGC_Wow64.cProcessID;
+        dotNetPerfGC.cGenHeapSize[0] = dotNetPerfGC_Wow64.cGenHeapSize[0];
+        dotNetPerfGC.cGenHeapSize[1] = dotNetPerfGC_Wow64.cGenHeapSize[1];
+        dotNetPerfGC.cGenHeapSize[2] = dotNetPerfGC_Wow64.cGenHeapSize[2];
+        dotNetPerfGC.cTotalCommittedBytes = dotNetPerfGC_Wow64.cTotalCommittedBytes;
+        dotNetPerfGC.cTotalReservedBytes = dotNetPerfGC_Wow64.cTotalReservedBytes;
+        dotNetPerfGC.cLrgObjSize = dotNetPerfGC_Wow64.cLrgObjSize;
+        dotNetPerfGC.cSurviveFinalize = dotNetPerfGC_Wow64.cSurviveFinalize;
+        dotNetPerfGC.cHandles = dotNetPerfGC_Wow64.cHandles;
+        dotNetPerfGC.cbAlloc = dotNetPerfGC_Wow64.cbAlloc;
+        dotNetPerfGC.cbLargeAlloc = dotNetPerfGC_Wow64.cbLargeAlloc;
+        dotNetPerfGC.cInducedGCs = dotNetPerfGC_Wow64.cInducedGCs;
+        dotNetPerfGC.timeInGC = dotNetPerfGC_Wow64.timeInGC;
+        dotNetPerfGC.timeInGCBase = dotNetPerfGC_Wow64.timeInGCBase;
+        dotNetPerfGC.cPinnedObj = dotNetPerfGC_Wow64.cPinnedObj;
+        dotNetPerfGC.cSinkBlocks = dotNetPerfGC_Wow64.cSinkBlocks;
 
-            dotNetPerfContext = perfBlock->Context;
-            dotNetPerfInterop = perfBlock->Interop;
+        dotNetPerfContext = perfBlock->Context;
+        dotNetPerfInterop = perfBlock->Interop;
 
-            dotNetPerfLoading.cClassesLoaded.Current = dotNetPerfLoading_Wow64.cClassesLoaded.Current;
-            dotNetPerfLoading.cClassesLoaded.Total = dotNetPerfLoading_Wow64.cClassesLoaded.Total;
-            dotNetPerfLoading.cAppDomains.Current = dotNetPerfLoading_Wow64.cAppDomains.Current;
-            dotNetPerfLoading.cAppDomains.Total = dotNetPerfLoading_Wow64.cAppDomains.Total;
-            dotNetPerfLoading.cAssemblies.Current = dotNetPerfLoading_Wow64.cAssemblies.Current;
-            dotNetPerfLoading.cAssemblies.Total = dotNetPerfLoading_Wow64.cAssemblies.Total;
-            dotNetPerfLoading.timeLoading = dotNetPerfLoading_Wow64.timeLoading;
-            dotNetPerfLoading.cAsmSearchLen = dotNetPerfLoading_Wow64.cAsmSearchLen;
-            dotNetPerfLoading.cLoadFailures.Total = dotNetPerfLoading_Wow64.cLoadFailures.Total;
-            dotNetPerfLoading.cbLoaderHeapSize = dotNetPerfLoading_Wow64.cbLoaderHeapSize;
-            dotNetPerfLoading.cAppDomainsUnloaded = dotNetPerfLoading_Wow64.cAppDomainsUnloaded;
+        dotNetPerfLoading.cClassesLoaded.Current = dotNetPerfLoading_Wow64.cClassesLoaded.Current;
+        dotNetPerfLoading.cClassesLoaded.Total = dotNetPerfLoading_Wow64.cClassesLoaded.Total;
+        dotNetPerfLoading.cAppDomains.Current = dotNetPerfLoading_Wow64.cAppDomains.Current;
+        dotNetPerfLoading.cAppDomains.Total = dotNetPerfLoading_Wow64.cAppDomains.Total;
+        dotNetPerfLoading.cAssemblies.Current = dotNetPerfLoading_Wow64.cAssemblies.Current;
+        dotNetPerfLoading.cAssemblies.Total = dotNetPerfLoading_Wow64.cAssemblies.Total;
+        dotNetPerfLoading.timeLoading = dotNetPerfLoading_Wow64.timeLoading;
+        dotNetPerfLoading.cAsmSearchLen = dotNetPerfLoading_Wow64.cAsmSearchLen;
+        dotNetPerfLoading.cLoadFailures.Total = dotNetPerfLoading_Wow64.cLoadFailures.Total;
+        dotNetPerfLoading.cbLoaderHeapSize = dotNetPerfLoading_Wow64.cbLoaderHeapSize;
+        dotNetPerfLoading.cAppDomainsUnloaded = dotNetPerfLoading_Wow64.cAppDomainsUnloaded;
 
-            dotNetPerfExcep = perfBlock->Excep;
-            dotNetPerfLocksAndThreads = perfBlock->LocksAndThreads;
-            dotNetPerfJit = perfBlock->Jit;
+        dotNetPerfExcep = perfBlock->Excep;
+        dotNetPerfLocksAndThreads = perfBlock->LocksAndThreads;
+        dotNetPerfJit = perfBlock->Jit;
 
-            dotNetPerfSecurity.cTotalRTChecks = dotNetPerfSecurity_Wow64.cTotalRTChecks;
-            dotNetPerfSecurity.timeAuthorize = dotNetPerfSecurity_Wow64.timeAuthorize;
-            dotNetPerfSecurity.cLinkChecks = dotNetPerfSecurity_Wow64.cLinkChecks;
-            dotNetPerfSecurity.timeRTchecks = dotNetPerfSecurity_Wow64.timeRTchecks;
-            dotNetPerfSecurity.timeRTchecksBase = dotNetPerfSecurity_Wow64.timeRTchecksBase;
-            dotNetPerfSecurity.stackWalkDepth = dotNetPerfSecurity_Wow64.stackWalkDepth;
-        }
-        else
-        {
-            PerfCounterIPCControlBlock* perfBlock = perfStatBlock;
+        dotNetPerfSecurity.cTotalRTChecks = dotNetPerfSecurity_Wow64.cTotalRTChecks;
+        dotNetPerfSecurity.timeAuthorize = dotNetPerfSecurity_Wow64.timeAuthorize;
+        dotNetPerfSecurity.cLinkChecks = dotNetPerfSecurity_Wow64.cLinkChecks;
+        dotNetPerfSecurity.timeRTchecks = dotNetPerfSecurity_Wow64.timeRTchecks;
+        dotNetPerfSecurity.timeRTchecksBase = dotNetPerfSecurity_Wow64.timeRTchecksBase;
+        dotNetPerfSecurity.stackWalkDepth = dotNetPerfSecurity_Wow64.stackWalkDepth;
+    }
+    else
+    {
+        PerfCounterIPCControlBlock* perfBlock = perfStatBlock;
 
-            dotNetPerfGC = perfBlock->GC;
-            dotNetPerfContext = perfBlock->Context;
-            dotNetPerfInterop = perfBlock->Interop;
-            dotNetPerfLoading = perfBlock->Loading;
-            dotNetPerfExcep = perfBlock->Excep;
-            dotNetPerfLocksAndThreads = perfBlock->LocksAndThreads;
-            dotNetPerfJit = perfBlock->Jit;
-            dotNetPerfSecurity = perfBlock->Security;
-        }
+        dotNetPerfGC = perfBlock->GC;
+        dotNetPerfContext = perfBlock->Context;
+        dotNetPerfInterop = perfBlock->Interop;
+        dotNetPerfLoading = perfBlock->Loading;
+        dotNetPerfExcep = perfBlock->Excep;
+        dotNetPerfLocksAndThreads = perfBlock->LocksAndThreads;
+        dotNetPerfJit = perfBlock->Jit;
+        dotNetPerfSecurity = perfBlock->Security;
     }
 
     switch (Context->CategoryIndex)
     {
-    case 0: // .NET CLR Exceptions (Runtime statistics on CLR exception handling)
+    case DOTNET_CATEGORY_EXCEPTIONS:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfExcep.cThrown.Total, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfExcep.cFiltersExecuted, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 2, 1, PhaFormatUInt64(dotNetPerfExcep.cFinallysExecuted, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 3, 1, PhaFormatUInt64(dotNetPerfExcep.cThrowToCatchStackDepth, TRUE)->Buffer);
+            //PhSetListViewSubItem(Context->CountersLv, 3, 1, PhaFormatUInt64(dotNetPerfExcep.cThrowToCatchStackDepth, TRUE)->Buffer);
         }
         break;
-    case 1: // .NET CLR Interop (Stats for CLR interop)
+    case DOTNET_CATEGORY_INTEROP:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfInterop.cCCW, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfInterop.cStubs, TRUE)->Buffer);
@@ -606,7 +549,7 @@ static VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 4, 1, PhaFormatUInt64(dotNetPerfInterop.cTLBExports, TRUE)->Buffer);
         }
         break;
-    case 2: // .NET CLR Jit (Stats for CLR Jit)
+    case DOTNET_CATEGORY_JIT:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfJit.cMethodsJitted, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfJit.cbILJitted.Current, TRUE)->Buffer);
@@ -618,16 +561,8 @@ static VOID UpdateCounterData(
 
             if (dotNetPerfJit.timeInJitBase != 0)
             {
-                // TODO: Something is wrong here... 
-                FLOAT value = (FLOAT)dotNetPerfJit.timeInJit * 100 / (FLOAT)dotNetPerfJit.timeInJitBase;
-                
-                // The result is always above 100% ???
-                if (value > 100.f)
-                {
-                    value -= 100.f;
-                }
-
-                PhInitFormatF(&format, value, 2);
+                // TODO: Something is wrong here... TimeInJit is always above 100% (only some processes) ??
+                PhInitFormatF(&format, dotNetPerfJit.timeInJit * 100 / (FLOAT)dotNetPerfJit.timeInJitBase, 2);
 
                 if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
                     PhSetListViewSubItem(Context->CountersLv, 4, 1, formatBuffer);
@@ -638,7 +573,7 @@ static VOID UpdateCounterData(
             }
         }
         break;
-    case 3: // .NET CLR Loading (Statistics for CLR Class Loader)
+    case DOTNET_CATEGORY_LOADING:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfLoading.cClassesLoaded.Current, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfLoading.cClassesLoaded.Total, TRUE)->Buffer);
@@ -654,7 +589,7 @@ static VOID UpdateCounterData(
             //PhSetListViewSubItem(Context->CountersLv, 10, 1, PhaFormatUInt64(dotNetPerfLoading.timeLoading, TRUE)->Buffer);
         }
         break;
-    case 4: // .NET CLR LocksAndThreads (Stats for CLR Locks and Threads)
+    case DOTNET_CATEGORY_LOCKSANDTHREADS:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfLocksAndThreads.cContention.Total, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfLocksAndThreads.cQueueLength.Current, TRUE)->Buffer);
@@ -665,7 +600,7 @@ static VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 6, 1, PhaFormatUInt64(dotNetPerfLocksAndThreads.cRecognizedThreads.Total, TRUE)->Buffer);
         }
         break;
-    case 5: // .NET CLR Memory (Counters for CLR Garbage Collected heap)
+    case DOTNET_CATEGORY_MEMORY:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfGC.cGenCollections[0], TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfGC.cGenCollections[1], TRUE)->Buffer);
@@ -709,7 +644,7 @@ static VOID UpdateCounterData(
             //PhSetListViewSubItem(Context->CountersLv, 21, 1, PhaFormatSize(dotNetPerfGC.cbLargeAlloc, -1)->Buffer);
         }
         break;
-    case 6: // .NET CLR Remoting (Stats for CLR Remoting)
+    case DOTNET_CATEGORY_REMOTING:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfContext.cRemoteCalls.Total, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfContext.cChannels, TRUE)->Buffer);
@@ -719,7 +654,7 @@ static VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 5, 1, PhaFormatUInt64(dotNetPerfContext.cObjAlloc, TRUE)->Buffer);
         }
         break;
-    case 7: // .NET CLR Security (Stats for CLR Security)
+    case DOTNET_CATEGORY_SECURITY:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfSecurity.cTotalRTChecks, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfSecurity.cLinkChecks, TRUE)->Buffer);
@@ -744,7 +679,6 @@ static VOID UpdateCounterData(
         break;
     }
 }
-
 
 static INT_PTR CALLBACK DotNetPerfPageDlgProc(
     _In_ HWND hwndDlg,

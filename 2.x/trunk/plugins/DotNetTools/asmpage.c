@@ -833,7 +833,7 @@ ULONG UpdateDotNetTraceInfo(
     PGUID guidToEnable;
 
     if (!EnableTraceEx_I)
-        EnableTraceEx_I = (_EnableTraceEx)PhGetModuleProcAddress(L"advapi32.dll", "EnableTraceEx");
+        EnableTraceEx_I = PhGetModuleProcAddress(L"advapi32.dll", "EnableTraceEx");
     if (!EnableTraceEx_I)
         return ERROR_NOT_SUPPORTED;
 
