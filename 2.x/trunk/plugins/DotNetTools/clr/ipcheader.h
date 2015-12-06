@@ -12,6 +12,10 @@
 #include "perfcounterdefs.h"
 #include "ipcenums.h"
 
+// Versions for the legacy IPC Blocks
+const USHORT VER_LEGACYPRIVATE_IPC_BLOCK = 2; // v4
+const USHORT VER_LEGACYPUBLIC_IPC_BLOCK = 3; // v4
+
 //-----------------------------------------------------------------------------
 // Entry in the IPC Directory. Ensure binary compatibility across versions
 // if we add (or remove) entries. If we remove an block, the entry should 

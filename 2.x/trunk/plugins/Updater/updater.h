@@ -30,6 +30,7 @@
 #define INITGUID
 #include <phdk.h>
 #include <phappresource.h>
+#include <verify.h>
 #include <mxml.h>
 #include <windowsx.h>
 #include <netlistmgr.h>
