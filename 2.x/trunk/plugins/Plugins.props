@@ -24,7 +24,7 @@
     <!-- Global -->
     <ItemDefinitionGroup>
         <ClCompile>
-            <AdditionalIncludeDirectories>../include;../../sdk/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories>..\include;..\..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
             <TreatWarningAsError>true</TreatWarningAsError>
             <WarningLevel>Level3</WarningLevel>
             <SDLCheck>true</SDLCheck>
@@ -79,7 +79,7 @@
             <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>../../sdk/lib/i386;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>..\..\sdk\lib\i386;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
             <TargetMachine>MachineX86</TargetMachine>
         </Link>
@@ -88,7 +88,7 @@
     <!-- x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
         <Link>
-            <AdditionalLibraryDirectories>../../sdk/lib/amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>..\..\sdk\lib\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
             <TargetMachine>MachineX64</TargetMachine>
         </Link>
