@@ -21,7 +21,6 @@
  */
 
 #include "updater.h"
-#include <verify.h>
 
 static HANDLE UpdateDialogThreadHandle = NULL;
 static HWND UpdateDialogHandle = NULL;
