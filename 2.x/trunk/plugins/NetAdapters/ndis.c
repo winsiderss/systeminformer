@@ -52,7 +52,7 @@ BOOLEAN NetworkAdapterQuerySupported(
         NULL,
         NULL,
         &isb,
-        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS, // https://msdn.microsoft.com/en-us/library/windows/hardware/ff548975.aspx
         &opcode,
         sizeof(NDIS_OID),
         ndisObjectIdentifiers,
@@ -385,15 +385,15 @@ ULONG64 NetworkAdapterQueryValue(
 }
 
 MIB_IF_ROW2 QueryInterfaceRowVista(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
     )
 {
     MIB_IF_ROW2 interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
 
-    interfaceRow.InterfaceLuid = Context->AdapterEntry->InterfaceLuid;
-    interfaceRow.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
+    interfaceRow.InterfaceLuid = AdapterEntry->InterfaceLuid;
+    interfaceRow.InterfaceIndex = AdapterEntry->InterfaceIndex;
 
     if (GetIfEntry2_I)
     {
@@ -411,14 +411,14 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
 }
 
 MIB_IFROW QueryInterfaceRowXP(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
     )
 {
     MIB_IFROW interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IFROW));
 
-    interfaceRow.dwIndex = Context->AdapterEntry->InterfaceIndex;
+    interfaceRow.dwIndex = AdapterEntry->InterfaceIndex;
 
     GetIfEntry(&interfaceRow);
 
