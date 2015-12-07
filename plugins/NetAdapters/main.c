@@ -97,6 +97,7 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_ENABLE_NDIS, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_HIDDEN_ADAPTERS, L"0" },
                 { StringSettingType, SETTING_NAME_INTERFACE_LIST, L"" }
             };
 
