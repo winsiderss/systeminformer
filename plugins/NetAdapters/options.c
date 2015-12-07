@@ -180,7 +180,8 @@ static VOID AddNetworkAdapterToListView(
 }
 
 static VOID FindNetworkAdapters(
-    _In_ PPH_NETADAPTER_CONTEXT Context
+    _In_ PPH_NETADAPTER_CONTEXT Context,
+    _In_ BOOLEAN ShowHiddenAdapters
     )
 {
     ULONG bufferLength = 0;
@@ -188,8 +189,10 @@ static VOID FindNetworkAdapters(
 
     ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
 
-    //if (WindowsVersion >= WINDOWS_VISTA)
-    //    flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    if (ShowHiddenAdapters && WindowsVersion >= WINDOWS_VISTA)
+    {
+        flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    }
 
     __try
     {
@@ -296,16 +299,27 @@ static INT_PTR CALLBACK OptionsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 420, L"Network Adapters");
             PhSetExtendedListView(context->ListViewHandle);
 
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) ? BST_CHECKED : BST_UNCHECKED);
+
             ClearAdaptersList(context->NetworkAdaptersListEdited);
             CopyAdaptersList(context->NetworkAdaptersListEdited, NetworkAdaptersList);
 
-            FindNetworkAdapters(context);
+            FindNetworkAdapters(context, PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) == 1 ? TRUE : FALSE);
         }
         break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
             {
+            case IDC_SHOW_HIDDEN_ADAPTERS:
+                {
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS)) == BST_CHECKED);
+
+                    ListView_DeleteAllItems(context->ListViewHandle);
+
+                    FindNetworkAdapters(context, PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) == 1 ? TRUE : FALSE);
+                }
+                break;
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
                 break;

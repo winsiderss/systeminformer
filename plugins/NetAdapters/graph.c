@@ -33,11 +33,6 @@ static VOID NTAPI ProcessesUpdatedHandler(
     {
         PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
     }
-
-    if (context->DetailsHandle)
-    {
-        PostMessage(context->DetailsHandle, MSG_UPDATE, 0, 0);
-    }
 }
 
 static VOID NetAdapterUpdateGraphs(
@@ -104,7 +99,7 @@ static VOID NetAdapterUpdatePanel(
     {
         MIB_IF_ROW2 interfaceRow;
 
-        interfaceRow = QueryInterfaceRowVista(Context);
+        interfaceRow = QueryInterfaceRowVista(Context->AdapterEntry);
 
         inOctets = interfaceRow.InOctets;
         outOctets = interfaceRow.OutOctets;
@@ -115,7 +110,7 @@ static VOID NetAdapterUpdatePanel(
     {
         MIB_IFROW interfaceRow;
 
-        interfaceRow = QueryInterfaceRowXP(Context);
+        interfaceRow = QueryInterfaceRowXP(Context->AdapterEntry);
 
         inOctets = interfaceRow.dwInOctets;
         outOctets = interfaceRow.dwOutOctets;
@@ -172,10 +167,8 @@ static INT_PTR CALLBACK NetAdapterPanelDialogProc(
         {
             switch (LOWORD(wParam))
             {
-            case IDC_DETAILS_BUTTON:
-                {
-                    //ShowDetailsDialog(context);
-                }
+            case IDC_DETAILS:
+                ShowDetailsDialog(context);
                 break;
             }
         }
@@ -501,7 +494,7 @@ static BOOLEAN NetAdapterSectionCallback(
             {
                 MIB_IF_ROW2 interfaceRow;
 
-                interfaceRow = QueryInterfaceRowVista(context);
+                interfaceRow = QueryInterfaceRowVista(context->AdapterEntry);
 
                 networkInOctets = interfaceRow.InOctets;
                 networkOutOctets = interfaceRow.OutOctets;
@@ -522,7 +515,7 @@ static BOOLEAN NetAdapterSectionCallback(
             {
                 MIB_IFROW interfaceRow;
 
-                interfaceRow = QueryInterfaceRowXP(context);
+                interfaceRow = QueryInterfaceRowXP(context->AdapterEntry);
 
                 networkInOctets = interfaceRow.dwInOctets;
                 networkOutOctets = interfaceRow.dwOutOctets;
