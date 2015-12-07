@@ -6,7 +6,7 @@ PUSHD %~dp0
 
 SET COVDIR=H:\progs\thirdparty\cov-analysis-win64
 
-CALL "%VS120COMNTOOLS%\vsvars32.bat"
+CALL "%VS140COMNTOOLS%\vsvars32.bat"
 
 "%COVDIR%\bin\cov-build.exe" --dir cov-int coverity-build.bat
 
