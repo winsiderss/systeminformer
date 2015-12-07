@@ -157,11 +157,7 @@ static VOID NetAdapterLookupConfig(
         PPH_STRING domainString = NULL;
         PPH_STRING ipAddressString = NULL;
         PPH_STRING subnetAddressString = NULL;
-        PPH_STRING gatewayAddressString = NULL;
-
-        // SeeAlso: https://support.microsoft.com/en-us/kb/314053
-        // The IP Helper API sets and queries the IP configuration for the adapter from this registry key.
-        // The NDIS API queries the IP configuration for the adapter from this registry key when initializing the netweork device.       
+        PPH_STRING gatewayAddressString = NULL; 
 
         domainString = PhQueryRegistryString(keyHandle, L"DhcpDomain");
         ipAddressString = PhQueryRegistryString(keyHandle, L"DhcpIPAddress");
@@ -223,6 +219,105 @@ static VOID NetAdapterLookupConfig(
 
     PhDereferenceObject(keyNameIpV4);
     //PhDereferenceObject(keyNameIpV6);
+
+
+    //ULONG bufferLength = 0;
+    //PVOID buffer = NULL;
+    //
+    //ULONG flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_FRIENDLY_NAME;
+    //
+    //if (PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) && WindowsVersion >= WINDOWS_VISTA)
+    //{
+    //    flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    //}
+    //
+    //__try
+    //{
+    //    if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
+    //        __leave;
+    //
+    //    buffer = PhAllocate(bufferLength);
+    //    memset(buffer, 0, bufferLength);
+    //
+    //    if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
+    //    {
+    //        PIP_ADAPTER_ADDRESSES addressesBuffer = buffer;
+    //
+    //        while (addressesBuffer)
+    //        {
+    //            if (addressesBuffer->Luid.Value == Context->AdapterEntry->InterfaceLuid.Value)
+    //            {
+    //                for (PIP_ADAPTER_UNICAST_ADDRESS pUnicast = addressesBuffer->FirstUnicastAddress; pUnicast != NULL; pUnicast = pUnicast->Next)
+    //                {
+    //                    //ULONG subnetMask = 0;
+    //                    //ConvertLengthToIpv4Mask(pUnicast->OnLinkPrefixLength, &subnetMask);
+    //
+    //                    if (pUnicast->Address.lpSockaddr->sa_family == AF_INET)
+    //                    {
+    //                        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)pUnicast->Address.lpSockaddr;
+    //                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+    //
+    //                        RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString);
+    //                    }
+    //                    else if (pUnicast->Address.lpSockaddr->sa_family == AF_INET6)
+    //                    {
+    //                        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)pUnicast->Address.lpSockaddr;
+    //                        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+    //
+    //                        RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString);
+    //                    }
+    //                }
+    //
+    //                for (PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsServer = addressesBuffer->FirstDnsServerAddress; pDnsServer != NULL; pDnsServer = pDnsServer->Next)
+    //                {
+    //                    if (pDnsServer->Address.lpSockaddr->sa_family == AF_INET)
+    //                    {
+    //                        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)pDnsServer->Address.lpSockaddr;
+    //                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+    //
+    //                        RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString);
+    //                    }
+    //                    else if (pDnsServer->Address.lpSockaddr->sa_family == AF_INET6)
+    //                    {
+    //                        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)pDnsServer->Address.lpSockaddr;
+    //                        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+    //
+    //                        RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString);
+    //                    }
+    //                }
+    //
+    //                for (PIP_ADAPTER_GATEWAY_ADDRESS pGateway = addressesBuffer->FirstGatewayAddress; pGateway != NULL; pGateway = pGateway->Next)
+    //                {
+    //                    if (pGateway->Address.lpSockaddr->sa_family == AF_INET)
+    //                    {
+    //                        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)pGateway->Address.lpSockaddr;
+    //                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+    //
+    //                        RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString);
+    //                    }
+    //                    else if (pGateway->Address.lpSockaddr->sa_family == AF_INET6)
+    //                    {
+    //                        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)pGateway->Address.lpSockaddr;
+    //                        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+    //
+    //                        RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString);
+    //                    }
+    //                }
+    //
+    //                break;
+    //            }
+    //
+    //            addressesBuffer = addressesBuffer->Next;
+    //        }
+    //    }
+    //}
+    //__finally
+    //{
+    //    if (buffer)
+    //    {
+    //        PhFree(buffer);
+    //    }
+    //}
 }
 
 
