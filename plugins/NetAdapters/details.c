@@ -584,15 +584,9 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     {
         context = (PPH_NETADAPTER_DETAILS_CONTEXT)GetProp(hwndDlg, L"Context");
 
-        if (uMsg == WM_NCDESTROY)
+        if (uMsg == WM_DESTROY)
         {
             RemoveProp(hwndDlg, L"Context");
-
-            PhDereferenceObject(context->AdapterEntry->InterfaceGuid);
-            PhFree(context->AdapterEntry);
-
-            PhDereferenceObject(context->AdapterName);
-            PhFree(context);
         }
     }
 
@@ -671,14 +665,25 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
-
-            PhDeleteLayoutManager(&context->LayoutManager);
-
             if (context->NotifyHandle && CancelMibChangeNotify2_I)
             {
                 CancelMibChangeNotify2_I(context->NotifyHandle);
             }
+
+            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->DeviceHandle)
+            {
+                NtClose(context->DeviceHandle);
+            }
+
+            PhDereferenceObject(context->AdapterEntry->InterfaceGuid);
+            PhFree(context->AdapterEntry);
+
+            PhDereferenceObject(context->AdapterName);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
