@@ -22,6 +22,10 @@
 
 #include "main.h"
 
+_NotifyIpInterfaceChange NotifyIpInterfaceChange_I;
+_CancelMibChangeNotify2 CancelMibChangeNotify2_I;
+_ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I;
+
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -43,7 +47,6 @@ static VOID PhAddListViewItemGroupId(
     )
 {
     LVITEM item;
-
     item.mask = LVIF_TEXT | LVIF_GROUPID;
     item.iGroupId = GroupId;
     item.iItem = Index;
@@ -59,18 +62,22 @@ static VOID PhAddListViewGroup(
     _In_ PWSTR Text
     )
 {
-    LVGROUP group;
+    LVGROUP group = { LVGROUP_V5_SIZE };
+    group.mask = LVGF_HEADER | LVGF_GROUPID;
 
-    group.cbSize = sizeof(LVGROUP);
-    group.mask = LVGF_HEADER | LVGF_GROUPID | LVGF_ALIGN | LVGF_STATE;
-    group.uAlign = LVGA_HEADER_LEFT;
-    group.state = LVGS_COLLAPSIBLE;
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        group.cbSize = sizeof(group);
+        group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
+        group.uAlign = LVGA_HEADER_LEFT;
+        group.state = LVGS_COLLAPSIBLE;
+    }
+
     group.iGroupId = Index;
     group.pszHeader = Text;
 
     ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
 }
-
 
 static VOID AddListViewItemGroups(
     _In_ HWND ListViewHandle
@@ -84,11 +91,12 @@ static VOID AddListViewItemGroups(
     PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, L"Errors");
     
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State");
-    //PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");
-    PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_DOMAIN, L"Domain");
+    //PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");  
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPADDRESS, L"IP Address");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_SUBNET, L"SubnetMask");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_GATEWAY, L"DefaultGateway");
+    PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_DOMAIN, L"Domain");
+
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_LINKSPEED,  L"Link Speed");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_SENT, L"Sent");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_RECEIVED, L"Received");
@@ -130,196 +138,275 @@ static VOID AddListViewItemGroups(
 }
 
 
-
 static VOID NetAdapterLookupConfig(
     _Inout_ PPH_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
-    HANDLE keyHandle;
-    PPH_STRING keyNameIpV4;
-    //PPH_STRING keyNameIpV6;
-    
-    static PH_STRINGREF tcpIpv4KeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\");
-    //static PH_STRINGREF tcpIpv6KeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Tcpip6\\Parameters\\Interfaces\\");
-
-    keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterEntry->InterfaceGuid->sr);
-    //keyNameIpV6 = PhConcatStringRef2(&tcpIpv6KeyName, &Context->AdapterEntry->InterfaceGuid->sr);
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyNameIpV4->sr,
-        0
-        )))
+    if (WindowsVersion >= WINDOWS_VISTA)
     {
-
+        ULONG flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_FRIENDLY_NAME;
+        ULONG bufferLength = 0;
+        PIP_ADAPTER_ADDRESSES buffer = NULL;
         PPH_STRING domainString = NULL;
         PPH_STRING ipAddressString = NULL;
         PPH_STRING subnetAddressString = NULL;
-        PPH_STRING gatewayAddressString = NULL; 
+        PPH_STRING gatewayAddressString = NULL;
+        PH_STRING_BUILDER ipAddressBuffer;
+        PH_STRING_BUILDER subnetAddressBuffer;
+        PH_STRING_BUILDER gatewayAddressBuffer;
 
-        domainString = PhQueryRegistryString(keyHandle, L"DhcpDomain");
-        ipAddressString = PhQueryRegistryString(keyHandle, L"DhcpIPAddress");
-        subnetAddressString = PhQueryRegistryString(keyHandle, L"DhcpSubnetMask");
-        gatewayAddressString = PhQueryRegistryString(keyHandle, L"DhcpDefaultGateway");
-
-        if (PhIsNullOrEmptyString(domainString))
+        PhInitializeStringBuilder(&ipAddressBuffer, 64);
+        PhInitializeStringBuilder(&subnetAddressBuffer, 64);
+        PhInitializeStringBuilder(&gatewayAddressBuffer, 64);
+   
+        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) && WindowsVersion >= WINDOWS_VISTA)
         {
+            flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
+        }
+
+        __try
+        {
+            if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
+                __leave;
+
+            buffer = PhAllocate(bufferLength);
+            memset(buffer, 0, bufferLength);
+
+            if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) != ERROR_SUCCESS)
+                __leave;
+
+            for (PIP_ADAPTER_ADDRESSES addressesBuffer = buffer; addressesBuffer; addressesBuffer = addressesBuffer->Next)
+            {
+                if (addressesBuffer->Luid.Value != Context->AdapterEntry->InterfaceLuid.Value)
+                    continue;
+
+                for (PIP_ADAPTER_UNICAST_ADDRESS unicastAddress = addressesBuffer->FirstUnicastAddress; unicastAddress; unicastAddress = unicastAddress->Next)
+                {
+                    if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET)
+                    {
+                        PSOCKADDR_IN sockAddrIn = { 0 };
+                        IN_ADDR subnetMask = { 0 };
+                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+                        WCHAR subnetAddressString[INET_ADDRSTRLEN] = L"";
+
+                        sockAddrIn = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
+
+                        if (ConvertLengthToIpv4Mask_I)
+                        {
+                            ConvertLengthToIpv4Mask_I(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
+                        }
+
+                        if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
+                        {
+                            PhAppendFormatStringBuilder(&ipAddressBuffer, L"%s, ", ipv4AddressString);
+                        }
+
+                        if (RtlIpv4AddressToString(&subnetMask, subnetAddressString))
+                        {
+                            PhAppendFormatStringBuilder(&subnetAddressBuffer, L"%s, ", subnetAddressString);
+                        }
+                    }
+                    //else if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET6)
+                    //{
+                    //    PSOCKADDR_IN6 sockAddrIn6 = { 0 };
+                    //    WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+                    //
+                    //    sockAddrIn6 = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
+                    //
+                    //    if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
+                    //    {
+                    //        PhAppendFormatStringBuilder(&ipAddressBuffer, L"%s, ", ipv6AddressString);
+                    //    }
+                    //}
+                }
+
+                for (PIP_ADAPTER_GATEWAY_ADDRESS gatewayAddress = addressesBuffer->FirstGatewayAddress; gatewayAddress; gatewayAddress = gatewayAddress->Next)
+                {
+                    if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET)
+                    {
+                        PSOCKADDR_IN sockAddrIn = { 0 };
+                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+
+                        sockAddrIn = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
+
+                        if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
+                        {
+                            PhAppendFormatStringBuilder(&gatewayAddressBuffer, L"%s, ", ipv4AddressString);
+                        }
+                    }
+                    //else if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET6)
+                    //{
+                    //    PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
+                    //    WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+                    //
+                    //    if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
+                    //    {
+                    //        PhAppendFormatStringBuilder(&gatewayAddressBuffer, L"%s, ", ipv6AddressString);
+                    //    }
+                    //}
+                }
+
+                //for (PIP_ADAPTER_DNS_SERVER_ADDRESS dnsAddress = addressesBuffer->FirstDnsServerAddress; dnsAddress; dnsAddress = dnsAddress->Next)
+                //{
+                //    if (dnsAddress->Address.lpSockaddr->sa_family == AF_INET)
+                //    {
+                //        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)dnsAddress->Address.lpSockaddr;
+                //        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+                //
+                //        if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
+                //        {
+                //            PhAppendFormatStringBuilder(&dnsAddressBuffer, L"%s, ", ipv4AddressString);
+                //        }
+                //    }
+                //    else if (dnsAddress->Address.lpSockaddr->sa_family == AF_INET6)
+                //    {
+                //        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)dnsAddress->Address.lpSockaddr;
+                //        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+                //    
+                //        if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
+                //        {
+                //            PhAppendFormatStringBuilder(&dnsAddressBuffer, L"%s, ", ipv6AddressString);
+                //        }
+                //    }
+                //}
+
+                if (ipAddressBuffer.String->Length > 2)
+                    PhRemoveEndStringBuilder(&ipAddressBuffer, 2);
+                if (subnetAddressBuffer.String->Length > 2)
+                    PhRemoveEndStringBuilder(&subnetAddressBuffer, 2);
+                if (gatewayAddressBuffer.String->Length > 2)
+                    PhRemoveEndStringBuilder(&gatewayAddressBuffer, 2);
+
+                domainString = PhCreateString(addressesBuffer->DnsSuffix);
+                ipAddressString = PhFinalStringBuilderString(&ipAddressBuffer);
+                subnetAddressString = PhFinalStringBuilderString(&subnetAddressBuffer);
+                gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
+
+                //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, PhIsNullOrEmptyString(subnetAddressString) ? L"" : subnetAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
+            }
+        }
+        __finally
+        {
+            if (buffer)
+            {
+                PhFree(buffer);
+            }
+
+            if (domainString)
+            {
+                PhDereferenceObject(domainString);
+            }
+
+            PhDeleteStringBuilder(&ipAddressBuffer);
+            PhDeleteStringBuilder(&subnetAddressBuffer);
+            PhDeleteStringBuilder(&gatewayAddressBuffer);
+        }
+    }
+    else
+    {
+        static PH_STRINGREF tcpIpv4KeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\");
+        HANDLE keyHandle;
+        PPH_STRING keyNameIpV4;
+
+        keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterEntry->InterfaceGuid->sr);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_LOCAL_MACHINE,
+            &keyNameIpV4->sr,
+            0
+            )))
+        {
+            PPH_STRING domainString = NULL;
+            PPH_STRING ipAddressString = NULL;
+            PPH_STRING subnetAddressString = NULL;
+            PPH_STRING gatewayAddressString = NULL;
+
+            domainString = PhQueryRegistryString(keyHandle, L"DhcpDomain");
+            ipAddressString = PhQueryRegistryString(keyHandle, L"DhcpIPAddress");
+            subnetAddressString = PhQueryRegistryString(keyHandle, L"DhcpSubnetMask");
+            gatewayAddressString = PhQueryRegistryString(keyHandle, L"DhcpDefaultGateway");
+
+            if (PhIsNullOrEmptyString(domainString))
+            {
+                if (domainString)
+                    PhDereferenceObject(domainString);
+
+                domainString = PhQueryRegistryString(keyHandle, L"Domain");
+            }
+
+            if (PhIsNullOrEmptyString(ipAddressString))
+            {
+                if (ipAddressString)
+                    PhDereferenceObject(ipAddressString);
+
+                ipAddressString = PhQueryRegistryString(keyHandle, L"IPAddress");
+            }
+
+            if (PhIsNullOrEmptyString(subnetAddressString))
+            {
+                if (subnetAddressString)
+                    PhDereferenceObject(subnetAddressString);
+
+                subnetAddressString = PhQueryRegistryString(keyHandle, L"SubnetMask");
+            }
+
+            if (PhIsNullOrEmptyString(gatewayAddressString))
+            {
+                if (gatewayAddressString)
+                    PhDereferenceObject(gatewayAddressString);
+
+                gatewayAddressString = PhQueryRegistryString(keyHandle, L"DefaultGateway");
+            }
+
+            //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString ? domainString->Buffer : L"");
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString ? ipAddressString->Buffer : L"");
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString ? subnetAddressString->Buffer : L"");
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString ? gatewayAddressString->Buffer : L"");
+
             if (domainString)
                 PhDereferenceObject(domainString);
 
-            domainString = PhQueryRegistryString(keyHandle, L"Domain");
-        }
-
-        if (PhIsNullOrEmptyString(ipAddressString))
-        {
             if (ipAddressString)
                 PhDereferenceObject(ipAddressString);
 
-            ipAddressString = PhQueryRegistryString(keyHandle, L"IPAddress");
-        }
-
-        if (PhIsNullOrEmptyString(subnetAddressString))
-        {
             if (subnetAddressString)
                 PhDereferenceObject(subnetAddressString);
 
-            subnetAddressString = PhQueryRegistryString(keyHandle, L"SubnetMask");
-        }
-
-        if (PhIsNullOrEmptyString(gatewayAddressString))
-        {
             if (gatewayAddressString)
                 PhDereferenceObject(gatewayAddressString);
 
-            gatewayAddressString = PhQueryRegistryString(keyHandle, L"DefaultGateway");
+            NtClose(keyHandle);
         }
-
-        //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString ? domainString->Buffer : L"");
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString ? ipAddressString->Buffer : L"");
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString ? subnetAddressString->Buffer : L"");
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString ? gatewayAddressString->Buffer : L"");
-
-        if (domainString)
-            PhDereferenceObject(domainString);
-
-        if (ipAddressString)
-            PhDereferenceObject(ipAddressString);
-
-        if (subnetAddressString)
-            PhDereferenceObject(subnetAddressString);
-
-        if (gatewayAddressString)
-            PhDereferenceObject(gatewayAddressString);
-
-        NtClose(keyHandle);
     }
-
-    PhDereferenceObject(keyNameIpV4);
-    //PhDereferenceObject(keyNameIpV6);
-
-
-    //ULONG bufferLength = 0;
-    //PVOID buffer = NULL;
-    //
-    //ULONG flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_FRIENDLY_NAME;
-    //
-    //if (PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) && WindowsVersion >= WINDOWS_VISTA)
-    //{
-    //    flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
-    //}
-    //
-    //__try
-    //{
-    //    if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
-    //        __leave;
-    //
-    //    buffer = PhAllocate(bufferLength);
-    //    memset(buffer, 0, bufferLength);
-    //
-    //    if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
-    //    {
-    //        PIP_ADAPTER_ADDRESSES addressesBuffer = buffer;
-    //
-    //        while (addressesBuffer)
-    //        {
-    //            if (addressesBuffer->Luid.Value == Context->AdapterEntry->InterfaceLuid.Value)
-    //            {
-    //                for (PIP_ADAPTER_UNICAST_ADDRESS pUnicast = addressesBuffer->FirstUnicastAddress; pUnicast != NULL; pUnicast = pUnicast->Next)
-    //                {
-    //                    //ULONG subnetMask = 0;
-    //                    //ConvertLengthToIpv4Mask(pUnicast->OnLinkPrefixLength, &subnetMask);
-    //
-    //                    if (pUnicast->Address.lpSockaddr->sa_family == AF_INET)
-    //                    {
-    //                        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)pUnicast->Address.lpSockaddr;
-    //                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
-    //
-    //                        RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString);
-    //                    }
-    //                    else if (pUnicast->Address.lpSockaddr->sa_family == AF_INET6)
-    //                    {
-    //                        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)pUnicast->Address.lpSockaddr;
-    //                        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
-    //
-    //                        RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString);
-    //                    }
-    //                }
-    //
-    //                for (PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsServer = addressesBuffer->FirstDnsServerAddress; pDnsServer != NULL; pDnsServer = pDnsServer->Next)
-    //                {
-    //                    if (pDnsServer->Address.lpSockaddr->sa_family == AF_INET)
-    //                    {
-    //                        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)pDnsServer->Address.lpSockaddr;
-    //                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
-    //
-    //                        RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString);
-    //                    }
-    //                    else if (pDnsServer->Address.lpSockaddr->sa_family == AF_INET6)
-    //                    {
-    //                        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)pDnsServer->Address.lpSockaddr;
-    //                        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
-    //
-    //                        RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString);
-    //                    }
-    //                }
-    //
-    //                for (PIP_ADAPTER_GATEWAY_ADDRESS pGateway = addressesBuffer->FirstGatewayAddress; pGateway != NULL; pGateway = pGateway->Next)
-    //                {
-    //                    if (pGateway->Address.lpSockaddr->sa_family == AF_INET)
-    //                    {
-    //                        PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)pGateway->Address.lpSockaddr;
-    //                        WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
-    //
-    //                        RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString);
-    //                    }
-    //                    else if (pGateway->Address.lpSockaddr->sa_family == AF_INET6)
-    //                    {
-    //                        PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)pGateway->Address.lpSockaddr;
-    //                        WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
-    //
-    //                        RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString);
-    //                    }
-    //                }
-    //
-    //                break;
-    //            }
-    //
-    //            addressesBuffer = addressesBuffer->Next;
-    //        }
-    //    }
-    //}
-    //__finally
-    //{
-    //    if (buffer)
-    //    {
-    //        PhFree(buffer);
-    //    }
-    //}
 }
 
+static VOID NETIOAPI_API_ NetAdapterChangeCallback(
+    _In_ PVOID CallerContext,
+    _In_opt_ PMIB_IPINTERFACE_ROW Row,
+    _In_ MIB_NOTIFICATION_TYPE NotificationType
+    )
+{
+    PPH_NETADAPTER_DETAILS_CONTEXT context = CallerContext;
+
+    if (NotificationType == MibInitialNotification)
+    {
+        NetAdapterLookupConfig(context);
+    }
+    else if (NotificationType == MibParameterNotification)
+    {
+        if (Row->InterfaceLuid.Value = context->AdapterEntry->InterfaceLuid.Value)
+        {
+            NetAdapterLookupConfig(context);
+        }
+    }
+}
 
 static VOID NetAdapterUpdateDetails(
     _Inout_ PPH_NETADAPTER_DETAILS_CONTEXT Context
@@ -517,6 +604,9 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
+           
+            if (context->AdapterName)
+                SetWindowText(hwndDlg, context->AdapterName->Buffer);
 
             PhCenterWindow(hwndDlg, context->ParentHandle);
 
@@ -529,12 +619,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            if (context->AdapterName)
-                SetWindowText(hwndDlg, context->AdapterName->Buffer);
-
             AddListViewItemGroups(context->ListViewHandle);
-
-            NetAdapterLookupConfig(context);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -543,7 +628,19 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
+            NetAdapterLookupConfig(context);
             NetAdapterUpdateDetails(context);
+
+            if (WindowsVersion >= WINDOWS_VISTA && NotifyIpInterfaceChange_I)
+            {
+                NotifyIpInterfaceChange_I(
+                    AF_UNSPEC,
+                    NetAdapterChangeCallback,
+                    context, 
+                    FALSE,
+                    &context->NotifyHandle
+                    );
+            }
         }
         break;
     case WM_DESTROY:
@@ -551,6 +648,11 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->NotifyHandle && CancelMibChangeNotify2_I)
+            {
+                CancelMibChangeNotify2_I(context->NotifyHandle);
+            }
         }
         break;
     case WM_COMMAND:
