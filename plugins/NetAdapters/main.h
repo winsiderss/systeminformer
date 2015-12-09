@@ -48,7 +48,8 @@
 
 #include "resource.h"
 
-#define MSG_UPDATE (WM_APP + 1)
+#define WM_SHOWDIALOG (WM_APP + 1)
+#define MSG_UPDATE (WM_APP + 2)
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_LIST NetworkAdaptersList;
