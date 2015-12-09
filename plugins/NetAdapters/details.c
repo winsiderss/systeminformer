@@ -90,7 +90,7 @@ static VOID AddListViewItemGroups(
     PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, TRUE, L"Broadcast");
     PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, TRUE, L"Multicast");
     PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, TRUE, L"Errors");
-    
+
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State");
     //PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");  
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPADDRESS, L"IP Address");
@@ -98,7 +98,7 @@ static VOID AddListViewItemGroups(
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_GATEWAY, L"DefaultGateway");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_DOMAIN, L"Domain");
 
-    PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_LINKSPEED,  L"Link Speed");
+    PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_LINKSPEED, L"Link Speed");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_SENT, L"Sent");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_RECEIVED, L"Received");
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_TOTAL, L"Total");
@@ -159,7 +159,7 @@ static VOID NetAdapterLookupConfig(
         PhInitializeStringBuilder(&ipAddressBuffer, 64);
         PhInitializeStringBuilder(&subnetAddressBuffer, 64);
         PhInitializeStringBuilder(&gatewayAddressBuffer, 64);
-   
+
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) && WindowsVersion >= WINDOWS_VISTA)
         {
             flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
@@ -605,7 +605,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
-           
+
             if (context->AdapterName)
                 SetWindowText(hwndDlg, context->AdapterName->Buffer);
 
@@ -622,6 +622,31 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
 
             AddListViewItemGroups(context->ListViewHandle);
 
+            if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+            {
+                // Create the handle to the network device
+                PhCreateFileWin32(
+                    &context->DeviceHandle,
+                    PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+                    FILE_GENERIC_READ,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    FILE_OPEN,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                    );
+
+                if (context->DeviceHandle)
+                {
+                    // Check the network adapter supports the OIDs we're going to be using.
+                    if (!NetworkAdapterQuerySupported(context->DeviceHandle))
+                    {
+                        // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+                        NtClose(context->DeviceHandle);
+                        context->DeviceHandle = NULL;
+                    }
+                }
+            }
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedHandler,
@@ -637,7 +662,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
                 NotifyIpInterfaceChange_I(
                     AF_UNSPEC,
                     NetAdapterChangeCallback,
-                    context, 
+                    context,
                     FALSE,
                     &context->NotifyHandle
                     );
@@ -662,7 +687,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                PostQuitMessage(0);
                 break;
             }
         }
@@ -670,6 +695,16 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_SHOWDIALOG:
+        {
+            if (IsIconic(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
         }
         break;
     case MSG_UPDATE:
@@ -690,7 +725,7 @@ static NTSTATUS ShowDetailsDialogThread(
     MSG message;
     HWND dialogHandle;
     PH_AUTO_POOL autoPool;
-    
+
     PhInitializeAutoPool(&autoPool);
 
     dialogHandle = CreateDialogParam(
@@ -701,8 +736,7 @@ static NTSTATUS ShowDetailsDialogThread(
         (LPARAM)Parameter
         );
 
-    ShowWindow(dialogHandle, SW_SHOW);
-    SetForegroundWindow(dialogHandle);
+    PostMessage(dialogHandle, WM_SHOWDIALOG, 0, 0);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -718,7 +752,7 @@ static NTSTATUS ShowDetailsDialogThread(
         PhDrainAutoPool(&autoPool);
     }
 
-    PhDeleteAutoPool(&autoPool);     
+    PhDeleteAutoPool(&autoPool);
     DestroyWindow(dialogHandle);
 
     return STATUS_SUCCESS;
@@ -735,37 +769,12 @@ VOID ShowDetailsDialog(
     memset(context, 0, sizeof(PH_NETADAPTER_DETAILS_CONTEXT));
 
     context->ParentHandle = Context->WindowHandle;
-    context->AdapterName = PhDuplicateString(Context->AdapterName);
+    context->AdapterName = PhReferenceObject(Context->AdapterName);
 
     context->AdapterEntry = PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
     context->AdapterEntry->InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
     context->AdapterEntry->InterfaceLuid = Context->AdapterEntry->InterfaceLuid;
-    context->AdapterEntry->InterfaceGuid = PhDuplicateString(Context->AdapterEntry->InterfaceGuid);
-
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
-    {
-        // Create the handle to the network device
-        PhCreateFileWin32(
-            &context->DeviceHandle,
-            PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
-            FILE_GENERIC_READ,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            );
-
-        if (context->DeviceHandle)
-        {
-            // Check the network adapter supports the OIDs we're going to be using.
-            if (!NetworkAdapterQuerySupported(context->DeviceHandle))
-            {
-                // Device is faulty. Close the handle so we can fallback to GetIfEntry.
-                NtClose(context->DeviceHandle);
-                context->DeviceHandle = NULL;
-            }
-        }
-    }
+    context->AdapterEntry->InterfaceGuid = PhReferenceObject(Context->AdapterEntry->InterfaceGuid);
 
     if (dialogThread = PhCreateThread(0, ShowDetailsDialogThread, context))
         NtClose(dialogThread);
