@@ -59,6 +59,7 @@ static VOID PhAddListViewItemGroupId(
 static VOID PhAddListViewGroup(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
+    _In_ BOOLEAN Collapsed,
     _In_ PWSTR Text
     )
 {
@@ -67,10 +68,10 @@ static VOID PhAddListViewGroup(
 
     if (WindowsVersion >= WINDOWS_VISTA)
     {
-        group.cbSize = sizeof(group);
+        group.cbSize = sizeof(LVGROUP);
         group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
         group.uAlign = LVGA_HEADER_LEFT;
-        group.state = LVGS_COLLAPSIBLE;
+        group.state = Collapsed ? LVGS_COLLAPSED | LVGS_COLLAPSIBLE : LVGS_COLLAPSIBLE;
     }
 
     group.iGroupId = Index;
@@ -84,11 +85,11 @@ static VOID AddListViewItemGroups(
     )
 {
     ListView_EnableGroupView(ListViewHandle, TRUE);
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, L"Adapter");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_UNICAST, L"Unicast");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, L"Broadcast");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, L"Multicast");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, L"Errors");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, FALSE, L"Adapter");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_UNICAST, TRUE, L"Unicast");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, TRUE, L"Broadcast");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, TRUE, L"Multicast");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, TRUE, L"Errors");
     
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State");
     //PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");  
@@ -364,11 +365,11 @@ static VOID NetAdapterLookupConfig(
                 gatewayAddressString = PhQueryRegistryString(keyHandle, L"DefaultGateway");
             }
 
-            //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString ? domainString->Buffer : L"");
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString ? ipAddressString->Buffer : L"");
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString ? subnetAddressString->Buffer : L"");
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString ? gatewayAddressString->Buffer : L"");
+            //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, PhIsNullOrEmptyString(subnetAddressString) ? L"" : subnetAddressString->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
 
             if (domainString)
                 PhDereferenceObject(domainString);
