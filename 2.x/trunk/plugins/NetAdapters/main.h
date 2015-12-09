@@ -108,6 +108,7 @@ typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
     HWND ListViewHandle;
 
     HANDLE DeviceHandle;
+    HANDLE NotifyHandle;
 
     PH_LAYOUT_MANAGER LayoutManager;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
@@ -148,10 +149,11 @@ typedef enum _NETADAPTER_DETAILS_INDEX
 {
     NETADAPTER_DETAILS_INDEX_STATE,
     //NETADAPTER_DETAILS_INDEX_CONNECTIVITY,
-    NETADAPTER_DETAILS_INDEX_DOMAIN,
+    
     NETADAPTER_DETAILS_INDEX_IPADDRESS,
     NETADAPTER_DETAILS_INDEX_SUBNET,
     NETADAPTER_DETAILS_INDEX_GATEWAY,
+    NETADAPTER_DETAILS_INDEX_DOMAIN,
 
     NETADAPTER_DETAILS_INDEX_LINKSPEED,
     NETADAPTER_DETAILS_INDEX_SENT,
@@ -197,6 +199,22 @@ VOID ShowDetailsDialog(
     _In_opt_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     );
 
+typedef NETIO_STATUS (WINAPI* _ConvertLengthToIpv4Mask)(
+    _In_ ULONG MaskLength,
+    _Out_ PULONG Mask
+    );
+typedef NETIO_STATUS (WINAPI* _CancelMibChangeNotify2)(
+    _In_ HANDLE NotificationHandle
+    );
+
+typedef NETIO_STATUS (WINAPI* _NotifyIpInterfaceChange)(
+    _In_ ADDRESS_FAMILY Family,
+    _In_ PIPINTERFACE_CHANGE_CALLBACK Callback,
+    _In_opt_ PVOID CallerContext,
+    _In_ BOOLEAN InitialNotification,
+    _Inout_ HANDLE *NotificationHandle
+    );
+
 // ndis.c
 
 #define BITS_IN_ONE_BYTE 8
@@ -218,6 +236,9 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
 extern PVOID IphlpHandle;
 extern _GetIfEntry2 GetIfEntry2_I;
 extern _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
+extern _NotifyIpInterfaceChange NotifyIpInterfaceChange_I;
+extern _CancelMibChangeNotify2 CancelMibChangeNotify2_I;
+extern _ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I;
 
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle

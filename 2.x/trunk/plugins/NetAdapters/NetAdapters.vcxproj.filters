@@ -32,7 +32,7 @@
     <ClCompile Include="ndis.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dialog.c">
+    <ClCompile Include="details.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

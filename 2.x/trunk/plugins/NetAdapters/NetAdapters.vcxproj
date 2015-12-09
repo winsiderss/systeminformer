@@ -64,7 +64,7 @@
     <Import Project="..\Plugins.props" />
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="dialog.c" />
+    <ClCompile Include="details.c" />
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="ndis.c" />
