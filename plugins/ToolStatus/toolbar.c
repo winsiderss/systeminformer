@@ -27,39 +27,44 @@ HIMAGELIST ToolBarImageList = NULL;
 TBBUTTON ToolbarButtons[] =
 {
     // Default toolbar buttons (displayed)
-    { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
-    { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Refresh" },
+    { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Options" },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-    { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
-    { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+    { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"System Information" },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
-    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
-    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
+    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window" },
+    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window and Kill" },
     // Available toolbar buttons (hidden)
-    { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, 0 },
-    { 8, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, 0 },
+    { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Always on Top" },
+    { 8, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Computer" },
 };
 
 VOID RebarBandInsert(
     _In_ UINT BandID,
     _In_ HWND HwndChild,
-    _In_ UINT cyMinChild,
-    _In_ UINT cxMinChild
+    _In_ UINT cxMinChild,
+    _In_ UINT cyMinChild
     )
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle = RBBS_NOGRIPPER | RBBS_USECHEVRON; // | RBBS_HIDETITLE | RBBS_TOPALIGN;
+    rebarBandInfo.fStyle =  RBBS_USECHEVRON; // RBBS_NOGRIPPER| RBBS_HIDETITLE | RBBS_TOPALIGN;
 
     rebarBandInfo.wID = BandID;
     rebarBandInfo.hwndChild = HwndChild;
-    rebarBandInfo.cyMinChild = cyMinChild;
     rebarBandInfo.cxMinChild = cxMinChild;
+    rebarBandInfo.cyMinChild = cyMinChild;
 
-    if (BandID == BandID_SearchBox)
+    if (BandID == REBAR_BAND_ID_SEARCHBOX)
     {
         rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
+    }
+
+    if (ToolBarLocked)
+    {
+        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
     }
 
     SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
@@ -69,7 +74,7 @@ VOID RebarBandRemove(
     _In_ UINT BandID
     )
 {
-    INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
+    UINT index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
 
     if (index == -1)
         return;
@@ -81,7 +86,7 @@ BOOLEAN RebarBandExists(
     _In_ UINT BandID
     )
 {
-    INT index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
+    UINT index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID, 0);
 
     if (index != -1)
         return TRUE;
@@ -262,27 +267,13 @@ static VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_ADJUSTABLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE, // TBSTYLE_ALTDRAG
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE, // TBSTYLE_CUSTOMERASE  TBSTYLE_ALTDRAG
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             RebarHandle,
             NULL,
             NULL,
             NULL
             );
-
-        // Manually add button strings via TB_ADDSTRING.
-        // NOTE: The Toolbar will sometimes decide to free strings hard-coded via (INT_PTR)L"String"
-        //       in the ToolbarButtons array causing random crashes unless we manually add the strings
-        //       into the Toolbar string pool (this bug only affects 64bit Windows)... WTF???
-        ToolbarButtons[0].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Refresh");
-        ToolbarButtons[1].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Options");
-        ToolbarButtons[3].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Handles or DLLs");
-        ToolbarButtons[4].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"System Information");
-        ToolbarButtons[6].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window");
-        ToolbarButtons[7].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Thread");
-        ToolbarButtons[8].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Find Window and Kill");
-        ToolbarButtons[9].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Always on Top");
-        ToolbarButtons[10].iString = SendMessage(ToolBarHandle, TB_ADDSTRING, 0, (LPARAM)L"Computer");
 
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
@@ -294,15 +285,29 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
         // Restore the toolbar settings.
         ToolbarLoadButtonSettings();
-        // Query the toolbar button width/height.
+        // Query the toolbar width and height.
+        //SendMessage(ToolBarHandle, TB_GETMAXSIZE, 0, (LPARAM)&toolbarSize);
         toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
-        // Enable theming:
-        //SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-        //SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+        // Enable theming
+        switch (ToolBarTheme)
+        {
+        case TOOLBAR_THEME_BLACK:
+            {
+                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+            }
+            break;
+        case TOOLBAR_THEME_BLUE:
+            {
+                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
+                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
+            }
+            break;
+        }
 
         // Inset the toolbar into the rebar control.
-        RebarBandInsert(BandID_ToolBar, ToolBarHandle, HIWORD(toolbarButtonSize), LOWORD(toolbarButtonSize));
+        RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), HIWORD(toolbarButtonSize));
     }
 
     // Initialize the Searchbox and TreeNewFilters.
@@ -349,13 +354,11 @@ static VOID RebarLoadSettings(
 
     if (EnableSearchBox && RebarHandle)
     {
-        RECT rect;
-
-        GetClientRect(RebarHandle, &rect);
+        UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
 
         // Add the Searchbox band into the rebar control.
-        if (!RebarBandExists(BandID_SearchBox))
-            RebarBandInsert(BandID_SearchBox, SearchboxHandle, rect.bottom - 2, 180);
+        if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, height - 2);
 
         if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
@@ -363,8 +366,8 @@ static VOID RebarLoadSettings(
     else
     {
         // Remove the Searchbox band from the rebar control.
-        if (RebarBandExists(BandID_SearchBox))
-            RebarBandRemove(BandID_SearchBox);
+        if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+            RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
 
         if (SearchboxHandle)
         {
@@ -382,17 +385,15 @@ static VOID RebarLoadSettings(
         // TODO: Is there a better way of handling this in the above code?
         if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
         {
-            if (RebarBandExists(BandID_SearchBox))
-                RebarBandRemove(BandID_SearchBox);
+            if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
         }
         else
         {
-            RECT rect;
+            UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
 
-            GetClientRect(RebarHandle, &rect);
-
-            if (!RebarBandExists(BandID_SearchBox))
-                RebarBandInsert(BandID_SearchBox, SearchboxHandle, rect.bottom - 2, 180);
+            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, height - 2);
         }
     }
 
@@ -406,9 +407,11 @@ static VOID RebarLoadSettings(
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
+
+    ToolbarCreateGraphs();
 }
 
-VOID LoadToolbarSettings(
+VOID ToolbarLoadSettings(
     VOID
     )
 {
@@ -434,9 +437,7 @@ VOID LoadToolbarSettings(
             if (button.fsStyle == BTNS_SEP)
                 continue;
 
-
-            // TODO: We manually add the text above using TB_ADDSTRING,
-            //       why do we need to set the button text again when changing TBIF_STYLE?
+            // Invalidate the button rect when adding/removing the BTNS_SHOWTEXT style.
             button.dwMask |= TBIF_TEXT;
             button.pszText = ToolbarGetText(button.idCommand);
 
@@ -490,16 +491,15 @@ VOID LoadToolbarSettings(
 
         // Resize the toolbar
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
-        //InvalidateRect(ToolBarHandle, NULL, TRUE);
     }
 
     if (EnableToolBar && RebarHandle && ToolBarHandle)
     {
-        INT index;
+        UINT index;
         REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
         rebarBandInfo.fMask = RBBIM_IDEALSIZE;
 
-        index = (INT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)BandID_ToolBar, 0);
+        index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)REBAR_BAND_ID_TOOLBAR, 0);
 
         // Get settings for Rebar band.
         if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo) != -1)
@@ -519,7 +519,7 @@ VOID LoadToolbarSettings(
     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }
 
-VOID ResetToolbarSettings(
+VOID ToolbarResetSettings(
     VOID
     )
 {
@@ -559,7 +559,7 @@ PWSTR ToolbarGetText(
         return L"Computer";
     }
 
-    return L"Error";
+    return L"ERROR";
 }
 
 VOID ToolbarLoadButtonSettings(
@@ -679,5 +679,112 @@ VOID ToolbarSaveButtonSettings(
 
     settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_TOOLBARBUTTONCONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
+}
+
+VOID ReBarLoadLayoutSettings(
+    VOID
+    )
+{
+    UINT bandIndex = 0;
+    UINT bandCount = 0;
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
+
+    settingsString = PhGetStringSetting(SETTING_NAME_REBARBCONFIG);
+    remaining = settingsString->sr;
+
+    if (remaining.Length == 0)
+        return;
+
+    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+    {
+        PH_STRINGREF idPart;
+        PH_STRINGREF cxPart;
+        PH_STRINGREF stylePart;
+        ULONG64 idInteger;
+        ULONG64 cxInteger;
+        ULONG64 nStyleInteger;
+        UINT bandOldIndex;
+
+        if (remaining.Length == 0)
+            break;
+
+        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &cxPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &stylePart, &remaining);
+
+        PhStringToInteger64(&idPart, 10, &idInteger);
+        PhStringToInteger64(&cxPart, 10, &cxInteger);
+        PhStringToInteger64(&stylePart, 10, &nStyleInteger);
+
+        bandOldIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0);
+
+        SendMessage(RebarHandle, RB_MOVEBAND, bandOldIndex, bandIndex);
+
+        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+        rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID;
+
+        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
+        rebarBandInfo.cx = (UINT)cxInteger;
+        rebarBandInfo.fStyle |= (UINT)nStyleInteger;
+        //rebarBandInfo.fStyle = (rebarBandInfo.fStyle & ~(RBBS_HIDDEN | RBBS_BREAK)) | (UINT)nStyleInteger;
+
+        SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+    }
+}
+
+VOID ReBarSaveLayoutSettings(
+    VOID
+    )
+{
+    UINT bandIndex = 0;
+    UINT bandCount = 0;
+    PPH_STRING settingsString;
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+    {
+        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+        rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID;
+
+        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
+        if (rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS)
+        {
+            rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+        }
+
+        if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+        {
+            rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+        }
+
+        if (rebarBandInfo.fStyle & RBBS_FIXEDSIZE)
+        {
+            rebarBandInfo.fStyle &= ~RBBS_FIXEDSIZE;
+        }
+
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%u|%u|%u|",
+            rebarBandInfo.wID,
+            rebarBandInfo.cx,
+            rebarBandInfo.fStyle
+            );
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
+    PhSetStringSetting2(SETTING_NAME_REBARBCONFIG, &settingsString->sr);
     PhDereferenceObject(settingsString);
 }

@@ -43,15 +43,20 @@ INT SelectedTabIndex;
 BOOLEAN EnableToolBar = FALSE;
 BOOLEAN EnableSearchBox = FALSE;
 BOOLEAN EnableStatusBar = FALSE;
+BOOLEAN AutoHideMenu = FALSE;
+BOOLEAN ToolBarLocked = TRUE;
 BOOLEAN UpdateAutomatically = TRUE;
+TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SearchBoxDisplayAlwaysShow;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = RebarLocationTop;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
+HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
+PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics = { 0 };
 PH_CALLBACK_DECLARE(SearchChangedEvent);
 PPH_HASHTABLE TabInfoHashtable;
 PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry = NULL;
@@ -96,6 +101,13 @@ static VOID NTAPI ProcessesUpdatedCallback(
     )
 {
     ProcessesUpdatedCount++;
+
+    if (ProcessesUpdatedCount < 2)
+        return;
+
+    PhPluginGetSystemStatistics(&SystemStatistics);
+
+    ToolbarUpdateGraphs();
 
     if (EnableStatusBar)
         UpdateStatusBar();
@@ -149,7 +161,7 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
 
     if (entry = PhFindItemSimpleHashtable(TabInfoHashtable, IntToPtr(TabIndex)))
         return *entry;
-    
+
     return NULL;
 }
 
@@ -257,8 +269,8 @@ static VOID NTAPI LayoutPaddingCallback(
         //    {
         //        if (isSearchboxVisible)
         //        {
-        //            if (!RebarBandExists(BandID_SearchBox))
-        //                RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+        //            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+        //                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, 20);
         //
         //            isSearchboxVisible = FALSE;
         //        }
@@ -267,8 +279,8 @@ static VOID NTAPI LayoutPaddingCallback(
         //    {
         //        if (!isSearchboxVisible)
         //        {
-        //            if (RebarBandExists(BandID_SearchBox))
-        //                RebarBandRemove(BandID_SearchBox);
+        //            if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+        //                RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
         //
         //            isSearchboxVisible = TRUE;
         //        }
@@ -329,10 +341,10 @@ static VOID DrawWindowBorderForTargeting(
         SetROP2(hdc, R2_NOT);
 
         pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
-        SelectObject(hdc, pen);
+        SelectPen(hdc, pen);
 
-        brush = GetStockObject(NULL_BRUSH);
-        SelectObject(hdc, brush);
+        brush = GetStockBrush(NULL_BRUSH);
+        SelectBrush(hdc, brush);
 
         // Draw the rectangle.
         Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
@@ -373,6 +385,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
                     PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
+
                     PhInvokeCallback(&SearchChangedEvent, SearchboxText);
 
                     goto DefaultWndProc;
@@ -388,8 +401,8 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                     if (SearchboxText->Length == 0)
                     {
-                        if (RebarBandExists(BandID_SearchBox))
-                            RebarBandRemove(BandID_SearchBox);
+                        if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                            RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
                     }
                 }
                 break;
@@ -475,14 +488,14 @@ static LRESULT CALLBACK MainWndSubclassProc(
         {
             LPNMHDR hdr = (LPNMHDR)lParam;
 
-            if (hdr->hwndFrom == RebarHandle)
+            if (RebarHandle && hdr->hwndFrom == RebarHandle)
             {
                 switch (hdr->code)
                 {
                 case RBN_HEIGHTCHANGE:
                     {
                         // Invoke the LayoutPaddingCallback.
-                        PostMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+                        SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
                     }
                     break;
                 case RBN_CHEVRONPUSHED:
@@ -593,87 +606,25 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         PhDestroyEMenu(menu);
                     }
                     break;
+                case RBN_LAYOUTCHANGED:
+                    {
+                        ReBarSaveLayoutSettings();
+                    }
+                    break;
                 }
 
                 goto DefaultWndProc;
             }
-            else if (hdr->hwndFrom == ToolBarHandle)
+            else if (ToolBarHandle && hdr->hwndFrom == ToolBarHandle)
             {
                 switch (hdr->code)
                 {
-                case TBN_BEGINDRAG:
-                    {
-                        LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
-                        ULONG id;
-
-                        id = (ULONG)toolbar->iItem;
-
-                        if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
-                        {
-                            // Direct all mouse events to this window.
-                            SetCapture(hWnd);
-
-                            // Send the window to the bottom.
-                            SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                            TargetingWindow = TRUE;
-                            TargetingCurrentWindow = NULL;
-                            TargetingCurrentWindowDraw = FALSE;
-                            TargetingCompleted = FALSE;
-                            TargetingMode = id;
-
-                            SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
-                        }
-                    }
-                    break;
-                case TBN_INITCUSTOMIZE:
-                    {
-                        struct
-                        {
-                            NMHDR hdr;
-                            HWND hDlg;     // handle of the customization dialog.
-                        } *initcustomize = (PVOID)lParam;
-                    }
-                    return TBNRF_HIDEHELP;
-                case TBN_QUERYINSERT:
-                case TBN_QUERYDELETE:
-                    return TRUE;
-                case TBN_GETBUTTONINFO:
-                    {
-                        LPTBNOTIFY tbNotify = (LPTBNOTIFY)lParam;
-
-                        if (tbNotify->iItem < ARRAYSIZE(ToolbarButtons))
-                        {
-                            tbNotify->tbButton = ToolbarButtons[tbNotify->iItem];
-                            return TRUE;
-                        }
-                    }
-                    return FALSE;
-                case TBN_ENDADJUST:
-                    {
-                        // Save the customization settings.
-                        ToolbarSaveButtonSettings();
-                        LoadToolbarSettings();
-                        //InvalidateRect(ToolBarHandle, NULL, TRUE);
-                    }
-                    break;
-                case TBN_RESET:
-                    {
-                        ResetToolbarSettings();
-
-                        // Re-load the original button settings.
-                        LoadToolbarSettings();
-                        //InvalidateRect(ToolBarHandle, NULL, TRUE);
-                        // Save the new settings as defaults.
-                        ToolbarSaveButtonSettings();
-                    }
-                    return TBNRF_ENDCUSTOMIZE;
                 case TBN_DROPDOWN:
                     {
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
                         PPH_EMENU menu;
                         PPH_EMENU_ITEM selectedItem;
-                        
+
                         if (toolbar->iItem != TIDC_POWERMENUDROPDOWN)
                             break;
 
@@ -702,17 +653,191 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         if (selectedItem && selectedItem->Id != -1)
                         {
-                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
+                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, BN_CLICKED), 0);
                         }
 
                         PhDestroyEMenu(menu);
                     }
                     return TBDDRET_DEFAULT;
+                case NM_LDOWN:
+                    {
+                        LPNMCLICK toolbar = (LPNMCLICK)hdr;
+                        ULONG id = (ULONG)toolbar->dwItemSpec;
+
+                        if (id == -1)
+                            break;
+
+                        if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
+                        {
+                            // Direct all mouse events to this window.
+                            SetCapture(hWnd);
+
+                            // Send the window to the bottom.
+                            SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                            TargetingWindow = TRUE;
+                            TargetingCurrentWindow = NULL;
+                            TargetingCurrentWindowDraw = FALSE;
+                            TargetingCompleted = FALSE;
+                            TargetingMode = id;
+
+                            SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
+                        }
+                    }
+                    break;
+                case NM_RCLICK:
+                    {
+                        POINT cursorPos;
+                        PPH_EMENU menu;
+                        PPH_EMENU_ITEM selectedItem;
+
+                        GetCursorPos(&cursorPos);
+
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Enable Searchbox", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"Enable CPU Graph", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Enable Memory Graph", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"Enable I/O Graph", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the Toolbar", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
+
+                        if (EnableSearchBox)
+                        {
+                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                        }
+
+                        if (ToolBarEnableCpuGraph)
+                        {
+                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_CPU_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                        }
+
+                        if (ToolBarEnableMemGraph)
+                        {
+                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                        }
+
+                        if (ToolBarEnableIoGraph)
+                        {
+                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_IO_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                        }
+
+                        if (ToolBarLocked)
+                        {
+                            PhSetFlagsEMenuItem(menu, COMMAND_ID_TOOLBAR_LOCKUNLOCK, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                        }
+
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hWnd,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            cursorPos.x,
+                            cursorPos.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != -1)
+                        {
+                            switch (selectedItem->Id)
+                            {
+                            case COMMAND_ID_ENABLE_SEARCHBOX:
+                                {
+                                    EnableSearchBox = !EnableSearchBox;
+
+                                    PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX, EnableSearchBox);
+
+                                    ToolbarLoadSettings();
+
+                                    SetFocus(PhMainWndHandle);
+                                }
+                                break;
+                            case COMMAND_ID_ENABLE_CPU_GRAPH:
+                                {
+                                    ToolBarEnableCpuGraph = !ToolBarEnableCpuGraph;
+
+                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, ToolBarEnableCpuGraph);
+
+                                    ToolbarLoadSettings();
+                                    ReBarSaveLayoutSettings();
+                                }
+                                break;
+                            case COMMAND_ID_ENABLE_MEMORY_GRAPH:
+                                {
+                                    ToolBarEnableMemGraph = !ToolBarEnableMemGraph;
+
+                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, ToolBarEnableMemGraph);
+
+                                    ToolbarLoadSettings();
+                                    ReBarSaveLayoutSettings();
+                                }
+                                break;
+                            case COMMAND_ID_ENABLE_IO_GRAPH:
+                                {
+                                    ToolBarEnableIoGraph = !ToolBarEnableIoGraph;
+
+                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, ToolBarEnableIoGraph);
+
+                                    ToolbarLoadSettings();
+                                    ReBarSaveLayoutSettings();
+                                }
+                                break;
+                            case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
+                                {
+                                    UINT bandCount;
+                                    UINT bandIndex;
+
+                                    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+                                    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+                                    {
+                                        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+                                        rebarBandInfo.fMask = RBBIM_STYLE;
+
+                                        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
+                                        // Removing the RBBS_NOGRIPPER style doesn't remove the padding.
+                                        if ((rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS) == 0)
+                                        {
+                                            rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
+                                            SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+                                            rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+                                        }
+
+                                        if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+                                        {
+                                            rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+                                        }
+                                        else
+                                        {
+                                            rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+                                        }
+
+                                        SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+                                    }
+
+                                    ToolBarLocked = !ToolBarLocked;
+
+                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_LOCKED, ToolBarLocked);
+
+                                    ToolbarLoadSettings();
+                                }
+                                break;
+                            case COMMAND_ID_TOOLBAR_CUSTOMIZE:
+                                {
+                                    ShowCustomizeDialog();
+                                }
+                                break;
+                            }
+                        }
+
+                        PhDestroyEMenu(menu);
+                    }
+                    break;
                 }
 
                 goto DefaultWndProc;
             }
-            else if (hdr->hwndFrom == StatusBarHandle)
+            else if (StatusBarHandle && hdr->hwndFrom == StatusBarHandle)
             {
                 switch (hdr->code)
                 {
@@ -726,6 +851,12 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     }
                     break;
                 }
+
+                goto DefaultWndProc;
+            }
+            else if (CpuGraphHandle && hdr->hwndFrom == CpuGraphHandle || MemGraphHandle && hdr->hwndFrom == MemGraphHandle || IoGraphHandle && hdr->hwndFrom == IoGraphHandle)
+            {
+                ToolbarUpdateGraphsInfo(hdr);
 
                 goto DefaultWndProc;
             }
@@ -914,6 +1045,36 @@ static LRESULT CALLBACK MainWndSubclassProc(
         // Forward to the Searchbox so we can reinitialize the settings...
         SendMessage(SearchboxHandle, WM_SETTINGCHANGE, 0, 0);
         break;
+    case WM_SYSCOMMAND:
+        {
+            if (!AutoHideMenu)
+                break;
+
+            if ((wParam & 0xfff0) == SC_KEYMENU && lParam == 0)
+            {
+                if (GetMenu(PhMainWndHandle) != NULL)
+                {
+                    SetMenu(PhMainWndHandle, NULL);
+                }
+                else
+                {
+                    SetMenu(PhMainWndHandle, MainMenu);
+                    DrawMenuBar(PhMainWndHandle);
+                }
+            }
+        }
+        break;
+    case WM_EXITMENULOOP:
+        {
+            if (!AutoHideMenu)
+                break;
+
+            if (GetMenu(PhMainWndHandle) != NULL)
+            {
+                SetMenu(PhMainWndHandle, NULL);
+            }
+        }
+        break;
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
@@ -923,8 +1084,8 @@ DefaultWndProc:
 }
 
 static VOID NTAPI MainWindowShowingCallback(
-     _In_opt_ PVOID Parameter,
-     _In_opt_ PVOID Context
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     )
 {
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
@@ -936,7 +1097,14 @@ static VOID NTAPI MainWindowShowingCallback(
         );
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
 
-    LoadToolbarSettings();
+    ToolbarLoadSettings();
+    ReBarLoadLayoutSettings();
+
+    if (AutoHideMenu)
+    {
+        MainMenu = GetMenu(PhMainWndHandle);
+        SetMenu(PhMainWndHandle, NULL);
+    }
 }
 
 static VOID NTAPI LoadCallback(
@@ -947,8 +1115,14 @@ static VOID NTAPI LoadCallback(
     EnableToolBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR);
     EnableSearchBox = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX);
     EnableStatusBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR);
+    AutoHideMenu = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU);
+    ToolBarLocked = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_LOCKED);
+    ToolBarEnableCpuGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH);
+    ToolBarEnableMemGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH);
+    ToolBarEnableIoGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH);
 
     StatusMask = PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK);
+    ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
 }
@@ -985,9 +1159,16 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_MODERNICONS, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_AUTOHIDE_MENU, L"0" },
+                { IntegerSettingType, SETTING_NAME_TOOLBAR_THEME, L"0" },
                 { StringSettingType, SETTING_NAME_TOOLBARBUTTONCONFIG, L"" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
-                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" }
+                { IntegerSettingType, SETTING_NAME_TOOLBAR_LOCKED, L"1" },
+                { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, L"0" },
+                { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, L"0" },
+                { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, L"0" },
+                { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
+                { StringSettingType, SETTING_NAME_REBARBCONFIG, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
