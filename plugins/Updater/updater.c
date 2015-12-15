@@ -48,8 +48,8 @@ static BOOLEAN HasLastUpdateTimeExpired(
     // Query the current time
     PhQuerySystemTime(&currentUpdateTimeTicks);
 
-    // Was the last update check less than 7 days ago?
-    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY) // 48 * PH_TICKS_PER_HOUR
+    // Check if the last update check was more than 14 days ago
+    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 14 * PH_TICKS_PER_DAY)
     {
         PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
 
@@ -878,7 +878,6 @@ static INT_PTR CALLBACK UpdaterWndProc(
         {
             RemoveProp(hwndDlg, L"Context");
             FreeUpdateContext(context);
-            context = NULL;
         }
     }
 
@@ -941,13 +940,13 @@ static INT_PTR CALLBACK UpdaterWndProc(
                 SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
             // Set the text font
             if (context->FontHandle)
-                SendMessage(GetDlgItem(hwndDlg, IDC_MESSAGE), WM_SETFONT, (WPARAM)context->FontHandle, FALSE);
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_MESSAGE), context->FontHandle, FALSE);
             // Set the window image
             if (context->IconBitmap)
                 SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->IconBitmap);
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
+            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsMinimized(parentWindow)) ? parentWindow : NULL);
 
             // Show new version info (from the background update check)
             if (context->HaveData)
@@ -978,7 +977,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             HWND hwndChild = (HWND)lParam;
 
             // Check for our static label and change the color.
-            if (GetDlgCtrlID(hwndChild) == IDC_MESSAGE)
+            if (GetWindowID(hwndChild) == IDC_MESSAGE)
             {
                 SetTextColor(hDC, RGB(19, 112, 171));
             }
