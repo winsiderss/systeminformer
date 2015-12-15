@@ -677,8 +677,8 @@ INT_PTR CALLBACK ToolbarCustomizeDialogProc(
 
                 bufferDc = CreateCompatibleDC(drawInfo->hDC);
                 bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
-                oldBufferBitmap = SelectObject(bufferDc, bufferBitmap);
-                SelectObject(bufferDc, context->Font);
+                oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+                SelectFont(bufferDc, context->Font);
 
                 SetBkMode(bufferDc, TRANSPARENT);
                 FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));
@@ -748,8 +748,8 @@ INT_PTR CALLBACK ToolbarCustomizeDialogProc(
                     SRCCOPY
                     );
 
-                SelectObject(bufferDc, oldBufferBitmap);
-                DeleteObject(bufferBitmap);
+                SelectBitmap(bufferDc, oldBufferBitmap);
+                DeleteBitmap(bufferBitmap);
                 DeleteDC(bufferDc);
 
                 return TRUE;
