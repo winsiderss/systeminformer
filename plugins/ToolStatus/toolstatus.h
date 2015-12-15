@@ -140,6 +140,7 @@ extern BOOLEAN EnableStatusBar;
 extern BOOLEAN AutoHideMenu;
 extern BOOLEAN ToolBarLocked;
 extern BOOLEAN UpdateAutomatically;
+extern BOOLEAN UpdateGraphs;
 extern TOOLBAR_THEME ToolBarTheme;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
@@ -278,13 +279,6 @@ HBITMAP LoadImageFromResources(
     );
 
 // customize.c
-
-INT_PTR CALLBACK ToolbarCustomizeDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
 
 VOID ShowCustomizeDialog(
     VOID
