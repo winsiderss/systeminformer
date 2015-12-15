@@ -46,6 +46,7 @@ BOOLEAN EnableStatusBar = FALSE;
 BOOLEAN AutoHideMenu = FALSE;
 BOOLEAN ToolBarLocked = TRUE;
 BOOLEAN UpdateAutomatically = TRUE;
+BOOLEAN UpdateGraphs = TRUE;
 TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SearchBoxDisplayAlwaysShow;
@@ -106,8 +107,9 @@ static VOID NTAPI ProcessesUpdatedCallback(
         return;
 
     PhPluginGetSystemStatistics(&SystemStatistics);
-
-    ToolbarUpdateGraphs();
+    
+    if (UpdateGraphs)
+        ToolbarUpdateGraphs();
 
     if (EnableStatusBar)
         UpdateStatusBar();
@@ -1045,13 +1047,18 @@ static LRESULT CALLBACK MainWndSubclassProc(
         // Forward to the Searchbox so we can reinitialize the settings...
         SendMessage(SearchboxHandle, WM_SETTINGCHANGE, 0, 0);
         break;
+    case WM_SHOWWINDOW:
+        {
+            UpdateGraphs = (BOOLEAN)wParam;
+        }
+        break;
     case WM_SYSCOMMAND:
         {
-            if (!AutoHideMenu)
-                break;
-
-            if ((wParam & 0xfff0) == SC_KEYMENU && lParam == 0)
+            if ((wParam & 0xFFF0) == SC_KEYMENU && lParam == 0)
             {
+                if (!AutoHideMenu)
+                    break;
+
                 if (GetMenu(PhMainWndHandle) != NULL)
                 {
                     SetMenu(PhMainWndHandle, NULL);
@@ -1061,6 +1068,14 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     SetMenu(PhMainWndHandle, MainMenu);
                     DrawMenuBar(PhMainWndHandle);
                 }
+            } 
+            else if ((wParam & 0xFFF0) == SC_MINIMIZE)
+            {
+                UpdateGraphs = FALSE;
+            }
+            else if ((wParam & 0xFFF0) == SC_RESTORE)
+            {
+                UpdateGraphs = TRUE;
             }
         }
         break;
@@ -1120,6 +1135,7 @@ static VOID NTAPI LoadCallback(
     ToolBarEnableCpuGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH);
     ToolBarEnableMemGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH);
     ToolBarEnableIoGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH);
+    UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
 
     StatusMask = PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK);
     ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);

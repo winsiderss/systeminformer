@@ -149,13 +149,7 @@ static VOID CustomizeRemoveButton(
         ListBox_AddItemData(Context->AvailableListHandle, buttonContext);
     }
 
-    FORWARD_WM_COMMAND(
-        Context->DialogHandle, 
-        IDC_CURRENT, 
-        Context->CurrentListHandle, 
-        LBN_SELCHANGE, 
-        ToolbarCustomizeDialogProc
-        );
+    SendMessage(Context->DialogHandle, WM_COMMAND, MAKEWPARAM(IDC_CURRENT, LBN_SELCHANGE), 0);
 }
 
 static VOID CustomizeMoveButton(
