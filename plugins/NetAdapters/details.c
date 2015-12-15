@@ -587,6 +587,12 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         if (uMsg == WM_DESTROY)
         {
             RemoveProp(hwndDlg, L"Context");
+
+            PhDereferenceObject(context->AdapterEntry->InterfaceGuid);
+            PhFree(context->AdapterEntry);
+
+            PhDereferenceObject(context->AdapterName);
+            PhFree(context);
         }
     }
 
@@ -678,17 +684,11 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             {
                 NtClose(context->DeviceHandle);
             }
-
-            PhDereferenceObject(context->AdapterEntry->InterfaceGuid);
-            PhFree(context->AdapterEntry);
-
-            PhDereferenceObject(context->AdapterName);
-            PhFree(context);
         }
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:
@@ -704,7 +704,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         break;
     case WM_SHOWDIALOG:
         {
-            if (IsIconic(hwndDlg))
+            if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
             else
                 ShowWindow(hwndDlg, SW_SHOW);
