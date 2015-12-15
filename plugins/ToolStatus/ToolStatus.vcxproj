@@ -64,6 +64,8 @@
     <Import Project="..\Plugins.props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="customize.c" />
+    <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="options.c" />

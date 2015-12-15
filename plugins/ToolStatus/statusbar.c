@@ -174,7 +174,6 @@ VOID UpdateStatusBar(
     ULONG index;
     ULONG count;
     HDC hdc;
-    PH_PLUGIN_SYSTEM_STATISTICS statistics;
     BOOLEAN resetMaxWidths = FALSE;
 
     if (ProcessesUpdatedCount < 2)
@@ -188,8 +187,6 @@ VOID UpdateStatusBar(
         SendMessage(StatusBarHandle, SB_SETTEXT, 0, (LPARAM)L"");
         return;
     }
-
-    PhPluginGetSystemStatistics(&statistics);
 
     hdc = GetDC(StatusBarHandle);
     SelectObject(hdc, (HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
@@ -224,21 +221,25 @@ VOID UpdateStatusBar(
                 {
                     text[count] = PhFormatString(
                         L"CPU Usage: %.2f%%", 
-                        (statistics.CpuKernelUsage + statistics.CpuUserUsage) * 100
+                        (SystemStatistics.CpuKernelUsage + SystemStatistics.CpuUserUsage) * 100
                         );
                 }
                 break;
             case STATUS_COMMIT:
                 {
+                    ULONG commitUsage = SystemStatistics.Performance->CommittedPages;
+                    FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
+
                     text[count] = PhFormatString(
-                        L"Commit Charge: %.2f%%",
-                        (FLOAT)statistics.CommitPages * 100 / statistics.Performance->CommitLimit
+                        L"Commit Charge: %s (%.2f%%)",
+                        PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
+                        commitFraction
                         );
                 }
                 break;
             case STATUS_PHYSICAL:
                 {            
-                    ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - statistics.Performance->AvailablePages;
+                    ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
                     FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                     text[count] = PhFormatString(
@@ -250,7 +251,7 @@ VOID UpdateStatusBar(
                 break;
             case STATUS_FREEMEMORY:
                 {
-                    ULONG physicalFree = statistics.Performance->AvailablePages;
+                    ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
                     FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                     text[count] = PhFormatString(
@@ -264,7 +265,7 @@ VOID UpdateStatusBar(
                 {
                     text[count] = PhConcatStrings2(
                         L"Processes: ",
-                        PhaFormatUInt64(statistics.NumberOfProcesses, TRUE)->Buffer
+                        PhaFormatUInt64(SystemStatistics.NumberOfProcesses, TRUE)->Buffer
                         );
                 }
                 break;
@@ -272,7 +273,7 @@ VOID UpdateStatusBar(
                 {
                     text[count] = PhConcatStrings2(
                         L"Threads: ",
-                        PhaFormatUInt64(statistics.NumberOfThreads, TRUE)->Buffer
+                        PhaFormatUInt64(SystemStatistics.NumberOfThreads, TRUE)->Buffer
                         );
                 }
                 break;
@@ -280,7 +281,7 @@ VOID UpdateStatusBar(
                 {
                     text[count] = PhConcatStrings2(
                         L"Handles: ",
-                        PhaFormatUInt64(statistics.NumberOfHandles, TRUE)->Buffer
+                        PhaFormatUInt64(SystemStatistics.NumberOfHandles, TRUE)->Buffer
                         );
                 }
                 break;
@@ -288,7 +289,7 @@ VOID UpdateStatusBar(
                 {
                     text[count] = PhConcatStrings2(
                         L"I/O R+O: ", 
-                        PhaFormatSize(statistics.IoReadDelta.Delta + statistics.IoOtherDelta.Delta, -1)->Buffer
+                        PhaFormatSize(SystemStatistics.IoReadDelta.Delta + SystemStatistics.IoOtherDelta.Delta, -1)->Buffer
                         );
                 }
                 break;
@@ -296,13 +297,13 @@ VOID UpdateStatusBar(
                 {
                     text[count] = PhConcatStrings2(
                         L"I/O W: ", 
-                        PhaFormatSize(statistics.IoWriteDelta.Delta, -1)->Buffer
+                        PhaFormatSize(SystemStatistics.IoWriteDelta.Delta, -1)->Buffer
                         );
                 }
                 break;
             case STATUS_MAXCPUPROCESS:
                 {
-                    if (statistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(statistics.MaxCpuProcessId)))
+                    if (SystemStatistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(SystemStatistics.MaxCpuProcessId)))
                     {
                         if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
                         {
@@ -335,7 +336,7 @@ VOID UpdateStatusBar(
                 break;
             case STATUS_MAXIOPROCESS:
                 {
-                    if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
+                    if (SystemStatistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(SystemStatistics.MaxIoProcessId)))
                     {
                         if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
                         {

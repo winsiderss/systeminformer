@@ -36,6 +36,12 @@
     <ClCompile Include="toolbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="customize.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="graph.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

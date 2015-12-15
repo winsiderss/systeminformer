@@ -44,9 +44,16 @@
 #define SETTING_NAME_ENABLE_MODERNICONS (PLUGIN_NAME L".EnableModernIcons")
 #define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (PLUGIN_NAME L".ResolveGhostWindows")
 #define SETTING_NAME_ENABLE_STATUSMASK (PLUGIN_NAME L".StatusMask")
+#define SETTING_NAME_ENABLE_AUTOHIDE_MENU (PLUGIN_NAME L".AutoHideMenu")
+#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARBUTTONCONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
+#define SETTING_NAME_TOOLBAR_LOCKED (PLUGIN_NAME L".ToolbarLocked")
+#define SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH (PLUGIN_NAME L".ToolbarCpuGraphEnabled")
+#define SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH (PLUGIN_NAME L".ToolbarMemGraphEnabled")
+#define SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH (PLUGIN_NAME L".ToolbarIoGraphEnabled")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
+#define SETTING_NAME_REBARBCONFIG (PLUGIN_NAME L".RebarConfig")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 
@@ -81,6 +88,24 @@ typedef enum _TOOLBAR_DISPLAY_STYLE
     ToolbarDisplayAllText
 } TOOLBAR_DISPLAY_STYLE;
 
+typedef enum _TOOLBAR_COMMAND_ID
+{
+    COMMAND_ID_ENABLE_MENU = 1,
+    COMMAND_ID_ENABLE_SEARCHBOX,
+    COMMAND_ID_ENABLE_CPU_GRAPH,
+    COMMAND_ID_ENABLE_MEMORY_GRAPH,
+    COMMAND_ID_ENABLE_IO_GRAPH,
+    COMMAND_ID_TOOLBAR_LOCKUNLOCK,
+    COMMAND_ID_TOOLBAR_CUSTOMIZE,
+} TOOLBAR_COMMAND_ID;
+
+typedef enum _TOOLBAR_THEME
+{
+    TOOLBAR_THEME_NONE,
+    TOOLBAR_THEME_BLACK,
+    TOOLBAR_THEME_BLUE
+} TOOLBAR_THEME;
+
 typedef enum _SEARCHBOX_DISPLAY_MODE
 {
     SearchBoxDisplayAlwaysShow = 0,
@@ -90,9 +115,12 @@ typedef enum _SEARCHBOX_DISPLAY_MODE
 
 typedef enum _REBAR_BAND_ID
 {
-    BandID_ToolBar = 0,
-    BandID_SearchBox = 1
-} REBAR_BAND_ID;
+    REBAR_BAND_ID_TOOLBAR,
+    REBAR_BAND_ID_SEARCHBOX,
+    REBAR_BAND_ID_CPUGRAPH,
+    REBAR_BAND_ID_MEMGRAPH,
+    REBAR_BAND_ID_IOGRAPH
+} REBAR_BAND;
 
 typedef enum _REBAR_DISPLAY_LOCATION
 {
@@ -109,7 +137,10 @@ extern INT SelectedTabIndex;
 extern BOOLEAN EnableToolBar;
 extern BOOLEAN EnableSearchBox;
 extern BOOLEAN EnableStatusBar;
+extern BOOLEAN AutoHideMenu;
+extern BOOLEAN ToolBarLocked;
 extern BOOLEAN UpdateAutomatically;
+extern TOOLBAR_THEME ToolBarTheme;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -120,8 +151,10 @@ extern HWND RebarHandle;
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
 extern HWND StatusBarHandle;
+extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
+extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
 extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[11];
@@ -158,11 +191,11 @@ BOOLEAN RebarBandExists(
     _In_ UINT BandID
     );
 
-VOID LoadToolbarSettings(
+VOID ToolbarLoadSettings(
     VOID
     );
 
-VOID ResetToolbarSettings(
+VOID ToolbarResetSettings(
     VOID
     );
 
@@ -175,6 +208,14 @@ VOID ToolbarLoadButtonSettings(
     );
 
 VOID ToolbarSaveButtonSettings(
+    VOID
+    );
+
+VOID ReBarLoadLayoutSettings(
+    VOID
+    );
+
+VOID ReBarSaveLayoutSettings(
     VOID
     );
 
@@ -219,7 +260,6 @@ typedef struct _EDIT_CONTEXT
     INT ImageHeight;  
 
     HWND WindowHandle;
-    HFONT WindowFont;
     HIMAGELIST ImageList;
 
     HBRUSH BrushNormal;
@@ -236,5 +276,31 @@ HBITMAP LoadImageFromResources(
     _In_ UINT Height,
     _In_ PCWSTR Name
     );
+
+// customize.c
+
+INT_PTR CALLBACK ToolbarCustomizeDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID ShowCustomizeDialog(
+    VOID
+    );
+
+// graph.c
+
+extern BOOLEAN ToolBarEnableCpuGraph;
+extern BOOLEAN ToolBarEnableMemGraph;
+extern BOOLEAN ToolBarEnableIoGraph;
+extern HWND CpuGraphHandle;
+extern HWND MemGraphHandle;
+extern HWND IoGraphHandle;
+
+VOID ToolbarCreateGraphs(VOID);
+VOID ToolbarUpdateGraphs(VOID);
+VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
 
 #endif
