@@ -44,48 +44,13 @@ static VOID NcAreaFreeTheme(
 
     if (Context->BrushPushed)
         DeleteObject(Context->BrushPushed);
-
-    if (Context->WindowFont)
-        DeleteObject(Context->WindowFont);
 }
 
 static VOID NcAreaInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    LOGFONT logFont;
-    HDC hdc;
-
-    SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0);
-
-    if (hdc = GetDC(Context->WindowHandle))
-    {
-        // Cleanup existing Font handle.
-        if (Context->WindowFont)
-            DeleteObject(Context->WindowFont);
-
-        // Create the font handle
-        Context->WindowFont = CreateFont(
-            -MulDiv(-10, GetDeviceCaps(hdc, LOGPIXELSY), 72),
-            0,
-            0,
-            0,
-            FW_MEDIUM,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            logFont.lfFaceName
-            );
-
-        ReleaseDC(Context->WindowHandle, hdc);
-    }
-
-    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
+    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0), TRUE);
 }
 
 static VOID NcAreaInitializeTheme(
@@ -477,9 +442,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
             if (SearchBoxDisplayMode != SearchBoxDisplayHideInactive)
                 break;
 
-            if (!RebarBandExists(BandID_SearchBox))
+            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
             {
-                RebarBandInsert(BandID_SearchBox, SearchboxHandle, 20, 180);
+                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, 20);
             }
         }
         break;

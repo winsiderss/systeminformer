@@ -34,27 +34,12 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND toolbarCombo = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
-            HWND searchboxCombo = GetDlgItem(hwndDlg, IDC_SEARCHBOX_DISPLAYSTYLECOMBO);
-
-            ComboBox_AddString(toolbarCombo, L"No Text Labels"); // Displays no text label for the toolbar buttons.
-            ComboBox_AddString(toolbarCombo, L"Selective Text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
-            ComboBox_AddString(toolbarCombo, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
-            ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
-            
-            ComboBox_AddString(searchboxCombo, L"Always show");
-            ComboBox_AddString(searchboxCombo, L"Hide when inactive");
-            //ComboBox_AddString(searchboxCombo, L"Auto-hide");
-            ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX),
-                PhGetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX) ? BST_CHECKED : BST_UNCHECKED);
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR) ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN),
-                PhGetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS) ? BST_CHECKED : BST_UNCHECKED);
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS) ? BST_CHECKED : BST_UNCHECKED);
         }
@@ -66,28 +51,18 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
-            case IDC_CUSTOMIZETOOLBAR:
-                PostMessage(ToolBarHandle, TB_CUSTOMIZE, 0, 0);
-                break;
             case IDOK:
                 {
-                    PhSetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE,
-                        (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO))));
-                    PhSetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE,
-                        (SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_SEARCHBOX_DISPLAYSTYLECOMBO))));
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR,
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX,
-                        (EnableSearchBox = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_SEARCHBOX)) == BST_CHECKED));
+
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR,
                         (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED));
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN)) == BST_CHECKED);
+
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
-                    LoadToolbarSettings();
-                    //InvalidateRect(ToolBarHandle, NULL, TRUE);
+                    ToolbarLoadSettings();
 
                     EndDialog(hwndDlg, IDOK);
                 }

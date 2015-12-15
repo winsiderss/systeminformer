@@ -36,16 +36,22 @@
 #define IDB_CROSS_MODERN                132
 #define IDB_FIND_MODERN                 133
 #define IDB_POWER_MODERN                134
+#define IDD_CUSTOMIZE                   135
 #define IDC_ENABLE_TOOLBAR              1001
-#define IDC_ENABLE_SEARCHBOX            1002
-#define IDC_ENABLE_MODERN               1003
-#define IDC_DISPLAYSTYLECOMBO           1004
-#define IDC_DISPLAYSTYLETEXT            1005
-#define IDC_ENABLE_STATUSBAR            1006
-#define IDC_CUSTOMIZETOOLBAR            1007
-#define IDC_SEARCHBOX_DISPLAYSTYLECOMBO 1008
-#define IDC_SEARCHBOX_DISPLAYSTYLETEXT  1009
-#define IDC_RESOLVEGHOSTWINDOWS         1010
+#define IDC_ENABLE_MODERN               1002
+#define IDC_ENABLE_STATUSBAR            1003
+#define IDC_RESOLVEGHOSTWINDOWS         1004
+#define IDC_AVAILABLE                   1005
+#define IDC_ADD                         1006
+#define IDC_REMOVE                      1007
+#define IDC_CURRENT                     1008
+#define IDC_SEARCHOPTIONS               1009
+#define IDC_TEXTOPTIONS                 1010
+#define IDC_MOVEUP                      1011
+#define IDC_MOVEDOWN                    1012
+#define IDC_THEMEOPTIONS                1013
+#define IDC_RESET                       1014
+#define IDC_ENABLE_AUTOHIDE_MENU        1015
 #define ID_STATUS_CPUUSAGE              40001
 #define ID_STATUS_COMMITCHARGE          40002
 #define ID_STATUS_PHYSICALMEMORY        40003
@@ -68,7 +74,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         40016
-#define _APS_NEXT_CONTROL_VALUE         1011
+#define _APS_NEXT_CONTROL_VALUE         1016
 #define _APS_NEXT_SYMED_VALUE           11010
 #endif
 #endif
