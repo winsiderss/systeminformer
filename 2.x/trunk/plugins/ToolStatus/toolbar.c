@@ -331,7 +331,7 @@ static VOID RebarLoadSettings(
             0,
             STATUSCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP | SBARS_TOOLTIPS,
+            WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
@@ -720,20 +720,22 @@ VOID ReBarLoadLayoutSettings(
         PhStringToInteger64(&cxPart, 10, &cxInteger);
         PhStringToInteger64(&stylePart, 10, &nStyleInteger);
 
-        bandOldIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0);
+        if ((bandOldIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == -1)
+            break;
 
-        SendMessage(RebarHandle, RB_MOVEBAND, bandOldIndex, bandIndex);
+        if (SendMessage(RebarHandle, RB_MOVEBAND, bandOldIndex, bandIndex))
+        {
+            REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+            rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_SIZE;
 
-        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
-        rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID;
+            if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
+            {
+                rebarBandInfo.cx = (UINT)cxInteger;
+                rebarBandInfo.fStyle |= (UINT)nStyleInteger;
 
-        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
-
-        rebarBandInfo.cx = (UINT)cxInteger;
-        rebarBandInfo.fStyle |= (UINT)nStyleInteger;
-        //rebarBandInfo.fStyle = (rebarBandInfo.fStyle & ~(RBBS_HIDDEN | RBBS_BREAK)) | (UINT)nStyleInteger;
-
-        SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+                SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+            }
+        }
     }
 }
 
