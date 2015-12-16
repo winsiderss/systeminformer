@@ -706,7 +706,7 @@ VOID ReBarLoadLayoutSettings(
         PH_STRINGREF stylePart;
         ULONG64 idInteger;
         ULONG64 cxInteger;
-        ULONG64 nStyleInteger;
+        ULONG64 fStyleInteger;
         UINT bandOldIndex;
 
         if (remaining.Length == 0)
@@ -718,7 +718,7 @@ VOID ReBarLoadLayoutSettings(
 
         PhStringToInteger64(&idPart, 10, &idInteger);
         PhStringToInteger64(&cxPart, 10, &cxInteger);
-        PhStringToInteger64(&stylePart, 10, &nStyleInteger);
+        PhStringToInteger64(&stylePart, 10, &fStyleInteger);
 
         if ((bandOldIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == -1)
             break;
@@ -731,7 +731,7 @@ VOID ReBarLoadLayoutSettings(
             if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
             {
                 rebarBandInfo.cx = (UINT)cxInteger;
-                rebarBandInfo.fStyle |= (UINT)nStyleInteger;
+                rebarBandInfo.fStyle |= (UINT)fStyleInteger;
 
                 SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
             }
