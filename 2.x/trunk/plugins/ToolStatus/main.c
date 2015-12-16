@@ -250,13 +250,61 @@ static VOID NTAPI LayoutPaddingCallback(
     if (layoutPadding && RebarHandle && EnableToolBar)
     {
         RECT rebarRect;
+        //RECT clientRect;
+        //INT x, y, cx, cy;
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
+        // TODO: GetClientRect with PhMainWndHandle causes crash.
+        //GetClientRect(PhMainWndHandle, &clientRect);
         GetClientRect(RebarHandle, &rebarRect);
 
         // Adjust the PH client area and exclude the rebar width.
         layoutPadding->Padding.top += rebarRect.bottom;
+
+        // TODO: Replace CCS_TOP with CCS_NOPARENTALIGN and use below code
+        //switch (RebarDisplayLocation)
+        //{
+        //case RebarLocationLeft:
+        //    {
+        //        //x = 0;
+        //        //y = 0;
+        //        //cx = rebarRect.right - rebarRect.left;
+        //        //cy = clientRect.bottom - clientRect.top;
+        //    }
+        //    break;
+        //case RebarLocationTop:
+        //    {
+        //        //x = 0;
+        //        //y = 0;
+        //        //cx = clientRect.right - clientRect.left;
+        //        //cy = clientRect.bottom - clientRect.top;
+        //
+        //        // Adjust the PH client area and exclude the rebar height.
+        //        //layoutPadding->Padding.top += rebarRect.bottom;
+        //    }
+        //    break;
+        //case RebarLocationRight:
+        //    {
+        //        //x = clientRect.right - (rebarRect.right - rebarRect.left);
+        //        //y = 0;
+        //        //cx = rebarRect.right - rebarRect.left;
+        //        //cy = clientRect.bottom - clientRect.top;
+        //    }
+        //    break;
+        //case RebarLocationBottom:
+        //    {
+        //        //x = 0;
+        //        //y = clientRect.bottom - (rebarRect.bottom - rebarRect.top) - (EnableStatusBar ? rebarRect.bottom + 1 : 0);
+        //        //cx = clientRect.right - clientRect.left;
+        //        //cy = rebarRect.bottom - rebarRect.top;
+        //
+        //        // Adjust the PH client area and exclude the rebar width.
+        //        //layoutPadding->Padding.bottom += rebarRect.bottom;
+        //    }
+        //    break;
+        //}
+        //MoveWindow(RebarHandle, x, y, cx, cy, TRUE);
 
         //if (SearchBoxDisplayStyle == SearchBoxDisplayAutoHide)
         //{
@@ -300,6 +348,8 @@ static VOID NTAPI LayoutPaddingCallback(
 
         // Adjust the PH client area and exclude the StatusBar width.
         layoutPadding->Padding.bottom += statusBarRect.bottom;
+
+        //InvalidateRect(StatusBarHandle, NULL, TRUE);
     }
 }
 

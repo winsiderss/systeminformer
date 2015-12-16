@@ -344,8 +344,7 @@ static VOID CustomizeLoadSettings(
     }
 }
 
-
-INT_PTR CALLBACK ToolbarCustomizeDialogProc(
+static INT_PTR CALLBACK CustomizeDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -763,6 +762,6 @@ VOID ShowCustomizeDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_CUSTOMIZE),
         PhMainWndHandle,
-        ToolbarCustomizeDialogProc
+        CustomizeDialogProc
         );
 }
