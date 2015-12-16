@@ -724,6 +724,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             // Direct all mouse events to this window.
                             SetCapture(hWnd);
 
+                            // Set the cursor.
+                            SetCursor(LoadCursor(NULL, IDC_CROSS));
+
                             // Send the window to the bottom.
                             SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
@@ -958,8 +961,6 @@ static LRESULT CALLBACK MainWndSubclassProc(
         }
         break;
     case WM_LBUTTONUP:
-    case WM_RBUTTONUP:
-    case WM_MBUTTONUP:
         {
             if (TargetingWindow)
             {
@@ -967,6 +968,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 ULONG threadId;
 
                 TargetingCompleted = TRUE;
+
+                // Reset the original cursor.
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
                 SetWindowPos(PhMainWndHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
