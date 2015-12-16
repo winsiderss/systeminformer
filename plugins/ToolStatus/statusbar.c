@@ -329,9 +329,6 @@ VOID UpdateStatusBar(
                     {
                         text[count] = PhCreateString(L"-");
                     }
-
-                    if (resetMaxWidths)
-                        StatusBarMaxWidths[index] = 0;
                 }
                 break;
             case STATUS_MAXIOPROCESS:
@@ -362,9 +359,6 @@ VOID UpdateStatusBar(
                     {
                         text[count] = PhCreateString(L"-");
                     }
-
-                    if (resetMaxWidths)
-                        StatusBarMaxWidths[index] = 0;
                 }
                 break;
             case STATUS_VISIBLEITEMS:
@@ -458,6 +452,10 @@ VOID UpdateStatusBar(
                 }
                 break;
             }
+
+
+            if (resetMaxWidths)
+                StatusBarMaxWidths[index] = 0;
 
             if (!GetTextExtentPoint32(hdc, text[count]->Buffer, (ULONG)text[count]->Length / sizeof(WCHAR), &size))
                 size.cx = 200;
