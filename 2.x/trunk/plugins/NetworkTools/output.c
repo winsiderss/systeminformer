@@ -146,6 +146,18 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
                         NtClose(dialogThread);
                 }
                 break;
+            case NETWORK_ACTION_PATHPING:
+                {
+                    HANDLE dialogThread = INVALID_HANDLE_VALUE;
+
+                    Static_SetText(context->WindowHandle,
+                        PhaFormatString(L"Pathing route to %s...", context->IpAddressString)->Buffer
+                        );
+
+                    if (dialogThread = PhCreateThread(0, NetworkTracertThreadStart, (PVOID)context))
+                        NtClose(dialogThread);
+                }
+                break;
             }
         }
         break;
