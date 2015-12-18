@@ -112,7 +112,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
         ToolbarUpdateGraphs();
 
     if (EnableStatusBar)
-        UpdateStatusBar(FALSE);
+        StatusBarUpdate(FALSE);
 }
 
 VOID NTAPI TreeNewInitializingCallback(
@@ -521,7 +521,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     // Let Process Hacker perform the default processing.
                     DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
-                    UpdateStatusBar(TRUE);
+                    StatusBarUpdate(TRUE);
 
                     goto DefaultWndProc;
                 }
@@ -530,7 +530,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 {
                     UpdateAutomatically = !UpdateAutomatically;
 
-                    UpdateStatusBar(TRUE);
+                    StatusBarUpdate(TRUE);
                 }
                 break;
             }
@@ -902,7 +902,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         GetCursorPos(&cursorPos);
 
-                        ShowStatusMenu(&cursorPos);
+                        StatusBarShowMenu(&cursorPos);
                     }
                     break;
                 }
