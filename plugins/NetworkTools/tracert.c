@@ -76,22 +76,50 @@ NTSTATUS NetworkTracertThreadStart(
         startupInfo.hStdError = pipeWriteHandle;
         startupInfo.wShowWindow = SW_HIDE;
 
-        if (PhGetIntegerSetting(L"EnableNetworkResolve"))
+        switch (context->Action)
         {
-            command = PhFormatString(
-                L"%s\\system32\\tracert.exe %s",
-                USER_SHARED_DATA->NtSystemRoot,
-                context->IpAddressString
-                );
-        }
-        else
-        {
-            // Disable hostname lookup.
-            command = PhFormatString(
-                L"%s\\system32\\tracert.exe -d %s",
-                USER_SHARED_DATA->NtSystemRoot,
-                context->IpAddressString
-                );
+        case NETWORK_ACTION_TRACEROUTE:
+            {
+                if (PhGetIntegerSetting(L"EnableNetworkResolve"))
+                {
+                    command = PhFormatString(
+                        L"%s\\system32\\tracert.exe %s",
+                        USER_SHARED_DATA->NtSystemRoot,
+                        context->IpAddressString
+                        );
+                }
+                else
+                {
+                    // Disable hostname lookup.
+                    command = PhFormatString(
+                        L"%s\\system32\\tracert.exe -d %s",
+                        USER_SHARED_DATA->NtSystemRoot,
+                        context->IpAddressString
+                        );
+                }
+            }
+            break;
+        case NETWORK_ACTION_PATHPING:
+            {
+                if (PhGetIntegerSetting(L"EnableNetworkResolve"))
+                {
+                    command = PhFormatString(
+                        L"%s\\system32\\pathping.exe %s",
+                        USER_SHARED_DATA->NtSystemRoot,
+                        context->IpAddressString
+                        );
+                }
+                else
+                {
+                    // Disable hostname lookup.
+                    command = PhFormatString(
+                        L"%s\\system32\\pathping.exe -n %s",
+                        USER_SHARED_DATA->NtSystemRoot,
+                        context->IpAddressString
+                        );
+                }
+            }
+            break;
         }
 
         // Allow the write handle to be inherited.

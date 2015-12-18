@@ -1,3 +1,6 @@
+1.6
+ * Added PathPing support
+
 1.5
  * Improved ping graph scaling
  
