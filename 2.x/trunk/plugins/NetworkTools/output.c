@@ -188,12 +188,15 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             if (!PhGetIntegerSetting(L"GraphColorMode"))
                 break;
 
-            // Set a transparent background for the control backcolor.
-            SetBkMode(hDC, TRANSPARENT);
-
             // Check for our edit control and change the color.
             if (hwndChild == context->OutputHandle)
             {
+                // Set a transparent background for the control backcolor.
+                //SetBkMode(hDC, TRANSPARENT);
+
+                // Set the Edit control background.
+                SetBkColor(hDC, RGB(0x0, 0x0, 0x0));
+
                 // Set text color as the Green PH graph text color.
                 SetTextColor(hDC, RGB(124, 252, 0));
 
