@@ -112,7 +112,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
         ToolbarUpdateGraphs();
 
     if (EnableStatusBar)
-        UpdateStatusBar();
+        UpdateStatusBar(FALSE);
 }
 
 VOID NTAPI TreeNewInitializingCallback(
@@ -521,7 +521,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     // Let Process Hacker perform the default processing.
                     DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
-                    UpdateStatusBar();
+                    UpdateStatusBar(TRUE);
 
                     goto DefaultWndProc;
                 }
@@ -530,7 +530,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 {
                     UpdateAutomatically = !UpdateAutomatically;
 
-                    UpdateStatusBar();
+                    UpdateStatusBar(TRUE);
                 }
                 break;
             }
@@ -1168,6 +1168,7 @@ static VOID NTAPI MainWindowShowingCallback(
 
     ToolbarLoadSettings();
     ReBarLoadLayoutSettings();
+    StatusBarLoadSettings();
 
     if (AutoHideMenu)
     {
@@ -1191,7 +1192,6 @@ static VOID NTAPI LoadCallback(
     ToolBarEnableIoGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH);
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
 
-    StatusMask = PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK);
     ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
@@ -1228,17 +1228,17 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_STATUSBAR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_MODERNICONS, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_STATUSMASK, L"d" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_AUTOHIDE_MENU, L"0" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_THEME, L"0" },
-                { StringSettingType, SETTING_NAME_TOOLBARBUTTONCONFIG, L"" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_LOCKED, L"1" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, L"0" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, L"0" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, L"0" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
-                { StringSettingType, SETTING_NAME_REBARBCONFIG, L"" },
+                { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
+                { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
+                { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
