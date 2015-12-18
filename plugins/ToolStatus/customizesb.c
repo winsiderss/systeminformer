@@ -76,11 +76,10 @@ static VOID CustomizeInsertToolbarButton(
     memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
 
     statusItem->Id = ButtonContext->IdCommand;
-    statusItem->Name = ButtonContext->Name;
 
     PhInsertItemList(StatusBarItemList, Index, statusItem);
 
-    UpdateStatusBar(TRUE);
+    StatusBarUpdate(TRUE);
 }
 
 static VOID CustomizeAddButton(
@@ -147,7 +146,7 @@ static VOID CustomizeRemoveButton(
 
     SendMessage(Context->DialogHandle, WM_COMMAND, MAKEWPARAM(IDC_CURRENT, LBN_SELCHANGE), 0);
 
-    UpdateStatusBar(TRUE);
+    StatusBarUpdate(TRUE);
 }
 
 static VOID CustomizeMoveButton(
@@ -297,6 +296,7 @@ static VOID CustomizeLoadItems(
 
         ListBox_AddItemData(Context->AvailableListHandle, buttonContext);
         //ListBox_SetCurSel(Context->AvailableListHandle, 0);
+        //ListBox_SetTopIndex(Context->CurrentListHandle, 0);
     }
 
     // set focus and disable buttons
@@ -361,8 +361,6 @@ static INT_PTR CALLBACK CustomizeDialogProc(
         return TRUE;
     case WM_DESTROY:
         {
-            //ToolbarSaveButtonSettings();
-            //ToolbarLoadSettings();
             StatusBarSaveSettings();
 
             CustomizeFreeButtons(context);
@@ -572,7 +570,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                     // Save as the new defaults.
                     StatusBarSaveSettings();
 
-                    UpdateStatusBar(TRUE);
+                    StatusBarUpdate(TRUE);
 
                     CustomizeLoadItems(context);
                 }
@@ -668,7 +666,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
     return FALSE;
 }
 
-VOID ShowStatusBarCustomizeDialog(
+VOID StatusBarShowCustomizeDialog(
     VOID
     )
 {

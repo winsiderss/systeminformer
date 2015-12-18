@@ -251,7 +251,7 @@ HBITMAP LoadImageFromResources(
     _In_ PCWSTR Name
     );
 
-// customize.c
+// customizetb.c
 
 VOID ShowCustomizeDialog(
     VOID
@@ -269,7 +269,6 @@ extern HWND IoGraphHandle;
 VOID ToolbarCreateGraphs(VOID);
 VOID ToolbarUpdateGraphs(VOID);
 VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
-
 
 // statusbar.c
 
@@ -296,15 +295,17 @@ VOID StatusBarResetSettings(
     VOID
     );
 
-VOID UpdateStatusBar(
+VOID StatusBarUpdate(
     _In_ BOOLEAN ResetMaxWidths
     );
 
-VOID ShowStatusMenu(
+VOID StatusBarShowMenu(
     _In_ PPOINT Point
     );
 
-VOID ShowStatusBarCustomizeDialog(
+// customizesb.c
+
+VOID StatusBarShowCustomizeDialog(
     VOID
     );
 
