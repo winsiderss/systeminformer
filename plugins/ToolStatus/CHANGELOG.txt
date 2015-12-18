@@ -3,6 +3,7 @@
  * Added CPU, Memory and IO graphs to main window
  * Added Right-click menu on the Toolbar
  * Added new Toolbar customize dialog
+ * Added new Statusbar customize dialog
 
 2.2
  * Added Modern Toolbar theme
