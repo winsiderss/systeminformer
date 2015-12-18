@@ -181,7 +181,7 @@ VOID ShowStatusMenu(
         menu,
         PhMainWndHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
-        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
         Point->x,
         Point->y
         );
