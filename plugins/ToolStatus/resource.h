@@ -36,7 +36,8 @@
 #define IDB_CROSS_MODERN                132
 #define IDB_FIND_MODERN                 133
 #define IDB_POWER_MODERN                134
-#define IDD_CUSTOMIZE                   135
+#define IDD_CUSTOMIZE_TB                135
+#define IDD_CUSTOMIZE_SB                136
 #define IDC_ENABLE_TOOLBAR              1001
 #define IDC_ENABLE_MODERN               1002
 #define IDC_ENABLE_STATUSBAR            1003

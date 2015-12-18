@@ -23,78 +23,159 @@
 
 #include "toolstatus.h"
 
-HWND StatusBarHandle;
-ULONG StatusMask;
-ULONG ProcessesUpdatedCount;
-static ULONG StatusBarMaxWidths[STATUS_COUNT];
+HWND StatusBarHandle = NULL;
+ULONG ProcessesUpdatedCount = 0;
+PPH_LIST StatusBarItemList = NULL;
+static ULONG StatusBarMaxWidths[14];
+
+STATUSBAR_ITEM StatusBarItems[] =
+{
+    // Default items (displayed)
+    { ID_STATUS_CPUUSAGE, L"CPU Usage" },
+    { ID_STATUS_PHYSICALMEMORY, L"Physical Memory" },
+    { ID_STATUS_NUMBEROFPROCESSES, L"Number of Processes" },
+    // Available items (hidden)
+    { ID_STATUS_COMMITCHARGE, L"Commit Charge" },
+    { ID_STATUS_FREEMEMORY, L"Free Physical Memory" },
+    { ID_STATUS_NUMBEROFTHREADS, L"Number of Threads" },
+    { ID_STATUS_NUMBEROFHANDLES, L"Number of Handles" },
+    { ID_STATUS_NUMBEROFVISIBLEITEMS, L"Number of Visible Items" },
+    { ID_STATUS_NUMBEROFSELECTEDITEMS, L"Number of Selected Items" },
+    { ID_STATUS_INTERVALSTATUS, L"Interval Status" },
+    { ID_STATUS_IO_RO, L"I/O Read+Other" },
+    { ID_STATUS_IO_W, L"I/O Write" },
+    { ID_STATUS_MAX_CPU_PROCESS, L"Max. CPU Process" },
+    { ID_STATUS_MAX_IO_PROCESS, L"Max. I/O Process" },
+};
+
+VOID StatusBarLoadDefault(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
+    {
+        PSTATUSBAR_ITEM statusItem;
+        
+        statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
+        memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
+
+        statusItem->Id = StatusBarItems[i].Id;
+
+        PhAddItemList(StatusBarItemList, statusItem);
+    }
+}
+
+VOID StatusBarLoadSettings(
+    VOID
+    )
+{
+    ULONG buttonCount = 0;
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
+    PH_STRINGREF part;
+
+    if (StatusBarItemList == NULL)
+        StatusBarItemList = PhCreateList(1);
+
+    settingsString = PhGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
+    remaining = settingsString->sr;
+
+    if (remaining.Length == 0)
+    {
+        // Load default settings
+        StatusBarLoadDefault();
+        return;
+    }
+
+    // Query the number of buttons to insert
+    PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+    buttonCount = _wtol(part.Buffer);
+
+    for (ULONG i = 0; i < buttonCount; i++)
+    {
+        PH_STRINGREF idPart;
+        ULONG64 idInteger;
+
+        if (remaining.Length == 0)
+            break;
+
+        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
+
+        if (PhStringToInteger64(&idPart, 10, &idInteger))
+        {
+            PSTATUSBAR_ITEM statusItem;
+            
+            statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
+            memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
+
+            statusItem->Id = (ULONG)idInteger;
+
+            PhInsertItemList(StatusBarItemList, i, statusItem);
+        }
+    }
+
+    PhDereferenceObject(settingsString);
+}
+
+VOID StatusBarSaveSettings(
+    VOID
+    )
+{
+    ULONG buttonIndex = 0;
+    PPH_STRING settingsString;
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"%lu|",
+        StatusBarItemList->Count
+        );
+
+    for (buttonIndex = 0; buttonIndex < StatusBarItemList->Count; buttonIndex++)
+    {
+        PSTATUSBAR_ITEM statusItem = StatusBarItemList->Items[buttonIndex];
+
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%lu|",
+            statusItem->Id
+            );
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
+    PhSetStringSetting2(SETTING_NAME_STATUSBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
+}
+
+VOID StatusBarResetSettings(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < StatusBarItemList->Count; i++)
+    {
+        PhFree(StatusBarItemList->Items[i]);
+    }
+
+    PhClearList(StatusBarItemList);
+
+    StatusBarLoadDefault();
+}
+
 
 VOID ShowStatusMenu(
     _In_ PPOINT Point
     )
 {
-    ULONG i;
-    ULONG id;
-    ULONG bit;
     PPH_EMENU menu;
     PPH_EMENU_ITEM selectedItem;
 
     menu = PhCreateEMenu();
-    PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_STATUS), 0);
-
-    // Check the enabled items.
-    for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
-    {
-        if (StatusMask & i)
-        {
-            switch (i)
-            {
-            case STATUS_CPUUSAGE:
-                id = ID_STATUS_CPUUSAGE;
-                break;
-            case STATUS_COMMIT:
-                id = ID_STATUS_COMMITCHARGE;
-                break;
-            case STATUS_PHYSICAL:
-                id = ID_STATUS_PHYSICALMEMORY;
-                break;
-            case STATUS_NUMBEROFPROCESSES:
-                id = ID_STATUS_NUMBEROFPROCESSES;
-                break;
-            case STATUS_NUMBEROFTHREADS:
-                id = ID_STATUS_NUMBEROFTHREADS;
-                break;
-            case STATUS_NUMBEROFHANDLES:
-                id = ID_STATUS_NUMBEROFHANDLES;
-                break;
-            case STATUS_IOREADOTHER:
-                id = ID_STATUS_IO_RO;
-                break;
-            case STATUS_IOWRITE:
-                id = ID_STATUS_IO_W;
-                break;
-            case STATUS_MAXCPUPROCESS:
-                id = ID_STATUS_MAX_CPU_PROCESS;
-                break;
-            case STATUS_MAXIOPROCESS:
-                id = ID_STATUS_MAX_IO_PROCESS;
-                break;
-            case STATUS_VISIBLEITEMS:
-                id = ID_STATUS_NUMBEROFVISIBLEITEMS;
-                break;
-            case STATUS_SELECTEDITEMS:
-                id = ID_STATUS_NUMBEROFSELECTEDITEMS;
-                break;
-            case STATUS_INTERVALSTATUS:
-                id = ID_STATUS_INTERVALSTATUS; 
-                break;
-            case STATUS_FREEMEMORY:
-                id = ID_STATUS_FREEMEMORY;
-                break;
-            }
-
-            PhSetFlagsEMenuItem(menu, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-        }
-    }
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Customize...", NULL, NULL), -1);
 
     selectedItem = PhShowEMenu(
         menu,
@@ -107,79 +188,31 @@ VOID ShowStatusMenu(
 
     if (selectedItem && selectedItem->Id != -1)
     {
-        switch (selectedItem->Id)
-        {
-        case ID_STATUS_CPUUSAGE:
-            bit = STATUS_CPUUSAGE;
-            break;
-        case ID_STATUS_COMMITCHARGE:
-            bit = STATUS_COMMIT;
-            break;
-        case ID_STATUS_PHYSICALMEMORY:
-            bit = STATUS_PHYSICAL;
-            break;
-        case ID_STATUS_NUMBEROFPROCESSES:
-            bit = STATUS_NUMBEROFPROCESSES;
-            break;
-        case ID_STATUS_NUMBEROFTHREADS:
-            bit = STATUS_NUMBEROFTHREADS;
-            break;
-        case ID_STATUS_NUMBEROFHANDLES:
-            bit = STATUS_NUMBEROFHANDLES;
-            break;
-        case ID_STATUS_IO_RO:
-            bit = STATUS_IOREADOTHER;
-            break;
-        case ID_STATUS_IO_W:
-            bit = STATUS_IOWRITE;
-            break;
-        case ID_STATUS_MAX_CPU_PROCESS:
-            bit = STATUS_MAXCPUPROCESS;
-            break;
-        case ID_STATUS_MAX_IO_PROCESS:
-            bit = STATUS_MAXIOPROCESS;
-            break;
-        case ID_STATUS_NUMBEROFVISIBLEITEMS:
-            bit = STATUS_VISIBLEITEMS;
-            break;
-        case ID_STATUS_NUMBEROFSELECTEDITEMS:
-            bit = STATUS_SELECTEDITEMS;
-            break;
-        case ID_STATUS_INTERVALSTATUS:
-            bit = STATUS_INTERVALSTATUS;
-            break;
-        case ID_STATUS_FREEMEMORY:
-            bit = STATUS_FREEMEMORY;
-            break;
-        }
+        ShowStatusBarCustomizeDialog();
 
-        StatusMask ^= bit;
-        PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSMASK, StatusMask);
-
-        UpdateStatusBar();
+        UpdateStatusBar(TRUE);
     }
 
     PhDestroyEMenu(menu);
 }
 
 VOID UpdateStatusBar(
-    VOID
+    _In_ BOOLEAN ResetMaxWidths
     )
 {
     static ULONG64 lastTickCount = 0;
 
-    PPH_STRING text[STATUS_COUNT];
-    ULONG widths[STATUS_COUNT];
-    ULONG i;
-    ULONG index;
     ULONG count;
+    ULONG i;
     HDC hdc;
     BOOLEAN resetMaxWidths = FALSE;
+    PPH_STRING text[ARRAYSIZE(StatusBarItems)];
+    ULONG widths[ARRAYSIZE(StatusBarItems)];
 
-    if (ProcessesUpdatedCount < 2)
-        return;
+    if (ResetMaxWidths)
+        resetMaxWidths = TRUE;
 
-    if (!(StatusMask & (STATUS_MAXIMUM - 1)))
+    if (StatusBarItemList->Count == 0)
     {
         // The status bar doesn't cope well with 0 parts.
         widths[0] = -1;
@@ -205,283 +238,281 @@ VOID UpdateStatusBar(
     }
 
     count = 0;
-    index = 0;
 
-    for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
+    for (i = 0; i < StatusBarItemList->Count; i++)
     {
-        if (StatusMask & i)
+        PSTATUSBAR_ITEM statusItem = StatusBarItemList->Items[i];
+
+        SIZE size;
+        ULONG width;
+
+        switch (statusItem->Id)
         {
-            SIZE size;
-            PPH_PROCESS_ITEM processItem;
-            ULONG width;
-
-            switch (i)
+        case ID_STATUS_CPUUSAGE:
             {
-            case STATUS_CPUUSAGE:
-                {
-                    text[count] = PhFormatString(
-                        L"CPU Usage: %.2f%%", 
-                        (SystemStatistics.CpuKernelUsage + SystemStatistics.CpuUserUsage) * 100
-                        );
-                }
-                break;
-            case STATUS_COMMIT:
-                {
-                    ULONG commitUsage = SystemStatistics.Performance->CommittedPages;
-                    FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
-
-                    text[count] = PhFormatString(
-                        L"Commit Charge: %s (%.2f%%)",
-                        PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
-                        commitFraction
-                        );
-                }
-                break;
-            case STATUS_PHYSICAL:
-                {            
-                    ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
-                    FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
-
-                    text[count] = PhFormatString(
-                        L"Physical Memory: %s (%.2f%%)",
-                        PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
-                        physicalFraction
-                        );
-                }
-                break;
-            case STATUS_FREEMEMORY:
-                {
-                    ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
-                    FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
-
-                    text[count] = PhFormatString(
-                        L"Free Memory: %s (%.2f%%)",
-                        PhaFormatSize(UInt32x32To64(physicalFree, PAGE_SIZE), -1)->Buffer,
-                        physicalFreeFraction
-                        );
-                }
-                break;
-            case STATUS_NUMBEROFPROCESSES:
-                {
-                    text[count] = PhConcatStrings2(
-                        L"Processes: ",
-                        PhaFormatUInt64(SystemStatistics.NumberOfProcesses, TRUE)->Buffer
-                        );
-                }
-                break;
-            case STATUS_NUMBEROFTHREADS:
-                {
-                    text[count] = PhConcatStrings2(
-                        L"Threads: ",
-                        PhaFormatUInt64(SystemStatistics.NumberOfThreads, TRUE)->Buffer
-                        );
-                }
-                break;
-            case STATUS_NUMBEROFHANDLES:
-                {
-                    text[count] = PhConcatStrings2(
-                        L"Handles: ",
-                        PhaFormatUInt64(SystemStatistics.NumberOfHandles, TRUE)->Buffer
-                        );
-                }
-                break;
-            case STATUS_IOREADOTHER:
-                {
-                    text[count] = PhConcatStrings2(
-                        L"I/O R+O: ", 
-                        PhaFormatSize(SystemStatistics.IoReadDelta.Delta + SystemStatistics.IoOtherDelta.Delta, -1)->Buffer
-                        );
-                }
-                break;
-            case STATUS_IOWRITE:
-                {
-                    text[count] = PhConcatStrings2(
-                        L"I/O W: ", 
-                        PhaFormatSize(SystemStatistics.IoWriteDelta.Delta, -1)->Buffer
-                        );
-                }
-                break;
-            case STATUS_MAXCPUPROCESS:
-                {
-                    if (SystemStatistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(SystemStatistics.MaxCpuProcessId)))
-                    {
-                        if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
-                        {
-                            text[count] = PhFormatString(
-                                L"%s (%lu): %.2f%%",
-                                processItem->ProcessName->Buffer,
-                                HandleToUlong(processItem->ProcessId),
-                                processItem->CpuUsage * 100
-                                );
-                        }
-                        else
-                        {
-                            text[count] = PhFormatString(
-                                L"%s: %.2f%%",
-                                processItem->ProcessName->Buffer,
-                                processItem->CpuUsage * 100
-                                );
-                        }
-
-                        PhDereferenceObject(processItem);
-                    }
-                    else
-                    {
-                        text[count] = PhCreateString(L"-");
-                    }
-                }
-                break;
-            case STATUS_MAXIOPROCESS:
-                {
-                    if (SystemStatistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(SystemStatistics.MaxIoProcessId)))
-                    {
-                        if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
-                        {
-                            text[count] = PhFormatString(
-                                L"%s (%lu): %s",
-                                processItem->ProcessName->Buffer,
-                                HandleToUlong(processItem->ProcessId),
-                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
-                                );
-                        }
-                        else
-                        {
-                            text[count] = PhFormatString(
-                                L"%s: %s",
-                                processItem->ProcessName->Buffer,
-                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
-                                );
-                        }
-
-                        PhDereferenceObject(processItem);
-                    }
-                    else
-                    {
-                        text[count] = PhCreateString(L"-");
-                    }
-                }
-                break;
-            case STATUS_VISIBLEITEMS:
-                {
-                    HWND tnHandle = NULL;
-
-                    tnHandle = GetCurrentTreeNewHandle();
-
-                    if (tnHandle)
-                    {
-                        ULONG visibleCount = 0;
-
-                        visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
-
-                        text[count] = PhFormatString(
-                            L"Visible: %lu",
-                            visibleCount
-                            );
-                    }
-                    else
-                    {
-                        text[count] = PhCreateString(
-                            L"Visible: N/A"
-                            );
-                    }
-                }
-                break;
-            case STATUS_SELECTEDITEMS:
-                {
-                    HWND tnHandle = NULL;
-
-                    tnHandle = GetCurrentTreeNewHandle();
-
-                    if (tnHandle)
-                    {
-                        ULONG visibleCount = 0;
-                        ULONG selectedCount = 0;
-
-                        visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
-
-                        for (ULONG i = 0; i < visibleCount; i++)
-                        {
-                            if (TreeNew_GetFlatNode(tnHandle, i)->Selected)
-                                selectedCount++;
-                        }
-
-                        text[count] = PhFormatString(
-                            L"Selected: %lu",
-                            selectedCount
-                            );
-                    }
-                    else
-                    {
-                        text[count] = PhCreateString(
-                            L"Selected: N/A"
-                            );
-                    }
-                }
-                break;
-            case STATUS_INTERVALSTATUS:
-                {
-                    ULONG interval;
-
-                    interval = PhGetIntegerSetting(L"UpdateInterval");
-
-                    if (UpdateAutomatically)
-                    {
-                        switch (interval)
-                        {
-                        case 500:
-                            text[count] = PhCreateString(L"Interval: Fast");
-                            break;
-                        case 1000:
-                            text[count] = PhCreateString(L"Interval: Normal");
-                            break;
-                        case 2000:
-                            text[count] = PhCreateString(L"Interval: Below Normal");
-                            break;
-                        case 5000:
-                            text[count] = PhCreateString(L"Interval: Slow");
-                            break;
-                        case 10000:
-                            text[count] = PhCreateString(L"Interval: Very Slow");
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        text[count] = PhCreateString(L"Interval: Paused");
-                    }
-                }
-                break;
+                text[count] = PhFormatString(
+                    L"CPU Usage: %.2f%%",
+                    (SystemStatistics.CpuKernelUsage + SystemStatistics.CpuUserUsage) * 100
+                    );
             }
+            break;
+        case ID_STATUS_COMMITCHARGE:
+            {
+                ULONG commitUsage = SystemStatistics.Performance->CommittedPages;
+                FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
 
+                text[count] = PhFormatString(
+                    L"Commit Charge: %s (%.2f%%)",
+                    PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
+                    commitFraction
+                    );
+            }
+            break;
+        case ID_STATUS_PHYSICALMEMORY:
+            {
+                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
+                FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
-            if (resetMaxWidths)
-                StatusBarMaxWidths[index] = 0;
+                text[count] = PhFormatString(
+                    L"Physical Memory: %s (%.2f%%)",
+                    PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
+                    physicalFraction
+                    );
+            }
+            break;
+        case ID_STATUS_FREEMEMORY:
+            {
+                ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
+                FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
-            if (!GetTextExtentPoint32(hdc, text[count]->Buffer, (ULONG)text[count]->Length / sizeof(WCHAR), &size))
-                size.cx = 200;
+                text[count] = PhFormatString(
+                    L"Free Memory: %s (%.2f%%)",
+                    PhaFormatSize(UInt32x32To64(physicalFree, PAGE_SIZE), -1)->Buffer,
+                    physicalFreeFraction
+                    );
+            }
+            break;
+        case ID_STATUS_NUMBEROFPROCESSES:
+            {
+                text[count] = PhConcatStrings2(
+                    L"Processes: ",
+                    PhaFormatUInt64(SystemStatistics.NumberOfProcesses, TRUE)->Buffer
+                    );
+            }
+            break;
+        case ID_STATUS_NUMBEROFTHREADS:
+            {
+                text[count] = PhConcatStrings2(
+                    L"Threads: ",
+                    PhaFormatUInt64(SystemStatistics.NumberOfThreads, TRUE)->Buffer
+                    );
+            }
+            break;
+        case ID_STATUS_NUMBEROFHANDLES:
+            {
+                text[count] = PhConcatStrings2(
+                    L"Handles: ",
+                    PhaFormatUInt64(SystemStatistics.NumberOfHandles, TRUE)->Buffer
+                    );
+            }
+            break;
+        case ID_STATUS_IO_RO:
+            {
+                text[count] = PhConcatStrings2(
+                    L"I/O R+O: ",
+                    PhaFormatSize(SystemStatistics.IoReadDelta.Delta + SystemStatistics.IoOtherDelta.Delta, -1)->Buffer
+                    );
+            }
+            break;
+        case ID_STATUS_IO_W:
+            {
+                text[count] = PhConcatStrings2(
+                    L"I/O W: ",
+                    PhaFormatSize(SystemStatistics.IoWriteDelta.Delta, -1)->Buffer
+                    );
+            }
+            break;
+        case ID_STATUS_MAX_CPU_PROCESS:
+            {
+                PPH_PROCESS_ITEM processItem;
 
-            if (count != 0)
-                widths[count] = widths[count - 1];
-            else
-                widths[count] = 0;
+                if (SystemStatistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(SystemStatistics.MaxCpuProcessId)))
+                {
+                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                    {
+                        text[count] = PhFormatString(
+                            L"%s (%lu): %.2f%%",
+                            processItem->ProcessName->Buffer,
+                            HandleToUlong(processItem->ProcessId),
+                            processItem->CpuUsage * 100
+                            );
+                    }
+                    else
+                    {
+                        text[count] = PhFormatString(
+                            L"%s: %.2f%%",
+                            processItem->ProcessName->Buffer,
+                            processItem->CpuUsage * 100
+                            );
+                    }
 
-            width = size.cx + 10;
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    text[count] = PhCreateString(L"-");
+                }
+            }
+            break;
+        case ID_STATUS_MAX_IO_PROCESS:
+            {
+                PPH_PROCESS_ITEM processItem;
 
-            if (width <= StatusBarMaxWidths[index])
-                width = StatusBarMaxWidths[index];
-            else
-                StatusBarMaxWidths[index] = width;
+                if (SystemStatistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(SystemStatistics.MaxIoProcessId)))
+                {
+                    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId))
+                    {
+                        text[count] = PhFormatString(
+                            L"%s (%lu): %s",
+                            processItem->ProcessName->Buffer,
+                            HandleToUlong(processItem->ProcessId),
+                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                            );
+                    }
+                    else
+                    {
+                        text[count] = PhFormatString(
+                            L"%s: %s",
+                            processItem->ProcessName->Buffer,
+                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                            );
+                    }
 
-            widths[count] += width;
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    text[count] = PhCreateString(L"-");
+                }
+            }
+            break;
+        case ID_STATUS_NUMBEROFVISIBLEITEMS:
+            {
+                HWND tnHandle = NULL;
 
-            count++;
+                tnHandle = GetCurrentTreeNewHandle();
+
+                if (tnHandle)
+                {
+                    ULONG visibleCount = 0;
+
+                    visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
+
+                    text[count] = PhFormatString(
+                        L"Visible: %lu",
+                        visibleCount
+                        );
+                }
+                else
+                {
+                    text[count] = PhCreateString(
+                        L"Visible: N/A"
+                        );
+                }
+            }
+            break;
+        case ID_STATUS_NUMBEROFSELECTEDITEMS:
+            {
+                HWND tnHandle = NULL;
+
+                tnHandle = GetCurrentTreeNewHandle();
+
+                if (tnHandle)
+                {
+                    ULONG visibleCount = 0;
+                    ULONG selectedCount = 0;
+
+                    visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
+
+                    for (ULONG i = 0; i < visibleCount; i++)
+                    {
+                        if (TreeNew_GetFlatNode(tnHandle, i)->Selected)
+                            selectedCount++;
+                    }
+
+                    text[count] = PhFormatString(
+                        L"Selected: %lu",
+                        selectedCount
+                        );
+                }
+                else
+                {
+                    text[count] = PhCreateString(
+                        L"Selected: N/A"
+                        );
+                }
+            }
+            break;
+        case ID_STATUS_INTERVALSTATUS:
+            {
+                ULONG interval;
+
+                interval = PhGetIntegerSetting(L"UpdateInterval");
+
+                if (UpdateAutomatically)
+                {
+                    switch (interval)
+                    {
+                    case 500:
+                        text[count] = PhCreateString(L"Interval: Fast");
+                        break;
+                    case 1000:
+                        text[count] = PhCreateString(L"Interval: Normal");
+                        break;
+                    case 2000:
+                        text[count] = PhCreateString(L"Interval: Below Normal");
+                        break;
+                    case 5000:
+                        text[count] = PhCreateString(L"Interval: Slow");
+                        break;
+                    case 10000:
+                        text[count] = PhCreateString(L"Interval: Very Slow");
+                        break;
+                    }
+                }
+                else
+                {
+                    text[count] = PhCreateString(L"Interval: Paused");
+                }
+            }
+            break;
+        }
+
+        if (resetMaxWidths)
+            StatusBarMaxWidths[count] = 0;
+
+        if (!GetTextExtentPoint32(hdc, text[count]->Buffer, (ULONG)text[count]->Length / sizeof(WCHAR), &size))
+            size.cx = 200;
+
+        if (count != 0)
+            widths[count] = widths[count - 1];
+        else
+            widths[count] = 0;
+
+        width = size.cx + 10;
+
+        if (width <= StatusBarMaxWidths[count])
+        {
+            width = StatusBarMaxWidths[count];
         }
         else
         {
-            StatusBarMaxWidths[index] = 0;
+            StatusBarMaxWidths[count] = width;
         }
 
-        index++;
+        widths[count] += width;
+
+        count++;
     }
 
     ReleaseDC(StatusBarHandle, hdc);

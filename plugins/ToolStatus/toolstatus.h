@@ -43,43 +43,26 @@
 #define SETTING_NAME_ENABLE_STATUSBAR (PLUGIN_NAME L".EnableStatusBar")
 #define SETTING_NAME_ENABLE_MODERNICONS (PLUGIN_NAME L".EnableModernIcons")
 #define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (PLUGIN_NAME L".ResolveGhostWindows")
-#define SETTING_NAME_ENABLE_STATUSMASK (PLUGIN_NAME L".StatusMask")
 #define SETTING_NAME_ENABLE_AUTOHIDE_MENU (PLUGIN_NAME L".AutoHideMenu")
 #define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
-#define SETTING_NAME_TOOLBARBUTTONCONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
+#define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_TOOLBAR_LOCKED (PLUGIN_NAME L".ToolbarLocked")
 #define SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH (PLUGIN_NAME L".ToolbarCpuGraphEnabled")
 #define SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH (PLUGIN_NAME L".ToolbarMemGraphEnabled")
 #define SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH (PLUGIN_NAME L".ToolbarIoGraphEnabled")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
-#define SETTING_NAME_REBARBCONFIG (PLUGIN_NAME L".RebarConfig")
+#define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
+#define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusConfig")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
+#define MAX_DEFAULT_STATUSBAR_ITEMS 3
 
 #define ID_SEARCH_CLEAR (WM_APP + 1)
 #define TIDC_FINDWINDOW (WM_APP + 2)
 #define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
 #define TIDC_FINDWINDOWKILL (WM_APP + 4)
 #define TIDC_POWERMENUDROPDOWN (WM_APP + 5)
-
-#define STATUS_COUNT 14
-#define STATUS_MINIMUM 0x1
-#define STATUS_CPUUSAGE 0x1
-#define STATUS_COMMIT 0x2
-#define STATUS_PHYSICAL 0x4
-#define STATUS_NUMBEROFPROCESSES 0x8
-#define STATUS_NUMBEROFTHREADS 0x10
-#define STATUS_NUMBEROFHANDLES 0x20
-#define STATUS_IOREADOTHER 0x40
-#define STATUS_IOWRITE 0x80
-#define STATUS_MAXCPUPROCESS 0x100
-#define STATUS_MAXIOPROCESS 0x200
-#define STATUS_VISIBLEITEMS 0x400
-#define STATUS_SELECTEDITEMS 0x800
-#define STATUS_INTERVALSTATUS 0x1000
-#define STATUS_FREEMEMORY 0x2000
-#define STATUS_MAXIMUM 0x4000
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -145,13 +128,11 @@ extern TOOLBAR_THEME ToolBarTheme;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
-extern ULONG StatusMask;
-extern ULONG ProcessesUpdatedCount;
 
 extern HWND RebarHandle;
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
-extern HWND StatusBarHandle;
+
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
@@ -167,14 +148,6 @@ extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 
 PTOOLSTATUS_TAB_INFO FindTabInfo(
     _In_ INT TabIndex
-    );
-
-VOID UpdateStatusBar(
-    VOID
-    );
-
-VOID ShowStatusMenu(
-    _In_ PPOINT Point
     );
 
 VOID RebarBandInsert(
@@ -296,5 +269,43 @@ extern HWND IoGraphHandle;
 VOID ToolbarCreateGraphs(VOID);
 VOID ToolbarUpdateGraphs(VOID);
 VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
+
+
+// statusbar.c
+
+typedef struct _STATUSBAR_ITEM
+{
+    ULONG Id;
+    PWSTR Name;
+} STATUSBAR_ITEM, *PSTATUSBAR_ITEM;
+
+extern ULONG ProcessesUpdatedCount;
+extern HWND StatusBarHandle;
+extern PPH_LIST StatusBarItemList;
+extern STATUSBAR_ITEM StatusBarItems[14];
+
+VOID StatusBarLoadSettings(
+    VOID
+    );
+
+VOID StatusBarSaveSettings(
+    VOID
+    );
+
+VOID StatusBarResetSettings(
+    VOID
+    );
+
+VOID UpdateStatusBar(
+    _In_ BOOLEAN ResetMaxWidths
+    );
+
+VOID ShowStatusMenu(
+    _In_ PPOINT Point
+    );
+
+VOID ShowStatusBarCustomizeDialog(
+    VOID
+    );
 
 #endif
