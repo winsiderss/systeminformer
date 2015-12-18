@@ -167,7 +167,7 @@ VOID StatusBarResetSettings(
 }
 
 
-VOID ShowStatusMenu(
+VOID StatusBarShowMenu(
     _In_ PPOINT Point
     )
 {
@@ -188,15 +188,15 @@ VOID ShowStatusMenu(
 
     if (selectedItem && selectedItem->Id != -1)
     {
-        ShowStatusBarCustomizeDialog();
+        StatusBarShowCustomizeDialog();
 
-        UpdateStatusBar(TRUE);
+        StatusBarUpdate(TRUE);
     }
 
     PhDestroyEMenu(menu);
 }
 
-VOID UpdateStatusBar(
+VOID StatusBarUpdate(
     _In_ BOOLEAN ResetMaxWidths
     )
 {
