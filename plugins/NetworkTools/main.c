@@ -61,6 +61,9 @@ VOID NTAPI MenuItemCallback(
     case NETWORK_ACTION_WHOIS:
         PerformNetworkAction(NETWORK_ACTION_WHOIS, networkItem);
         break;
+    case NETWORK_ACTION_PATHPING:
+        PerformNetworkAction(NETWORK_ACTION_PATHPING, networkItem);
+        break;
     }
 }
 
@@ -84,6 +87,7 @@ VOID NTAPI NetworkMenuInitializingCallback(
     PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PING, L"Ping", networkItem), -1);
     PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", networkItem), -1);
     PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"Whois", networkItem), -1);
+    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PATHPING, L"PathPing", networkItem), -1);
 
     // Insert the Tools menu into the network menu.
     closeMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Close", 0);
