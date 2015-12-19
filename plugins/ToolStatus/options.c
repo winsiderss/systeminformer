@@ -42,6 +42,9 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
                 PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS) ? BST_CHECKED : BST_UNCHECKED);
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU),
+                PhGetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -62,7 +65,23 @@ INT_PTR CALLBACK OptionsDlgProc(
                     PhSetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
+                    PhSetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU,
+                        (AutoHideMenu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU)) == BST_CHECKED));
+
                     ToolbarLoadSettings();
+
+                    if (AutoHideMenu)
+                    {
+                        if (!MainMenu)
+                            MainMenu = GetMenu(PhMainWndHandle);
+
+                        SetMenu(PhMainWndHandle, NULL);
+                    }
+                    else
+                    {
+                        SetMenu(PhMainWndHandle, MainMenu);
+                        DrawMenuBar(PhMainWndHandle);
+                    }
 
                     EndDialog(hwndDlg, IDOK);
                 }

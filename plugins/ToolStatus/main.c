@@ -107,7 +107,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
         return;
 
     PhPluginGetSystemStatistics(&SystemStatistics);
-    
+
     if (UpdateGraphs)
         ToolbarUpdateGraphs();
 
@@ -1122,7 +1122,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     SetMenu(PhMainWndHandle, MainMenu);
                     DrawMenuBar(PhMainWndHandle);
                 }
-            } 
+            }
             else if ((wParam & 0xFFF0) == SC_MINIMIZE)
             {
                 UpdateGraphs = FALSE;

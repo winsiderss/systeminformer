@@ -159,11 +159,11 @@ static VOID NcAreaDrawButton(
     HDC bufferDc;
     HBITMAP bufferBitmap;
     HBITMAP oldBufferBitmap;
-    RECT bufferRect = 
+    RECT bufferRect =
     {
-        0, 0, 
-        ButtonRect.right - ButtonRect.left, 
-        ButtonRect.bottom - ButtonRect.top 
+        0, 0,
+        ButtonRect.right - ButtonRect.left,
+        ButtonRect.bottom - ButtonRect.top
     };
 
     if (!(hdc = GetWindowDC(Context->WindowHandle)))

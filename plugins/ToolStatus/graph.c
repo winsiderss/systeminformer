@@ -138,7 +138,7 @@ VOID ToolbarCreateGraphs(VOID)
         if (MemGraphHandle)
         {
             PhDeleteGraphState(&MemGraphState);
- 
+
             DestroyWindow(MemGraphHandle);
             MemGraphHandle = NULL;
         }
