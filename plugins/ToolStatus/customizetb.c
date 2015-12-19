@@ -46,7 +46,7 @@ typedef struct _TBCUSTOMIZE_CONTEXT
 
 
 static BOOLEAN CustomizeItemExists(
-    _In_ PTBCUSTOMIZE_CONTEXT Context, 
+    _In_ PTBCUSTOMIZE_CONTEXT Context,
     _In_ INT IdCommand
     )
 {
@@ -85,7 +85,7 @@ static VOID CustomizeInsertToolbarButton(
 }
 
 static VOID CustomizeAddButton(
-    _In_ PTBCUSTOMIZE_CONTEXT Context, 
+    _In_ PTBCUSTOMIZE_CONTEXT Context,
     _In_ INT IndexAvail,
     _In_ INT IndexTo
     )
@@ -126,7 +126,7 @@ static VOID CustomizeAddButton(
 }
 
 static VOID CustomizeRemoveButton(
-    _In_ PTBCUSTOMIZE_CONTEXT Context, 
+    _In_ PTBCUSTOMIZE_CONTEXT Context,
     _In_ INT IndexFrom
     )
 {
@@ -141,7 +141,7 @@ static VOID CustomizeRemoveButton(
 
     if (buttonContext->IsSeperator)
     {
-        PhFree(buttonContext); 
+        PhFree(buttonContext);
     }
     else
     {
@@ -203,7 +203,7 @@ static VOID CustomizeFreeButtons(
     INT buttonCount = 0;
 
     buttonCount = ListBox_GetCount(Context->CurrentListHandle);
-    
+
     if (buttonCount != LB_ERR)
     {
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
@@ -343,7 +343,7 @@ static VOID CustomizeLoadSettings(
         PhGetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS) ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_AUTOHIDE_MENU),
         PhGetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU) ? BST_CHECKED : BST_UNCHECKED);
-    
+
     if (!EnableSearchBox)
     {
         ComboBox_Enable(searchboxCombo, FALSE);
@@ -421,7 +421,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                     switch (GET_WM_COMMAND_CMD(wParam, lParam))
                     {
                     case LBN_DBLCLK:
-                        { 
+                        {
                             INT index;
                             INT indexto;
 
@@ -452,7 +452,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                             count = ListBox_GetCount(context->CurrentListHandle);
                             index = ListBox_GetCurSel(context->CurrentListHandle);
-                            
+
                             if (count == LB_ERR)
                                 break;
 
@@ -501,7 +501,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                             count = ListBox_GetCount(context->CurrentListHandle);
                             index = ListBox_GetCurSel(context->CurrentListHandle);
-                            
+
                             if (count == LB_ERR)
                                 break;
 
@@ -540,7 +540,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             case IDC_REMOVE:
                 {
                     INT index;
-                    
+
                     index = ListBox_GetCurSel(context->CurrentListHandle);
 
                     if (index == LB_ERR)
@@ -552,9 +552,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             case IDC_MOVEUP:
                 {
                     INT index;
-                    
+
                     index = ListBox_GetCurSel(context->CurrentListHandle);
-                    
+
                     if (index == LB_ERR)
                         break;
 
@@ -564,9 +564,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             case IDC_MOVEDOWN:
                 {
                     INT index;
-                    
+
                     index = ListBox_GetCurSel(context->CurrentListHandle);
-                    
+
                     if (index == LB_ERR)
                         break;
 
@@ -632,7 +632,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                         if (AutoHideMenu)
                         {
-                            MainMenu = GetMenu(PhMainWndHandle);
+                            if (!MainMenu)
+                                MainMenu = GetMenu(PhMainWndHandle);
+
                             SetMenu(PhMainWndHandle, NULL);
                         }
                         else
@@ -684,7 +686,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                 SetBkMode(bufferDc, TRANSPARENT);
                 FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));
-                
+
                 if (isSelected)
                 {
                     FrameRect(bufferDc, &bufferRect, isFocused ? GetStockBrush(BLACK_BRUSH) : GetSysColorBrush(COLOR_HIGHLIGHT));
@@ -720,33 +722,33 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 if (buttonContext->IdCommand != 0)
                 {
                     DrawText(
-                        bufferDc, 
-                        ToolbarGetText(buttonContext->IdCommand), 
+                        bufferDc,
+                        ToolbarGetText(buttonContext->IdCommand),
                         -1,
-                        &bufferRect, 
+                        &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE
                         );
                 }
                 else
                 {
                     DrawText(
-                        bufferDc, 
-                        L"Seperator", 
-                        -1, 
-                        &bufferRect, 
+                        bufferDc,
+                        L"Seperator",
+                        -1,
+                        &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE
                         );
                 }
 
                 BitBlt(
-                    drawInfo->hDC, 
-                    drawInfo->rcItem.left, 
-                    drawInfo->rcItem.top, 
-                    drawInfo->rcItem.right, 
-                    drawInfo->rcItem.bottom, 
-                    bufferDc, 
-                    0, 
-                    0, 
+                    drawInfo->hDC,
+                    drawInfo->rcItem.left,
+                    drawInfo->rcItem.top,
+                    drawInfo->rcItem.right,
+                    drawInfo->rcItem.bottom,
+                    bufferDc,
+                    0,
+                    0,
                     SRCCOPY
                     );
 

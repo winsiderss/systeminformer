@@ -50,7 +50,7 @@ VOID RebarBandInsert(
 {
     REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
     rebarBandInfo.fMask = RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE;
-    rebarBandInfo.fStyle =  RBBS_USECHEVRON; // RBBS_NOGRIPPER| RBBS_HIDETITLE | RBBS_TOPALIGN;
+    rebarBandInfo.fStyle = RBBS_USECHEVRON; // RBBS_NOGRIPPER| RBBS_HIDETITLE | RBBS_TOPALIGN;
 
     rebarBandInfo.wID = BandID;
     rebarBandInfo.hwndChild = HwndChild;
@@ -618,10 +618,10 @@ VOID ToolbarLoadButtonSettings(
 
         if (_wtoi(buttonAutoSizePart.Buffer))
             buttonArray[index].fsStyle |= BTNS_AUTOSIZE;
-        
+
         if (_wtoi(buttonShowTextPart.Buffer))
             buttonArray[index].fsStyle |= BTNS_SHOWTEXT;
-        
+
         if (_wtoi(buttonDropDownPart.Buffer))
             buttonArray[index].fsStyle |= BTNS_WHOLEDROPDOWN;
 
