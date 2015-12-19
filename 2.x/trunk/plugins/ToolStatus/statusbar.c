@@ -55,7 +55,7 @@ VOID StatusBarLoadDefault(
     for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
         PSTATUSBAR_ITEM statusItem;
-        
+
         statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
         memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
 
@@ -69,7 +69,7 @@ VOID StatusBarLoadSettings(
     VOID
     )
 {
-    ULONG buttonCount = 0;
+    ULONG64 buttonCount = 0;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
     PH_STRINGREF part;
@@ -89,9 +89,10 @@ VOID StatusBarLoadSettings(
 
     // Query the number of buttons to insert
     PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-    buttonCount = _wtol(part.Buffer);
 
-    for (ULONG i = 0; i < buttonCount; i++)
+    PhStringToInteger64(&part, 10, &buttonCount);
+
+    for (ULONG i = 0; i < (ULONG)buttonCount; i++)
     {
         PH_STRINGREF idPart;
         ULONG64 idInteger;
@@ -104,7 +105,7 @@ VOID StatusBarLoadSettings(
         if (PhStringToInteger64(&idPart, 10, &idInteger))
         {
             PSTATUSBAR_ITEM statusItem;
-            
+
             statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
             memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
 

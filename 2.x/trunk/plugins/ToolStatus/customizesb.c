@@ -45,7 +45,7 @@ typedef struct _TBCUSTOMIZE_CONTEXT
 
 
 static BOOLEAN CustomizeItemExists(
-    _In_ PTBCUSTOMIZE_CONTEXT Context, 
+    _In_ PTBCUSTOMIZE_CONTEXT Context,
     _In_ INT idCommand
     )
 {
@@ -71,7 +71,7 @@ static VOID CustomizeInsertToolbarButton(
     )
 {
     PSTATUSBAR_ITEM statusItem;
-    
+
     statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
     memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
 
@@ -83,7 +83,7 @@ static VOID CustomizeInsertToolbarButton(
 }
 
 static VOID CustomizeAddButton(
-    _In_ PTBCUSTOMIZE_CONTEXT Context, 
+    _In_ PTBCUSTOMIZE_CONTEXT Context,
     _In_ INT IndexAvail,
     _In_ INT IndexTo
     )
@@ -118,7 +118,7 @@ static VOID CustomizeAddButton(
 }
 
 static VOID CustomizeRemoveButton(
-    _In_ PTBCUSTOMIZE_CONTEXT Context, 
+    _In_ PTBCUSTOMIZE_CONTEXT Context,
     _In_ INT IndexFrom
     )
 {
@@ -370,7 +370,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                             count = ListBox_GetCount(context->AvailableListHandle);
                             index = ListBox_GetCurSel(context->AvailableListHandle);
-                           
+
                             if (count == LB_ERR)
                                 break;
 
@@ -388,7 +388,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                         }
                         break;
                     case LBN_DBLCLK:
-                        { 
+                        {
                             INT count;
                             INT index;
                             INT indexto;
@@ -396,7 +396,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                             count = ListBox_GetCount(context->AvailableListHandle);
                             index = ListBox_GetCurSel(context->AvailableListHandle);
                             indexto = ListBox_GetCurSel(context->CurrentListHandle);
-                            
+
                             if (count == LB_ERR)
                                 break;
 
@@ -411,7 +411,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                                 // virtual separator
                                 break;
                             }
-        
+
                             CustomizeAddButton(context, index, indexto);
                         }
                         break;
@@ -430,7 +430,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                             count = ListBox_GetCount(context->CurrentListHandle);
                             index = ListBox_GetCurSel(context->CurrentListHandle);
-                            
+
                             if (count == LB_ERR)
                                 break;
 
@@ -479,7 +479,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                             count = ListBox_GetCount(context->CurrentListHandle);
                             index = ListBox_GetCurSel(context->CurrentListHandle);
-                            
+
                             if (count == LB_ERR)
                                 break;
 
@@ -518,7 +518,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             case IDC_REMOVE:
                 {
                     INT index;
-                    
+
                     index = ListBox_GetCurSel(context->CurrentListHandle);
 
                     if (index == LB_ERR)
@@ -530,9 +530,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             case IDC_MOVEUP:
                 {
                     INT index;
-                    
+
                     index = ListBox_GetCurSel(context->CurrentListHandle);
-                    
+
                     if (index == LB_ERR)
                         break;
 
@@ -542,9 +542,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             case IDC_MOVEDOWN:
                 {
                     INT index;
-                    
+
                     index = ListBox_GetCurSel(context->CurrentListHandle);
-                    
+
                     if (index == LB_ERR)
                         break;
 
@@ -605,7 +605,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                 SetBkMode(bufferDc, TRANSPARENT);
                 FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));
-                
+
                 if (isSelected)
                 {
                     FrameRect(bufferDc, &bufferRect, isFocused ? GetStockBrush(BLACK_BRUSH) : GetSysColorBrush(COLOR_HIGHLIGHT));
@@ -631,14 +631,14 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 }
 
                 BitBlt(
-                    drawInfo->hDC, 
-                    drawInfo->rcItem.left, 
-                    drawInfo->rcItem.top, 
-                    drawInfo->rcItem.right, 
-                    drawInfo->rcItem.bottom, 
-                    bufferDc, 
-                    0, 
-                    0, 
+                    drawInfo->hDC,
+                    drawInfo->rcItem.left,
+                    drawInfo->rcItem.top,
+                    drawInfo->rcItem.right,
+                    drawInfo->rcItem.bottom,
+                    bufferDc,
+                    0,
+                    0,
                     SRCCOPY
                     );
 
