@@ -271,7 +271,7 @@ static VOID CustomizeLoadItems(
         }
     }
 
-    for (buttonIndex = 0; buttonIndex < ARRAYSIZE(ToolbarButtons); buttonIndex++)
+    for (buttonIndex = 0; buttonIndex < MAX_TOOLBAR_ITEMS; buttonIndex++)
     {
         TBBUTTON button = ToolbarButtons[buttonIndex];
 

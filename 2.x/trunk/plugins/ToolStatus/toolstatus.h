@@ -58,6 +58,9 @@
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
 
+#define MAX_TOOLBAR_ITEMS 11
+#define MAX_STATUSBAR_ITEMS 14
+
 #define ID_SEARCH_CLEAR (WM_APP + 1)
 #define TIDC_FINDWINDOW (WM_APP + 2)
 #define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
@@ -139,7 +142,7 @@ extern PPH_STRING SearchboxText;
 extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
 extern HIMAGELIST ToolBarImageList;
-extern TBBUTTON ToolbarButtons[11];
+extern TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
@@ -275,13 +278,12 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
 typedef struct _STATUSBAR_ITEM
 {
     ULONG Id;
-    PWSTR Name;
 } STATUSBAR_ITEM, *PSTATUSBAR_ITEM;
 
 extern ULONG ProcessesUpdatedCount;
 extern HWND StatusBarHandle;
 extern PPH_LIST StatusBarItemList;
-extern STATUSBAR_ITEM StatusBarItems[14];
+extern ULONG StatusBarItems[MAX_STATUSBAR_ITEMS];
 
 VOID StatusBarLoadSettings(
     VOID
@@ -293,6 +295,10 @@ VOID StatusBarSaveSettings(
 
 VOID StatusBarResetSettings(
     VOID
+    );
+
+PWSTR StatusBarGetText(
+    _In_ ULONG CommandID
     );
 
 VOID StatusBarUpdate(
