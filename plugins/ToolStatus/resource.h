@@ -50,7 +50,6 @@
 #define IDC_TEXTOPTIONS                 1010
 #define IDC_MOVEUP                      1011
 #define IDC_MOVEDOWN                    1012
-#define IDC_THEMEOPTIONS                1013
 #define IDC_RESET                       1014
 #define IDC_ENABLE_AUTOHIDE_MENU        1015
 #define ID_STATUS_CPUUSAGE              40001

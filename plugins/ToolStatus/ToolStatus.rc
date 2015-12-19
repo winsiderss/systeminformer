@@ -67,7 +67,7 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "ToolStatus plugin for Process Hacker"
-            VALUE "FileVersion", "2.3.0.0"
+            VALUE "FileVersion", "2.3"
             VALUE "InternalName", "ToolStatus"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ToolStatus.dll"
@@ -149,8 +149,6 @@ BEGIN
     CONTROL         "Enable Modern Icons",IDC_ENABLE_MODERN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,188,141,83,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,188,154,157,10
-    COMBOBOX        IDC_THEMEOPTIONS,56,171,123,30,CBS_DROPDOWNLIST | NOT WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Theme:",IDC_STATIC,26,174,25,8,NOT WS_VISIBLE
 END
 
 IDD_CUSTOMIZE_SB DIALOGEX 0, 0, 373, 142
