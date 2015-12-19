@@ -25,27 +25,27 @@
 
 HWND StatusBarHandle = NULL;
 ULONG ProcessesUpdatedCount = 0;
+ULONG StatusBarMaxWidths[MAX_STATUSBAR_ITEMS];
+// Note: no lock is needed because we only ever modify the list on this same thread.
 PPH_LIST StatusBarItemList = NULL;
-static ULONG StatusBarMaxWidths[14];
-
-STATUSBAR_ITEM StatusBarItems[] =
+ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
 {
     // Default items (displayed)
-    { ID_STATUS_CPUUSAGE, L"CPU Usage" },
-    { ID_STATUS_PHYSICALMEMORY, L"Physical Memory" },
-    { ID_STATUS_NUMBEROFPROCESSES, L"Number of Processes" },
+    { ID_STATUS_CPUUSAGE },
+    { ID_STATUS_PHYSICALMEMORY },
+    { ID_STATUS_NUMBEROFPROCESSES },
     // Available items (hidden)
-    { ID_STATUS_COMMITCHARGE, L"Commit Charge" },
-    { ID_STATUS_FREEMEMORY, L"Free Physical Memory" },
-    { ID_STATUS_NUMBEROFTHREADS, L"Number of Threads" },
-    { ID_STATUS_NUMBEROFHANDLES, L"Number of Handles" },
-    { ID_STATUS_NUMBEROFVISIBLEITEMS, L"Number of Visible Items" },
-    { ID_STATUS_NUMBEROFSELECTEDITEMS, L"Number of Selected Items" },
-    { ID_STATUS_INTERVALSTATUS, L"Interval Status" },
-    { ID_STATUS_IO_RO, L"I/O Read+Other" },
-    { ID_STATUS_IO_W, L"I/O Write" },
-    { ID_STATUS_MAX_CPU_PROCESS, L"Max. CPU Process" },
-    { ID_STATUS_MAX_IO_PROCESS, L"Max. I/O Process" },
+    { ID_STATUS_COMMITCHARGE },
+    { ID_STATUS_FREEMEMORY },
+    { ID_STATUS_NUMBEROFTHREADS },
+    { ID_STATUS_NUMBEROFHANDLES },
+    { ID_STATUS_NUMBEROFVISIBLEITEMS,  },
+    { ID_STATUS_NUMBEROFSELECTEDITEMS,  },
+    { ID_STATUS_INTERVALSTATUS },
+    { ID_STATUS_IO_RO },
+    { ID_STATUS_IO_W },
+    { ID_STATUS_MAX_CPU_PROCESS },
+    { ID_STATUS_MAX_IO_PROCESS },
 };
 
 VOID StatusBarLoadDefault(
@@ -59,7 +59,7 @@ VOID StatusBarLoadDefault(
         statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
         memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
 
-        statusItem->Id = StatusBarItems[i].Id;
+        statusItem->Id = StatusBarItems[i];
 
         PhAddItemList(StatusBarItemList, statusItem);
     }
@@ -166,6 +166,44 @@ VOID StatusBarResetSettings(
     StatusBarLoadDefault();
 }
 
+PWSTR StatusBarGetText(
+    _In_ ULONG CommandID
+    )
+{
+    switch (CommandID)
+    {
+    case ID_STATUS_CPUUSAGE:
+        return L"CPU Usage";
+    case ID_STATUS_PHYSICALMEMORY:
+        return L"Physical Memory";
+    case ID_STATUS_NUMBEROFPROCESSES:
+        return L"Number of Processes";
+    case ID_STATUS_COMMITCHARGE:
+        return L"Commit Charge";
+    case ID_STATUS_FREEMEMORY:
+        return L"Free Physical Memory";
+    case ID_STATUS_NUMBEROFTHREADS:
+        return L"Number of Threads";
+    case ID_STATUS_NUMBEROFHANDLES:
+        return L"Number of Handles";
+    case ID_STATUS_NUMBEROFVISIBLEITEMS:
+        return L"Number of Visible Items";
+    case ID_STATUS_NUMBEROFSELECTEDITEMS:
+        return L"Number of Selected Items";
+    case ID_STATUS_INTERVALSTATUS:
+        return L"Interval Status";
+    case ID_STATUS_IO_RO:
+        return L"I/O Read+Other";
+    case ID_STATUS_IO_W:
+        return L"I/O Write";
+    case ID_STATUS_MAX_CPU_PROCESS:
+        return L"Max. CPU Process";
+    case ID_STATUS_MAX_IO_PROCESS:
+        return L"Max. I/O Process";
+    }
+
+    return L"ERROR";
+}
 
 VOID StatusBarShowMenu(
     _In_ PPOINT Point

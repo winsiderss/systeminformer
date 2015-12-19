@@ -245,34 +245,23 @@ static VOID CustomizeLoadItems(
         memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
 
         buttonContext->IdCommand = statusItem->Id;
-
-        // Find item text
-        for (ULONG i = 0; i < ARRAYSIZE(StatusBarItems); i++)
-        {
-            STATUSBAR_ITEM button = StatusBarItems[i];
-        
-            if (statusItem->Id == button.Id)
-            {
-                buttonContext->Name = button.Name;
-                break;
-            }
-        }
+        buttonContext->Name = StatusBarGetText(statusItem->Id);
 
         ListBox_AddItemData(Context->CurrentListHandle, buttonContext);
     }
 
     for (ULONG i = 0; i < ARRAYSIZE(StatusBarItems); i++)
     {
-        STATUSBAR_ITEM button = StatusBarItems[i];
+        ULONG buttonId = StatusBarItems[i];
 
-        if (CustomizeItemExists(Context, button.Id))
+        if (CustomizeItemExists(Context, buttonId))
             continue;
 
         PBUTTON_CONTEXT buttonContext = PhAllocate(sizeof(BUTTON_CONTEXT));
         memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
 
-        buttonContext->IdCommand = button.Id;
-        buttonContext->Name = button.Name;
+        buttonContext->IdCommand = buttonId;
+        buttonContext->Name = StatusBarGetText(buttonId);
 
         ListBox_AddItemData(Context->AvailableListHandle, buttonContext);
     }

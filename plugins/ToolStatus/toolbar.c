@@ -24,7 +24,7 @@
 
 HIMAGELIST ToolBarImageList = NULL;
 
-TBBUTTON ToolbarButtons[] =
+TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
 {
     // Default toolbar buttons (displayed)
     { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Refresh" },
