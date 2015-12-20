@@ -200,6 +200,10 @@ HWND GetCurrentTreeNewHandle(
     VOID
     );
 
+VOID ShowCustomizeMenu(
+    VOID
+    );
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

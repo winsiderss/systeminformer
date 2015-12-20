@@ -199,6 +199,156 @@ HWND GetCurrentTreeNewHandle(
     return treeNewHandle;
 }
 
+VOID ShowCustomizeMenu(
+    VOID
+    )
+{
+    POINT cursorPos;
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM selectedItem;
+
+    GetCursorPos(&cursorPos);
+
+    menu = PhCreateEMenu();
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Searchbox", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU History", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Memory History", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O History", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the Toolbar", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
+
+    if (EnableSearchBox)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (ToolBarEnableCpuGraph)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_CPU_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (ToolBarEnableMemGraph)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (ToolBarEnableIoGraph)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_IO_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (ToolBarLocked)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_TOOLBAR_LOCKUNLOCK, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    selectedItem = PhShowEMenu(
+        menu,
+        PhMainWndHandle,
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        cursorPos.x,
+        cursorPos.y
+        );
+
+    if (selectedItem && selectedItem->Id != -1)
+    {
+        switch (selectedItem->Id)
+        {
+        case COMMAND_ID_ENABLE_SEARCHBOX:
+            {
+                EnableSearchBox = !EnableSearchBox;
+
+                PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX, EnableSearchBox);
+
+                ToolbarLoadSettings();
+
+                SetFocus(PhMainWndHandle);
+            }
+            break;
+        case COMMAND_ID_ENABLE_CPU_GRAPH:
+            {
+                ToolBarEnableCpuGraph = !ToolBarEnableCpuGraph;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, ToolBarEnableCpuGraph);
+
+                ToolbarLoadSettings();
+                ReBarSaveLayoutSettings();
+            }
+            break;
+        case COMMAND_ID_ENABLE_MEMORY_GRAPH:
+            {
+                ToolBarEnableMemGraph = !ToolBarEnableMemGraph;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, ToolBarEnableMemGraph);
+
+                ToolbarLoadSettings();
+                ReBarSaveLayoutSettings();
+            }
+            break;
+        case COMMAND_ID_ENABLE_IO_GRAPH:
+            {
+                ToolBarEnableIoGraph = !ToolBarEnableIoGraph;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, ToolBarEnableIoGraph);
+
+                ToolbarLoadSettings();
+                ReBarSaveLayoutSettings();
+            }
+            break;
+        case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
+            {
+                UINT bandCount;
+                UINT bandIndex;
+
+                bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+                for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+                {
+                    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
+                    rebarBandInfo.fMask = RBBIM_STYLE;
+
+                    SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
+                    // Removing the RBBS_NOGRIPPER style doesn't remove the padding.
+                    if ((rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS) == 0)
+                    {
+                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
+                        SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+                        rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+                    }
+
+                    if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+                    {
+                        rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+                    }
+                    else
+                    {
+                        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+                    }
+
+                    SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+                }
+
+                ToolBarLocked = !ToolBarLocked;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_LOCKED, ToolBarLocked);
+
+                ToolbarLoadSettings();
+            }
+            break;
+        case COMMAND_ID_TOOLBAR_CUSTOMIZE:
+            {
+                ShowCustomizeDialog();
+            }
+            break;
+        }
+    }
+
+    PhDestroyEMenu(menu);
+}
+
 static VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -742,150 +892,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     break;
                 case NM_RCLICK:
                     {
-                        POINT cursorPos;
-                        PPH_EMENU menu;
-                        PPH_EMENU_ITEM selectedItem;
-
-                        GetCursorPos(&cursorPos);
-
-                        menu = PhCreateEMenu();
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Searchbox", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU History", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Memory History", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O History", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the Toolbar", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
-
-                        if (EnableSearchBox)
-                        {
-                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-                        }
-
-                        if (ToolBarEnableCpuGraph)
-                        {
-                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_CPU_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-                        }
-
-                        if (ToolBarEnableMemGraph)
-                        {
-                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-                        }
-
-                        if (ToolBarEnableIoGraph)
-                        {
-                            PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_IO_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-                        }
-
-                        if (ToolBarLocked)
-                        {
-                            PhSetFlagsEMenuItem(menu, COMMAND_ID_TOOLBAR_LOCKUNLOCK, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-                        }
-
-                        selectedItem = PhShowEMenu(
-                            menu,
-                            hWnd,
-                            PH_EMENU_SHOW_LEFTRIGHT,
-                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                            cursorPos.x,
-                            cursorPos.y
-                            );
-
-                        if (selectedItem && selectedItem->Id != -1)
-                        {
-                            switch (selectedItem->Id)
-                            {
-                            case COMMAND_ID_ENABLE_SEARCHBOX:
-                                {
-                                    EnableSearchBox = !EnableSearchBox;
-
-                                    PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX, EnableSearchBox);
-
-                                    ToolbarLoadSettings();
-
-                                    SetFocus(PhMainWndHandle);
-                                }
-                                break;
-                            case COMMAND_ID_ENABLE_CPU_GRAPH:
-                                {
-                                    ToolBarEnableCpuGraph = !ToolBarEnableCpuGraph;
-
-                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, ToolBarEnableCpuGraph);
-
-                                    ToolbarLoadSettings();
-                                    ReBarSaveLayoutSettings();
-                                }
-                                break;
-                            case COMMAND_ID_ENABLE_MEMORY_GRAPH:
-                                {
-                                    ToolBarEnableMemGraph = !ToolBarEnableMemGraph;
-
-                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, ToolBarEnableMemGraph);
-
-                                    ToolbarLoadSettings();
-                                    ReBarSaveLayoutSettings();
-                                }
-                                break;
-                            case COMMAND_ID_ENABLE_IO_GRAPH:
-                                {
-                                    ToolBarEnableIoGraph = !ToolBarEnableIoGraph;
-
-                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, ToolBarEnableIoGraph);
-
-                                    ToolbarLoadSettings();
-                                    ReBarSaveLayoutSettings();
-                                }
-                                break;
-                            case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
-                                {
-                                    UINT bandCount;
-                                    UINT bandIndex;
-
-                                    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
-
-                                    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
-                                    {
-                                        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
-                                        rebarBandInfo.fMask = RBBIM_STYLE;
-
-                                        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
-
-                                        // Removing the RBBS_NOGRIPPER style doesn't remove the padding.
-                                        if ((rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS) == 0)
-                                        {
-                                            rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
-                                            SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
-                                            rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
-                                        }
-
-                                        if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
-                                        {
-                                            rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
-                                        }
-                                        else
-                                        {
-                                            rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
-                                        }
-
-                                        SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
-                                    }
-
-                                    ToolBarLocked = !ToolBarLocked;
-
-                                    PhSetIntegerSetting(SETTING_NAME_TOOLBAR_LOCKED, ToolBarLocked);
-
-                                    ToolbarLoadSettings();
-                                }
-                                break;
-                            case COMMAND_ID_TOOLBAR_CUSTOMIZE:
-                                {
-                                    ShowCustomizeDialog();
-                                }
-                                break;
-                            }
-                        }
-
-                        PhDestroyEMenu(menu);
+                        ShowCustomizeMenu();
                     }
                     break;
                 }
