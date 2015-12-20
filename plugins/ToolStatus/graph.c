@@ -506,7 +506,6 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
             }
         }
         break;
-
     case GCN_MOUSEEVENT:
         {
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
@@ -514,28 +513,42 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
             if (ToolBarEnableCpuGraph && Header->hwndFrom == CpuGraphHandle)
             {
-                if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+                if (mouseEvent->Message == WM_RBUTTONUP)
                 {
-                    record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
+                    ShowCustomizeMenu();
                 }
-
-                if (record)
+                else
                 {
-                    PhShowProcessRecordDialog(PhMainWndHandle, record);
-                    PhDereferenceProcessRecord(record);
+                    if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
+                    }
+
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
                 }
             }
             else if (ToolBarEnableIoGraph && Header->hwndFrom == IoGraphHandle)
             {
-                if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+                if (mouseEvent->Message == WM_RBUTTONUP)
                 {
-                    record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+                    ShowCustomizeMenu();
                 }
-
-                if (record)
+                else
                 {
-                    PhShowProcessRecordDialog(PhMainWndHandle, record);
-                    PhDereferenceProcessRecord(record);
+                    if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+                    }
+
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
                 }
             }
         }
