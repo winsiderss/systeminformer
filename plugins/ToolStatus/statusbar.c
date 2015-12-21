@@ -52,6 +52,9 @@ VOID StatusBarLoadDefault(
     VOID
     )
 {
+    if (!StatusBarItemList)
+        StatusBarItemList = PhCreateList(MAX_DEFAULT_STATUSBAR_ITEMS);
+
     for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
         PSTATUSBAR_ITEM statusItem;
@@ -74,9 +77,6 @@ VOID StatusBarLoadSettings(
     PH_STRINGREF remaining;
     PH_STRINGREF part;
 
-    if (StatusBarItemList == NULL)
-        StatusBarItemList = PhCreateList(1);
-
     settingsString = PhGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
     remaining = settingsString->sr;
 
@@ -88,9 +88,20 @@ VOID StatusBarLoadSettings(
     }
 
     // Query the number of buttons to insert
-    PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
+    if (!PhSplitStringRefAtChar(&remaining, '|', &part, &remaining))
+    {
+        // Load default settings
+        StatusBarLoadDefault();
+    }
 
-    PhStringToInteger64(&part, 10, &buttonCount);
+    if (!PhStringToInteger64(&part, 10, &buttonCount))
+    {
+        // Load default settings
+        StatusBarLoadDefault();
+        return;
+    }
+
+    StatusBarItemList = PhCreateList((ULONG)buttonCount);
 
     for (ULONG i = 0; i < (ULONG)buttonCount; i++)
     {
