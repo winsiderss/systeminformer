@@ -92,6 +92,7 @@ VOID StatusBarLoadSettings(
     {
         // Load default settings
         StatusBarLoadDefault();
+        return;
     }
 
     if (!PhStringToInteger64(&part, 10, &buttonCount))
