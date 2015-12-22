@@ -531,6 +531,13 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     }
                 }
             }
+            else if (ToolBarEnableMemGraph && Header->hwndFrom == MemGraphHandle)
+            {
+                if (mouseEvent->Message == WM_RBUTTONUP)
+                {
+                    ShowCustomizeMenu();
+                }
+            }
             else if (ToolBarEnableIoGraph && Header->hwndFrom == IoGraphHandle)
             {
                 if (mouseEvent->Message == WM_RBUTTONUP)
