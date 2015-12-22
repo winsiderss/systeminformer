@@ -258,12 +258,6 @@ HBITMAP LoadImageFromResources(
     _In_ PCWSTR Name
     );
 
-// customizetb.c
-
-VOID ShowCustomizeDialog(
-    VOID
-    );
-
 // graph.c
 
 extern BOOLEAN ToolBarEnableCpuGraph;
@@ -313,7 +307,56 @@ VOID StatusBarShowMenu(
     _In_ PPOINT Point
     );
 
+// customizetb.c
+
+typedef struct _TBBUTTON_CONTEXT
+{
+    INT IdCommand;
+    INT IdBitmap;
+    BOOLEAN IsVirtual;
+    BOOLEAN IsRemovable;
+    BOOLEAN IsSeperator;
+} TBBUTTON_CONTEXT, *PTBBUTTON_CONTEXT;
+
+typedef struct _TBCUSTOMIZE_CONTEXT
+{
+    HWND DialogHandle;
+    HWND AvailableListHandle;
+    HWND CurrentListHandle;
+    HWND MoveUpButtonHandle;
+    HWND MoveDownButtonHandle;
+    HWND RemoveButtonHandle;
+
+    INT BitmapWidth;
+    HFONT Font;
+} TBCUSTOMIZE_CONTEXT, *PTBCUSTOMIZE_CONTEXT;
+
+VOID ShowCustomizeDialog(
+    VOID
+    );
+
 // customizesb.c
+
+typedef struct _SBBUTTON_CONTEXT
+{
+    INT IdCommand;
+    PWSTR Name;
+
+    BOOLEAN IsVirtual;
+} SBBUTTON_CONTEXT, *PSBBUTTON_CONTEXT;
+
+typedef struct _SBCUSTOMIZE_CONTEXT
+{
+    HWND DialogHandle;
+    HWND AvailableListHandle;
+    HWND CurrentListHandle;
+    HWND MoveUpButtonHandle;
+    HWND MoveDownButtonHandle;
+    HWND AddButtonHandle;
+    HWND RemoveButtonHandle;
+
+    HFONT Font;
+} SBCUSTOMIZE_CONTEXT, *PSBCUSTOMIZE_CONTEXT;
 
 VOID StatusBarShowCustomizeDialog(
     VOID
