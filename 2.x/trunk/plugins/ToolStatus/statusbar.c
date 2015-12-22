@@ -257,8 +257,8 @@ VOID StatusBarUpdate(
     ULONG i;
     HDC hdc;
     BOOLEAN resetMaxWidths = FALSE;
-    PPH_STRING text[ARRAYSIZE(StatusBarItems)];
-    ULONG widths[ARRAYSIZE(StatusBarItems)];
+    PPH_STRING text[MAX_STATUSBAR_ITEMS];
+    ULONG widths[MAX_STATUSBAR_ITEMS];
 
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
