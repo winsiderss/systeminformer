@@ -1,47 +1,50 @@
 /*
-* Process Hacker ToolStatus -
-*   Statusbar Customize Dialog
-*
-* Copyright (C) 2015 dmex
-*
-* This file is part of Process Hacker.
-*
-* Process Hacker is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Process Hacker is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Process Hacker ToolStatus -
+ *   Statusbar Customize Dialog
+ *
+ * Copyright (C) 2015 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "toolstatus.h"
 
 static BOOLEAN CustomizeItemExists(
     _In_ PSBCUSTOMIZE_CONTEXT Context,
-    _In_ INT idCommand
+    _In_ INT IdCommand
     )
 {
     INT buttonIndex = 0;
     INT buttonCount = 0;
 
     buttonCount = ListBox_GetCount(Context->CurrentListHandle);
-   
+
     if (buttonCount == LB_ERR)
         return FALSE;
 
     for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
     {
         PSBBUTTON_CONTEXT buttonContext;
-        
+
         buttonContext = (PSBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex);
 
-        if (buttonContext->IdCommand == idCommand)
+        if (buttonContext == NULL)
+            continue;
+
+        if (buttonContext->IdCommand == IdCommand)
             return TRUE;
     }
 
@@ -114,7 +117,7 @@ static VOID CustomizeRemoveButton(
     PSBBUTTON_CONTEXT buttonContext;
 
     buttonContext = (PSBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-    
+
     if (buttonContext == NULL)
         return;
 
@@ -155,7 +158,7 @@ static VOID CustomizeMoveButton(
 
     count = ListBox_GetCount(Context->CurrentListHandle);
     buttonContext = (PSBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-   
+
     if (count == LB_ERR)
         return;
 
@@ -204,7 +207,7 @@ static VOID CustomizeFreeButtons(
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
         {
             PSBBUTTON_CONTEXT buttonContext;
-            
+
             buttonContext = (PSBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex);
 
             if (buttonContext)
@@ -221,7 +224,7 @@ static VOID CustomizeFreeButtons(
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
         {
             PSBBUTTON_CONTEXT buttonContext;
-            
+
             buttonContext = (PSBBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex);
 
             if (buttonContext)

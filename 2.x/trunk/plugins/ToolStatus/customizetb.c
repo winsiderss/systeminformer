@@ -1,24 +1,24 @@
 /*
-* Process Hacker ToolStatus -
-*   Toolbar Customize Dialog
-*
-* Copyright (C) 2015 dmex
-*
-* This file is part of Process Hacker.
-*
-* Process Hacker is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Process Hacker is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Process Hacker ToolStatus -
+ *   Toolbar Customize Dialog
+ *
+ * Copyright (C) 2015 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "toolstatus.h"
 
@@ -38,8 +38,11 @@ static BOOLEAN CustomizeItemExists(
     for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
     {
         PTBBUTTON_CONTEXT buttonContext;
-        
+
         buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex);
+
+        if (buttonContext == NULL)
+            continue;
 
         if (buttonContext->IdCommand == IdCommand)
             return TRUE;
@@ -77,7 +80,7 @@ static VOID CustomizeAddButton(
 
     count = ListBox_GetCount(Context->AvailableListHandle);
     buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, IndexAvail);
-    
+
     if (count == LB_ERR)
         return;
 
@@ -121,7 +124,7 @@ static VOID CustomizeRemoveButton(
     PTBBUTTON_CONTEXT buttonContext;
 
     buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-    
+
     if (buttonContext == NULL)
         return;
 
@@ -157,6 +160,12 @@ static VOID CustomizeMoveButton(
 
     count = ListBox_GetCount(Context->CurrentListHandle);
     buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
+
+    if (count == LB_ERR)
+        return;
+
+    if (buttonContext == NULL)
+        return;
 
     ListBox_DeleteString(Context->CurrentListHandle, IndexFrom);
     ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, buttonContext);
@@ -200,7 +209,7 @@ static VOID CustomizeFreeButtons(
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
         {
             PTBBUTTON_CONTEXT buttonContext;
-            
+
             buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex);
 
             if (buttonContext)
@@ -217,7 +226,7 @@ static VOID CustomizeFreeButtons(
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
         {
             PTBBUTTON_CONTEXT buttonContext;
-            
+
             buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex);
 
             if (buttonContext)
@@ -455,6 +464,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                                 break;
 
                             buttonContext = (PTBBUTTON_CONTEXT)ListBox_GetItemData(context->CurrentListHandle, index);
+
+                            if (buttonContext == NULL)
+                                break;
 
                             if (index == 0 && count == 2)
                             {
