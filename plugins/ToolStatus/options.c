@@ -1,6 +1,6 @@
 /*
  * Process Hacker ToolStatus -
- *   rebar code
+ *   Plugin Options
  *
  * Copyright (C) 2011-2015 dmex
  * Copyright (C) 2010-2013 wj32
