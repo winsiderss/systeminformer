@@ -51,7 +51,7 @@ static BOOLEAN CustomizeItemExists(
     return FALSE;
 }
 
-static VOID CustomizeInsertToolbarButton(
+static VOID CustomizeInsertStatusBarItem(
     _In_ INT Index,
     _In_ PBUTTON_CONTEXT ButtonContext
     )
@@ -103,7 +103,7 @@ static VOID CustomizeAddButton(
         // insert into 'current' list 
         ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, buttonContext);
 
-        CustomizeInsertToolbarButton(IndexTo, buttonContext);
+        CustomizeInsertStatusBarItem(IndexTo, buttonContext);
     }
 
     SendMessage(Context->DialogHandle, WM_COMMAND, MAKEWPARAM(IDC_AVAILABLE, LBN_SELCHANGE), 0);
@@ -190,7 +190,7 @@ static VOID CustomizeMoveButton(
 
     PhRemoveItemList(StatusBarItemList, IndexFrom);
 
-    CustomizeInsertToolbarButton(IndexTo, buttonContext);
+    CustomizeInsertStatusBarItem(IndexTo, buttonContext);
 }
 
 static VOID CustomizeFreeButtons(
