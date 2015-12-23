@@ -309,43 +309,28 @@ VOID StatusBarShowMenu(
 
 // customizetb.c
 
-typedef struct _TBBUTTON_CONTEXT
+VOID ToolBarShowCustomizeDialog(
+    VOID
+    );
+
+// customizesb.c
+
+VOID StatusBarShowCustomizeDialog(
+    VOID
+    );
+
+// Shared by customizetb.c and customizesb.c
+
+typedef struct _BUTTON_CONTEXT
 {
     INT IdCommand;
     INT IdBitmap;
     BOOLEAN IsVirtual;
     BOOLEAN IsRemovable;
     BOOLEAN IsSeperator;
-} TBBUTTON_CONTEXT, *PTBBUTTON_CONTEXT;
+} BUTTON_CONTEXT, *PBUTTON_CONTEXT;
 
-typedef struct _TBCUSTOMIZE_CONTEXT
-{
-    HWND DialogHandle;
-    HWND AvailableListHandle;
-    HWND CurrentListHandle;
-    HWND MoveUpButtonHandle;
-    HWND MoveDownButtonHandle;
-    HWND RemoveButtonHandle;
-
-    INT BitmapWidth;
-    HFONT Font;
-} TBCUSTOMIZE_CONTEXT, *PTBCUSTOMIZE_CONTEXT;
-
-VOID ShowCustomizeDialog(
-    VOID
-    );
-
-// customizesb.c
-
-typedef struct _SBBUTTON_CONTEXT
-{
-    INT IdCommand;
-    PWSTR Name;
-
-    BOOLEAN IsVirtual;
-} SBBUTTON_CONTEXT, *PSBBUTTON_CONTEXT;
-
-typedef struct _SBCUSTOMIZE_CONTEXT
+typedef struct _CUSTOMIZE_CONTEXT
 {
     HWND DialogHandle;
     HWND AvailableListHandle;
@@ -355,11 +340,8 @@ typedef struct _SBCUSTOMIZE_CONTEXT
     HWND AddButtonHandle;
     HWND RemoveButtonHandle;
 
+    INT BitmapWidth;
     HFONT Font;
-} SBCUSTOMIZE_CONTEXT, *PSBCUSTOMIZE_CONTEXT;
-
-VOID StatusBarShowCustomizeDialog(
-    VOID
-    );
+} CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
 
 #endif
