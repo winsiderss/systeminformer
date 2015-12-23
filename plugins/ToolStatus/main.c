@@ -340,7 +340,7 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
             {
-                ShowCustomizeDialog();
+                ToolBarShowCustomizeDialog();
             }
             break;
         }
