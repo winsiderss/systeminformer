@@ -292,10 +292,11 @@ VOID StatusBarUpdate(
 
     for (i = 0; i < StatusBarItemList->Count; i++)
     {
-        PSTATUSBAR_ITEM statusItem = StatusBarItemList->Items[i];
-
         SIZE size;
         ULONG width;
+        PSTATUSBAR_ITEM statusItem;
+
+        statusItem = StatusBarItemList->Items[i];
 
         switch (statusItem->Id)
         {

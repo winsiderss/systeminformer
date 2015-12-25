@@ -50,7 +50,39 @@ static VOID NcAreaInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0), TRUE);
+    LOGFONT logFont;
+    HDC hdc;
+
+    SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0);
+
+    if (hdc = GetDC(Context->WindowHandle))
+    {
+        // Cleanup existing Font handle.
+        if (Context->WindowFont)
+            DeleteObject(Context->WindowFont);
+
+        // Create the font handle
+        Context->WindowFont = CreateFont(
+            -MulDiv(-10, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+            0,
+            0,
+            0,
+            FW_MEDIUM,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
+            DEFAULT_PITCH,
+            logFont.lfFaceName
+            );
+
+        ReleaseDC(Context->WindowHandle, hdc);
+    }
+
+    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }
 
 static VOID NcAreaInitializeTheme(
@@ -249,6 +281,9 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
             if (context->ImageList)
                 ImageList_Destroy(context->ImageList);
+
+            if (context->WindowFont)
+                DeleteObject(context->WindowFont);
 
             RemoveWindowSubclass(hWnd, NcAreaWndSubclassProc, uIdSubclass);
             RemoveProp(hWnd, L"EditSubclassContext");
