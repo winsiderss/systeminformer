@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by ToolStatus.rc
 //
-#define IDR_STATUS                      101
 #define IDD_OPTIONS                     102
 #define IDR_MAINWND_ACCEL               103
 #define IDB_SEARCH_ACTIVE               104
@@ -52,21 +51,7 @@
 #define IDC_MOVEDOWN                    1012
 #define IDC_RESET                       1014
 #define IDC_ENABLE_AUTOHIDE_MENU        1015
-#define ID_STATUS_CPUUSAGE              40001
-#define ID_STATUS_COMMITCHARGE          40002
-#define ID_STATUS_PHYSICALMEMORY        40003
-#define ID_STATUS_NUMBEROFPROCESSES     40004
-#define ID_STATUS_NUMBEROFTHREADS       40005
-#define ID_STATUS_NUMBEROFHANDLES       40006
-#define ID_STATUS_IO_RO                 40007
-#define ID_STATUS_IO_W                  40008
-#define ID_STATUS_MAX_CPU_PROCESS       40009
-#define ID_STATUS_MAX_IO_PROCESS        40010
 #define ID_SEARCH                       40011
-#define ID_STATUS_NUMBEROFVISIBLEITEMS  40012
-#define ID_STATUS_NUMBEROFSELECTEDITEMS 40013
-#define ID_STATUS_INTERVALSTATUS        40014
-#define ID_STATUS_FREEMEMORY            40015
 
 // Next default values for new objects
 // 
