@@ -72,9 +72,6 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     if (AutoHideMenu)
                     {
-                        if (!MainMenu)
-                            MainMenu = GetMenu(PhMainWndHandle);
-
                         SetMenu(PhMainWndHandle, NULL);
                     }
                     else

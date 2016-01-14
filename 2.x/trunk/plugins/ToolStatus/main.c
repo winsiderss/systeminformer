@@ -1177,9 +1177,9 @@ static VOID NTAPI MainWindowShowingCallback(
     ReBarLoadLayoutSettings();
     StatusBarLoadSettings();
 
+    MainMenu = GetMenu(PhMainWndHandle);
     if (AutoHideMenu)
     {
-        MainMenu = GetMenu(PhMainWndHandle);
         SetMenu(PhMainWndHandle, NULL);
     }
 }
