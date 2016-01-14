@@ -263,7 +263,8 @@ VOID StatusBarUpdate(
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
 
-    if (StatusBarItemList->Count == 0)
+    // TODO: Review
+    if (!StatusBarItemList || StatusBarItemList->Count == 0)
     {
         // The status bar doesn't cope well with 0 parts.
         widths[0] = -1;

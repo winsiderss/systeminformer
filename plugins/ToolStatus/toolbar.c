@@ -284,9 +284,7 @@ static VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
         // Configure the toolbar imagelist.
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
-        // Add the buttons to the toolbar (also specifying the default number of items to display).
-        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
-        // Restore the toolbar settings.
+        // Add the buttons to the toolbar.
         ToolbarLoadButtonSettings();
         // Query the toolbar width and height.
         //SendMessage(ToolBarHandle, TB_GETMAXSIZE, 0, (LPARAM)&toolbarSize);
@@ -526,12 +524,13 @@ VOID ToolbarResetSettings(
     VOID
     )
 {
-    // Remove all the user customizations.
+    // Remove all buttons.
     INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
     while (buttonCount--)
         SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
-    // Re-add the original buttons.
+    // Add the default buttons.
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
 
 }
@@ -579,12 +578,11 @@ VOID ToolbarLoadButtonSettings(
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
+    {
+        // Load default settings
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
         return;
-
-    // Remove all current buttons.
-    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-    while (buttonCount--)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+    }
 
     // Query the number of buttons to insert
     PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
