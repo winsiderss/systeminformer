@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   Plugin Options
  *
- * Copyright (C) 2011-2015 dmex
+ * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.

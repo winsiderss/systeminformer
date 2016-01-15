@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   Toolbar Customize Dialog
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
