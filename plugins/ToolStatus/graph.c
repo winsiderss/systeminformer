@@ -455,28 +455,14 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                 {
                     ULONG usedPages;
 
-                    if (PhGetIntegerSetting(L"ShowCommitInSummary"))
-                    {
-                        usedPages = PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, getTooltipText->Index);
+                    usedPages = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
 
-                        PhMoveReference(&MemGraphState.TooltipText, PhFormatString(
-                            L"Commit Charge: %s\n%s",
-                            PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                            ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                            ));
-                        getTooltipText->Text = MemGraphState.TooltipText->sr;
-                    }
-                    else
-                    {
-                        usedPages = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
-
-                        PhMoveReference(&MemGraphState.TooltipText, PhFormatString(
-                            L"Physical Memory: %s\n%s",
-                            PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                            ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                            ));
-                        getTooltipText->Text = MemGraphState.TooltipText->sr;
-                    }
+                    PhMoveReference(&MemGraphState.TooltipText, PhFormatString(
+                        L"Physical Memory: %s\n%s",
+                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                    getTooltipText->Text = MemGraphState.TooltipText->sr;
                 }
                 else if (ToolStatusConfig.ToolBarIoGraph && Header->hwndFrom == IoGraphHandle)
                 {
