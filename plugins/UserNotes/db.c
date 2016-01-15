@@ -255,15 +255,15 @@ NTSTATUS LoadDb(
 
             for (i = 0; i < (ULONG)currentNode->value.element.num_attrs; i++)
             {
-                if (stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
+                if (_stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
                     PhMoveReference(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
                     PhMoveReference(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
                     PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
                     PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                else if (stricmp(currentNode->value.element.attrs[i].name, "backcolor") == 0)
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "backcolor") == 0)
                     PhMoveReference(&backColor, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
         }
