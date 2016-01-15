@@ -16,11 +16,13 @@
 #pragma warning(disable: 4214)
 // 'function': attributes not present on previous declaration
 #pragma warning(disable: 4985)
-// 'function': was declared deprecated
-#pragma warning(disable: 4996)
 
 #ifndef UNICODE
 #define UNICODE
+#endif
+
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #endif
 
 #if defined(PHLIB_EXPORT)
@@ -824,7 +826,7 @@ PhCompareBytesZ(
     if (!IgnoreCase)
         return strcmp(String1, String2);
     else
-        return stricmp(String1, String2);
+        return _stricmp(String1, String2);
 }
 
 FORCEINLINE
@@ -838,7 +840,7 @@ PhEqualBytesZ(
     if (!IgnoreCase)
         return strcmp(String1, String2) == 0;
     else
-        return stricmp(String1, String2) == 0;
+        return _stricmp(String1, String2) == 0;
 }
 
 FORCEINLINE
@@ -852,7 +854,7 @@ PhCompareStringZ(
     if (!IgnoreCase)
         return wcscmp(String1, String2);
     else
-        return wcsicmp(String1, String2);
+        return _wcsicmp(String1, String2);
 }
 
 FORCEINLINE
@@ -873,7 +875,7 @@ PhEqualStringZ(
         if (PhAreCharactersDifferent(String1[0], String2[0]))
             return FALSE;
 
-        return wcsicmp(String1, String2) == 0;
+        return _wcsicmp(String1, String2) == 0;
     }
 }
 

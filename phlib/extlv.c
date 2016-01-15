@@ -742,6 +742,6 @@ static INT PhpDefaultCompareListViewItems(
 #if 1
     return PhCompareStringZNatural(xText, yText, TRUE);
 #else
-    return wcsicmp(xText, yText);
+    return _wcsicmp(xText, yText);
 #endif
 }

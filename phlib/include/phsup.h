@@ -235,7 +235,7 @@ FORCEINLINE int wcsicmp2(
     )
 {
     if (Value1 && Value2)
-        return wcsicmp(Value1, Value2);
+        return _wcsicmp(Value1, Value2);
     else if (!Value1)
         return !Value2 ? 0 : -1;
     else
