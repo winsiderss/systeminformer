@@ -22,9 +22,6 @@
 
 #include "toolstatus.h"
 
-BOOLEAN ToolBarEnableCpuGraph = FALSE;
-BOOLEAN ToolBarEnableMemGraph = FALSE;
-BOOLEAN ToolBarEnableIoGraph = FALSE;
 HWND CpuGraphHandle = NULL;
 HWND MemGraphHandle = NULL;
 HWND IoGraphHandle = NULL;
@@ -36,7 +33,7 @@ VOID ToolbarCreateGraphs(VOID)
 {
     UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
 
-    if (ToolBarEnableCpuGraph && !CpuGraphHandle)
+    if (ToolStatusConfig.ToolBarCpuGraph && !CpuGraphHandle)
     {
         CpuGraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,
@@ -56,7 +53,7 @@ VOID ToolbarCreateGraphs(VOID)
         PhInitializeGraphState(&CpuGraphState);
     }
 
-    if (ToolBarEnableMemGraph && !MemGraphHandle)
+    if (ToolStatusConfig.ToolBarMemGraph && !MemGraphHandle)
     {
         MemGraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,
@@ -76,7 +73,7 @@ VOID ToolbarCreateGraphs(VOID)
         PhInitializeGraphState(&MemGraphState);
     }
 
-    if (ToolBarEnableIoGraph && !IoGraphHandle)
+    if (ToolStatusConfig.ToolBarIoGraph && !IoGraphHandle)
     {
         IoGraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,
@@ -96,7 +93,7 @@ VOID ToolbarCreateGraphs(VOID)
         PhInitializeGraphState(&IoGraphState);
     }
 
-    if (ToolBarEnableCpuGraph)
+    if (ToolStatusConfig.ToolBarCpuGraph)
     {
         if (!RebarBandExists(REBAR_BAND_ID_CPUGRAPH))
             RebarBandInsert(REBAR_BAND_ID_CPUGRAPH, CpuGraphHandle, 145, height); // 85
@@ -118,7 +115,7 @@ VOID ToolbarCreateGraphs(VOID)
         }
     }
 
-    if (ToolBarEnableMemGraph)
+    if (ToolStatusConfig.ToolBarMemGraph)
     {
         if (!RebarBandExists(REBAR_BAND_ID_MEMGRAPH))
             RebarBandInsert(REBAR_BAND_ID_MEMGRAPH, MemGraphHandle, 145, height); // 85
@@ -142,7 +139,7 @@ VOID ToolbarCreateGraphs(VOID)
         }
     }
 
-    if (ToolBarEnableIoGraph)
+    if (ToolStatusConfig.ToolBarIoGraph)
     {
         if (!RebarBandExists(REBAR_BAND_ID_IOGRAPH))
             RebarBandInsert(REBAR_BAND_ID_IOGRAPH, IoGraphHandle, 145, height); // 85
@@ -169,7 +166,7 @@ VOID ToolbarCreateGraphs(VOID)
 
 VOID ToolbarUpdateGraphs(VOID)
 {
-    if (ToolBarEnableCpuGraph && CpuGraphHandle)
+    if (ToolStatusConfig.ToolBarCpuGraph && CpuGraphHandle)
     {
         CpuGraphState.Valid = FALSE;
         CpuGraphState.TooltipIndex = -1;
@@ -179,7 +176,7 @@ VOID ToolbarUpdateGraphs(VOID)
         InvalidateRect(CpuGraphHandle, NULL, FALSE);
     }
 
-    if (ToolBarEnableMemGraph && MemGraphHandle)
+    if (ToolStatusConfig.ToolBarMemGraph && MemGraphHandle)
     {
         MemGraphState.Valid = FALSE;
         MemGraphState.TooltipIndex = -1;
@@ -189,7 +186,7 @@ VOID ToolbarUpdateGraphs(VOID)
         InvalidateRect(MemGraphHandle, NULL, FALSE);
     }
 
-    if (ToolBarEnableIoGraph && IoGraphHandle)
+    if (ToolStatusConfig.ToolBarIoGraph && IoGraphHandle)
     {
         IoGraphState.Valid = FALSE;
         IoGraphState.TooltipIndex = -1;
@@ -339,7 +336,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
     {
     case GCN_GETDRAWINFO:
         {
-            if (ToolBarEnableCpuGraph && Header->hwndFrom == CpuGraphHandle)
+            if (ToolStatusConfig.ToolBarCpuGraph && Header->hwndFrom == CpuGraphHandle)
             {
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
@@ -362,7 +359,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     CpuGraphState.Valid = TRUE;
                 }
             }
-            else if (ToolBarEnableMemGraph && Header->hwndFrom == MemGraphHandle)
+            else if (ToolStatusConfig.ToolBarMemGraph && Header->hwndFrom == MemGraphHandle)
             {
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
@@ -391,7 +388,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     MemGraphState.Valid = TRUE;
                 }
             }
-            else if (ToolBarEnableIoGraph && Header->hwndFrom == IoGraphHandle)
+            else if (ToolStatusConfig.ToolBarIoGraph && Header->hwndFrom == IoGraphHandle)
             {
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
@@ -434,7 +431,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
-                if (ToolBarEnableCpuGraph && Header->hwndFrom == CpuGraphHandle)
+                if (ToolStatusConfig.ToolBarCpuGraph && Header->hwndFrom == CpuGraphHandle)
                 {
                     if (CpuGraphState.TooltipIndex != getTooltipText->Index)
                     {
@@ -454,7 +451,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                     getTooltipText->Text = CpuGraphState.TooltipText->sr;
                 }
-                else if (ToolBarEnableMemGraph && Header->hwndFrom == MemGraphHandle)
+                else if (ToolStatusConfig.ToolBarMemGraph && Header->hwndFrom == MemGraphHandle)
                 {
                     ULONG usedPages;
 
@@ -481,7 +478,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                         getTooltipText->Text = MemGraphState.TooltipText->sr;
                     }
                 }
-                else if (ToolBarEnableIoGraph && Header->hwndFrom == IoGraphHandle)
+                else if (ToolStatusConfig.ToolBarIoGraph && Header->hwndFrom == IoGraphHandle)
                 {
                     ULONG64 ioRead;
                     ULONG64 ioWrite;
@@ -509,7 +506,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
             PPH_PROCESS_RECORD record = NULL;
 
-            if (ToolBarEnableCpuGraph && Header->hwndFrom == CpuGraphHandle)
+            if (ToolStatusConfig.ToolBarCpuGraph && Header->hwndFrom == CpuGraphHandle)
             {
                 if (mouseEvent->Message == WM_RBUTTONUP)
                 {
@@ -529,14 +526,14 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     }
                 }
             }
-            else if (ToolBarEnableMemGraph && Header->hwndFrom == MemGraphHandle)
+            else if (ToolStatusConfig.ToolBarMemGraph && Header->hwndFrom == MemGraphHandle)
             {
                 if (mouseEvent->Message == WM_RBUTTONUP)
                 {
                     ShowCustomizeMenu();
                 }
             }
-            else if (ToolBarEnableIoGraph && Header->hwndFrom == IoGraphHandle)
+            else if (ToolStatusConfig.ToolBarIoGraph && Header->hwndFrom == IoGraphHandle)
             {
                 if (mouseEvent->Message == WM_RBUTTONUP)
                 {
