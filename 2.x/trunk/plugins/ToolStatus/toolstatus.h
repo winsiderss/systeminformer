@@ -38,26 +38,16 @@
 #include "resource.h"
 
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
-#define SETTING_NAME_ENABLE_TOOLBAR (PLUGIN_NAME L".EnableToolBar")
-#define SETTING_NAME_ENABLE_SEARCHBOX (PLUGIN_NAME L".EnableSearchBox")
-#define SETTING_NAME_ENABLE_STATUSBAR (PLUGIN_NAME L".EnableStatusBar")
-#define SETTING_NAME_ENABLE_MODERNICONS (PLUGIN_NAME L".EnableModernIcons")
-#define SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS (PLUGIN_NAME L".ResolveGhostWindows")
-#define SETTING_NAME_ENABLE_AUTOHIDE_MENU (PLUGIN_NAME L".AutoHideMenu")
-#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
-#define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
-#define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
-#define SETTING_NAME_TOOLBAR_LOCKED (PLUGIN_NAME L".ToolbarLocked")
-#define SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH (PLUGIN_NAME L".ToolbarCpuGraphEnabled")
-#define SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH (PLUGIN_NAME L".ToolbarMemGraphEnabled")
-#define SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH (PLUGIN_NAME L".ToolbarIoGraphEnabled")
-#define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
+#define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
 #define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
+#define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
+#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
+#define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
+#define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
-
 #define MAX_TOOLBAR_ITEMS 11
 #define MAX_STATUSBAR_ITEMS 14
 
@@ -116,15 +106,32 @@ typedef enum _REBAR_DISPLAY_LOCATION
     RebarLocationRight = 3,
 } REBAR_DISPLAY_LOCATION;
 
+typedef union _TOOLSTATUS_CONFIG
+{
+    ULONG Flags;
+    struct
+    {
+        ULONG ToolBarEnabled : 1;
+        ULONG SearchBoxEnabled : 1;
+        ULONG StatusBarEnabled : 1;
+        ULONG ToolBarLocked : 1;
+        ULONG ResolveGhostWindows : 1;
+
+        ULONG ModernIcons : 1;
+        ULONG AutoHideMenu : 1;
+        ULONG ToolBarCpuGraph : 1;
+        ULONG ToolBarMemGraph : 1;
+        ULONG ToolBarIoGraph : 1;
+
+        ULONG Spare : 22;
+    };
+} TOOLSTATUS_CONFIG;
+
+extern TOOLSTATUS_CONFIG ToolStatusConfig;
 extern HWND ProcessTreeNewHandle;
 extern HWND ServiceTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
-extern BOOLEAN EnableToolBar;
-extern BOOLEAN EnableSearchBox;
-extern BOOLEAN EnableStatusBar;
-extern BOOLEAN AutoHideMenu;
-extern BOOLEAN ToolBarLocked;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
 extern TOOLBAR_THEME ToolBarTheme;
@@ -249,8 +256,16 @@ typedef struct _EDIT_CONTEXT
     HBRUSH BrushHot;
     COLORREF BackgroundColorRef;
 
-    BOOLEAN Hot;
-    BOOLEAN Pushed;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Hot : 1;
+            ULONG Pushed : 1;
+            ULONG Spare : 30;
+        };
+    };
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HBITMAP LoadImageFromResources(
@@ -261,9 +276,6 @@ HBITMAP LoadImageFromResources(
 
 // graph.c
 
-extern BOOLEAN ToolBarEnableCpuGraph;
-extern BOOLEAN ToolBarEnableMemGraph;
-extern BOOLEAN ToolBarEnableIoGraph;
 extern HWND CpuGraphHandle;
 extern HWND MemGraphHandle;
 extern HWND IoGraphHandle;
@@ -345,9 +357,18 @@ typedef struct _BUTTON_CONTEXT
 {
     INT IdCommand;
     INT IdBitmap;
-    BOOLEAN IsVirtual;
-    BOOLEAN IsRemovable;
-    BOOLEAN IsSeperator;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG IsVirtual : 1;
+            ULONG IsRemovable : 1;
+            ULONG IsSeperator : 1;
+            ULONG Spare : 29;
+        };
+    };
 } BUTTON_CONTEXT, *PBUTTON_CONTEXT;
 
 typedef struct _CUSTOMIZE_CONTEXT
