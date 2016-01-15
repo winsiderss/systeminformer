@@ -344,11 +344,11 @@ static VOID CustomizeLoadSettings(
     ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
 
     Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_MODERN),
-        PhGetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS) ? BST_CHECKED : BST_UNCHECKED);
+        ToolStatusConfig.ModernIcons ? BST_CHECKED : BST_UNCHECKED);
     Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_AUTOHIDE_MENU),
-        PhGetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU) ? BST_CHECKED : BST_UNCHECKED);
+        ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
 
-    if (!EnableSearchBox)
+    if (!ToolStatusConfig.SearchBoxEnabled)
     {
         ComboBox_Enable(searchboxCombo, FALSE);
     }
@@ -618,8 +618,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == BN_CLICKED)
                     {
-                        PhSetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS,
-                            Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN)) == BST_CHECKED);
+                        ToolStatusConfig.ModernIcons = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN)) == BST_CHECKED;
 
                         ToolbarLoadSettings();
 
@@ -633,15 +632,12 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == BN_CLICKED)
                     {
-                        AutoHideMenu = !AutoHideMenu;
+                        ToolStatusConfig.AutoHideMenu = !ToolStatusConfig.AutoHideMenu;
 
-                        PhSetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU, AutoHideMenu);
+                        PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                        if (AutoHideMenu)
+                        if (ToolStatusConfig.AutoHideMenu)
                         {
-                            if (!MainMenu)
-                                MainMenu = GetMenu(PhMainWndHandle);
-
                             SetMenu(PhMainWndHandle, NULL);
                         }
                         else

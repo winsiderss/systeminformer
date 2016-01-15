@@ -36,15 +36,11 @@ PTOOLSTATUS_TAB_INFO RegisterTabInfo(
     _In_ INT TabIndex
     );
 
+TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
 HWND ProcessTreeNewHandle = NULL;
 HWND ServiceTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
 INT SelectedTabIndex;
-BOOLEAN EnableToolBar = FALSE;
-BOOLEAN EnableSearchBox = FALSE;
-BOOLEAN EnableStatusBar = FALSE;
-BOOLEAN AutoHideMenu = FALSE;
-BOOLEAN ToolBarLocked = TRUE;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
 TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
@@ -111,7 +107,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
     if (UpdateGraphs)
         ToolbarUpdateGraphs();
 
-    if (EnableStatusBar)
+    if (ToolStatusConfig.StatusBarEnabled)
         StatusBarUpdate(FALSE);
 }
 
@@ -218,27 +214,27 @@ VOID ShowCustomizeMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the Toolbar", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
 
-    if (EnableSearchBox)
+    if (ToolStatusConfig.SearchBoxEnabled)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolBarEnableCpuGraph)
+    if (ToolStatusConfig.ToolBarCpuGraph)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_CPU_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolBarEnableMemGraph)
+    if (ToolStatusConfig.ToolBarMemGraph)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolBarEnableIoGraph)
+    if (ToolStatusConfig.ToolBarIoGraph)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_IO_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolBarLocked)
+    if (ToolStatusConfig.ToolBarLocked)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_TOOLBAR_LOCKUNLOCK, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
@@ -258,20 +254,25 @@ VOID ShowCustomizeMenu(
         {
         case COMMAND_ID_ENABLE_SEARCHBOX:
             {
-                EnableSearchBox = !EnableSearchBox;
+                ToolStatusConfig.SearchBoxEnabled = !ToolStatusConfig.SearchBoxEnabled;
 
-                PhSetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX, EnableSearchBox);
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings();
 
-                SetFocus(PhMainWndHandle);
+                if (ToolStatusConfig.SearchBoxEnabled)
+                {
+                    // Adding the Searchbox makes it focused, 
+                    // reset the focus back to the main window.
+                    SetFocus(PhMainWndHandle);
+                }
             }
             break;
         case COMMAND_ID_ENABLE_CPU_GRAPH:
             {
-                ToolBarEnableCpuGraph = !ToolBarEnableCpuGraph;
+                ToolStatusConfig.ToolBarCpuGraph = !ToolStatusConfig.ToolBarCpuGraph;
 
-                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, ToolBarEnableCpuGraph);
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings();
                 ReBarSaveLayoutSettings();
@@ -279,9 +280,9 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_ENABLE_MEMORY_GRAPH:
             {
-                ToolBarEnableMemGraph = !ToolBarEnableMemGraph;
+                ToolStatusConfig.ToolBarMemGraph = !ToolStatusConfig.ToolBarMemGraph;
 
-                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, ToolBarEnableMemGraph);
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings();
                 ReBarSaveLayoutSettings();
@@ -289,9 +290,9 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_ENABLE_IO_GRAPH:
             {
-                ToolBarEnableIoGraph = !ToolBarEnableIoGraph;
+                ToolStatusConfig.ToolBarIoGraph = !ToolStatusConfig.ToolBarIoGraph;
 
-                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, ToolBarEnableIoGraph);
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings();
                 ReBarSaveLayoutSettings();
@@ -306,16 +307,23 @@ VOID ShowCustomizeMenu(
 
                 for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
                 {
-                    REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
-                    rebarBandInfo.fMask = RBBIM_STYLE;
+                    REBARBANDINFO rebarBandInfo = 
+                    { 
+                        REBARBANDINFO_V6_SIZE, 
+                        RBBIM_STYLE 
+                    };
 
                     SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
 
-                    // Removing the RBBS_NOGRIPPER style doesn't remove the padding.
-                    if ((rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS) == 0)
+                    if (!(rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS))
                     {
-                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
+                        // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
+                        // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
+
+                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;   
+
                         SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+
                         rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
                     }
 
@@ -331,9 +339,9 @@ VOID ShowCustomizeMenu(
                     SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
                 }
 
-                ToolBarLocked = !ToolBarLocked;
+                ToolStatusConfig.ToolBarLocked = !ToolStatusConfig.ToolBarLocked;
 
-                PhSetIntegerSetting(SETTING_NAME_TOOLBAR_LOCKED, ToolBarLocked);
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings();
             }
@@ -397,7 +405,7 @@ static VOID NTAPI LayoutPaddingCallback(
 {
     PPH_LAYOUT_PADDING_DATA layoutPadding = Parameter;
 
-    if (layoutPadding && RebarHandle && EnableToolBar)
+    if (RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {
         RECT rebarRect;
         //RECT clientRect;
@@ -445,7 +453,7 @@ static VOID NTAPI LayoutPaddingCallback(
         //case RebarLocationBottom:
         //    {
         //        //x = 0;
-        //        //y = clientRect.bottom - (rebarRect.bottom - rebarRect.top) - (EnableStatusBar ? rebarRect.bottom + 1 : 0);
+        //        //y = clientRect.bottom - (rebarRect.bottom - rebarRect.top) - (StatusBarEnabled ? rebarRect.bottom + 1 : 0);
         //        //cx = clientRect.right - clientRect.left;
         //        //cy = rebarRect.bottom - rebarRect.top;
         //
@@ -488,7 +496,7 @@ static VOID NTAPI LayoutPaddingCallback(
         //}
     }
 
-    if (layoutPadding && StatusBarHandle && EnableStatusBar)
+    if (StatusBarHandle && ToolStatusConfig.StatusBarEnabled)
     {
         RECT statusBarRect;
 
@@ -532,11 +540,12 @@ static VOID DrawWindowBorderForTargeting(
 
     if (hdc)
     {
-        ULONG penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
+        INT penWidth;
         INT oldDc;
         HPEN pen;
         HBRUSH brush;
 
+        penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
         oldDc = SaveDC(hdc);
 
         // Get an inversion effect.
@@ -576,6 +585,9 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
             case EN_CHANGE:
                 {
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
+                        break;
+
                     // Cache the current search text for our callback.
                     PhMoveReference(&SearchboxText, PhGetWindowText(SearchboxHandle));
 
@@ -595,10 +607,10 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case EN_KILLFOCUS:
                 {
-                    if (SearchBoxDisplayMode != SearchBoxDisplayHideInactive)
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    if ((HWND)lParam != SearchboxHandle)
+                    if (SearchBoxDisplayMode != SearchBoxDisplayHideInactive)
                         break;
 
                     if (SearchboxText->Length == 0)
@@ -628,7 +640,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             case ID_SEARCH:
                 {
                     // handle keybind Ctrl + K
-                    if (EnableToolBar && EnableSearchBox)
+                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
                         SetFocus(SearchboxHandle);
                         Edit_SetSel(SearchboxHandle, 0, -1);
@@ -639,7 +651,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case ID_SEARCH_CLEAR:
                 {
-                    if (EnableToolBar && EnableSearchBox)
+                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
                         SetFocus(SearchboxHandle);
                         Static_SetText(SearchboxHandle, L"");
@@ -994,7 +1006,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         DrawWindowBorderForTargeting(TargetingCurrentWindow);
                     }
 
-                    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS))
+                    if (ToolStatusConfig.ResolveGhostWindows)
                     {
                         // This is an undocumented function exported by user32.dll that
                         // retrieves the hung window represented by a ghost window.
@@ -1117,7 +1129,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
         {
             if ((wParam & 0xFFF0) == SC_KEYMENU && lParam == 0)
             {
-                if (!AutoHideMenu)
+                if (!ToolStatusConfig.AutoHideMenu)
                     break;
 
                 if (GetMenu(PhMainWndHandle) != NULL)
@@ -1142,7 +1154,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_EXITMENULOOP:
         {
-            if (!AutoHideMenu)
+            if (!ToolStatusConfig.AutoHideMenu)
                 break;
 
             if (GetMenu(PhMainWndHandle) != NULL)
@@ -1178,7 +1190,7 @@ static VOID NTAPI MainWindowShowingCallback(
     StatusBarLoadSettings();
 
     MainMenu = GetMenu(PhMainWndHandle);
-    if (AutoHideMenu)
+    if (ToolStatusConfig.AutoHideMenu)
     {
         SetMenu(PhMainWndHandle, NULL);
     }
@@ -1189,19 +1201,11 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    EnableToolBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR);
-    EnableSearchBox = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SEARCHBOX);
-    EnableStatusBar = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR);
-    AutoHideMenu = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU);
-    ToolBarLocked = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_LOCKED);
-    ToolBarEnableCpuGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH);
-    ToolBarEnableMemGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH);
-    ToolBarEnableIoGraph = !!PhGetIntegerSetting(SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH);
-    UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
-
+    ToolStatusConfig.Flags = PhGetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG);
     ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
+    UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
 }
 
 static VOID NTAPI ShowOptionsCallback(
@@ -1230,18 +1234,9 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_ENABLE_TOOLBAR, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_SEARCHBOX, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_STATUSBAR, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_MODERNICONS, L"0" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_AUTOHIDE_MENU, L"0" },
+                { IntegerSettingType, SETTING_NAME_TOOLSTATUS_CONFIG, L"1F" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_THEME, L"0" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
-                { IntegerSettingType, SETTING_NAME_TOOLBAR_LOCKED, L"1" },
-                { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_CPUGRAPH, L"0" },
-                { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_MEMGRAPH, L"0" },
-                { IntegerSettingType, SETTING_NAME_TOOLBAR_ENABLE_IOGRAPH, L"0" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },

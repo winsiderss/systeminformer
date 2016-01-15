@@ -35,16 +35,16 @@ INT_PTR CALLBACK OptionsDlgProc(
     case WM_INITDIALOG:
         {
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
-                PhGetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR) ? BST_CHECKED : BST_UNCHECKED);
+                ToolStatusConfig.ToolBarEnabled ? BST_CHECKED : BST_UNCHECKED);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR),
-                PhGetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR) ? BST_CHECKED : BST_UNCHECKED);
+                ToolStatusConfig.StatusBarEnabled ? BST_CHECKED : BST_UNCHECKED);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
-                PhGetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS) ? BST_CHECKED : BST_UNCHECKED);
+                ToolStatusConfig.ResolveGhostWindows ? BST_CHECKED : BST_UNCHECKED);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU),
-                PhGetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU) ? BST_CHECKED : BST_UNCHECKED);
+                ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -56,21 +56,16 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_TOOLBAR,
-                        (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED));
+                    ToolStatusConfig.ToolBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED;
+                    ToolStatusConfig.StatusBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED;
+                    ToolStatusConfig.ResolveGhostWindows = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED;
+                    ToolStatusConfig.AutoHideMenu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU)) == BST_CHECKED;
 
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_STATUSBAR,
-                        (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED));
-
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_RESOLVEGHOSTWINDOWS,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
-
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_AUTOHIDE_MENU,
-                        (AutoHideMenu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU)) == BST_CHECKED));
+                    PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                     ToolbarLoadSettings();
 
-                    if (AutoHideMenu)
+                    if (ToolStatusConfig.AutoHideMenu)
                     {
                         SetMenu(PhMainWndHandle, NULL);
                     }

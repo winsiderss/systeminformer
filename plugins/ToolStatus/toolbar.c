@@ -65,7 +65,7 @@ VOID RebarBandInsert(
         rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
     }
 
-    if (ToolBarLocked)
+    if (ToolStatusConfig.ToolBarLocked)
     {
         rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
     }
@@ -102,7 +102,7 @@ static VOID RebarLoadSettings(
     )
 {
     // Initialize the Toolbar Imagelist.
-    if (EnableToolBar)
+    if (ToolStatusConfig.ToolBarEnabled)
     {
         HBITMAP bitmapRefresh = NULL;
         HBITMAP bitmapSettings = NULL;
@@ -127,7 +127,7 @@ static VOID RebarLoadSettings(
         }
 
         // Add the images to the imagelist
-        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_MODERNICONS))
+        if (ToolStatusConfig.ModernIcons)
         {
             bitmapRefresh = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN));
             bitmapSettings = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN));
@@ -244,7 +244,7 @@ static VOID RebarLoadSettings(
     }
 
     // Initialize the Rebar and Toolbar controls.
-    if (EnableToolBar && !RebarHandle)
+    if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
         ULONG toolbarButtonSize;
@@ -312,7 +312,7 @@ static VOID RebarLoadSettings(
     }
 
     // Initialize the Searchbox and TreeNewFilters.
-    if (EnableSearchBox && !SearchboxHandle)
+    if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
     {
         SearchboxText = PhReferenceEmptyString();
 
@@ -325,7 +325,7 @@ static VOID RebarLoadSettings(
     }
 
     // Initialize the Statusbar control.
-    if (EnableStatusBar && !StatusBarHandle)
+    if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
     {
         // Create the StatusBar window.
         StatusBarHandle = CreateWindowEx(
@@ -342,7 +342,7 @@ static VOID RebarLoadSettings(
     }
 
     // Hide or show controls (Note: don't unload or remove at runtime).
-    if (EnableToolBar)
+    if (ToolStatusConfig.ToolBarEnabled)
     {
         if (RebarHandle && !IsWindowVisible(RebarHandle))
             ShowWindow(RebarHandle, SW_SHOW);
@@ -353,7 +353,7 @@ static VOID RebarLoadSettings(
             ShowWindow(RebarHandle, SW_HIDE);
     }
 
-    if (EnableSearchBox && RebarHandle)
+    if (ToolStatusConfig.SearchBoxEnabled && RebarHandle)
     {
         UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
 
@@ -381,7 +381,7 @@ static VOID RebarLoadSettings(
         }
     }
 
-    if (EnableSearchBox)
+    if (ToolStatusConfig.SearchBoxEnabled)
     {
         // TODO: Is there a better way of handling this in the above code?
         if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
@@ -398,7 +398,7 @@ static VOID RebarLoadSettings(
         }
     }
 
-    if (EnableStatusBar)
+    if (ToolStatusConfig.StatusBarEnabled)
     {
         if (StatusBarHandle && !IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_SHOW);
@@ -418,7 +418,7 @@ VOID ToolbarLoadSettings(
 {
     RebarLoadSettings();
 
-    if (EnableToolBar && ToolBarHandle)
+    if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle)
     {
         INT index = 0;
         INT buttonCount = 0;
@@ -494,11 +494,14 @@ VOID ToolbarLoadSettings(
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
     }
 
-    if (EnableToolBar && RebarHandle && ToolBarHandle)
+    if (ToolStatusConfig.ToolBarEnabled && RebarHandle && ToolBarHandle)
     {
         UINT index;
-        REBARBANDINFO rebarBandInfo = { REBARBANDINFO_V6_SIZE };
-        rebarBandInfo.fMask = RBBIM_IDEALSIZE;
+        REBARBANDINFO rebarBandInfo =
+        {
+            REBARBANDINFO_V6_SIZE,
+            RBBIM_IDEALSIZE
+        };
 
         index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)REBAR_BAND_ID_TOOLBAR, 0);
 
