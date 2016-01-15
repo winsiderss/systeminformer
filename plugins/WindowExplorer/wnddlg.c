@@ -73,7 +73,7 @@ VOID WepShowWindowsDialogCallback(
     hwnd = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WNDLIST),
-        WE_PhMainWndHandle,
+        NULL,
         WepWindowsDlgProc,
         (LPARAM)context
         );
@@ -676,7 +676,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                        WeShowWindowProperties(WE_PhMainWndHandle, selectedNode->WindowHandle);
+                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle);
                 }
                 break;
             case ID_WINDOW_COPY:

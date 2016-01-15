@@ -40,6 +40,7 @@
 #define IDC_BACKGROUNDBRUSH             1032
 #define IDC_MENUNAME                    1033
 #define IDC_UNICODE                     1034
+#define IDC_CTRLID                      1035
 #define ID_WINDOW_GOTOTHREAD            40001
 #define ID_WINDOW_COPY                  40002
 #define ID_WINDOW_PROPERTIES            40003
@@ -72,7 +73,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        107
+#define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40028
 #define _APS_NEXT_CONTROL_VALUE         1035
 #define _APS_NEXT_SYMED_VALUE           106
