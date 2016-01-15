@@ -217,7 +217,7 @@ VOID WepDestroyWindowNode(
 
 BEGIN_SORT_FUNCTION(Class)
 {
-    sortResult = wcsicmp(node1->WindowClass, node2->WindowClass);
+    sortResult = _wcsicmp(node1->WindowClass, node2->WindowClass);
 }
 END_SORT_FUNCTION
 
