@@ -13,8 +13,18 @@ typedef struct _WE_WINDOW_NODE
 
     struct _WE_WINDOW_NODE *Parent;
     PPH_LIST Children;
-    BOOLEAN HasChildren;
-    BOOLEAN Opened;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG HasChildren : 1;
+            ULONG Opened : 1;
+            ULONG WindowVisible : 1;
+            ULONG Spare : 29;
+        };
+    };
 
     PH_STRINGREF TextCache[WEWNTLC_MAXIMUM];
 
@@ -22,7 +32,6 @@ typedef struct _WE_WINDOW_NODE
     WCHAR WindowClass[64];
     PPH_STRING WindowText;
     CLIENT_ID ClientId;
-    BOOLEAN WindowVisible;
 
     WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
     PPH_STRING ThreadString;
