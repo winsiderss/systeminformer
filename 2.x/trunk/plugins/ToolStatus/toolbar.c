@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main toolbar
  *
- * Copyright (C) 2011-2015 dmex
+ * Copyright (C) 2011-2016 dmex
  *
  * This file is part of Process Hacker.
  *
