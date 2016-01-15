@@ -792,7 +792,7 @@ NTSTATUS PhLoadSettings(
         if (
             currentNode->type == MXML_ELEMENT &&
             currentNode->value.element.num_attrs >= 1 &&
-            stricmp(currentNode->value.element.attrs[0].name, "name") == 0
+            _stricmp(currentNode->value.element.attrs[0].name, "name") == 0
             )
         {
             settingName = PhConvertUtf8ToUtf16(currentNode->value.element.attrs[0].value);
