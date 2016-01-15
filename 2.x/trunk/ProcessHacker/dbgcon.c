@@ -923,7 +923,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             //SIZE_T totalNumberOfBytes = 0;
 
             if (typeFilter)
-                wcslwr(typeFilter);
+                _wcslwr(typeFilter);
 
             PhAcquireQueuedLockShared(&PhDbgObjectListLock);
 
@@ -949,7 +949,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 if (typeFilter)
                 {
                     wcscpy_s(typeName, sizeof(typeName) / 2, PhGetObjectType(PhObjectHeaderToObject(objectHeader))->Name);
-                    wcslwr(typeName);
+                    _wcslwr(typeName);
                 }
 
                 if (
