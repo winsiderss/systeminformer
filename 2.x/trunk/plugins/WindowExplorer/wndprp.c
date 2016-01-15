@@ -807,6 +807,7 @@ static VOID WepRefreshWindowGeneralInfo(
     SetDlgItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
     SetDlgItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA))->Buffer);
     SetDlgItemText(hwndDlg, IDC_UNICODE, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
+    SetDlgItemText(hwndDlg, IDC_CTRLID, PhaFormatString(L"%lu", GetDlgCtrlID(Context->WindowHandle))->Buffer);
 
     WepEnsureHookDataValid(Context);
 
