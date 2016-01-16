@@ -574,7 +574,8 @@ VOID ToolbarLoadButtonSettings(
     VOID
     )
 {
-    INT buttonCount = 0;
+    INT buttonCount;
+    ULONG64 countInteger;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
     PH_STRINGREF remaining;
@@ -592,7 +593,8 @@ VOID ToolbarLoadButtonSettings(
 
     // Query the number of buttons to insert
     PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-    buttonCount = _wtoi(part.Buffer);
+    PhStringToInteger64(&part, 10, &countInteger);
+    buttonCount = (INT)countInteger;
 
     // Allocate the button array
     buttonArray = PhAllocate(buttonCount * sizeof(TBBUTTON));
@@ -620,7 +622,7 @@ VOID ToolbarLoadButtonSettings(
 
         buttonArray[index].idCommand = (INT)commandInteger;
         buttonArray[index].iBitmap = (INT)bitmapInteger;
-        buttonArray[index].fsStyle = (BYTE)styleInteger;
+        buttonArray[index].fsStyle = (BYTE)styleInteger; // TODO: Review
         buttonArray[index].fsState = TBSTATE_ENABLED;
     }
 
@@ -663,10 +665,10 @@ VOID ToolbarSaveButtonSettings(
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%d|%d|%u|",
+            L"%d|%d|%hhx|", // TODO: Review
             buttonInfo.idCommand,
             buttonInfo.iImage,
-            buttonInfo.fsStyle
+            buttonInfo.fsStyle // TODO: Review
             );
     }
 
