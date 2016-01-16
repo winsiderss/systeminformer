@@ -817,7 +817,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         if (selectedItem && selectedItem->Id != -1)
                         {
-                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, 0), 0);
+                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, BN_CLICKED), 0);
                         }
 
                         PhDestroyEMenu(menu);
