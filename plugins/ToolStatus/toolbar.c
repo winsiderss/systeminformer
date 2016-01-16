@@ -427,67 +427,70 @@ VOID ToolbarLoadSettings(
 
         for (index = 0; index < buttonCount; index++)
         {
-            TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_STATE;
+            TBBUTTONINFO buttonInfo =
+            { 
+                sizeof(TBBUTTONINFO), 
+                TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_STATE 
+            };
 
             // Get settings for first button
-            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
+            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
                 break;
 
             // Skip separator buttons
-            if (button.fsStyle == BTNS_SEP)
+            if (buttonInfo.fsStyle == BTNS_SEP)
                 continue;
 
             // Invalidate the button rect when adding/removing the BTNS_SHOWTEXT style.
-            button.dwMask |= TBIF_TEXT;
-            button.pszText = ToolbarGetText(button.idCommand);
+            buttonInfo.dwMask |= TBIF_TEXT;
+            buttonInfo.pszText = ToolbarGetText(buttonInfo.idCommand);
 
             switch (DisplayStyle)
             {
             case ToolbarDisplayImageOnly:
-                button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+                buttonInfo.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
                 break;
             case ToolbarDisplaySelectiveText:
                 {
-                    switch (button.idCommand)
+                    switch (buttonInfo.idCommand)
                     {
                     case PHAPP_ID_VIEW_REFRESH:
                     case PHAPP_ID_HACKER_OPTIONS:
                     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
                     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-                        button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+                        buttonInfo.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                         break;
                     default:
-                        button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+                        buttonInfo.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
                         break;
                     }
                 }
                 break;
             case ToolbarDisplayAllText:
-                button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+                buttonInfo.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                 break;
             }
 
-            switch (button.idCommand)
+            switch (buttonInfo.idCommand)
             {
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Set the pressed state
                     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
                     {
-                        button.fsState |= TBSTATE_PRESSED;
+                        buttonInfo.fsState |= TBSTATE_PRESSED;
                     }
                 }
                 break;
             case TIDC_POWERMENUDROPDOWN:
                 {
-                    button.fsStyle |= BTNS_WHOLEDROPDOWN;
+                    buttonInfo.fsStyle |= BTNS_WHOLEDROPDOWN;
                 }
                 break;
             }
 
             // Set updated button info
-            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&button);
+            SendMessage(ToolBarHandle, TB_SETBUTTONINFO, index, (LPARAM)&buttonInfo);
         }
 
         // Resize the toolbar
@@ -597,39 +600,28 @@ VOID ToolbarLoadButtonSettings(
 
     for (INT index = 0; index < buttonCount; index++)
     {
+        ULONG64 commandInteger;
+        ULONG64 bitmapInteger;
+        ULONG64 styleInteger;
         PH_STRINGREF commandIdPart;
-        PH_STRINGREF iBitmapPart;
-        PH_STRINGREF buttonSepPart;
-        PH_STRINGREF buttonAutoSizePart;
-        PH_STRINGREF buttonShowTextPart;
-        PH_STRINGREF buttonDropDownPart;
+        PH_STRINGREF bitmapIdPart;
+        PH_STRINGREF buttonStylePart;
 
         if (remaining.Length == 0)
             break;
 
         PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &iBitmapPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &buttonSepPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &buttonAutoSizePart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &buttonShowTextPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &buttonDropDownPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &bitmapIdPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &buttonStylePart, &remaining);
+        
+        PhStringToInteger64(&commandIdPart, 10, &commandInteger);
+        PhStringToInteger64(&bitmapIdPart, 10, &bitmapInteger);
+        PhStringToInteger64(&buttonStylePart, 16, &styleInteger); // TODO: Review
 
-        buttonArray[index].idCommand = _wtoi(commandIdPart.Buffer);
-        buttonArray[index].iBitmap = _wtoi(iBitmapPart.Buffer);
-
-        if (_wtoi(buttonSepPart.Buffer))
-            buttonArray[index].fsStyle |= BTNS_SEP;
-
-        if (_wtoi(buttonAutoSizePart.Buffer))
-            buttonArray[index].fsStyle |= BTNS_AUTOSIZE;
-
-        if (_wtoi(buttonShowTextPart.Buffer))
-            buttonArray[index].fsStyle |= BTNS_SHOWTEXT;
-
-        if (_wtoi(buttonDropDownPart.Buffer))
-            buttonArray[index].fsStyle |= BTNS_WHOLEDROPDOWN;
-
-        buttonArray[index].fsState |= TBSTATE_ENABLED;
+        buttonArray[index].idCommand = (INT)commandInteger;
+        buttonArray[index].iBitmap = (INT)bitmapInteger;
+        buttonArray[index].fsStyle = (BYTE)styleInteger;
+        buttonArray[index].fsState = TBSTATE_ENABLED;
     }
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);
@@ -659,22 +651,22 @@ VOID ToolbarSaveButtonSettings(
 
     for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
     {
-        TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-        button.dwMask = TBIF_BYINDEX | TBIF_IMAGE | TBIF_STATE | TBIF_STYLE | TBIF_COMMAND;
+        TBBUTTONINFO buttonInfo = 
+        {
+            sizeof(TBBUTTONINFO),
+            TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
+        };
 
         // Get button information.
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&button) == -1)
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo) == -1)
             break;
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%d|%d|%d|%d|%d|%d|",
-            button.idCommand,
-            button.iImage,
-            button.fsStyle & BTNS_SEP ? TRUE : FALSE,
-            button.fsStyle & BTNS_AUTOSIZE ? TRUE : FALSE,
-            button.fsStyle & BTNS_SHOWTEXT ? TRUE : FALSE,
-            button.fsStyle & BTNS_WHOLEDROPDOWN ? TRUE : FALSE
+            L"%d|%d|%u|",
+            buttonInfo.idCommand,
+            buttonInfo.iImage,
+            buttonInfo.fsStyle
             );
     }
 
@@ -710,7 +702,7 @@ VOID ReBarLoadLayoutSettings(
         PH_STRINGREF stylePart;
         ULONG64 idInteger;
         ULONG64 cxInteger;
-        ULONG64 fStyleInteger;
+        ULONG64 styleInteger;
         UINT oldBandIndex;
         REBARBANDINFO rebarBandInfo = 
         {
@@ -727,7 +719,7 @@ VOID ReBarLoadLayoutSettings(
 
         PhStringToInteger64(&idPart, 10, &idInteger);
         PhStringToInteger64(&cxPart, 10, &cxInteger);
-        PhStringToInteger64(&stylePart, 10, &fStyleInteger);
+        PhStringToInteger64(&stylePart, 10, &styleInteger);
 
         if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == -1)
             break;
@@ -740,7 +732,7 @@ VOID ReBarLoadLayoutSettings(
         if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
         {
             rebarBandInfo.cx = (UINT)cxInteger;
-            rebarBandInfo.fStyle |= (UINT)fStyleInteger;
+            rebarBandInfo.fStyle |= (UINT)styleInteger;
 
             SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
         }

@@ -731,8 +731,11 @@ static LRESULT CALLBACK MainWndSubclassProc(
                         for (index = 0; index < buttonCount; index++)
                         {
                             RECT buttonRect;
-                            TBBUTTONINFO button = { sizeof(TBBUTTONINFO) };
-                            button.dwMask = TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_IMAGE;
+                            TBBUTTONINFO buttonInfo = 
+                            { 
+                                sizeof(TBBUTTONINFO),
+                                TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_IMAGE
+                            };
 
                             // Get the client coordinates of the button.
                             if (SendMessage(ToolBarHandle, TB_GETITEMRECT, index, (LPARAM)&buttonRect) == -1)
@@ -742,10 +745,10 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 continue;
 
                             // Get extended button information.
-                            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&button) == -1)
+                            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
                                 break;
 
-                            if (button.fsStyle == BTNS_SEP)
+                            if (buttonInfo.fsStyle == BTNS_SEP)
                             {
                                 // Add separators to menu.
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
@@ -756,14 +759,14 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 HICON menuIcon;
 
                                 // Add buttons to menu.
-                                menuItem = PhCreateEMenuItem(0, button.idCommand, ToolbarGetText(button.idCommand), NULL, NULL);
+                                menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
 
-                                menuIcon = ImageList_GetIcon(ToolBarImageList, button.iImage, ILD_NORMAL);
+                                menuIcon = ImageList_GetIcon(ToolBarImageList, buttonInfo.iImage, ILD_NORMAL);
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
                                 menuItem->Bitmap = PhIconToBitmap(menuIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
                                 DestroyIcon(menuIcon);
 
-                                switch (button.idCommand)
+                                switch (buttonInfo.idCommand)
                                 {
                                 case PHAPP_ID_VIEW_ALWAYSONTOP:
                                     {
