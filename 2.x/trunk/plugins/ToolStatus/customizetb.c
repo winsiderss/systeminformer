@@ -313,7 +313,7 @@ static VOID CustomizeLoadItems(
     buttonContext = PhAllocate(sizeof(BUTTON_CONTEXT));
     memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
     buttonContext->IsSeperator = TRUE;
-    buttonContext->IsVirtual = TRUE;
+    buttonContext->IsVirtual = FALSE;
     buttonContext->IsRemovable = FALSE;
 
     buttonIndex = ListBox_InsertItemData(Context->AvailableListHandle, 0, buttonContext);
