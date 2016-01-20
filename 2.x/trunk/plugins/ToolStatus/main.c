@@ -44,9 +44,9 @@ INT SelectedTabIndex;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
 TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
-TOOLBAR_DISPLAY_STYLE DisplayStyle = ToolbarDisplaySelectiveText;
-SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SearchBoxDisplayAlwaysShow;
-REBAR_DISPLAY_LOCATION RebarDisplayLocation = RebarLocationTop;
+TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
+SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
+REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
@@ -219,17 +219,17 @@ VOID ShowCustomizeMenu(
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_SEARCHBOX, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolStatusConfig.ToolBarCpuGraph)
+    if (ToolStatusConfig.CpuGraphEnabled)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_CPU_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolStatusConfig.ToolBarMemGraph)
+    if (ToolStatusConfig.MemGraphEnabled)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
-    if (ToolStatusConfig.ToolBarIoGraph)
+    if (ToolStatusConfig.IoGraphEnabled)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_IO_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
@@ -270,7 +270,7 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_ENABLE_CPU_GRAPH:
             {
-                ToolStatusConfig.ToolBarCpuGraph = !ToolStatusConfig.ToolBarCpuGraph;
+                ToolStatusConfig.CpuGraphEnabled = !ToolStatusConfig.CpuGraphEnabled;
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
@@ -280,7 +280,7 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_ENABLE_MEMORY_GRAPH:
             {
-                ToolStatusConfig.ToolBarMemGraph = !ToolStatusConfig.ToolBarMemGraph;
+                ToolStatusConfig.MemGraphEnabled = !ToolStatusConfig.MemGraphEnabled;
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
@@ -290,7 +290,7 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_ENABLE_IO_GRAPH:
             {
-                ToolStatusConfig.ToolBarIoGraph = !ToolStatusConfig.ToolBarIoGraph;
+                ToolStatusConfig.IoGraphEnabled = !ToolStatusConfig.IoGraphEnabled;
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
@@ -610,7 +610,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    if (SearchBoxDisplayMode != SearchBoxDisplayHideInactive)
+                    if (SearchBoxDisplayMode != SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
                         break;
 
                     if (SearchboxText->Length == 0)
@@ -1216,12 +1216,7 @@ static VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
-        );
+    ShowOptionsDialog(Parameter);
 }
 
 LOGICAL DllMain(
