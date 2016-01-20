@@ -59,9 +59,9 @@
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
-    ToolbarDisplayImageOnly,
-    ToolbarDisplaySelectiveText,
-    ToolbarDisplayAllText
+    TOOLBAR_DISPLAY_STYLE_IMAGEONLY,
+    TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT,
+    TOOLBAR_DISPLAY_STYLE_ALLTEXT
 } TOOLBAR_DISPLAY_STYLE;
 
 typedef enum _TOOLBAR_COMMAND_ID
@@ -84,9 +84,9 @@ typedef enum _TOOLBAR_THEME
 
 typedef enum _SEARCHBOX_DISPLAY_MODE
 {
-    SearchBoxDisplayAlwaysShow = 0,
-    SearchBoxDisplayHideInactive = 1,
-    //SearchBoxDisplayAutoHide = 2
+    SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW,
+    SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE,
+    //SEARCHBOX_DISPLAY_MODE_AUTOHIDE
 } SEARCHBOX_DISPLAY_MODE;
 
 typedef enum _REBAR_BAND_ID
@@ -100,10 +100,10 @@ typedef enum _REBAR_BAND_ID
 
 typedef enum _REBAR_DISPLAY_LOCATION
 {
-    RebarLocationTop = 0,
-    RebarLocationLeft = 1,
-    RebarLocationBottom = 2,
-    RebarLocationRight = 3,
+    REBAR_DISPLAY_LOCATION_TOP,
+    REBAR_DISPLAY_LOCATION_LEFT,
+    REBAR_DISPLAY_LOCATION_BOTTOM,
+    REBAR_DISPLAY_LOCATION_RIGHT,
 } REBAR_DISPLAY_LOCATION;
 
 typedef union _TOOLSTATUS_CONFIG
@@ -119,9 +119,9 @@ typedef union _TOOLSTATUS_CONFIG
 
         ULONG ModernIcons : 1;
         ULONG AutoHideMenu : 1;
-        ULONG ToolBarCpuGraph : 1;
-        ULONG ToolBarMemGraph : 1;
-        ULONG ToolBarIoGraph : 1;
+        ULONG CpuGraphEnabled : 1;
+        ULONG MemGraphEnabled : 1;
+        ULONG IoGraphEnabled : 1;
 
         ULONG Spare : 22;
     };
@@ -159,6 +159,8 @@ extern PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry;
 PTOOLSTATUS_TAB_INFO FindTabInfo(
     _In_ INT TabIndex
     );
+
+// toolbar.c
 
 VOID RebarBandInsert(
     _In_ UINT BandID,
@@ -203,6 +205,8 @@ VOID ReBarSaveLayoutSettings(
     VOID
     );
 
+// main.c
+
 HWND GetCurrentTreeNewHandle(
     VOID
     );
@@ -211,12 +215,13 @@ VOID ShowCustomizeMenu(
     VOID
     );
 
-INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+// options.c
+
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
     );
+
+// filter.c
 
 BOOLEAN WordMatchStringRef(
     _In_ PPH_STRINGREF Text
@@ -234,6 +239,8 @@ BOOLEAN NetworkTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
+
+// searchbox.c
 
 HWND CreateSearchControl(
     _In_ UINT CmdId

@@ -474,7 +474,7 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
         break;
     case WM_SETFOCUS:
         {
-            if (SearchBoxDisplayMode != SearchBoxDisplayHideInactive)
+            if (SearchBoxDisplayMode != SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
                 break;
 
             if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
@@ -728,7 +728,9 @@ HWND CreateSearchControl(
         NULL
         );
 
-    if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
+    // TODO: Why does the Edit control require WS_VISIBLE to be correctly initialized under some conditions?
+    //  For now just call ShowWindow with SW_HIDE instead of removing the WS_VISIBLE style passed to CreateWindowEx.
+    if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
     {
         ShowWindow(SearchboxHandle, SW_HIDE);
     }

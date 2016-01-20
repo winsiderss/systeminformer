@@ -384,7 +384,7 @@ static VOID RebarLoadSettings(
     if (ToolStatusConfig.SearchBoxEnabled)
     {
         // TODO: Is there a better way of handling this in the above code?
-        if (SearchBoxDisplayMode == SearchBoxDisplayHideInactive)
+        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
         {
             if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                 RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
@@ -428,9 +428,9 @@ VOID ToolbarLoadSettings(
         for (index = 0; index < buttonCount; index++)
         {
             TBBUTTONINFO buttonInfo =
-            { 
-                sizeof(TBBUTTONINFO), 
-                TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_STATE 
+            {
+                sizeof(TBBUTTONINFO),
+                TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_STATE
             };
 
             // Get settings for first button
@@ -447,10 +447,10 @@ VOID ToolbarLoadSettings(
 
             switch (DisplayStyle)
             {
-            case ToolbarDisplayImageOnly:
+            case TOOLBAR_DISPLAY_STYLE_IMAGEONLY:
                 buttonInfo.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
                 break;
-            case ToolbarDisplaySelectiveText:
+            case TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT:
                 {
                     switch (buttonInfo.idCommand)
                     {
@@ -466,7 +466,7 @@ VOID ToolbarLoadSettings(
                     }
                 }
                 break;
-            case ToolbarDisplayAllText:
+            case TOOLBAR_DISPLAY_STYLE_ALLTEXT:
                 buttonInfo.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
                 break;
             }
@@ -592,8 +592,20 @@ VOID ToolbarLoadButtonSettings(
     }
 
     // Query the number of buttons to insert
-    PhSplitStringRefAtChar(&remaining, '|', &part, &remaining);
-    PhStringToInteger64(&part, 10, &countInteger);
+    if (!PhSplitStringRefAtChar(&remaining, '|', &part, &remaining))
+    {
+        // Load default settings
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+        return;
+    }
+
+    if (!PhStringToInteger64(&part, 10, &countInteger))
+    {
+        // Load default settings
+        SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+        return;
+    }
+
     buttonCount = (INT)countInteger;
 
     // Allocate the button array
