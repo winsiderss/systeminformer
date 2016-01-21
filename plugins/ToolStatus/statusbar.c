@@ -273,7 +273,7 @@ VOID StatusBarUpdate(
         return;
     }
 
-    hdc = GetDC(StatusBarHandle);
+    hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
     SelectObject(hdc, (HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
     // Reset max. widths for Max. CPU Process and Max. I/O Process parts once in a while.
@@ -568,7 +568,7 @@ VOID StatusBarUpdate(
         count++;
     }
 
-    ReleaseDC(StatusBarHandle, hdc);
+    DeleteDC(hdc);
 
     SendMessage(StatusBarHandle, SB_SETPARTS, count, (LPARAM)widths);
 
