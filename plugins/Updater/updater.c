@@ -899,7 +899,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             {
                 HDC hdc;
 
-                if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
+                if (hdc = GetDC(hwndDlg))
                 {
                     // Create the font handle
                     context->FontHandle = CreateFont(
@@ -919,7 +919,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                         logFont.lfFaceName
                         );
 
-                    DeleteDC(hdc);
+                    ReleaseDC(hwndDlg, hdc);
                 }
             }
 

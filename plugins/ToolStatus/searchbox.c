@@ -55,7 +55,7 @@ static VOID NcAreaInitializeFont(
 
     SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0);
 
-    if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
+    if (hdc = GetDC(Context->WindowHandle))
     {
         // Cleanup existing Font handle.
         if (Context->WindowFont)
@@ -79,7 +79,7 @@ static VOID NcAreaInitializeFont(
             logFont.lfFaceName
             );
 
-        DeleteDC(hdc);
+        ReleaseDC(Context->WindowHandle, hdc);
     }
 
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);

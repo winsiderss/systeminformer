@@ -38,7 +38,7 @@ static HFONT InitializeFont(
     {
         HDC hdc;
 
-        if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
+        if (hdc = GetDC(hwnd))
         {
             HFONT fontHandle = CreateFont(
                 -MulDiv(-15, GetDeviceCaps(hdc, LOGPIXELSY), 72),
@@ -59,7 +59,7 @@ static HFONT InitializeFont(
 
             SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
 
-            DeleteDC(hdc);
+            ReleaseDC(hwnd, hdc);
 
             return fontHandle;
         }
