@@ -115,7 +115,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     }
 
                     PhSetClipboardString(hwndDlg, &string);
-                    SetFocus(editControl);
+                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)editControl, TRUE);
                 }
                 break;
             case IDC_SAVE:
