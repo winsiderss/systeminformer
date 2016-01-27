@@ -134,6 +134,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
+    PhpAddIntegerSetting(L"MiniInfoWindowEnabled", L"1");
     PhpAddIntegerSetting(L"MiniInfoWindowOpacity", L"0"); // means 100%
     PhpAddIntegerSetting(L"MiniInfoWindowPinned", L"0");
     PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
