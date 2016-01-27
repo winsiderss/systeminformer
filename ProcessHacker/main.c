@@ -93,7 +93,9 @@ INT WINAPI wWinMain(
 #endif
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+#ifndef DEBUG
     SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+#endif
 
     PhInstanceHandle = (HINSTANCE)NtCurrentPeb()->ImageBaseAddress;
 
