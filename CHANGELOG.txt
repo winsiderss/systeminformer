@@ -7,6 +7,7 @@ Process Hacker
    * Fixed crash that occurred under some conditions when processes terminated
  * OTHER CHANGES:
    * Added warning when trying to search for handles when the system has too many handles open
+   * Upgraded to PCRE2
    * Updated DotNetTools plugin:
      * Rewrite of .NET Performance statistics and AppDomain enumeration
    * Updated NetAdapters plugin:
