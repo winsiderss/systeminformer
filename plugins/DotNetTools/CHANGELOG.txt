@@ -1,5 +1,5 @@
 1.5
- * Rewrite of .NET Performance statistics and Appdomain enumeration
+ * Rewrite of .NET Performance statistics and AppDomain enumeration
 
 1.4
  * Process Hacker now displays managed stack traces for 32-bit .NET processes on 64-bit Windows
