@@ -25,6 +25,9 @@
     <Filter Include="phsvc">
       <UniqueIdentifier>{84a3be0b-42cf-42ae-bcd3-16f165caa0db}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PCRE\Headers">
+      <UniqueIdentifier>{e72b6c69-b510-4578-9ed5-34a16d8dffc1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\phlib\basesup.c">
@@ -381,69 +384,6 @@
     <ClCompile Include="hndllist.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="pcre\pcreposix.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_chartables.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_compile.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_config.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_dfa_exec.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_exec.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_fullinfo.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_get.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_globals.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_info.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_maketables.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_newline.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_ord2utf8.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_refcount.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_study.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_tables.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_try_flipped.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_ucd.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_valid_utf8.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_version.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
-    <ClCompile Include="pcre\pcre_xclass.c">
-      <Filter>PCRE</Filter>
-    </ClCompile>
     <ClCompile Include="memlists.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -461,6 +401,78 @@
     </ClCompile>
     <ClCompile Include="procgrp.c">
       <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_compile.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_config.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_context.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_dfa_match.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_error.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_maketables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_match.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_match_data.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_newline.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_ord2utf.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_pattern_info.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_serialize.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_string_utils.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_study.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_substitute.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_substring.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_tables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_ucd.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_valid_utf.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_xclass.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_auto_possess.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_chartables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2_jit_compile.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="pcre\pcre2posix.c">
+      <Filter>PCRE</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -536,19 +548,7 @@
     <ClInclude Include="include\extmgri.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\pcre.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="pcre\pcreposix.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="pcre\pcre_internal.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="pcre\ucp.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="pcre\config.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\sysinfop.h">
@@ -571,6 +571,24 @@
     </ClInclude>
     <ClInclude Include="include\sysinfo.h">
       <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\config.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_internal.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_intmodedep.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2_ucp.h">
+      <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pcre\pcre2posix.h">
+      <Filter>PCRE\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
