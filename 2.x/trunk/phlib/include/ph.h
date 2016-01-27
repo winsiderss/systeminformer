@@ -2057,7 +2057,7 @@ PhSetEnabledProvider(
 
 // svcsup
 
-extern WCHAR *PhServiceTypeStrings[6];
+extern WCHAR *PhServiceTypeStrings[10];
 extern WCHAR *PhServiceStartTypeStrings[5];
 extern WCHAR *PhServiceErrorControlStrings[4];
 
