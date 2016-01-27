@@ -110,6 +110,7 @@ ULONG PhNfIconNotifyMask;
 ULONG PhNfMaximumIconId = PH_ICON_DEFAULT_MAXIMUM;
 PPH_NF_ICON PhNfRegisteredIcons[32] = { 0 };
 PPH_STRING PhNfIconTextCache[32] = { 0 };
+BOOLEAN PhNfMiniInfoEnabled;
 BOOLEAN PhNfMiniInfoPinned;
 
 PH_NF_POINTERS PhNfpPointers;
@@ -164,6 +165,8 @@ VOID PhNfLoadStage2(
     )
 {
     ULONG i;
+
+    PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
 
     for (i = PH_ICON_MINIMUM; i != PhNfMaximumIconId; i <<= 1)
     {
@@ -346,7 +349,7 @@ VOID PhNfForwardMessage(
                 showMiniInfo = TRUE;
             }
 
-            if (showMiniInfo)
+            if (PhNfMiniInfoEnabled && showMiniInfo)
             {
                 GetCursorPos(&location);
                 PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
@@ -604,7 +607,7 @@ BOOLEAN PhNfpAddNotifyIcon(
         );
     notifyIcon.hIcon = PhNfpGetBlackIcon();
 
-    if (PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
@@ -675,7 +678,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
 
     notifyIcon.hIcon = Icon;
 
-    if (PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIcon))
