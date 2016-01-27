@@ -635,6 +635,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_PH_SEARCH_FINISHED:
         {
+            NTSTATUS handleSearchStatus = (NTSTATUS)wParam;
+
             // Add any un-added items.
             SendMessage(hwndDlg, WM_PH_SEARCH_UPDATE, 0, 0);
 
@@ -651,6 +653,15 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
 
             SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+            if (handleSearchStatus == STATUS_INSUFFICIENT_RESOURCES)
+            {
+                PhShowWarning(
+                    hwndDlg,
+                    L"Unable to search for handles because the total number of handles on the system is too large. "
+                    L"Please check if there are any processes with an extremely large number of handles open."
+                    );
+            }
         }
         break;
     }
@@ -785,6 +796,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     _In_ PVOID Parameter
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     PPH_HASHTABLE processHandleHashtable;
     PVOID processes;
@@ -800,7 +812,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
     PhUpperString(SearchString);
 
-    if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
+    if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
         static ULONG fileObjectTypeIndex = -1;
@@ -923,7 +935,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     }
 
 Exit:
-    PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_FINISHED, 0, 0);
+    PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_FINISHED, status, 0);
 
     return STATUS_SUCCESS;
 }

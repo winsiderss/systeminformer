@@ -5,6 +5,17 @@ Process Hacker
    * Updated for Windows 10
    * Fixed crash that occurred under some conditions when processes terminated
  * OTHER CHANGES:
+   * Added warning when trying to search for handles when the system has too many handles open
+   * Updated DotNetTools plugin:
+     * Rewrite of .NET Performance statistics and AppDomain enumeration
+   * Updated NetAdapters plugin:
+     * Added adapter details window
+   * Updated ToolStatus plugin:
+     * Added CPU, Memory and I/O graphs to the toolbar (not enabled by default)
+     * Added toolbar and status bar customization, as well as a new theme
+     * Added option to auto-hide the main menu
+   * Updated UserNotes plugin:
+     * Added individual process highlighting support
 
 2.36
  * HIGHLIGHTS:
