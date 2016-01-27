@@ -909,6 +909,8 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 PhAppendStringBuilder2(&stringBuilder, L"IL only, ");
             if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITREQUIRED)
                 PhAppendStringBuilder2(&stringBuilder, L"32-bit only, ");
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITPREFERRED)
+                PhAppendStringBuilder2(&stringBuilder, L"32-bit preferred, ");
             if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_IL_LIBRARY)
                 PhAppendStringBuilder2(&stringBuilder, L"IL library, ");
 
