@@ -3,6 +3,7 @@ Process Hacker
 2.37
  * HIGHLIGHTS:
    * Updated for Windows 10
+   * Added process exit codes to log
    * Fixed crash that occurred under some conditions when processes terminated
  * OTHER CHANGES:
    * Added warning when trying to search for handles when the system has too many handles open

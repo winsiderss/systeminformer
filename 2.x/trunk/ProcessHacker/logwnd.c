@@ -235,7 +235,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                     PhSetClipboardString(hwndDlg, &string->sr);
                     PhDereferenceObject(string);
 
-                    SetFocus(ListViewHandle);
+                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)ListViewHandle, TRUE);
                 }
                 break;
             case IDC_SAVE:
