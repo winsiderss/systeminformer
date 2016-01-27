@@ -4560,6 +4560,7 @@ VOID PhMwpOnProcessAdded(
         PhLogProcessEntry(
             PH_LOG_ENTRY_PROCESS_CREATE,
             ProcessItem->ProcessId,
+            NULL,
             ProcessItem->ProcessName,
             parentProcessId,
             parentName
@@ -4624,7 +4625,7 @@ VOID PhMwpOnProcessRemoved(
         ProcessesNeedsRedraw = TRUE;
     }
 
-    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL);
+    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->QueryHandle, ProcessItem->ProcessName, NULL, NULL);
 
     if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
     {
