@@ -372,7 +372,7 @@ typedef struct _BUTTON_CONTEXT
         {
             ULONG IsVirtual : 1;
             ULONG IsRemovable : 1;
-            ULONG IsSeperator : 1;
+            ULONG IsSeparator : 1;
             ULONG Spare : 29;
         };
     };

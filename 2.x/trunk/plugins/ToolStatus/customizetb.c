@@ -63,7 +63,7 @@ static VOID CustomizeInsertToolbarButton(
     button.iBitmap = ButtonContext->IdBitmap;
     button.idCommand = ButtonContext->IdCommand;
     button.fsState = TBSTATE_ENABLED;
-    button.fsStyle = ButtonContext->IsSeperator ? BTNS_SEP : BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+    button.fsStyle = ButtonContext->IsSeparator ? BTNS_SEP : BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
     button.iString = (INT_PTR)ToolbarGetText(ButtonContext->IdCommand);
 
     SendMessage(ToolBarHandle, TB_INSERTBUTTON, Index, (LPARAM)&button);
@@ -106,7 +106,7 @@ static VOID CustomizeAddButton(
         buttonContext = PhAllocate(sizeof(BUTTON_CONTEXT));
         memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
 
-        buttonContext->IsSeperator = TRUE;
+        buttonContext->IsSeparator = TRUE;
         buttonContext->IsRemovable = TRUE;
     }
 
@@ -133,7 +133,7 @@ static VOID CustomizeRemoveButton(
 
     SendMessage(ToolBarHandle, TB_DELETEBUTTON, IndexFrom, 0);
 
-    if (buttonContext->IsSeperator)
+    if (buttonContext->IsSeparator)
     {
         PhFree(buttonContext);
     }
@@ -271,7 +271,7 @@ static VOID CustomizeLoadItems(
 
             if (button.fsStyle & BTNS_SEP)
             {
-                buttonContext->IsSeperator = TRUE;
+                buttonContext->IsSeparator = TRUE;
             }
 
             ListBox_AddItemData(Context->CurrentListHandle, buttonContext);
@@ -301,7 +301,7 @@ static VOID CustomizeLoadItems(
     // Append separator to the last 'current list'  position
     buttonContext = PhAllocate(sizeof(BUTTON_CONTEXT));
     memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
-    buttonContext->IsSeperator = TRUE;
+    buttonContext->IsSeparator = TRUE;
     buttonContext->IsVirtual = TRUE;
     buttonContext->IsRemovable = FALSE;
 
@@ -312,7 +312,7 @@ static VOID CustomizeLoadItems(
     // Insert separator into first 'available list' position
     buttonContext = PhAllocate(sizeof(BUTTON_CONTEXT));
     memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
-    buttonContext->IsSeperator = TRUE;
+    buttonContext->IsSeparator = TRUE;
     buttonContext->IsVirtual = FALSE;
     buttonContext->IsRemovable = FALSE;
 
@@ -333,9 +333,9 @@ static VOID CustomizeLoadSettings(
     HWND toolbarCombo = GetDlgItem(Context->DialogHandle, IDC_TEXTOPTIONS);
     HWND searchboxCombo = GetDlgItem(Context->DialogHandle, IDC_SEARCHOPTIONS);
 
-    ComboBox_AddString(toolbarCombo, L"No Text Labels"); // Displays no text label for the toolbar buttons.
-    ComboBox_AddString(toolbarCombo, L"Selective Text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
-    ComboBox_AddString(toolbarCombo, L"Show Text Labels"); // Displays text labels for the toolbar buttons.
+    ComboBox_AddString(toolbarCombo, L"No text labels"); // Displays no text label for the toolbar buttons.
+    ComboBox_AddString(toolbarCombo, L"Selective text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
+    ComboBox_AddString(toolbarCombo, L"Show text labels"); // Displays text labels for the toolbar buttons.
     ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
 
     ComboBox_AddString(searchboxCombo, L"Always show");
@@ -708,7 +708,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                     SetTextColor(bufferDc, GetSysColor(isFocused ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
                 }
 
-                if (!buttonContext->IsSeperator)
+                if (!buttonContext->IsSeparator)
                 {
                     ImageList_Draw(
                         ToolBarImageList,
@@ -736,7 +736,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 {
                     DrawText(
                         bufferDc,
-                        L"Seperator",
+                        L"Separator",
                         -1,
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE
