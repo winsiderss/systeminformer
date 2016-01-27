@@ -6,7 +6,8 @@
 and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
-           Copyright (c) 1997-2009 University of Cambridge
+     Original API code Copyright (c) 1997-2012 University of Cambridge
+         New API code Copyright (c) 2014 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -41,18 +42,17 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains internal functions for testing newlines when more than
 one kind of newline is to be recognized. When a newline is found, its length is
 returned. In principle, we could implement several newline "types", each
-referring to a different set of newline characters. At present, PCRE supports
+referring to a different set of newline characters. At present, PCRE2 supports
 only NLTYPE_FIXED, which gets handled without these functions, NLTYPE_ANYCRLF,
 and NLTYPE_ANY. The full list of Unicode newline characters is taken from
 http://unicode.org/unicode/reports/tr18/. */
-
 
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include "pcre_internal.h"
+#include "pcre2_internal.h"
 
 
 
@@ -60,46 +60,87 @@ http://unicode.org/unicode/reports/tr18/. */
 *      Check for newline at given position       *
 *************************************************/
 
-/* It is guaranteed that the initial value of ptr is less than the end of the
-string that is being processed.
+/* This function is called only via the IS_NEWLINE macro, which does so only
+when the newline type is NLTYPE_ANY or NLTYPE_ANYCRLF. The case of a fixed
+newline (NLTYPE_FIXED) is handled inline. It is guaranteed that the code unit
+pointed to by ptr is less than the end of the string.
 
 Arguments:
   ptr          pointer to possible newline
   type         the newline type
   endptr       pointer to the end of the string
   lenptr       where to return the length
-  utf8         TRUE if in utf8 mode
+  utf          TRUE if in utf mode
 
 Returns:       TRUE or FALSE
 */
 
 BOOL
-_pcre_is_newline(USPTR ptr, int type, USPTR endptr, int *lenptr, BOOL utf8)
+PRIV(is_newline)(PCRE2_SPTR ptr, uint32_t type, PCRE2_SPTR endptr,
+  uint32_t *lenptr, BOOL utf)
 {
-int c;
-if (utf8) { GETCHAR(c, ptr); } else c = *ptr;
+uint32_t c;
+
+#ifdef SUPPORT_UNICODE
+if (utf) { GETCHAR(c, ptr); } else c = *ptr;
+#else
+(void)utf;
+c = *ptr;
+#endif  /* SUPPORT_UNICODE */
 
 if (type == NLTYPE_ANYCRLF) switch(c)
   {
-  case 0x000a: *lenptr = 1; return TRUE;             /* LF */
-  case 0x000d: *lenptr = (ptr < endptr - 1 && ptr[1] == 0x0a)? 2 : 1;
-               return TRUE;                          /* CR */
-  default: return FALSE;
+  case CHAR_LF:
+  *lenptr = 1;
+  return TRUE;
+
+  case CHAR_CR:
+  *lenptr = (ptr < endptr - 1 && ptr[1] == CHAR_LF)? 2 : 1;
+  return TRUE;
+
+  default:
+  return FALSE;
   }
 
 /* NLTYPE_ANY */
 
 else switch(c)
   {
-  case 0x000a:                                       /* LF */
-  case 0x000b:                                       /* VT */
-  case 0x000c: *lenptr = 1; return TRUE;             /* FF */
-  case 0x000d: *lenptr = (ptr < endptr - 1 && ptr[1] == 0x0a)? 2 : 1;
-               return TRUE;                          /* CR */
-  case 0x0085: *lenptr = utf8? 2 : 1; return TRUE;   /* NEL */
-  case 0x2028:                                       /* LS */
-  case 0x2029: *lenptr = 3; return TRUE;             /* PS */
-  default: return FALSE;
+#ifdef EBCDIC
+  case CHAR_NEL:
+#endif
+  case CHAR_LF:
+  case CHAR_VT:
+  case CHAR_FF:
+  *lenptr = 1;
+  return TRUE;
+
+  case CHAR_CR:
+  *lenptr = (ptr < endptr - 1 && ptr[1] == CHAR_LF)? 2 : 1;
+  return TRUE;
+
+#ifndef EBCDIC
+#if PCRE2_CODE_UNIT_WIDTH == 8
+  case CHAR_NEL:
+  *lenptr = utf? 2 : 1;
+  return TRUE;
+
+  case 0x2028:   /* LS */
+  case 0x2029:   /* PS */
+  *lenptr = 3;
+  return TRUE;
+
+#else  /* 16-bit or 32-bit code units */
+  case CHAR_NEL:
+  case 0x2028:   /* LS */
+  case 0x2029:   /* PS */
+  *lenptr = 1;
+  return TRUE;
+#endif
+#endif /* Not EBCDIC */
+
+  default:
+  return FALSE;
   }
 }
 
@@ -109,55 +150,94 @@ else switch(c)
 *     Check for newline at previous position     *
 *************************************************/
 
-/* It is guaranteed that the initial value of ptr is greater than the start of
-the string that is being processed.
+/* This function is called only via the WAS_NEWLINE macro, which does so only
+when the newline type is NLTYPE_ANY or NLTYPE_ANYCRLF. The case of a fixed
+newline (NLTYPE_FIXED) is handled inline. It is guaranteed that the initial
+value of ptr is greater than the start of the string that is being processed.
 
 Arguments:
   ptr          pointer to possible newline
   type         the newline type
   startptr     pointer to the start of the string
   lenptr       where to return the length
-  utf8         TRUE if in utf8 mode
+  utf          TRUE if in utf mode
 
 Returns:       TRUE or FALSE
 */
 
 BOOL
-_pcre_was_newline(USPTR ptr, int type, USPTR startptr, int *lenptr, BOOL utf8)
+PRIV(was_newline)(PCRE2_SPTR ptr, uint32_t type, PCRE2_SPTR startptr,
+  uint32_t *lenptr, BOOL utf)
 {
-int c;
+uint32_t c;
 ptr--;
-#ifdef SUPPORT_UTF8
-if (utf8)
+
+#ifdef SUPPORT_UNICODE
+if (utf)
   {
   BACKCHAR(ptr);
   GETCHAR(c, ptr);
   }
 else c = *ptr;
-#else   /* no UTF-8 support */
+#else
+(void)utf;
 c = *ptr;
-#endif  /* SUPPORT_UTF8 */
+#endif  /* SUPPORT_UNICODE */
 
 if (type == NLTYPE_ANYCRLF) switch(c)
   {
-  case 0x000a: *lenptr = (ptr > startptr && ptr[-1] == 0x0d)? 2 : 1;
-               return TRUE;                         /* LF */
-  case 0x000d: *lenptr = 1; return TRUE;            /* CR */
-  default: return FALSE;
+  case CHAR_LF:
+  *lenptr = (ptr > startptr && ptr[-1] == CHAR_CR)? 2 : 1;
+  return TRUE;
+
+  case CHAR_CR:
+  *lenptr = 1;
+  return TRUE;
+
+  default:
+  return FALSE;
   }
+
+/* NLTYPE_ANY */
 
 else switch(c)
   {
-  case 0x000a: *lenptr = (ptr > startptr && ptr[-1] == 0x0d)? 2 : 1;
-               return TRUE;                         /* LF */
-  case 0x000b:                                      /* VT */
-  case 0x000c:                                      /* FF */
-  case 0x000d: *lenptr = 1; return TRUE;            /* CR */
-  case 0x0085: *lenptr = utf8? 2 : 1; return TRUE;  /* NEL */
-  case 0x2028:                                      /* LS */
-  case 0x2029: *lenptr = 3; return TRUE;            /* PS */
-  default: return FALSE;
+  case CHAR_LF:
+  *lenptr = (ptr > startptr && ptr[-1] == CHAR_CR)? 2 : 1;
+  return TRUE;
+
+#ifdef EBCDIC
+  case CHAR_NEL:
+#endif
+  case CHAR_VT:
+  case CHAR_FF:
+  case CHAR_CR:
+  *lenptr = 1;
+  return TRUE;
+
+#ifndef EBCDIC
+#if PCRE2_CODE_UNIT_WIDTH == 8
+  case CHAR_NEL:
+  *lenptr = utf? 2 : 1;
+  return TRUE;
+
+  case 0x2028:   /* LS */
+  case 0x2029:   /* PS */
+  *lenptr = 3;
+  return TRUE;
+
+#else /* 16-bit or 32-bit code units */
+  case CHAR_NEL:
+  case 0x2028:   /* LS */
+  case 0x2029:   /* PS */
+  *lenptr = 1;
+  return TRUE;
+#endif
+#endif /* Not EBCDIC */
+
+  default:
+  return FALSE;
   }
 }
 
-/* End of pcre_newline.c */
+/* End of pcre2_newline.c */

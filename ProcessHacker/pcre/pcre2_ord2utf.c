@@ -6,7 +6,8 @@
 and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
-           Copyright (c) 1997-2008 University of Cambridge
+     Original API code Copyright (c) 1997-2012 University of Cambridge
+         New API code Copyright (c) 2014 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,46 +39,82 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-/* This module contains the external function pcre_refcount(), which is an
-auxiliary function that can be used to maintain a reference count in a compiled
-pattern data block. This might be helpful in applications where the block is
-shared by different users. */
-
+/* This file contains a function that converts a Unicode character code point
+into a UTF string. The behaviour is different for each code unit width. */
 
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include "pcre_internal.h"
+#include "pcre2_internal.h"
+
+
+/* If SUPPORT_UNICODE is not defined, this function will never be called.
+Supply a dummy function because some compilers do not like empty source
+modules. */
+
+#ifndef SUPPORT_UNICODE
+unsigned int
+PRIV(ord2utf)(uint32_t cvalue, PCRE2_UCHAR *buffer)
+{
+(void)(cvalue);
+(void)(buffer);
+return 0;
+}
+#else  /* SUPPORT_UNICODE */
 
 
 /*************************************************
-*           Maintain reference count             *
+*          Convert code point to UTF             *
 *************************************************/
 
-/* The reference count is a 16-bit field, initialized to zero. It is not
-possible to transfer a non-zero count from one host to a different host that
-has a different byte order - though I can't see why anyone in their right mind
-would ever want to do that!
-
+/*
 Arguments:
-  argument_re   points to compiled code
-  adjust        value to add to the count
+  cvalue     the character value
+  buffer     pointer to buffer for result
 
-Returns:        the (possibly updated) count value (a non-negative number), or
-                a negative error number
+Returns:     number of code units placed in the buffer
 */
 
-PCRE_EXP_DEFN int PCRE_CALL_CONVENTION
-pcre_refcount(pcre *argument_re, int adjust)
+unsigned int
+PRIV(ord2utf)(uint32_t cvalue, PCRE2_UCHAR *buffer)
 {
-real_pcre *re = (real_pcre *)argument_re;
-if (re == NULL) return PCRE_ERROR_NULL;
-re->ref_count = (-adjust > re->ref_count)? 0 :
-                (adjust + re->ref_count > 65535)? 65535 :
-                re->ref_count + adjust;
-return re->ref_count;
-}
+/* Convert to UTF-8 */
 
-/* End of pcre_refcount.c */
+#if PCRE2_CODE_UNIT_WIDTH == 8
+register int i, j;
+for (i = 0; i < PRIV(utf8_table1_size); i++)
+  if ((int)cvalue <= PRIV(utf8_table1)[i]) break;
+buffer += i;
+for (j = i; j > 0; j--)
+ {
+ *buffer-- = 0x80 | (cvalue & 0x3f);
+ cvalue >>= 6;
+ }
+*buffer = PRIV(utf8_table2)[i] | cvalue;
+return i + 1;
+
+/* Convert to UTF-16 */
+
+#elif PCRE2_CODE_UNIT_WIDTH == 16
+if (cvalue <= 0xffff)
+  {
+  *buffer = (PCRE2_UCHAR)cvalue;
+  return 1;
+  }
+cvalue -= 0x10000;
+*buffer++ = 0xd800 | (cvalue >> 10);
+*buffer = 0xdc00 | (cvalue & 0x3ff);
+return 2;
+
+/* Convert to UTF-32 */
+
+#else
+*buffer = (PCRE2_UCHAR)cvalue;
+return 1;
+#endif
+}
+#endif  /* SUPPORT_UNICODE */
+
+/* End of pcre_ord2utf.c */

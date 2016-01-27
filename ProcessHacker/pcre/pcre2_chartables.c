@@ -3,19 +3,19 @@
 *************************************************/
 
 /* This file contains character tables that are used when no external tables
-are passed to PCRE by the application that calls it. The tables are used only
+are passed to PCRE2 by the application that calls it. The tables are used only
 for characters whose code values are less than 256.
 
 This is a default version of the tables that assumes ASCII encoding. A program
-called dftables (which is distributed with PCRE) can be used to build
+called dftables (which is distributed with PCRE2) can be used to build
 alternative versions of this file. This is necessary if you are running in an
 EBCDIC environment, or if you want to default to a different encoding, for
 example ISO-8859-1. When dftables is run, it creates these tables in the
-current locale. If PCRE is configured with --enable-rebuild-chartables, this
+current locale. If PCRE2 is configured with --enable-rebuild-chartables, this
 happens automatically.
 
 The following #includes are present because without them gcc 4.x may remove the
-array definition from the final binary if PCRE is built into a static library
+array definition from the final binary if PCRE2 is built into a static library
 and dead code stripping is activated. This leads to link errors. Pulling in the
 header ensures that the array gets flagged as "someone outside this compilation
 unit might reference this" and so it will always be supplied to the linker. */
@@ -25,9 +25,9 @@ unit might reference this" and so it will always be supplied to the linker. */
 #include "config.h"
 #endif
 
-#include "pcre_internal.h"
+#include "pcre2_internal.h"
 
-const unsigned char _pcre_default_tables[] = {
+const uint8_t PRIV(default_tables)[] = {
 
 /* This table is a lower casing table. */
 
@@ -164,7 +164,7 @@ graph, print, punct, and cntrl. Other classes are built from combinations. */
 */
 
   0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00, /*   0-  7 */
-  0x00,0x01,0x01,0x00,0x01,0x01,0x00,0x00, /*   8- 15 */
+  0x00,0x01,0x01,0x01,0x01,0x01,0x00,0x00, /*   8- 15 */
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, /*  16- 23 */
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, /*  24- 31 */
   0x01,0x00,0x00,0x00,0x80,0x00,0x00,0x00, /*    - '  */
@@ -196,4 +196,4 @@ graph, print, punct, and cntrl. Other classes are built from combinations. */
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, /* 240-247 */
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};/* 248-255 */
 
-/* End of pcre_chartables.c */
+/* End of pcre2_chartables.c */
