@@ -189,7 +189,7 @@ static VOID FilterResults(
 
             compiledExpression = pcre2_compile(
                 selectedChoice->Buffer,
-                PCRE2_ZERO_TERMINATED,
+                selectedChoice->Length / sizeof(WCHAR),
                 (Type == FILTER_REGEX_IGNORECASE ? PCRE2_CASELESS : 0) | PCRE2_DOTALL,
                 &errorCode,
                 &errorOffset,

@@ -100,7 +100,7 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
         entry->Process.ParentName = ParentName;
     }
 
-    if (entry->Type == PH_LOG_ENTRY_PROCESS_DELETE)
+    if (QueryHandle && entry->Type == PH_LOG_ENTRY_PROCESS_DELETE)
     {
         PROCESS_BASIC_INFORMATION basicInfo;
 
