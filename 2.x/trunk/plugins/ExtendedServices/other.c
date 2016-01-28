@@ -282,7 +282,7 @@ static int __cdecl PrivilegeNameCompareFunction(
     PWSTR string1 = *(PWSTR *)elem1;
     PWSTR string2 = *(PWSTR *)elem2;
 
-    return wcscmp(string1, string2);
+    return PhCompareStringZ(string1, string2, TRUE);
 }
 
 INT_PTR CALLBACK EspServiceOtherDlgProc(
