@@ -90,7 +90,6 @@ typedef struct _PH_UPDATER_CONTEXT
     ULONG CurrentMinorVersion;
     ULONG CurrentMajorVersion;
     ULONG CurrentRevisionVersion;
-    PPH_STRING UserAgent;
     PPH_STRING Version;
     PPH_STRING RevVersion;
     PPH_STRING RelDate;

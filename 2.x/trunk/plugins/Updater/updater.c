@@ -33,7 +33,7 @@ static mxml_type_t QueryXmlDataCallback(
     return MXML_OPAQUE;
 }
 
-static BOOLEAN HasLastUpdateTimeExpired(
+static BOOLEAN LastUpdateCheckExpired(
     VOID
     )
 {
@@ -65,6 +65,75 @@ static BOOLEAN HasLastUpdateTimeExpired(
     // Cleanup
     PhDereferenceObject(lastUpdateTimeString);
     return FALSE;
+}
+
+static PPH_STRING UpdateVersionString(
+    VOID
+    )
+{
+    ULONG majorVersion;
+    ULONG minorVersion;
+    ULONG revisionVersion;
+    PPH_STRING currentVersion = NULL;
+    PPH_STRING versionHeader = NULL;
+
+    PhGetPhVersionNumbers(
+        &majorVersion,
+        &minorVersion,
+        NULL,
+        &revisionVersion
+        );
+
+    currentVersion = PhFormatString(
+        L"%lu.%lu.%lu",
+        majorVersion,
+        minorVersion,
+        revisionVersion
+        );
+
+    if (currentVersion)
+    {
+        versionHeader = PhConcatStrings2(L"ProcessHacker-Build: ", currentVersion->Buffer);
+        PhDereferenceObject(currentVersion);
+    }
+
+    return versionHeader;
+}
+
+static PPH_STRING UpdateWindowsString(
+    VOID
+    )
+{
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
+
+    HANDLE keyHandle = NULL;
+    PPH_STRING buildLabHeader = NULL;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        PPH_STRING buildLabString;
+        
+        if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
+        {
+            buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
+            PhDereferenceObject(buildLabString);
+        }
+        else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
+        {
+            buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
+            PhDereferenceObject(buildLabString);
+        }
+        
+        NtClose(keyHandle);
+    }
+
+    return buildLabHeader;
 }
 
 static BOOLEAN ParseVersionString(
@@ -175,7 +244,6 @@ static VOID FreeUpdateContext(
     Context->CurrentMajorVersion = 0;
     Context->CurrentRevisionVersion = 0;
 
-    PhClearReference(&Context->UserAgent);
     PhClearReference(&Context->Version);
     PhClearReference(&Context->RevVersion);
     PhClearReference(&Context->RelDate);
@@ -208,7 +276,7 @@ static VOID FreeUpdateContext(
 
 static BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context,
-    _In_ BOOLEAN UseFailoverServer
+    _In_ BOOLEAN UseFailServer
     )
 {
     BOOLEAN isSuccess = FALSE;
@@ -219,6 +287,8 @@ static BOOLEAN QueryUpdateData(
     mxml_node_t* xmlNode = NULL;
     ULONG xmlStringBufferLength = 0;
     PSTR xmlStringBuffer = NULL;
+    PPH_STRING versionHeader = UpdateVersionString();
+    PPH_STRING windowsHeader = UpdateWindowsString();
 
     // Get the current Process Hacker version
     PhGetPhVersionNumbers(
@@ -230,22 +300,12 @@ static BOOLEAN QueryUpdateData(
 
     __try
     {
-        // Create a user agent string.
-        Context->UserAgent = PhFormatString(
-            L"PH_%lu.%lu_%lu",
-            Context->CurrentMajorVersion,
-            Context->CurrentMinorVersion,
-            Context->CurrentRevisionVersion
-            );
-        if (PhIsNullOrEmptyString(Context->UserAgent))
-            __leave;
-
         // Query the current system proxy
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
         // Open the HTTP session with the system proxy configuration if available
         if (!(httpSessionHandle = WinHttpOpen(
-            Context->UserAgent->Buffer,
+            NULL,
             proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
             proxyConfig.lpszProxy,
             proxyConfig.lpszProxyBypass,
@@ -255,7 +315,20 @@ static BOOLEAN QueryUpdateData(
             __leave;
         }
 
-        if (UseFailoverServer)
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+            ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+
+            WinHttpSetOption(
+                httpSessionHandle, 
+                WINHTTP_OPTION_DECOMPRESSION, 
+                &httpFlags,
+                sizeof(ULONG)
+                );
+        }
+
+        if (UseFailServer)
         {
             if (!(httpConnectionHandle = WinHttpConnect(
                 httpSessionHandle,
@@ -306,11 +379,34 @@ static BOOLEAN QueryUpdateData(
             }
         }
 
+        if (versionHeader)
+        {
+            WinHttpAddRequestHeaders(
+                httpRequestHandle, 
+                versionHeader->Buffer, 
+                (ULONG)versionHeader->Length / sizeof(WCHAR), 
+                WINHTTP_ADDREQ_FLAG_ADD
+                );
+        }
+
+        if (windowsHeader)
+        {
+            WinHttpAddRequestHeaders(
+                httpRequestHandle, 
+                windowsHeader->Buffer,
+                (ULONG)windowsHeader->Length / sizeof(WCHAR),
+                WINHTTP_ADDREQ_FLAG_ADD
+                );
+        }
+
         if (!WinHttpSendRequest(
             httpRequestHandle,
-            WINHTTP_NO_ADDITIONAL_HEADERS, 0,
-            WINHTTP_NO_REQUEST_DATA, 0,
-            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH, 0
+            WINHTTP_NO_ADDITIONAL_HEADERS, 
+            0,
+            WINHTTP_NO_REQUEST_DATA, 
+            0,
+            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH, 
+            0
             ))
         {
             __leave;
@@ -402,6 +498,9 @@ static BOOLEAN QueryUpdateData(
 
         if (xmlStringBuffer)
             PhFree(xmlStringBuffer);
+
+        PhClearReference(&versionHeader);
+        PhClearReference(&windowsHeader);
     }
 
     return isSuccess;
@@ -419,7 +518,7 @@ static NTSTATUS UpdateCheckSilentThread(
 
     __try
     {
-        if (!HasLastUpdateTimeExpired())
+        if (!LastUpdateCheckExpired())
         {
             __leave;
         }
@@ -567,6 +666,7 @@ static NTSTATUS UpdateDownloadThread(
     PPH_STRING setupTempPath = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
+    PPH_STRING userAgentString = NULL;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
@@ -574,6 +674,16 @@ static NTSTATUS UpdateDownloadThread(
 
     __try
     {
+        // Create a user agent string.
+        userAgentString = PhFormatString(
+            L"PH_%lu.%lu_%lu",
+            context->CurrentMajorVersion,
+            context->CurrentMinorVersion,
+            context->CurrentRevisionVersion
+            );
+        if (PhIsNullOrEmptyString(userAgentString))
+            __leave;
+
         // Allocate the GetTempPath buffer
         setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
         if (PhIsNullOrEmptyString(setupTempPath))
@@ -648,7 +758,7 @@ static NTSTATUS UpdateDownloadThread(
 
         // Open the HTTP session with the system proxy configuration if available
         if (!(httpSessionHandle = WinHttpOpen(
-            context->UserAgent->Buffer,
+            userAgentString->Buffer,
             proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
             proxyConfig.lpszProxy,
             proxyConfig.lpszProxyBypass,
@@ -658,10 +768,23 @@ static NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+            ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+
+            WinHttpSetOption(
+                httpSessionHandle,
+                WINHTTP_OPTION_DECOMPRESSION,
+                &httpFlags,
+                sizeof(ULONG)
+                );
+        }
+
         if (!(httpConnectionHandle = WinHttpConnect(
             httpSessionHandle,
             downloadHostPath->Buffer,
-            INTERNET_DEFAULT_HTTP_PORT,
+            httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
             0
             )))
         {
@@ -675,7 +798,7 @@ static NTSTATUS UpdateDownloadThread(
             NULL,
             WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_REFRESH
+            WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
             )))
         {
             __leave;
@@ -824,6 +947,7 @@ static NTSTATUS UpdateDownloadThread(
         PhClearReference(&setupTempPath);
         PhClearReference(&downloadHostPath);
         PhClearReference(&downloadUrlPath);
+        PhClearReference(&userAgentString);
     }
 
     if (WindowsVersion < WINDOWS_8)
