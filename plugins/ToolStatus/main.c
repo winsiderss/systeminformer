@@ -209,6 +209,7 @@ VOID ShowCustomizeMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search Box", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU History", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Memory History", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_COMMIT_GRAPH, L"Commit History", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O History", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the Toolbar", NULL, NULL), -1);
@@ -227,6 +228,11 @@ VOID ShowCustomizeMenu(
     if (ToolStatusConfig.MemGraphEnabled)
     {
         PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MEMORY_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (ToolStatusConfig.CommitGraphEnabled)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_COMMIT_GRAPH, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
     if (ToolStatusConfig.IoGraphEnabled)
@@ -281,6 +287,16 @@ VOID ShowCustomizeMenu(
         case COMMAND_ID_ENABLE_MEMORY_GRAPH:
             {
                 ToolStatusConfig.MemGraphEnabled = !ToolStatusConfig.MemGraphEnabled;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+                ToolbarLoadSettings();
+                ReBarSaveLayoutSettings();
+            }
+            break;
+        case COMMAND_ID_ENABLE_COMMIT_GRAPH:
+            {
+                ToolStatusConfig.CommitGraphEnabled = !ToolStatusConfig.CommitGraphEnabled;
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
@@ -944,7 +960,12 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                 goto DefaultWndProc;
             }
-            else if (CpuGraphHandle && hdr->hwndFrom == CpuGraphHandle || MemGraphHandle && hdr->hwndFrom == MemGraphHandle || IoGraphHandle && hdr->hwndFrom == IoGraphHandle)
+            else if (
+                CpuGraphHandle && hdr->hwndFrom == CpuGraphHandle || 
+                MemGraphHandle && hdr->hwndFrom == MemGraphHandle || 
+                CommitGraphHandle && hdr->hwndFrom == CommitGraphHandle ||
+                IoGraphHandle && hdr->hwndFrom == IoGraphHandle
+                )
             {
                 ToolbarUpdateGraphsInfo(hdr);
 
