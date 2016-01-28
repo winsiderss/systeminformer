@@ -5563,14 +5563,11 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 
         PhDrainAutoPool(&autoPool);
 
-        // Destroy the window when necessary.
         if (!PropSheet_GetCurrentPageHwnd(hwnd))
-        {
-            DestroyWindow(hwnd);
             break;
-        }
     }
 
+    DestroyWindow(hwnd);
     PhDereferenceObject(PropContext);
 
     PhDeleteAutoPool(&autoPool);

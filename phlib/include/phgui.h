@@ -445,6 +445,10 @@ HWND PhCreateDialogFromTemplate(
     _In_ PVOID Parameter
     );
 
+BOOLEAN PhModalPropertySheet(
+    _Inout_ PROPSHEETHEADER *Header
+    );
+
 #define PH_ANCHOR_LEFT 0x1
 #define PH_ANCHOR_TOP 0x2
 #define PH_ANCHOR_RIGHT 0x4

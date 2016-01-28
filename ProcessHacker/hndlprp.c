@@ -220,7 +220,7 @@ VOID PhShowHandleProperties(
         propSheetHeader.nPages = objectProperties.NumberOfPages;
     }
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
