@@ -494,7 +494,7 @@ CommonInt64Format:
                     maxSizeUnit = PhMaxSizeUnit;
 
                 while (
-                    s >= 1024 &&
+                    s >= 1000 &&
                     i < sizeof(PhpSizeUnitNamesCounted) / sizeof(PH_STRINGREF) &&
                     i < maxSizeUnit
                     )
