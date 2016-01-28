@@ -161,7 +161,7 @@ VOID PhShowServiceProperties(
         propSheetHeader.nPages = objectProperties.NumberOfPages;
     }
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 static VOID PhpRefreshControls(

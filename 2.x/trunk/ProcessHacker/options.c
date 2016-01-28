@@ -176,7 +176,7 @@ VOID PhShowOptionsDialog(
 
     OldTaskMgrDebugger = NULL;
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 
     if (PressedOk)
     {
