@@ -3,6 +3,7 @@ Process Hacker
 2.37
  * HIGHLIGHTS:
    * Updated for Windows 10
+   * The "Include CPU (and other) usage of children in collapsed processes" option now aggregates memory and I/O statistics
    * Added regex search to "Find Handles or DLLs"
    * Added process exit codes to log
    * Fixed crash that occurred under some conditions when processes terminated

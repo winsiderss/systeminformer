@@ -1578,7 +1578,7 @@ VOID PhInitializeTreeNewColumnMenuEx(
 
         TreeNew_GetSort(Data->TreeNewHandle, &sortColumn, &sortOrder);
 
-        if (sortColumn != Data->DefaultSortColumn || sortOrder != Data->DefaultSortOrder)
+        if (sortOrder != Data->DefaultSortOrder || (Data->DefaultSortOrder != NoSortOrder && sortColumn != Data->DefaultSortColumn))
             resetSortMenuItem = PhCreateEMenuItem(0, PH_TN_COLUMN_MENU_RESET_SORT_ID, L"Reset Sort", NULL, NULL);
     }
 
