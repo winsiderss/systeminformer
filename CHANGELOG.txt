@@ -3,6 +3,7 @@ Process Hacker
 2.37
  * HIGHLIGHTS:
    * Updated for Windows 10
+   * Added regex search to "Find Handles or DLLs"
    * Added process exit codes to log
    * Fixed crash that occurred under some conditions when processes terminated
  * OTHER CHANGES:

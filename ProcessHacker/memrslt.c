@@ -2,7 +2,7 @@
  * Process Hacker -
  *   memory search results
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -115,8 +115,8 @@ static VOID FilterResults(
 {
     PPH_STRING selectedChoice = NULL;
     PPH_LIST results;
-    pcre2_code *expression;
-    pcre2_match_data *match_data;
+    pcre2_code *compiledExpression;
+    pcre2_match_data *matchData;
 
     results = Context->Results;
 
@@ -187,7 +187,7 @@ static VOID FilterResults(
             int errorCode;
             PCRE2_SIZE errorOffset;
 
-            expression = pcre2_compile(
+            compiledExpression = pcre2_compile(
                 selectedChoice->Buffer,
                 PCRE2_ZERO_TERMINATED,
                 (Type == FILTER_REGEX_IGNORECASE ? PCRE2_CASELESS : 0) | PCRE2_DOTALL,
@@ -196,21 +196,16 @@ static VOID FilterResults(
                 NULL
                 );
 
-            if (!expression)
+            if (!compiledExpression)
             {
-                PCRE2_UCHAR errorString[512] = L"";
-
-                // TODO: This returns a negative error code if the buffer is too small.
-                pcre2_get_error_message(errorCode, errorString, sizeof(errorString));
-
                 PhShowError(hwndDlg, L"Unable to compile the regular expression: \"%s\" at position %zu.",
-                    errorString,
+                    PhGetStringOrDefault(PhAutoDereferenceObject(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
                     errorOffset
                     );
                 continue;
             }
 
-            match_data = pcre2_match_data_create_from_pattern(expression, NULL);
+            matchData = pcre2_match_data_create_from_pattern(compiledExpression, NULL);
 
             newResults = PhCreateList(1024);
 
@@ -219,12 +214,12 @@ static VOID FilterResults(
                 PPH_MEMORY_RESULT result = results->Items[i];
 
                 if (pcre2_match(
-                    expression,
+                    compiledExpression,
                     result->Display.Buffer,
                     result->Display.Length / sizeof(WCHAR),
                     0,
                     0,
-                    match_data,
+                    matchData,
                     NULL
                     ) >= 0)
                 {
@@ -233,8 +228,8 @@ static VOID FilterResults(
                 }
             }
 
-            pcre2_match_data_free(match_data);
-            pcre2_code_free(expression);
+            pcre2_match_data_free(matchData);
+            pcre2_code_free(compiledExpression);
         }
 
         if (newResults)

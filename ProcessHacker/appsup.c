@@ -2,7 +2,7 @@
  * Process Hacker -
  *   application support functions
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -28,6 +28,7 @@
 #include <emenu.h>
 #include <phsvccl.h>
 #include "mxml/mxml.h"
+#include "pcre/pcre2.h"
 #include <winsta.h>
 
 #pragma warning(push)
@@ -2130,4 +2131,36 @@ CleanupExit:
         PhUiDisconnectFromPhSvc();
 
     return result;
+}
+
+PPH_STRING PhPcre2GetErrorMessage(
+    _In_ INT ErrorCode
+    )
+{
+    PPH_STRING buffer;
+    SIZE_T bufferLength;
+    INT_PTR returnLength;
+
+    bufferLength = 128 * sizeof(WCHAR);
+    buffer = PhCreateStringEx(NULL, bufferLength);
+
+    while (TRUE)
+    {
+        if ((returnLength = pcre2_get_error_message(ErrorCode, buffer->Buffer, bufferLength / sizeof(WCHAR) + 1)) >= 0)
+            break;
+
+        PhDereferenceObject(buffer);
+        bufferLength *= 2;
+
+        if (bufferLength > 0x1000 * sizeof(WCHAR))
+            break;
+
+        buffer = PhCreateStringEx(NULL, bufferLength);
+    }
+
+    if (returnLength < 0)
+        return NULL;
+
+    buffer->Length = returnLength * sizeof(WCHAR);
+    return buffer;
 }

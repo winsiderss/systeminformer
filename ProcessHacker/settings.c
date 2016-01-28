@@ -2,7 +2,7 @@
  * Process Hacker -
  *   program settings
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -88,6 +88,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
+    PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
     PhpAddIntegerPairSetting(L"FindObjWindowSize", L"550,420");

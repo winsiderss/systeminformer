@@ -525,6 +525,7 @@
 #define IDC_ZPAGINGMAPPEDWRITESDELTA_V  1371
 #define IDC_ZLISTMODIFIEDPAGEFILE_V     1373
 #define IDC_SECTION                     1375
+#define IDC_REGEX                       1377
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -735,7 +736,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        213
 #define _APS_NEXT_COMMAND_VALUE         40290
-#define _APS_NEXT_CONTROL_VALUE         1377
+#define _APS_NEXT_CONTROL_VALUE         1378
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif

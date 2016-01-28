@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object search
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -23,7 +23,9 @@
 #include <phapp.h>
 #include <emenu.h>
 #include <kphuser.h>
+#include <settings.h>
 #include <procprpp.h>
+#include "pcre/pcre2.h"
 #include <windowsx.h>
 
 #define WM_PH_SEARCH_UPDATE (WM_APP + 801)
@@ -70,6 +72,8 @@ static RECT MinimumSize;
 static HANDLE SearchThreadHandle = NULL;
 static BOOLEAN SearchStop;
 static PPH_STRING SearchString;
+static pcre2_code *SearchRegexCompiledExpression;
+static pcre2_match_data *SearchRegexMatchData;
 static PPH_LIST SearchResults = NULL;
 static ULONG SearchResultsAddIndex;
 static PH_QUEUED_LOCK SearchResultsLock = PH_QUEUED_LOCK_INIT;
@@ -207,6 +211,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_FILTER),
                 NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_REGEX),
+                NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&WindowLayoutManager, lvHandle,
@@ -236,10 +242,13 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpObjectNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpObjectHandleCompareFunction);
             PhLoadListViewColumnsFromSetting(L"FindObjListViewColumns", lvHandle);
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_DESTROY:
         {
+            PhSetIntegerSetting(L"FindObjRegex", Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED);
             PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"FindObjListViewColumns", PhFindObjectsListViewHandle);
         }
@@ -284,7 +293,47 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     {
                         ULONG i;
 
-                        // Cleanup previous results.
+                        PhMoveReference(&SearchString, PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTER)));
+
+                        if (SearchRegexCompiledExpression)
+                        {
+                            pcre2_code_free(SearchRegexCompiledExpression);
+                            SearchRegexCompiledExpression = NULL;
+                        }
+
+                        if (SearchRegexMatchData)
+                        {
+                            pcre2_match_data_free(SearchRegexMatchData);
+                            SearchRegexMatchData = NULL;
+                        }
+
+                        if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED)
+                        {
+                            int errorCode;
+                            PCRE2_SIZE errorOffset;
+
+                            SearchRegexCompiledExpression = pcre2_compile(
+                                SearchString->Buffer,
+                                PCRE2_ZERO_TERMINATED,
+                                PCRE2_CASELESS | PCRE2_DOTALL,
+                                &errorCode,
+                                &errorOffset,
+                                NULL
+                                );
+
+                            if (!SearchRegexCompiledExpression)
+                            {
+                                PhShowError(hwndDlg, L"Unable to compile the regular expression: \"%s\" at position %zu.",
+                                    PhGetStringOrDefault(PhAutoDereferenceObject(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
+                                    errorOffset
+                                    );
+                                break;
+                            }
+
+                            SearchRegexMatchData = pcre2_match_data_create_from_pattern(SearchRegexCompiledExpression, NULL);
+                        }
+
+                        // Clean up previous results.
 
                         ListView_DeleteAllItems(PhFindObjectsListViewHandle);
 
@@ -308,7 +357,6 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         // Start the search.
 
-                        SearchString = PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTER));
                         SearchResults = PhCreateList(128);
                         SearchResultsAddIndex = 0;
 
@@ -316,10 +364,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         if (!SearchThreadHandle)
                         {
-                            PhDereferenceObject(SearchString);
-                            PhDereferenceObject(SearchResults);
-                            SearchString = NULL;
-                            SearchResults = NULL;
+                            PhClearReference(&SearchResults);
                             break;
                         }
 
@@ -640,8 +685,6 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             // Add any un-added items.
             SendMessage(hwndDlg, WM_PH_SEARCH_UPDATE, 0, 0);
 
-            PhDereferenceObject(SearchString);
-
             NtWaitForSingleObject(SearchThreadHandle, FALSE, NULL);
             NtClose(SearchThreadHandle);
             SearchThreadHandle = NULL;
@@ -667,6 +710,28 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
     }
 
     return FALSE;
+}
+
+static BOOLEAN MatchSearchString(
+    _In_ PPH_STRINGREF Input
+    )
+{
+    if (SearchRegexCompiledExpression && SearchRegexMatchData)
+    {
+        return pcre2_match(
+            SearchRegexCompiledExpression,
+            Input->Buffer,
+            Input->Length / sizeof(WCHAR),
+            0,
+            0,
+            SearchRegexMatchData,
+            NULL
+            ) >= 0;
+    }
+    else
+    {
+        return PhFindStringInStringRef(Input, &SearchString->sr, TRUE) != -1;
+    }
 }
 
 typedef struct _SEARCH_HANDLE_CONTEXT
@@ -699,7 +764,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
         upperBestObjectName = PhDuplicateString(bestObjectName);
         PhUpperString(upperBestObjectName);
 
-        if (PhFindStringInString(upperBestObjectName, 0, SearchString->Buffer) != -1 ||
+        if (MatchSearchString(&upperBestObjectName->sr) ||
             (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
@@ -748,7 +813,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     upperFileName = PhDuplicateString(Module->FileName);
     PhUpperString(upperFileName);
 
-    if (PhFindStringInString(upperFileName, 0, SearchString->Buffer) != -1 ||
+    if (MatchSearchString(&upperFileName->sr) ||
         (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;

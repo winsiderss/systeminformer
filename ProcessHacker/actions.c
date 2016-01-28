@@ -2,7 +2,7 @@
  * Process Hacker -
  *   UI actions
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -523,7 +523,7 @@ BOOLEAN PhUiLogoffComputer(
     if (ExitWindowsEx(EWX_LOGOFF, 0))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to logoff the computer", 0, GetLastError());
+        PhShowStatus(hWnd, L"Unable to log off the computer", 0, GetLastError());
 
     return FALSE;
 }

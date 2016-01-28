@@ -711,9 +711,10 @@ CAPTION "Find Handles or DLLs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Filter:",IDC_STATIC,7,9,20,8
-    EDITTEXT        IDC_FILTER,32,8,263,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_FILTER,32,8,223,12,ES_AUTOHSCROLL
     PUSHBUTTON      "Find",IDOK,300,7,50,14
     CONTROL         "",IDC_RESULTS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,26,343,200
+    CONTROL         "&Regex",IDC_REGEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,261,9,36,10
 END
 
 IDD_OBJTOKEN DIALOGEX 0, 0, 260, 260
@@ -2472,6 +2473,17 @@ IDB_COG                 BITMAP                  "resources\\cog.bmp"
 //
 
 IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_FINDOBJECTS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
