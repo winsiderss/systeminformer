@@ -658,5 +658,8 @@
     <Image Include="resources\cog.bmp">
       <Filter>Resources</Filter>
     </Image>
+    <Image Include="resources\asterisk_orange.bmp">
+      <Filter>Resources</Filter>
+    </Image>
   </ItemGroup>
 </Project>
