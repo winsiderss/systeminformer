@@ -314,7 +314,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                             SearchRegexCompiledExpression = pcre2_compile(
                                 SearchString->Buffer,
-                                PCRE2_ZERO_TERMINATED,
+                                SearchString->Length / sizeof(WCHAR),
                                 PCRE2_CASELESS | PCRE2_DOTALL,
                                 &errorCode,
                                 &errorOffset,
