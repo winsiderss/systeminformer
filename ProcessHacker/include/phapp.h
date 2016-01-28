@@ -583,6 +583,10 @@ BOOLEAN PhShellOpenKey2(
     _In_ PPH_STRING KeyName
     );
 
+PPH_STRING PhPcre2GetErrorMessage(
+    _In_ INT ErrorCode
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(

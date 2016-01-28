@@ -423,6 +423,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resources\asterisk_orange.bmp" />
     <Image Include="resources\cog.bmp" />
     <Image Include="resources\pin.bmp" />
   </ItemGroup>
