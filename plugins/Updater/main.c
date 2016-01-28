@@ -131,7 +131,7 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK, L"1" },
-                { StringSettingType, SETTING_NAME_LAST_CHECK, L"0" },
+                { StringSettingType, SETTING_NAME_LAST_CHECK, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
