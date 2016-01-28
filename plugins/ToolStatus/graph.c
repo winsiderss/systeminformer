@@ -616,6 +616,13 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     ShowCustomizeMenu();
                 }
             }
+            else if (ToolStatusConfig.CommitGraphEnabled && Header->hwndFrom == CommitGraphHandle)
+            {
+                if (mouseEvent->Message == WM_RBUTTONUP)
+                {
+                    ShowCustomizeMenu();
+                }
+            }
             else if (ToolStatusConfig.IoGraphEnabled && Header->hwndFrom == IoGraphHandle)
             {
                 if (mouseEvent->Message == WM_RBUTTONUP)
