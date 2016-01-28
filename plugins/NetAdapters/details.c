@@ -2,7 +2,7 @@
  * Process Hacker Extra Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -59,7 +59,6 @@ static VOID PhAddListViewItemGroupId(
 static VOID PhAddListViewGroup(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
-    _In_ BOOLEAN Collapsed,
     _In_ PWSTR Text
     )
 {
@@ -71,7 +70,7 @@ static VOID PhAddListViewGroup(
         group.cbSize = sizeof(LVGROUP);
         group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
         group.uAlign = LVGA_HEADER_LEFT;
-        group.state = Collapsed ? LVGS_COLLAPSED | LVGS_COLLAPSIBLE : LVGS_COLLAPSIBLE;
+        group.state = LVGS_COLLAPSIBLE;
     }
 
     group.iGroupId = Index;
@@ -85,11 +84,11 @@ static VOID AddListViewItemGroups(
     )
 {
     ListView_EnableGroupView(ListViewHandle, TRUE);
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, FALSE, L"Adapter");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_UNICAST, TRUE, L"Unicast");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, TRUE, L"Broadcast");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, TRUE, L"Multicast");
-    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, TRUE, L"Errors");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, L"Adapter");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_UNICAST, L"Unicast");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, L"Broadcast");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, L"Multicast");
+    PhAddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, L"Errors");
 
     PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State");
     //PhAddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");  
