@@ -24,9 +24,11 @@
 
 HWND CpuGraphHandle = NULL;
 HWND MemGraphHandle = NULL;
+HWND CommitGraphHandle = NULL;
 HWND IoGraphHandle = NULL;
 static PH_GRAPH_STATE CpuGraphState;
 static PH_GRAPH_STATE MemGraphState;
+static PH_GRAPH_STATE CommitGraphState;
 static PH_GRAPH_STATE IoGraphState;
 
 VOID ToolbarCreateGraphs(VOID)
@@ -71,6 +73,26 @@ VOID ToolbarCreateGraphs(VOID)
         Graph_SetTooltip(MemGraphHandle, TRUE);
 
         PhInitializeGraphState(&MemGraphState);
+    }
+
+    if (ToolStatusConfig.CommitGraphEnabled && !CommitGraphHandle)
+    {
+        CommitGraphHandle = CreateWindow(
+            PH_GRAPH_CLASSNAME,
+            NULL,
+            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            0,
+            0,
+            0,
+            0,
+            PhMainWndHandle,
+            NULL,
+            NULL,
+            NULL
+            );
+        Graph_SetTooltip(CommitGraphHandle, TRUE);
+
+        PhInitializeGraphState(&CommitGraphState);
     }
 
     if (ToolStatusConfig.IoGraphEnabled && !IoGraphHandle)
@@ -139,6 +161,30 @@ VOID ToolbarCreateGraphs(VOID)
         }
     }
 
+    if (ToolStatusConfig.CommitGraphEnabled)
+    {
+        if (!RebarBandExists(REBAR_BAND_ID_COMMITGRAPH))
+            RebarBandInsert(REBAR_BAND_ID_COMMITGRAPH, CommitGraphHandle, 145, height); // 85
+
+        if (CommitGraphHandle && !IsWindowVisible(CommitGraphHandle))
+        {
+            ShowWindow(CommitGraphHandle, SW_SHOW);
+        }
+    }
+    else
+    {
+        if (RebarBandExists(REBAR_BAND_ID_COMMITGRAPH))
+            RebarBandRemove(REBAR_BAND_ID_COMMITGRAPH);
+
+        if (CommitGraphHandle)
+        {
+            PhDeleteGraphState(&CommitGraphState);
+
+            DestroyWindow(CommitGraphHandle);
+            CommitGraphHandle = NULL;
+        }
+    }
+
     if (ToolStatusConfig.IoGraphEnabled)
     {
         if (!RebarBandExists(REBAR_BAND_ID_IOGRAPH))
@@ -184,6 +230,16 @@ VOID ToolbarUpdateGraphs(VOID)
         Graph_Draw(MemGraphHandle);
         Graph_UpdateTooltip(MemGraphHandle);
         InvalidateRect(MemGraphHandle, NULL, FALSE);
+    }
+
+    if (ToolStatusConfig.CommitGraphEnabled && CommitGraphHandle)
+    {
+        CommitGraphState.Valid = FALSE;
+        CommitGraphState.TooltipIndex = -1;
+        Graph_MoveGrid(CommitGraphHandle, 1);
+        Graph_Draw(CommitGraphHandle);
+        Graph_UpdateTooltip(CommitGraphHandle);
+        InvalidateRect(CommitGraphHandle, NULL, FALSE);
     }
 
     if (ToolStatusConfig.IoGraphEnabled && IoGraphHandle)
@@ -329,7 +385,6 @@ static PPH_STRING PhSipGetMaxIoString(
     return maxUsageString;
 }
 
-
 VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 {
     switch (Header->code)
@@ -386,6 +441,35 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                         );
 
                     MemGraphState.Valid = TRUE;
+                }
+            }
+            else if (ToolStatusConfig.CommitGraphEnabled && Header->hwndFrom == CommitGraphHandle)
+            {
+                PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+                PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
+
+                if (ProcessesUpdatedCount < 2)
+                    return;
+
+                PhGraphStateGetDrawInfo(&CommitGraphState, getDrawInfo, SystemStatistics.CommitHistory->Count);
+
+                if (!CommitGraphState.Valid)
+                {
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        CommitGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, i);
+                    }
+
+                    PhDivideSinglesBySingle(
+                        CommitGraphState.Data1,
+                        (FLOAT)SystemStatistics.Performance->CommitLimit,
+                        drawInfo->LineDataCount
+                        );
+
+                    CommitGraphState.Valid = TRUE;
                 }
             }
             else if (ToolStatusConfig.IoGraphEnabled && Header->hwndFrom == IoGraphHandle)
@@ -453,16 +537,29 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                 }
                 else if (ToolStatusConfig.MemGraphEnabled && Header->hwndFrom == MemGraphHandle)
                 {
-                    ULONG usedPages;
+                    ULONG physicalUsage;
 
-                    usedPages = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
+                    physicalUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
 
                     PhMoveReference(&MemGraphState.TooltipText, PhFormatString(
                         L"Physical Memory: %s\n%s",
-                        PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                        PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
                         ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                     getTooltipText->Text = MemGraphState.TooltipText->sr;
+                }
+                else if (ToolStatusConfig.CommitGraphEnabled && Header->hwndFrom == CommitGraphHandle)
+                {
+                    ULONG commitUsage;
+
+                    commitUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, getTooltipText->Index);
+
+                    PhMoveReference(&CommitGraphState.TooltipText, PhFormatString(
+                        L"Commit: %s\n%s",
+                        PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
+                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ));
+                    getTooltipText->Text = CommitGraphState.TooltipText->sr;
                 }
                 else if (ToolStatusConfig.IoGraphEnabled && Header->hwndFrom == IoGraphHandle)
                 {
