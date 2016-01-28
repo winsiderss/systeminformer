@@ -1321,8 +1321,8 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,167,10
     CONTROL         "Resolve addresses for network connections",IDC_ENABLENETWORKRESOLVE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,155,10
-    CONTROL         "Include CPU usage of children in collapsed processes",IDC_PROPAGATECPUUSAGE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,184,10
+    CONTROL         "Include CPU (and other) usage of children in collapsed processes",IDC_PROPAGATECPUUSAGE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,223,10
     CONTROL         "Show tooltips instantly",IDC_ENABLEINSTANTTOOLTIPS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,88,10
     CONTROL         "Enable cycle-based CPU usage",IDC_ENABLECYCLECPUUSAGE,
@@ -2480,6 +2480,11 @@ IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 //
 
 IDD_FINDOBJECTS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_OPTADVANCED AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
