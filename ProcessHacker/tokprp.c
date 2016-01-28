@@ -138,7 +138,7 @@ VOID PhShowTokenProperties(
 
     pages[0] = PhCreateTokenPage(OpenObject, Context, NULL);
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 HPROPSHEETPAGE PhCreateTokenPage(
@@ -1017,7 +1017,7 @@ VOID PhpShowTokenAdvancedProperties(
     }
 
     propSheetHeader.nPages = numberOfPages;
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 static NTSTATUS PhpOpenLinkedToken(

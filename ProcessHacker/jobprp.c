@@ -78,7 +78,7 @@ VOID PhShowJobProperties(
 
     pages[0] = PhCreateJobPage(OpenObject, Context, NULL);
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 HPROPSHEETPAGE PhCreateJobPage(
@@ -531,7 +531,7 @@ VOID PhpShowJobAdvancedProperties(
         PhFree(accessEntries);
     }
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 static VOID PhpRefreshJobStatisticsInfo(

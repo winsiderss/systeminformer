@@ -876,6 +876,80 @@ HWND PhCreateDialogFromTemplate(
     return dialogHandle;
 }
 
+BOOLEAN PhModalPropertySheet(
+    _Inout_ PROPSHEETHEADER *Header
+    )
+{
+    // PropertySheet incorrectly discards WM_QUIT messages in certain cases, so we will use our own
+    // message loop. An example of this is when GetMessage (called by PropertySheet's message loop)
+    // dispatches a message directly from kernel-mode that causes the property sheet to close.
+    // In that case PropertySheet will retrieve the WM_QUIT message but will ignore it because of
+    // its buggy logic.
+
+    // This is also a good opportunity to introduce an auto-pool.
+
+    PH_AUTO_POOL autoPool;
+    HWND oldFocus;
+    HWND topLevelOwner;
+    HWND hwnd;
+    BOOL result;
+    MSG message;
+
+    PhInitializeAutoPool(&autoPool);
+
+    oldFocus = GetFocus();
+    topLevelOwner = Header->hwndParent;
+
+    while (topLevelOwner && (GetWindowLong(topLevelOwner, GWL_STYLE) & WS_CHILD))
+        topLevelOwner = GetParent(topLevelOwner);
+
+    if (topLevelOwner && (topLevelOwner == GetDesktopWindow() || EnableWindow(topLevelOwner, FALSE)))
+        topLevelOwner = NULL;
+
+    Header->dwFlags |= PSH_MODELESS;
+    hwnd = (HWND)PropertySheet(Header);
+
+    if (!hwnd)
+    {
+        if (topLevelOwner)
+            EnableWindow(topLevelOwner, TRUE);
+
+        return FALSE;
+    }
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!PropSheet_IsDialogMessage(hwnd, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+
+        // Destroy the window when necessary.
+        if (!PropSheet_GetCurrentPageHwnd(hwnd))
+            break;
+    }
+
+    if (result == 0)
+        PostQuitMessage((INT)message.wParam);
+    if (Header->hwndParent && GetActiveWindow() == hwnd)
+        SetActiveWindow(Header->hwndParent);
+    if (topLevelOwner)
+        EnableWindow(topLevelOwner, TRUE);
+    if (oldFocus && IsWindow(oldFocus))
+        SetFocus(oldFocus);
+
+    DestroyWindow(hwnd);
+    PhDeleteAutoPool(&autoPool);
+
+    return TRUE;
+}
+
 VOID PhInitializeLayoutManager(
     _Out_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND RootWindowHandle
