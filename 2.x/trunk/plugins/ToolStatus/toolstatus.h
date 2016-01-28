@@ -70,6 +70,7 @@ typedef enum _TOOLBAR_COMMAND_ID
     COMMAND_ID_ENABLE_SEARCHBOX,
     COMMAND_ID_ENABLE_CPU_GRAPH,
     COMMAND_ID_ENABLE_MEMORY_GRAPH,
+    COMMAND_ID_ENABLE_COMMIT_GRAPH,
     COMMAND_ID_ENABLE_IO_GRAPH,
     COMMAND_ID_TOOLBAR_LOCKUNLOCK,
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
@@ -95,6 +96,7 @@ typedef enum _REBAR_BAND_ID
     REBAR_BAND_ID_SEARCHBOX,
     REBAR_BAND_ID_CPUGRAPH,
     REBAR_BAND_ID_MEMGRAPH,
+    REBAR_BAND_ID_COMMITGRAPH,
     REBAR_BAND_ID_IOGRAPH
 } REBAR_BAND;
 
@@ -121,9 +123,10 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG AutoHideMenu : 1;
         ULONG CpuGraphEnabled : 1;
         ULONG MemGraphEnabled : 1;
+        ULONG CommitGraphEnabled : 1;
         ULONG IoGraphEnabled : 1;
 
-        ULONG Spare : 22;
+        ULONG Spare : 21;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -285,6 +288,7 @@ HBITMAP LoadImageFromResources(
 
 extern HWND CpuGraphHandle;
 extern HWND MemGraphHandle;
+extern HWND CommitGraphHandle;
 extern HWND IoGraphHandle;
 
 VOID ToolbarCreateGraphs(VOID);
