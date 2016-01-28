@@ -523,6 +523,19 @@ static BOOLEAN NTAPI MessageLoopFilter(
     {
         if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
             return TRUE;
+
+        if (Message->message == WM_SYSCHAR && ToolStatusConfig.AutoHideMenu && !GetMenu(PhMainWndHandle))
+        {
+            ULONG key = (ULONG)Message->wParam;
+
+            if (key == 'h' || key == 'v' || key == 't' || key == 'u' || key == 'e')
+            {
+                SetMenu(PhMainWndHandle, MainMenu);
+                DrawMenuBar(PhMainWndHandle);
+                SendMessage(PhMainWndHandle, WM_SYSCHAR, Message->wParam, Message->lParam);
+                return TRUE;
+            }
+        }
     }
 
     return FALSE;
@@ -1135,7 +1148,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                 if (!ToolStatusConfig.AutoHideMenu)
                     break;
 
-                if (GetMenu(PhMainWndHandle) != NULL)
+                if (GetMenu(PhMainWndHandle))
                 {
                     SetMenu(PhMainWndHandle, NULL);
                 }
@@ -1160,7 +1173,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
             if (!ToolStatusConfig.AutoHideMenu)
                 break;
 
-            if (GetMenu(PhMainWndHandle) != NULL)
+            if (GetMenu(PhMainWndHandle))
             {
                 SetMenu(PhMainWndHandle, NULL);
             }
