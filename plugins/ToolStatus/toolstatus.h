@@ -48,7 +48,7 @@
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 9
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
-#define MAX_TOOLBAR_ITEMS 11
+#define MAX_TOOLBAR_ITEMS 12
 #define MAX_STATUSBAR_ITEMS 14
 
 #define ID_SEARCH_CLEAR (WM_APP + 1)
@@ -164,6 +164,13 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
     );
 
 // toolbar.c
+
+typedef HRESULT (WINAPI *_LoadIconMetric)(
+    _In_ HINSTANCE hinst,
+    _In_ PCWSTR pszName,
+    _In_ int lims,
+    _Out_ HICON *phico
+    );
 
 VOID RebarBandInsert(
     _In_ UINT BandID,

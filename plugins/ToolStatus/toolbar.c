@@ -39,6 +39,7 @@ TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
     // Available toolbar buttons (hidden)
     { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Always on Top" },
     { 8, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Computer" },
+    { 9, PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Show Details for All Processes" },
 };
 
 VOID RebarBandInsert(
@@ -123,7 +124,7 @@ static VOID RebarLoadSettings(
             // Create the toolbar imagelist
             ToolBarImageList = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, 0, 0);
             // Set the number of images
-            ImageList_SetImageCount(ToolBarImageList, 9);
+            ImageList_SetImageCount(ToolBarImageList, 10);
         }
 
         // Add the images to the imagelist
@@ -240,6 +241,30 @@ static VOID RebarLoadSettings(
         else
         {
             PhSetImageListBitmap(ToolBarImageList, 8, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_POWER_BMP));
+        }
+
+        if (WINDOWS_HAS_UAC)
+        {
+            _LoadIconMetric loadIconMetric;
+            HICON shieldIcon = NULL;
+
+            // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
+            // resolution and look very bad when scaled down to the small icon size.
+            loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
+
+            if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+            {
+                HBITMAP shieldBitmap = PhIconToBitmap(
+                    shieldIcon,
+                    cx,
+                    cy
+                    );
+
+                ImageList_Replace(ToolBarImageList, 9, shieldBitmap, NULL);
+
+                DeleteObject(shieldBitmap);
+                DestroyIcon(shieldIcon);
+            }
         }
     }
 
@@ -473,6 +498,14 @@ VOID ToolbarLoadSettings(
 
             switch (buttonInfo.idCommand)
             {
+            case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
+                {
+                    if (WINDOWS_HAS_UAC && PhElevated)
+                    {
+                        buttonInfo.fsState |= TBSTATE_HIDDEN;
+                    }
+                }
+                break;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Set the pressed state
@@ -565,6 +598,8 @@ PWSTR ToolbarGetText(
         return L"Always on Top";
     case TIDC_POWERMENUDROPDOWN:
         return L"Computer";
+    case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
+        return L"Show Details for All Processes";
     }
 
     return L"ERROR";

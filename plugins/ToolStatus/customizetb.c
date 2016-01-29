@@ -288,6 +288,13 @@ static VOID CustomizeLoadItems(
         if (CustomizeItemExists(Context, button.idCommand))
             continue;
 
+        // HACK and violation of abstraction.
+        // Disable the 'Show Details for All Processes' on XP.
+        if (!WINDOWS_HAS_UAC && button.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
+        {
+            continue;
+        }
+
         buttonContext = PhAllocate(sizeof(BUTTON_CONTEXT));
         memset(buttonContext, 0, sizeof(BUTTON_CONTEXT));
 
@@ -395,6 +402,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             context->CurrentListHandle = GetDlgItem(hwndDlg, IDC_CURRENT);
             context->MoveUpButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEUP);
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
+            context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->BitmapWidth = GetSystemMetrics(SM_CYSMICON) + 4;
             context->Font = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
@@ -720,7 +728,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                         );
                 }
 
-                bufferRect.left += context->BitmapWidth + 2;
+                bufferRect.left += context->BitmapWidth; //+ 2;
 
                 if (buttonContext->IdCommand != 0)
                 {
@@ -729,7 +737,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                         ToolbarGetText(buttonContext->IdCommand),
                         -1,
                         &bufferRect,
-                        DT_LEFT | DT_VCENTER | DT_SINGLELINE
+                        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );
                 }
                 else
@@ -739,7 +747,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                         L"Separator",
                         -1,
                         &bufferRect,
-                        DT_LEFT | DT_VCENTER | DT_SINGLELINE
+                        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );
                 }
 
