@@ -786,6 +786,13 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             {
                                 PPH_EMENU_ITEM menuItem;
 
+                                if (PhElevated && buttonInfo.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
+                                {
+                                    // Don't show the 'Show Details for All Processes' button in the
+                                    //  dropdown menu when we're elevated.
+                                    continue;
+                                }
+
                                 // Add buttons to menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
 
@@ -876,13 +883,13 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             //       so we cache the index in our ToolbarButtons array to prevent ToolBarImageList from growing.
                             for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
                             {
-                                if (
-                                    ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand &&
-                                    ToolbarButtons[i].iBitmap != I_IMAGECALLBACK
-                                    )
+                                if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                 {
-                                    found = TRUE;
-                                    toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
+                                    if (ToolbarButtons[i].iBitmap != I_IMAGECALLBACK)
+                                    {
+                                        found = TRUE;
+                                        toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
+                                    }
                                     break;
                                 }
                             }
@@ -895,12 +902,18 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                 {
                                     if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                     {
-                                        HBITMAP buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand);
+                                        HBITMAP buttonImage;
+                                        
+                                        buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand);
 
                                         // Cache the bitmap index.
                                         toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
                                         // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-                                        toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(ToolBarImageList, buttonImage, NULL);
+                                        toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(
+                                            ToolBarImageList,
+                                            buttonImage, 
+                                            NULL
+                                            );
 
                                         DeleteObject(buttonImage);
                                         break;
