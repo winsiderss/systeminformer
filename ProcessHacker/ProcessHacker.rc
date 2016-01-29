@@ -101,7 +101,7 @@ BEGIN
             MENUITEM "CPU History",                 ID_TRAYICONS_CPUHISTORY
             MENUITEM "CPU Usage",                   ID_TRAYICONS_CPUUSAGE
             MENUITEM "I/O History",                 ID_TRAYICONS_IOHISTORY
-            MENUITEM "Commit History",              ID_TRAYICONS_COMMITHISTORY
+            MENUITEM "Commit Charge History",              ID_TRAYICONS_COMMITHISTORY
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
         MENUITEM SEPARATOR
