@@ -199,6 +199,10 @@ PWSTR ToolbarGetText(
     _In_ INT CommandID
     );
 
+HBITMAP ToolbarGetImage(
+    _In_ INT CommandID
+    );
+
 VOID ToolbarLoadButtonSettings(
     VOID
     );
@@ -400,7 +404,8 @@ typedef struct _CUSTOMIZE_CONTEXT
     HWND RemoveButtonHandle;
 
     INT BitmapWidth;
-    HFONT Font;
+    HFONT FontHandle;
+    HIMAGELIST ImageListHandle;
 } CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
 
 #endif
