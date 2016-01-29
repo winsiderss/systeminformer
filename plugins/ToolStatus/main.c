@@ -785,15 +785,12 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             else
                             {
                                 PPH_EMENU_ITEM menuItem;
-                                HICON menuIcon;
 
                                 // Add buttons to menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
 
-                                menuIcon = ImageList_GetIcon(ToolBarImageList, buttonInfo.iImage, ILD_NORMAL);
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
-                                menuItem->Bitmap = PhIconToBitmap(menuIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
-                                DestroyIcon(menuIcon);
+                                menuItem->Bitmap = ToolbarGetImage(buttonInfo.idCommand);
 
                                 switch (buttonInfo.idCommand)
                                 {
@@ -865,6 +862,54 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
                 switch (hdr->code)
                 {
+                case TBN_GETDISPINFO:
+                    {
+                        LPNMTBDISPINFO toolbarDisplayInfo = (LPNMTBDISPINFO)lParam;
+
+                        if (toolbarDisplayInfo->dwMask & TBNF_IMAGE)
+                        {
+                            BOOLEAN found = FALSE;
+
+                            // Try to find the cached bitmap index.
+                            // NOTE: The TBNF_DI_SETITEM flag below will cache the index so we only get called once.
+                            //       However, when adding buttons from the customize dialog we get called a second time,
+                            //       so we cache the index in our ToolbarButtons array to prevent ToolBarImageList from growing.
+                            for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+                            {
+                                if (
+                                    ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand &&
+                                    ToolbarButtons[i].iBitmap != I_IMAGECALLBACK
+                                    )
+                                {
+                                    found = TRUE;
+                                    toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
+                                    break;
+                                }
+                            }
+
+                            if (!found)
+                            {
+                                // We didn't find a cached bitmap index... 
+                                // Load the button bitmap and cache the index.
+                                for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+                                {
+                                    if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
+                                    {
+                                        HBITMAP buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand);
+
+                                        // Cache the bitmap index.
+                                        toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
+                                        // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
+                                        toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(ToolBarImageList, buttonImage, NULL);
+
+                                        DeleteObject(buttonImage);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
                 case TBN_DROPDOWN:
                     {
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;

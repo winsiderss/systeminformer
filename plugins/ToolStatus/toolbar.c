@@ -27,19 +27,19 @@ HIMAGELIST ToolBarImageList = NULL;
 TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
 {
     // Default toolbar buttons (displayed)
-    { 0, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Refresh" },
-    { 1, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Options" },
+    { I_IMAGECALLBACK, PHAPP_ID_VIEW_REFRESH, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Refresh" },
+    { I_IMAGECALLBACK, PHAPP_ID_HACKER_OPTIONS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Options" },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-    { 2, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
-    { 3, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"System Information" },
+    { I_IMAGECALLBACK, PHAPP_ID_HACKER_FINDHANDLESORDLLS, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Handles or DLLs" },
+    { I_IMAGECALLBACK, PHAPP_ID_VIEW_SYSTEMINFORMATION, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"System Information" },
     { 0, 0, 0, BTNS_SEP, { 0 }, 0, 0 },
-    { 4, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window" },
-    { 5, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
-    { 6, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window and Kill" },
+    { I_IMAGECALLBACK, TIDC_FINDWINDOW, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window" },
+    { I_IMAGECALLBACK, TIDC_FINDWINDOWTHREAD, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window and Thread" },
+    { I_IMAGECALLBACK, TIDC_FINDWINDOWKILL, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Find Window and Kill" },
     // Available toolbar buttons (hidden)
-    { 7, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Always on Top" },
-    { 8, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Computer" },
-    { 9, PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Show Details for All Processes" },
+    { I_IMAGECALLBACK, PHAPP_ID_VIEW_ALWAYSONTOP, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT, { 0 }, 0, (INT_PTR)L"Always on Top" },
+    { I_IMAGECALLBACK, TIDC_POWERMENUDROPDOWN, TBSTATE_ENABLED, BTNS_WHOLEDROPDOWN | BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Computer" },
+    { I_IMAGECALLBACK, PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES, TBSTATE_ENABLED, BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT,{ 0 }, 0, (INT_PTR)L"Show Details for All Processes" },
 };
 
 VOID RebarBandInsert(
@@ -103,169 +103,15 @@ static VOID RebarLoadSettings(
     )
 {
     // Initialize the Toolbar Imagelist.
-    if (ToolStatusConfig.ToolBarEnabled)
+    if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
     {
-        HBITMAP bitmapRefresh = NULL;
-        HBITMAP bitmapSettings = NULL;
-        HBITMAP bitmapFind = NULL;
-        HBITMAP bitmapSysInfo = NULL;
-        HBITMAP bitmapFindWindow = NULL;
-        HBITMAP bitmapFindWindowThread = NULL;
-        HBITMAP bitmapFindWindowKill = NULL;
-        HBITMAP bitmapAlwaysOnTop = NULL;
-        HBITMAP bitmapPowerMenu = NULL;
-
-        // https://msdn.microsoft.com/en-us/library/ms701681.aspx
-        INT cx = GetSystemMetrics(SM_CXSMICON); // SM_CXICON
-        INT cy = GetSystemMetrics(SM_CYSMICON); // SM_CYICON
-
-        if (!ToolBarImageList)
-        {
-            // Create the toolbar imagelist
-            ToolBarImageList = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, 0, 0);
-            // Set the number of images
-            ImageList_SetImageCount(ToolBarImageList, 10);
-        }
-
-        // Add the images to the imagelist
-        if (ToolStatusConfig.ModernIcons)
-        {
-            bitmapRefresh = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN));
-            bitmapSettings = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN));
-            bitmapFind = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND_MODERN));
-            bitmapSysInfo = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN));
-            bitmapFindWindow = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN));
-            bitmapFindWindowThread = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN));
-            bitmapFindWindowKill = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS_MODERN));
-            bitmapAlwaysOnTop = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN));
-            bitmapPowerMenu = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER_MODERN));
-        }
-        else
-        {
-            bitmapRefresh = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-            bitmapSettings = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT));
-            bitmapFind = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND));
-            bitmapSysInfo = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE));
-            bitmapFindWindow = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION));
-            bitmapFindWindowThread = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-            bitmapFindWindowKill = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS));
-            bitmapAlwaysOnTop = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET));
-            bitmapPowerMenu = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER));
-        }
-
-        if (bitmapRefresh)
-        {
-            ImageList_Replace(ToolBarImageList, 0, bitmapRefresh, NULL);
-            DeleteObject(bitmapRefresh);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP));
-        }
-
-        if (bitmapSettings)
-        {
-            ImageList_Replace(ToolBarImageList, 1, bitmapSettings, NULL);
-            DeleteObject(bitmapSettings);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT_BMP));
-        }
-
-        if (bitmapFind)
-        {
-            ImageList_Replace(ToolBarImageList, 2, bitmapFind, NULL);
-            DeleteObject(bitmapFind);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND_BMP));
-        }
-
-        if (bitmapSysInfo)
-        {
-            ImageList_Replace(ToolBarImageList, 3, bitmapSysInfo, NULL);
-            DeleteObject(bitmapSysInfo);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE_BMP));
-        }
-
-        if (bitmapFindWindow)
-        {
-            ImageList_Replace(ToolBarImageList, 4, bitmapFindWindow, NULL);
-            DeleteObject(bitmapFindWindow);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_BMP));
-        }
-
-        if (bitmapFindWindowThread)
-        {
-            ImageList_Replace(ToolBarImageList, 5, bitmapFindWindowThread, NULL);
-            DeleteObject(bitmapFindWindowThread);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP));
-        }
-
-        if (bitmapFindWindowKill)
-        {
-            ImageList_Replace(ToolBarImageList, 6, bitmapFindWindowKill, NULL);
-            DeleteObject(bitmapFindWindowKill);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS_BMP));
-        }
-
-        if (bitmapAlwaysOnTop)
-        {
-            ImageList_Replace(ToolBarImageList, 7, bitmapAlwaysOnTop, NULL);
-            DeleteObject(bitmapAlwaysOnTop);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 7, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP));
-        }
-
-        if (bitmapPowerMenu)
-        {
-            ImageList_Replace(ToolBarImageList, 8, bitmapPowerMenu, NULL);
-            DeleteObject(bitmapPowerMenu);
-        }
-        else
-        {
-            PhSetImageListBitmap(ToolBarImageList, 8, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_POWER_BMP));
-        }
-
-        if (WINDOWS_HAS_UAC)
-        {
-            _LoadIconMetric loadIconMetric;
-            HICON shieldIcon = NULL;
-
-            // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
-            // resolution and look very bad when scaled down to the small icon size.
-            loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
-
-            if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
-            {
-                HBITMAP shieldBitmap = PhIconToBitmap(
-                    shieldIcon,
-                    cx,
-                    cy
-                    );
-
-                ImageList_Replace(ToolBarImageList, 9, shieldBitmap, NULL);
-
-                DeleteObject(shieldBitmap);
-                DestroyIcon(shieldIcon);
-            }
-        }
+        ToolBarImageList = ImageList_Create(
+            GetSystemMetrics(SM_CXSMICON),
+            GetSystemMetrics(SM_CYSMICON),
+            ILC_COLOR32 | ILC_MASK,
+            0,
+            0
+            );
     }
 
     // Initialize the Rebar and Toolbar controls.
@@ -605,6 +451,288 @@ PWSTR ToolbarGetText(
     return L"ERROR";
 }
 
+HBITMAP ToolbarGetImage(
+    _In_ INT CommandID
+    )
+{
+    static INT cx = 0;
+    static INT cy = 0;
+
+    if (!cx)
+    {
+        cx = GetSystemMetrics(SM_CXSMICON);
+    }
+
+    if (!cy)
+    {
+        cy = GetSystemMetrics(SM_CYSMICON);
+    }
+
+    switch (CommandID)
+    {
+    case PHAPP_ID_VIEW_REFRESH:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case PHAPP_ID_HACKER_OPTIONS:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_COG_EDIT_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_FIND_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_CHART_LINE_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case TIDC_FINDWINDOW:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_APPLICATION_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case TIDC_FINDWINDOWTHREAD:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case TIDC_FINDWINDOWKILL:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_CROSS_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case PHAPP_ID_VIEW_ALWAYSONTOP:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case TIDC_POWERMENUDROPDOWN:
+        {
+            HBITMAP toolbarBitmap = NULL;
+
+            if (ToolStatusConfig.ModernIcons)
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER_MODERN));
+            }
+            else
+            {
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER));
+            }
+
+            if (!toolbarBitmap)
+            {
+                toolbarBitmap = LoadImage(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDB_POWER_BMP),
+                    IMAGE_BITMAP,
+                    0, 0, 0
+                    );
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
+        {
+            HBITMAP toolbarBitmap = NULL;
+            HICON shieldIcon = NULL;
+            _LoadIconMetric loadIconMetric = NULL;
+
+            // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
+            // resolution and look very bad when scaled down to the small icon size.
+            loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
+
+            if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+            {
+                toolbarBitmap = PhIconToBitmap(
+                    shieldIcon,
+                    cx,
+                    cy
+                    );
+
+                DestroyIcon(shieldIcon);
+            }
+
+            return toolbarBitmap;
+        }
+        break;
+    }
+
+    return NULL;
+}
+
 VOID ToolbarLoadButtonSettings(
     VOID
     )
@@ -650,27 +778,26 @@ VOID ToolbarLoadButtonSettings(
     for (INT index = 0; index < buttonCount; index++)
     {
         ULONG64 commandInteger;
-        ULONG64 bitmapInteger;
-        ULONG64 styleInteger;
         PH_STRINGREF commandIdPart;
-        PH_STRINGREF bitmapIdPart;
-        PH_STRINGREF buttonStylePart;
 
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &bitmapIdPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '|', &buttonStylePart, &remaining);
-        
+        PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);        
         PhStringToInteger64(&commandIdPart, 10, &commandInteger);
-        PhStringToInteger64(&bitmapIdPart, 10, &bitmapInteger);
-        PhStringToInteger64(&buttonStylePart, 16, &styleInteger); // TODO: Review
 
         buttonArray[index].idCommand = (INT)commandInteger;
-        buttonArray[index].iBitmap = (INT)bitmapInteger;
-        buttonArray[index].fsStyle = (BYTE)styleInteger; // TODO: Review
+        buttonArray[index].iBitmap = I_IMAGECALLBACK;
         buttonArray[index].fsState = TBSTATE_ENABLED;
+
+        if (commandInteger)
+        {
+            buttonArray[index].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+        }
+        else
+        {
+            buttonArray[index].fsStyle = BTNS_SEP;
+        }
     }
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);
@@ -710,13 +837,7 @@ VOID ToolbarSaveButtonSettings(
         if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo) == -1)
             break;
 
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%d|%d|%hhx|", // TODO: Review
-            buttonInfo.idCommand,
-            buttonInfo.iImage,
-            buttonInfo.fsStyle // TODO: Review
-            );
+        PhAppendFormatStringBuilder(&stringBuilder, L"%d|", buttonInfo.idCommand);
     }
 
     if (stringBuilder.String->Length != 0)
