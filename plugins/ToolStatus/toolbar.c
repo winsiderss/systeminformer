@@ -837,7 +837,11 @@ VOID ToolbarSaveButtonSettings(
         if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo) == -1)
             break;
 
-        PhAppendFormatStringBuilder(&stringBuilder, L"%d|", buttonInfo.idCommand);
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%d|", 
+            buttonInfo.idCommand
+            );
     }
 
     if (stringBuilder.String->Length != 0)
