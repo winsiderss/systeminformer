@@ -3685,6 +3685,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORDLG:
+        {
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+        }
+        break;
     }
 
     return FALSE;
@@ -4322,6 +4327,11 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_LIST), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+        }
+        break;
+    case WM_CTLCOLORDLG:
+        {
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
