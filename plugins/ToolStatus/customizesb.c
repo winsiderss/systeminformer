@@ -208,9 +208,7 @@ static VOID CustomizeFreeButtons(
         {
             PBUTTON_CONTEXT buttonContext;
 
-            buttonContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex);
-
-            if (buttonContext)
+            if (buttonContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex))
             {
                 PhFree(buttonContext);
             }
@@ -225,9 +223,7 @@ static VOID CustomizeFreeButtons(
         {
             PBUTTON_CONTEXT buttonContext;
 
-            buttonContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex);
-
-            if (buttonContext)
+            if (buttonContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex))
             {
                 PhFree(buttonContext);
             }
@@ -344,7 +340,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->Font = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
+            context->FontHandle = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, 22); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, 22); // BitmapHeight 
@@ -609,7 +605,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 bufferDc = CreateCompatibleDC(drawInfo->hDC);
                 bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-                SelectFont(bufferDc, context->Font);
+                SelectFont(bufferDc, context->FontHandle);
 
                 SetBkMode(bufferDc, TRANSPARENT);
                 FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));

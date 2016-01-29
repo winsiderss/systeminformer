@@ -60,8 +60,8 @@ static VOID CustomizeInsertToolbarButton(
 
     memset(&button, 0, sizeof(TBBUTTON));
 
-    button.iBitmap = ButtonContext->IdBitmap;
     button.idCommand = ButtonContext->IdCommand;
+    button.iBitmap = I_IMAGECALLBACK;
     button.fsState = TBSTATE_ENABLED;
     button.fsStyle = ButtonContext->IsSeparator ? BTNS_SEP : BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
     button.iString = (INT_PTR)ToolbarGetText(ButtonContext->IdCommand);
@@ -237,7 +237,6 @@ static VOID CustomizeFreeButtons(
     }
 }
 
-
 static VOID CustomizeLoadItems(
     _In_ PCUSTOMIZE_CONTEXT Context
     )
@@ -267,11 +266,25 @@ static VOID CustomizeLoadItems(
             buttonContext->IsVirtual = FALSE;
             buttonContext->IsRemovable = TRUE;
             buttonContext->IdCommand = button.idCommand;
-            buttonContext->IdBitmap = button.iBitmap;
 
             if (button.fsStyle & BTNS_SEP)
             {
                 buttonContext->IsSeparator = TRUE;
+            }
+            else
+            {
+                HBITMAP buttonImage;
+
+                if (buttonImage = ToolbarGetImage(button.idCommand))
+                {
+                    buttonContext->IdBitmap = ImageList_Add(
+                        Context->ImageListHandle,
+                        buttonImage,
+                        NULL
+                        );
+
+                    DeleteObject(buttonImage);
+                }
             }
 
             ListBox_AddItemData(Context->CurrentListHandle, buttonContext);
@@ -280,6 +293,7 @@ static VOID CustomizeLoadItems(
 
     for (buttonIndex = 0; buttonIndex < MAX_TOOLBAR_ITEMS; buttonIndex++)
     {
+        HBITMAP buttonImage;
         TBBUTTON button = ToolbarButtons[buttonIndex];
 
         if (button.idCommand == 0)
@@ -289,7 +303,7 @@ static VOID CustomizeLoadItems(
             continue;
 
         // HACK and violation of abstraction.
-        // Disable the 'Show Details for All Processes' on XP.
+        // Don't show the 'Show Details for All Processes' button on XP.
         if (!WINDOWS_HAS_UAC && button.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
         {
             continue;
@@ -300,7 +314,16 @@ static VOID CustomizeLoadItems(
 
         buttonContext->IsRemovable = TRUE;
         buttonContext->IdCommand = button.idCommand;
-        buttonContext->IdBitmap = button.iBitmap;
+
+        if (buttonImage = ToolbarGetImage(button.idCommand))
+        {
+            buttonContext->IdBitmap = ImageList_Add(
+                Context->ImageListHandle, 
+                buttonImage, 
+                NULL
+                );
+            DeleteObject(buttonImage);
+        }
 
         ListBox_AddItemData(Context->AvailableListHandle, buttonContext);
     }
@@ -361,6 +384,105 @@ static VOID CustomizeLoadSettings(
     }
 }
 
+static VOID CustomizeResetImages(
+    _In_ PCUSTOMIZE_CONTEXT Context
+    )
+{
+    INT buttonIndex = 0;
+    INT buttonCount = 0;
+
+    buttonCount = ListBox_GetCount(Context->CurrentListHandle);
+
+    if (buttonCount != LB_ERR)
+    {
+        for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+        {
+            PBUTTON_CONTEXT buttonContext;
+            HBITMAP buttonImage;
+
+            if (buttonContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex))
+            {
+                if (buttonImage = ToolbarGetImage(buttonContext->IdCommand))
+                {
+                    ImageList_Replace(
+                        Context->ImageListHandle, 
+                        buttonContext->IdBitmap, 
+                        buttonImage, 
+                        NULL
+                        );
+                    DeleteObject(buttonImage);
+                }
+            }
+        }
+    }
+
+    buttonCount = ListBox_GetCount(Context->AvailableListHandle);
+
+    if (buttonCount != LB_ERR)
+    {
+        for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+        {
+            PBUTTON_CONTEXT buttonContext;
+            HBITMAP buttonImage;
+
+            if (buttonContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex))
+            {
+                if (buttonImage = ToolbarGetImage(buttonContext->IdCommand))
+                {
+                    ImageList_Replace(
+                        Context->ImageListHandle,
+                        buttonContext->IdBitmap, 
+                        buttonImage, 
+                        NULL
+                        );
+                    DeleteObject(buttonImage);
+                }
+            }
+        }
+    }
+
+    InvalidateRect(Context->AvailableListHandle, NULL, TRUE);
+    InvalidateRect(Context->CurrentListHandle, NULL, TRUE);
+}
+
+static VOID CustomizeResetToolbarImages(
+    VOID
+    )
+{
+    // TODO: This function doesn't belong here.
+
+    INT buttonIndex;
+    INT buttonCount;
+
+    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+    for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+    {
+        TBBUTTON button;
+
+        memset(&button, 0, sizeof(TBBUTTON));
+
+        if (SendMessage(ToolBarHandle, TB_GETBUTTON, buttonIndex, (LPARAM)&button))
+        {
+            HBITMAP buttonImage;
+
+            if (button.fsStyle & BTNS_SEP)
+                continue;
+
+            if (buttonImage = ToolbarGetImage(button.idCommand))
+            {
+                ImageList_Replace(
+                    ToolBarImageList,
+                    button.iBitmap,
+                    buttonImage,
+                    NULL
+                    );
+                DeleteObject(buttonImage);
+            }
+        }
+    }
+}
+
 static INT_PTR CALLBACK CustomizeDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -405,7 +527,14 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->BitmapWidth = GetSystemMetrics(SM_CYSMICON) + 4;
-            context->Font = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
+            context->FontHandle = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
+            context->ImageListHandle = ImageList_Create(
+                GetSystemMetrics(SM_CXSMICON),
+                GetSystemMetrics(SM_CYSMICON),
+                ILC_COLOR32 | ILC_MASK,
+                0,
+                0
+                );
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->BitmapWidth); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->BitmapWidth); // BitmapHeight 
@@ -422,6 +551,8 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             ToolbarLoadSettings();
 
             CustomizeFreeButtons(context);
+
+            ImageList_Destroy(context->ImageListHandle);
         }
         break;
     case WM_COMMAND:
@@ -631,8 +762,8 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                         ToolbarLoadSettings();
 
                         //CustomizeLoadItems(context);
-                        InvalidateRect(context->AvailableListHandle, NULL, TRUE);
-                        InvalidateRect(context->CurrentListHandle, NULL, TRUE);
+                        CustomizeResetImages(context);
+                        CustomizeResetToolbarImages();
                     }
                 }
                 break;
@@ -693,7 +824,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 bufferDc = CreateCompatibleDC(drawInfo->hDC);
                 bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-                SelectFont(bufferDc, context->Font);
+                SelectFont(bufferDc, context->FontHandle);
 
                 SetBkMode(bufferDc, TRANSPARENT);
                 FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));
@@ -719,7 +850,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 if (!buttonContext->IsSeparator)
                 {
                     ImageList_Draw(
-                        ToolBarImageList,
+                        context->ImageListHandle,
                         buttonContext->IdBitmap,
                         bufferDc,
                         bufferRect.left + 2,
