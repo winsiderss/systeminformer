@@ -891,6 +891,8 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                     {
                         ToolStatusConfig.ModernIcons = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
 
+                        PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
                         ToolbarLoadSettings();
 
                         //CustomizeLoadItems(context);
