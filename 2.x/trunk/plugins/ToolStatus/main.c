@@ -373,6 +373,22 @@ VOID ShowCustomizeMenu(
     PhDestroyEMenu(menu);
 }
 
+HFONT PhDuplicateFont(
+    _In_ HFONT Font
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+    {
+        return CreateFontIndirect(&logFont);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 static VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context

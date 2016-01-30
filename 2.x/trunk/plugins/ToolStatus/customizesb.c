@@ -340,7 +340,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->FontHandle = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
+            context->FontHandle = PhDuplicateFont((HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, 22); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, 22); // BitmapHeight 
@@ -355,6 +355,11 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             StatusBarSaveSettings();
 
             CustomizeFreeButtons(context);
+
+            if (context->FontHandle)
+            {
+                DeleteObject(context->FontHandle);
+            }
         }
         break;
     case WM_COMMAND:

@@ -229,6 +229,10 @@ VOID ShowCustomizeMenu(
     VOID
     );
 
+HFONT PhDuplicateFont(
+    _In_ HFONT Font
+    );
+
 // options.c
 
 VOID ShowOptionsDialog(
