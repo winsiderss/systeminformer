@@ -12,6 +12,8 @@ Process Hacker
    * Upgraded to PCRE2
    * Updated DotNetTools plugin:
      * Rewrite of .NET Performance statistics and AppDomain enumeration
+   * Updated OnlineChecks plugin:
+     * Fixed virusscan.jotti.org uploader
    * Updated NetAdapters plugin:
      * Added adapter details window
    * Updated ToolStatus plugin:
