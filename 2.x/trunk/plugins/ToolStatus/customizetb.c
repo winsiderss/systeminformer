@@ -857,8 +857,8 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                         {
                         case TOOLBAR_THEME_NONE:
                             {
-                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Default");
-                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Default");
+                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"");
+                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"");
                             }
                             break;
                         case TOOLBAR_THEME_BLACK:
