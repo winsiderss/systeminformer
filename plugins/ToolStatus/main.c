@@ -888,6 +888,10 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                     if (ToolbarButtons[i].iBitmap != I_IMAGECALLBACK)
                                     {
                                         found = TRUE;
+
+                                        // Cache the bitmap index.
+                                        toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
+                                        // Set the bitmap index.
                                         toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
                                     }
                                     break;
