@@ -22,6 +22,27 @@
 
 #include "toolstatus.h"
 
+static PWSTR CustomizeTextOptionsStrings[] =
+{
+    L"No text labels",
+    L"Selective text",
+    L"Show text labels"
+};
+
+static PWSTR CustomizeSearchDisplayStrings[] =
+{
+    L"Always show",
+    L"Hide when inactive (Ctrl+K)",
+    // L"Auto-hide"
+};
+
+static PWSTR CustomizeThemeOptionsStrings[] =
+{
+    L"None",
+    L"Black",
+    L"Blue"
+};
+
 static BOOLEAN CustomizeItemExists(
     _In_ PCUSTOMIZE_CONTEXT Context,
     _In_ INT IdCommand
@@ -362,16 +383,26 @@ static VOID CustomizeLoadSettings(
 {
     HWND toolbarCombo = GetDlgItem(Context->DialogHandle, IDC_TEXTOPTIONS);
     HWND searchboxCombo = GetDlgItem(Context->DialogHandle, IDC_SEARCHOPTIONS);
+    HWND themeCombo = GetDlgItem(Context->DialogHandle, IDC_THEMEOPTIONS);
 
-    ComboBox_AddString(toolbarCombo, L"No text labels"); // Displays no text label for the toolbar buttons.
-    ComboBox_AddString(toolbarCombo, L"Selective text"); // (Selective Text On Right) Displays text for just the Refresh, Options, Find Handles and Sysinfo toolbar buttons.
-    ComboBox_AddString(toolbarCombo, L"Show text labels"); // Displays text labels for the toolbar buttons.
+    PhAddComboBoxStrings(
+        toolbarCombo, 
+        CustomizeTextOptionsStrings, 
+        ARRAYSIZE(CustomizeTextOptionsStrings)
+        );
+    PhAddComboBoxStrings(
+        searchboxCombo,
+        CustomizeSearchDisplayStrings, 
+        ARRAYSIZE(CustomizeSearchDisplayStrings)
+        );
+    PhAddComboBoxStrings(
+        themeCombo,
+        CustomizeThemeOptionsStrings,
+        ARRAYSIZE(CustomizeThemeOptionsStrings)
+        );
     ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
-
-    ComboBox_AddString(searchboxCombo, L"Always show");
-    ComboBox_AddString(searchboxCombo, L"Hide when inactive (Ctrl+K)");
-    //ComboBox_AddString(searchboxCombo, L"Auto-hide");
     ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
+    ComboBox_SetCurSel(themeCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME));
 
     Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_MODERN),
         ToolStatusConfig.ModernIcons ? BST_CHECKED : BST_UNCHECKED);
@@ -381,6 +412,11 @@ static VOID CustomizeLoadSettings(
     if (!ToolStatusConfig.SearchBoxEnabled)
     {
         ComboBox_Enable(searchboxCombo, FALSE);
+    }
+
+    if (WindowsVersion <= WINDOWS_VISTA)
+    {
+        ComboBox_Enable(themeCombo, FALSE);
     }
 }
 
@@ -793,7 +829,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                     {
                         PhSetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE,
-                            (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_TEXTOPTIONS))));
+                            (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
 
                         ToolbarLoadSettings();
                     }
@@ -804,9 +840,40 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                     {
                         PhSetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE,
-                            (SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_SEARCHOPTIONS))));
+                            (SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
 
                         ToolbarLoadSettings();
+                    }
+                }
+                break;
+            case IDC_THEMEOPTIONS:
+                {
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
+                    {
+                        PhSetIntegerSetting(SETTING_NAME_TOOLBAR_THEME,
+                            (ToolBarTheme = (TOOLBAR_THEME)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
+
+                        switch (ToolBarTheme)
+                        {
+                        case TOOLBAR_THEME_NONE:
+                            {
+                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Default");
+                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Default");
+                            }
+                            break;
+                        case TOOLBAR_THEME_BLACK:
+                            {
+                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media");
+                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media");
+                            }
+                            break;
+                        case TOOLBAR_THEME_BLUE:
+                            {
+                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
+                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
+                            }
+                            break;
+                        }
                     }
                 }
                 break;
@@ -814,7 +881,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == BN_CLICKED)
                     {
-                        ToolStatusConfig.ModernIcons = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_MODERN)) == BST_CHECKED;
+                        ToolStatusConfig.ModernIcons = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
 
                         ToolbarLoadSettings();
 
