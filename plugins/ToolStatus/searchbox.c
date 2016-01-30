@@ -176,7 +176,7 @@ static VOID NcAreaGetButtonRect(
     _Inout_ PRECT ButtonRect
     )
 {
-    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder;
+    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder - 1; // offset left border by 1
     ButtonRect->bottom -= Context->CXBorder;
     ButtonRect->right -= Context->CXBorder;
     ButtonRect->top += Context->CXBorder;
