@@ -22,7 +22,7 @@
  */
 
 #include "onlnchk.h"
-#include "json-c\json.h"
+#include "json-c/json.h"
 
 static SERVICE_INFO UploadServiceInfo[] =
 {
