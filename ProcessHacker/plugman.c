@@ -164,9 +164,7 @@ BOOLEAN PhpIsPluginLoadedByBaseName(
     // Extremely inefficient code follows.
     // TODO: Make this better.
 
-    links = PhMinimumElementAvlTree(&PhPluginsByName);
-
-    while (links)
+    for (links = PhMinimumElementAvlTree(&PhPluginsByName); links; links = PhSuccessorElementAvlTree(links))
     {
         PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
         PH_STRINGREF pluginBaseName;
@@ -175,8 +173,6 @@ BOOLEAN PhpIsPluginLoadedByBaseName(
 
         if (PhEqualStringRef(&pluginBaseName, BaseName, TRUE))
             return TRUE;
-
-        links = PhSuccessorElementAvlTree(links);
     }
 
     return FALSE;
@@ -308,9 +304,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
             DisabledPluginLookup = PhCreateSimpleHashtable(10);
 
-            links = PhMinimumElementAvlTree(&PhPluginsByName);
-
-            while (links)
+            for (links = PhMinimumElementAvlTree(&PhPluginsByName); links; links = PhSuccessorElementAvlTree(links))
             {
                 PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
                 INT lvItemIndex;
@@ -327,8 +321,6 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
                 if (PhIsPluginDisabled(&baseNameSr))
                     PhAddItemSimpleHashtable(DisabledPluginLookup, plugin, NULL);
-
-                links = PhSuccessorElementAvlTree(links);
             }
 
             DisabledPluginInstances = PhCreateList(10);
