@@ -63,7 +63,6 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
     if (!links)
     {
         *Result = 1;
-
         return &Tree->Root;
     }
 
@@ -74,7 +73,6 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
         if (result == 0)
         {
             *Result = 0;
-
             return links;
         }
         else if (result < 0)
@@ -86,7 +84,6 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
             else
             {
                 *Result = -1;
-
                 return links;
             }
         }
@@ -99,7 +96,6 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
             else
             {
                 *Result = 1;
-
                 return links;
             }
         }
