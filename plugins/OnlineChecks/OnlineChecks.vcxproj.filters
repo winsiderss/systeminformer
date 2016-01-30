@@ -24,6 +24,39 @@
     <ClCompile Include="sha256.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="json-c\arraylist.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\debug.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_c_version.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_object.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_object_iterator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_tokener.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\libjson.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\linkhash.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\printbuf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\random_seed.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="onlnchk.h">
@@ -33,6 +66,57 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sha256.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\arraylist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\bits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_c_version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_inttypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object_iterator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object_private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_tokener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\linkhash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\math_compat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\printbuf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\random_seed.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
