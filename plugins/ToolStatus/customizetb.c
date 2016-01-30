@@ -620,7 +620,7 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->BitmapWidth = GetSystemMetrics(SM_CYSMICON) + 4;
-            context->FontHandle = (HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0);
+            context->FontHandle = PhDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
             context->ImageListHandle = ImageList_Create(
                 GetSystemMetrics(SM_CXSMICON),
                 GetSystemMetrics(SM_CYSMICON),
@@ -645,7 +645,15 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
             CustomizeFreeButtons(context);
 
-            ImageList_Destroy(context->ImageListHandle);
+            if (context->ImageListHandle)
+            {
+                ImageList_Destroy(context->ImageListHandle);
+            }
+
+            if (context->FontHandle)
+            {
+                DeleteObject(context->FontHandle);
+            }
         }
         break;
     case WM_COMMAND:
