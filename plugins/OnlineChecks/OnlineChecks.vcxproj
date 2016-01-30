@@ -64,11 +64,39 @@
     <Import Project="..\Plugins.props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="json-c\arraylist.c" />
+    <ClCompile Include="json-c\debug.c" />
+    <ClCompile Include="json-c\json_c_version.c" />
+    <ClCompile Include="json-c\json_object.c" />
+    <ClCompile Include="json-c\json_object_iterator.c" />
+    <ClCompile Include="json-c\json_tokener.c" />
+    <ClCompile Include="json-c\json_util.c" />
+    <ClCompile Include="json-c\libjson.c" />
+    <ClCompile Include="json-c\linkhash.c" />
+    <ClCompile Include="json-c\printbuf.c" />
+    <ClCompile Include="json-c\random_seed.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="sha256.c" />
     <ClCompile Include="upload.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="json-c\arraylist.h" />
+    <ClInclude Include="json-c\bits.h" />
+    <ClInclude Include="json-c\config.h" />
+    <ClInclude Include="json-c\debug.h" />
+    <ClInclude Include="json-c\json.h" />
+    <ClInclude Include="json-c\json_config.h" />
+    <ClInclude Include="json-c\json_c_version.h" />
+    <ClInclude Include="json-c\json_inttypes.h" />
+    <ClInclude Include="json-c\json_object.h" />
+    <ClInclude Include="json-c\json_object_iterator.h" />
+    <ClInclude Include="json-c\json_object_private.h" />
+    <ClInclude Include="json-c\json_tokener.h" />
+    <ClInclude Include="json-c\json_util.h" />
+    <ClInclude Include="json-c\linkhash.h" />
+    <ClInclude Include="json-c\math_compat.h" />
+    <ClInclude Include="json-c\printbuf.h" />
+    <ClInclude Include="json-c\random_seed.h" />
     <ClInclude Include="onlnchk.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sha256.h" />
