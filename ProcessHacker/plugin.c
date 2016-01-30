@@ -382,9 +382,7 @@ VOID PhpExecuteCallbackForAllPlugins(
 {
     PPH_AVL_LINKS links;
 
-    links = PhMinimumElementAvlTree(&PhPluginsByName);
-
-    while (links)
+    for (links = PhMinimumElementAvlTree(&PhPluginsByName); links; links = PhSuccessorElementAvlTree(links))
     {
         PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
         PPH_LIST parameters = NULL;
@@ -416,15 +414,9 @@ VOID PhpExecuteCallbackForAllPlugins(
 
         if (parameters)
         {
-            ULONG i;
-
-            for (i = 0; i < parameters->Count; i++)
-                PhDereferenceObject(parameters->Items[i]);
-
+            PhDereferenceObjects(parameters->Items, parameters->Count);
             PhDereferenceObject(parameters);
         }
-
-        links = PhSuccessorElementAvlTree(links);
     }
 }
 
