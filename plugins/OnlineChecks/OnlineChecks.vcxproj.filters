@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Source Files\json-c">
+      <UniqueIdentifier>{ba7a7cdc-f79a-40a8-8452-8ddee51948c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\json-c">
+      <UniqueIdentifier>{dbc03cac-8d30-4163-b768-f9485dc26673}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -21,40 +27,40 @@
     <ClCompile Include="upload.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sha256.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="json-c\arraylist.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\debug.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\json_c_version.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\json_object.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\json_object_iterator.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\json_tokener.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\json_util.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\libjson.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\linkhash.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\printbuf.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\json-c</Filter>
     </ClCompile>
     <ClCompile Include="json-c\random_seed.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="sha256.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,56 +74,56 @@
     <ClInclude Include="sha256.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\arraylist.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\bits.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\config.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\json.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
     <ClInclude Include="json-c\debug.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\json.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\config.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\json_c_version.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\bits.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\json_config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_inttypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_object_iterator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_object_private.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\arraylist.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
     <ClInclude Include="json-c\json_tokener.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\json_util.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\json_c_version.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\linkhash.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\json_config.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\math_compat.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\json_inttypes.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\printbuf.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="json-c\json_object.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object_iterator.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object_private.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
     <ClInclude Include="json-c\random_seed.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\printbuf.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\math_compat.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\linkhash.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_util.h">
+      <Filter>Header Files\json-c</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
