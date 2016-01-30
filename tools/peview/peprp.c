@@ -699,6 +699,11 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
+    case WM_CTLCOLORDLG:
+        {
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+        }
+        break;
     }
 
     return FALSE;
@@ -782,6 +787,11 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    case WM_CTLCOLORDLG:
+        {
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
@@ -875,6 +885,11 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    case WM_CTLCOLORDLG:
+        {
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
