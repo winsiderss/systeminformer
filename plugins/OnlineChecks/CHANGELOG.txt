@@ -1,3 +1,6 @@
+1.7
+ * Fixed virusscan.jotti.org uploader
+
 1.6
  * Updated VirusTotal executable limit to 128 MB
 
