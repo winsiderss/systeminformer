@@ -374,14 +374,17 @@ INT PhShowMessage_V(
     )
 {
     INT result;
-    WCHAR message[PH_MAX_MESSAGE_SIZE + 1];
+    PPH_STRING message;
 
-    result = _vsnwprintf(message, PH_MAX_MESSAGE_SIZE, Format, ArgPtr);
+    message = PhFormatString_V(Format, ArgPtr);
 
-    if (result == -1)
+    if (!message)
         return -1;
 
-    return MessageBox(hWnd, message, PhApplicationName, Type);
+    result = MessageBox(hWnd, message->Buffer, PhApplicationName, Type);
+    PhDereferenceObject(message);
+
+    return result;
 }
 
 PPH_STRING PhGetStatusMessage(
