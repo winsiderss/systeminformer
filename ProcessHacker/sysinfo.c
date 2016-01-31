@@ -2,7 +2,7 @@
  * Process Hacker -
  *   system information window
  *
- * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2011-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -132,6 +132,7 @@ static PH_UINT32_DELTA MappedWritesDelta;
 static BOOLEAN MmAddressesInitialized;
 static PSIZE_T MmSizeOfPagedPoolInBytes;
 static PSIZE_T MmMaximumNonPagedPoolInBytes;
+static ULONGLONG InstalledMemory;
 
 static PPH_SYSINFO_SECTION IoSection;
 static HWND IoDialog;
@@ -3096,7 +3097,6 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
 
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
-            ULONGLONG installedMemory;
 
             PhSipInitializeMemoryDialog();
 
@@ -3113,10 +3113,12 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             if (!getPhysicallyInstalledSystemMemory)
                 getPhysicallyInstalledSystemMemory = PhGetModuleProcAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory");
 
-            if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&installedMemory))
+            InstalledMemory = 0;
+
+            if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&InstalledMemory))
             {
                 SetDlgItemText(hwndDlg, IDC_TOTALPHYSICAL,
-                    PhaConcatStrings2(PhaFormatSize(installedMemory * 1024, -1)->Buffer, L" installed")->Buffer);
+                    PhaConcatStrings2(PhaFormatSize(InstalledMemory * 1024, -1)->Buffer, L" installed")->Buffer);
             }
             else
             {
@@ -3475,6 +3477,17 @@ VOID PhSipUpdateMemoryPanel(
         PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages, PAGE_SIZE), -1)->Buffer);
     SetDlgItemText(MemoryPanel, IDC_ZPHYSICALTOTAL_V,
         PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer);
+
+    if (InstalledMemory != 0)
+    {
+        SetDlgItemText(MemoryPanel, IDC_ZPHYSICALRESERVED_V, 
+            PhaFormatSize(InstalledMemory * 1024 - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(MemoryPanel, IDC_ZPHYSICALRESERVED_V, L"-");
+    }
+
     SetDlgItemText(MemoryPanel, IDC_ZPHYSICALCACHEWS_V,
         PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentSystemCachePage, PAGE_SIZE), -1)->Buffer);
     SetDlgItemText(MemoryPanel, IDC_ZPHYSICALKERNELWS_V,

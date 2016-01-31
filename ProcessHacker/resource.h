@@ -473,6 +473,7 @@
 #define IDC_ZNONPAGEDLIMIT_V            1328
 #define IDC_ZNONPAGEDALLOCSDELTA_V      1329
 #define IDC_ZNONPAGEDFREESDELTA_V       1330
+#define IDC_ZPHYSICALRESERVED_V         1331
 #define IDC_ZLISTZEROED_V               1332
 #define IDC_ZLISTFREE_V                 1333
 #define IDC_ZLISTMODIFIED_V             1334
@@ -734,7 +735,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        213
+#define _APS_NEXT_RESOURCE_VALUE        214
 #define _APS_NEXT_COMMAND_VALUE         40290
 #define _APS_NEXT_CONTROL_VALUE         1378
 #define _APS_NEXT_SYMED_VALUE           169
