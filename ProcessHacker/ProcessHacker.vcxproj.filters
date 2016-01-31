@@ -548,9 +548,6 @@
     <ClInclude Include="include\extmgri.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="pcre\ucp.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="include\sysinfop.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -656,9 +653,6 @@
       <Filter>Resources</Filter>
     </Image>
     <Image Include="resources\cog.bmp">
-      <Filter>Resources</Filter>
-    </Image>
-    <Image Include="resources\asterisk_orange.bmp">
       <Filter>Resources</Filter>
     </Image>
   </ItemGroup>
