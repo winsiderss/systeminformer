@@ -385,7 +385,6 @@
     <ClInclude Include="pcre\pcre2_internal.h" />
     <ClInclude Include="pcre\pcre2_intmodedep.h" />
     <ClInclude Include="pcre\pcre2_ucp.h" />
-    <ClInclude Include="pcre\ucp.h" />
     <ClInclude Include="include\procgrp.h" />
     <ClInclude Include="sdk\phdk.h" />
     <ClInclude Include="include\phplug.h" />
@@ -423,7 +422,6 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\asterisk_orange.bmp" />
     <Image Include="resources\cog.bmp" />
     <Image Include="resources\pin.bmp" />
   </ItemGroup>
