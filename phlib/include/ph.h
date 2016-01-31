@@ -2385,8 +2385,6 @@ PhGetWin32Message(
     _In_ ULONG Result
     );
 
-#define PH_MAX_MESSAGE_SIZE 800
-
 PHLIBAPI
 INT
 NTAPI
