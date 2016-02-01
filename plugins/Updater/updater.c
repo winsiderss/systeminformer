@@ -1208,7 +1208,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
 
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(
-                L"Process Hacker %lu.%lu (r%lu)",
+                L"Process Hacker %lu.%lu.%lu",
                 context->MajorVersion,
                 context->MinorVersion,
                 context->RevisionVersion
@@ -1237,7 +1237,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running the latest version.");
             SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
-                L"Stable release build: v%lu.%lu (r%lu)",
+                L"Stable release build: v%lu.%lu.%lu",
                 context->CurrentMajorVersion,
                 context->CurrentMinorVersion,
                 context->CurrentRevisionVersion
@@ -1256,7 +1256,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running a newer version!");
             SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
-                L"SVN release build: v%lu.%lu (r%lu)",
+                L"SVN release build: v%lu.%lu.%lu",
                 context->CurrentMajorVersion,
                 context->CurrentMinorVersion,
                 context->CurrentRevisionVersion
