@@ -81,7 +81,7 @@ namespace UpdateRevision
 
             public override string ToString()
             {
-                return string.Format(CultureInfo.InvariantCulture, "{0:D}.{1:D}+{2:D}", Major, Minor, Commits);
+                return string.Format(CultureInfo.InvariantCulture, "{0:D}.{1:D}+{2:D}: {3}", Major, Minor, Commits, RevisionGuid);
             }
 
             public override int GetHashCode()
