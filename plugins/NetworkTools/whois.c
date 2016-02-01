@@ -130,6 +130,19 @@ NTSTATUS NetworkWhoisThreadStart(
             __leave;
         }
 
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+            ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+
+            WinHttpSetOption(
+                sessionHandle,
+                WINHTTP_OPTION_DECOMPRESSION,
+                &httpFlags,
+                sizeof(ULONG)
+                );
+        }
+
         if (!(connectionHandle = WinHttpConnect(
             sessionHandle,
             L"whois.arin.net",
