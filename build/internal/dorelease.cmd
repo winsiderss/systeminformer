@@ -7,11 +7,15 @@ if exist %2\processhacker-*-*.* del %2\processhacker-*-*.*
 
 rem Source distribution
 
-if exist "%SVNBIN%\svn.exe". (
-    if exist %2\ProcessHacker2 rmdir /S /Q %2\ProcessHacker2
-    "%SVNBIN%\svn.exe" export %1 %2\ProcessHacker2
-    echo #define PHAPP_VERSION_REVISION 0 > %2\ProcessHacker2\ProcessHacker\include\phapprev.h
-    if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-src.zip %2\ProcessHacker2\*
+if exist "%GITBIN%\git.exe". (
+    "%GITBIN%\git.exe" --git-dir=%1\.git --work-tree=%1 archive --format zip --output %2\processhacker-2.%MINORVERSION%-src.zip master
+    if exist "%SEVENZIPBIN%\7z.exe" (
+        if exist %2\ProcessHacker2 rmdir /S /Q %2\ProcessHacker2
+        "%SEVENZIPBIN%\7z.exe" x %2\processhacker-2.%MINORVERSION%-src.zip -o%2\ProcessHacker2
+        del %2\processhacker-2.%MINORVERSION%-src.zip
+        echo #define PHAPP_VERSION_REVISION 0 > %2\ProcessHacker2\ProcessHacker\include\phapprev.h
+        "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-src.zip %2\ProcessHacker2\*
+    )
 )
 
 rem SDK distribution
