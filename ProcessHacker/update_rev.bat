@@ -1,21 +1,21 @@
 @ECHO OFF
 SETLOCAL
 
-SET "SUBWCREV=SubWCRev.exe"
+SET "UPDATEGITREVISION=..\tools\UpdateGitRevision\UpdateGitRevision\bin\Release\UpdateGitRevision.exe"
 
 PUSHD %~dp0
 
-"%SUBWCREV%" ".." "include\phapprev_in.h" "include\phapprev.h" -f
-IF %ERRORLEVEL% NEQ 0 GOTO NoSubWCRev
+"%UPDATEGITREVISION%" "include\phapprev_in.h" "include\phapprev.h"
+IF %ERRORLEVEL% NEQ 0 GOTO NoUpdateGitRevision
 
 POPD
 ENDLOCAL
 EXIT /B
 
 
-:NoSubWCRev
-ECHO. & ECHO SubWCRev, which is part of TortoiseSVN, wasn't found!
-ECHO You should (re)install TortoiseSVN.
+:NoUpdateGitRevision
+ECHO. & ECHO UpdateGitRevision.exe wasn't found!
+ECHO You need to build it.
 ECHO I'll use PHAPP_VERSION_REVISION=0 for now.
 
 ECHO #ifndef PHAPPREV_H> "include\phapprev.h"
