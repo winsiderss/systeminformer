@@ -1256,7 +1256,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             // Set the UI text
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running a newer version!");
             SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
-                L"SVN release build: v%lu.%lu.%lu",
+                L"Pre-release build: v%lu.%lu.%lu",
                 context->CurrentMajorVersion,
                 context->CurrentMinorVersion,
                 context->CurrentRevisionVersion
