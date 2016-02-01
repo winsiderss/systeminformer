@@ -2,7 +2,7 @@
  * Process Hacker -
  *   GUI support functions
  *
- * Copyright (C) 2009-2015 wj32
+ * Copyright (C) 2009-2016 wj32
  *
  * This file is part of Process Hacker.
  *
