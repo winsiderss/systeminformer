@@ -485,7 +485,8 @@ static VOID CustomizeResetToolbarImages(
     VOID
     )
 {
-    // Reset the image cache with the new icons
+    // Reset the image cache with the new icons.
+    // TODO: Move function to Toolbar.c
     for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
     {
         if (ToolbarButtons[i].iBitmap != I_IMAGECALLBACK)
@@ -505,75 +506,6 @@ static VOID CustomizeResetToolbarImages(
             }
         }
     }
-
-    // First attempt
-    //INT buttonIndex;
-    //INT buttonCount;
-    //
-    //buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-    //
-    //for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
-    //{
-    //    TBBUTTON button;
-    //
-    //    memset(&button, 0, sizeof(TBBUTTON));
-    //
-    //    if (SendMessage(ToolBarHandle, TB_GETBUTTON, buttonIndex, (LPARAM)&button))
-    //    {
-    //        HBITMAP buttonImage;
-    //
-    //        if (button.fsStyle & BTNS_SEP)
-    //            continue;
-    //
-    //        if (buttonImage = ToolbarGetImage(button.idCommand))
-    //        {
-    //            ImageList_Replace(
-    //                ToolBarImageList,
-    //                button.iBitmap,
-    //                buttonImage,
-    //                NULL
-    //                );
-    //            DeleteObject(buttonImage);
-    //        }
-    //    }
-    //}
-
-    // Second attempt
-    //INT buttonIndex;
-    //INT buttonCount;
-    //
-    //buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-    //
-    //for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
-    //{
-    //    TBBUTTONINFO buttonInfo =
-    //    {
-    //        sizeof(TBBUTTONINFO),
-    //        TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
-    //    };
-    //
-    //    if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo) != -1)
-    //    {
-    //        HBITMAP buttonImage;
-    //
-    //        if (buttonInfo.fsStyle & BTNS_SEP)
-    //            continue;
-    //
-    //        if (buttonImage = ToolbarGetImage(buttonInfo.idCommand))
-    //        {
-    //                ImageList_Replace(
-    //                    ToolBarImageList,
-    //                    buttonInfo.iImage,
-    //                    buttonImage,
-    //                    NULL
-    //                    );
-    //
-    //            DeleteObject(buttonImage);
-    //        }
-    //
-    //        //SendMessage(ToolBarHandle, TB_SETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo);
-    //    }
-    //}
 }
 
 static INT_PTR CALLBACK CustomizeDialogProc(
@@ -895,9 +827,9 @@ static INT_PTR CALLBACK CustomizeDialogProc(
 
                         ToolbarLoadSettings();
 
-                        //CustomizeLoadItems(context);
                         CustomizeResetImages(context);
                         CustomizeResetToolbarImages();
+                        //CustomizeLoadItems(context);
                     }
                 }
                 break;
