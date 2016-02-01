@@ -100,7 +100,10 @@ Desktop.ini
 ## Project specific rules
 ##########################
 
+build/Installer/*.exe
 ProcessHacker/include/phapprev.h
+ProcessHacker/sdk/phapppub.h
+sdk/
 
 !tools/fixlib/bin/
 tools/fixlib/bin/Debug/
