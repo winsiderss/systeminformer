@@ -37,9 +37,9 @@
 ipch/
 *.aps
 *.ncb
+*.opendb
 *.opensdf
 *.sdf
-*.opendb
 
 # Visual Studio profiler
 *.psess
