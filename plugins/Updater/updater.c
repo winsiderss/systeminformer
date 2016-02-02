@@ -48,8 +48,8 @@ static BOOLEAN LastUpdateCheckExpired(
     // Query the current time
     PhQuerySystemTime(&currentUpdateTimeTicks);
 
-    // Check if the last update check was more than 14 days ago
-    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 14 * PH_TICKS_PER_DAY)
+    // Check if the last update check was more than 7 days ago
+    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
     {
         PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
 
