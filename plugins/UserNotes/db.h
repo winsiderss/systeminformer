@@ -37,12 +37,12 @@ typedef struct _DB_OBJECT
     ULONG Tag;
     PH_STRINGREF Key;
 
-    INT Collapse;
-    COLORREF BackColor;
-    ULONG PriorityClass;
-    ULONG IoPriorityPlusOne;
     PPH_STRING Name;
     PPH_STRING Comment;
+    ULONG PriorityClass;
+    ULONG IoPriorityPlusOne;
+    COLORREF BackColor;
+    BOOLEAN Collapse;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(

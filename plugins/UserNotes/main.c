@@ -59,7 +59,8 @@ static BOOLEAN MatchDbObjectIntent(
     return (!(Intent & INTENT_PROCESS_COMMENT) || Object->Comment->Length != 0) &&
         (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0) &&
         (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) &&
-        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse != -1);
+        (!(Intent & INTENT_PROCESS_HIGHLIGHT) || Object->BackColor != ULONG_MAX) &&
+        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse);
 }
 
 static PDB_OBJECT FindDbObjectForProcess(
@@ -98,7 +99,7 @@ static VOID DeleteDbObjectForProcessIfUnused(
         Object->PriorityClass == 0 &&
         Object->IoPriorityPlusOne == 0 &&
         Object->BackColor == ULONG_MAX &&
-        Object->Collapse == -1
+        Object->Collapse == FALSE
         )
     {
         DeleteDbObject(Object);
@@ -449,7 +450,7 @@ static VOID NTAPI MenuItemCallback(
             {
                 LockDb();
 
-                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse != -1)
+                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && !object->Collapse)
                 {
                     object->Collapse = TRUE;
                 }
@@ -468,9 +469,9 @@ static VOID NTAPI MenuItemCallback(
         {
             LockDb();
 
-            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse != -1)
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse)
             {
-                object->Collapse = -1;
+                object->Collapse = FALSE;
                 DeleteDbObjectForProcessIfUnused(object);
             }
 
@@ -838,13 +839,13 @@ static VOID ProcessMenuInitializingCallback(
         PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
     }
 
-    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->Collapse != -1 && object->Collapse)
+    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->Collapse)
     {
         highlightMenuItem = PhPluginCreateEMenuItem(
             PluginInstance,
             0,
             PROCESS_REMOVE_STARTUP_COLLAPSE,
-            L"Collapse at startup",
+            L"Collapse by Default",
             menuInfo->u.Process.Processes[0]
             );
         highlightMenuItem->Flags |= PH_EMENU_CHECKED;
@@ -853,7 +854,7 @@ static VOID ProcessMenuInitializingCallback(
     }
     else
     {
-        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_STARTUP_COLLAPSE, L"Collapse at startup", menuInfo->u.Process.Processes[0]), 0);
+        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_STARTUP_COLLAPSE, L"Collapse by Default", menuInfo->u.Process.Processes[0]), 0);
     }
 
 
@@ -1115,7 +1116,7 @@ static VOID ProcessNodeCreateCallback(
 
     if (object = FindDbObjectForProcess(processNode->ProcessItem, INTENT_PROCESS_COLLAPSE))
     {
-        if (object->Collapse != -1 && object->Collapse)
+        if (object->Collapse)
         {
             processNode->Node.Expanded = FALSE;
         }

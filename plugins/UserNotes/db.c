@@ -125,7 +125,7 @@ PDB_OBJECT CreateDbObject(
     object->Tag = Tag;
     object->Key = *Name;
     object->BackColor = ULONG_MAX;
-    object->Collapse = -1;
+    object->Collapse = FALSE;
 
     realObject = PhAddEntryHashtableEx(ObjectDb, &object, &added);
 
@@ -297,7 +297,7 @@ NTSTATUS LoadDb(
 
         if (object && collapse)
         {
-            ULONG64 collapseInteger = -1;
+            ULONG64 collapseInteger = 0;
 
             PhStringToInteger64(&collapse->sr, 10, &collapseInteger);
 
