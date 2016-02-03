@@ -106,13 +106,21 @@ ProcessHacker/include/phapprev.h
 ProcessHacker/sdk/phapppub.h
 sdk/
 
+!plugins/SamplePlugin/bin/
+plugins/SamplePlugin/bin/Debug32/
+plugins/SamplePlugin/bin/Debug64/
+plugins/SamplePlugin/bin/Release32/*
+!plugins/SamplePlugin/bin/Release32/SamplePlugin.dll
+plugins/SamplePlugin/bin/Release64/*
+!plugins/SamplePlugin/bin/Release64/SamplePlugin.dll
+
 !tools/fixlib/bin/
 tools/fixlib/bin/Debug/
 tools/fixlib/bin/Release/*
 !tools/fixlib/bin/Release/fixlib.exe
 
 !tools/GenerateHeader/GenerateHeader/bin/
-tools/GenerateHeader/GenerateHeader/bin/Debug
+tools/GenerateHeader/GenerateHeader/bin/Debug/
 tools/GenerateHeader/GenerateHeader/bin/Release/*
 !tools/GenerateHeader/GenerateHeader/bin/Release/GenerateHeader.exe
 

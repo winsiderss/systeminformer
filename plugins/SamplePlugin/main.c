@@ -54,7 +54,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
 
             // Register your plugin with a unique name, otherwise it will fail.
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.SamplePlugin", Instance, &info);
+            PluginInstance = PhRegisterPlugin(L"YourName.SamplePlugin", Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
