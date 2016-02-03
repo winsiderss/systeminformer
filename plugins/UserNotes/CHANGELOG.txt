@@ -1,5 +1,5 @@
 1.6
- * Added "Collapse at startup" option for processes
+ * Added "Collapse by Default" option for processes
 
 1.5
  * Added individual process highlighting support

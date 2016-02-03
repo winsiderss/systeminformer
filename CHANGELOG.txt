@@ -1,5 +1,11 @@
 Process Hacker
 
+2.38
+ * HIGHLIGHTS:
+ * OTHER CHANGES:
+   * Updated UserNotes plugin:
+     * Added "Collapse by Default" option for processes
+
 2.37
  * HIGHLIGHTS:
    * Updated for Windows 10
