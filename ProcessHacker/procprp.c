@@ -3219,12 +3219,7 @@ static VOID NTAPI ModuleAddedHandler(
 
     // Parameter contains a pointer to the added module item.
     PhReferenceObject(Parameter);
-    PostMessage(
-        modulesContext->WindowHandle,
-        WM_PH_MODULE_ADDED,
-        PhGetRunIdProvider(&modulesContext->ProviderRegistration),
-        (LPARAM)Parameter
-        );
+    PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModuleModifiedHandler(
@@ -3234,7 +3229,7 @@ static VOID NTAPI ModuleModifiedHandler(
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
 
-    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_MODIFIED, 0, (LPARAM)Parameter);
+    PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModuleRemovedHandler(
@@ -3244,7 +3239,7 @@ static VOID NTAPI ModuleRemovedHandler(
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
 
-    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_REMOVED, 0, (LPARAM)Parameter);
+    PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModulesUpdatedHandler(
@@ -3254,7 +3249,7 @@ static VOID NTAPI ModulesUpdatedHandler(
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
 
-    PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, 0, 0);
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, PhGetRunIdProvider(&modulesContext->ProviderRegistration), 0);
 }
 
 VOID PhpInitializeModuleMenu(
@@ -3430,7 +3425,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             BringWindowToTop(tnHandle);
             PhInitializeModuleList(hwndDlg, tnHandle, &modulesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
-            modulesContext->NeedsRedraw = FALSE;
+            PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
             modulesContext->ErrorMessage = NULL;
 
@@ -3474,6 +3469,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 );
             PhUnregisterProvider(&modulesContext->ProviderRegistration);
             PhDereferenceObject(modulesContext->Provider);
+            PhDeleteProviderEventQueue(&modulesContext->EventQueue);
 
             if (PhPluginsEnabled)
             {
@@ -3607,49 +3603,42 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
         }
         break;
-    case WM_PH_MODULE_ADDED:
-        {
-            ULONG runId = (ULONG)wParam;
-            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
-
-            if (!modulesContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                modulesContext->NeedsRedraw = TRUE;
-            }
-
-            PhAddModuleNode(&modulesContext->ListContext, moduleItem, runId);
-            PhDereferenceObject(moduleItem);
-        }
-        break;
-    case WM_PH_MODULE_MODIFIED:
-        {
-            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
-
-            if (!modulesContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                modulesContext->NeedsRedraw = TRUE;
-            }
-
-            PhUpdateModuleNode(&modulesContext->ListContext, PhFindModuleNode(&modulesContext->ListContext, moduleItem));
-        }
-        break;
-    case WM_PH_MODULE_REMOVED:
-        {
-            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
-
-            if (!modulesContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                modulesContext->NeedsRedraw = TRUE;
-            }
-
-            PhRemoveModuleNode(&modulesContext->ListContext, PhFindModuleNode(&modulesContext->ListContext, moduleItem));
-        }
-        break;
     case WM_PH_MODULES_UPDATED:
         {
+            ULONG upToRunId = (ULONG)wParam;
+            PPH_PROVIDER_EVENT events;
+            ULONG count;
+            ULONG i;
+
+            events = PhFlushProviderEventQueue(&modulesContext->EventQueue, upToRunId, &count);
+
+            if (events)
+            {
+                TreeNew_SetRedraw(tnHandle, FALSE);
+
+                for (i = 0; i < count; i++)
+                {
+                    PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+                    PPH_MODULE_ITEM moduleItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+                    switch (type)
+                    {
+                    case ProviderAddedEvent:
+                        PhAddModuleNode(&modulesContext->ListContext, moduleItem, events[i].RunId);
+                        PhDereferenceObject(moduleItem);
+                        break;
+                    case ProviderModifiedEvent:
+                        PhUpdateModuleNode(&modulesContext->ListContext, PhFindModuleNode(&modulesContext->ListContext, moduleItem));
+                        break;
+                    case ProviderRemovedEvent:
+                        PhRemoveModuleNode(&modulesContext->ListContext, PhFindModuleNode(&modulesContext->ListContext, moduleItem));
+                        break;
+                    }
+                }
+
+                PhFree(events);
+            }
+
             PhTickModuleNodes(&modulesContext->ListContext);
 
             if (modulesContext->LastRunStatus != modulesContext->Provider->RunStatus)
@@ -3678,11 +3667,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
 
-            if (modulesContext->NeedsRedraw)
-            {
+            if (count != 0)
                 TreeNew_SetRedraw(tnHandle, TRUE);
-                modulesContext->NeedsRedraw = FALSE;
-            }
         }
         break;
     case WM_CTLCOLORDLG:
@@ -4345,7 +4331,6 @@ static VOID NTAPI HandleAddedHandler(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-    PH_PROVIDER_EVENT event;
 
     // Parameter contains a pointer to the added handle item.
     PhReferenceObject(Parameter);
@@ -4358,7 +4343,6 @@ static VOID NTAPI HandleModifiedHandler(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-    PH_PROVIDER_EVENT event;
 
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
@@ -4369,7 +4353,6 @@ static VOID NTAPI HandleRemovedHandler(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-    PH_PROVIDER_EVENT event;
 
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }

@@ -175,10 +175,7 @@ typedef struct _PH_THREADS_CONTEXT
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
 // end_phapppub
 
-#define WM_PH_MODULE_ADDED (WM_APP + 211)
-#define WM_PH_MODULE_MODIFIED (WM_APP + 212)
-#define WM_PH_MODULE_REMOVED (WM_APP + 213)
-#define WM_PH_MODULES_UPDATED (WM_APP + 214)
+#define WM_PH_MODULES_UPDATED (WM_APP + 210)
 
 // begin_phapppub
 typedef struct _PH_MODULES_CONTEXT
@@ -202,7 +199,7 @@ typedef struct _PH_MODULES_CONTEXT
             HWND TreeNewHandle; // phapppub
         } PublicUse;
     };
-    BOOLEAN NeedsRedraw;
+    PH_PROVIDER_EVENT_QUEUE EventQueue;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 // begin_phapppub

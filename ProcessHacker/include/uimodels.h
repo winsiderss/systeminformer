@@ -146,6 +146,17 @@ FORCEINLINE VOID PhDeleteProviderEventQueue(
     _Inout_ PPH_PROVIDER_EVENT_QUEUE EventQueue
     )
 {
+    PPH_PROVIDER_EVENT events;
+    SIZE_T i;
+
+    events = EventQueue->Array.Items;
+
+    for (i = 0; i < EventQueue->Array.Count; i++)
+    {
+        if (PH_PROVIDER_EVENT_TYPE(events[i]) == ProviderAddedEvent)
+            PhDereferenceObject(PH_PROVIDER_EVENT_OBJECT(events[i]));
+    }
+
     PhDeleteArray(&EventQueue->Array);
 }
 
@@ -176,7 +187,6 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
     PPH_PROVIDER_EVENT availableEvents;
     PPH_PROVIDER_EVENT events = NULL;
     SIZE_T count;
-    SIZE_T i;
 
     PhAcquireQueuedLockExclusive(&EventQueue->Lock);
     availableEvents = EventQueue->Array.Items;
