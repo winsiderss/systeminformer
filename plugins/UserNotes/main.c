@@ -60,7 +60,7 @@ static BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0) &&
         (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) &&
         (!(Intent & INTENT_PROCESS_HIGHLIGHT) || Object->BackColor != ULONG_MAX) &&
-        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse);
+        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse == TRUE);
 }
 
 static PDB_OBJECT FindDbObjectForProcess(
