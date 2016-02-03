@@ -831,16 +831,16 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
 }
 
 /**
-* Wakes waiters in a queued lock for releasing it in exclusive mode.
-*
-* \param QueuedLock A queued lock.
-* \param Value The current value of the queued lock.
-*
-* \remarks The function assumes the following flags are set:
-* \ref PH_QUEUED_LOCK_WAITERS.
-* The function assumes the following flags are not set:
-* \ref PH_QUEUED_LOCK_MULTIPLE_SHARED, \ref PH_QUEUED_LOCK_TRAVERSING.
-*/
+ * Wakes waiters in a queued lock for releasing it in exclusive mode.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS.
+ * The function assumes the following flags are not set:
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED, \ref PH_QUEUED_LOCK_TRAVERSING.
+ */
 VOID FASTCALL PhfWakeForReleaseQueuedLock(
     _Inout_ PPH_QUEUED_LOCK QueuedLock,
     _In_ ULONG_PTR Value
