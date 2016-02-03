@@ -21,67 +21,53 @@
  */
 
 /*
- * Queued lock, a.k.a. push lock (kernel-mode) or slim reader-writer lock
- * (user-mode).
+ * Queued lock, a.k.a. push lock (kernel-mode) or slim reader-writer lock (user-mode).
  *
  * The queued lock is:
  * * Around 10% faster than the fast lock.
  * * Only the size of a pointer.
- * * Low on resource usage (no additional kernel objects are
- *   created for blocking).
+ * * Low on resource usage (no additional kernel objects are created for blocking).
  *
- * The usual flags are used for contention-free
- * acquire/release. When there is contention, stack-based
- * wait blocks are chained. The first wait block contains
- * the shared owners count which is decremented by
- * shared releasers.
+ * The usual flags are used for contention-free acquire/release. When there is contention,
+ * stack-based wait blocks are chained. The first wait block contains the shared owners count which
+ * is decremented by shared releasers.
  *
- * Naturally these wait blocks would be chained
- * in FILO order, but list optimization is done for two purposes:
- * * Finding the last wait block (where the shared owners
- *   count is stored). This is implemented by the Last pointer.
- * * Unblocking the wait blocks in FIFO order. This is
- *   implemented by the Previous pointer.
+ * Naturally these wait blocks would be chained in FILO order, but list optimization is done for two
+ * purposes:
+ * * Finding the last wait block (where the shared owners count is stored). This is implemented by
+ *   the Last pointer.
+ * * Unblocking the wait blocks in FIFO order. This is implemented by the Previous pointer.
  *
- * The optimization is incremental - each optimization run
- * will stop at the first optimized wait block. Any needed
- * optimization is completed just before waking waiters.
+ * The optimization is incremental - each optimization run will stop at the first optimized wait
+ * block. Any needed optimization is completed just before waking waiters.
  *
  * The waiters list/chain has the following restrictions:
  * * At any time wait blocks may be pushed onto the list.
- * * While waking waiters, the list may not be traversed
- *   nor optimized.
- * * When there are multiple shared owners, shared releasers
- *   may traverse the list (to find the last wait block).
- *   This is not an issue because waiters wouldn't be woken
- *   until there are no more shared owners.
- * * List optimization may be done at any time except for
- *   when someone else is waking waiters. This is controlled
- *   by the traversing bit.
+ * * While waking waiters, the list may not be traversed nor optimized.
+ * * When there are multiple shared owners, shared releasers may traverse the list (to find the last
+ *   wait block). This is not an issue because waiters wouldn't be woken until there are no more
+ *   shared owners.
+ * * List optimization may be done at any time except for when someone else is waking waiters. This
+ *   is controlled by the traversing bit.
  *
  * The traversing bit has the following rules:
- * * The list may be optimized only after the traversing bit
- *   is set, checking that it wasn't set already.
- *   If it was set, it would indicate that someone else is
- *   optimizing the list or waking waiters.
- * * Before waking waiters the traversing bit must be set.
- *   If it was set already, just clear the owned bit.
- * * If during list optimization the owned bit is detected
- *   to be cleared, the function begins waking waiters. This
- *   is because the owned bit is cleared when a releaser
- *   fails to set the traversing bit.
+ * * The list may be optimized only after the traversing bit is set, checking that it wasn't set
+ *   already. If it was set, it would indicate that someone else is optimizing the list or waking
+ *   waiters.
+ * * Before waking waiters the traversing bit must be set. If it was set already, just clear the
+ *   owned bit.
+ * * If during list optimization the owned bit is detected to be cleared, the function begins waking
+ *   waiters. This is because the owned bit is cleared when a releaser fails to set the traversing
+ *   bit.
  *
  * Blocking is implemented through a process-wide keyed event.
- * A spin count is also used before blocking on the keyed
- * event.
+ * A spin count is also used before blocking on the keyed event.
  *
- * Queued locks can act as condition variables, with
- * wait, pulse and pulse all support. Waiters are released
- * in FIFO order.
+ * Queued locks can act as condition variables, with wait, pulse and pulse all support. Waiters are
+ * released in FIFO order.
  *
- * Queued locks can act as wake events. These are designed
- * for tiny one-bit locks which share a single event to block
- * on. Spurious wake-ups are a part of normal operation.
+ * Queued locks can act as wake events. These are designed for tiny one-bit locks which share a
+ * single event to block on. Spurious wake-ups are a part of normal operation.
  */
 
 #include <phbase.h>
@@ -845,6 +831,36 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
 }
 
 /**
+* Wakes waiters in a queued lock for releasing it in exclusive mode.
+*
+* \param QueuedLock A queued lock.
+* \param Value The current value of the queued lock.
+*
+* \remarks The function assumes the following flags are set:
+* \ref PH_QUEUED_LOCK_WAITERS.
+* The function assumes the following flags are not set:
+* \ref PH_QUEUED_LOCK_MULTIPLE_SHARED, \ref PH_QUEUED_LOCK_TRAVERSING.
+*/
+VOID FASTCALL PhfWakeForReleaseQueuedLock(
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
+    )
+{
+    ULONG_PTR newValue;
+
+    newValue = Value + PH_QUEUED_LOCK_TRAVERSING;
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PVOID *)&QueuedLock->Value,
+        (PVOID)newValue,
+        (PVOID)Value
+        ) == Value)
+    {
+        PhpfWakeQueuedLock(QueuedLock, newValue);
+    }
+}
+
+/**
  * Releases a queued lock in shared mode.
  *
  * \param QueuedLock A queued lock.
@@ -925,72 +941,6 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
 }
 
 /**
- * Wakes waiters in a queued lock, making no assumptions
- * about the state of the lock.
- *
- * \param QueuedLock A queued lock.
- *
- * \remarks This function exists only for compatibility reasons.
- */
-VOID FASTCALL PhfTryWakeQueuedLock(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock
-    )
-{
-    ULONG_PTR value;
-    ULONG_PTR newValue;
-
-    value = QueuedLock->Value;
-
-    if (
-        !(value & PH_QUEUED_LOCK_WAITERS) ||
-        (value & PH_QUEUED_LOCK_TRAVERSING) ||
-        (value & PH_QUEUED_LOCK_OWNED)
-        )
-        return;
-
-    newValue = value + PH_QUEUED_LOCK_TRAVERSING;
-
-    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PVOID *)&QueuedLock->Value,
-        (PVOID)newValue,
-        (PVOID)value
-        ) == value)
-    {
-        PhpfWakeQueuedLock(QueuedLock, newValue);
-    }
-}
-
-/**
- * Wakes waiters in a queued lock for releasing it in exclusive mode.
- *
- * \param QueuedLock A queued lock.
- * \param Value The current value of the queued lock.
- *
- * \remarks The function assumes the following flags are set:
- * \ref PH_QUEUED_LOCK_WAITERS.
- * The function assumes the following flags are not set:
- * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED, \ref PH_QUEUED_LOCK_TRAVERSING.
- */
-VOID FASTCALL PhfWakeForReleaseQueuedLock(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock,
-    _In_ ULONG_PTR Value
-    )
-{
-    ULONG_PTR newValue;
-
-    newValue = Value + PH_QUEUED_LOCK_TRAVERSING;
-
-    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PVOID *)&QueuedLock->Value,
-        (PVOID)newValue,
-        (PVOID)Value
-        ) == Value)
-    {
-        PhpfWakeQueuedLock(QueuedLock, newValue);
-    }
-}
-
-/**
  * Wakes one thread sleeping on a condition variable.
  *
  * \param Condition A condition variable.
@@ -999,7 +949,7 @@ VOID FASTCALL PhfWakeForReleaseQueuedLock(
  * the function.
  */
 VOID FASTCALL PhfPulseCondition(
-    _Inout_ PPH_QUEUED_LOCK Condition
+    _Inout_ PPH_CONDITION Condition
     )
 {
     if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
@@ -1015,7 +965,7 @@ VOID FASTCALL PhfPulseCondition(
  * the function.
  */
 VOID FASTCALL PhfPulseAllCondition(
-    _Inout_ PPH_QUEUED_LOCK Condition
+    _Inout_ PPH_CONDITION Condition
     )
 {
     if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
@@ -1033,7 +983,7 @@ VOID FASTCALL PhfPulseAllCondition(
  * the function.
  */
 VOID FASTCALL PhfWaitForCondition(
-    _Inout_ PPH_QUEUED_LOCK Condition,
+    _Inout_ PPH_CONDITION Condition,
     _Inout_ PPH_QUEUED_LOCK Lock,
     _In_opt_ PLARGE_INTEGER Timeout
     )
@@ -1084,7 +1034,7 @@ VOID FASTCALL PhfWaitForCondition(
  * \param Timeout Not implemented.
  */
 VOID FASTCALL PhfWaitForConditionEx(
-    _Inout_ PPH_QUEUED_LOCK Condition,
+    _Inout_ PPH_CONDITION Condition,
     _Inout_ PVOID Lock,
     _In_ ULONG Flags,
     _In_opt_ PLARGE_INTEGER Timeout
@@ -1177,7 +1127,7 @@ VOID FASTCALL PhfWaitForConditionEx(
  * the wait block.
  */
 VOID FASTCALL PhfQueueWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
     _Out_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
@@ -1211,7 +1161,7 @@ VOID FASTCALL PhfQueueWakeEvent(
  * NULL.
  */
 VOID FASTCALL PhfSetWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
     _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
@@ -1272,7 +1222,7 @@ VOID FASTCALL PhfSetWakeEvent(
  * predicate.
  */
 NTSTATUS FASTCALL PhfWaitForWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
     _Inout_ PPH_QUEUED_WAIT_BLOCK WaitBlock,
     _In_ BOOLEAN Spin,
     _In_opt_ PLARGE_INTEGER Timeout

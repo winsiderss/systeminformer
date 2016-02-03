@@ -110,7 +110,7 @@ VOID PhInitializeWorkQueue(
 
     InitializeListHead(&WorkQueue->QueueListHead);
     PhInitializeQueuedLock(&WorkQueue->QueueLock);
-    PhInitializeQueuedLock(&WorkQueue->QueueEmptyCondition);
+    PhInitializeCondition(&WorkQueue->QueueEmptyCondition);
 
     WorkQueue->MinimumThreads = MinimumThreads;
     WorkQueue->MaximumThreads = MaximumThreads;

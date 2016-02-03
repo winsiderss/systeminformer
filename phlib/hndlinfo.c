@@ -110,7 +110,7 @@ static PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
 static PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
 
 static SLIST_HEADER PhpCallWithTimeoutThreadListHead;
-static PH_QUEUED_LOCK PhpCallWithTimeoutThreadReleaseEvent = PH_QUEUED_LOCK_INIT;
+static PH_WAKE_EVENT PhpCallWithTimeoutThreadReleaseEvent = PH_WAKE_EVENT_INIT;
 
 PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
     _In_ PPH_GET_CLIENT_ID_NAME GetClientIdName

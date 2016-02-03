@@ -223,7 +223,7 @@ VOID FASTCALL PhfInitializeBarrier(
     )
 {
     Barrier->Value = Target << PH_BARRIER_TARGET_SHIFT;
-    PhInitializeQueuedLock(&Barrier->WakeEvent);
+    PhInitializeWakeEvent(&Barrier->WakeEvent);
 }
 
 FORCEINLINE VOID PhpBlockOnBarrier(

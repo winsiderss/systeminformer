@@ -31,7 +31,7 @@
 typedef struct _PH_HANDLE_TABLE
 {
     PH_QUEUED_LOCK Lock;
-    PH_QUEUED_LOCK HandleWakeEvent;
+    PH_WAKE_EVENT HandleWakeEvent;
 
     ULONG Count;
     ULONG_PTR TableValue;

@@ -5128,7 +5128,7 @@ VOID PhInitializeCallback(
 {
     InitializeListHead(&Callback->ListHead);
     PhInitializeQueuedLock(&Callback->ListLock);
-    PhInitializeQueuedLock(&Callback->BusyCondition);
+    PhInitializeCondition(&Callback->BusyCondition);
 }
 
 /**

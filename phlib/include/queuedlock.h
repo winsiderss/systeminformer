@@ -55,7 +55,11 @@ BOOLEAN PhQueuedLockInitialization(
     VOID
     );
 
-FORCEINLINE VOID PhInitializeQueuedLock(
+// Queued lock
+
+FORCEINLINE
+VOID
+PhInitializeQueuedLock(
     _Out_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -69,119 +73,10 @@ PhfAcquireQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     );
 
-PHLIBAPI
-VOID
-FASTCALL
-PhfAcquireQueuedLockShared(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhfReleaseQueuedLockExclusive(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhfReleaseQueuedLockShared(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhfTryWakeQueuedLock(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhfWakeForReleaseQueuedLock(
-    _Inout_ PPH_QUEUED_LOCK QueuedLock,
-    _In_ ULONG_PTR Value
-    );
-
-#define PhPulseCondition PhfPulseCondition
-PHLIBAPI
-VOID
-FASTCALL
-PhfPulseCondition(
-    _Inout_ PPH_QUEUED_LOCK Condition
-    );
-
-#define PhPulseAllCondition PhfPulseAllCondition
-PHLIBAPI
-VOID
-FASTCALL
-PhfPulseAllCondition(
-    _Inout_ PPH_QUEUED_LOCK Condition
-    );
-
-#define PhWaitForCondition PhfWaitForCondition
-PHLIBAPI
-VOID
-FASTCALL
-PhfWaitForCondition(
-    _Inout_ PPH_QUEUED_LOCK Condition,
-    _Inout_ PPH_QUEUED_LOCK Lock,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-#define PH_CONDITION_WAIT_QUEUED_LOCK 0x1
-#define PH_CONDITION_WAIT_CRITICAL_SECTION 0x2
-#define PH_CONDITION_WAIT_FAST_LOCK 0x4
-#define PH_CONDITION_WAIT_LOCK_TYPE_MASK 0xfff
-
-#define PH_CONDITION_WAIT_SHARED 0x1000
-#define PH_CONDITION_WAIT_SPIN 0x2000
-
-#define PhWaitForConditionEx PhfWaitForConditionEx
-PHLIBAPI
-VOID
-FASTCALL
-PhfWaitForConditionEx(
-    _Inout_ PPH_QUEUED_LOCK Condition,
-    _Inout_ PVOID Lock,
-    _In_ ULONG Flags,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-#define PhQueueWakeEvent PhfQueueWakeEvent
-PHLIBAPI
-VOID
-FASTCALL
-PhfQueueWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
-    _Out_ PPH_QUEUED_WAIT_BLOCK WaitBlock
-    );
-
-PHLIBAPI
-VOID
-FASTCALL
-PhfSetWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
-    _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
-    );
-
-#define PhWaitForWakeEvent PhfWaitForWakeEvent
-PHLIBAPI
-NTSTATUS
-FASTCALL
-PhfWaitForWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
-    _Inout_ PPH_QUEUED_WAIT_BLOCK WaitBlock,
-    _In_ BOOLEAN Spin,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-// Inline functions
-
 _Acquires_exclusive_lock_(*QueuedLock)
-FORCEINLINE VOID PhAcquireQueuedLockExclusive(
+FORCEINLINE
+VOID
+PhAcquireQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -192,8 +87,17 @@ FORCEINLINE VOID PhAcquireQueuedLockExclusive(
     }
 }
 
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireQueuedLockShared(
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
+    );
+
 _Acquires_shared_lock_(*QueuedLock)
-FORCEINLINE VOID PhAcquireQueuedLockShared(
+FORCEINLINE
+VOID
+PhAcquireQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -208,7 +112,9 @@ FORCEINLINE VOID PhAcquireQueuedLockShared(
 }
 
 _When_(return != 0, _Acquires_exclusive_lock_(*QueuedLock))
-FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
+FORCEINLINE
+BOOLEAN
+PhTryAcquireQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -222,8 +128,25 @@ FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     }
 }
 
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseQueuedLockExclusive(
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
+    );
+
+PHLIBAPI
+VOID
+FASTCALL
+PhfWakeForReleaseQueuedLock(
+    _Inout_ PPH_QUEUED_LOCK QueuedLock,
+    _In_ ULONG_PTR Value
+    );
+
 _Releases_exclusive_lock_(*QueuedLock)
-FORCEINLINE VOID PhReleaseQueuedLockExclusive(
+FORCEINLINE
+VOID
+PhReleaseQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -237,8 +160,17 @@ FORCEINLINE VOID PhReleaseQueuedLockExclusive(
     }
 }
 
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseQueuedLockShared(
+    _Inout_ PPH_QUEUED_LOCK QueuedLock
+    );
+
 _Releases_shared_lock_(*QueuedLock)
-FORCEINLINE VOID PhReleaseQueuedLockShared(
+FORCEINLINE
+VOID
+PhReleaseQueuedLockShared(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -256,7 +188,9 @@ FORCEINLINE VOID PhReleaseQueuedLockShared(
     }
 }
 
-FORCEINLINE VOID PhAcquireReleaseQueuedLockExclusive(
+FORCEINLINE
+VOID
+PhAcquireReleaseQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -273,15 +207,16 @@ FORCEINLINE VOID PhAcquireReleaseQueuedLockExclusive(
     }
 }
 
-FORCEINLINE BOOLEAN PhTryAcquireReleaseQueuedLockExclusive(
+FORCEINLINE
+BOOLEAN
+PhTryAcquireReleaseQueuedLockExclusive(
     _Inout_ PPH_QUEUED_LOCK QueuedLock
     )
 {
     BOOLEAN owned;
 
-    // Need two memory barriers because we don't want the
-    // compiler re-ordering the following check in either
-    // direction.
+    // Need two memory barriers because we don't want the compiler re-ordering the following check
+    // in either direction.
     MemoryBarrier();
     owned = !(QueuedLock->Value & PH_QUEUED_LOCK_OWNED);
     MemoryBarrier();
@@ -289,8 +224,102 @@ FORCEINLINE BOOLEAN PhTryAcquireReleaseQueuedLockExclusive(
     return owned;
 }
 
-FORCEINLINE VOID PhSetWakeEvent(
-    _Inout_ PPH_QUEUED_LOCK WakeEvent,
+// Condition variable
+
+typedef struct _PH_QUEUED_LOCK PH_CONDITION, *PPH_CONDITION;
+
+#define PH_CONDITION_INIT PH_QUEUED_LOCK_INIT
+
+FORCEINLINE
+VOID
+PhInitializeCondition(
+    _Out_ PPH_CONDITION Condition
+    )
+{
+    PhInitializeQueuedLock(Condition);
+}
+
+#define PhPulseCondition PhfPulseCondition
+PHLIBAPI
+VOID
+FASTCALL
+PhfPulseCondition(
+    _Inout_ PPH_CONDITION Condition
+    );
+
+#define PhPulseAllCondition PhfPulseAllCondition
+PHLIBAPI
+VOID
+FASTCALL
+PhfPulseAllCondition(
+    _Inout_ PPH_CONDITION Condition
+    );
+
+#define PhWaitForCondition PhfWaitForCondition
+PHLIBAPI
+VOID
+FASTCALL
+PhfWaitForCondition(
+    _Inout_ PPH_CONDITION Condition,
+    _Inout_ PPH_QUEUED_LOCK Lock,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+#define PH_CONDITION_WAIT_QUEUED_LOCK 0x1
+#define PH_CONDITION_WAIT_CRITICAL_SECTION 0x2
+#define PH_CONDITION_WAIT_FAST_LOCK 0x4
+#define PH_CONDITION_WAIT_LOCK_TYPE_MASK 0xfff
+
+#define PH_CONDITION_WAIT_SHARED 0x1000
+#define PH_CONDITION_WAIT_SPIN 0x2000
+
+#define PhWaitForConditionEx PhfWaitForConditionEx
+PHLIBAPI
+VOID
+FASTCALL
+PhfWaitForConditionEx(
+    _Inout_ PPH_CONDITION Condition,
+    _Inout_ PVOID Lock,
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+// Wake event
+
+typedef struct _PH_QUEUED_LOCK PH_WAKE_EVENT, *PPH_WAKE_EVENT;
+
+#define PH_WAKE_EVENT_INIT PH_QUEUED_LOCK_INIT
+
+FORCEINLINE
+VOID
+PhInitializeWakeEvent(
+    _Out_ PPH_WAKE_EVENT WakeEvent
+    )
+{
+    PhInitializeQueuedLock(WakeEvent);
+}
+
+#define PhQueueWakeEvent PhfQueueWakeEvent
+PHLIBAPI
+VOID
+FASTCALL
+PhfQueueWakeEvent(
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
+    _Out_ PPH_QUEUED_WAIT_BLOCK WaitBlock
+    );
+
+PHLIBAPI
+VOID
+FASTCALL
+PhfSetWakeEvent(
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
+    _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
+    );
+
+FORCEINLINE
+VOID
+PhSetWakeEvent(
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
     _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
@@ -303,6 +332,17 @@ FORCEINLINE VOID PhSetWakeEvent(
     if (WakeEvent->Value || WaitBlock)
         PhfSetWakeEvent(WakeEvent, WaitBlock);
 }
+
+#define PhWaitForWakeEvent PhfWaitForWakeEvent
+PHLIBAPI
+NTSTATUS
+FASTCALL
+PhfWaitForWakeEvent(
+    _Inout_ PPH_WAKE_EVENT WakeEvent,
+    _Inout_ PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    _In_ BOOLEAN Spin,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
 
 #ifdef __cplusplus
 }

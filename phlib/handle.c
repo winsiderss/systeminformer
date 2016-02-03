@@ -59,7 +59,7 @@ PPH_HANDLE_TABLE PhCreateHandleTable(
 #endif
 
     PhInitializeQueuedLock(&handleTable->Lock);
-    PhInitializeQueuedLock(&handleTable->HandleWakeEvent);
+    PhInitializeWakeEvent(&handleTable->HandleWakeEvent);
 
     handleTable->NextValue = 0;
 

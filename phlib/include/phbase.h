@@ -494,10 +494,10 @@ PhTestEvent(
 typedef struct _PH_BARRIER
 {
     ULONG_PTR Value;
-    PH_QUEUED_LOCK WakeEvent;
+    PH_WAKE_EVENT WakeEvent;
 } PH_BARRIER, *PPH_BARRIER;
 
-#define PH_BARRIER_INIT(Target) { (ULONG_PTR)(Target) << PH_BARRIER_TARGET_SHIFT, PH_QUEUED_LOCK_INIT }
+#define PH_BARRIER_INIT(Target) { (ULONG_PTR)(Target) << PH_BARRIER_TARGET_SHIFT, PH_WAKE_EVENT_INIT }
 
 PHLIBAPI
 VOID
@@ -3254,10 +3254,10 @@ typedef struct _PH_CALLBACK
     /** A lock protecting the callbacks list. */
     PH_QUEUED_LOCK ListLock;
     /** A condition variable pulsed when the callback becomes free. */
-    PH_QUEUED_LOCK BusyCondition;
+    PH_CONDITION BusyCondition;
 } PH_CALLBACK, *PPH_CALLBACK;
 
-#define PH_CALLBACK_DECLARE(Name) PH_CALLBACK Name = { &Name.ListHead, &Name.ListHead, PH_QUEUED_LOCK_INIT, PH_QUEUED_LOCK_INIT }
+#define PH_CALLBACK_DECLARE(Name) PH_CALLBACK Name = { &Name.ListHead, &Name.ListHead, PH_QUEUED_LOCK_INIT, PH_CONDITION_INIT }
 
 PHLIBAPI
 VOID
@@ -3949,7 +3949,7 @@ typedef struct _PH_WORK_QUEUE
 
     LIST_ENTRY QueueListHead;
     PH_QUEUED_LOCK QueueLock;
-    PH_QUEUED_LOCK QueueEmptyCondition;
+    PH_CONDITION QueueEmptyCondition;
 
     ULONG MaximumThreads;
     ULONG MinimumThreads;
