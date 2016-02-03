@@ -58,7 +58,8 @@ static BOOLEAN MatchDbObjectIntent(
 {
     return (!(Intent & INTENT_PROCESS_COMMENT) || Object->Comment->Length != 0) &&
         (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0) &&
-        (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0);
+        (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) && 
+        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse != -1);
 }
 
 static PDB_OBJECT FindDbObjectForProcess(
@@ -146,7 +147,7 @@ static PPH_STRING SaveCustomColors(
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    for (SIZE_T i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
+    for (ULONG i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
     {
         PhAppendFormatStringBuilder(
             &stringBuilder,
@@ -428,6 +429,51 @@ static VOID NTAPI MenuItemCallback(
             SaveDb();
 
             PhInvalidateAllProcessNodes();
+        }
+        break;
+    case PROCESS_ADD_STARTUP_COLLAPSE:
+        {
+            BOOLEAN cont = FALSE;
+
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowMessage(
+                menuItem->OwnerWindow,
+                MB_YESNO | MB_ICONQUESTION,
+                L"Do you want to collapse this process at startup?"
+                ) == IDYES)
+            {
+                cont = TRUE;
+            }
+
+            if (cont)
+            {
+                LockDb();
+
+                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse != -1)
+                {
+                    object->Collapse = TRUE;
+                }
+                else
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->Collapse = TRUE;
+                }
+
+                UnlockDb();
+                SaveDb();
+            }
+        }
+        break;
+    case PROCESS_REMOVE_STARTUP_COLLAPSE:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse != -1)
+            {
+                object->Collapse = FALSE;
+            }
+
+            UnlockDb();
+            SaveDb();
         }
         break;
     }
@@ -712,7 +758,7 @@ static VOID AddSavePriorityMenuItemsAndHook(
     // Priority
     if (priorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Priority", 0))
     {
-        PhInsertEMenuItem(priorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, L"", NULL), -1);
+        PhInsertEMenuItem(priorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
         PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_ID, PhaFormatString(L"Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(priorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save for this command line", NULL), -1);
 
@@ -732,7 +778,7 @@ static VOID AddSavePriorityMenuItemsAndHook(
     // I/O Priority
     if (ioPriorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"I/O Priority", 0))
     {
-        PhInsertEMenuItem(ioPriorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, L"", NULL), -1);
+        PhInsertEMenuItem(ioPriorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
         PhInsertEMenuItem(ioPriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_ID, PhaFormatString(L"Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(ioPriorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save for this command line", NULL), -1);
 
@@ -774,13 +820,40 @@ static VOID ProcessMenuInitializingCallback(
 
     if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != ULONG_MAX)
     {
-        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
+        highlightMenuItem = PhPluginCreateEMenuItem(
+            PluginInstance, 
+            0, 
+            PROCESS_REMOVE_HIGHLIGHT_ID, 
+            L"Highlight Process",
+            menuInfo->u.Process.Processes[0]
+            );
         highlightMenuItem->Flags |= PH_EMENU_CHECKED;
+
+        PhInsertEMenuItem(miscMenuItem, highlightMenuItem, 0);
     }
     else
     {
-        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
+        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
     }
+
+    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->Collapse != -1 && object->Collapse)
+    {
+        highlightMenuItem = PhPluginCreateEMenuItem(
+            PluginInstance,
+            0,
+            PROCESS_REMOVE_STARTUP_COLLAPSE,
+            L"Collapse at startup",
+            menuInfo->u.Process.Processes[0]
+            );
+        highlightMenuItem->Flags |= PH_EMENU_CHECKED;
+
+        PhInsertEMenuItem(miscMenuItem, highlightMenuItem, 0);
+    }
+    else
+    {
+        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_STARTUP_COLLAPSE, L"Collapse at startup", menuInfo->u.Process.Processes[0]), 0);
+    }
+
 
     UnlockDb();
 }
@@ -1027,6 +1100,28 @@ static VOID ProcessItemDeleteCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
+static VOID ProcessNodeCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_NODE processNode = Object;
+    PDB_OBJECT object;
+
+    LockDb();
+
+    if (object = FindDbObjectForProcess(processNode->ProcessItem, INTENT_PROCESS_COLLAPSE))
+    {
+        if (object->Collapse != -1 && object->Collapse)
+        {
+            processNode->Node.Expanded = FALSE;
+        }
+    }
+
+    UnlockDb();
+}
+
 static VOID ServiceItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -1187,6 +1282,13 @@ LOGICAL DllMain(
             sizeof(PROCESS_EXTENSION),
             ProcessItemCreateCallback,
             ProcessItemDeleteCallback
+            );
+        PhPluginSetObjectExtension(
+            PluginInstance,
+            EmProcessNodeType,
+            sizeof(PROCESS_EXTENSION),
+            ProcessNodeCreateCallback,
+            NULL
             );
         PhPluginSetObjectExtension(
             PluginInstance, 

@@ -27,6 +27,8 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <windowsx.h>
+#include <shlobj.h>
+#include <mxml.h>
 
 #include "db.h"
 #include "resource.h"
@@ -34,6 +36,7 @@
 #define INTENT_PROCESS_COMMENT 0x1
 #define INTENT_PROCESS_PRIORITY_CLASS 0x2
 #define INTENT_PROCESS_IO_PRIORITY 0x4
+#define INTENT_PROCESS_COLLAPSE 0x8
 
 typedef enum _USERNOTES_COMMAND_ID
 {

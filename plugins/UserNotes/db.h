@@ -3,7 +3,7 @@
  *   database functions
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -37,11 +37,12 @@ typedef struct _DB_OBJECT
     ULONG Tag;
     PH_STRINGREF Key;
 
-    PPH_STRING Name;
-    PPH_STRING Comment;
+    BOOLEAN Collapse;
+    COLORREF BackColor;
     ULONG PriorityClass;
     ULONG IoPriorityPlusOne;
-    COLORREF BackColor;
+    PPH_STRING Name;
+    PPH_STRING Comment;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(
