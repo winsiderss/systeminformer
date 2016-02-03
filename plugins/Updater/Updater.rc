@@ -154,6 +154,11 @@ BEGIN
     0
 END
 
+IDD_OPTIONS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

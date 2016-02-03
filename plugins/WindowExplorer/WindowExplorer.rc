@@ -285,6 +285,11 @@ BEGIN
     0
 END
 
+IDD_WNDCLASS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

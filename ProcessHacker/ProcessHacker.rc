@@ -53,10 +53,15 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
+
 IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
+
 IDI_COG                 ICON                    "resources\\cog.ico"
+
 IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
+
 IDI_COGGO               ICON                    "resources\\cog_go.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -101,7 +106,7 @@ BEGIN
             MENUITEM "CPU History",                 ID_TRAYICONS_CPUHISTORY
             MENUITEM "CPU Usage",                   ID_TRAYICONS_CPUUSAGE
             MENUITEM "I/O History",                 ID_TRAYICONS_IOHISTORY
-            MENUITEM "Commit Charge History",              ID_TRAYICONS_COMMITHISTORY
+            MENUITEM "Commit Charge History",       ID_TRAYICONS_COMMITHISTORY
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
         MENUITEM SEPARATOR
@@ -2462,12 +2467,19 @@ END
 //
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
+
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
+
 IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
+
 IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
+
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
+
 IDB_PIN                 BITMAP                  "resources\\pin.bmp"
+
 IDB_COG                 BITMAP                  "resources\\cog.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2475,6 +2487,7 @@ IDB_COG                 BITMAP                  "resources\\cog.bmp"
 //
 
 IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2492,6 +2505,11 @@ BEGIN
 END
 
 IDD_SYSINFO_MEMPANEL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_ABOUT AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
