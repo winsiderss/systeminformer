@@ -796,7 +796,7 @@ INT_PTR HandleCommonMessages(
                         ListBox_SetCurSel(ListBox, i);
                     }
 
-                    SetFocus(GetDlgItem(hwndDlg, IDC_TEXT));
+                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_TEXT), TRUE);
                     Edit_SetSel(GetDlgItem(hwndDlg, IDC_TEXT), 0, -1);
 
                     FixControlStates(hwndDlg, ListBox);

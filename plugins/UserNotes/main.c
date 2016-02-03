@@ -379,7 +379,7 @@ static VOID NTAPI MenuItemCallback(
             }
         }
         break;
-    case PROCESS_ADD_PROCESS_HIGHLIGHT_ID:
+    case PROCESS_ADD_HIGHLIGHT_ID:
         {
             CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
             chooseColor.hwndOwner = PhMainWndHandle;
@@ -414,7 +414,7 @@ static VOID NTAPI MenuItemCallback(
             PhInvalidateAllProcessNodes();
         }
         break;
-    case PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID:
+    case PROCESS_REMOVE_HIGHLIGHT_ID:
         {
             LockDb();
 
@@ -774,12 +774,12 @@ static VOID ProcessMenuInitializingCallback(
 
     if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != ULONG_MAX)
     {
-        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
+        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_REMOVE_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
         highlightMenuItem->Flags |= PH_EMENU_CHECKED;
     }
     else
     {
-        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_PROCESS_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
+        PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
     }
 
     UnlockDb();
@@ -1299,11 +1299,13 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             PPH_STRING comment;
 
             context = PhAllocate(sizeof(PROCESS_COMMENT_PAGE_CONTEXT));
+            context->CommentHandle = GetDlgItem(hwndDlg, IDC_COMMENT);
+            context->RevertHandle = GetDlgItem(hwndDlg, IDC_REVERT);
+            context->MatchCommandlineHandle = GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE);
             propPageContext->Context = context;
 
             // Load the comment.
-            Edit_LimitText(GetDlgItem(hwndDlg, IDC_COMMENT), UNICODE_STRING_MAX_CHARS);
-            SendMessage(GetDlgItem(hwndDlg, IDC_COMMENT), EM_SETLIMITTEXT, UNICODE_STRING_MAX_CHARS, 0);
+            Edit_LimitText(context->CommentHandle, UNICODE_STRING_MAX_CHARS);
 
             LockDb();
 
@@ -1313,7 +1315,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
                 if (processItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->Comment->Length != 0)
                 {
-                    Button_SetCheck(GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE), BST_CHECKED);
+                    Button_SetCheck(context->MatchCommandlineHandle, BST_CHECKED);
                 }
             }
             else
@@ -1323,11 +1325,11 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
             UnlockDb();
 
-            SetDlgItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
+            Edit_SetText(context->CommentHandle, comment->Buffer);
             context->OriginalComment = comment;
 
             if (!processItem->CommandLine)
-                EnableWindow(GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE), FALSE);
+                EnableWindow(context->MatchCommandlineHandle, FALSE);
         }
         break;
     case WM_DESTROY:
@@ -1337,8 +1339,8 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             BOOLEAN matchCommandLine;
             BOOLEAN done = FALSE;
 
-            comment = PhGetWindowText(GetDlgItem(hwndDlg, IDC_COMMENT));
-            matchCommandLine = Button_GetCheck(GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE)) == BST_CHECKED;
+            comment = PhGetWindowText(context->CommentHandle);
+            matchCommandLine = Button_GetCheck(context->MatchCommandlineHandle) == BST_CHECKED;
 
             if (!processItem->CommandLine)
                 matchCommandLine = FALSE;
@@ -1427,9 +1429,9 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
 
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMMENT), dialogItem, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REVERT), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, context->CommentHandle, dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, context->RevertHandle, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, context->MatchCommandlineHandle, dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
@@ -1441,15 +1443,15 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             case IDC_COMMENT:
                 {
                     if (HIWORD(wParam) == EN_CHANGE)
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_REVERT), TRUE);
+                        EnableWindow(context->RevertHandle, TRUE);
                 }
                 break;
             case IDC_REVERT:
                 {
-                    SetDlgItemText(hwndDlg, IDC_COMMENT, context->OriginalComment->Buffer);
-                    SendMessage(GetDlgItem(hwndDlg, IDC_COMMENT), EM_SETSEL, 0, -1);
-                    SetFocus(GetDlgItem(hwndDlg, IDC_COMMENT));
-                    EnableWindow(GetDlgItem(hwndDlg, IDC_REVERT), FALSE);
+                    Edit_SetText(context->CommentHandle, context->OriginalComment->Buffer);
+                    SendMessage(context->CommentHandle, EM_SETSEL, 0, -1);
+                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->CommentHandle, TRUE);
+                    EnableWindow(context->RevertHandle, FALSE);
                 }
                 break;
             }
@@ -1463,7 +1465,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE));
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->MatchCommandlineHandle);
                 }
                 return TRUE;
             }
