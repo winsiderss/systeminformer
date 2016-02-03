@@ -78,6 +78,7 @@ The collections available are summarized below:
 
 Name                  | Use                     | Type
 --------------------- | ----------------------- | ---------------
+`PH_ARRAY`            | Array                   | Non-intrusive
 `PH_LIST`             | Array                   | Non-intrusive
 `LIST_ENTRY`          | Doubly linked list      | Intrusive
 `SINGLE_LIST_ENTRY`   | Singly linked list      | Intrusive

@@ -3986,10 +3986,97 @@ Done:
 }
 
 /**
+ * Creates an array object.
+ *
+ * \param Array An array object.
+ * \param ItemSize The size of each item, in bytes.
+ * \param InitialCapacity The number of elements to allocate storage for, initially.
+ */
+VOID PhInitializeArray(
+    _Out_ PPH_ARRAY Array,
+    _In_ SIZE_T ItemSize,
+    _In_ SIZE_T InitialCapacity
+    )
+{
+    // Initial capacity of 0 is not allowed.
+    if (InitialCapacity == 0)
+        InitialCapacity = 1;
+
+    Array->Count = 0;
+    Array->AllocatedCount = InitialCapacity;
+    Array->ItemSize = ItemSize;
+    Array->Items = PhAllocate(Array->AllocatedCount * ItemSize);
+}
+
+/**
+ * Frees resources used by an array object.
+ *
+ * \param Array An array object.
+ */
+VOID PhDeleteArray(
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PhFree(Array->Items);
+}
+
+/**
+ * Resizes an array.
+ *
+ * \param Array An array object.
+ * \param NewCapacity The new required number of elements for which storage has been reserved. This
+ * must not be smaller than the current number of items in the array.
+ */
+VOID PhResizeArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ SIZE_T NewCapacity
+    )
+{
+    if (Array->Count > NewCapacity)
+        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+
+    Array->AllocatedCount = NewCapacity;
+    Array->Items = PhReAllocate(Array->Items, Array->AllocatedCount * Array->ItemSize);
+}
+
+/**
+ * Adds an item to an array.
+ *
+ * \param Array An array object.
+ * \param Item The item to add.
+ */
+VOID PhAddItemArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ PVOID Item
+    )
+{
+    // See if we need to resize the list.
+    if (Array->Count == Array->AllocatedCount)
+    {
+        Array->AllocatedCount *= 2;
+        Array->Items = PhReAllocate(Array->Items, Array->AllocatedCount * Array->ItemSize);
+    }
+
+    memcpy(PhItemArray(Array, Array->Count), Item, Array->ItemSize);
+    Array->Count++;
+}
+
+/**
+ * Clears an array.
+ *
+ * \param Array An array object.
+ */
+VOID PhClearArray(
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    Array->Count = 0;
+}
+
+/**
  * Creates a list object.
  *
- * \param InitialCapacity The number of elements to
- * allocate storage for initially.
+ * \param InitialCapacity The number of elements to allocate storage for, initially.
  */
 PPH_LIST PhCreateList(
     _In_ ULONG InitialCapacity
@@ -4024,9 +4111,8 @@ VOID PhpListDeleteProcedure(
  * Resizes a list.
  *
  * \param List A list object.
- * \param NewCapacity The new required number of elements for
- * which storage has been reserved. This must not be smaller
- * than the current number of items in the list.
+ * \param NewCapacity The new required number of elements for which storage has been reserved. This
+ * must not be smaller than the current number of items in the list.
  */
 VOID PhResizeList(
     _Inout_ PPH_LIST List,

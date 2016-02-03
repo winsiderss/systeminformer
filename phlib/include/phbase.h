@@ -2384,14 +2384,80 @@ PhAppendBytesBuilderEx(
     _Out_opt_ PSIZE_T Offset
     );
 
+// Array
+
+/**
+ * An array structure.
+ * Storage is automatically allocated for new elements.
+ */
+typedef struct _PH_ARRAY
+{
+    /** The number of items in the list. */
+    SIZE_T Count;
+    /** The number of items for which storage is allocated. */
+    SIZE_T AllocatedCount;
+    /** The size of each item, in bytes. */
+    SIZE_T ItemSize;
+    /** The base address of the array. */
+    PVOID Items;
+} PH_ARRAY, *PPH_ARRAY;
+
+FORCEINLINE
+PVOID
+PhItemArray(
+    _In_ PPH_ARRAY Array,
+    _In_ SIZE_T Index
+    )
+{
+    return (PCHAR)Array->Items + Index * Array->ItemSize;
+}
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeArray(
+    _Out_ PPH_ARRAY Array,
+    _In_ SIZE_T ItemSize,
+    _In_ SIZE_T InitialCapacity
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteArray(
+    _Inout_ PPH_ARRAY Array
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhResizeArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ SIZE_T NewCapacity
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAddItemArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ PVOID Item
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhClearArray(
+    _Inout_ PPH_ARRAY Array
+    );
+
 // List
 
 extern PPH_OBJECT_TYPE PhListType;
 
 /**
  * A list structure.
- * Storage is automatically allocated for new
- * elements.
+ * Storage is automatically allocated for new elements.
  */
 typedef struct _PH_LIST
 {
