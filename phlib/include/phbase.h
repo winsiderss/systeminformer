@@ -2429,6 +2429,13 @@ PhDeleteArray(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhFinalArrayItems(
+    _Inout_ PPH_ARRAY Array
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhResizeArray(

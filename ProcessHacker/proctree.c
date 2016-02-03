@@ -3105,25 +3105,21 @@ VOID PhGetSelectedProcessItems(
     _Out_ PULONG NumberOfProcesses
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     for (i = 0; i < ProcessNodeList->Count; i++)
     {
         PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
         if (node->Node.Selected)
-        {
-            PhAddItemList(list, node->ProcessItem);
-        }
+            PhAddItemArray(&array, &node->ProcessItem);
     }
 
-    *Processes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfProcesses = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfProcesses = (ULONG)array.Count;
+    *Processes = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllProcessNodes(

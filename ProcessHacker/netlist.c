@@ -715,25 +715,21 @@ VOID PhGetSelectedNetworkItems(
     _Out_ PULONG NumberOfNetworkItems
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     for (i = 0; i < NetworkNodeList->Count; i++)
     {
         PPH_NETWORK_NODE node = NetworkNodeList->Items[i];
 
         if (node->Node.Selected)
-        {
-            PhAddItemList(list, node->NetworkItem);
-        }
+            PhAddItemArray(&array, &node->NetworkItem);
     }
 
-    *NetworkItems = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfNetworkItems = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfNetworkItems = (ULONG)array.Count;
+    *NetworkItems = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllNetworkNodes(

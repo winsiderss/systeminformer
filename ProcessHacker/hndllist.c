@@ -724,25 +724,21 @@ VOID PhGetSelectedHandleItems(
     _Out_ PULONG NumberOfHandles
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
         PPH_HANDLE_NODE node = Context->NodeList->Items[i];
 
         if (node->Node.Selected)
-        {
-            PhAddItemList(list, node->HandleItem);
-        }
+            PhAddItemArray(&array, &node->HandleItem);
     }
 
-    *Handles = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfHandles = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfHandles = (ULONG)array.Count;
+    *Handles = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllHandleNodes(

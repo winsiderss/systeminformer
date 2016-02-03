@@ -948,25 +948,21 @@ VOID PhGetSelectedModuleItems(
     _Out_ PULONG NumberOfModules
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
         PPH_MODULE_NODE node = Context->NodeList->Items[i];
 
         if (node->Node.Selected)
-        {
-            PhAddItemList(list, node->ModuleItem);
-        }
+            PhAddItemArray(&array, &node->ModuleItem);
     }
 
-    *Modules = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfModules = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfModules = (ULONG)array.Count;
+    *Modules = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllModuleNodes(

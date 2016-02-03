@@ -755,25 +755,21 @@ VOID PhGetSelectedServiceItems(
     _Out_ PULONG NumberOfServices
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     for (i = 0; i < ServiceNodeList->Count; i++)
     {
         PPH_SERVICE_NODE node = ServiceNodeList->Items[i];
 
         if (node->Node.Selected)
-        {
-            PhAddItemList(list, node->ServiceItem);
-        }
+            PhAddItemArray(&array, &node->ServiceItem);
     }
 
-    *Services = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfServices = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfServices = (ULONG)array.Count;
+    *Services = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllServiceNodes(

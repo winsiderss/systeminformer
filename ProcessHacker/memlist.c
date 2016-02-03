@@ -869,10 +869,10 @@ VOID PhGetSelectedMemoryNodes(
     _Out_ PULONG NumberOfMemoryNodes
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     if (Context->TreeNewSortOrder == NoSortOrder)
     {
@@ -881,7 +881,7 @@ VOID PhGetSelectedMemoryNodes(
             PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
 
             if (node->Node.Selected)
-                PhAddItemList(list, node);
+                PhAddItemArray(&array, &node);
         }
     }
 
@@ -890,13 +890,11 @@ VOID PhGetSelectedMemoryNodes(
         PPH_MEMORY_NODE node = Context->RegionNodeList->Items[i];
 
         if (node->Node.Selected)
-            PhAddItemList(list, node);
+                PhAddItemArray(&array, &node);
     }
 
-    *MemoryNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfMemoryNodes = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfMemoryNodes = (ULONG)array.Count;
+    *MemoryNodes = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllMemoryNodes(

@@ -693,25 +693,21 @@ VOID PhGetSelectedThreadItems(
     _Out_ PULONG NumberOfThreads
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG i;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
         PPH_THREAD_NODE node = Context->NodeList->Items[i];
 
         if (node->Node.Selected)
-        {
-            PhAddItemList(list, node->ThreadItem);
-        }
+            PhAddItemArray(&array, &node->ThreadItem);
     }
 
-    *Threads = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfThreads = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfThreads = (ULONG)array.Count;
+    *Threads = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllThreadNodes(

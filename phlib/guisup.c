@@ -587,11 +587,11 @@ VOID PhGetSelectedListViewItemParams(
     _Out_ PULONG NumberOfItems
     )
 {
-    PPH_LIST list;
+    PH_ARRAY array;
     ULONG index;
     PVOID param;
 
-    list = PhCreateList(2);
+    PhInitializeArray(&array, sizeof(PVOID), 2);
     index = -1;
 
     while ((index = PhFindListViewItemByFlags(
@@ -600,20 +600,12 @@ VOID PhGetSelectedListViewItemParams(
         LVNI_SELECTED
         )) != -1)
     {
-        if (PhGetListViewItemParam(
-            hWnd,
-            index,
-            &param
-            ))
-        {
-            PhAddItemList(list, param);
-        }
+        if (PhGetListViewItemParam(hWnd, index, &param))
+            PhAddItemArray(&array, &param);
     }
 
-    *Items = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfItems = list->Count;
-
-    PhDereferenceObject(list);
+    *NumberOfItems = (ULONG)array.Count;
+    *Items = PhFinalArrayItems(&array);
 }
 
 VOID PhSetImageListBitmap(

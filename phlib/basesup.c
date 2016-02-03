@@ -4021,6 +4021,21 @@ VOID PhDeleteArray(
 }
 
 /**
+ * Obtains a copy of the array constructed by an array object and frees resources used by the
+ * object.
+ *
+ * \param Array An array object.
+ *
+ * \return The array buffer.
+ */
+PVOID PhFinalArrayItems(
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    return Array->Items;
+}
+
+/**
  * Resizes an array.
  *
  * \param Array An array object.
