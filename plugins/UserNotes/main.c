@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,96 +21,25 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <phappresource.h>
-#include <windowsx.h>
-#include "db.h"
-#include "resource.h"
+#include "usernotes.h"
 
-#define INTENT_PROCESS_COMMENT 0x1
-#define INTENT_PROCESS_PRIORITY_CLASS 0x2
-#define INTENT_PROCESS_IO_PRIORITY 0x4
-
-#define PROCESS_PRIORITY_SAVE_ID 1
-#define PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID 2
-#define PROCESS_IO_PRIORITY_SAVE_ID 3
-#define PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID 4
-#define PROCESS_ADD_PROCESS_HIGHLIGHT_ID 5
-#define PROCESS_REMOVE_PROCESS_HIGHLIGHT_ID 6
-
-#define COMMENT_COLUMN_ID 1
-
-typedef struct _PROCESS_EXTENSION
-{
-    LIST_ENTRY ListEntry;
-    PPH_PROCESS_ITEM ProcessItem;
-    BOOLEAN Valid;
-    PPH_STRING Comment;
-} PROCESS_EXTENSION, *PPROCESS_EXTENSION;
-
-typedef struct _PROCESS_COMMENT_PAGE_CONTEXT
-{
-    PPH_STRING OriginalComment;
-} PROCESS_COMMENT_PAGE_CONTEXT, *PPROCESS_COMMENT_PAGE_CONTEXT;
-
-typedef struct _SERVICE_EXTENSION
-{
-    LIST_ENTRY ListEntry;
-    BOOLEAN Valid;
-    PPH_STRING Comment;
-} SERVICE_EXTENSION, *PSERVICE_EXTENSION;
-
-typedef struct _SERVICE_COMMENT_PAGE_CONTEXT
-{
-    PPH_SERVICE_ITEM ServiceItem;
-    PH_LAYOUT_MANAGER LayoutManager;
-} SERVICE_COMMENT_PAGE_CONTEXT, *PSERVICE_COMMENT_PAGE_CONTEXT;
-
-INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-INT_PTR CALLBACK ProcessCommentPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-INT_PTR CALLBACK ServiceCommentPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-UINT_PTR CALLBACK ColorDlgHookProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginMenuHookCallbackRegistration;
-PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
-PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PPH_PLUGIN PluginInstance;
+static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuHookCallbackRegistration;
+static PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 HWND ProcessTreeNewHandle;
 LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
@@ -164,9 +93,9 @@ static VOID DeleteDbObjectForProcessIfUnused(
     )
 {
     if (
-        Object->Comment->Length == 0 && 
-        Object->PriorityClass == 0 && 
-        Object->IoPriorityPlusOne == 0 && 
+        Object->Comment->Length == 0 &&
+        Object->PriorityClass == 0 &&
+        Object->IoPriorityPlusOne == 0 &&
         Object->BackColor == ULONG_MAX
         )
     {
@@ -341,7 +270,7 @@ static VOID NTAPI UnloadCallback(
     SaveDb();
 }
 
-VOID NTAPI ShowOptionsCallback(
+static VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -354,7 +283,7 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
-VOID NTAPI MenuItemCallback(
+static VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -504,7 +433,7 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
-VOID NTAPI MenuHookCallback(
+static VOID NTAPI MenuHookCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -591,7 +520,7 @@ VOID NTAPI MenuHookCallback(
     }
 }
 
-VOID InvalidateProcessComments(
+static VOID InvalidateProcessComments(
     VOID
     )
 {
@@ -615,7 +544,7 @@ VOID InvalidateProcessComments(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-VOID UpdateProcessComment(
+static VOID UpdateProcessComment(
     _In_ PPH_PROCESS_NODE Node,
     _In_ PPROCESS_EXTENSION Extension
     )
@@ -641,7 +570,7 @@ VOID UpdateProcessComment(
     }
 }
 
-VOID InvalidateServiceComments(
+static VOID InvalidateServiceComments(
     VOID
     )
 {
@@ -665,7 +594,7 @@ VOID InvalidateServiceComments(
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
-VOID UpdateServiceComment(
+static VOID UpdateServiceComment(
     _In_ PPH_SERVICE_NODE Node,
     _In_ PSERVICE_EXTENSION Extension
     )
@@ -691,7 +620,7 @@ VOID UpdateServiceComment(
     }
 }
 
-VOID TreeNewMessageCallback(
+static VOID TreeNewMessageCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -747,7 +676,7 @@ VOID TreeNewMessageCallback(
     }
 }
 
-VOID MainWindowShowingCallback(
+static VOID MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -755,7 +684,7 @@ VOID MainWindowShowingCallback(
     NOTHING;
 }
 
-VOID ProcessPropertiesInitializingCallback(
+static VOID ProcessPropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -768,7 +697,7 @@ VOID ProcessPropertiesInitializingCallback(
         );
 }
 
-VOID AddSavePriorityMenuItemsAndHook(
+static VOID AddSavePriorityMenuItemsAndHook(
     _In_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN UseSelectionForHook
@@ -823,7 +752,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     PhPluginAddMenuHook(MenuInfo, PluginInstance, UseSelectionForHook ? NULL : ProcessItem->ProcessId);
 }
 
-VOID ProcessMenuInitializingCallback(
+static VOID ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -856,7 +785,7 @@ VOID ProcessMenuInitializingCallback(
     UnlockDb();
 }
 
-LONG NTAPI ProcessCommentSortFunction(
+static LONG NTAPI ProcessCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
@@ -874,7 +803,7 @@ LONG NTAPI ProcessCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
-VOID ProcessTreeNewInitializingCallback(
+static VOID ProcessTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -892,7 +821,7 @@ VOID ProcessTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
 }
 
-VOID GetProcessHighlightingColorCallback(
+static VOID GetProcessHighlightingColorCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -916,7 +845,7 @@ VOID GetProcessHighlightingColorCallback(
     UnlockDb();
 }
 
-VOID ServicePropertiesInitializingCallback(
+static VOID ServicePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -938,7 +867,7 @@ VOID ServicePropertiesInitializingCallback(
     }
 }
 
-LONG NTAPI ServiceCommentSortFunction(
+static LONG NTAPI ServiceCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
@@ -956,7 +885,7 @@ LONG NTAPI ServiceCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
-VOID ServiceTreeNewInitializingCallback(
+static VOID ServiceTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -974,7 +903,7 @@ VOID ServiceTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ServiceCommentSortFunction);
 }
 
-VOID MiListSectionMenuInitializingCallback(
+static VOID MiListSectionMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -984,7 +913,7 @@ VOID MiListSectionMenuInitializingCallback(
     AddSavePriorityMenuItemsAndHook(menuInfo, menuInfo->u.MiListSection.ProcessGroup->Representative, FALSE);
 }
 
-VOID ProcessModifiedCallback(
+static VOID ProcessModifiedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -995,7 +924,7 @@ VOID ProcessModifiedCallback(
     extension->Valid = FALSE;
 }
 
-VOID ProcessesUpdatedCallback(
+static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -1066,7 +995,7 @@ VOID ProcessesUpdatedCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-VOID ProcessItemCreateCallback(
+static VOID ProcessItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1083,7 +1012,7 @@ VOID ProcessItemCreateCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-VOID ProcessItemDeleteCallback(
+static VOID ProcessItemDeleteCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1098,7 +1027,7 @@ VOID ProcessItemDeleteCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-VOID ServiceItemCreateCallback(
+static VOID ServiceItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1113,7 +1042,7 @@ VOID ServiceItemCreateCallback(
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
-VOID ServiceItemDeleteCallback(
+static VOID ServiceItemDeleteCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1156,43 +1085,116 @@ LOGICAL DllMain(
 
         InitializeDb();
 
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-            LoadCallback, NULL, &PluginLoadCallbackRegistration);
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-            UnloadCallback, NULL, &PluginUnloadCallbackRegistration);
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-            ShowOptionsCallback, NULL, &PluginShowOptionsCallbackRegistration);
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-            MenuItemCallback, NULL, &PluginMenuItemCallbackRegistration);
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackMenuHook),
-            MenuHookCallback, NULL, &PluginMenuHookCallbackRegistration);
-        PhRegisterCallback(PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
-            TreeNewMessageCallback, NULL, &TreeNewMessageCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-            MainWindowShowingCallback, NULL, &MainWindowShowingCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
-            ProcessPropertiesInitializingCallback, NULL, &ProcessPropertiesInitializingCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
-            ServicePropertiesInitializingCallback, NULL, &ServicePropertiesInitializingCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-            ProcessMenuInitializingCallback, NULL, &ProcessMenuInitializingCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
-            ProcessTreeNewInitializingCallback, NULL, &ProcessTreeNewInitializingCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor), 
-            GetProcessHighlightingColorCallback, NULL, &GetProcessHighlightingColorCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
-            ServiceTreeNewInitializingCallback, NULL, &ServiceTreeNewInitializingCallbackRegistration);
-        PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing),
-            MiListSectionMenuInitializingCallback, NULL, &MiListSectionMenuInitializingCallbackRegistration);
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+            LoadCallback,
+            NULL, 
+            &PluginLoadCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            UnloadCallback, 
+            NULL,
+            &PluginUnloadCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+            ShowOptionsCallback,
+            NULL,
+            &PluginShowOptionsCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+            MenuItemCallback,
+            NULL, 
+            &PluginMenuItemCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackMenuHook),
+            MenuHookCallback, 
+            NULL, 
+            &PluginMenuHookCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
+            TreeNewMessageCallback, 
+            NULL,
+            &TreeNewMessageCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+            MainWindowShowingCallback, 
+            NULL, 
+            &MainWindowShowingCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
+            ProcessPropertiesInitializingCallback, 
+            NULL, 
+            &ProcessPropertiesInitializingCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
+            ServicePropertiesInitializingCallback,
+            NULL, 
+            &ServicePropertiesInitializingCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
+            ProcessMenuInitializingCallback,
+            NULL,
+            &ProcessMenuInitializingCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
+            ProcessTreeNewInitializingCallback, 
+            NULL, 
+            &ProcessTreeNewInitializingCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor),
+            GetProcessHighlightingColorCallback, 
+            NULL, 
+            &GetProcessHighlightingColorCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
+            ServiceTreeNewInitializingCallback, 
+            NULL, 
+            &ServiceTreeNewInitializingCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing),
+            MiListSectionMenuInitializingCallback, 
+            NULL, 
+            &MiListSectionMenuInitializingCallbackRegistration
+            );
         PhRegisterCallback(&PhProcessModifiedEvent,
-            ProcessModifiedCallback, NULL, &ProcessModifiedCallbackRegistration);
-        PhRegisterCallback(&PhProcessesUpdatedEvent,
-            ProcessesUpdatedCallback, NULL, &ProcessesUpdatedCallbackRegistration);
+            ProcessModifiedCallback, 
+            NULL, 
+            &ProcessModifiedCallbackRegistration
+            );
+        PhRegisterCallback(
+            &PhProcessesUpdatedEvent,
+            ProcessesUpdatedCallback, 
+            NULL, 
+            &ProcessesUpdatedCallbackRegistration
+            );
 
-        PhPluginSetObjectExtension(PluginInstance, EmProcessItemType, sizeof(PROCESS_EXTENSION),
-            ProcessItemCreateCallback, ProcessItemDeleteCallback);
-        PhPluginSetObjectExtension(PluginInstance, EmServiceItemType, sizeof(SERVICE_EXTENSION),
-            ServiceItemCreateCallback, ServiceItemDeleteCallback);
+        PhPluginSetObjectExtension(
+            PluginInstance, 
+            EmProcessItemType, 
+            sizeof(PROCESS_EXTENSION),
+            ProcessItemCreateCallback,
+            ProcessItemDeleteCallback
+            );
+        PhPluginSetObjectExtension(
+            PluginInstance, 
+            EmServiceItemType, 
+            sizeof(SERVICE_EXTENSION),
+            ServiceItemCreateCallback, 
+            ServiceItemDeleteCallback
+            );
 
         PhAddSettings(settings, ARRAYSIZE(settings));
     }
@@ -1300,7 +1302,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             propPageContext->Context = context;
 
             // Load the comment.
-
+            Edit_LimitText(GetDlgItem(hwndDlg, IDC_COMMENT), UNICODE_STRING_MAX_CHARS);
             SendMessage(GetDlgItem(hwndDlg, IDC_COMMENT), EM_SETLIMITTEXT, UNICODE_STRING_MAX_CHARS, 0);
 
             LockDb();

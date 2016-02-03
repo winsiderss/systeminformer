@@ -70,6 +70,7 @@
   <ItemGroup>
     <ClInclude Include="db.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="usernotes.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="UserNotes.rc" />
