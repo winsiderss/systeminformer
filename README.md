@@ -1,6 +1,6 @@
 Process Hacker is a powerful free and open source process viewer.
 
-== Getting started ==
+## Getting started
 
 Simply run ProcessHacker.exe to start Process Hacker. There are two
 versions, 32-bit (x86) and 64-bit (x64). If you are not sure which
@@ -8,11 +8,11 @@ version to use, open Control Panel > System and check the "System
 type". You cannot run the 32-bit version of Process Hacker on a
 64-bit system and expect it to work correctly, unlike other programs.
 
-== System requirements ==
+## System requirements
 
 Windows XP SP2 or higher, 32-bit or 64-bit.
 
-== Settings ==
+## Settings
 
 If you are running Process Hacker from a USB drive, you may want to
 save Process Hacker's settings there as well. To do this, create a
@@ -25,7 +25,7 @@ directory as ProcessHacker.exe. You can do this using Windows Explorer:
 3. Rename the file to ProcessHacker.exe.settings.xml (delete the ".txt"
    extension).
 
-== Plugins ==
+## Plugins
 
 Plugins can be configured from Hacker > Plugins.
 
@@ -37,7 +37,7 @@ above. Disk and Network information provided by this plugin is
 only available when running Process Hacker with administrative
 rights.
 
-== KProcessHacker ==
+## KProcessHacker
 
 Process Hacker uses a kernel-mode driver, KProcessHacker, to
 assist with certain functionality. This includes:
