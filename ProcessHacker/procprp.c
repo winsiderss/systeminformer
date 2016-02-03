@@ -4339,16 +4339,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     return FALSE;
 }
 
-static VOID AddHandleEvent(
-    _Inout_ PPH_HANDLES_CONTEXT Context,
-    _In_ PPH_PROVIDER_EVENT Event
-    )
-{
-    PhAcquireQueuedLockExclusive(&Context->EventArrayLock);
-    PhAddItemArray(&Context->EventArray, Event);
-    PhReleaseQueuedLockExclusive(&Context->EventArrayLock);
-}
-
 static VOID NTAPI HandleAddedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -4359,8 +4349,7 @@ static VOID NTAPI HandleAddedHandler(
 
     // Parameter contains a pointer to the added handle item.
     PhReferenceObject(Parameter);
-    PhInitializeProviderEvent(&event, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
-    AddHandleEvent(handlesContext, &event);
+    PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
 static VOID NTAPI HandleModifiedHandler(
@@ -4371,8 +4360,7 @@ static VOID NTAPI HandleModifiedHandler(
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
     PH_PROVIDER_EVENT event;
 
-    PhInitializeProviderEvent(&event, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
-    AddHandleEvent(handlesContext, &event);
+    PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
 static VOID NTAPI HandleRemovedHandler(
@@ -4383,8 +4371,7 @@ static VOID NTAPI HandleRemovedHandler(
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
     PH_PROVIDER_EVENT event;
 
-    PhInitializeProviderEvent(&event, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
-    AddHandleEvent(handlesContext, &event);
+    PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
 static VOID NTAPI HandlesUpdatedHandler(
@@ -4944,8 +4931,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             BringWindowToTop(tnHandle);
             PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
-            PhInitializeArray(&handlesContext->EventArray, sizeof(PH_PROVIDER_EVENT), 100);
-            PhInitializeQueuedLock(&handlesContext->EventArrayLock);
+            PhInitializeProviderEventQueue(&handlesContext->EventQueue, 100);
             handlesContext->LastRunStatus = -1;
             handlesContext->ErrorMessage = NULL;
 
@@ -4993,7 +4979,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
             PhDereferenceObject(handlesContext->Provider);
-            PhDeleteArray(&handlesContext->EventArray);
+            PhDeleteProviderEventQueue(&handlesContext->EventQueue);
 
             if (PhPluginsEnabled)
             {
@@ -5155,27 +5141,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     case WM_PH_HANDLES_UPDATED:
         {
             ULONG upToRunId = (ULONG)wParam;
-            PPH_PROVIDER_EVENT availableEvents;
-            PPH_PROVIDER_EVENT events = NULL;
-            SIZE_T count;
-            SIZE_T i;
+            PPH_PROVIDER_EVENT events;
+            ULONG count;
+            ULONG i;
 
-            PhAcquireQueuedLockExclusive(&handlesContext->EventArrayLock);
-            availableEvents = handlesContext->EventArray.Items;
-
-            for (count = 0; count < handlesContext->EventArray.Count; count++)
-            {
-                if ((LONG)(upToRunId - availableEvents[count].RunId) < 0)
-                    break;
-            }
-
-            if (count != 0)
-            {
-                events = PhAllocateCopy(availableEvents, count * sizeof(PH_PROVIDER_EVENT));
-                PhRemoveItemsArray(&handlesContext->EventArray, 0, count);
-            }
-
-            PhReleaseQueuedLockExclusive(&handlesContext->EventArrayLock);
+            events = PhFlushProviderEventQueue(&handlesContext->EventQueue, upToRunId, &count);
 
             if (events)
             {

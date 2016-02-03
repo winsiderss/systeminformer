@@ -233,8 +233,7 @@ typedef struct _PH_HANDLES_CONTEXT
             HWND TreeNewHandle; // phapppub
         } PublicUse;
     };
-    PH_ARRAY EventArray;
-    PH_QUEUED_LOCK EventArrayLock;
+    PH_PROVIDER_EVENT_QUEUE EventQueue;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
     NTSTATUS LastRunStatus;

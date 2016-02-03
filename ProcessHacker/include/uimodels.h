@@ -107,7 +107,7 @@ FORCEINLINE VOID PhChangeShStateTn(
         } \
     } while (0)
 
-// Provider event lists
+// Provider event queues
 
 typedef enum _PH_PROVIDER_EVENT_TYPE
 {
@@ -127,16 +127,77 @@ typedef struct _PH_PROVIDER_EVENT
 #define PH_PROVIDER_EVENT_TYPE(Event) ((ULONG)(Event).TypeAndObject & PH_PROVIDER_EVENT_TYPE_MASK)
 #define PH_PROVIDER_EVENT_OBJECT(Event) ((PVOID)((Event).TypeAndObject & PH_PROVIDER_EVENT_OBJECT_MASK))
 
-FORCEINLINE VOID PhInitializeProviderEvent(
-    _Out_ PPH_PROVIDER_EVENT Event,
+typedef struct _PH_PROVIDER_EVENT_QUEUE
+{
+    PH_ARRAY Array;
+    PH_QUEUED_LOCK Lock;
+} PH_PROVIDER_EVENT_QUEUE, *PPH_PROVIDER_EVENT_QUEUE;
+
+FORCEINLINE VOID PhInitializeProviderEventQueue(
+    _Out_ PPH_PROVIDER_EVENT_QUEUE EventQueue,
+    _In_ SIZE_T InitialCapacity
+    )
+{
+    PhInitializeArray(&EventQueue->Array, sizeof(PH_PROVIDER_EVENT), InitialCapacity);
+    PhInitializeQueuedLock(&EventQueue->Lock);
+}
+
+FORCEINLINE VOID PhDeleteProviderEventQueue(
+    _Inout_ PPH_PROVIDER_EVENT_QUEUE EventQueue
+    )
+{
+    PhDeleteArray(&EventQueue->Array);
+}
+
+FORCEINLINE VOID PhPushProviderEventQueue(
+    _Inout_ PPH_PROVIDER_EVENT_QUEUE EventQueue,
     _In_ PH_PROVIDER_EVENT_TYPE Type,
     _In_opt_ PVOID Object,
     _In_ ULONG RunId
     )
 {
+    PH_PROVIDER_EVENT event;
+
     assert(!(PtrToUlong(Object) & PH_PROVIDER_EVENT_TYPE_MASK));
-    Event->TypeAndObject = (ULONG_PTR)Object | Type;
-    Event->RunId = RunId;
+    event.TypeAndObject = (ULONG_PTR)Object | Type;
+    event.RunId = RunId;
+
+    PhAcquireQueuedLockExclusive(&EventQueue->Lock);
+    PhAddItemArray(&EventQueue->Array, &event);
+    PhReleaseQueuedLockExclusive(&EventQueue->Lock);
+}
+
+FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
+    _Inout_ PPH_PROVIDER_EVENT_QUEUE EventQueue,
+    _In_ ULONG UpToRunId,
+    _Out_ PULONG Count
+    )
+{
+    PPH_PROVIDER_EVENT availableEvents;
+    PPH_PROVIDER_EVENT events = NULL;
+    SIZE_T count;
+    SIZE_T i;
+
+    PhAcquireQueuedLockExclusive(&EventQueue->Lock);
+    availableEvents = EventQueue->Array.Items;
+
+    for (count = 0; count < EventQueue->Array.Count; count++)
+    {
+        if ((LONG)(UpToRunId - availableEvents[count].RunId) < 0)
+            break;
+    }
+
+    if (count != 0)
+    {
+        events = PhAllocateCopy(availableEvents, count * sizeof(PH_PROVIDER_EVENT));
+        PhRemoveItemsArray(&EventQueue->Array, 0, count);
+    }
+
+    PhReleaseQueuedLockExclusive(&EventQueue->Lock);
+
+    *Count = (ULONG)count;
+
+    return events;
 }
 
 // proctree
