@@ -497,8 +497,7 @@ typedef enum _ALPC_PORT_INFORMATION_CLASS
     AlpcAdjustCompletionListConcurrencyCountInformation, // s: in ULONG
     AlpcRegisterCallbackInformation, // kernel-mode only
     AlpcCompletionListRundownInformation, // s: VOID
-    AlpcWaitForPortReferences,
-    MaxAlpcPortInfoClass
+    AlpcWaitForPortReferences
 } ALPC_PORT_INFORMATION_CLASS;
 
 // private

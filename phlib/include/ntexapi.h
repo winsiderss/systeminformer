@@ -1376,6 +1376,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCodeIntegrityPolicyFullInformation,
     SystemAffinitizedInterruptProcessorInformation,
     SystemRootSiloInformation, // q: SYSTEM_ROOT_SILO_INFORMATION
+    SystemCpuSetInformation, // since THRESHOLD-10586
+    SystemCpuSetTagInformation,
+    SystemWin32WerStartCallout,
+    SystemSecureKernelProfileInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1479,6 +1483,10 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
     ULONG FirstLevelTbFills;
     ULONG SecondLevelTbFills;
     ULONG SystemCalls;
+    ULONGLONG CcTotalDirtyPages; // since THRESHOLD
+    ULONGLONG CcDirtyPageThreshold; // since THRESHOLD
+    LONGLONG ResidentAvailablePages; // since THRESHOLD
+    ULONGLONG SharedCommittedPages; // since THRESHOLD
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
 typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
@@ -2277,6 +2285,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
     ULONG PackageFullNameOffset; // since THRESHOLD
     PROCESS_ENERGY_VALUES EnergyValues; // since THRESHOLD
     ULONG AppIdOffset; // since THRESHOLD
+    SIZE_T SharedCommitCharge; // since THRESHOLD-10586
 } SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
 
 // private

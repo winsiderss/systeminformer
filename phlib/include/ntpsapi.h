@@ -169,6 +169,8 @@ typedef enum _PROCESSINFOCLASS
     ProcessReserved2Information,
     ProcessSubsystemProcess, // 70
     ProcessJobMemoryInformation, // PROCESS_JOB_MEMORY_INFO
+    ProcessInPrivate, // since THRESHOLD-10586
+    ProcessRaiseUMExceptionOnInvalidHandleClose,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -218,6 +220,7 @@ typedef enum _THREADINFOCLASS
     ThreadProperty,
     ThreadSelectedCpuSets,
     ThreadSystemThreadInformation,
+    ThreadActualGroupAffinity, // since THRESHOLD-10586
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -551,7 +554,7 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY ExtensionPointDisablePolicy;
         PROCESS_MITIGATION_DYNAMIC_CODE_POLICY DynamicCodePolicy;
         PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY ControlFlowGuardPolicy;
-        PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY BinarySignaturePolicy;
+        PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY SignaturePolicy;
         PROCESS_MITIGATION_FONT_DISABLE_POLICY FontDisablePolicy;
         PROCESS_MITIGATION_IMAGE_LOAD_POLICY ImageLoadPolicy;
     };
