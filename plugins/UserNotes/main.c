@@ -58,7 +58,7 @@ static BOOLEAN MatchDbObjectIntent(
 {
     return (!(Intent & INTENT_PROCESS_COMMENT) || Object->Comment->Length != 0) &&
         (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0) &&
-        (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) && 
+        (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) &&
         (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse != -1);
 }
 
@@ -821,9 +821,9 @@ static VOID ProcessMenuInitializingCallback(
     if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != ULONG_MAX)
     {
         highlightMenuItem = PhPluginCreateEMenuItem(
-            PluginInstance, 
-            0, 
-            PROCESS_REMOVE_HIGHLIGHT_ID, 
+            PluginInstance,
+            0,
+            PROCESS_REMOVE_HIGHLIGHT_ID,
             L"Highlight Process",
             menuInfo->u.Process.Processes[0]
             );
@@ -1183,12 +1183,12 @@ LOGICAL DllMain(
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
             LoadCallback,
-            NULL, 
+            NULL,
             &PluginLoadCallbackRegistration
             );
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-            UnloadCallback, 
+            UnloadCallback,
             NULL,
             &PluginUnloadCallbackRegistration
             );
@@ -1201,37 +1201,37 @@ LOGICAL DllMain(
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
             MenuItemCallback,
-            NULL, 
+            NULL,
             &PluginMenuItemCallbackRegistration
             );
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackMenuHook),
-            MenuHookCallback, 
-            NULL, 
+            MenuHookCallback,
+            NULL,
             &PluginMenuHookCallbackRegistration
             );
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
-            TreeNewMessageCallback, 
+            TreeNewMessageCallback,
             NULL,
             &TreeNewMessageCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-            MainWindowShowingCallback, 
-            NULL, 
+            MainWindowShowingCallback,
+            NULL,
             &MainWindowShowingCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
-            ProcessPropertiesInitializingCallback, 
-            NULL, 
+            ProcessPropertiesInitializingCallback,
+            NULL,
             &ProcessPropertiesInitializingCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
             ServicePropertiesInitializingCallback,
-            NULL, 
+            NULL,
             &ServicePropertiesInitializingCallbackRegistration
             );
         PhRegisterCallback(
@@ -1242,43 +1242,43 @@ LOGICAL DllMain(
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
-            ProcessTreeNewInitializingCallback, 
-            NULL, 
+            ProcessTreeNewInitializingCallback,
+            NULL,
             &ProcessTreeNewInitializingCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor),
-            GetProcessHighlightingColorCallback, 
-            NULL, 
+            GetProcessHighlightingColorCallback,
+            NULL,
             &GetProcessHighlightingColorCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
-            ServiceTreeNewInitializingCallback, 
-            NULL, 
+            ServiceTreeNewInitializingCallback,
+            NULL,
             &ServiceTreeNewInitializingCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackMiListSectionMenuInitializing),
-            MiListSectionMenuInitializingCallback, 
-            NULL, 
+            MiListSectionMenuInitializingCallback,
+            NULL,
             &MiListSectionMenuInitializingCallbackRegistration
             );
         PhRegisterCallback(&PhProcessModifiedEvent,
-            ProcessModifiedCallback, 
-            NULL, 
+            ProcessModifiedCallback,
+            NULL,
             &ProcessModifiedCallbackRegistration
             );
         PhRegisterCallback(
             &PhProcessesUpdatedEvent,
-            ProcessesUpdatedCallback, 
-            NULL, 
+            ProcessesUpdatedCallback,
+            NULL,
             &ProcessesUpdatedCallbackRegistration
             );
 
         PhPluginSetObjectExtension(
-            PluginInstance, 
-            EmProcessItemType, 
+            PluginInstance,
+            EmProcessItemType,
             sizeof(PROCESS_EXTENSION),
             ProcessItemCreateCallback,
             ProcessItemDeleteCallback
@@ -1291,10 +1291,10 @@ LOGICAL DllMain(
             NULL
             );
         PhPluginSetObjectExtension(
-            PluginInstance, 
-            EmServiceItemType, 
+            PluginInstance,
+            EmServiceItemType,
             sizeof(SERVICE_EXTENSION),
-            ServiceItemCreateCallback, 
+            ServiceItemCreateCallback,
             ServiceItemDeleteCallback
             );
 

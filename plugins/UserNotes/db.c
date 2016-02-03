@@ -424,12 +424,12 @@ NTSTATUS SaveDb(
         collapseString = PhIntegerToString64((*object)->Collapse, 10, FALSE);
 
         CreateObjectElement(
-            topNode, 
-            &tagString->sr, 
-            &(*object)->Name->sr, 
-            &priorityClassString->sr, 
-            &ioPriorityPlusOneString->sr, 
-            &(*object)->Comment->sr, 
+            topNode,
+            &tagString->sr,
+            &(*object)->Name->sr,
+            &priorityClassString->sr,
+            &ioPriorityPlusOneString->sr,
+            &(*object)->Comment->sr,
             &backColorString->sr,
             &collapseString->sr
             );
