@@ -39,9 +39,6 @@
     <ClCompile Include="..\phlib\circbuf.c">
       <Filter>phlib</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\collect.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="..\phlib\colorbox.c">
       <Filter>phlib</Filter>
     </ClCompile>
@@ -473,6 +470,9 @@
     </ClCompile>
     <ClCompile Include="pcre\pcre2posix.c">
       <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\avltree.c">
+      <Filter>phlib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

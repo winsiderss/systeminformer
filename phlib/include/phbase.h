@@ -3656,8 +3656,6 @@ PhNtStatusFileNotFound(
     _In_ NTSTATUS Status
     );
 
-// collect
-
 // Generic tree definitions
 
 typedef enum _PH_TREE_ENUMERATION_ORDER
@@ -3669,7 +3667,7 @@ typedef enum _PH_TREE_ENUMERATION_ORDER
 #define PhIsLeftChildElement(Links) ((Links)->Parent->Left == (Links))
 #define PhIsRightChildElement(Links) ((Links)->Parent->Right == (Links))
 
-// AVL trees
+// avltree
 
 typedef struct _PH_AVL_LINKS
 {
