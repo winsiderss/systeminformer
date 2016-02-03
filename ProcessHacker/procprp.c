@@ -4339,21 +4339,28 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     return FALSE;
 }
 
+static VOID AddHandleEvent(
+    _Inout_ PPH_HANDLES_CONTEXT Context,
+    _In_ PPH_PROVIDER_EVENT Event
+    )
+{
+    PhAcquireQueuedLockExclusive(&Context->EventArrayLock);
+    PhAddItemArray(&Context->EventArray, Event);
+    PhReleaseQueuedLockExclusive(&Context->EventArrayLock);
+}
+
 static VOID NTAPI HandleAddedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+    PH_PROVIDER_EVENT event;
 
     // Parameter contains a pointer to the added handle item.
     PhReferenceObject(Parameter);
-    PostMessage(
-        handlesContext->WindowHandle,
-        WM_PH_HANDLE_ADDED,
-        PhGetRunIdProvider(&handlesContext->ProviderRegistration),
-        (LPARAM)Parameter
-        );
+    PhInitializeProviderEvent(&event, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
+    AddHandleEvent(handlesContext, &event);
 }
 
 static VOID NTAPI HandleModifiedHandler(
@@ -4362,8 +4369,10 @@ static VOID NTAPI HandleModifiedHandler(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+    PH_PROVIDER_EVENT event;
 
-    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_MODIFIED, 0, (LPARAM)Parameter);
+    PhInitializeProviderEvent(&event, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
+    AddHandleEvent(handlesContext, &event);
 }
 
 static VOID NTAPI HandleRemovedHandler(
@@ -4372,8 +4381,10 @@ static VOID NTAPI HandleRemovedHandler(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+    PH_PROVIDER_EVENT event;
 
-    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_REMOVED, 0, (LPARAM)Parameter);
+    PhInitializeProviderEvent(&event, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
+    AddHandleEvent(handlesContext, &event);
 }
 
 static VOID NTAPI HandlesUpdatedHandler(
@@ -4383,7 +4394,7 @@ static VOID NTAPI HandlesUpdatedHandler(
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
 
-    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, 0, 0);
+    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, PhGetRunIdProvider(&handlesContext->ProviderRegistration), 0);
 }
 
 static NTSTATUS PhpDuplicateHandleFromProcessItem(
@@ -4933,7 +4944,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             BringWindowToTop(tnHandle);
             PhInitializeHandleList(hwndDlg, tnHandle, &handlesContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &LoadingText, 0);
-            handlesContext->NeedsRedraw = FALSE;
+            PhInitializeArray(&handlesContext->EventArray, sizeof(PH_PROVIDER_EVENT), 100);
+            PhInitializeQueuedLock(&handlesContext->EventArrayLock);
             handlesContext->LastRunStatus = -1;
             handlesContext->ErrorMessage = NULL;
 
@@ -4981,6 +4993,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
             PhUnregisterProvider(&handlesContext->ProviderRegistration);
             PhDereferenceObject(handlesContext->Provider);
+            PhDeleteArray(&handlesContext->EventArray);
 
             if (PhPluginsEnabled)
             {
@@ -5139,49 +5152,58 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             }
         }
         break;
-    case WM_PH_HANDLE_ADDED:
-        {
-            ULONG runId = (ULONG)wParam;
-            PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
-
-            if (!handlesContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                handlesContext->NeedsRedraw = TRUE;
-            }
-
-            PhAddHandleNode(&handlesContext->ListContext, handleItem, runId);
-            PhDereferenceObject(handleItem);
-        }
-        break;
-    case WM_PH_HANDLE_MODIFIED:
-        {
-            PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
-
-            if (!handlesContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                handlesContext->NeedsRedraw = TRUE;
-            }
-
-            PhUpdateHandleNode(&handlesContext->ListContext, PhFindHandleNode(&handlesContext->ListContext, handleItem->Handle));
-        }
-        break;
-    case WM_PH_HANDLE_REMOVED:
-        {
-            PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
-
-            if (!handlesContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                handlesContext->NeedsRedraw = TRUE;
-            }
-
-            PhRemoveHandleNode(&handlesContext->ListContext, PhFindHandleNode(&handlesContext->ListContext, handleItem->Handle));
-        }
-        break;
     case WM_PH_HANDLES_UPDATED:
         {
+            ULONG upToRunId = (ULONG)wParam;
+            PPH_PROVIDER_EVENT availableEvents;
+            PPH_PROVIDER_EVENT events = NULL;
+            SIZE_T count;
+            SIZE_T i;
+
+            PhAcquireQueuedLockExclusive(&handlesContext->EventArrayLock);
+            availableEvents = handlesContext->EventArray.Items;
+
+            for (count = 0; count < handlesContext->EventArray.Count; count++)
+            {
+                if ((LONG)(upToRunId - availableEvents[count].RunId) < 0)
+                    break;
+            }
+
+            if (count != 0)
+            {
+                events = PhAllocateCopy(availableEvents, count * sizeof(PH_PROVIDER_EVENT));
+                PhRemoveItemsArray(&handlesContext->EventArray, 0, count);
+            }
+
+            PhReleaseQueuedLockExclusive(&handlesContext->EventArrayLock);
+
+            if (events)
+            {
+                TreeNew_SetRedraw(tnHandle, FALSE);
+
+                for (i = 0; i < count; i++)
+                {
+                    PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+                    PPH_HANDLE_ITEM handleItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+                    switch (type)
+                    {
+                    case ProviderAddedEvent:
+                        PhAddHandleNode(&handlesContext->ListContext, handleItem, events[i].RunId);
+                        PhDereferenceObject(handleItem);
+                        break;
+                    case ProviderModifiedEvent:
+                        PhUpdateHandleNode(&handlesContext->ListContext, PhFindHandleNode(&handlesContext->ListContext, handleItem->Handle));
+                        break;
+                    case ProviderRemovedEvent:
+                        PhRemoveHandleNode(&handlesContext->ListContext, PhFindHandleNode(&handlesContext->ListContext, handleItem->Handle));
+                        break;
+                    }
+                }
+
+                PhFree(events);
+            }
+
             PhTickHandleNodes(&handlesContext->ListContext);
 
             if (handlesContext->LastRunStatus != handlesContext->Provider->RunStatus)
@@ -5210,11 +5232,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
 
-            if (handlesContext->NeedsRedraw)
-            {
+            if (count != 0)
                 TreeNew_SetRedraw(tnHandle, TRUE);
-                handlesContext->NeedsRedraw = FALSE;
-            }
         }
         break;
     }

@@ -2454,8 +2454,34 @@ PhAddItemArray(
 PHLIBAPI
 VOID
 NTAPI
+PhAddItemsArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ PVOID Items,
+    _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhClearArray(
     _Inout_ PPH_ARRAY Array
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhRemoveItemArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ SIZE_T Index
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhRemoveItemsArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ SIZE_T StartIndex,
+    _In_ SIZE_T Count
     );
 
 // List

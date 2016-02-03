@@ -209,10 +209,7 @@ typedef struct _PH_MODULES_CONTEXT
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 // end_phapppub
 
-#define WM_PH_HANDLE_ADDED (WM_APP + 221)
-#define WM_PH_HANDLE_MODIFIED (WM_APP + 222)
-#define WM_PH_HANDLE_REMOVED (WM_APP + 223)
-#define WM_PH_HANDLES_UPDATED (WM_APP + 224)
+#define WM_PH_HANDLES_UPDATED (WM_APP + 220)
 
 // begin_phapppub
 typedef struct _PH_HANDLES_CONTEXT
@@ -236,7 +233,8 @@ typedef struct _PH_HANDLES_CONTEXT
             HWND TreeNewHandle; // phapppub
         } PublicUse;
     };
-    BOOLEAN NeedsRedraw;
+    PH_ARRAY EventArray;
+    PH_QUEUED_LOCK EventArrayLock;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
     NTSTATUS LastRunStatus;

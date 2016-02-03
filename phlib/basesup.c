@@ -4077,6 +4077,38 @@ VOID PhAddItemArray(
 }
 
 /**
+ * Adds items to an array.
+ *
+ * \param Array An array object.
+ * \param Items An array containing the items to add.
+ * \param Count The number of items to add.
+ */
+VOID PhAddItemsArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ PVOID Items,
+    _In_ SIZE_T Count
+    )
+{
+    // See if we need to resize the list.
+    if (Array->AllocatedCount < Array->Count + Count)
+    {
+        Array->AllocatedCount *= 2;
+
+        if (Array->AllocatedCount < Array->Count + Count)
+            Array->AllocatedCount = Array->Count + Count;
+
+        Array->Items = PhReAllocate(Array->Items, Array->AllocatedCount * Array->ItemSize);
+    }
+
+    memcpy(
+        PhItemArray(Array, Array->Count),
+        Items,
+        Count * Array->ItemSize
+        );
+    Array->Count += Count;
+}
+
+/**
  * Clears an array.
  *
  * \param Array An array object.
@@ -4086,6 +4118,42 @@ VOID PhClearArray(
     )
 {
     Array->Count = 0;
+}
+
+/**
+ * Removes an item from an array.
+ *
+ * \param Array An array object.
+ * \param Index The index of the item.
+ */
+VOID PhRemoveItemArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ SIZE_T Index
+    )
+{
+    PhRemoveItemsArray(Array, Index, 1);
+}
+
+/**
+ * Removes items from an array.
+ *
+ * \param Array An array object.
+ * \param StartIndex The index at which to begin removing items.
+ * \param Count The number of items to remove.
+ */
+VOID PhRemoveItemsArray(
+    _Inout_ PPH_ARRAY Array,
+    _In_ SIZE_T StartIndex,
+    _In_ SIZE_T Count
+    )
+{
+    // Shift the items after the items forward.
+    memmove(
+        PhItemArray(Array, StartIndex),
+        PhItemArray(Array, StartIndex + Count),
+        (Array->Count - StartIndex - Count) * Array->ItemSize
+        );
+    Array->Count -= Count;
 }
 
 /**
@@ -4191,7 +4259,6 @@ VOID PhAddItemsList(
         Items,
         Count * sizeof(PVOID)
         );
-
     List->Count += Count;
 }
 
@@ -4313,8 +4380,7 @@ VOID PhRemoveItemList(
  * Removes items from a list.
  *
  * \param List A list object.
- * \param StartIndex The index at which to begin
- * removing items.
+ * \param StartIndex The index at which to begin removing items.
  * \param Count The number of items to remove.
  */
 VOID PhRemoveItemsList(
@@ -4329,7 +4395,6 @@ VOID PhRemoveItemsList(
         &List->Items[StartIndex + Count],
         (List->Count - StartIndex - Count) * sizeof(PVOID)
         );
-
     List->Count -= Count;
 }
 

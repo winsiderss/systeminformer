@@ -107,6 +107,38 @@ FORCEINLINE VOID PhChangeShStateTn(
         } \
     } while (0)
 
+// Provider event lists
+
+typedef enum _PH_PROVIDER_EVENT_TYPE
+{
+    ProviderAddedEvent = 1,
+    ProviderModifiedEvent = 2,
+    ProviderRemovedEvent = 3
+} PH_PROVIDER_EVENT_TYPE;
+
+typedef struct _PH_PROVIDER_EVENT
+{
+    ULONG_PTR TypeAndObject;
+    ULONG RunId;
+} PH_PROVIDER_EVENT, *PPH_PROVIDER_EVENT;
+
+#define PH_PROVIDER_EVENT_TYPE_MASK 0x3
+#define PH_PROVIDER_EVENT_OBJECT_MASK (~(ULONG_PTR)0x3)
+#define PH_PROVIDER_EVENT_TYPE(Event) ((ULONG)(Event).TypeAndObject & PH_PROVIDER_EVENT_TYPE_MASK)
+#define PH_PROVIDER_EVENT_OBJECT(Event) ((PVOID)((Event).TypeAndObject & PH_PROVIDER_EVENT_OBJECT_MASK))
+
+FORCEINLINE VOID PhInitializeProviderEvent(
+    _Out_ PPH_PROVIDER_EVENT Event,
+    _In_ PH_PROVIDER_EVENT_TYPE Type,
+    _In_opt_ PVOID Object,
+    _In_ ULONG RunId
+    )
+{
+    assert(!(PtrToUlong(Object) & PH_PROVIDER_EVENT_TYPE_MASK));
+    Event->TypeAndObject = (ULONG_PTR)Object | Type;
+    Event->RunId = RunId;
+}
+
 // proctree
 
 // Columns
