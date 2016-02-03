@@ -31,8 +31,8 @@ for %%a in (
     CHANGELOG.txt
     COPYRIGHT.txt
     LICENSE.txt
-    README.txt
 ) do copy %1\%%a %2\bin\%%a
+copy %1\README.md %2\bin\README.txt
 
 if "%SIGN%" == "1" (
     call %1\build\internal\sign.cmd %1\bin\Release32\ProcessHacker.exe

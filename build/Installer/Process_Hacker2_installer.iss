@@ -152,7 +152,7 @@ Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescrip
 Source: ..\..\CHANGELOG.txt;                                      DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\COPYRIGHT.txt;                                      DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\LICENSE.txt;                                        DestDir: {app};                                                    Flags: ignoreversion
-Source: ..\..\README.txt;                                         DestDir: {app};                                                    Flags: ignoreversion
+Source: ..\..\README.md;                                          DestDir: {app};     DestName: README.txt;                          Flags: ignoreversion
 
 Source: ..\..\bin\Release32\ProcessHacker.exe;                    DestDir: {app};                                                    Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\ProcessHacker.exe;                    DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
