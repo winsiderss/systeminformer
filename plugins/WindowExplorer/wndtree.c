@@ -23,7 +23,7 @@
 #include "wndexp.h"
 #include "resource.h"
 
-BOOLEAN WepWindowNodeHashtableCompareFunction(
+BOOLEAN WepWindowNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -57,7 +57,7 @@ VOID WeInitializeWindowTree(
 
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PWE_WINDOW_NODE),
-        WepWindowNodeHashtableCompareFunction,
+        WepWindowNodeHashtableEqualFunction,
         WepWindowNodeHashtableHashFunction,
         100
         );
@@ -103,7 +103,7 @@ VOID WeDeleteWindowTree(
     PhDereferenceObject(Context->NodeRootList);
 }
 
-BOOLEAN WepWindowNodeHashtableCompareFunction(
+BOOLEAN WepWindowNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

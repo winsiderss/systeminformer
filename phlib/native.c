@@ -5970,7 +5970,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
     }
 }
 
-BOOLEAN NTAPI PhpBaseAddressHashtableCompareFunction(
+BOOLEAN NTAPI PhpBaseAddressHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -6016,7 +6016,7 @@ NTSTATUS PhEnumGenericModules(
 
     baseAddressHashtable = PhCreateHashtable(
         sizeof(PVOID),
-        PhpBaseAddressHashtableCompareFunction,
+        PhpBaseAddressHashtableEqualFunction,
         PhpBaseAddressHashtableHashFunction,
         32
         );

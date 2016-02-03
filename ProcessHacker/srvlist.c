@@ -27,7 +27,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 
-BOOLEAN PhpServiceNodeHashtableCompareFunction(
+BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -79,14 +79,14 @@ VOID PhServiceTreeListInitialization(
 {
     ServiceNodeHashtable = PhCreateHashtable(
         sizeof(PPH_SERVICE_NODE),
-        PhpServiceNodeHashtableCompareFunction,
+        PhpServiceNodeHashtableEqualFunction,
         PhpServiceNodeHashtableHashFunction,
         100
         );
     ServiceNodeList = PhCreateList(100);
 }
 
-BOOLEAN PhpServiceNodeHashtableCompareFunction(
+BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

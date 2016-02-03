@@ -23,7 +23,7 @@
 
 #include "usernotes.h"
 
-BOOLEAN NTAPI ObjectDbCompareFunction(
+BOOLEAN NTAPI ObjectDbEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -42,13 +42,13 @@ VOID InitializeDb(
 {
     ObjectDb = PhCreateHashtable(
         sizeof(PDB_OBJECT),
-        ObjectDbCompareFunction,
+        ObjectDbEqualFunction,
         ObjectDbHashFunction,
         64
         );
 }
 
-BOOLEAN NTAPI ObjectDbCompareFunction(
+BOOLEAN NTAPI ObjectDbEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

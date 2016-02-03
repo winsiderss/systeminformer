@@ -100,7 +100,7 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-BOOLEAN PhpNetworkHashtableCompareFunction(
+BOOLEAN PhpNetworkHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -109,7 +109,7 @@ ULONG NTAPI PhpNetworkHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-BOOLEAN PhpResolveCacheHashtableCompareFunction(
+BOOLEAN PhpResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -157,7 +157,7 @@ BOOLEAN PhNetworkProviderInitialization(
     PhNetworkItemType = PhCreateObjectType(L"NetworkItem", 0, PhpNetworkItemDeleteProcedure);
     PhNetworkHashtable = PhCreateHashtable(
         sizeof(PPH_NETWORK_ITEM),
-        PhpNetworkHashtableCompareFunction,
+        PhpNetworkHashtableEqualFunction,
         PhpNetworkHashtableHashFunction,
         40
         );
@@ -166,7 +166,7 @@ BOOLEAN PhNetworkProviderInitialization(
 
     PhpResolveCacheHashtable = PhCreateHashtable(
         sizeof(PHP_RESOLVE_CACHE_ITEM),
-        PhpResolveCacheHashtableCompareFunction,
+        PhpResolveCacheHashtableEqualFunction,
         PhpResolveCacheHashtableHashFunction,
         20
         );
@@ -209,7 +209,7 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
         PhDereferenceObject(networkItem->RemoteHostString);
 }
 
-BOOLEAN PhpNetworkHashtableCompareFunction(
+BOOLEAN PhpNetworkHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -284,7 +284,7 @@ VOID PhpRemoveNetworkItem(
     PhDereferenceObject(NetworkItem);
 }
 
-BOOLEAN PhpResolveCacheHashtableCompareFunction(
+BOOLEAN PhpResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

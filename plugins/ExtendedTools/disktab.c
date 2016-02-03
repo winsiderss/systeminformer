@@ -122,7 +122,7 @@ HWND NTAPI EtpDiskTabCreateFunction(
 
     DiskNodeHashtable = PhCreateHashtable(
         sizeof(PET_DISK_NODE),
-        EtpDiskNodeHashtableCompareFunction,
+        EtpDiskNodeHashtableEqualFunction,
         EtpDiskNodeHashtableHashFunction,
         100
         );
@@ -203,7 +203,7 @@ VOID NTAPI EtpDiskTabFontChangedCallback(
         SendMessage(DiskTreeNewHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
 }
 
-BOOLEAN EtpDiskNodeHashtableCompareFunction(
+BOOLEAN EtpDiskNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

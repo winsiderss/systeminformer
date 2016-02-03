@@ -3,7 +3,7 @@
 
 #include <shlobj.h>
 
-BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
+BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );

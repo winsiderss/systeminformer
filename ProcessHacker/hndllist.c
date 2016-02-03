@@ -27,7 +27,7 @@
 #include <phplug.h>
 #include <emenu.h>
 
-BOOLEAN PhpHandleNodeHashtableCompareFunction(
+BOOLEAN PhpHandleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -73,7 +73,7 @@ VOID PhInitializeHandleList(
 
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPH_HANDLE_NODE),
-        PhpHandleNodeHashtableCompareFunction,
+        PhpHandleNodeHashtableEqualFunction,
         PhpHandleNodeHashtableHashFunction,
         100
         );
@@ -122,7 +122,7 @@ VOID PhDeleteHandleList(
     PhDereferenceObject(Context->NodeList);
 }
 
-BOOLEAN PhpHandleNodeHashtableCompareFunction(
+BOOLEAN PhpHandleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

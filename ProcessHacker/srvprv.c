@@ -60,7 +60,7 @@ VOID NTAPI PhpServiceItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-BOOLEAN NTAPI PhpServiceHashtableCompareFunction(
+BOOLEAN NTAPI PhpServiceHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -111,7 +111,7 @@ BOOLEAN PhServiceProviderInitialization(
     PhServiceItemType = PhCreateObjectType(L"ServiceItem", 0, PhpServiceItemDeleteProcedure);
     PhServiceHashtable = PhCreateHashtable(
         sizeof(PPH_SERVICE_ITEM),
-        PhpServiceHashtableCompareFunction,
+        PhpServiceHashtableEqualFunction,
         PhpServiceHashtableHashFunction,
         40
         );
@@ -164,7 +164,7 @@ VOID PhpServiceItemDeleteProcedure(
     if (serviceItem->DisplayName) PhDereferenceObject(serviceItem->DisplayName);
 }
 
-BOOLEAN PhpServiceHashtableCompareFunction(
+BOOLEAN PhpServiceHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

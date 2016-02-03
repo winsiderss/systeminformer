@@ -4485,16 +4485,14 @@ FORCEINLINE ULONG PhpGetNumberOfBuckets(
  *
  * \param EntrySize The size of each hashtable entry,
  * in bytes.
- * \param CompareFunction A comparison function that
- * is executed to compare two hashtable entries.
- * \param HashFunction A hash function that is executed
- * to generate a hash code for a hashtable entry.
- * \param InitialCapacity The number of entries to
- * allocate storage for initially.
+ * \param EqualFunction A comparison function that is executed to compare two hashtable entries.
+ * \param HashFunction A hash function that is executed to generate a hash code for a hashtable
+ * entry.
+ * \param InitialCapacity The number of entries to allocate storage for initially.
  */
 PPH_HASHTABLE PhCreateHashtable(
     _In_ ULONG EntrySize,
-    _In_ PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
+    _In_ PPH_HASHTABLE_EQUAL_FUNCTION EqualFunction,
     _In_ PPH_HASHTABLE_HASH_FUNCTION HashFunction,
     _In_ ULONG InitialCapacity
     )
@@ -4508,7 +4506,7 @@ PPH_HASHTABLE PhCreateHashtable(
         InitialCapacity = 1;
 
     hashtable->EntrySize = EntrySize;
-    hashtable->CompareFunction = CompareFunction;
+    hashtable->EqualFunction = EqualFunction;
     hashtable->HashFunction = HashFunction;
 
     // Allocate the buckets.
@@ -4604,7 +4602,7 @@ FORCEINLINE PVOID PhpAddEntryHashtable(
         {
             entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
-            if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
+            if (entry->HashCode == hashCode && Hashtable->EqualFunction(&entry->Body, Entry))
             {
                 if (Added)
                     *Added = FALSE;
@@ -4804,7 +4802,7 @@ PVOID PhFindEntryHashtable(
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
-        if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
+        if (entry->HashCode == hashCode && Hashtable->EqualFunction(&entry->Body, Entry))
         {
             return &entry->Body;
         }
@@ -4846,7 +4844,7 @@ BOOLEAN PhRemoveEntryHashtable(
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
-        if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
+        if (entry->HashCode == hashCode && Hashtable->EqualFunction(&entry->Body, Entry))
         {
             // Unlink the entry from the bucket.
             if (previousIndex == -1)
@@ -4937,7 +4935,7 @@ ULONG PhHashStringRef(
     return hash;
 }
 
-BOOLEAN NTAPI PhpSimpleHashtableCompareFunction(
+BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -4963,7 +4961,7 @@ PPH_HASHTABLE PhCreateSimpleHashtable(
 {
     return PhCreateHashtable(
         sizeof(PH_KEY_VALUE_PAIR),
-        PhpSimpleHashtableCompareFunction,
+        PhpSimpleHashtableEqualFunction,
         PhpSimpleHashtableHashFunction,
         InitialCapacity
         );

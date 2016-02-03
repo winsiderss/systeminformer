@@ -2860,10 +2860,9 @@ typedef struct _PH_HASHTABLE_ENTRY
  * \param Entry1 The first entry.
  * \param Entry2 The second entry.
  *
- * \return TRUE if the entries are equal, otherwise
- * FALSE.
+ * \return TRUE if the entries are equal, otherwise FALSE.
  */
-typedef BOOLEAN (NTAPI *PPH_HASHTABLE_COMPARE_FUNCTION)(
+typedef BOOLEAN (NTAPI *PPH_HASHTABLE_EQUAL_FUNCTION)(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -2900,7 +2899,7 @@ typedef struct _PH_HASHTABLE
     /** Size of user data in each entry. */
     ULONG EntrySize;
     /** The comparison function. */
-    PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction;
+    PPH_HASHTABLE_EQUAL_FUNCTION EqualFunction;
     /** The hash function. */
     PPH_HASHTABLE_HASH_FUNCTION HashFunction;
 
@@ -2936,7 +2935,7 @@ PPH_HASHTABLE
 NTAPI
 PhCreateHashtable(
     _In_ ULONG EntrySize,
-    _In_ PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
+    _In_ PPH_HASHTABLE_EQUAL_FUNCTION EqualFunction,
     _In_ PPH_HASHTABLE_HASH_FUNCTION HashFunction,
     _In_ ULONG InitialCapacity
     );

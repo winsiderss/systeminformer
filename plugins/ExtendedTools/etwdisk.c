@@ -35,7 +35,7 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-BOOLEAN NTAPI EtpDiskHashtableCompareFunction(
+BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -77,7 +77,7 @@ VOID EtInitializeDiskInformation(
     EtDiskItemType = PhCreateObjectType(L"DiskItem", 0, EtpDiskItemDeleteProcedure);
     EtDiskHashtable = PhCreateHashtable(
         sizeof(PET_DISK_ITEM),
-        EtpDiskHashtableCompareFunction,
+        EtpDiskHashtableEqualFunction,
         EtpDiskHashtableHashFunction,
         128
         );
@@ -128,7 +128,7 @@ VOID NTAPI EtpDiskItemDeleteProcedure(
     if (diskItem->ProcessRecord) PhDereferenceProcessRecord(diskItem->ProcessRecord);
 }
 
-BOOLEAN NTAPI EtpDiskHashtableCompareFunction(
+BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

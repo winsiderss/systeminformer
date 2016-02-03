@@ -27,7 +27,7 @@
 #include <emenu.h>
 #include <verify.h>
 
-BOOLEAN PhpModuleNodeHashtableCompareFunction(
+BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -73,7 +73,7 @@ VOID PhInitializeModuleList(
 
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPH_MODULE_NODE),
-        PhpModuleNodeHashtableCompareFunction,
+        PhpModuleNodeHashtableEqualFunction,
         PhpModuleNodeHashtableHashFunction,
         100
         );
@@ -134,7 +134,7 @@ VOID PhDeleteModuleList(
     PhDereferenceObject(Context->NodeList);
 }
 
-BOOLEAN PhpModuleNodeHashtableCompareFunction(
+BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

@@ -26,7 +26,7 @@ VOID NTAPI EtpDiskTabFontChangedCallback(
     _In_ PVOID Context
     );
 
-BOOLEAN EtpDiskNodeHashtableCompareFunction(
+BOOLEAN EtpDiskNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );

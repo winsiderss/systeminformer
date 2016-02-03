@@ -65,7 +65,7 @@ VOID PhSettingsInitialization(
 {
     PhSettingsHashtable = PhCreateHashtable(
         sizeof(PH_SETTING),
-        PhpSettingsHashtableCompareFunction,
+        PhpSettingsHashtableEqualFunction,
         PhpSettingsHashtableHashFunction,
         256
         );
@@ -287,7 +287,7 @@ VOID PhUpdateCachedSettings(
     UPDATE_INTEGER_CS(ColorPhysical);
 }
 
-BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
+BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

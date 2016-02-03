@@ -27,7 +27,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 
-BOOLEAN PhpNetworkNodeHashtableCompareFunction(
+BOOLEAN PhpNetworkNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -83,14 +83,14 @@ VOID PhNetworkTreeListInitialization(
 {
     NetworkNodeHashtable = PhCreateHashtable(
         sizeof(PPH_NETWORK_NODE),
-        PhpNetworkNodeHashtableCompareFunction,
+        PhpNetworkNodeHashtableEqualFunction,
         PhpNetworkNodeHashtableHashFunction,
         100
         );
     NetworkNodeList = PhCreateList(100);
 }
 
-BOOLEAN PhpNetworkNodeHashtableCompareFunction(
+BOOLEAN PhpNetworkNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

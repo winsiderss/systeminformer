@@ -276,8 +276,8 @@ static VOID PhpPrintHashtableStatistics(
     wprintf(L"Next free entry: %d\n", Hashtable->FreeEntry);
     wprintf(L"Next usable entry: %d\n", Hashtable->NextEntry);
 
+    wprintf(L"Equal function: %s\n", PhpGetSymbolForAddress(Hashtable->EqualFunction));
     wprintf(L"Hash function: %s\n", PhpGetSymbolForAddress(Hashtable->HashFunction));
-    wprintf(L"Compare function: %s\n", PhpGetSymbolForAddress(Hashtable->CompareFunction));
 
     wprintf(L"\nBuckets:\n");
 
@@ -369,7 +369,7 @@ static VOID PhpDeleteNewObjectList(
 }
 #endif
 
-static BOOLEAN PhpStringHashtableCompareFunction(
+static BOOLEAN PhpStringHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -1461,7 +1461,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             hashtable = PhCreateHashtable(
                 sizeof(STRING_TABLE_ENTRY),
-                PhpStringHashtableCompareFunction,
+                PhpStringHashtableEqualFunction,
                 PhpStringHashtableHashFunction,
                 1024
                 );

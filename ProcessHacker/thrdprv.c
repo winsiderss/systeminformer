@@ -63,7 +63,7 @@ VOID NTAPI PhpThreadItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-BOOLEAN NTAPI PhpThreadHashtableCompareFunction(
+BOOLEAN NTAPI PhpThreadHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -126,7 +126,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
 
     threadProvider->ThreadHashtable = PhCreateHashtable(
         sizeof(PPH_THREAD_ITEM),
-        PhpThreadHashtableCompareFunction,
+        PhpThreadHashtableEqualFunction,
         PhpThreadHashtableHashFunction,
         20
         );
@@ -409,7 +409,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
 }
 
-BOOLEAN PhpThreadHashtableCompareFunction(
+BOOLEAN PhpThreadHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

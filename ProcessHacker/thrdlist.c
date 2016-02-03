@@ -27,7 +27,7 @@
 #include <emenu.h>
 #include <procprpp.h>
 
-BOOLEAN PhpThreadNodeHashtableCompareFunction(
+BOOLEAN PhpThreadNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -73,7 +73,7 @@ VOID PhInitializeThreadList(
 
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPH_THREAD_NODE),
-        PhpThreadNodeHashtableCompareFunction,
+        PhpThreadNodeHashtableEqualFunction,
         PhpThreadNodeHashtableHashFunction,
         100
         );
@@ -118,7 +118,7 @@ VOID PhDeleteThreadList(
     PhDereferenceObject(Context->NodeList);
 }
 
-BOOLEAN PhpThreadNodeHashtableCompareFunction(
+BOOLEAN PhpThreadNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

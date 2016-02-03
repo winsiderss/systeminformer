@@ -44,7 +44,7 @@ VOID NTAPI PhpModuleItemDeleteProcedure(
     _In_ ULONG Flags
     );
 
-BOOLEAN NTAPI PhpModuleHashtableCompareFunction(
+BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     );
@@ -80,7 +80,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     moduleProvider->ModuleHashtable = PhCreateHashtable(
         sizeof(PPH_MODULE_ITEM),
-        PhpModuleHashtableCompareFunction,
+        PhpModuleHashtableEqualFunction,
         PhpModuleHashtableHashFunction,
         20
         );
@@ -201,7 +201,7 @@ VOID PhpModuleItemDeleteProcedure(
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
 
-BOOLEAN NTAPI PhpModuleHashtableCompareFunction(
+BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )

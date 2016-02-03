@@ -192,7 +192,7 @@ LOGICAL DllMain(
     return TRUE;
 }
 
-BOOLEAN NTAPI BoxedProcessesCompareFunction(
+BOOLEAN NTAPI BoxedProcessesEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -219,7 +219,7 @@ VOID NTAPI LoadCallback(
 
     BoxedProcessesHashtable = PhCreateHashtable(
         sizeof(BOXED_PROCESS),
-        BoxedProcessesCompareFunction,
+        BoxedProcessesEqualFunction,
         BoxedProcessesHashFunction,
         32
         );
