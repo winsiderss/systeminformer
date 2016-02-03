@@ -234,86 +234,83 @@ NTSTATUS LoadDb(
 
     LockDb();
 
-    if (topNode->child)
+    for (currentNode = topNode->child; currentNode; currentNode = currentNode->next)
     {
-        for (currentNode = topNode->child; currentNode->next; currentNode = currentNode->next)
+        PDB_OBJECT object = NULL;
+        PPH_STRING tag = NULL;
+        PPH_STRING name = NULL;
+        PPH_STRING priorityClass = NULL;
+        PPH_STRING ioPriorityPlusOne = NULL;
+        PPH_STRING comment = NULL;
+        PPH_STRING backColor = NULL;
+        PPH_STRING collapse = NULL;
+
+        if (currentNode->type == MXML_ELEMENT &&
+            currentNode->value.element.num_attrs >= 2)
         {
-            PDB_OBJECT object = NULL;
-            PPH_STRING tag = NULL;
-            PPH_STRING name = NULL;
-            PPH_STRING priorityClass = NULL;
-            PPH_STRING ioPriorityPlusOne = NULL;
-            PPH_STRING comment = NULL;
-            PPH_STRING backColor = NULL;
-            PPH_STRING collapse = NULL;
-
-            if (currentNode->type == MXML_ELEMENT &&
-                currentNode->value.element.num_attrs >= 2)
+            for (INT i = 0; i < currentNode->value.element.num_attrs; i++)
             {
-                for (INT i = 0; i < currentNode->value.element.num_attrs; i++)
-                {
-                    if (_stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
-                        PhMoveReference(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                    else if (_stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
-                        PhMoveReference(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                    else if (_stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
-                        PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                    else if (_stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
-                        PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                    else if (_stricmp(currentNode->value.element.attrs[i].name, "backcolor") == 0)
-                        PhMoveReference(&backColor, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                    else if (_stricmp(currentNode->value.element.attrs[i].name, "collapse") == 0)
-                        PhMoveReference(&collapse, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
-                }
+                if (_stricmp(currentNode->value.element.attrs[i].name, "tag") == 0)
+                    PhMoveReference(&tag, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "name") == 0)
+                    PhMoveReference(&name, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "priorityclass") == 0)
+                    PhMoveReference(&priorityClass, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "iopriorityplusone") == 0)
+                    PhMoveReference(&ioPriorityPlusOne, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "backcolor") == 0)
+                    PhMoveReference(&backColor, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "collapse") == 0)
+                    PhMoveReference(&collapse, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
-
-            comment = GetOpaqueXmlNodeText(currentNode);
-
-            if (tag && name && comment)
-            {
-                ULONG64 tagInteger;
-                ULONG64 priorityClassInteger = 0;
-                ULONG64 ioPriorityPlusOneInteger = 0;
-
-                PhStringToInteger64(&tag->sr, 10, &tagInteger);
-
-                if (priorityClass)
-                    PhStringToInteger64(&priorityClass->sr, 10, &priorityClassInteger);
-                if (ioPriorityPlusOne)
-                    PhStringToInteger64(&ioPriorityPlusOne->sr, 10, &ioPriorityPlusOneInteger);
-
-                object = CreateDbObject((ULONG)tagInteger, &name->sr, comment);
-                object->PriorityClass = (ULONG)priorityClassInteger;
-                object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;
-            }
-
-            // NOTE: These items are handled separately to maintain compatibility with previous versions of the database.
-            if (object && backColor)
-            {
-                ULONG64 backColorInteger = ULONG_MAX;
-
-                PhStringToInteger64(&backColor->sr, 10, &backColorInteger);
-
-                object->BackColor = (COLORREF)backColorInteger;
-            }
-
-            if (object && collapse)
-            {
-                ULONG64 collapseInteger = -1;
-
-                PhStringToInteger64(&collapse->sr, 10, &collapseInteger);
-
-                object->Collapse = (BOOLEAN)collapseInteger;
-            }
-
-            PhClearReference(&tag);
-            PhClearReference(&name);
-            PhClearReference(&priorityClass);
-            PhClearReference(&ioPriorityPlusOne);
-            PhClearReference(&comment);
-            PhClearReference(&backColor);
-            PhClearReference(&collapse);
         }
+
+        comment = GetOpaqueXmlNodeText(currentNode);
+
+        if (tag && name && comment)
+        {
+            ULONG64 tagInteger;
+            ULONG64 priorityClassInteger = 0;
+            ULONG64 ioPriorityPlusOneInteger = 0;
+
+            PhStringToInteger64(&tag->sr, 10, &tagInteger);
+
+            if (priorityClass)
+                PhStringToInteger64(&priorityClass->sr, 10, &priorityClassInteger);
+            if (ioPriorityPlusOne)
+                PhStringToInteger64(&ioPriorityPlusOne->sr, 10, &ioPriorityPlusOneInteger);
+
+            object = CreateDbObject((ULONG)tagInteger, &name->sr, comment);
+            object->PriorityClass = (ULONG)priorityClassInteger;
+            object->IoPriorityPlusOne = (ULONG)ioPriorityPlusOneInteger;
+        }
+
+        // NOTE: These items are handled separately to maintain compatibility with previous versions of the database.
+        if (object && backColor)
+        {
+            ULONG64 backColorInteger = ULONG_MAX;
+
+            PhStringToInteger64(&backColor->sr, 10, &backColorInteger);
+
+            object->BackColor = (COLORREF)backColorInteger;
+        }
+
+        if (object && collapse)
+        {
+            ULONG64 collapseInteger = -1;
+
+            PhStringToInteger64(&collapse->sr, 10, &collapseInteger);
+
+            object->Collapse = (BOOLEAN)collapseInteger;
+        }
+
+        PhClearReference(&tag);
+        PhClearReference(&name);
+        PhClearReference(&priorityClass);
+        PhClearReference(&ioPriorityPlusOne);
+        PhClearReference(&comment);
+        PhClearReference(&backColor);
+        PhClearReference(&collapse);
     }
 
     UnlockDb();
