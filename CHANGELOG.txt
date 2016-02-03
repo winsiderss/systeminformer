@@ -4,7 +4,7 @@ Process Hacker
  * HIGHLIGHTS:
  * OTHER CHANGES:
    * Fixed ASLR state being shown as N/A in process properties
-   * Improved performance when handling a large number of processes, threads or handles
+   * Improved performance when handling a large number of threads, modules or handles
    * Updated UserNotes plugin:
      * Added "Collapse by Default" option for processes
 
