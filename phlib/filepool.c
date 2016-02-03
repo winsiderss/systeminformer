@@ -1021,8 +1021,7 @@ VOID PhFppRemoveViewByBase(
  * \param Pool The file pool.
  * \param Base The address.
  *
- * \return The view containing the address, or NULL if no view
- * is present for the address.
+ * \return The view containing the address, or NULL if no view is present for the address.
  */
 PPH_FILE_POOL_VIEW PhFppFindViewByBase(
     _Inout_ PPH_FILE_POOL Pool,
@@ -1032,41 +1031,18 @@ PPH_FILE_POOL_VIEW PhFppFindViewByBase(
     PPH_FILE_POOL_VIEW view;
     PPH_AVL_LINKS links;
     PH_FILE_POOL_VIEW lookupView;
-    LONG result;
 
-    // This is an approximate search to find the target view in which the specified address
-    // lies.
+    // This is an approximate search to find the target view in which the specified address lies.
 
     lookupView.Base = Base;
-
-    links = PhFindElementAvlTree2(&Pool->ByBaseSet, &lookupView.ByBaseLinks, &result);
+    links = PhUpperDualBoundElementAvlTree(&Pool->ByBaseSet, &lookupView.ByBaseLinks);
 
     if (!links)
         return NULL;
 
-    if (result == 0)
-    {
-        return CONTAINING_RECORD(links, PH_FILE_POOL_VIEW, ByBaseLinks);
-    }
-    else if (result < 0)
-    {
-        // The base of the returned element is larger than our base. The preceding
-        // element must be the target view, or the target view doesn't exist.
-
-        links = PhPredecessorElementAvlTree(links);
-
-        if (!links)
-            return NULL;
-    }
-    else
-    {
-        // The base of the returned element is smaller than our base. This element
-        // must be the target view, or the target view doesn't exist.
-    }
-
     view = CONTAINING_RECORD(links, PH_FILE_POOL_VIEW, ByBaseLinks);
 
-    if ((ULONG_PTR)Base >= (ULONG_PTR)view->Base && (ULONG_PTR)Base < (ULONG_PTR)view->Base + Pool->SegmentSize)
+    if ((ULONG_PTR)Base < (ULONG_PTR)view->Base + Pool->SegmentSize)
         return view;
 
     return NULL;

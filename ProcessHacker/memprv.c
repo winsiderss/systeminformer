@@ -196,48 +196,21 @@ PPH_MEMORY_ITEM PhLookupMemoryItemList(
     PH_MEMORY_ITEM lookupMemoryItem;
     PPH_AVL_LINKS links;
     PPH_MEMORY_ITEM memoryItem;
-    LONG result;
 
     // Do an approximate search on the set to locate the memory item with the largest
     // base address that is still smaller than the given address.
     lookupMemoryItem.BaseAddress = Address;
-    links = PhFindElementAvlTree2(&List->Set, &lookupMemoryItem.Links, &result);
-    memoryItem = NULL;
+    links = PhUpperDualBoundElementAvlTree(&List->Set, &lookupMemoryItem.Links);
 
     if (links)
     {
-        if (result == 0)
-        {
-            // Exact match.
-        }
-        else if (result < 0)
-        {
-            // The base of the closest known memory region is larger than our address. Assume the
-            // preceding element (which is going to be smaller than our address) is the
-            // one we're looking for.
+        memoryItem = CONTAINING_RECORD(links, PH_MEMORY_ITEM, Links);
 
-            links = PhPredecessorElementAvlTree(links);
-        }
-        else
-        {
-            // The base of the closest known memory region is smaller than our address. Assume this
-            // is the element we're looking for.
-        }
-
-        if (links)
-        {
-            memoryItem = CONTAINING_RECORD(links, PH_MEMORY_ITEM, Links);
-        }
-    }
-    else
-    {
-        // No modules loaded.
+        if ((ULONG_PTR)Address < (ULONG_PTR)memoryItem->BaseAddress + memoryItem->RegionSize)
+            return memoryItem;
     }
 
-    if (memoryItem && (ULONG_PTR)Address < (ULONG_PTR)memoryItem->BaseAddress + memoryItem->RegionSize)
-        return memoryItem;
-    else
-        return NULL;
+    return NULL;
 }
 
 PPH_MEMORY_ITEM PhpSetMemoryRegionType(

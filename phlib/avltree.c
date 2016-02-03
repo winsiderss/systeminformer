@@ -584,7 +584,7 @@ VOID PhRemoveElementAvlTree(
     {
         newElement = Element;
     }
-    else if (Element->Balance >= 0) // pick the side depending on the balance to minimize rebalances
+    else if (Element->Balance >= 0) // Pick the side depending on the balance to minimize rebalances
     {
         newElement = Element->Right;
 
@@ -715,31 +715,155 @@ PPH_AVL_LINKS PhFindElementAvlTree(
 }
 
 /**
- * Finds an element in an AVL tree.
+ * Finds the first element in an AVL tree that is greater than or equal to the specified element.
  *
  * \param Tree The tree.
  * \param Element The element to find.
- * \param Result The result of the search.
  *
- * \return The closest element, or NULL if the tree is empty.
+ * \return The bound element, or NULL if the tree is empty.
  */
-PPH_AVL_LINKS PhFindElementAvlTree2(
+PPH_AVL_LINKS PhLowerBoundElementAvlTree(
     _In_ PPH_AVL_TREE Tree,
-    _In_ PPH_AVL_LINKS Element,
-    _Out_ PLONG Result
+    _In_ PPH_AVL_LINKS Element
     )
 {
     PPH_AVL_LINKS links;
+    PPH_AVL_LINKS closest;
     LONG result;
 
-    links = PhpFindElementAvlTree(Tree, Element, &result);
+    links = PhRootElementAvlTree(Tree);
+    closest = NULL;
 
-    if (links == &Tree->Root)
-        return NULL;
+    while (links)
+    {
+        result = Tree->CompareFunction(Element, links);
 
-    *Result = result;
+        if (result > 0)
+        {
+            links = links->Right;
+        }
+        else
+        {
+            closest = links;
+            links = links->Left;
+        }
+    }
 
-    return links;
+    return closest;
+}
+
+/**
+ * Finds the first element in an AVL tree that is greater than the specified element.
+ *
+ * \param Tree The tree.
+ * \param Element The element to find.
+ *
+ * \return The bound element, or NULL if the tree is empty.
+ */
+PPH_AVL_LINKS PhUpperBoundElementAvlTree(
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
+    )
+{
+    PPH_AVL_LINKS links;
+    PPH_AVL_LINKS closest;
+    LONG result;
+
+    links = PhRootElementAvlTree(Tree);
+    closest = NULL;
+
+    while (links)
+    {
+        result = Tree->CompareFunction(Element, links);
+
+        if (result >= 0)
+        {
+            links = links->Right;
+        }
+        else
+        {
+            closest = links;
+            links = links->Left;
+        }
+    }
+
+    return closest;
+}
+
+/**
+ * Finds the last element in an AVL tree that is less than the specified element.
+ *
+ * \param Tree The tree.
+ * \param Element The element to find.
+ *
+ * \return The bound element, or NULL if the tree is empty.
+ */
+PPH_AVL_LINKS PhLowerDualBoundElementAvlTree(
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
+    )
+{
+    PPH_AVL_LINKS links;
+    PPH_AVL_LINKS closest;
+    LONG result;
+
+    links = PhRootElementAvlTree(Tree);
+    closest = NULL;
+
+    while (links)
+    {
+        result = Tree->CompareFunction(Element, links);
+
+        if (result > 0)
+        {
+            closest = links;
+            links = links->Right;
+        }
+        else
+        {
+            links = links->Left;
+        }
+    }
+
+    return closest;
+}
+
+/**
+ * Finds the last element in an AVL tree that is less than or equal to the specified element.
+ *
+ * \param Tree The tree.
+ * \param Element The element to find.
+ *
+ * \return The bound element, or NULL if the tree is empty.
+ */
+PPH_AVL_LINKS PhUpperDualBoundElementAvlTree(
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
+    )
+{
+    PPH_AVL_LINKS links;
+    PPH_AVL_LINKS closest;
+    LONG result;
+
+    links = PhRootElementAvlTree(Tree);
+    closest = NULL;
+
+    while (links)
+    {
+        result = Tree->CompareFunction(Element, links);
+
+        if (result >= 0)
+        {
+            closest = links;
+            links = links->Right;
+        }
+        else
+        {
+            links = links->Left;
+        }
+    }
+
+    return closest;
 }
 
 /**
@@ -881,8 +1005,7 @@ PPH_AVL_LINKS PhPredecessorElementAvlTree(
  * \param Tree The tree.
  * \param Order The enumeration order.
  * \param Callback The callback function.
- * \param Context A user-defined value to pass to the callback
- * function.
+ * \param Context A user-defined value to pass to the callback function.
  */
 VOID PhEnumAvlTree(
     _In_ PPH_AVL_TREE Tree,
@@ -892,8 +1015,8 @@ VOID PhEnumAvlTree(
     )
 {
     // The maximum height of an AVL tree is around 1.44 * log2(n).
-    // The maximum number of elements in this implementation is
-    // 2^32, so the maximum height is around 46.08.
+    // The maximum number of elements in this implementation is 2^32, so the maximum height is
+    // around 46.08.
     PPH_AVL_LINKS stackBase[47];
     PPH_AVL_LINKS *stack;
     PPH_AVL_LINKS links;

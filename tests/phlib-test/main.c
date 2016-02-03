@@ -8,6 +8,7 @@ int __cdecl main(int argc, char *argv[])
     assert(NT_SUCCESS(status));
 
     Test_basesup();
+    Test_avltree();
     Test_format();
     Test_support();
 

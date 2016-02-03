@@ -140,10 +140,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="apiimport.c" />
+    <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="basesupa.c" />
     <ClCompile Include="circbuf.c" />
-    <ClCompile Include="collect.c" />
     <ClCompile Include="colorbox.c" />
     <ClCompile Include="cpysave.c" />
     <ClCompile Include="data.c" />

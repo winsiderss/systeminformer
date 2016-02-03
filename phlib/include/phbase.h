@@ -3731,10 +3731,33 @@ PhFindElementAvlTree(
 PHLIBAPI
 PPH_AVL_LINKS
 NTAPI
-PhFindElementAvlTree2(
+PhLowerBoundElementAvlTree(
     _In_ PPH_AVL_TREE Tree,
-    _In_ PPH_AVL_LINKS Element,
-    _Out_ PLONG Result
+    _In_ PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhUpperBoundElementAvlTree(
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhLowerDualBoundElementAvlTree(
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhUpperDualBoundElementAvlTree(
+    _In_ PPH_AVL_TREE Tree,
+    _In_ PPH_AVL_LINKS Element
     );
 
 PHLIBAPI

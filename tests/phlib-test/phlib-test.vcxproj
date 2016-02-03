@@ -96,6 +96,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="t_avltree.c" />
     <ClCompile Include="t_basesup.c" />
     <ClCompile Include="t_format.c" />
     <ClCompile Include="t_support.c" />

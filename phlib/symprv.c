@@ -434,56 +434,28 @@ ULONG64 PhGetModuleFromAddress(
     PH_SYMBOL_MODULE lookupModule;
     PPH_AVL_LINKS links;
     PPH_SYMBOL_MODULE module;
-    LONG result;
     PPH_STRING foundFileName;
     ULONG64 foundBaseAddress;
 
-    module = NULL;
     foundFileName = NULL;
     foundBaseAddress = 0;
+
+    PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
 
     // Do an approximate search on the modules set to locate the module with the largest
     // base address that is still smaller than the given address.
     lookupModule.BaseAddress = Address;
-
-    PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
-
-    links = PhFindElementAvlTree2(&SymbolProvider->ModulesSet, &lookupModule.Links, &result);
+    links = PhUpperDualBoundElementAvlTree(&SymbolProvider->ModulesSet, &lookupModule.Links);
 
     if (links)
     {
-        if (result == 0)
-        {
-            // Exact match.
-        }
-        else if (result < 0)
-        {
-            // The base of the closest module is larger than our address. Assume the
-            // preceding element (which is going to be smaller than our address) is the
-            // one we're looking for.
+        module = CONTAINING_RECORD(links, PH_SYMBOL_MODULE, Links);
 
-            links = PhPredecessorElementAvlTree(links);
-        }
-        else
+        if (Address < module->BaseAddress + module->Size)
         {
-            // The base of the closest module is smaller than our address. Assume this
-            // is the element we're looking for.
+            PhSetReference(&foundFileName, module->FileName);
+            foundBaseAddress = module->BaseAddress;
         }
-
-        if (links)
-        {
-            module = CONTAINING_RECORD(links, PH_SYMBOL_MODULE, Links);
-        }
-    }
-    else
-    {
-        // No modules loaded.
-    }
-
-    if (module && Address < module->BaseAddress + module->Size)
-    {
-        PhSetReference(&foundFileName, module->FileName);
-        foundBaseAddress = module->BaseAddress;
     }
 
     PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);

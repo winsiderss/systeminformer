@@ -23,6 +23,9 @@
     <ClCompile Include="t_support.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="t_avltree.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests.h">

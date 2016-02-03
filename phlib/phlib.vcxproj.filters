@@ -20,9 +20,6 @@
     <ClCompile Include="circbuf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="collect.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="colorbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -138,6 +135,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="apiimport.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="avltree.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
