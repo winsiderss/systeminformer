@@ -141,11 +141,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
     _In_ LPARAM lParam
     );
 
-#define WM_PH_THREAD_ADDED (WM_APP + 201)
-#define WM_PH_THREAD_MODIFIED (WM_APP + 202)
-#define WM_PH_THREAD_REMOVED (WM_APP + 203)
-#define WM_PH_THREADS_UPDATED (WM_APP + 204)
-#define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 205)
+#define WM_PH_THREADS_UPDATED (WM_APP + 200)
+#define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 201)
 
 // begin_phapppub
 typedef struct _PH_THREADS_CONTEXT
@@ -170,7 +167,7 @@ typedef struct _PH_THREADS_CONTEXT
             HWND TreeNewHandle; // phapppub
         } PublicUse;
     };
-    BOOLEAN NeedsRedraw;
+    PH_PROVIDER_EVENT_QUEUE EventQueue;
 // begin_phapppub
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
 // end_phapppub

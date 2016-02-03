@@ -1979,12 +1979,7 @@ static VOID NTAPI ThreadAddedHandler(
 
     // Parameter contains a pointer to the added thread item.
     PhReferenceObject(Parameter);
-    PostMessage(
-        threadsContext->WindowHandle,
-        WM_PH_THREAD_ADDED,
-        threadsContext->Provider->RunId == 1,
-        (LPARAM)Parameter
-        );
+    PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderAddedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadModifiedHandler(
@@ -1994,7 +1989,7 @@ static VOID NTAPI ThreadModifiedHandler(
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
-    PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_MODIFIED, 0, (LPARAM)Parameter);
+    PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadRemovedHandler(
@@ -2004,7 +1999,7 @@ static VOID NTAPI ThreadRemovedHandler(
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
-    PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_REMOVED, 0, (LPARAM)Parameter);
+    PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadsUpdatedHandler(
@@ -2014,7 +2009,7 @@ static VOID NTAPI ThreadsUpdatedHandler(
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
-    PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, 0, 0);
+    PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
 
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
@@ -2548,7 +2543,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             BringWindowToTop(tnHandle);
             PhInitializeThreadList(hwndDlg, tnHandle, &threadsContext->ListContext);
             TreeNew_SetEmptyText(tnHandle, &EmptyThreadsText, 0);
-            threadsContext->NeedsRedraw = FALSE;
+            PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
 
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
             // open the process, since cycle time information requires sufficient access to the
@@ -2636,6 +2631,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhUnregisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
             PhSetTerminatingThreadProvider(threadsContext->Provider);
             PhDereferenceObject(threadsContext->Provider);
+            PhDeleteProviderEventQueue(&threadsContext->EventQueue);
 
             if (PhPluginsEnabled)
             {
@@ -3033,57 +3029,47 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             }
         }
         break;
-    case WM_PH_THREAD_ADDED:
-        {
-            BOOLEAN firstRun = (BOOLEAN)wParam;
-            PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
-
-            if (!threadsContext->NeedsRedraw)
-            {
-                // Disable redraw. It will be re-enabled later.
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                threadsContext->NeedsRedraw = TRUE;
-            }
-
-            PhAddThreadNode(&threadsContext->ListContext, threadItem, firstRun);
-            PhDereferenceObject(threadItem);
-        }
-        break;
-    case WM_PH_THREAD_MODIFIED:
-        {
-            PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
-
-            if (!threadsContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                threadsContext->NeedsRedraw = TRUE;
-            }
-
-            PhUpdateThreadNode(&threadsContext->ListContext, PhFindThreadNode(&threadsContext->ListContext, threadItem->ThreadId));
-        }
-        break;
-    case WM_PH_THREAD_REMOVED:
-        {
-            PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
-
-            if (!threadsContext->NeedsRedraw)
-            {
-                TreeNew_SetRedraw(tnHandle, FALSE);
-                threadsContext->NeedsRedraw = TRUE;
-            }
-
-            PhRemoveThreadNode(&threadsContext->ListContext, PhFindThreadNode(&threadsContext->ListContext, threadItem->ThreadId));
-        }
-        break;
     case WM_PH_THREADS_UPDATED:
         {
+            ULONG upToRunId = (ULONG)wParam;
+            BOOLEAN firstRun = !!lParam;
+            PPH_PROVIDER_EVENT events;
+            ULONG count;
+            ULONG i;
+
+            events = PhFlushProviderEventQueue(&threadsContext->EventQueue, upToRunId, &count);
+
+            if (events)
+            {
+                TreeNew_SetRedraw(tnHandle, FALSE);
+
+                for (i = 0; i < count; i++)
+                {
+                    PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+                    PPH_THREAD_ITEM threadItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+                    switch (type)
+                    {
+                    case ProviderAddedEvent:
+                        PhAddThreadNode(&threadsContext->ListContext, threadItem, firstRun);
+                        PhDereferenceObject(threadItem);
+                        break;
+                    case ProviderModifiedEvent:
+                        PhUpdateThreadNode(&threadsContext->ListContext, PhFindThreadNode(&threadsContext->ListContext, threadItem->ThreadId));
+                        break;
+                    case ProviderRemovedEvent:
+                        PhRemoveThreadNode(&threadsContext->ListContext, PhFindThreadNode(&threadsContext->ListContext, threadItem->ThreadId));
+                        break;
+                    }
+                }
+
+                PhFree(events);
+            }
+
             PhTickThreadNodes(&threadsContext->ListContext);
 
-            if (threadsContext->NeedsRedraw)
-            {
+            if (count != 0)
                 TreeNew_SetRedraw(tnHandle, TRUE);
-                threadsContext->NeedsRedraw = FALSE;
-            }
 
             if (propPageContext->PropContext->SelectThreadId)
             {
