@@ -1,7 +1,7 @@
 ;* Process Hacker 2 - Installer script
 ;*
 ;* Copyright (C) 2011 wj32
-;* Copyright (C) 2010-2015 XhmikosR
+;* Copyright (C) 2010-2016 XhmikosR
 ;*
 ;* This file is part of Process Hacker.
 ;*
@@ -23,8 +23,8 @@
 ; *Inno Setup: http://www.jrsoftware.org/isdl.php
 
 
-#if VER < EncodeVer(5,5,6)
-  #error Update your Inno Setup version (5.5.6 or newer)
+#if VER < EncodeVer(5,5,8)
+  #error Update your Inno Setup version (5.5.8 or newer)
 #endif
 
 #include "..\..\ProcessHacker\include\phappres.h"
@@ -34,7 +34,7 @@
 #include "Services.iss"
 
 #define installer_build_number "14"
-#define copyright              "Copyright © 2010-2015, Process Hacker Team. Licensed under the GNU GPL, v3."
+#define copyright              "Copyright © 2010-2016, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
   #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
