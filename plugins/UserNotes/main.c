@@ -120,25 +120,7 @@ HWND ServiceTreeNewHandle;
 LIST_ENTRY ServiceListHead = { &ServiceListHead, &ServiceListHead };
 PH_QUEUED_LOCK ServiceListLock = PH_QUEUED_LOCK_INIT;
 
-static COLORREF ProcessCustomColors[16] =
-{
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255),
-    RGB(255, 255, 255)
-};
+static COLORREF ProcessCustomColors[16] = { 0 };
 
 static BOOLEAN MatchDbObjectIntent(
     _In_ PDB_OBJECT Object,
@@ -158,13 +140,21 @@ static PDB_OBJECT FindDbObjectForProcess(
     PDB_OBJECT object;
 
     if (
-        ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) &&
+        ProcessItem->CommandLine &&
+        (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) &&
         MatchDbObjectIntent(object, Intent)
         )
+    {
         return object;
+    }
 
-    if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && MatchDbObjectIntent(object, Intent))
+    if (
+        (object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) &&
+        MatchDbObjectIntent(object, Intent)
+        )
+    {
         return object;
+    }
 
     return NULL;
 }
@@ -173,22 +163,40 @@ static VOID DeleteDbObjectForProcessIfUnused(
     _In_ PDB_OBJECT Object
     )
 {
-    if (Object->Comment->Length == 0 && Object->PriorityClass == 0 && Object->IoPriorityPlusOne == 0 && Object->BackColor == ULONG_MAX)
+    if (
+        Object->Comment->Length == 0 && 
+        Object->PriorityClass == 0 && 
+        Object->IoPriorityPlusOne == 0 && 
+        Object->BackColor == ULONG_MAX
+        )
     {
         DeleteDbObject(Object);
     }
 }
 
 static VOID LoadCustomColors(
-    _In_ PPH_STRING String
+    VOID
     )
 {
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
     PH_STRINGREF part;
-    PH_STRINGREF remaining = String->sr;
 
-    for (SIZE_T i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
+    settingsString = PhGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
+    remaining = settingsString->sr;
+
+    if (remaining.Length == 0)
+    {
+        PhDereferenceObject(settingsString);
+        return;
+    }
+
+    for (ULONG i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
     {
         ULONG64 integer = 0;
+
+        if (remaining.Length == 0)
+            break;
 
         PhSplitStringRefAtChar(&remaining, ',', &part, &remaining);
 
@@ -197,6 +205,8 @@ static VOID LoadCustomColors(
             ProcessCustomColors[i] = (COLORREF)integer;
         }
     }
+
+    PhDereferenceObject(settingsString);
 }
 
 static PPH_STRING SaveCustomColors(
@@ -209,7 +219,11 @@ static PPH_STRING SaveCustomColors(
 
     for (SIZE_T i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
     {
-        PhAppendFormatStringBuilder(&stringBuilder, L"%lu,", ProcessCustomColors[i]);
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
+            L"%lu,",
+            ProcessCustomColors[i]
+            );
     }
 
     if (stringBuilder.String->Length != 0)
@@ -294,16 +308,13 @@ static VOID NTAPI LoadCallback(
 {
     PPH_STRING path;
     PPH_STRING realPath;
-    PPH_STRING customColors;
 
     path = PhGetStringSetting(SETTING_NAME_DATABASE_PATH);
     realPath = PhExpandEnvironmentStrings(&path->sr);
     PhDereferenceObject(path);
     path = realPath;
 
-    customColors = PhGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
-    LoadCustomColors(customColors);
-    PhDereferenceObject(customColors);
+    LoadCustomColors();
 
     if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
     {
@@ -327,12 +338,6 @@ static VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_STRING customColors;
-
-    customColors = SaveCustomColors();
-    PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &customColors->sr);
-    PhDereferenceObject(customColors);
-
     SaveDb();
 }
 
@@ -455,6 +460,12 @@ VOID NTAPI MenuItemCallback(
 
             if (ChooseColor(&chooseColor))
             {
+                PPH_STRING customColors;
+
+                customColors = SaveCustomColors();
+                PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &customColors->sr);
+                PhDereferenceObject(customColors);
+
                 LockDb();
 
                 if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
