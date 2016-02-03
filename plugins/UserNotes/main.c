@@ -97,7 +97,8 @@ static VOID DeleteDbObjectForProcessIfUnused(
         Object->Comment->Length == 0 &&
         Object->PriorityClass == 0 &&
         Object->IoPriorityPlusOne == 0 &&
-        Object->BackColor == ULONG_MAX
+        Object->BackColor == ULONG_MAX &&
+        Object->Collapse == -1
         )
     {
         DeleteDbObject(Object);
@@ -469,7 +470,8 @@ static VOID NTAPI MenuItemCallback(
 
             if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse != -1)
             {
-                object->Collapse = FALSE;
+                object->Collapse = -1;
+                DeleteDbObjectForProcessIfUnused(object);
             }
 
             UnlockDb();

@@ -37,7 +37,7 @@ typedef struct _DB_OBJECT
     ULONG Tag;
     PH_STRINGREF Key;
 
-    BOOLEAN Collapse;
+    INT Collapse;
     COLORREF BackColor;
     ULONG PriorityClass;
     ULONG IoPriorityPlusOne;
