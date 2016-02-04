@@ -584,15 +584,12 @@ PhIconToBitmap(
 
 typedef enum _PH_ITEM_STATE
 {
-    // The item is normal. Use the ItemColorFunction
-    // to determine the color of the item.
+    // The item is normal. Use the ItemColorFunction to determine the color of the item.
     NormalItemState = 0,
-    // The item is new. On the next tick,
-    // change the state to NormalItemState. When an
-    // item is in this state, highlight it in NewColor.
+    // The item is new. On the next tick, change the state to NormalItemState. When an item is in
+    // this state, highlight it in NewColor.
     NewItemState,
-    // The item is being removed. On the next tick,
-    // delete the item. When an item is in this state,
+    // The item is being removed. On the next tick, delete the item. When an item is in this state,
     // highlight it in RemovingColor.
     RemovingItemState
 } PH_ITEM_STATE;
@@ -689,8 +686,7 @@ PhSetHeaderSortIcon(
  *
  * \param Color The color.
  *
- * \return A value ranging from 0 to 255,
- * indicating the brightness of the color.
+ * \return A value ranging from 0 to 255, indicating the brightness of the color.
  */
 FORCEINLINE
 ULONG

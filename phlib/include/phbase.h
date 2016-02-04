@@ -379,10 +379,8 @@ PhAllocateCopy(
 /**
  * A fast event object.
  *
- * \remarks
- * This event object does not use a kernel event object
- * until necessary, and frees the object automatically
- * when it is no longer needed.
+ * \remarks This event object does not use a kernel event object until necessary, and frees the
+ * object automatically when it is no longer needed.
  */
 typedef struct _PH_EVENT
 {
@@ -1214,9 +1212,8 @@ extern PPH_OBJECT_TYPE PhStringType;
 /**
  * A 16-bit string object, which supports UTF-16.
  *
- * \remarks The \a Length never includes the null terminator. Every
- * string must have a null terminator at the end, for compatibility
- * reasons. Thus the invariant is:
+ * \remarks The \a Length never includes the null terminator. Every string must have a null
+ * terminator at the end, for compatibility reasons. The invariant is:
  * \code Buffer[Length / sizeof(WCHAR)] = 0 \endcode
  */
 typedef struct _PH_STRING
@@ -1347,13 +1344,11 @@ PhFormatString_V(
     );
 
 /**
- * Retrieves a pointer to a string object's buffer
- * or returns NULL.
+ * Retrieves a pointer to a string object's buffer or returns NULL.
  *
  * \param String A pointer to a string object.
  *
- * \return A pointer to the string object's buffer
- * if the supplied pointer is non-NULL, otherwise
+ * \return A pointer to the string object's buffer if the supplied pointer is non-NULL, otherwise
  * NULL.
  */
 FORCEINLINE
@@ -1385,14 +1380,12 @@ PhGetStringRef(
 }
 
 /**
- * Retrieves a pointer to a string object's buffer
- * or returns an empty string.
+ * Retrieves a pointer to a string object's buffer or returns an empty string.
  *
  * \param String A pointer to a string object.
  *
- * \return A pointer to the string object's buffer
- * if the supplied pointer is non-NULL, otherwise
- * an empty string.
+ * \return A pointer to the string object's buffer if the supplied pointer is non-NULL, otherwise an
+ * empty string.
  */
 FORCEINLINE
 PWSTR
@@ -1407,14 +1400,12 @@ PhGetStringOrEmpty(
 }
 
 /**
- * Retrieves a pointer to a string object's buffer
- * or returns the specified alternative string.
+ * Retrieves a pointer to a string object's buffer or returns the specified alternative string.
  *
  * \param String A pointer to a string object.
  * \param DefaultString The alternative string.
  *
- * \return A pointer to the string object's buffer
- * if the supplied pointer is non-NULL, otherwise
+ * \return A pointer to the string object's buffer if the supplied pointer is non-NULL, otherwise
  * the specified alternative string.
  */
 FORCEINLINE
@@ -1671,9 +1662,8 @@ PhEndsWithString2(
  * \param StartIndex The index, in characters, to start searching at.
  * \param Char The character to search for.
  *
- * \return The index, in characters, of the first occurrence of
- * \a Char in \a String after \a StartIndex. If \a Char was not
- * found, -1 is returned.
+ * \return The index, in characters, of the first occurrence of \a Char in \a String after
+ * \a StartIndex. If \a Char was not found, -1 is returned.
  */
 FORCEINLINE
 ULONG_PTR
@@ -1710,9 +1700,8 @@ PhFindCharInString(
  * \param StartIndex The index, in characters, to start searching at.
  * \param Char The character to search for.
  *
- * \return The index, in characters, of the last occurrence of
- * \a Char in \a String after \a StartIndex. If \a Char was not
- * found, -1 is returned.
+ * \return The index, in characters, of the last occurrence of \a Char in \a String after
+ * \a StartIndex. If \a Char was not found, -1 is returned.
  */
 FORCEINLINE
 ULONG_PTR
@@ -1749,9 +1738,8 @@ PhFindLastCharInString(
  * \param StartIndex The index, in characters, to start searching at.
  * \param SubString The string to search for.
  *
- * \return The index, in characters, of the first occurrence of
- * \a SubString in \a String after \a StartIndex. If \a SubString was not
- * found, -1 is returned.
+ * \return The index, in characters, of the first occurrence of \a SubString in \a String after
+ * \a StartIndex. If \a SubString was not found, -1 is returned.
  */
 FORCEINLINE
 ULONG_PTR
@@ -1804,14 +1792,12 @@ PhSubstring(
 }
 
 /**
- * Updates a string object's length with
- * its true length as determined by an
- * embedded null terminator.
+ * Updates a string object's length with its true length as determined by an embedded null
+ * terminator.
  *
  * \param String The string to modify.
  *
- * \remarks Use this function after modifying a string
- * object's buffer manually.
+ * \remarks Use this function after modifying a string object's buffer manually.
  */
 FORCEINLINE
 VOID
@@ -1822,13 +1808,13 @@ PhTrimToNullTerminatorString(
     String->Length = PhCountStringZ(String->Buffer) * sizeof(WCHAR);
 }
 
-// byte string
+// Byte string
 
 extern PPH_OBJECT_TYPE PhBytesType;
 
 /**
- * An 8-bit string object, which supports ASCII, UTF-8 and Windows multi-byte encodings,
- * as well as binary data.
+ * An 8-bit string object, which supports ASCII, UTF-8 and Windows multi-byte encodings, as well as
+ * binary data.
  */
 typedef struct _PH_BYTES
 {
@@ -2141,8 +2127,8 @@ typedef struct _PH_STRING_BUILDER
     SIZE_T AllocatedLength;
     /**
      * The constructed string.
-     * \a String will be allocated for \a AllocatedLength, we will modify the \a Length field to be the
-     * correct length.
+     * \a String will be allocated for \a AllocatedLength, we will modify the \a Length field to be
+     * the correct length.
      */
     PPH_STRING String;
 } PH_STRING_BUILDER, *PPH_STRING_BUILDER;
@@ -2283,7 +2269,8 @@ PhRemoveEndStringBuilder(
 
 /**
  * A byte string builder structure.
- * This is similar to string builder, but is based on PH_BYTES and is suitable for general binary data.
+ * This is similar to string builder, but is based on PH_BYTES and is suitable for general binary
+ * data.
  */
 typedef struct _PH_BYTES_BUILDER
 {
@@ -2291,8 +2278,8 @@ typedef struct _PH_BYTES_BUILDER
     SIZE_T AllocatedLength;
     /**
      * The constructed byte string.
-     * \a Bytes will be allocated for \a AllocatedLength, we will modify the \a Length field to be the
-     * correct length.
+     * \a Bytes will be allocated for \a AllocatedLength, we will modify the \a Length field to be
+     * the correct length.
      */
     PPH_BYTES Bytes;
 } PH_BYTES_BUILDER, *PPH_BYTES_BUILDER;
@@ -2358,10 +2345,7 @@ PhAppendBytesBuilderEx(
 
 // Array
 
-/**
- * An array structure.
- * Storage is automatically allocated for new elements.
- */
+/** An array structure. Storage is automatically allocated for new elements. */
 typedef struct _PH_ARRAY
 {
     /** The number of items in the list. */
@@ -2460,10 +2444,7 @@ PhRemoveItemsArray(
 
 extern PPH_OBJECT_TYPE PhListType;
 
-/**
- * A list structure.
- * Storage is automatically allocated for new elements.
- */
+/** A list structure. Storage is automatically allocated for new elements. */
 typedef struct _PH_LIST
 {
     /** The number of items in the list. */
@@ -2581,10 +2562,8 @@ typedef LONG (NTAPI *PPH_COMPARE_FUNCTION)(
 extern PPH_OBJECT_TYPE PhPointerListType;
 
 /**
- * A pointer list structure.
- * The pointer list is similar to the normal list
- * structure, but both insertions and deletions
- * occur in constant time. The list is not ordered.
+ * A pointer list structure. The pointer list is similar to the normal list structure, but both
+ * insertions and deletions occur in constant time. The list is not ordered.
  */
 typedef struct _PH_POINTER_LIST
 {
@@ -2699,8 +2678,7 @@ PhInitializeHashSet(
  *
  * \param NumberOfBuckets The number of buckets.
  *
- * \return The allocated hash set. You must free it with
- * PhFree() when you no longer need it.
+ * \return The allocated hash set. You must free it with PhFree() when you no longer need it.
  */
 FORCEINLINE
 PPH_HASH_ENTRY *
@@ -2824,8 +2802,7 @@ PhAddEntryHashSet(
  *
  * \return The first entry in the chain.
  *
- * \remarks If the function returns NULL, the entry
- * does not exist in the hash set.
+ * \remarks If the function returns NULL, the entry does not exist in the hash set.
  */
 FORCEINLINE
 PPH_HASH_ENTRY
@@ -2885,10 +2862,10 @@ PhRemoveEntryHashSet(
 /**
  * Resizes a hash set.
  *
- * \param Buckets A pointer to the bucket array. On return the new bucket
- * array is stored in this variable.
- * \param NumberOfBuckets A pointer to the number of buckets. On return the
- * new number of buckets is stored in this variable.
+ * \param Buckets A pointer to the bucket array. On return the new bucket array is stored in this
+ * variable.
+ * \param NumberOfBuckets A pointer to the number of buckets. On return the new number of buckets is
+ * stored in this variable.
  * \param NewNumberOfBuckets The new number of buckets.
  */
 FORCEINLINE
@@ -2917,8 +2894,9 @@ typedef struct _PH_HASHTABLE_ENTRY
 {
     /** Hash code of the entry. -1 if entry is unused. */
     ULONG HashCode;
-    /** Either the index of the next entry in the bucket,
-     * the index of the next free entry, or -1 for invalid.
+    /**
+     * Either the index of the next entry in the bucket, the index of the next free entry, or -1 for
+     * invalid.
      */
     ULONG Next;
     /** The beginning of user data. */
@@ -2946,11 +2924,9 @@ typedef BOOLEAN (NTAPI *PPH_HASHTABLE_EQUAL_FUNCTION)(
  * \return A hash code for the entry.
  *
  * \remarks
- * \li Two entries which are considered to be equal
- * by the comparison function must be given the same
- * hash code.
- * \li Two different entries do not have to be given
- * different hash codes.
+ * \li Two entries which are considered to be equal by the comparison function must be given the
+ * same hash code.
+ * \li Two different entries do not have to be given different hash codes.
  */
 typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
     _In_ PVOID Entry
@@ -2987,8 +2963,9 @@ typedef struct _PH_HASHTABLE
     ULONG Count;
     /** Index into entry array for free list. */
     ULONG FreeEntry;
-    /** Index of next usable index into entry array, a.k.a. the
-     * count of entries that were ever allocated.
+    /**
+     * Index of next usable index into entry array, a.k.a. the count of entries that were ever
+     * allocated.
      */
     ULONG NextEntry;
 } PH_HASHTABLE, *PPH_HASHTABLE;
@@ -3278,33 +3255,26 @@ PhFreeToFreeList(
 /**
  * A callback function.
  *
- * \param Parameter A value given to all callback
- * functions being notified.
- * \param Context A user-defined value passed
- * to PhRegisterCallback().
+ * \param Parameter A value given to all callback functions being notified.
+ * \param Context A user-defined value passed to PhRegisterCallback().
  */
 typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
-/**
- * A callback registration structure.
- */
+/** A callback registration structure. */
 typedef struct _PH_CALLBACK_REGISTRATION
 {
     /** The list entry in the callbacks list. */
     LIST_ENTRY ListEntry;
     /** The callback function. */
     PPH_CALLBACK_FUNCTION Function;
-    /** A user-defined value to be passed to the
-     * callback function. */
+    /** A user-defined value to be passed to the callback function. */
     PVOID Context;
-    /** A value indicating whether the registration
-     * structure is being used. */
+    /** A value indicating whether the registration structure is being used. */
     LONG Busy;
-    /** Whether the registration structure is being
-     * removed. */
+    /** Whether the registration structure is being removed. */
     BOOLEAN Unregistering;
     BOOLEAN Reserved;
     /** Flags controlling the callback. */
@@ -3312,10 +3282,8 @@ typedef struct _PH_CALLBACK_REGISTRATION
 } PH_CALLBACK_REGISTRATION, *PPH_CALLBACK_REGISTRATION;
 
 /**
- * A callback structure.
- * The callback object allows multiple callback
- * functions to be registered and notified in a
- * thread-safe way.
+ * A callback structure. The callback object allows multiple callback functions to be registered and
+ * notified in a thread-safe way.
  */
 typedef struct _PH_CALLBACK
 {
@@ -3537,9 +3505,11 @@ typedef enum _PH_FORMAT_TYPE
     FormatGroupDigits = 0x10000,
     /** Always insert a prefix, '+' for positive and '-' for negative */
     FormatPrefixSign = 0x20000,
-    /** Pad left with zeros, taking into consideration the sign. Width must be specified.
+    /**
+     * Pad left with zeros, taking into consideration the sign. Width must be specified.
      * Format*Align cannot be used in conjunction with this flag. If FormatGroupDigits is specified,
-     * this flag is ignored. */
+     * this flag is ignored.
+     */
     FormatPadZeros = 0x40000,
 
     // General flags
@@ -3551,29 +3521,33 @@ typedef enum _PH_FORMAT_TYPE
     FormatUpperCase = 0x20000000
 } PH_FORMAT_TYPE;
 
-/**
- * Describes an element to be formatted to a string.
- */
+/** Describes an element to be formatted to a string. */
 typedef struct _PH_FORMAT
 {
     /** Specifies the type of the element and optional flags. */
     PH_FORMAT_TYPE Type;
-    /** The precision of the element. The meaning of this field depends on
-     * the element type. For \a Double and \a Size, this field specifies
-     * the number of decimal points to include. */
+    /**
+     * The precision of the element. The meaning of this field depends on the element type. For
+     * \a Double and \a Size, this field specifies the number of decimal points to include.
+     */
     USHORT Precision;
-    /** The width of the element. This field specifies the minimum
-     * number of characters to output. The remaining space is
-     * padded with either spaces, zeros, or a custom character. */
+    /**
+     * The width of the element. This field specifies the minimum number of characters to output.
+     * The remaining space is padded with either spaces, zeros, or a custom character.
+     */
     USHORT Width;
     /** The pad character. */
     WCHAR Pad;
-    /** The meaning of this field depends on the element type. For integer
-     * types, this field specifies the base to convert the number into.
-     * For \a Size, this field specifies the maximum size unit. */
+    /**
+     * The meaning of this field depends on the element type. For integer types, this field
+     * specifies the base to convert the number into. For \a Size, this field specifies the maximum
+     * size unit.
+     */
     UCHAR Radix;
-    /** The meaning of this field depends on the element type. For \a Size,
-     * this field specifies the minimum size unit. */
+    /**
+     * The meaning of this field depends on the element type. For \a Size, this field specifies the
+     * minimum size unit.
+     */
     UCHAR Parameter;
     union
     {
@@ -3887,12 +3861,11 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
         ULONG_PTR Value;
         struct
         {
-            /** The type of the entry; 1 if the entry is free,
-             * otherwise 0 if the entry is in use.
-             */
+            /** The type of the entry; 1 if the entry is free, otherwise 0 if the entry is in use. */
             ULONG_PTR Type : 1;
-            /** Whether the entry is not locked; 1 if the entry
-             * is not locked, otherwise 0 if the entry is locked.
+            /**
+             * Whether the entry is not locked; 1 if the entry is not locked, otherwise 0 if the
+             * entry is locked.
              */
             ULONG_PTR Locked : 1;
             ULONG_PTR Value : sizeof(ULONG_PTR) * 8 - 2;

@@ -102,7 +102,8 @@ _May_raise_ PVOID PhCreateObject(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_HEADER objectHeader;
 
-    // Allocate storage for the object. Note that this includes the object header followed by the object body.
+    // Allocate storage for the object. Note that this includes the object header followed by the
+    // object body.
     objectHeader = PhpAllocateObject(ObjectType, ObjectSize);
 
     // Object type statistics.
@@ -197,20 +198,15 @@ _May_raise_ LONG PhReferenceObjectEx(
 }
 
 /**
- * Attempts to reference an object and fails if it is being
- * destroyed.
+ * Attempts to reference an object and fails if it is being destroyed.
  *
  * \param Object The object to reference if it is not being deleted.
  *
- * \return TRUE if the object was referenced, FALSE if
- * it was being deleted and was not referenced.
+ * \return TRUE if the object was referenced, FALSE if it was being deleted and was not referenced.
  *
- * \remarks
- * This function is useful if a reference to an object is
- * held, protected by a mutex, and the delete procedure of
- * the object's type attempts to acquire the mutex. If this
- * function is called while the mutex is owned, you can
- * avoid referencing an object that is being destroyed.
+ * \remarks This function is useful if a reference to an object is held, protected by a mutex, and
+ * the delete procedure of the object's type attempts to acquire the mutex. If this function is
+ * called while the mutex is owned, you can avoid referencing an object that is being destroyed.
  */
 BOOLEAN PhReferenceObjectSafe(
     _In_ PVOID Object
@@ -336,16 +332,13 @@ PPH_OBJECT_TYPE PhGetObjectType(
  * Creates an object type.
  *
  * \param Name The name of the type.
- * \param Flags A combination of flags affecting the behaviour of the
- * object type.
- * \param DeleteProcedure A callback function that is executed when
- * an object of this type is about to be freed (i.e. when its
- * reference count is 0).
+ * \param Flags A combination of flags affecting the behaviour of the object type.
+ * \param DeleteProcedure A callback function that is executed when an object of this type is about
+ * to be freed (i.e. when its reference count is 0).
  *
  * \return A pointer to the newly created object type.
  *
- * \remarks Do not reference or dereference the object type once it
- * is created.
+ * \remarks Do not reference or dereference the object type once it is created.
  */
 PPH_OBJECT_TYPE PhCreateObjectType(
     _In_ PWSTR Name,
@@ -365,18 +358,14 @@ PPH_OBJECT_TYPE PhCreateObjectType(
  * Creates an object type.
  *
  * \param Name The name of the type.
- * \param Flags A combination of flags affecting the behaviour of the
- * object type.
- * \param DeleteProcedure A callback function that is executed when
- * an object of this type is about to be freed (i.e. when its
- * reference count is 0).
- * \param Parameters A structure containing additional parameters
- * for the object type.
+ * \param Flags A combination of flags affecting the behaviour of the object type.
+ * \param DeleteProcedure A callback function that is executed when an object of this type is about
+ * to be freed (i.e. when its reference count is 0).
+ * \param Parameters A structure containing additional parameters for the object type.
  *
  * \return A pointer to the newly created object type.
  *
- * \remarks Do not reference or dereference the object type once it
- * is created.
+ * \remarks Do not reference or dereference the object type once it is created.
  */
 PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     _In_ PWSTR Name,
@@ -479,8 +468,7 @@ PPH_OBJECT_HEADER PhpAllocateObject(
 }
 
 /**
- * Calls the delete procedure for an object and frees its
- * allocated storage.
+ * Calls the delete procedure for an object and frees its allocated storage.
  *
  * \param ObjectHeader A pointer to the object header of an allocated object.
  */
@@ -529,8 +517,7 @@ VOID PhpFreeObject(
 /**
  * Queues an object for deletion.
  *
- * \param ObjectHeader A pointer to the object header of the object
- * to delete.
+ * \param ObjectHeader A pointer to the object header of the object to delete.
  */
 VOID PhpDeferDeleteObject(
     _In_ PPH_OBJECT_HEADER ObjectHeader
@@ -622,12 +609,11 @@ _May_raise_ FORCEINLINE VOID PhpSetCurrentAutoPool(
 }
 
 /**
- * Initializes an auto-dereference pool and sets it as the current pool
- * for the current thread. You must call PhDeleteAutoPool() before storage
- * for the auto-dereference pool is freed.
+ * Initializes an auto-dereference pool and sets it as the current pool for the current thread. You
+ * must call PhDeleteAutoPool() before storage for the auto-dereference pool is freed.
  *
- * \remarks Always store auto-dereference pools in local variables, and do
- * not share the pool with any other functions.
+ * \remarks Always store auto-dereference pools in local variables, and do not share the pool with
+ * any other functions.
  */
 VOID PhInitializeAutoPool(
     _Out_ PPH_AUTO_POOL AutoPool
@@ -646,10 +632,8 @@ VOID PhInitializeAutoPool(
 }
 
 /**
- * Deletes an auto-dereference pool.
- * The function will dereference any objects currently in the pool.
- * If a pool other than the current pool is passed to the function,
- * an exception is raised.
+ * Deletes an auto-dereference pool. The function will dereference any objects currently in the
+ * pool. If a pool other than the current pool is passed to the function, an exception is raised.
  *
  * \param AutoPool The auto-dereference pool to delete.
  */
@@ -707,12 +691,11 @@ VOID PhDrainAutoPool(
 }
 
 /**
- * Adds an object to the current auto-dereference pool for the current thread.
- * If the current thread does not have an auto-dereference pool, the function
- * raises an exception.
+ * Adds an object to the current auto-dereference pool for the current thread. If the current thread
+ * does not have an auto-dereference pool, the function raises an exception.
  *
- * \param Object A pointer to an object. The object will be dereferenced when
- * the current auto-dereference pool is drained or freed.
+ * \param Object A pointer to an object. The object will be dereferenced when the current
+ * auto-dereference pool is drained or freed.
  */
 _May_raise_ PVOID PhAutoDereferenceObject(
     _In_opt_ PVOID Object
@@ -721,8 +704,8 @@ _May_raise_ PVOID PhAutoDereferenceObject(
     PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
 
 #ifdef DEBUG
-    // If we don't have an auto-dereference pool, we don't want to leak the
-    // object (unlike what Apple does with NSAutoreleasePool).
+    // If we don't have an auto-dereference pool, we don't want to leak the object (unlike what
+    // Apple does with NSAutoreleasePool).
     if (!autoPool)
         PhRaiseStatus(STATUS_UNSUCCESSFUL);
 #endif

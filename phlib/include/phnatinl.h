@@ -3,10 +3,9 @@
 
 #pragma once
 
-// This file contains inlined native API wrapper functions.
-// These functions were previously exported, but are now inlined
-// because they are extremely simple wrappers around equivalent
-// native API functions.
+// This file contains inlined native API wrapper functions. These functions were previously
+// exported, but are now inlined because they are extremely simple wrappers around equivalent native
+// API functions.
 
 /**
  * Gets basic information for a process.
@@ -82,10 +81,9 @@ PhGetProcessTimes(
 /**
  * Gets a process' session ID.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param SessionId A variable which receives the
- * process' session ID.
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param SessionId A variable which receives the process' session ID.
  */
 FORCEINLINE
 NTSTATUS
@@ -114,13 +112,11 @@ PhGetProcessSessionId(
 }
 
 /**
- * Gets whether a process is running under 32-bit
- * emulation.
+ * Gets whether a process is running under 32-bit emulation.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param IsWow64 A variable which receives a boolean
- * indicating whether the process is 32-bit.
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param IsWow64 A variable which receives a boolean indicating whether the process is 32-bit.
  */
 FORCEINLINE
 NTSTATUS
@@ -151,11 +147,10 @@ PhGetProcessIsWow64(
 /**
  * Gets a process' WOW64 PEB address.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param Peb32 A variable which receives the base address
- * of the process' WOW64 PEB. If the process is 64-bit,
- * the variable receives NULL.
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param Peb32 A variable which receives the base address of the process' WOW64 PEB. If the process
+ * is 64-bit, the variable receives NULL.
  */
 FORCEINLINE
 NTSTATUS
@@ -186,10 +181,10 @@ PhGetProcessPeb32(
 /**
  * Gets whether a process is being debugged.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_INFORMATION access.
- * \param IsBeingDebugged A variable which receives a boolean
- * indicating whether the process is being debugged.
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param IsBeingDebugged A variable which receives a boolean indicating whether the process is
+ * being debugged.
  */
 FORCEINLINE
 NTSTATUS
@@ -220,14 +215,12 @@ PhGetProcessIsBeingDebugged(
 /**
  * Gets a handle to a process' debug object.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_INFORMATION access.
- * \param DebugObjectHandle A variable which receives a
- * handle to the debug object associated with the process.
- * You must close the handle when you no longer need it.
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param DebugObjectHandle A variable which receives a handle to the debug object associated with
+ * the process. You must close the handle when you no longer need it.
  *
- * \retval STATUS_PORT_NOT_SET The process is not being
- * debugged and has no associated debug object.
+ * \retval STATUS_PORT_NOT_SET The process is not being debugged and has no associated debug object.
  */
 FORCEINLINE
 NTSTATUS
@@ -248,10 +241,9 @@ PhGetProcessDebugObject(
 /**
  * Gets a process' I/O priority.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param IoPriority A variable which receives the I/O
- * priority of the process.
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param IoPriority A variable which receives the I/O priority of the process.
  */
 FORCEINLINE
 NTSTATUS
@@ -272,10 +264,9 @@ PhGetProcessIoPriority(
 /**
  * Gets a process' page priority.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param PagePriority A variable which receives the page
- * priority of the process.
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param PagePriority A variable which receives the page priority of the process.
  */
 FORCEINLINE
 NTSTATUS
@@ -308,8 +299,7 @@ PhGetProcessPagePriority(
  *
  * \param ProcessHandle A handle to a process. The handle must have
  * PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param CycleTime A variable which receives the 64-bit cycle
- * time.
+ * \param CycleTime A variable which receives the 64-bit cycle time.
  */
 FORCEINLINE
 NTSTATUS
@@ -366,8 +356,7 @@ PhGetProcessConsoleHostProcessId(
 /**
  * Sets a process' affinity mask.
  *
- * \param ProcessHandle A handle to a process. The handle
- * must have PROCESS_SET_INFORMATION access.
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
  * \param AffinityMask The new affinity mask.
  */
 FORCEINLINE
@@ -388,8 +377,8 @@ PhSetProcessAffinityMask(
 /**
  * Gets basic information for a thread.
  *
- * \param ThreadHandle A handle to a thread. The handle must have
- * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
  * \param BasicInformation A variable which receives the information.
  */
 FORCEINLINE
@@ -411,10 +400,9 @@ PhGetThreadBasicInformation(
 /**
  * Gets a thread's I/O priority.
  *
- * \param ThreadHandle A handle to a thread. The handle
- * must have THREAD_QUERY_LIMITED_INFORMATION access.
- * \param IoPriority A variable which receives the I/O
- * priority of the thread.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
+ * \param IoPriority A variable which receives the I/O priority of the thread.
  */
 FORCEINLINE
 NTSTATUS
@@ -435,10 +423,9 @@ PhGetThreadIoPriority(
 /**
  * Gets a thread's page priority.
  *
- * \param ThreadHandle A handle to a thread. The handle
- * must have THREAD_QUERY_LIMITED_INFORMATION access.
- * \param PagePriority A variable which receives the page
- * priority of the thread.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
+ * \param PagePriority A variable which receives the page priority of the thread.
  */
 FORCEINLINE
 NTSTATUS
@@ -469,10 +456,9 @@ PhGetThreadPagePriority(
 /**
  * Gets a thread's cycle count.
  *
- * \param ThreadHandle A handle to a thread. The handle must have
- * THREAD_QUERY_LIMITED_INFORMATION access.
- * \param CycleTime A variable which receives the 64-bit cycle
- * time.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
+ * access.
+ * \param CycleTime A variable which receives the 64-bit cycle time.
  */
 FORCEINLINE
 NTSTATUS
@@ -503,8 +489,8 @@ PhGetThreadCycleTime(
 /**
  * Sets a thread's affinity mask.
  *
- * \param ThreadHandle A handle to a thread. The handle
- * must have THREAD_SET_LIMITED_INFORMATION access.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
+ * access.
  * \param AffinityMask The new affinity mask.
  */
 FORCEINLINE
@@ -589,10 +575,8 @@ PhGetJobBasicUiRestrictions(
 /**
  * Gets a token's session ID.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param SessionId A variable which receives the
- * session ID.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param SessionId A variable which receives the session ID.
  */
 FORCEINLINE
 NTSTATUS
@@ -615,10 +599,8 @@ PhGetTokenSessionId(
 /**
  * Gets a token's elevation type.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param ElevationType A variable which receives the
- * elevation type.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param ElevationType A variable which receives the elevation type.
  */
 FORCEINLINE
 NTSTATUS
@@ -641,10 +623,8 @@ PhGetTokenElevationType(
 /**
  * Gets whether a token is elevated.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param Elevated A variable which receives a
- * boolean indicating whether the token is elevated.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Elevated A variable which receives a boolean indicating whether the token is elevated.
  */
 FORCEINLINE
 NTSTATUS
@@ -676,10 +656,8 @@ PhGetTokenIsElevated(
 /**
  * Gets a token's statistics.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param Statistics A variable which receives the
- * token's statistics.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param Statistics A variable which receives the token's statistics.
  */
 FORCEINLINE
 NTSTATUS
@@ -702,10 +680,8 @@ PhGetTokenStatistics(
 /**
  * Gets a token's source.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY_SOURCE access.
- * \param Source A variable which receives the
- * token's source.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY_SOURCE access.
+ * \param Source A variable which receives the token's source.
  */
 FORCEINLINE
 NTSTATUS
@@ -728,11 +704,9 @@ PhGetTokenSource(
 /**
  * Gets a handle to a token's linked token.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param LinkedTokenHandle A variable which receives a
- * handle to the linked token. You must close the handle
- * using NtClose() when you no longer need it.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param LinkedTokenHandle A variable which receives a handle to the linked token. You must close
+ * the handle using NtClose() when you no longer need it.
  */
 FORCEINLINE
 NTSTATUS
@@ -764,11 +738,9 @@ PhGetTokenLinkedToken(
 /**
  * Gets whether virtualization is allowed for a token.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param IsVirtualizationAllowed A variable which receives
- * a boolean indicating whether virtualization is allowed
- * for the token.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsVirtualizationAllowed A variable which receives a boolean indicating whether
+ * virtualization is allowed for the token.
  */
 FORCEINLINE
 NTSTATUS
@@ -800,11 +772,9 @@ PhGetTokenIsVirtualizationAllowed(
 /**
  * Gets whether virtualization is enabled for a token.
  *
- * \param TokenHandle A handle to a token. The handle
- * must have TOKEN_QUERY access.
- * \param IsVirtualizationEnabled A variable which receives
- * a boolean indicating whether virtualization is enabled
- * for the token.
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param IsVirtualizationEnabled A variable which receives a boolean indicating whether
+ * virtualization is enabled for the token.
  */
 FORCEINLINE
 NTSTATUS

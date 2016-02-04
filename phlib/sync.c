@@ -23,29 +23,24 @@
 /*
  * This file contains code for several synchronization objects.
  *
- * Event. This is a lightweight notification event object that does not
- * create a kernel event object until needed. Additionally the kernel
- * event object is automatically freed when no longer needed. Note that
- * PhfResetEvent is NOT thread-safe.
+ * Event. This is a lightweight notification event object that does not create a kernel event object
+ * until needed. Additionally the kernel event object is automatically freed when no longer needed.
+ * Note that PhfResetEvent is NOT thread-safe.
  *
- * Barrier. This is a non-traditional implementation of a barrier, built
- * on the wake event object. I have identified three types of participants
- * in this process:
- * 1. The slaves, who wait for the master to release them. This is the
- *    main mechanism through which the threads are synchronized.
- * 2. The master, who is the last thread to wait on the barrier. This thread
- *    triggers the waking process, and waits until all slaves have woken.
- * 3. The observers, who are simply threads which were slaves before, were
- *    woken, and have tried to wait on the barrier again before all other
- *    slaves have woken.
+ * Barrier. This is a non-traditional implementation of a barrier, built on the wake event object. I
+ * have identified three types of participants in this process:
+ * 1. The slaves, who wait for the master to release them. This is the main mechanism through which
+ *    the threads are synchronized.
+ * 2. The master, who is the last thread to wait on the barrier. This thread triggers the waking
+ *    process, and waits until all slaves have woken.
+ * 3. The observers, who are simply threads which were slaves before, were woken, and have tried to
+ *    wait on the barrier again before all other slaves have woken.
  *
- * Rundown protection. This object allows a thread to wait until all other
- * threads have finished using a particular resource before freeing the
- * resource.
+ * Rundown protection. This object allows a thread to wait until all other threads have finished
+ * using a particular resource before freeing the resource.
  *
- * Init-once. This is a lightweight one-time initialization mechanism which
- * uses the event object for any required blocking. The overhead is very
- * small - only a single inlined comparison.
+ * Init-once. This is a lightweight one-time initialization mechanism which uses the event object
+ * for any required blocking. The overhead is very small - only a single inlined comparison.
  */
 
 #include <phbase.h>
@@ -102,8 +97,7 @@ FORCEINLINE VOID PhpReferenceEvent(
 }
 
 /**
- * Sets an event object.
- * Any threads waiting on the event will be released.
+ * Sets an event object. Any threads waiting on the event will be released.
  *
  * \param Event A pointer to an event object.
  */
@@ -133,11 +127,9 @@ VOID FASTCALL PhfSetEvent(
  * \param Event A pointer to an event object.
  * \param Timeout The timeout value.
  *
- * \return TRUE if the event object was set before the
- * timeout period expired, otherwise FALSE.
+ * \return TRUE if the event object was set before the timeout period expired, otherwise FALSE.
  *
- * \remarks To test the event, use PhTestEvent() instead
- * of using a timeout of zero.
+ * \remarks To test the event, use PhTestEvent() instead of using a timeout of zero.
  */
 BOOLEAN FASTCALL PhfWaitForEvent(
     _Inout_ PPH_EVENT Event,
@@ -154,8 +146,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     if (value & PH_EVENT_SET)
         return TRUE;
 
-    // Shortcut: if the timeout is 0, return immediately
-    // if the event isn't set.
+    // Shortcut: if the timeout is 0, return immediately if the event isn't set.
     if (Timeout && Timeout->QuadPart == 0)
         return FALSE;
 
@@ -182,8 +173,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
         }
     }
 
-    // Essential: check the event one last time to see if
-    // it is set.
+    // Essential: check the event one last time to see if it is set.
     if (!(Event->Value & PH_EVENT_SET))
     {
         result = NtWaitForSingleObject(eventHandle, FALSE, Timeout) == STATUS_WAIT_0;
@@ -203,9 +193,8 @@ BOOLEAN FASTCALL PhfWaitForEvent(
  *
  * \param Event A pointer to an event object.
  *
- * \remarks This function is not thread-safe.
- * Make sure no other threads are using the
- * event when you call this function.
+ * \remarks This function is not thread-safe. Make sure no other threads are using the event when
+ * you call this function.
  */
 VOID FASTCALL PhfResetEvent(
     _Inout_ PPH_EVENT Event
@@ -264,19 +253,15 @@ FORCEINLINE VOID PhpBlockOnBarrier(
 }
 
 /**
- * Waits until all threads are blocking on the barrier, and resets
- * the state of the barrier.
+ * Waits until all threads are blocking on the barrier, and resets the state of the barrier.
  *
  * \param Barrier A barrier.
- * \param Spin TRUE to spin on the barrier before blocking, FALSE
- * to block immediately.
+ * \param Spin TRUE to spin on the barrier before blocking, FALSE to block immediately.
  *
- * \return TRUE for an unspecified thread after each phase, and FALSE
- * for all other threads.
+ * \return TRUE for an unspecified thread after each phase, and FALSE for all other threads.
  *
- * \remarks By checking the return value of the function, in each
- * phase an action can be performed exactly once. This could, for
- * example, involve merging the results of calculations.
+ * \remarks By checking the return value of the function, in each phase an action can be performed
+ * exactly once. This could, for example, involve merging the results of calculations.
  */
 BOOLEAN FASTCALL PhfWaitForBarrier(
     _Inout_ PPH_BARRIER Barrier,
@@ -333,9 +318,9 @@ BOOLEAN FASTCALL PhfWaitForBarrier(
                 else
                 {
                     // We're the last one to reach the barrier, so we become the master.
-                    // Wake the slaves and wait for them to decrease the count to 1. This
-                    // is so that we know the slaves have woken and we don't clear the waking
-                    // bit before they wake.
+                    // Wake the slaves and wait for them to decrease the count to 1. This is so that
+                    // we know the slaves have woken and we don't clear the waking bit before they
+                    // wake.
 
                     PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for slaves
 
@@ -376,8 +361,7 @@ BOOLEAN FASTCALL PhfAcquireRundownProtection(
 {
     ULONG_PTR value;
 
-    // Increment the reference count only if rundown
-    // has not started.
+    // Increment the reference count only if rundown has not started.
 
     while (TRUE)
     {
@@ -409,9 +393,8 @@ VOID FASTCALL PhfReleaseRundownProtection(
         {
             PPH_RUNDOWN_WAIT_BLOCK waitBlock;
 
-            // Since rundown is active, the reference count has been
-            // moved to the waiter's wait block. If we are the last
-            // user, we must wake up the waiter.
+            // Since rundown is active, the reference count has been moved to the waiter's wait
+            // block. If we are the last user, we must wake up the waiter.
 
             waitBlock = (PPH_RUNDOWN_WAIT_BLOCK)(value & ~PH_RUNDOWN_ACTIVE);
 
@@ -445,8 +428,7 @@ VOID FASTCALL PhfWaitForRundownProtection(
     PH_RUNDOWN_WAIT_BLOCK waitBlock;
     BOOLEAN waitBlockInitialized;
 
-    // Fast path. If the reference count is 0 or
-    // rundown has already been completed, return.
+    // Fast path. If the reference count is 0 or rundown has already been completed, return.
     value = (ULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&Protection->Value,
         (PVOID)PH_RUNDOWN_ACTIVE,

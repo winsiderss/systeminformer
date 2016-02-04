@@ -485,9 +485,9 @@ typedef struct _TS_COUNTER
 #define WNOTIFY_ALL_SESSIONS 0x1
 // end_rev
 
-// In the functions below, memory returned can be freed using LocalFree.
-// NULL can be specified for server handles to indicate the local server.
-// -1 can be specified for session IDs to indicate the current session ID.
+// In the functions below, memory returned can be freed using LocalFree. NULL can be specified for
+// server handles to indicate the local server. -1 can be specified for session IDs to indicate the
+// current session ID.
 
 #define LOGONID_CURRENT (-1)
 #define SERVERNAME_CURRENT (NULL)

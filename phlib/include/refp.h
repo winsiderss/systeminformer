@@ -31,8 +31,8 @@
 #define PH_OBJECT_FROM_TYPE_FREE_LIST 0x2
 
 /**
- * The object header contains object manager information
- * including the reference count of an object and its type.
+ * The object header contains object manager information including the reference count of an object
+ * and its type.
  */
 typedef struct _PH_OBJECT_HEADER
 {
@@ -60,8 +60,10 @@ typedef struct _PH_OBJECT_HEADER
     LIST_ENTRY ObjectListEntry;
 #endif
 
-    /** The body of the object. For use by the \ref PhObjectToObjectHeader
-     * and \ref PhObjectHeaderToObject macros. */
+    /**
+     * The body of the object. For use by the \ref PhObjectToObjectHeader and
+     * \ref PhObjectHeaderToObject macros.
+     */
     QUAD_PTR Body;
 } PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
 
@@ -111,10 +113,7 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
  */
 #define PhAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
 
-/**
- * An object type specifies a kind of object and
- * its delete procedure.
- */
+/** An object type specifies a kind of object and its delete procedure. */
 typedef struct _PH_OBJECT_TYPE
 {
     /** The flags that were used to create the object type. */
@@ -132,8 +131,7 @@ typedef struct _PH_OBJECT_TYPE
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
 
 /**
- * Increments a reference count, but will never increment
- * from 0 to 1.
+ * Increments a reference count, but will never increment from 0 to 1.
  *
  * \param RefCount A pointer to a reference count.
  */
@@ -143,9 +141,7 @@ PhpInterlockedIncrementSafe(
     _Inout_ PLONG RefCount
     )
 {
-    /* Here we will attempt to increment the reference count,
-     * making sure that it is not 0.
-     */
+    /* Here we will attempt to increment the reference count, making sure that it is not 0. */
     return _InterlockedIncrementNoZero(RefCount);
 }
 

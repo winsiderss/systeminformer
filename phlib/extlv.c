@@ -21,9 +21,9 @@
  */
 
 /*
- * The extended list view adds some functionality to the default list view control, such
- * as sorting, item colors and fonts, better redraw disabling, and the ability to change the
- * cursor. This is currently implemented by hooking the window procedure.
+ * The extended list view adds some functionality to the default list view control, such as sorting,
+ * item colors and fonts, better redraw disabling, and the ability to change the cursor. This is
+ * currently implemented by hooking the window procedure.
  */
 
 #include <phgui.h>
@@ -458,9 +458,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             if (context->SortFast)
             {
                 // This sort method is faster than the normal sort because our comparison function
-                // doesn't have to call the list view window procedure to get the item lParam values.
-                // The disadvantage of this method is that default sorting is not available - if a
-                // column doesn't have a comparison function, it doesn't get sorted at all.
+                // doesn't have to call the list view window procedure to get the item lParam
+                // values. The disadvantage of this method is that default sorting is not available
+                // - if a column doesn't have a comparison function, it doesn't get sorted at all.
 
                 ListView_SortItems(
                     hwnd,
@@ -558,9 +558,9 @@ static INT PhpExtendedListViewCompareFunc(
     yItem.iItem = y;
     yItem.iSubItem = 0;
 
-    // Don't use SendMessage/ListView_* because it will call our new window procedure,
-    // which will use GetProp. This calls NtUserGetProp, and obviously having a system call
-    // in a comparison function is very, very bad for performance.
+    // Don't use SendMessage/ListView_* because it will call our new window procedure, which will
+    // use GetProp. This calls NtUserGetProp, and obviously having a system call in a comparison
+    // function is very, very bad for performance.
 
     if (!CallWindowProc(context->OldWndProc, context->Handle, LVM_GETITEM, 0, (LPARAM)&xItem))
         return 0;

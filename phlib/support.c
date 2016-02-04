@@ -52,15 +52,13 @@ DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
 
 /**
- * Ensures a rectangle is positioned within the
- * specified bounds.
+ * Ensures a rectangle is positioned within the specified bounds.
  *
  * \param Rectangle The rectangle to be adjusted.
  * \param Bounds The bounds.
  *
- * \remarks If the rectangle is too large to fit
- * inside the bounds, it is positioned at the
- * top-left of the bounds.
+ * \remarks If the rectangle is too large to fit inside the bounds, it is positioned at the top-left
+ * of the bounds.
  */
 VOID PhAdjustRectangleToBounds(
     _Inout_ PPH_RECTANGLE Rectangle,
@@ -79,8 +77,7 @@ VOID PhAdjustRectangleToBounds(
 }
 
 /**
- * Positions a rectangle in the center of the
- * specified bounds.
+ * Positions a rectangle in the center of the specified bounds.
  *
  * \param Rectangle The rectangle to be adjusted.
  * \param Bounds The bounds.
@@ -95,8 +92,7 @@ VOID PhCenterRectangle(
 }
 
 /**
- * Ensures a rectangle is positioned within the
- * working area of the specified window's monitor.
+ * Ensures a rectangle is positioned within the working area of the specified window's monitor.
  *
  * \param hWnd A handle to a window.
  * \param Rectangle The rectangle to be adjusted.
@@ -124,9 +120,8 @@ VOID PhAdjustRectangleToWorkingArea(
  * Centers a window.
  *
  * \param WindowHandle The window to center.
- * \param ParentWindowHandle If specified, the window will be positioned
- * at the center of this window. Otherwise, the window will be positioned
- * at the center of the monitor.
+ * \param ParentWindowHandle If specified, the window will be positioned at the center of this
+ * window. Otherwise, the window will be positioned at the center of the monitor.
  */
 VOID PhCenterWindow(
     _In_ HWND WindowHandle,
@@ -214,9 +209,8 @@ VOID PhDereferenceObjects(
  * \param MessageLanguageId The language ID of the message.
  * \param MessageId The identifier of the message.
  *
- * \return A pointer to a string containing the message.
- * You must free the string using PhDereferenceObject()
- * when you no longer need it.
+ * \return A pointer to a string containing the message. You must free the string using
+ * PhDereferenceObject() when you no longer need it.
  */
 PPH_STRING PhGetMessage(
     _In_ PVOID DllHandle,
@@ -461,16 +455,15 @@ VOID PhShowStatus(
 }
 
 /**
- * Displays an error message for a NTSTATUS value or Win32 error code,
- * and allows the user to cancel the current operation.
+ * Displays an error message for a NTSTATUS value or Win32 error code, and allows the user to cancel
+ * the current operation.
  *
  * \param hWnd The owner window of the message box.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value, or 0 if there is none.
  * \param Win32Result A Win32 error code, or 0 if there is none.
  *
- * \return TRUE if the user wishes to continue with the current operation,
- * otherwise FALSE.
+ * \return TRUE if the user wishes to continue with the current operation, otherwise FALSE.
  */
 BOOLEAN PhShowContinueStatus(
     _In_ HWND hWnd,
@@ -519,8 +512,7 @@ BOOLEAN PhShowContinueStatus(
  * \param Verb A verb describing the operation, e.g. "terminate".
  * \param Object The object of the operation, e.g. "the process".
  * \param Message A message describing the operation.
- * \param Warning TRUE to display the confirmation message as a warning,
- * otherwise FALSE.
+ * \param Warning TRUE to display the confirmation message as a warning, otherwise FALSE.
  *
  * \return TRUE if the user wishes to continue, otherwise FALSE.
  */
@@ -670,10 +662,8 @@ VOID PhGenerateGuid(
     )
 {
     static ULONG seed = 0;
-    // The top/sign bit is always unusable for RtlRandomEx
-    // (the result is always unsigned), so we'll take the
-    // bottom 24 bits. We need 128 bits in total, so we'll
-    // call the function 6 times.
+    // The top/sign bit is always unusable for RtlRandomEx (the result is always unsigned), so we'll
+    // take the bottom 24 bits. We need 128 bits in total, so we'll call the function 6 times.
     ULONG random[6];
     ULONG i;
 
@@ -717,8 +707,7 @@ FORCEINLINE VOID PhpReverseGuid(
  * \param Guid The destination UUID.
  * \param Namespace The UUID of the namespace.
  * \param Name The input name.
- * \param NameLength The length of the input name, not
- * including the null terminator if present.
+ * \param NameLength The length of the input name, not including the null terminator if present.
  * \param Version The type of UUID.
  * \li \c GUID_VERSION_MD5 Creates a type 3, MD5-based UUID.
  * \li \c GUID_VERSION_SHA1 Creates a type 5, SHA1-based UUID.
@@ -783,10 +772,9 @@ VOID PhGenerateGuidFromName(
 /**
  * Fills a buffer with random uppercase alphabetical characters.
  *
- * \param Buffer The buffer to fill with random characters, plus
- * a null terminator.
- * \param Count The number of characters available in the buffer,
- * including space for the null terminator.
+ * \param Buffer The buffer to fill with random characters, plus a null terminator.
+ * \param Count The number of characters available in the buffer, including space for the null
+ * terminator.
  */
 VOID PhGenerateRandomAlphaString(
     _Out_writes_z_(Count) PWSTR Buffer,
@@ -811,9 +799,8 @@ VOID PhGenerateRandomAlphaString(
  * Modifies a string to ensure it is within the specified length.
  *
  * \param String The input string.
- * \param DesiredCount The desired number of characters in the
- * new string. If necessary, parts of the string are replaced with
- * an ellipsis to indicate characters have been omitted.
+ * \param DesiredCount The desired number of characters in the new string. If necessary, parts of
+ * the string are replaced with an ellipsis to indicate characters have been omitted.
  *
  * \return The new string.
  */
@@ -842,13 +829,11 @@ PPH_STRING PhEllipsisString(
 }
 
 /**
- * Modifies a string to ensure it is within the specified length,
- * parsing the string as a path.
+ * Modifies a string to ensure it is within the specified length, parsing the string as a path.
  *
  * \param String The input string.
- * \param DesiredCount The desired number of characters in the
- * new string. If necessary, parts of the string are replaced with
- * an ellipsis to indicate characters have been omitted.
+ * \param DesiredCount The desired number of characters in the new string. If necessary, parts of
+ * the string are replaced with an ellipsis to indicate characters have been omitted.
  *
  * \return The new string.
  */
@@ -890,8 +875,8 @@ PPH_STRING PhEllipsisStringPath(
         }
         else
         {
-            // No, copy part of both, from the beginning of the first part and
-            // the end of the second part.
+            // No, copy part of both, from the beginning of the first part and the end of the second
+            // part.
             firstPartCopyLength = (DesiredCount - 3) / 2;
             secondPartCopyLength = DesiredCount - 3 - firstPartCopyLength;
             secondPartIndex = String->Length / 2 - secondPartCopyLength;
@@ -980,8 +965,7 @@ StarCheck:
 /**
  * Matches a pattern against a string.
  *
- * \param Pattern The pattern, which can contain asterisks and
- * question marks.
+ * \param Pattern The pattern, which can contain asterisks and question marks.
  * \param String The string which the pattern is matched against.
  * \param IgnoreCase Whether to ignore character cases.
  */
@@ -1002,8 +986,7 @@ BOOLEAN PhMatchWildcards(
  *
  * \param String The string to process.
  *
- * \return The escaped string, with each ampersand replaced by
- * 2 ampersands.
+ * \return The escaped string, with each ampersand replaced by 2 ampersands.
  */
 PPH_STRING PhEscapeStringForMenuPrefix(
     _In_ PPH_STRINGREF String
@@ -1061,8 +1044,7 @@ PPH_STRING PhEscapeStringForMenuPrefix(
  * \param A The first string.
  * \param B The second string.
  * \param IgnoreCase Whether to ignore character cases.
- * \param MatchIfPrefix Specify TRUE to return 0 when \a A is a
- * prefix of \a B.
+ * \param MatchIfPrefix Specify TRUE to return 0 when \a A is a prefix of \a B.
  */
 LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
     _In_ PWSTR A,
@@ -1077,8 +1059,8 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
     {
         while (TRUE)
         {
-            // This takes care of double ampersands as well (they are treated as
-            // one literal ampersand).
+            // This takes care of double ampersands as well (they are treated as one literal
+            // ampersand).
             if (*A == '&')
                 A++;
             if (*B == '&')
@@ -1137,8 +1119,8 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
  * Formats a date using the user's default locale.
  *
  * \param Date The time structure. If NULL, the current time is used.
- * \param Format The format of the date. If NULL, the format appropriate
- * to the user's locale is used.
+ * \param Format The format of the date. If NULL, the format appropriate to the user's locale is
+ * used.
  */
 PPH_STRING PhFormatDate(
     _In_opt_ PSYSTEMTIME Date,
@@ -1166,8 +1148,8 @@ PPH_STRING PhFormatDate(
  * Formats a time using the user's default locale.
  *
  * \param Time The time structure. If NULL, the current time is used.
- * \param Format The format of the time. If NULL, the format appropriate
- * to the user's locale is used.
+ * \param Format The format of the time. If NULL, the format appropriate to the user's locale is
+ * used.
  */
 PPH_STRING PhFormatTime(
     _In_opt_ PSYSTEMTIME Time,
@@ -1429,8 +1411,7 @@ PPH_STRING PhFormatDecimal(
  * Gets a string representing a size.
  *
  * \param Size The size value.
- * \param MaxSizeUnit The largest unit of size to
- * use, -1 to use PhMaxSizeUnit, or -2 for no limit.
+ * \param MaxSizeUnit The largest unit of size to use, -1 to use PhMaxSizeUnit, or -2 for no limit.
  * \li \c 0 Bytes.
  * \li \c 1 Kilobytes.
  * \li \c 2 Megabytes.
@@ -1481,8 +1462,8 @@ PPH_STRING PhFormatGuid(
  *
  * \param FileName The file name.
  *
- * \return A version information block. You must
- * free this using PhFree() when you no longer need it.
+ * \return A version information block. You must free this using PhFree() when you no longer need
+ * it.
  */
 PVOID PhGetFileVersionInfo(
     _In_ PWSTR FileName
@@ -1522,8 +1503,7 @@ PVOID PhGetFileVersionInfo(
 }
 
 /**
- * Retrieves the language ID and code page used by a version
- * information block.
+ * Retrieves the language ID and code page used by a version information block.
  *
  * \param VersionInfo The version information block.
  */
@@ -1679,8 +1659,7 @@ BOOLEAN PhInitializeImageVersionInfo(
 }
 
 /**
- * Frees a version information structure initialized by
- * PhInitializeImageVersionInfo().
+ * Frees a version information structure initialized by PhInitializeImageVersionInfo().
  *
  * \param ImageVersionInfo The version information structure.
  */
@@ -2029,16 +2008,12 @@ VOID PhGetSystemRoot(
 /**
  * Locates a loader entry in the current process.
  *
- * \param DllBase The base address of the DLL. Specify NULL
- * if this is not a search criteria.
- * \param FullDllName The full name of the DLL. Specify NULL
- * if this is not a search criteria.
- * \param BaseDllName The base name of the DLL. Specify NULL
- * if this is not a search criteria.
+ * \param DllBase The base address of the DLL. Specify NULL if this is not a search criteria.
+ * \param FullDllName The full name of the DLL. Specify NULL if this is not a search criteria.
+ * \param BaseDllName The base name of the DLL. Specify NULL if this is not a search criteria.
  *
- * \remarks This function must be called with the loader lock
- * acquired. The first entry matching all of the specified
- * values is returned.
+ * \remarks This function must be called with the loader lock acquired. The first entry matching all
+ * of the specified values is returned.
  */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
     _In_opt_ PVOID DllBase,
@@ -2082,11 +2057,10 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
  * Retrieves the file name of a DLL loaded by the current process.
  *
  * \param DllHandle The base address of the DLL.
- * \param IndexOfFileName A variable which receives the index of
- * the base name of the DLL in the returned string.
+ * \param IndexOfFileName A variable which receives the index of the base name of the DLL in the
+ * returned string.
  *
- * \return The file name of the DLL, or NULL if the DLL could not
- * be found.
+ * \return The file name of the DLL, or NULL if the DLL could not be found.
  */
 PPH_STRING PhGetDllFileName(
     _In_ PVOID DllHandle,
@@ -2216,13 +2190,12 @@ PPH_STRING PhGetKnownLocation(
 /**
  * Waits on multiple objects while processing window messages.
  *
- * \param hWnd The window to process messages for, or NULL to
- * process all messages for the current thread.
- * \param NumberOfHandles The number of handles specified in
- * \a Handles. This must not be greater than MAXIMUM_WAIT_OBJECTS - 1.
+ * \param hWnd The window to process messages for, or NULL to process all messages for the current
+ * thread.
+ * \param NumberOfHandles The number of handles specified in \a Handles. This must not be greater
+ * than MAXIMUM_WAIT_OBJECTS - 1.
  * \param Handles An array of handles.
- * \param Timeout The number of milliseconds to wait on the objects,
- * or INFINITE for no timeout.
+ * \param Timeout The number of milliseconds to wait on the objects, or INFINITE for no timeout.
  *
  * \remarks The wait is always in WaitAny mode.
  */
@@ -2289,26 +2262,23 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  * Creates a native process and an initial thread.
  *
  * \param FileName The Win32 file name of the image.
- * \param CommandLine The command line string to pass to the process.
- * This string cannot be used to specify the image to execute.
- * \param Environment The environment block for the process. Specify
- * NULL to use the environment of the current process.
- * \param CurrentDirectory The current directory string to pass to the
- * process.
+ * \param CommandLine The command line string to pass to the process. This string cannot be used to
+ * specify the image to execute.
+ * \param Environment The environment block for the process. Specify NULL to use the environment of
+ * the current process.
+ * \param CurrentDirectory The current directory string to pass to the process.
  * \param Information Additional parameters to pass to the process.
  * \param Flags A combination of the following:
- * \li \c PH_CREATE_PROCESS_INHERIT_HANDLES Inheritable handles will be
- * duplicated to the process from the parent process.
- * \li \c PH_CREATE_PROCESS_SUSPENDED The initial thread will be created
- * suspended.
- * \li \c PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB The process will not be
- * assigned to the job object associated with the parent process.
- * \li \c PH_CREATE_PROCESS_NEW_CONSOLE The process will have its own
- * console, instead of inheriting the console of the parent process.
- * \param ParentProcessHandle The process from which the new process will
- * inherit attributes. Specify NULL for the current process.
- * \param ClientId A variable which recieves the identifier of the initial
- * thread.
+ * \li \c PH_CREATE_PROCESS_INHERIT_HANDLES Inheritable handles will be duplicated to the process
+ * from the parent process.
+ * \li \c PH_CREATE_PROCESS_SUSPENDED The initial thread will be created suspended.
+ * \li \c PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB The process will not be assigned to the job object
+ * associated with the parent process.
+ * \li \c PH_CREATE_PROCESS_NEW_CONSOLE The process will have its own console, instead of inheriting
+ * the console of the parent process.
+ * \param ParentProcessHandle The process from which the new process will inherit attributes.
+ * Specify NULL for the current process.
+ * \param ClientId A variable which recieves the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
@@ -2429,15 +2399,13 @@ NTSTATUS PhCreateProcess(
  * Creates a Win32 process and an initial thread.
  *
  * \param FileName The Win32 file name of the image.
- * \param CommandLine The command line to execute. This can be specified
- * instead of \a FileName to indicate the image to execute.
- * \param Environment The environment block for the process. Specify
- * NULL to use the environment of the current process.
- * \param CurrentDirectory The current directory string to pass to the
- * process.
+ * \param CommandLine The command line to execute. This can be specified instead of \a FileName to
+ * indicate the image to execute.
+ * \param Environment The environment block for the process. Specify NULL to use the environment of
+ * the current process.
+ * \param CurrentDirectory The current directory string to pass to the process.
  * \param Flags See PhCreateProcess().
- * \param TokenHandle The token of the process. Specify NULL for the token
- * of the parent process.
+ * \param TokenHandle The token of the process. Specify NULL for the token of the parent process.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
@@ -2502,19 +2470,15 @@ FORCEINLINE VOID PhpConvertProcessInformation(
  * Creates a Win32 process and an initial thread.
  *
  * \param FileName The Win32 file name of the image.
- * \param CommandLine The command line to execute. This can be specified
- * instead of \a FileName to indicate the image to execute.
- * \param Environment The environment block for the process. Specify
- * NULL to use the environment of the current process.
- * \param CurrentDirectory The current directory string to pass to the
- * process.
- * \param StartupInfo A STARTUPINFO structure containing additional
- * parameters for the process.
+ * \param CommandLine The command line to execute. This can be specified instead of \a FileName to
+ * indicate the image to execute.
+ * \param Environment The environment block for the process. Specify NULL to use the environment of
+ * the current process.
+ * \param CurrentDirectory The current directory string to pass to the process.
+ * \param StartupInfo A STARTUPINFO structure containing additional parameters for the process.
  * \param Flags See PhCreateProcess().
- * \param TokenHandle The token of the process. Specify NULL for the token
- * of the parent process.
- * \param ClientId A variable which recieves the identifier of the initial
- * thread.
+ * \param TokenHandle The token of the process. Specify NULL for the token of the parent process.
+ * \param ClientId A variable which recieves the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
@@ -2603,22 +2567,19 @@ NTSTATUS PhCreateProcessWin32Ex(
 }
 
 /**
- * Creates a Win32 process and an initial thread under the specified
- * user.
+ * Creates a Win32 process and an initial thread under the specified user.
  *
  * \param Information Parameters specifying how to create the process.
  * \param Flags See PhCreateProcess(). Additional flags may be used:
- * \li \c PH_CREATE_PROCESS_USE_PROCESS_TOKEN Use the token of the process specified
- * by \a ProcessIdWithToken in \a Information.
- * \li \c PH_CREATE_PROCESS_USE_SESSION_TOKEN Use the token of the session specified
- * by \a SessionIdWithToken in \a Information.
- * \li \c PH_CREATE_PROCESS_USE_LINKED_TOKEN Use the linked token to create the
- * process; this causes the process to be elevated or unelevated depending on the
- * specified options.
+ * \li \c PH_CREATE_PROCESS_USE_PROCESS_TOKEN Use the token of the process specified by
+ * \a ProcessIdWithToken in \a Information.
+ * \li \c PH_CREATE_PROCESS_USE_SESSION_TOKEN Use the token of the session specified by
+ * \a SessionIdWithToken in \a Information.
+ * \li \c PH_CREATE_PROCESS_USE_LINKED_TOKEN Use the linked token to create the process; this causes
+ * the process to be elevated or unelevated depending on the specified options.
  * \li \c PH_CREATE_PROCESS_SET_SESSION_ID \a SessionId is specified in \a Information.
  * \li \c PH_CREATE_PROCESS_WITH_PROFILE Load the user profile, if supported.
- * \param ClientId A variable which recieves the identifier of the initial
- * thread.
+ * \param ClientId A variable which recieves the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
@@ -2831,10 +2792,10 @@ NTSTATUS PhCreateProcessAsUser(
         TOKEN_TYPE tokenType;
         ULONG returnLength;
 
-        // NtQueryInformationToken normally returns an impersonation token with SecurityIdentification,
-        // but if the process is running with SeTcbPrivilege, it returns a primary token. We can never
-        // duplicate a SecurityIdentification impersonation token to make it a primary token, so we just
-        // check if the token is primary before using it.
+        // NtQueryInformationToken normally returns an impersonation token with
+        // SecurityIdentification, but if the process is running with SeTcbPrivilege, it returns a
+        // primary token. We can never duplicate a SecurityIdentification impersonation token to
+        // make it a primary token, so we just check if the token is primary before using it.
 
         if (NT_SUCCESS(PhGetTokenLinkedToken(tokenHandle, &linkedTokenHandle)))
         {
@@ -2970,11 +2931,10 @@ NTSTATUS PhpGetAccountPrivileges(
 /**
  * Filters a token to create a limited user security context.
  *
- * \param TokenHandle A handle to an existing token. The handle must have
- * TOKEN_DUPLICATE, TOKEN_QUERY, TOKEN_ADJUST_GROUPS, TOKEN_ADJUST_DEFAULT,
- * READ_CONTROL and WRITE_DAC access.
- * \param NewTokenHandle A variable which receives a handle to the filtered
- * token. The handle will have the same granted access as \a TokenHandle.
+ * \param TokenHandle A handle to an existing token. The handle must have TOKEN_DUPLICATE,
+ * TOKEN_QUERY, TOKEN_ADJUST_GROUPS, TOKEN_ADJUST_DEFAULT, READ_CONTROL and WRITE_DAC access.
+ * \param NewTokenHandle A variable which receives a handle to the filtered token. The handle will
+ * have the same granted access as \a TokenHandle.
  */
 NTSTATUS PhFilterTokenForLimitedUser(
     _In_ HANDLE TokenHandle,
@@ -3055,8 +3015,8 @@ NTSTATUS PhFilterTokenForLimitedUser(
         memcpy(privilegesOfUsers->Privileges, defaultAllowedPrivileges, sizeof(defaultAllowedPrivileges));
     }
 
-    // Allocate storage for the privileges we need to delete. The worst case scenario is that
-    // all privileges in the token need to be deleted.
+    // Allocate storage for the privileges we need to delete. The worst case scenario is that all
+    // privileges in the token need to be deleted.
     privilegesToDelete = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * privilegesOfToken->PrivilegeCount);
     deleteIndex = 0;
 
@@ -3213,10 +3173,10 @@ VOID PhShellExecute(
  * \param ShowWindowType A value specifying how to show the application.
  * \param Flags A combination of the following:
  * \li \c PH_SHELL_EXECUTE_ADMIN Execute the application elevated.
- * \li \c PH_SHELL_EXECUTE_PUMP_MESSAGES Waits on the application while
- * pumping messages, if \a Timeout is specified.
- * \param Timeout The number of milliseconds to wait on the application, or 0
- * to return immediately after the application is started.
+ * \li \c PH_SHELL_EXECUTE_PUMP_MESSAGES Waits on the application while pumping messages, if
+ * \a Timeout is specified.
+ * \param Timeout The number of milliseconds to wait on the application, or 0 to return immediately
+ * after the application is started.
  * \param ProcessHandle A variable which receives a handle to the new process.
  */
 BOOLEAN PhShellExecuteEx(
@@ -3335,8 +3295,7 @@ VOID PhShellProperties(
  * Expands registry name abbreviations.
  *
  * \param KeyName The key name.
- * \param Computer TRUE to prepend "Computer" or "My Computer" for use with
- * the Registry Editor.
+ * \param Computer TRUE to prepend "Computer" or "My Computer" for use with the Registry Editor.
  */
 PPH_STRING PhExpandKeyName(
     _In_ PPH_STRING KeyName,
@@ -3417,10 +3376,8 @@ VOID PhShellOpenKey(
 
     NtClose(regeditKeyHandle);
 
-    // Start regedit.
-    // If we aren't elevated, request that regedit be elevated.
-    // This is so we can get the consent dialog in the center of
-    // the specified window.
+    // Start regedit. If we aren't elevated, request that regedit be elevated. This is so we can get
+    // the consent dialog in the center of the specified window.
 
     regeditFileName = PhGetKnownLocation(CSIDL_WINDOWS, L"\\regedit.exe");
 
@@ -3445,10 +3402,8 @@ VOID PhShellOpenKey(
  * \param KeyHandle A handle to the key.
  * \param ValueName The name of the value.
  *
- * \return A buffer containing information about the
- * registry value, or NULL if the function failed. You
- * must free the buffer with PhFree() when you no longer
- * need it.
+ * \return A buffer containing information about the registry value, or NULL if the function failed.
+ * You must free the buffer with PhFree() when you no longer need it.
  */
 PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
     _In_ HANDLE KeyHandle,
@@ -3501,10 +3456,8 @@ PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
  * \param KeyHandle A handle to the key.
  * \param ValueName The name of the value.
  *
- * \return A pointer to a string containing the
- * value, or NULL if the function failed. You must
- * free the string using PhDereferenceObject() when
- * you no longer need it.
+ * \return A pointer to a string containing the value, or NULL if the function failed. You must free
+ * the string using PhDereferenceObject() when you no longer need it.
  */
 PPH_STRING PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
@@ -3550,8 +3503,7 @@ VOID PhMapFlags1(
 
     if (value2 != 0)
     {
-        // There are existing flags. Map the flags
-        // we know about by clearing/setting them. The flags
+        // There are existing flags. Map the flags we know about by clearing/setting them. The flags
         // we don't know about won't be affected.
 
         for (i = 0; i < NumberOfMappings; i++)
@@ -3564,8 +3516,7 @@ VOID PhMapFlags1(
     }
     else
     {
-        // There are no existing flags, which means
-        // we can build the value from scratch, with no
+        // There are no existing flags, which means we can build the value from scratch, with no
         // clearing needed.
 
         for (i = 0; i < NumberOfMappings; i++)
@@ -3625,8 +3576,8 @@ UINT_PTR CALLBACK PhpOpenFileNameHookProc(
         {
             LPOFNOTIFY header = (LPOFNOTIFY)lParam;
 
-            // We can't use CDN_FILEOK because it's not sent if the buffer is too small,
-            // defeating the entire purpose of this callback function.
+            // We can't use CDN_FILEOK because it's not sent if the buffer is too small, defeating
+            // the entire purpose of this callback function.
 
             switch (header->hdr.code)
             {
@@ -3735,11 +3686,9 @@ PPHP_FILE_DIALOG PhpCreateFileDialog(
 }
 
 /**
- * Creates a file dialog for the user to select
- * a file to open.
+ * Creates a file dialog for the user to select a file to open.
  *
- * \return An opaque pointer representing the file
- * dialog. You must free the file dialog using
+ * \return An opaque pointer representing the file dialog. You must free the file dialog using
  * PhFreeFileDialog() when you no longer need it.
  */
 PVOID PhCreateOpenFileDialog(
@@ -3774,11 +3723,9 @@ PVOID PhCreateOpenFileDialog(
 }
 
 /**
- * Creates a file dialog for the user to select
- * a file to save to.
+ * Creates a file dialog for the user to select a file to save to.
  *
- * \return An opaque pointer representing the file
- * dialog. You must free the file dialog using
+ * \return An opaque pointer representing the file dialog. You must free the file dialog using
  * PhFreeFileDialog() when you no longer need it.
  */
 PVOID PhCreateSaveFileDialog(
@@ -3841,8 +3788,7 @@ VOID PhFreeFileDialog(
  * \param hWnd A handle to the parent window.
  * \param FileDialog The file dialog.
  *
- * \return TRUE if the user selected a file, FALSE if
- * the user cancelled the operation or an error
+ * \return TRUE if the user selected a file, FALSE if the user cancelled the operation or an error
  * occurred.
  */
 BOOLEAN PhShowFileDialog(
@@ -3854,8 +3800,8 @@ BOOLEAN PhShowFileDialog(
 
     if (fileDialog->UseIFileDialog)
     {
-        // Set a blank default extension. This will have an effect when the user
-        // selects a different file type.
+        // Set a blank default extension. This will have an effect when the user selects a different
+        // file type.
         IFileDialog_SetDefaultExtension(fileDialog->u.FileDialog, L"");
 
         return SUCCEEDED(IFileDialog_Show(fileDialog->u.FileDialog, hWnd));
@@ -3866,7 +3812,8 @@ BOOLEAN PhShowFileDialog(
 
         ofn->hwndOwner = hWnd;
 
-        // Determine whether the structure represents a open or save dialog and call the appropriate function.
+        // Determine whether the structure represents a open or save dialog and call the appropriate
+        // function.
         if (!fileDialog->Save)
         {
             return GetOpenFileName(ofn);
@@ -3906,8 +3853,8 @@ static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
  *
  * \param FileDialog The file dialog.
  *
- * \return The currently enabled options. See the
- * documentation for PhSetFileDialogOptions() for details.
+ * \return The currently enabled options. See the documentation for PhSetFileDialogOptions() for
+ * details.
  */
 ULONG PhGetFileDialogOptions(
     _In_ PVOID FileDialog
@@ -3961,23 +3908,19 @@ ULONG PhGetFileDialogOptions(
  *
  * \param FileDialog The file dialog.
  * \param Options A combination of flags specifying the options.
- * \li \c PH_FILEDIALOG_CREATEPROMPT A prompt for creation will
- * be displayed when the selected item does not exist. This is only
- * valid for Save dialogs.
- * \li \c PH_FILEDIALOG_PATHMUSTEXIST The selected item must be
- * in an existing folder. This is enabled by default.
- * \li \c PH_FILEDIALOG_FILEMUSTEXIST The selected item must exist.
- * This is enabled by default and is only valid for Open dialogs.
- * \li \c PH_FILEDIALOG_SHOWHIDDEN Items with the System and Hidden
- * attributes will be displayed.
- * \li \c PH_FILEDIALOG_NODEREFERENCELINKS Shortcuts will not be
- * followed, allowing .lnk files to be opened.
- * \li \c PH_FILEDIALOG_OVERWRITEPROMPT An overwrite prompt will be
- * displayed if an existing item is selected. This is enabled by
- * default and is only valid for Save dialogs.
- * \li \c PH_FILEDIALOG_DEFAULTEXPANDED The file dialog should be
- * expanded by default (i.e. the folder browser should be displayed).
- * This is only valid for Save dialogs.
+ * \li \c PH_FILEDIALOG_CREATEPROMPT A prompt for creation will be displayed when the selected item
+ * does not exist. This is only valid for Save dialogs.
+ * \li \c PH_FILEDIALOG_PATHMUSTEXIST The selected item must be in an existing folder. This is
+ * enabled by default.
+ * \li \c PH_FILEDIALOG_FILEMUSTEXIST The selected item must exist. This is enabled by default and
+ * is only valid for Open dialogs.
+ * \li \c PH_FILEDIALOG_SHOWHIDDEN Items with the System and Hidden attributes will be displayed.
+ * \li \c PH_FILEDIALOG_NODEREFERENCELINKS Shortcuts will not be followed, allowing .lnk files to be
+ * opened.
+ * \li \c PH_FILEDIALOG_OVERWRITEPROMPT An overwrite prompt will be displayed if an existing item is
+ * selected. This is enabled by default and is only valid for Save dialogs.
+ * \li \c PH_FILEDIALOG_DEFAULTEXPANDED The file dialog should be expanded by default (i.e. the
+ * folder browser should be displayed). This is only valid for Save dialogs.
  */
 VOID PhSetFileDialogOptions(
     _In_ PVOID FileDialog,
@@ -4016,13 +3959,11 @@ VOID PhSetFileDialogOptions(
 }
 
 /**
- * Gets the index of the currently selected file type filter for a
- * file dialog.
+ * Gets the index of the currently selected file type filter for a file dialog.
  *
  * \param FileDialog The file dialog.
  *
- * \return The one-based index of the selected file type, or 0 if an
- * error occurred.
+ * \return The one-based index of the selected file type, or 0 if an error occurred.
  */
 ULONG PhGetFileDialogFilterIndex(
     _In_ PVOID FileDialog
@@ -4055,8 +3996,7 @@ ULONG PhGetFileDialogFilterIndex(
  * Sets the file type filter for a file dialog.
  *
  * \param FileDialog The file dialog.
- * \param Filters A pointer to an array of file
- * type structures.
+ * \param Filters A pointer to an array of file type structures.
  * \param NumberOfFilters The number of file types.
  */
 VOID PhSetFileDialogFilter(
@@ -4107,10 +4047,8 @@ VOID PhSetFileDialogFilter(
  *
  * \param FileDialog The file dialog.
  *
- * \return A pointer to a string containing the
- * file name. You must free the string using
- * PhDereferenceObject() when you no longer need
- * it.
+ * \return A pointer to a string containing the file name. You must free the string using
+ * PhDereferenceObject() when you no longer need it.
  */
 PPH_STRING PhGetFileDialogFileName(
     _In_ PVOID FileDialog
@@ -4228,12 +4166,10 @@ VOID PhSetFileDialogFileName(
  * Determines if an executable image is packed.
  *
  * \param FileName The file name of the image.
- * \param IsPacked A variable that receives TRUE if the image is packed,
- * otherwise FALSE.
- * \param NumberOfModules A variable that receives the number of DLLs that
- * the image imports functions from.
- * \param NumberOfFunctions A variable that receives the number of functions
- * that the image imports.
+ * \param IsPacked A variable that receives TRUE if the image is packed, otherwise FALSE.
+ * \param NumberOfModules A variable that receives the number of DLLs that the image imports
+ * functions from.
+ * \param NumberOfFunctions A variable that receives the number of functions that the image imports.
  */
 NTSTATUS PhIsExecutablePacked(
     _In_ PWSTR FileName,
@@ -4250,26 +4186,22 @@ NTSTATUS PhIsExecutablePacked(
     //
     // Or:
     //
-    // 1. The function-to-module ratio is lower than 3
-    //    (on average fewer than 3 functions are imported
-    //    from each module), and
-    // 2. It references more than 2 modules but fewer than
-    //    6 modules.
+    // 1. The function-to-module ratio is lower than 3 (on average fewer than 3 functions are
+    //    imported from each module), and
+    // 2. It references more than 2 modules but fewer than 6 modules.
     //
     // Or:
     //
-    // 1. The function-to-module ratio is lower than 2
-    //    (on average fewer than 2 functions are imported
-    //    from each module), and
-    // 2. It references more than 5 modules but fewer than
-    //    31 modules.
+    // 1. The function-to-module ratio is lower than 2 (on average fewer than 2 functions are
+    //    imported from each module), and
+    // 2. It references more than 5 modules but fewer than 31 modules.
     //
     // Or:
     //
     // 1. It does not have a section named ".text".
     //
-    // An image is not considered to be packed if it has only
-    // one import from a module named "mscoree.dll".
+    // An image is not considered to be packed if it has only one import from a module named
+    // "mscoree.dll".
 
     NTSTATUS status;
     PH_MAPPED_IMAGE mappedImage;
@@ -4474,8 +4406,7 @@ VOID PhUpdateHash(
  * \param Context A hashing context structure.
  * \param Hash A buffer which receives the final hash value.
  * \param HashLength The size of the buffer, in bytes.
- * \param ReturnLength A variable which receives the required size of
- * the buffer, in bytes.
+ * \param ReturnLength A variable which receives the required size of the buffer, in bytes.
  */
 BOOLEAN PhFinalHash(
     _Inout_ PPH_HASH_CONTEXT Context,
@@ -4533,13 +4464,12 @@ BOOLEAN PhFinalHash(
 }
 
 /**
- * Parses one part of a command line string. Quotation marks and
- * backslashes are handled appropriately.
+ * Parses one part of a command line string. Quotation marks and backslashes are handled
+ * appropriately.
  *
  * \param CommandLine The entire command line string.
- * \param Index The starting index of the command line part to be
- * parsed. There should be no leading whitespace at this index. The
- * index is updated to point to the end of the command line part.
+ * \param Index The starting index of the command line part to be parsed. There should be no leading
+ * whitespace at this index. The index is updated to point to the end of the command line part.
  */
 PPH_STRING PhParseCommandLinePart(
     _In_ PPH_STRINGREF CommandLine,
@@ -4559,7 +4489,8 @@ PPH_STRING PhParseCommandLinePart(
 
     // This function follows the rules used by CommandLineToArgvW:
     //
-    // * 2n backslashes and a quotation mark produces n backslashes and a quotation mark (non-literal).
+    // * 2n backslashes and a quotation mark produces n backslashes and a quotation mark
+    //   (non-literal).
     // * 2n + 1 backslashes and a quotation mark produces n and a quotation mark (literal).
     // * n backslashes and no quotation mark produces n backslashes.
 
@@ -4641,13 +4572,11 @@ PPH_STRING PhParseCommandLinePart(
  * \param Options An array of supported command line options.
  * \param NumberOfOptions The number of elements in \a Options.
  * \param Flags A combination of flags.
- * \li \c PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS Unknown command
- * line options are ignored instead of failing the function.
- * \li \c PH_COMMAND_LINE_IGNORE_FIRST_PART The first part of the
- * command line string is ignored. This is used when the first
- * part of the string contains the executable file name.
- * \param Callback A callback function to execute for each
- * command line option found.
+ * \li \c PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS Unknown command line options are ignored instead of
+ * failing the function.
+ * \li \c PH_COMMAND_LINE_IGNORE_FIRST_PART The first part of the command line string is ignored.
+ * This is used when the first part of the string contains the executable file name.
+ * \param Callback A callback function to execute for each command line option found.
  * \param Context A user-defined value to pass to \a Callback.
  */
 BOOLEAN PhParseCommandLine(
@@ -4804,8 +4733,7 @@ PPH_STRING PhEscapeCommandLinePart(
     PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
     numberOfBackslashes = 0;
 
-    // Simply replacing " with \" won't work here. See PhParseCommandLinePart
-    // for the quoting rules.
+    // Simply replacing " with \" won't work here. See PhParseCommandLinePart for the quoting rules.
 
     for (i = 0; i < length; i++)
     {
@@ -4894,17 +4822,15 @@ BOOLEAN PhpSearchFilePath(
 }
 
 /**
- * Parses a command line string. If the string does not contain
- * quotation marks around the file name part, the function
- * determines the file name to use.
+ * Parses a command line string. If the string does not contain quotation marks around the file name
+ * part, the function determines the file name to use.
  *
  * \param CommandLine The command line string.
- * \param FileName A variable which receives the part of
- * \a CommandLine that contains the file name.
- * \param Arguments A variable which receives the part of
- * \a CommandLine that contains the arguments.
- * \param FullFileName A variable which receives the full path
- * and file name. This may be NULL if the file was not found.
+ * \param FileName A variable which receives the part of \a CommandLine that contains the file name.
+ * \param Arguments A variable which receives the part of \a CommandLine that contains the
+ * arguments.
+ * \param FullFileName A variable which receives the full path and file name. This may be NULL if
+ * the file was not found.
  */
 BOOLEAN PhParseCommandLineFuzzy(
     _In_ PPH_STRINGREF CommandLine,
@@ -4981,18 +4907,17 @@ BOOLEAN PhParseCommandLineFuzzy(
         return TRUE;
     }
 
-    // Try to find an existing executable file, starting with the first part of the
-    // command line and successively restoring the rest of the command line.
-    // For example, in "C:\Program Files\Internet   Explorer\iexplore", we try
-    // to match:
+    // Try to find an existing executable file, starting with the first part of the command line and
+    // successively restoring the rest of the command line.
+    // For example, in "C:\Program Files\Internet   Explorer\iexplore", we try to match:
     // * "C:\Program"
     // * "C:\Program Files\Internet"
     // * "C:\Program Files\Internet "
     // * "C:\Program Files\Internet  "
     // * "C:\Program Files\Internet   Explorer\iexplore"
     //
-    // Note that we do not trim whitespace in each part because filenames can contain
-    // trailing whitespace before the extension (e.g. "Internet  .exe").
+    // Note that we do not trim whitespace in each part because filenames can contain trailing
+    // whitespace before the extension (e.g. "Internet  .exe").
 
     temp.Buffer = PhAllocate(commandLine.Length + sizeof(WCHAR));
     memcpy(temp.Buffer, commandLine.Buffer, commandLine.Length);

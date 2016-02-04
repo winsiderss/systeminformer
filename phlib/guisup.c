@@ -629,10 +629,10 @@ VOID PhSetImageListBitmap(
 /**
  * Gets the default icon used for executable files.
  *
- * \param SmallIcon A variable which receives the small default executable icon.
- * Do not destroy the icon using DestroyIcon(); it is shared between callers.
- * \param LargeIcon A variable which receives the large default executable icon.
- * Do not destroy the icon using DestroyIcon(); it is shared between callers.
+ * \param SmallIcon A variable which receives the small default executable icon. Do not destroy the
+ * icon using DestroyIcon(); it is shared between callers.
+ * \param LargeIcon A variable which receives the large default executable icon. Do not destroy the
+ * icon using DestroyIcon(); it is shared between callers.
  */
 VOID PhGetStockApplicationIcon(
     _Out_opt_ HICON *SmallIcon,
@@ -643,12 +643,11 @@ VOID PhGetStockApplicationIcon(
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
 
-    // This no longer uses SHGetFileInfo because it is *very* slow and causes
-    // many other DLLs to be loaded, increasing memory usage. The worst thing
-    // about it, however, is that it is horribly incompatible with multi-threading.
-    // The first time it is called, it tries to perform some one-time initialization.
-    // It guards this with a lock, but when multiple threads try to call the function
-    // at the same time, instead of waiting for initialization to finish it simply
+    // This no longer uses SHGetFileInfo because it is *very* slow and causes many other DLLs to be
+    // loaded, increasing memory usage. The worst thing about it, however, is that it is horribly
+    // incompatible with multi-threading. The first time it is called, it tries to perform some
+    // one-time initialization. It guards this with a lock, but when multiple threads try to call
+    // the function at the same time, instead of waiting for initialization to finish it simply
     // fails the other threads.
 
     if (PhBeginInitOnce(&initOnce))
@@ -656,7 +655,8 @@ VOID PhGetStockApplicationIcon(
         PPH_STRING systemDirectory;
         PPH_STRING dllFileName;
 
-        // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains the default application icon.
+        // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
+        // the default application icon.
 
         if (systemDirectory = PhGetSystemDirectory())
         {
@@ -874,9 +874,9 @@ BOOLEAN PhModalPropertySheet(
 {
     // PropertySheet incorrectly discards WM_QUIT messages in certain cases, so we will use our own
     // message loop. An example of this is when GetMessage (called by PropertySheet's message loop)
-    // dispatches a message directly from kernel-mode that causes the property sheet to close.
-    // In that case PropertySheet will retrieve the WM_QUIT message but will ignore it because of
-    // its buggy logic.
+    // dispatches a message directly from kernel-mode that causes the property sheet to close. In
+    // that case PropertySheet will retrieve the WM_QUIT message but will ignore it because of its
+    // buggy logic.
 
     // This is also a good opportunity to introduce an auto-pool.
 
@@ -972,8 +972,7 @@ VOID PhDeleteLayoutManager(
     PhDereferenceObject(Manager->List);
 }
 
-// HACK: The maths below is all horribly broken, especially the HACK for multiline tab
-// controls.
+// HACK: The math below is all horribly broken, especially the HACK for multiline tab controls.
 
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
@@ -998,8 +997,8 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
 
     if (layoutItem->ParentItem != layoutItem->LayoutParentItem)
     {
-        // Fix the margin because the item has a dummy parent. They share
-        // the same layout parent item.
+        // Fix the margin because the item has a dummy parent. They share the same layout parent
+        // item.
         layoutItem->Margin.top -= layoutItem->ParentItem->Rect.top;
         layoutItem->Margin.left -= layoutItem->ParentItem->Rect.left;
         layoutItem->Margin.right = layoutItem->ParentItem->Margin.right;
@@ -1162,7 +1161,8 @@ VOID PhpLayoutItemLayout(
         }
         else
         {
-            // This is needed for tab controls, so that TabCtrl_AdjustRect will give us an up-to-date result.
+            // This is needed for tab controls, so that TabCtrl_AdjustRect will give us an
+            // up-to-date result.
             SetWindowPos(
                 Item->Handle,
                 NULL, rect.left, rect.top,

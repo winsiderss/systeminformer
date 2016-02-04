@@ -59,35 +59,30 @@
 // Annotations
 
 /**
- * Indicates that a function assumes the specified
- * number of references are available for the object.
+ * Indicates that a function assumes the specified number of references are available for the
+ * object.
  *
- * \remarks Usually functions reference objects if they
- * store them for later usage; this annotation specifies
- * that the caller must supply these extra references
- * itself. In effect these references are "transferred"
- * to the function and must not be used. E.g. if you
- * create an object and immediately call a function
- * with _Assume_refs_(1), you may no longer use the object
- * since that one reference you held is no longer yours.
+ * \remarks Usually functions reference objects if they store them for later usage; this annotation
+ * specifies that the caller must supply these extra references itself. In effect these references
+ * are "transferred" to the function and must not be used. E.g. if you create an object and
+ * immediately call a function with _Assume_refs_(1), you may no longer use the object since that
+ * one reference you held is no longer yours.
  */
 #define _Assume_refs_(count)
 
 #define _Callback_
 
 /**
- * Indicates that a function may raise a software
- * exception.
+ * Indicates that a function may raise a software exception.
  *
- * \remarks Do not use this annotation for
- * temporary usages of exceptions, e.g. unimplemented
+ * \remarks Do not use this annotation for temporary usages of exceptions, e.g. unimplemented
  * functions.
  */
 #define _May_raise_
 
 /**
- * Indicates that a function requires the specified
- * value to be aligned at the specified number of bytes.
+ * Indicates that a function requires the specified value to be aligned at the specified number of
+ * bytes.
  */
 #define _Needs_align_(align)
 
@@ -443,13 +438,10 @@ FORCEINLINE ULONG PhRoundNumber(
 
     // This new value has the multiplier truncated.
     // E.g. 1099 / 100 * 100 = 1000.
-    // If the difference is less than half the multiplier,
-    // use the new value.
+    // If the difference is less than half the multiplier, use the new value.
     // E.g.
-    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use
-    // the new value plus the multiplier.
-    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use
-    // the new value.
+    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use the new value plus the multiplier.
+    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use the new value.
 
     if (Value - newValue < Multiplier / 2)
         return newValue;

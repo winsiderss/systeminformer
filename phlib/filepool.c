@@ -21,8 +21,7 @@
  */
 
 /*
- * File pool allows blocks of storage to be allocated from a file. Each
- * file looks like this:
+ * File pool allows blocks of storage to be allocated from a file. Each file looks like this:
  *
  * Segment 0 __________________________________________________________
  * |              |                |              |                |
@@ -46,36 +45,30 @@
  * |      ...     |       ...      |     ...      |      ...       |
  * |______________|________________|______________|________________|
  *
- * A file consists of a variable number of segments, with the segment
- * size specified as a power of two. Each segment contains a fixed
- * number of blocks, leading to a variable block size. Every
- * allocation made by the user is an allocation of a certain number
- * of blocks, with enough space for the block header. This is placed
- * at the beginning of each allocation and contains the number of
- * blocks in the allocation (a better name for it would be the
- * allocation header).
+ */
+
+/*
+ * A file consists of a variable number of segments, with the segment size specified as a power of
+ * two. Each segment contains a fixed number of blocks, leading to a variable block size. Every
+ * allocation made by the user is an allocation of a certain number of blocks, with enough space for
+ * the block header. This is placed at the beginning of each allocation and contains the number of
+ * blocks in the allocation (a better name for it would be the allocation header).
  *
- * Block management in each segment is handled by a bitmap which is
- * stored in the segment header at the beginning of each segment.
- * The first segment (segment 0) is special with the file header
- * being placed immediately after an initial block header. This is
- * because the segment size is stored in the file header, and without
- * it we cannot calculate the block size, which is used to locate
- * everything else in the file.
+ * Block management in each segment is handled by a bitmap which is stored in the segment header at
+ * the beginning of each segment. The first segment (segment 0) is special with the file header
+ * being placed immediately after an initial block header. This is because the segment size is
+ * stored in the file header, and without it we cannot calculate the block size, which is used to
+ * locate everything else in the file.
  *
- * To speed up allocations a number of free lists are maintained
- * which categorize each segment based on how many free blocks
- * they have. This means we can avoid trying to allocate from
- * every existing segment before finding out we have to allocate a
- * new segment, or trying to allocate from segments without the
- * required number of free blocks. The downside of this technique is
- * that it doesn't account for fragmentation within the allocation
- * bitmap.
+ * To speed up allocations a number of free lists are maintained which categorize each segment based
+ * on how many free blocks they have. This means we can avoid trying to allocate from every existing
+ * segment before finding out we have to allocate a new segment, or trying to allocate from segments
+ * without the required number of free blocks. The downside of this technique is that it doesn't
+ * account for fragmentation within the allocation bitmap.
  *
- * Each segment is mapped in separately, and each view is cached.
- * Even after a view becomes inactive (has a reference count of 0)
- * it remains mapped in until the maximum number of inactive views
- * is reached.
+ * Each segment is mapped in separately, and each view is cached. Even after a view becomes inactive
+ * (has a reference count of 0) it remains mapped in until the maximum number of inactive views is
+ * reached.
  */
 
 #include <ph.h>
@@ -161,8 +154,7 @@ NTSTATUS PhCreateFilePool(
 
     pool->SectionHandle = sectionHandle;
 
-    // Map in the first segment, set up initial parameters, then remap the
-    // first segment.
+    // Map in the first segment, set up initial parameters, then remap the first segment.
 
     if (!NT_SUCCESS(status = PhFppMapRange(pool, 0, PAGE_SIZE, &initialBlock)))
         goto CleanupExit;
@@ -258,8 +250,8 @@ CleanupExit:
  * \param FileName The file name of the file pool.
  * \param ReadOnly TRUE to disallow writes to the file.
  * \param ShareAccess The file access granted to other threads.
- * \param CreateDisposition The action to perform if the file does
- * or does not exist. See PhCreateFileWin32() for more information.
+ * \param CreateDisposition The action to perform if the file does or does not exist. See
+ * PhCreateFileWin32() for more information.
  * \param Parameters Parameters for on-disk and runtime structures.
  */
 NTSTATUS PhCreateFilePool2(
@@ -360,8 +352,7 @@ VOID PhDestroyFilePool(
 /**
  * Validates and corrects file pool parameters.
  *
- * \param Parameters The parameters structure which is validated
- * and modified if necessary.
+ * \param Parameters The parameters structure which is validated and modified if necessary.
  */
 NTSTATUS PhpValidateFilePoolParameters(
     _Inout_ PPH_FILE_POOL_PARAMETERS Parameters
@@ -389,8 +380,7 @@ NTSTATUS PhpValidateFilePoolParameters(
 /**
  * Creates default file pool parameters.
  *
- * \param Parameters The parameters structure which receives
- * the default parameter values.
+ * \param Parameters The parameters structure which receives the default parameter values.
  */
 VOID PhpSetDefaultFilePoolParameters(
     _Out_ PPH_FILE_POOL_PARAMETERS Parameters
@@ -405,16 +395,13 @@ VOID PhpSetDefaultFilePoolParameters(
  *
  * \param Pool The file pool.
  * \param Size The number of bytes to allocate.
- * \param Rva A variable which receives the relative virtual
- * address of the allocated block.
+ * \param Rva A variable which receives the relative virtual address of the allocated block.
  *
- * \return A pointer to the allocated block. You must call
- * PhDereferenceFilePool() or PhDereferenceFilePoolByRva() when
- * you no longer need a reference to the block.
+ * \return A pointer to the allocated block. You must call PhDereferenceFilePool() or
+ * PhDereferenceFilePoolByRva() when you no longer need a reference to the block.
  *
- * \remarks The returned pointer is not valid beyond the lifetime
- * of the file pool instance. Use the relative virtual address
- * if you need a permanent reference to the allocated block.
+ * \remarks The returned pointer is not valid beyond the lifetime of the file pool instance. Use the
+ * relative virtual address if you need a permanent reference to the allocated block.
  */
 PVOID PhAllocateFilePool(
     _Inout_ PPH_FILE_POOL Pool,
@@ -542,9 +529,8 @@ VOID PhpFreeFilePool(
  * Frees a block allocated by PhAllocateFilePool().
  *
  * \param Pool The file pool.
- * \param Block A pointer to the block. The pointer is no longer valid after you
- * call this function. Do not use PhDereferenceFilePool() or
- * PhDereferenceFilePoolByRva().
+ * \param Block A pointer to the block. The pointer is no longer valid after you call this function.
+ * Do not use PhDereferenceFilePool() or PhDereferenceFilePoolByRva().
  */
 VOID PhFreeFilePool(
     _Inout_ PPH_FILE_POOL Pool,
@@ -624,8 +610,8 @@ VOID PhDereferenceFilePool(
 }
 
 /**
- * Obtains a pointer for a relative virtual address, incrementing the reference
- * count of the address.
+ * Obtains a pointer for a relative virtual address, incrementing the reference count of the
+ * address.
  *
  * \param Pool The file pool.
  * \param Rva A relative virtual address.
@@ -814,10 +800,9 @@ NTSTATUS PhFppUnmapRange(
  * Initializes a segment.
  *
  * \param Pool The file pool.
- * \param BlockOfSegmentHeader The block header of the span containing
- * the segment header.
- * \param AdditionalBlocksUsed The number of blocks already allocated
- * from the segment, excluding the blocks comprising the segment header.
+ * \param BlockOfSegmentHeader The block header of the span containing the segment header.
+ * \param AdditionalBlocksUsed The number of blocks already allocated from the segment, excluding
+ * the blocks comprising the segment header.
  */
 VOID PhFppInitializeSegment(
     _Inout_ PPH_FILE_POOL Pool,
@@ -842,8 +827,7 @@ VOID PhFppInitializeSegment(
  * Allocates a segment.
  *
  * \param Pool The file pool.
- * \param NewSegmentIndex A variable which receives the index of the new
- * segment.
+ * \param NewSegmentIndex A variable which receives the index of the new segment.
  *
  * \return A pointer to the first block of the segment.
  */
@@ -937,8 +921,7 @@ VOID PhFppRemoveViewByIndex(
     {
         // This entry is currently the chain head.
 
-        // If this was the last entry in the chain, then indicate
-        // that the chain is empty.
+        // If this was the last entry in the chain, then indicate that the chain is empty.
         // Otherwise, choose a new head.
 
         if (IsListEmpty(head))
@@ -954,8 +937,7 @@ VOID PhFppRemoveViewByIndex(
  * \param Pool The file pool.
  * \param SegmentIndex The index of the segment.
  *
- * \return The view for the segment, or NULL if no view is
- * present for the segment.
+ * \return The view for the segment, or NULL if no view is present for the segment.
  */
 PPH_FILE_POOL_VIEW PhFppFindViewByIndex(
     _Inout_ PPH_FILE_POOL Pool,
@@ -1232,8 +1214,8 @@ VOID PhFppDereferenceSegmentByBase(
  * \param SegmentHeader The header of the segment.
  * \param NumberOfBlocks The number of blocks to allocate.
  *
- * \return The header of the allocated span, or NULL if there is
- * an insufficient number of contiguous free blocks for the allocation.
+ * \return The header of the allocated span, or NULL if there is an insufficient number of
+ * contiguous free blocks for the allocation.
  */
 PPH_FP_BLOCK_HEADER PhFppAllocateBlocks(
     _Inout_ PPH_FILE_POOL Pool,
@@ -1507,8 +1489,7 @@ ULONG PhFppEncodeRva(
  * \param Rva The relative virtual address.
  * \param SegmentIndex A variable which receives the segment index.
  *
- * \return An offset into the segment specified by \a SegmentIndex, or -1
- * if \a Rva is invalid.
+ * \return An offset into the segment specified by \a SegmentIndex, or -1 if \a Rva is invalid.
  */
 ULONG PhFppDecodeRva(
     _In_ PPH_FILE_POOL Pool,

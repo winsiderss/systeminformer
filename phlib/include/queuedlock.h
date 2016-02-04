@@ -37,14 +37,14 @@ typedef struct _PH_QUEUED_LOCK
 
 typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
 {
-    /** A pointer to the next wait block, i.e. the wait block pushed onto the list before this one.
-     */
+    /** A pointer to the next wait block, i.e. the wait block pushed onto the list before this one. */
     struct _PH_QUEUED_WAIT_BLOCK *Next;
-    /** A pointer to the previous wait block, i.e. the wait block pushed onto the list after this one.
+    /**
+     * A pointer to the previous wait block, i.e. the wait block pushed onto the list after this
+     * one.
      */
     struct _PH_QUEUED_WAIT_BLOCK *Previous;
-    /** A pointer to the last wait block, i.e. the first waiter pushed onto the list.
-     */
+    /** A pointer to the last wait block, i.e. the first waiter pushed onto the list. */
     struct _PH_QUEUED_WAIT_BLOCK *Last;
 
     ULONG SharedOwners;
@@ -323,11 +323,9 @@ PhSetWakeEvent(
     _Inout_opt_ PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
-    // The wake event is similar to a synchronization event
-    // in that it does not have thread-safe pulsing; we can
-    // simply skip the function call if there's nothing to
-    // wake. However, if we're cancelling a wait
-    // (WaitBlock != NULL) we need to make the call.
+    // The wake event is similar to a synchronization event in that it does not have thread-safe
+    // pulsing; we can simply skip the function call if there's nothing to wake. However, if we're
+    // cancelling a wait (WaitBlock != NULL) we need to make the call.
 
     if (WakeEvent->Value || WaitBlock)
         PhfSetWakeEvent(WakeEvent, WaitBlock);

@@ -554,10 +554,8 @@ PPH_STRING PhGetSymbolFromAddress(
 
     PH_LOCK_SYMBOLS();
 
-    // Note that we don't care whether this call
-    // succeeds or not, based on the assumption that
-    // it will not write to the symbolInfo structure
-    // if it fails. We've already zeroed the structure,
+    // Note that we don't care whether this call succeeds or not, based on the assumption that it
+    // will not write to the symbolInfo structure if it fails. We've already zeroed the structure,
     // so we can deal with it.
 
     if (SymFromAddrW_I)
@@ -676,8 +674,8 @@ PPH_STRING PhGetSymbolFromAddress(
 
     modBaseName = PhGetBaseName(modFileName);
 
-    // If we have a module name but not a symbol name,
-    // return the module plus an offset: module+offset.
+    // If we have a module name but not a symbol name, return the module plus an offset:
+    // module+offset.
 
     if (symbolInfo->NameLen == 0)
     {
@@ -693,8 +691,7 @@ PPH_STRING PhGetSymbolFromAddress(
         goto CleanupExit;
     }
 
-    // If we have everything, return the full symbol
-    // name: module!symbol+offset.
+    // If we have everything, return the full symbol name: module!symbol+offset.
 
     symbolName = PhCreateStringEx(symbolInfo->Name, symbolInfo->NameLen * 2);
     resolveLevel = PhsrlFunction;
@@ -1453,14 +1450,11 @@ BOOLEAN PhWriteMiniDumpProcess(
 }
 
 /**
- * Converts a STACKFRAME64 structure to a
- * PH_THREAD_STACK_FRAME structure.
+ * Converts a STACKFRAME64 structure to a PH_THREAD_STACK_FRAME structure.
  *
- * \param StackFrame64 A pointer to the STACKFRAME64 structure
- * to convert.
+ * \param StackFrame64 A pointer to the STACKFRAME64 structure to convert.
  * \param Flags Flags to set in the resulting structure.
- * \param ThreadStackFrame A pointer to the resulting
- * PH_THREAD_STACK_FRAME structure.
+ * \param ThreadStackFrame A pointer to the resulting PH_THREAD_STACK_FRAME structure.
  */
 VOID PhpConvertStackFrame(
     _In_ STACKFRAME64 *StackFrame64,
@@ -1488,29 +1482,21 @@ VOID PhpConvertStackFrame(
 /**
  * Walks a thread's stack.
  *
- * \param ThreadHandle A handle to a thread. The handle
- * must have THREAD_QUERY_LIMITED_INFORMATION, THREAD_GET_CONTEXT
- * and THREAD_SUSPEND_RESUME access. The handle can have any
- * access for kernel stack walking.
- * \param ProcessHandle A handle to the thread's parent
- * process. The handle must have PROCESS_QUERY_INFORMATION
- * and PROCESS_VM_READ access. If a symbol provider is
- * being used, pass its process handle and specify the symbol
- * provider in \a SymbolProvider.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION,
+ * THREAD_GET_CONTEXT and THREAD_SUSPEND_RESUME access. The handle can have any access for kernel
+ * stack walking.
+ * \param ProcessHandle A handle to the thread's parent process. The handle must have
+ * PROCESS_QUERY_INFORMATION and PROCESS_VM_READ access. If a symbol provider is being used, pass
+ * its process handle and specify the symbol provider in \a SymbolProvider.
  * \param ClientId The client ID identifying the thread.
  * \param SymbolProvider The associated symbol provider.
  * \param Flags A combination of flags.
- * \li \c PH_WALK_I386_STACK Walks the x86 stack. On AMD64
- * systems this flag walks the WOW64 stack.
- * \li \c PH_WALK_AMD64_STACK Walks the AMD64 stack. On x86
- * systems this flag is ignored.
- * \li \c PH_WALK_KERNEL_STACK Walks the kernel stack. This
- * flag is ignored if there is no active KProcessHacker
- * connection.
- * \param Callback A callback function which is executed
- * for each stack frame.
- * \param Context A user-defined value to pass to the
- * callback function.
+ * \li \c PH_WALK_I386_STACK Walks the x86 stack. On AMD64 systems this flag walks the WOW64 stack.
+ * \li \c PH_WALK_AMD64_STACK Walks the AMD64 stack. On x86 systems this flag is ignored.
+ * \li \c PH_WALK_KERNEL_STACK Walks the kernel stack. This flag is ignored if there is no active
+ * KProcessHacker connection.
+ * \param Callback A callback function which is executed for each stack frame.
+ * \param Context A user-defined value to pass to the callback function.
  */
 NTSTATUS PhWalkThreadStack(
     _In_ HANDLE ThreadHandle,
@@ -1577,8 +1563,8 @@ NTSTATUS PhWalkThreadStack(
         }
     }
 
-    // Suspend the thread to avoid inaccurate results. Don't suspend if we're walking
-    // the stack of the current thread or this is the System process.
+    // Suspend the thread to avoid inaccurate results. Don't suspend if we're walking the stack of
+    // the current thread or this is the System process.
     if (!isCurrentThread && !isSystemProcess)
     {
         if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))

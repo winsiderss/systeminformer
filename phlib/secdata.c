@@ -602,11 +602,10 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
  * Gets access entries for an object type.
  *
  * \param Type The name of the object type.
- * \param AccessEntries A variable which receives an array of
- * access entry structures. You must free the buffer with
- * PhFree() when you no longer need it.
- * \param NumberOfAccessEntries A variable which receives
- * the number of access entry structures returned in
+ * \param AccessEntries A variable which receives an array of access entry structures. You must free
+ * the buffer with PhFree() when you no longer need it.
+ * \param NumberOfAccessEntries A variable which receives the number of access entry structures
+ * returned in
  * \a AccessEntries.
  */
 BOOLEAN PhGetAccessEntries(
@@ -713,9 +712,8 @@ static int __cdecl PhpAccessEntryCompare(
  * Creates a string representation of an access mask.
  *
  * \param Access The access mask.
- * \param AccessEntries An array of access entry structures. You can
- * call PhGetAccessEntries() to retrieve the access entry structures
- * for a standard object type.
+ * \param AccessEntries An array of access entry structures. You can call PhGetAccessEntries() to
+ * retrieve the access entry structures for a standard object type.
  * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
  *
  * \return The string representation of \a Access.
@@ -734,8 +732,7 @@ PPH_STRING PhGetAccessString(
 
     PhInitializeStringBuilder(&stringBuilder, 32);
 
-    // Sort the access entries according to how many access rights they
-    // include.
+    // Sort the access entries according to how many access rights they include.
     accessEntries = PhAllocateCopy(AccessEntries, NumberOfAccessEntries * sizeof(PH_ACCESS_ENTRY));
     qsort(accessEntries, NumberOfAccessEntries, sizeof(PH_ACCESS_ENTRY), PhpAccessEntryCompare);
 
@@ -744,10 +741,9 @@ PPH_STRING PhGetAccessString(
 
     for (i = 0; i < NumberOfAccessEntries; i++)
     {
-        // We make sure we haven't matched this access entry yet.
-        // This ensures that we won't get duplicates, e.g.
-        // FILE_GENERIC_READ includes FILE_READ_DATA, and we
-        // don't want to display both to the user.
+        // We make sure we haven't matched this access entry yet. This ensures that we won't get
+        // duplicates, e.g. FILE_GENERIC_READ includes FILE_READ_DATA, and we don't want to display
+        // both to the user.
         if (
             !matched[i] &&
             ((Access & accessEntries[i].Access) == accessEntries[i].Access)

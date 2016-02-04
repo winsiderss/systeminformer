@@ -21,9 +21,8 @@
  */
 
 /*
- * This file contains functions to load and retrieve information for
- * library/archive files (lib). The file format for archive files is explained
- * in the PE/COFF specification located at:
+ * This file contains functions to load and retrieve information for library/archive files (lib).
+ * The file format for archive files is explained in the PE/COFF specification located at:
  *
  * http://www.microsoft.com/whdc/system/platform/firmware/PECOFF.mspx
  */
@@ -105,8 +104,7 @@ NTSTATUS PhInitializeMappedArchive(
 
     // Longnames member
     // This member doesn't seem to be mandatory, contrary to the specification.
-    // So we'll check if it's actually a longnames member, and if not, ignore
-    // it.
+    // So we'll check if it's actually a longnames member, and if not, ignore it.
 
     status = PhGetNextMappedArchiveMember(
         &MappedArchive->SecondLinkerMember,
@@ -186,9 +184,8 @@ VOID PhpMappedArchiveProbe(
  * Gets the next archive member.
  *
  * \param Member An archive member structure.
- * \param NextMember A variable which receives a structure
- * describing the next archive member. This pointer may be
- * the same as the pointer specified in \a Member.
+ * \param NextMember A variable which receives a structure describing the next archive member. This
+ * pointer may be the same as the pointer specified in \a Member.
  */
 NTSTATUS PhGetNextMappedArchiveMember(
     _In_ PPH_MAPPED_ARCHIVE_MEMBER Member,
@@ -282,10 +279,9 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
     // Special names:
     // * If the slash is the first character, then this is a linker member.
-    // * If there is a slash after the slash which is a first character, then
-    //   this is the longnames member.
-    // * If there are digits after the slash, then the real name is stored
-    //   in the longnames member.
+    // * If there is a slash after the slash which is a first character, then this is the longnames
+    //   member.
+    // * If there are digits after the slash, then the real name is stored in the longnames member.
 
     if (slash == Member->NameBuffer)
     {
@@ -328,8 +324,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
             *digita = 0;
 
-            // Parse the offset and make sure it lies within the
-            // longnames member.
+            // Parse the offset and make sure it lies within the longnames member.
 
             if (!PhCopyStringZFromBytes(slash + 1, -1, integerString, 11, NULL))
                 return STATUS_INVALID_PARAMETER;

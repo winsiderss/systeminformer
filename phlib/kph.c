@@ -181,10 +181,9 @@ NTSTATUS KphConnect2Ex(
             {
                 created = TRUE;
 
-                // Set parameters if the caller supplied them.
-                // Note that we fail the entire function if this fails,
-                // because failing to set parameters like SecurityLevel may
-                // result in security vulnerabilities.
+                // Set parameters if the caller supplied them. Note that we fail the entire function
+                // if this fails, because failing to set parameters like SecurityLevel may result in
+                // security vulnerabilities.
                 if (Parameters)
                 {
                     status = KphSetParameters(DeviceName, Parameters);
@@ -213,11 +212,9 @@ NTSTATUS KphConnect2Ex(
 CreateAndConnectEnd:
     if (created)
     {
-        // "Delete" the service. Since we (may) have a handle to
-        // the device, the SCM will delete the service automatically
-        // when it is stopped (upon reboot). If we don't have a
-        // handle to the device, the service will get deleted immediately,
-        // which is a good thing anyway.
+        // "Delete" the service. Since we (may) have a handle to the device, the SCM will delete the
+        // service automatically when it is stopped (upon reboot). If we don't have a handle to the
+        // device, the service will get deleted immediately, which is a good thing anyway.
         DeleteService(serviceHandle);
         CloseServiceHandle(serviceHandle);
     }

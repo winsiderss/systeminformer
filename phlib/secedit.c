@@ -62,10 +62,10 @@ FORCEINLINE VOID PhpSecurityEditorInitialization(
  * Creates a security editor page.
  *
  * \param ObjectName The name of the object.
- * \param GetObjectSecurity A callback function executed to retrieve
- * the security descriptor of the object.
- * \param SetObjectSecurity A callback function executed to modify
- * the security descriptor of the object.
+ * \param GetObjectSecurity A callback function executed to retrieve the security descriptor of the
+ * object.
+ * \param SetObjectSecurity A callback function executed to modify the security descriptor of the
+ * object.
  * \param Context A user-defined value to pass to the callback functions.
  * \param AccessEntries An array of access mask descriptors.
  * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
@@ -108,10 +108,10 @@ HPROPSHEETPAGE PhCreateSecurityPage(
  *
  * \param hWnd The parent window of the dialog.
  * \param ObjectName The name of the object.
- * \param GetObjectSecurity A callback function executed to retrieve
- * the security descriptor of the object.
- * \param SetObjectSecurity A callback function executed to modify
- * the security descriptor of the object.
+ * \param GetObjectSecurity A callback function executed to retrieve the security descriptor of the
+ * object.
+ * \param SetObjectSecurity A callback function executed to modify the security descriptor of the
+ * object.
  * \param Context A user-defined value to pass to the callback functions.
  * \param AccessEntries An array of access mask descriptors.
  * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
@@ -370,7 +370,8 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
 
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
-    // This is required (especially for File objects) because some drivers don't seem to handle QuerySecurity properly.
+    // This is required (especially for File objects) because some drivers don't seem to handle
+    // QuerySecurity properly.
     memset(buffer, 0, bufferSize);
 
     status = PhCallNtQuerySecurityObjectWithTimeout(
@@ -410,15 +411,13 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
 /**
  * Retrieves the security descriptor of an object.
  *
- * \param SecurityDescriptor A variable which receives a pointer to
- * the security descriptor of the object. The security descriptor
- * must be freed using PhFree() when no longer needed.
+ * \param SecurityDescriptor A variable which receives a pointer to the security descriptor of the
+ * object. The security descriptor must be freed using PhFree() when no longer needed.
  * \param SecurityInformation The security information to retrieve.
- * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure
- * describing the object.
+ * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure describing the object.
  *
- * \remarks This function may be used for the \a GetObjectSecurity
- * callback in PhCreateSecurityPage() or PhEditSecurity().
+ * \remarks This function may be used for the \a GetObjectSecurity callback in
+ * PhCreateSecurityPage() or PhEditSecurity().
  */
 _Callback_ NTSTATUS PhStdGetObjectSecurity(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
@@ -463,14 +462,12 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
 /**
  * Modifies the security descriptor of an object.
  *
- * \param SecurityDescriptor A security descriptor containing
- * security information to set.
+ * \param SecurityDescriptor A security descriptor containing security information to set.
  * \param SecurityInformation The security information to retrieve.
- * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure
- * describing the object.
+ * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure describing the object.
  *
- * \remarks This function may be used for the \a SetObjectSecurity
- * callback in PhCreateSecurityPage() or PhEditSecurity().
+ * \remarks This function may be used for the \a SetObjectSecurity callback in
+ * PhCreateSecurityPage() or PhEditSecurity().
  */
 _Callback_ NTSTATUS PhStdSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,

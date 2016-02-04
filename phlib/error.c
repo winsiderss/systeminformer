@@ -25,8 +25,8 @@
 /**
  * Converts a NTSTATUS value to a Win32 error code.
  *
- * \remarks This function handles FACILITY_NTWIN32 status values
- * properly, unlike RtlNtStatusToDosError.
+ * \remarks This function handles FACILITY_NTWIN32 status values properly, unlike
+ * RtlNtStatusToDosError.
  */
 ULONG PhNtStatusToDosError(
     _In_ NTSTATUS Status
@@ -41,8 +41,8 @@ ULONG PhNtStatusToDosError(
 /**
  * Converts a Win32 error code to a NTSTATUS value.
  *
- * \remarks Only a small number of cases are currently supported.
- * Other status values are wrapped using FACILITY_NTWIN32.
+ * \remarks Only a small number of cases are currently supported. Other status values are wrapped
+ * using FACILITY_NTWIN32.
  */
 NTSTATUS PhDosErrorToNtStatus(
     _In_ ULONG DosError
@@ -67,8 +67,7 @@ NTSTATUS PhDosErrorToNtStatus(
 }
 
 /**
- * Determines whether a NTSTATUS value indicates that a file
- * cannot be not found.
+ * Determines whether a NTSTATUS value indicates that a file cannot be not found.
  */
 BOOLEAN PhNtStatusFileNotFound(
     _In_ NTSTATUS Status

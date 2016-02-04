@@ -92,11 +92,10 @@ FORCEINLINE VOID PhpExecuteWorkQueueItem(
  * Initializes a work queue.
  *
  * \param WorkQueue A work queue object.
- * \param MinimumThreads The suggested minimum number of threads to keep alive, even
- * when there is no work to be performed.
+ * \param MinimumThreads The suggested minimum number of threads to keep alive, even when there is
+ * no work to be performed.
  * \param MaximumThreads The suggested maximum number of threads to create.
- * \param NoWorkTimeout The number of milliseconds after which threads without work
- * will terminate.
+ * \param NoWorkTimeout The number of milliseconds after which threads without work will terminate.
  */
 VOID PhInitializeWorkQueue(
     _Out_ PPH_WORK_QUEUE WorkQueue,
@@ -330,8 +329,8 @@ NTSTATUS PhpWorkQueueThreadStart(
         {
             BOOLEAN terminate = FALSE;
 
-            // No work arrived before the timeout passed, or we are terminating, or some error occurred.
-            // Terminate the thread.
+            // No work arrived before the timeout passed, or we are terminating, or some error
+            // occurred. Terminate the thread.
 
             PhAcquireQueuedLockExclusive(&workQueue->StateLock);
 
@@ -375,7 +374,8 @@ VOID PhQueueItemWorkQueue(
  * \param WorkQueue A work queue object.
  * \param Function A function to execute.
  * \param Context A user-defined value to pass to the function.
- * \param DeleteFunction A callback function that is executed when the work queue item is about to be freed.
+ * \param DeleteFunction A callback function that is executed when the work queue item is about to
+ * be freed.
  */
 VOID PhQueueItemWorkQueueEx(
     _Inout_ PPH_WORK_QUEUE WorkQueue,

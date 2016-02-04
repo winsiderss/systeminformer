@@ -21,12 +21,10 @@
  */
 
 /*
- * These are functions which communicate with LSA or are support functions.
- * They replace certain Win32 security-related functions such as
- * LookupAccountName, LookupAccountSid and LookupPrivilege*, which are
- * badly designed. (LSA already allocates the return values for the caller,
- * yet the Win32 functions insist on their callers providing their own
- * buffers.)
+ * These are functions which communicate with LSA or are support functions. They replace certain
+ * Win32 security-related functions such as LookupAccountName, LookupAccountSid and
+ * LookupPrivilege*, which are badly designed. (LSA already allocates the return values for the
+ * caller, yet the Win32 functions insist on their callers providing their own buffers.)
  */
 
 #include <ph.h>
@@ -50,8 +48,7 @@ NTSTATUS PhOpenLsaPolicy(
 }
 
 /**
- * Retrieves a handle to the local LSA policy with
- * POLICY_LOOKUP_NAMES access.
+ * Retrieves a handle to the local LSA policy with POLICY_LOOKUP_NAMES access.
  *
  * \remarks Do not close the handle; it is cached.
  */
@@ -74,8 +71,7 @@ LSA_HANDLE PhGetLookupPolicyHandle(
             NULL
             )))
         {
-            // We succeeded in opening a policy handle,
-            // and since we did not have a cached handle
+            // We succeeded in opening a policy handle, and since we did not have a cached handle
             // before, we will now store it.
 
             lookupPolicyHandle = _InterlockedCompareExchangePointer(
@@ -91,8 +87,7 @@ LSA_HANDLE PhGetLookupPolicyHandle(
             }
             else
             {
-                // Someone already placed a handle in the
-                // cache. Close our handle and use their
+                // Someone already placed a handle in the cache. Close our handle and use their
                 // handle.
                 LsaClose(newLookupPolicyHandle);
             }
@@ -106,10 +101,8 @@ LSA_HANDLE PhGetLookupPolicyHandle(
  * Gets the name of a privilege from its LUID.
  *
  * \param PrivilegeValue The LUID of a privilege.
- * \param PrivilegeName A variable which receives
- * a pointer to a string containing the privilege
- * name. You must free the string using
- * PhDereferenceObject() when you no longer need it.
+ * \param PrivilegeName A variable which receives a pointer to a string containing the privilege
+ * name. You must free the string using PhDereferenceObject() when you no longer need it.
  */
 BOOLEAN PhLookupPrivilegeName(
     _In_ PLUID PrivilegeValue,
@@ -138,10 +131,9 @@ BOOLEAN PhLookupPrivilegeName(
  * Gets the display name of a privilege from its name.
  *
  * \param PrivilegeName The name of a privilege.
- * \param PrivilegeDisplayName A variable which receives
- * a pointer to a string containing the privilege's
- * display name. You must free the string using
- * PhDereferenceObject() when you no longer need it.
+ * \param PrivilegeDisplayName A variable which receives a pointer to a string containing the
+ * privilege's display name. You must free the string using PhDereferenceObject() when you no longer
+ * need it.
  */
 BOOLEAN PhLookupPrivilegeDisplayName(
     _In_ PPH_STRINGREF PrivilegeName,
@@ -175,8 +167,7 @@ BOOLEAN PhLookupPrivilegeDisplayName(
  * Gets the LUID of a privilege from its name.
  *
  * \param PrivilegeName The name of a privilege.
- * \param PrivilegeValue A variable which receives
- * the LUID of the privilege.
+ * \param PrivilegeValue A variable which receives the LUID of the privilege.
  */
 BOOLEAN PhLookupPrivilegeValue(
     _In_ PPH_STRINGREF PrivilegeName,
@@ -198,16 +189,11 @@ BOOLEAN PhLookupPrivilegeValue(
  * Gets information about a SID.
  *
  * \param Sid A SID to query.
- * \param Name A variable which receives a pointer
- * to a string containing the SID's name. You must
- * free the string using PhDereferenceObject() when
- * you no longer need it.
- * \param DomainName A variable which receives a pointer
- * to a string containing the SID's domain name. You must
- * free the string using PhDereferenceObject() when
- * you no longer need it.
- * \param NameUse A variable which receives the
- * SID's usage.
+ * \param Name A variable which receives a pointer to a string containing the SID's name. You must
+ * free the string using PhDereferenceObject() when you no longer need it.
+ * \param DomainName A variable which receives a pointer to a string containing the SID's domain
+ * name. You must free the string using PhDereferenceObject() when you no longer need it.
+ * \param NameUse A variable which receives the SID's usage.
  */
 NTSTATUS PhLookupSid(
     _In_ PSID Sid,
@@ -280,15 +266,11 @@ NTSTATUS PhLookupSid(
  * Gets information about a name.
  *
  * \param Name A name to query.
- * \param Sid A variable which receives a pointer
- * to a SID. You must free the SID using PhFree() when you
- * no longer need it.
- * \param DomainName A variable which receives a pointer
- * to a string containing the SID's domain name. You must
- * free the string using PhDereferenceObject() when
- * you no longer need it.
- * \param NameUse A variable which receives the
- * SID's usage.
+ * \param Sid A variable which receives a pointer to a SID. You must free the SID using PhFree()
+ * when you no longer need it.
+ * \param DomainName A variable which receives a pointer to a string containing the SID's domain
+ * name. You must free the string using PhDereferenceObject() when you no longer need it.
+ * \param NameUse A variable which receives the SID's usage.
  */
 NTSTATUS PhLookupName(
     _In_ PPH_STRINGREF Name,
@@ -372,17 +354,12 @@ NTSTATUS PhLookupName(
  * Gets the name of a SID.
  *
  * \param Sid A SID to query.
- * \param IncludeDomain TRUE to include the domain name,
- * otherwise FALSE.
- * \param NameUse A variable which receives the SID's
- * usage.
+ * \param IncludeDomain TRUE to include the domain name, otherwise FALSE.
+ * \param NameUse A variable which receives the SID's usage.
  *
- * \return A pointer to a string containing
- * the name of the SID in the following
- * format: domain\\name. You must free the string
- * using PhDereferenceObject() when you no longer
- * need it. If an error occurs, the function
- * returns NULL.
+ * \return A pointer to a string containing the name of the SID in the following format:
+ * domain\\name. You must free the string using PhDereferenceObject() when you no longer need it. If
+ * an error occurs, the function returns NULL.
  */
 PPH_STRING PhGetSidFullName(
     _In_ PSID Sid,
@@ -468,11 +445,9 @@ PPH_STRING PhGetSidFullName(
  *
  * \param Sid A SID to query.
  *
- * \return A pointer to a string containing the
- * SDDL representation of the SID. You must
- * free the string using PhDereferenceObject()
- * when you no longer need it. If an error occurs,
- * the function returns NULL.
+ * \return A pointer to a string containing the SDDL representation of the SID. You must free the
+ * string using PhDereferenceObject() when you no longer need it. If an error occurs, the function
+ * returns NULL.
  */
 PPH_STRING PhSidToStringSid(
     _In_ PSID Sid

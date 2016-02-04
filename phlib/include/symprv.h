@@ -262,16 +262,12 @@ typedef struct _PH_THREAD_STACK_FRAME
 #define PH_WALK_KERNEL_STACK 0x10
 
 /**
- * A callback function passed to PhWalkThreadStack()
- * and called for each stack frame.
+ * A callback function passed to PhWalkThreadStack() and called for each stack frame.
  *
- * \param StackFrame A structure providing information about
- * the stack frame.
- * \param Context A user-defined value passed to
- * PhWalkThreadStack().
+ * \param StackFrame A structure providing information about the stack frame.
+ * \param Context A user-defined value passed to PhWalkThreadStack().
  *
- * \return TRUE to continue the stack walk, FALSE to
- * stop.
+ * \return TRUE to continue the stack walk, FALSE to stop.
  */
 typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,

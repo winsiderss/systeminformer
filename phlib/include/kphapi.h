@@ -1,8 +1,7 @@
 #ifndef _KPHAPI_H
 #define _KPHAPI_H
 
-// This file contains KProcessHacker definitions shared across
-// kernel-mode and user-mode.
+// This file contains KProcessHacker definitions shared across kernel-mode and user-mode.
 
 // Process information
 

@@ -24,14 +24,11 @@
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 //
-// The code contains no comments because it is a direct
-// port. Please see FastResourceLock.cs in PH 1.x for
-// details.
+// The code contains no comments because it is a direct port. Please see FastResourceLock.cs in PH
+// 1.x for details.
 
-// The fast lock is around 7% faster than the critical
-// section when there is no contention, when used
-// solely for mutual exclusion. It is also much smaller
-// than the critical section.
+// The fast lock is around 7% faster than the critical section when there is no contention, when
+// used solely for mutual exclusion. It is also much smaller than the critical section.
 
 #define PH_LOCK_OWNED 0x1
 #define PH_LOCK_EXCLUSIVE_WAKING 0x2

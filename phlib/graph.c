@@ -93,8 +93,7 @@ BOOLEAN PhGraphControlInitialization(
  * \param hdc The DC to draw to.
  * \param DrawInfo A structure which contains graphing information.
  *
- * \remarks This function is extremely slow. Use PhDrawGraphDirect()
- * whenever possible.
+ * \remarks This function is extremely slow. Use PhDrawGraphDirect() whenever possible.
  */
 VOID PhDrawGraph(
     _In_ HDC hdc,
@@ -407,8 +406,8 @@ FORCEINLINE VOID PhpGetGraphPoint(
  * \li The graph is fixed to the origin (0, 0).
  * \li The total size of the bitmap is assumed to be \a Width and \a Height in \a DrawInfo.
  * \li \a Step is fixed at 2.
- * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \ref PH_GRAPH_OVERLAY_LINE_2
- * is never used.
+ * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \ref PH_GRAPH_OVERLAY_LINE_2 is never
+ * used.
  */
 VOID PhDrawGraphDirect(
     _In_ HDC hdc,
@@ -552,8 +551,8 @@ VOID PhDrawGraphDirect(
         //    |                                              |
         //    | left of current pixel                        | left of current pixel
         //
-        // In both examples above, the line low2-high2 will be merged with the line low1-high1 of the next
-        // iteration.
+        // In both examples above, the line low2-high2 will be merged with the line low1-high1 of
+        // the next iteration.
 
         mid = ((h1_left + h1) / 2) * width;
         old_low2 = h1_low2;
@@ -692,11 +691,10 @@ VOID PhDrawGraphDirect(
  * Sets the text in a graphing information structure.
  *
  * \param hdc The DC to perform calculations from.
- * \param DrawInfo A structure which contains graphing information.
- * The structure is modified to contain the new text information.
+ * \param DrawInfo A structure which contains graphing information. The structure is modified to
+ * contain the new text information.
  * \param Text The text.
- * \param Margin The margins of the text box from the edges of the
- * graph.
+ * \param Margin The margins of the text box from the edges of the graph.
  * \param Padding The padding within the text box.
  * \param Align The alignment of the text box.
  */
@@ -801,8 +799,8 @@ static VOID PhpDeleteBufferedContext(
 {
     if (Context->BufferedContext)
     {
-        // The original bitmap must be selected back into the context, otherwise
-        // the bitmap can't be deleted.
+        // The original bitmap must be selected back into the context, otherwise the bitmap can't be
+        // deleted.
         SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
         DeleteObject(Context->BufferedBitmap);
         DeleteDC(Context->BufferedContext);
@@ -1375,13 +1373,12 @@ VOID PhDeleteGraphBuffers(
 }
 
 /**
- * Sets up a graphing information structure with information
- * from a graph buffer management structure.
+ * Sets up a graphing information structure with information from a graph buffer management
+ * structure.
  *
  * \param Buffers The buffer management structure.
  * \param DrawInfo The graphing information structure.
- * \param DataCount The number of data points currently required.
- * The buffers are resized if needed.
+ * \param DataCount The number of data points currently required. The buffers are resized if needed.
  */
 VOID PhGetDrawInfoGraphBuffers(
     _Inout_ PPH_GRAPH_BUFFERS Buffers,

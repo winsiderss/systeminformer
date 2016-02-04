@@ -614,16 +614,12 @@ PhDuplicateObject(
 #define PH_ENUM_PROCESS_MODULES_LIMIT 0x800
 
 /**
- * A callback function passed to PhEnumProcessModules()
- * and called for each process module.
+ * A callback function passed to PhEnumProcessModules() and called for each process module.
  *
- * \param Module A structure providing information about
- * the module.
- * \param Context A user-defined value passed to
- * PhEnumProcessModules().
+ * \param Module A structure providing information about the module.
+ * \param Context A user-defined value passed to PhEnumProcessModules().
  *
- * \return TRUE to continue the enumeration, FALSE to
- * stop.
+ * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
@@ -725,23 +721,19 @@ PhGetKernelFileName(
     );
 
 /**
- * Gets a pointer to the first process information
- * structure in a buffer returned by PhEnumProcesses().
+ * Gets a pointer to the first process information structure in a buffer returned by
+ * PhEnumProcesses().
  *
- * \param Processes A pointer to a buffer returned
- * by PhEnumProcesses().
+ * \param Processes A pointer to a buffer returned by PhEnumProcesses().
  */
 #define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
 
 /**
- * Gets a pointer to the process information structure
- * after a given structure.
+ * Gets a pointer to the process information structure after a given structure.
  *
- * \param Process A pointer to a process information
- * structure.
+ * \param Process A pointer to a process information structure.
  *
- * \return A pointer to the next process information
- * structure, or NULL if there are no more.
+ * \return A pointer to the next process information structure, or NULL if there are no more.
  */
 #define PH_NEXT_PROCESS(Process) ( \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
@@ -864,16 +856,13 @@ PhGetProcessIsDotNetEx(
     );
 
 /**
- * A callback function passed to PhEnumDirectoryObjects()
- * and called for each directory object.
+ * A callback function passed to PhEnumDirectoryObjects() and called for each directory object.
  *
  * \param Name The name of the object.
  * \param TypeName The name of the object's type.
- * \param Context A user-defined value passed to
- * PhEnumDirectoryObjects().
+ * \param Context A user-defined value passed to PhEnumDirectoryObjects().
  *
- * \return TRUE to continue the enumeration, FALSE to
- * stop.
+ * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_OBJECTS)(
     _In_ PPH_STRINGREF Name,
@@ -979,16 +968,12 @@ typedef struct _PH_MODULE_INFO
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
 
 /**
- * A callback function passed to PhEnumGenericModules()
- * and called for each process module.
+ * A callback function passed to PhEnumGenericModules() and called for each process module.
  *
- * \param Module A structure providing information about
- * the module.
- * \param Context A user-defined value passed to
- * PhEnumGenericModules().
+ * \param Module A structure providing information about the module.
+ * \param Context A user-defined value passed to PhEnumGenericModules().
  *
- * \return TRUE to continue the enumeration, FALSE to
- * stop.
+ * \return TRUE to continue the enumeration, FALSE to stop.
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_GENERIC_MODULES_CALLBACK)(
     _In_ PPH_MODULE_INFO Module,
@@ -1747,18 +1732,22 @@ PhImpersonateClientOfNamedPipe(
     );
 
 // Core flags (PhCreateFileStream2)
-/** Indicates that the file stream object should not close the file handle
- * upon deletion. */
+/** Indicates that the file stream object should not close the file handle upon deletion. */
 #define PH_FILE_STREAM_HANDLE_UNOWNED 0x1
-/** Indicates that the file stream object should not buffer I/O operations.
- * Note that this does not prevent the operating system from buffering I/O. */
+/**
+ * Indicates that the file stream object should not buffer I/O operations. Note that this does not
+ * prevent the operating system from buffering I/O.
+ */
 #define PH_FILE_STREAM_UNBUFFERED 0x2
-/** Indicates that the file handle supports asynchronous operations.
- * The file handle must not have been opened with FILE_SYNCHRONOUS_IO_ALERT
- * or FILE_SYNCHRONOUS_IO_NONALERT. */
+/**
+ * Indicates that the file handle supports asynchronous operations. The file handle must not have
+ * been opened with FILE_SYNCHRONOUS_IO_ALERT or FILE_SYNCHRONOUS_IO_NONALERT.
+ */
 #define PH_FILE_STREAM_ASYNCHRONOUS 0x4
-/** Indicates that the file stream object should maintain the file position
- * and not use the file object's own file position. */
+/**
+ * Indicates that the file stream object should maintain the file position and not use the file
+ * object's own file position.
+ */
 #define PH_FILE_STREAM_OWN_POSITION 0x8
 
 // Higher-level flags (PhCreateFileStream)

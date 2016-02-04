@@ -143,8 +143,8 @@ NTSTATUS PhpGetObjectBasicInformation(
 
         if (NT_SUCCESS(status))
         {
-            // The object was referenced in KProcessHacker, so
-            // we need to subtract 1 from the pointer count.
+            // The object was referenced in KProcessHacker, so we need to subtract 1 from the
+            // pointer count.
             BasicInformation->PointerCount -= 1;
         }
     }
@@ -160,10 +160,8 @@ NTSTATUS PhpGetObjectBasicInformation(
 
         if (NT_SUCCESS(status))
         {
-            // The object was referenced in NtQueryObject and
-            // a handle was opened to the object. We need to
-            // subtract 1 from the pointer count, then subtract
-            // 1 from both counts.
+            // The object was referenced in NtQueryObject and a handle was opened to the object. We
+            // need to subtract 1 from the pointer count, then subtract 1 from both counts.
             BasicInformation->HandleCount -= 1;
             BasicInformation->PointerCount -= 2;
         }
@@ -182,8 +180,7 @@ NTSTATUS PhpGetObjectTypeName(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING typeName = NULL;
 
-    // If the cache contains the object type name, use it. Otherwise,
-    // query the type name.
+    // If the cache contains the object type name, use it. Otherwise, query the type name.
 
     if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         typeName = PhObjectTypeNames[ObjectTypeNumber];
@@ -275,8 +272,7 @@ NTSTATUS PhpGetObjectTypeName(
         PhFree(buffer);
     }
 
-    // At this point typeName should contain a type name
-    // with one additional reference.
+    // At this point typeName should contain a type name with one additional reference.
 
     *TypeName = typeName;
 
@@ -496,8 +492,7 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
     ULONG tickCount;
     PSYSTEM_PROCESS_INFORMATION processInfo;
 
-    // Get a new process list only if 2 seconds have passed
-    // since the last update.
+    // Get a new process list only if 2 seconds have passed since the last update.
 
     tickCount = GetTickCount();
 
@@ -1137,23 +1132,17 @@ CleanupExit:
 /**
  * Gets information for a handle.
  *
- * \param ProcessHandle A handle to the process in which the
- * handle resides.
+ * \param ProcessHandle A handle to the process in which the handle resides.
  * \param Handle The handle value.
- * \param ObjectTypeNumber The object type number of the handle.
- * You can specify -1 for this parameter if the object type number
- * is not known.
- * \param BasicInformation A variable which receives basic
- * information about the object.
+ * \param ObjectTypeNumber The object type number of the handle. You can specify -1 for this
+ * parameter if the object type number is not known.
+ * \param BasicInformation A variable which receives basic information about the object.
  * \param TypeName A variable which receives the object type name.
  * \param ObjectName A variable which receives the object name.
- * \param BestObjectName A variable which receives the formatted
- * object name.
+ * \param BestObjectName A variable which receives the formatted object name.
  *
- * \retval STATUS_INVALID_HANDLE The handle specified in
- * \c ProcessHandle or \c Handle is invalid.
- * \retval STATUS_INVALID_PARAMETER_3 The value specified in
- * \c ObjectTypeNumber is invalid.
+ * \retval STATUS_INVALID_HANDLE The handle specified in \c ProcessHandle or \c Handle is invalid.
+ * \retval STATUS_INVALID_PARAMETER_3 The value specified in \c ObjectTypeNumber is invalid.
  */
 NTSTATUS PhGetHandleInformation(
     _In_ HANDLE ProcessHandle,
@@ -1203,33 +1192,25 @@ NTSTATUS PhGetHandleInformation(
 /**
  * Gets information for a handle.
  *
- * \param ProcessHandle A handle to the process in which the
- * handle resides.
+ * \param ProcessHandle A handle to the process in which the handle resides.
  * \param Handle The handle value.
- * \param ObjectTypeNumber The object type number of the handle.
- * You can specify -1 for this parameter if the object type number
- * is not known.
+ * \param ObjectTypeNumber The object type number of the handle. You can specify -1 for this
+ * parameter if the object type number is not known.
  * \param Flags Reserved.
- * \param SubStatus A variable which receives the NTSTATUS value of
- * the last component that fails. If all operations succeed, the
- * value will be STATUS_SUCCESS. If the function returns an error
+ * \param SubStatus A variable which receives the NTSTATUS value of the last component that fails.
+ * If all operations succeed, the value will be STATUS_SUCCESS. If the function returns an error
  * status, this variable is not set.
- * \param BasicInformation A variable which receives basic
- * information about the object.
+ * \param BasicInformation A variable which receives basic information about the object.
  * \param TypeName A variable which receives the object type name.
  * \param ObjectName A variable which receives the object name.
- * \param BestObjectName A variable which receives the formatted
- * object name.
+ * \param BestObjectName A variable which receives the formatted object name.
  * \param ExtraInformation Reserved.
  *
- * \retval STATUS_INVALID_HANDLE The handle specified in
- * \c ProcessHandle or \c Handle is invalid.
- * \retval STATUS_INVALID_PARAMETER_3 The value specified in
- * \c ObjectTypeNumber is invalid.
+ * \retval STATUS_INVALID_HANDLE The handle specified in \c ProcessHandle or \c Handle is invalid.
+ * \retval STATUS_INVALID_PARAMETER_3 The value specified in \c ObjectTypeNumber is invalid.
  *
- * \remarks If \a BasicInformation or \a TypeName are specified,
- * the function will fail if either cannot be queried. \a ObjectName,
- * \a BestObjectName and \a ExtraInformation will return NULL if they
+ * \remarks If \a BasicInformation or \a TypeName are specified, the function will fail if either
+ * cannot be queried. \a ObjectName, \a BestObjectName and \a ExtraInformation will be NULL if they
  * cannot be queried.
  */
 NTSTATUS PhGetHandleInformationEx(
@@ -1611,8 +1592,8 @@ NTSTATUS PhpCallWithTimeout(
 
     if (status != STATUS_WAIT_0)
     {
-        // The operation timed out, or there was an error. Kill the thread.
-        // On Vista and above, the thread stack is freed automatically.
+        // The operation timed out, or there was an error. Kill the thread. On Vista and above, the
+        // thread stack is freed automatically.
         NtTerminateThread(ThreadContext->ThreadHandle, STATUS_UNSUCCESSFUL);
         status = NtWaitForSingleObject(ThreadContext->ThreadHandle, FALSE, NULL);
         NtClose(ThreadContext->ThreadHandle);
