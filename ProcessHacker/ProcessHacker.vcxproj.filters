@@ -475,7 +475,7 @@
       <Filter>phlib</Filter>
     </ClCompile>
     <ClCompile Include="pcre\pcre2_find_bracket.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>PCRE</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
