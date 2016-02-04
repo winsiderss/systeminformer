@@ -83,7 +83,7 @@ PPH_STRING PhaLowerString(
     PPH_STRING newString;
 
     newString = PhaDuplicateString(String);
-    PhLowerString(newString);
+    _wcslwr(newString->Buffer);
 
     return newString;
 }
@@ -95,7 +95,7 @@ PPH_STRING PhaUpperString(
     PPH_STRING newString;
 
     newString = PhaDuplicateString(String);
-    PhUpperString(newString);
+    _wcsupr(newString->Buffer);
 
     return newString;
 }

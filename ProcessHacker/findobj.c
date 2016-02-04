@@ -762,7 +762,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
         PPH_STRING upperBestObjectName;
 
         upperBestObjectName = PhDuplicateString(bestObjectName);
-        PhUpperString(upperBestObjectName);
+        _wcsupr(upperBestObjectName->Buffer);
 
         if (MatchSearchString(&upperBestObjectName->sr) ||
             (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer))
@@ -811,7 +811,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     PPH_STRING upperFileName;
 
     upperFileName = PhDuplicateString(Module->FileName);
-    PhUpperString(upperFileName);
+    _wcsupr(upperFileName->Buffer);
 
     if (MatchSearchString(&upperFileName->sr) ||
         (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer))
@@ -875,7 +875,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     // Try to get a search pointer from the search string.
     UseSearchPointer = PhStringToInteger64(&SearchString->sr, 0, &SearchPointer);
 
-    PhUpperString(SearchString);
+    _wcsupr(SearchString->Buffer);
 
     if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {

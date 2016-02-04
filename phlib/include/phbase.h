@@ -1804,34 +1804,6 @@ PhSubstring(
 }
 
 /**
- * Converts a string to lowercase in-place.
- *
- * \param String The string to convert.
- */
-FORCEINLINE
-VOID
-PhLowerString(
-    _Inout_ PPH_STRING String
-    )
-{
-    _wcslwr(String->Buffer);
-}
-
-/**
- * Converts a string to uppercase in-place.
- *
- * \param String The string to convert.
- */
-FORCEINLINE
-VOID
-PhUpperString(
-    _Inout_ PPH_STRING String
-    )
-{
-    _wcsupr(String->Buffer);
-}
-
-/**
  * Updates a string object's length with
  * its true length as determined by an
  * embedded null terminator.

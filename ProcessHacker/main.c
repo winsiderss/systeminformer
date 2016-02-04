@@ -810,7 +810,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         PPH_STRING upperValue;
 
         upperValue = PhDuplicateString(Value);
-        PhUpperString(upperValue);
+        _wcsupr(upperValue->Buffer);
 
         if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != -1)
         {

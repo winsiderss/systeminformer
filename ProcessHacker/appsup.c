@@ -617,7 +617,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Find "/processid:"; the GUID is just after that.
 
-            PhUpperString(argPart);
+            _wcsupr(argPart->Buffer);
             indexOfProcessId = PhFindStringInString(argPart, 0, L"/PROCESSID:");
 
             if (indexOfProcessId == -1)
