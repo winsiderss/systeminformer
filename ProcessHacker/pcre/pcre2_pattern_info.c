@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -77,6 +77,7 @@ if (where == NULL)   /* Requests field length */
     case PCRE2_INFO_CAPTURECOUNT:
     case PCRE2_INFO_FIRSTCODETYPE:
     case PCRE2_INFO_FIRSTCODEUNIT:
+    case PCRE2_INFO_HASBACKSLASHC:
     case PCRE2_INFO_HASCRORLF:
     case PCRE2_INFO_JCHANGED:
     case PCRE2_INFO_LASTCODETYPE:
@@ -149,6 +150,10 @@ switch(what)
   case PCRE2_INFO_FIRSTBITMAP:
   *((const uint8_t **)where) = ((re->flags & PCRE2_FIRSTMAPSET) != 0)?
     &(re->start_bitmap[0]) : NULL;
+  break;
+
+  case PCRE2_INFO_HASBACKSLASHC:
+  *((uint32_t *)where) = (re->flags & PCRE2_HASBKC) != 0;
   break;
 
   case PCRE2_INFO_HASCRORLF:

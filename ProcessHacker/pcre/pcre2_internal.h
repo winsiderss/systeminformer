@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2015 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* We do not support both EBCDIC and Unicode at the same time. The "configure"
-script prevents both being selected, but not everybody uses "configure". */
+script prevents both being selected, but not everybody uses "configure". EBCDIC
+is only supported for the 8-bit library, but the check for this has to be later
+in this file, because the first part is not width-dependent, and is included by
+pcre2test.c with CODE_UNIT_WIDTH == 0. */
 
 #if defined EBCDIC && defined SUPPORT_UNICODE
 #error The use of both EBCDIC and SUPPORT_UNICODE is not supported.
@@ -524,9 +527,11 @@ bytes in a code unit in that mode. */
 #define PCRE2_NL_SET        0x00008000  /* newline was set in the pattern */
 #define PCRE2_NOTEMPTY_SET  0x00010000  /* (*NOTEMPTY) used        ) keep */
 #define PCRE2_NE_ATST_SET   0x00020000  /* (*NOTEMPTY_ATSTART) used) together */
-#define PCRE2_DEREF_TABLES  0x00040000  /* Release character tables. */
+#define PCRE2_DEREF_TABLES  0x00040000  /* release character tables */
 #define PCRE2_NOJIT         0x00080000  /* (*NOJIT) used */
 #define PCRE2_HASBKPORX     0x00100000  /* contains \P, \p, or \X */
+#define PCRE2_DUPCAPUSED    0x00200000  /* contains (?| */
+#define PCRE2_HASBKC        0x00400000  /* contains \C */
 
 #define PCRE2_MODE_MASK     (PCRE2_MODE8 | PCRE2_MODE16 | PCRE2_MODE32)
 
@@ -917,6 +922,7 @@ a positive value. */
 #define STRING_NOTEMPTY_ATSTART_RIGHTPAR  "NOTEMPTY_ATSTART)"
 #define STRING_LIMIT_MATCH_EQ             "LIMIT_MATCH="
 #define STRING_LIMIT_RECURSION_EQ         "LIMIT_RECURSION="
+#define STRING_MARK                       "MARK"
 
 #else  /* SUPPORT_UNICODE */
 
@@ -1189,6 +1195,7 @@ only. */
 #define STRING_NOTEMPTY_ATSTART_RIGHTPAR  STR_N STR_O STR_T STR_E STR_M STR_P STR_T STR_Y STR_UNDERSCORE STR_A STR_T STR_S STR_T STR_A STR_R STR_T STR_RIGHT_PARENTHESIS
 #define STRING_LIMIT_MATCH_EQ             STR_L STR_I STR_M STR_I STR_T STR_UNDERSCORE STR_M STR_A STR_T STR_C STR_H STR_EQUALS_SIGN
 #define STRING_LIMIT_RECURSION_EQ         STR_L STR_I STR_M STR_I STR_T STR_UNDERSCORE STR_R STR_E STR_C STR_U STR_R STR_S STR_I STR_O STR_N STR_EQUALS_SIGN
+#define STRING_MARK                       STR_M STR_A STR_R STR_K
 
 #endif  /* SUPPORT_UNICODE */
 
@@ -1800,10 +1807,15 @@ typedef struct pcre2_serialized_data {
 
 #if defined PCRE2_CODE_UNIT_WIDTH && PCRE2_CODE_UNIT_WIDTH != 0
 
+/* EBCDIC is supported only for the 8-bit library. */
+
+#if defined EBCDIC && PCRE2_CODE_UNIT_WIDTH != 8
+#error EBCDIC is not supported for the 16-bit or 32-bit libraries
+#endif
+
 /* This is the largest non-UTF code point. */
 
 #define MAX_NON_UTF_CHAR (0xffffffffU >> (32 - PCRE2_CODE_UNIT_WIDTH))
-
 
 /* Internal shared data tables and variables. These are used by more than one
 of the exported public functions. They have to be "external" in the C sense,
@@ -1883,6 +1895,7 @@ not referenced from pcre2test, and must not be defined when no code unit width
 is available. */
 
 #define _pcre2_auto_possessify       PCRE2_SUFFIX(_pcre2_auto_possessify_)
+#define _pcre2_check_escape          PCRE2_SUFFIX(_pcre2_check_escape_)
 #define _pcre2_find_bracket          PCRE2_SUFFIX(_pcre2_find_bracket_)
 #define _pcre2_is_newline            PCRE2_SUFFIX(_pcre2_is_newline_)
 #define _pcre2_jit_free_rodata       PCRE2_SUFFIX(_pcre2_jit_free_rodata_)
@@ -1904,6 +1917,8 @@ is available. */
 
 extern int          _pcre2_auto_possessify(PCRE2_UCHAR *, BOOL,
                       const compile_block *);
+extern int          _pcre2_check_escape(PCRE2_SPTR *, PCRE2_SPTR, uint32_t *,
+                      int *, uint32_t, BOOL, compile_block *);
 extern PCRE2_SPTR   _pcre2_find_bracket(PCRE2_SPTR, BOOL, int);
 extern BOOL         _pcre2_is_newline(PCRE2_SPTR, uint32_t, PCRE2_SPTR,
                       uint32_t *, BOOL);

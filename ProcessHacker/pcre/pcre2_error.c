@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2015 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
+// dmex: Disable warnings
 #pragma warning(push)
 #pragma warning(disable : 4996)
+#pragma warning(disable : 4267)
 
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
@@ -54,11 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 /* The texts of compile-time error messages. Compile-time error numbers start
 at COMPILE_ERROR_BASE (100).
 
-Do not ever re-use any error number, because they are documented. Always add a
-new error instead. This used to be a table of strings, but in order to reduce
-the number of relocations needed when a shared library is loaded dynamically,
-it is now one long string. We cannot use a table of offsets, because the
-lengths of inserts such as XSTRING(MAX_NAME_SIZE) are not known. Instead,
+This used to be a table of strings, but in order to reduce the number of
+relocations needed when a shared library is loaded dynamically, it is now one
+long string. We cannot use a table of offsets, because the lengths of inserts
+such as XSTRING(MAX_NAME_SIZE) are not known. Instead,
 pcre2_get_error_message() counts through to the one it wants - this isn't a
 performance issue because these strings are used only when there is an error.
 
@@ -95,7 +96,7 @@ static const char compile_error_texts[] =
   "failed to allocate heap memory\0"
   "unmatched closing parenthesis\0"
   "internal error: code overflow\0"
-  "unrecognized character after (?<\0"
+  "letter or underscore expected after (?< or (?'\0"
   /* 25 */
   "lookbehind assertion is not fixed length\0"
   "malformed number or name after (?(\0"
@@ -115,7 +116,7 @@ static const char compile_error_texts[] =
   "number after (?C is greater than 255\0"
   "closing parenthesis for (?C expected\0"
   /* 40 */
-  "recursion could loop indefinitely\0"
+  "invalid escape sequence in (*VERB) name\0"
   "unrecognized character after (?P\0"
   "syntax error in subpattern name (missing terminator)\0"
   "two named subpatterns have the same name (PCRE2_DUPNAMES not set)\0"
@@ -157,7 +158,7 @@ static const char compile_error_texts[] =
   /* 70 */
   "internal error: unknown opcode in find_fixedlength()\0"
   "\\N is not supported in a class\0"
-  "too many forward references\0"
+  "SPARE ERROR\0"
   "disallowed Unicode code point (>= 0xd800 && <= 0xdfff)\0"
   "using UTF is disabled by the application\0"
   /* 75 */
@@ -172,6 +173,11 @@ static const char compile_error_texts[] =
   "unrecognized string delimiter follows (?C\0"
   "using \\C is disabled by the application\0"
   "(?| and/or (?J: or (?x: parentheses are too deeply nested\0"
+  /* 85 */
+  "using \\C is disabled in this PCRE2 library\0"
+  "regular expression is too complicated\0"
+  "lookbehind assertion is too long\0"
+  "pattern string is longer than the limit set by the application\0"
   ;
 
 /* Match-time and UTF error texts are in the same format. */
@@ -203,7 +209,7 @@ static const char match_error_texts[] =
   /* 20 */
   "UTF-8 error: overlong 5-byte sequence\0"
   "UTF-8 error: overlong 6-byte sequence\0"
-  "UTF-8 error: isolated 0x80 byte\0"
+  "UTF-8 error: isolated byte with 0x80 bit set\0"
   "UTF-8 error: illegal byte (0xfe or 0xff)\0"
   "UTF-16 error: missing low surrogate at end\0"
   /* 25 */
@@ -242,7 +248,15 @@ static const char match_error_texts[] =
   "nested recursion at the same subject position\0"
   "recursion limit exceeded\0"
   "requested value is not available\0"
+  /* 55 */
   "requested value is not set\0"
+  "offset limit set without PCRE2_USE_OFFSET_LIMIT\0"
+  "bad escape sequence in replacement string\0"
+  "expected closing curly bracket in replacement string\0"
+  "bad substitution in replacement string\0"
+  /* 60 */
+  "match with end before start is not supported\0"
+  "too many replacements (more than INT_MAX)\0"
   ;
 
 
@@ -264,8 +278,7 @@ Returns:        length of message if all is well
                 negative on error
 */
 
-// dmex: return value changed to size_t
-PCRE2_EXP_DEFN size_t PCRE2_CALL_CONVENTION
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
 pcre2_get_error_message(int enumber, PCRE2_UCHAR *buffer, size_t size)
 {
 char xbuff[128];

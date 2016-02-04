@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ just to undefine them all. */
 #undef MAX_MARK
 #undef MAX_PATTERN_SIZE
 #undef MAX_UTF_SINGLE_CU
-#undef NOT_FIRSTCHAR
+#undef NOT_FIRSTCU
 #undef PUT
 #undef PUT2
 #undef PUT2INC
@@ -252,7 +252,7 @@ UTF support is omitted, we don't even define them. */
 /* #define MAX_UTF_SINGLE_CU */
 /* #define HAS_EXTRALEN(c) */
 /* #define GET_EXTRALEN(c) */
-/* #define NOT_FIRSTCHAR(c) */
+/* #define NOT_FIRSTCU(c) */
 #define GETCHAR(c, eptr) c = *eptr;
 #define GETCHARTEST(c, eptr) c = *eptr;
 #define GETCHARINC(c, eptr) c = *eptr++;
@@ -285,10 +285,10 @@ Otherwise it has an undefined behaviour. */
 
 #define GET_EXTRALEN(c) (PRIV(utf8_table4)[(c) & 0x3f])
 
-/* Returns TRUE, if the given character is not the first character
-of a UTF sequence. */
+/* Returns TRUE, if the given value is not the first code unit of a UTF
+sequence. */
 
-#define NOT_FIRSTCHAR(c) (((c) & 0xc0) == 0x80)
+#define NOT_FIRSTCU(c) (((c) & 0xc0) == 0x80)
 
 /* Get the next UTF-8 character, not advancing the pointer. This is called when
 we know we are in UTF-8 mode. */
@@ -371,10 +371,10 @@ Otherwise it has an undefined behaviour. */
 
 #define GET_EXTRALEN(c) 1
 
-/* Returns TRUE, if the given character is not the first character
-of a UTF sequence. */
+/* Returns TRUE, if the given value is not the first code unit of a UTF
+sequence. */
 
-#define NOT_FIRSTCHAR(c) (((c) & 0xfc00) == 0xdc00)
+#define NOT_FIRSTCU(c) (((c) & 0xfc00) == 0xdc00)
 
 /* Base macro to pick up the low surrogate of a UTF-16 character, not
 advancing the pointer. */
@@ -469,7 +469,7 @@ into one PCRE2_UCHAR unit. */
 #define MAX_UTF_SINGLE_CU (0x10ffffu)
 #define HAS_EXTRALEN(c) (0)
 #define GET_EXTRALEN(c) (0)
-#define NOT_FIRSTCHAR(c) (0)
+#define NOT_FIRSTCU(c) (0)
 
 /* Get the next UTF-32 character, not advancing the pointer. This is called when
 we know we are in UTF-32 mode. */
@@ -562,6 +562,7 @@ typedef struct pcre2_real_compile_context {
   int (*stack_guard)(uint32_t, void *);
   void *stack_guard_data;
   const uint8_t *tables;
+  PCRE2_SIZE max_pattern_length;
   uint16_t bsr_convention;
   uint16_t newline_convention;
   uint32_t parens_nest_limit;
@@ -580,6 +581,7 @@ typedef struct pcre2_real_match_context {
 #endif
   int    (*callout)(pcre2_callout_block *, void *);
   void    *callout_data;
+  PCRE2_SIZE offset_limit;
   uint32_t match_limit;
   uint32_t recursion_limit;
 } pcre2_real_match_context;
@@ -588,10 +590,16 @@ typedef struct pcre2_real_match_context {
 defined specially because it is required in pcre2_serialize_decode() when
 copying the size from possibly unaligned memory into a variable of the same
 type. Use a macro rather than a typedef to avoid compiler warnings when this
-file is included multiple times by pcre2test. */
+file is included multiple times by pcre2test. LOOKBEHIND_MAX specifies the
+largest lookbehind that is supported. (OP_REVERSE in a pattern has a 16-bit
+argument in 8-bit and 16-bit modes, so we need no more than a 16-bit field
+here.) */
 
 #undef  CODE_BLOCKSIZE_TYPE
 #define CODE_BLOCKSIZE_TYPE size_t
+
+#undef  LOOKBEHIND_MAX
+#define LOOKBEHIND_MAX UINT16_MAX
 
 typedef struct pcre2_real_code {
   pcre2_memctl memctl;            /* Memory control fields */
@@ -647,6 +655,13 @@ typedef struct recurse_check {
   PCRE2_SPTR group;
 } recurse_check;
 
+/* Structure for building a cache when filling in recursion offsets. */
+
+typedef struct recurse_cache {
+  PCRE2_SPTR group;
+  int recno;
+} recurse_cache;
+
 /* Structure for maintaining a chain of pointers to the currently incomplete
 branches, for testing for left recursion while compiling. */
 
@@ -678,7 +693,7 @@ typedef struct compile_block {
   PCRE2_SPTR start_code;           /* The start of the compiled code */
   PCRE2_SPTR start_pattern;        /* The start of the pattern */
   PCRE2_SPTR end_pattern;          /* The end of the pattern */
-  PCRE2_UCHAR *hwm;                /* High watermark of workspace */
+  PCRE2_SPTR nestptr[2];           /* Pointer(s) saved for string substitution */
   PCRE2_UCHAR *name_table;         /* The name/number table */
   size_t workspace_size;           /* Size of workspace */
   uint16_t names_found;            /* Number of entries so far */
@@ -690,6 +705,7 @@ typedef struct compile_block {
   uint32_t external_flags;         /* External flag bits to be set */
   uint32_t bracount;               /* Count of capturing parens as we compile */
   uint32_t final_bracount;         /* Saved value after first pass */
+  uint32_t *groupinfo;             /* Group info vector */
   uint32_t top_backref;            /* Maximum back reference */
   uint32_t backref_map;            /* Bitmap of low back refs */
   uint32_t nltype;                 /* Newline type */
@@ -701,6 +717,7 @@ typedef struct compile_block {
   int  req_varyopt;                /* "After variable item" flag for reqbyte */
   BOOL had_accept;                 /* (*ACCEPT) encountered */
   BOOL had_pruneorskip;            /* (*PRUNE) or (*SKIP) encountered */
+  BOOL had_recurse;                /* Had a recursion or subroutine call */
   BOOL check_lookbehind;           /* Lookbehinds need later checking */
   BOOL dupnames;                   /* Duplicate names exist */
   BOOL iscondassert;               /* Next assert is a condition */

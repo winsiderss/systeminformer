@@ -474,6 +474,9 @@
     <ClCompile Include="..\phlib\avltree.c">
       <Filter>phlib</Filter>
     </ClCompile>
+    <ClCompile Include="pcre\pcre2_find_bracket.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">

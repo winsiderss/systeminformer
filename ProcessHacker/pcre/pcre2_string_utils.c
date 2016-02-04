@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -121,7 +121,7 @@ int
 PRIV(strncmp)(PCRE2_SPTR str1, PCRE2_SPTR str2, size_t len)
 {
 PCRE2_UCHAR c1, c2;
-while (len-- > 0)
+for (; len > 0; len--)
   {
   c1 = *str1++;
   c2 = *str2++;
@@ -150,7 +150,7 @@ int
 PRIV(strncmp_c8)(PCRE2_SPTR str1, const char *str2, size_t len)
 {
 PCRE2_UCHAR c1, c2;
-while (len-- > 0)
+for (; len > 0; len--)
   {
   c1 = *str1++;
   c2 = *str2++;

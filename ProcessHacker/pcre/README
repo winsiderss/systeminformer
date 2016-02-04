@@ -220,6 +220,13 @@ library. They are also documented in the pcre2build man page.
   restrict \R to match only CR, LF, or CRLF. You can make this the default by
   adding --enable-bsr-anycrlf to the "configure" command (bsr = "backslash R").
 
+. In a pattern, the escape sequence \C matches a single code unit, even in a
+  UTF mode. This can be dangerous because it breaks up multi-code-unit
+  characters. You can build PCRE2 with the use of \C permanently locked out by
+  adding --enable-never-backslash-C (note the upper case C) to the "configure"
+  command. When \C is allowed by the library, individual applications can lock
+  it out by calling pcre2_compile() with the PCRE2_NEVER_BACKSLASH_C option.
+
 . PCRE2 has a counter that limits the depth of nesting of parentheses in a
   pattern. This limits the amount of system stack that a pattern uses when it
   is compiled. The default is 250, but you can change it by setting, for
@@ -724,6 +731,7 @@ The distribution should contain the files listed below.
   src/pcre2_context.c      )
   src/pcre2_dfa_match.c    )
   src/pcre2_error.c        )
+  src/pcre2_find_bracket.c )
   src/pcre2_jit_compile.c  )
   src/pcre2_jit_match.c    ) sources for the functions in the library,
   src/pcre2_jit_misc.c     )   and some internal functions that they use
@@ -832,4 +840,4 @@ The distribution should contain the files listed below.
 Philip Hazel
 Email local part: ph10
 Email domain: cam.ac.uk
-Last updated: 24 April 2015
+Last updated: 16 October 2015

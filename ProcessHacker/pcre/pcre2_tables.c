@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -228,6 +228,8 @@ version. Like all other character and string literals that are compared against
 the regular expression pattern, we must use STR_ macros instead of literal
 strings to make sure that UTF-8 support works on EBCDIC platforms. */
 
+#define STRING_Ahom0 STR_A STR_h STR_o STR_m "\0"
+#define STRING_Anatolian_Hieroglyphs0 STR_A STR_n STR_a STR_t STR_o STR_l STR_i STR_a STR_n STR_UNDERSCORE STR_H STR_i STR_e STR_r STR_o STR_g STR_l STR_y STR_p STR_h STR_s "\0"
 #define STRING_Any0 STR_A STR_n STR_y "\0"
 #define STRING_Arabic0 STR_A STR_r STR_a STR_b STR_i STR_c "\0"
 #define STRING_Armenian0 STR_A STR_r STR_m STR_e STR_n STR_i STR_a STR_n "\0"
@@ -275,6 +277,7 @@ strings to make sure that UTF-8 support works on EBCDIC platforms. */
 #define STRING_Han0 STR_H STR_a STR_n "\0"
 #define STRING_Hangul0 STR_H STR_a STR_n STR_g STR_u STR_l "\0"
 #define STRING_Hanunoo0 STR_H STR_a STR_n STR_u STR_n STR_o STR_o "\0"
+#define STRING_Hatran0 STR_H STR_a STR_t STR_r STR_a STR_n "\0"
 #define STRING_Hebrew0 STR_H STR_e STR_b STR_r STR_e STR_w "\0"
 #define STRING_Hiragana0 STR_H STR_i STR_r STR_a STR_g STR_a STR_n STR_a "\0"
 #define STRING_Imperial_Aramaic0 STR_I STR_m STR_p STR_e STR_r STR_i STR_a STR_l STR_UNDERSCORE STR_A STR_r STR_a STR_m STR_a STR_i STR_c "\0"
@@ -322,6 +325,7 @@ strings to make sure that UTF-8 support works on EBCDIC platforms. */
 #define STRING_Modi0 STR_M STR_o STR_d STR_i "\0"
 #define STRING_Mongolian0 STR_M STR_o STR_n STR_g STR_o STR_l STR_i STR_a STR_n "\0"
 #define STRING_Mro0 STR_M STR_r STR_o "\0"
+#define STRING_Multani0 STR_M STR_u STR_l STR_t STR_a STR_n STR_i "\0"
 #define STRING_Myanmar0 STR_M STR_y STR_a STR_n STR_m STR_a STR_r "\0"
 #define STRING_N0 STR_N "\0"
 #define STRING_Nabataean0 STR_N STR_a STR_b STR_a STR_t STR_a STR_e STR_a STR_n "\0"
@@ -332,6 +336,7 @@ strings to make sure that UTF-8 support works on EBCDIC platforms. */
 #define STRING_No0 STR_N STR_o "\0"
 #define STRING_Ogham0 STR_O STR_g STR_h STR_a STR_m "\0"
 #define STRING_Ol_Chiki0 STR_O STR_l STR_UNDERSCORE STR_C STR_h STR_i STR_k STR_i "\0"
+#define STRING_Old_Hungarian0 STR_O STR_l STR_d STR_UNDERSCORE STR_H STR_u STR_n STR_g STR_a STR_r STR_i STR_a STR_n "\0"
 #define STRING_Old_Italic0 STR_O STR_l STR_d STR_UNDERSCORE STR_I STR_t STR_a STR_l STR_i STR_c "\0"
 #define STRING_Old_North_Arabian0 STR_O STR_l STR_d STR_UNDERSCORE STR_N STR_o STR_r STR_t STR_h STR_UNDERSCORE STR_A STR_r STR_a STR_b STR_i STR_a STR_n "\0"
 #define STRING_Old_Permic0 STR_O STR_l STR_d STR_UNDERSCORE STR_P STR_e STR_r STR_m STR_i STR_c "\0"
@@ -363,6 +368,7 @@ strings to make sure that UTF-8 support works on EBCDIC platforms. */
 #define STRING_Sharada0 STR_S STR_h STR_a STR_r STR_a STR_d STR_a "\0"
 #define STRING_Shavian0 STR_S STR_h STR_a STR_v STR_i STR_a STR_n "\0"
 #define STRING_Siddham0 STR_S STR_i STR_d STR_d STR_h STR_a STR_m "\0"
+#define STRING_SignWriting0 STR_S STR_i STR_g STR_n STR_W STR_r STR_i STR_t STR_i STR_n STR_g "\0"
 #define STRING_Sinhala0 STR_S STR_i STR_n STR_h STR_a STR_l STR_a "\0"
 #define STRING_Sk0 STR_S STR_k "\0"
 #define STRING_Sm0 STR_S STR_m "\0"
@@ -399,6 +405,8 @@ strings to make sure that UTF-8 support works on EBCDIC platforms. */
 #define STRING_Zs0 STR_Z STR_s "\0"
 
 const char PRIV(utt_names)[] =
+  STRING_Ahom0
+  STRING_Anatolian_Hieroglyphs0
   STRING_Any0
   STRING_Arabic0
   STRING_Armenian0
@@ -446,6 +454,7 @@ const char PRIV(utt_names)[] =
   STRING_Han0
   STRING_Hangul0
   STRING_Hanunoo0
+  STRING_Hatran0
   STRING_Hebrew0
   STRING_Hiragana0
   STRING_Imperial_Aramaic0
@@ -493,6 +502,7 @@ const char PRIV(utt_names)[] =
   STRING_Modi0
   STRING_Mongolian0
   STRING_Mro0
+  STRING_Multani0
   STRING_Myanmar0
   STRING_N0
   STRING_Nabataean0
@@ -503,6 +513,7 @@ const char PRIV(utt_names)[] =
   STRING_No0
   STRING_Ogham0
   STRING_Ol_Chiki0
+  STRING_Old_Hungarian0
   STRING_Old_Italic0
   STRING_Old_North_Arabian0
   STRING_Old_Permic0
@@ -534,6 +545,7 @@ const char PRIV(utt_names)[] =
   STRING_Sharada0
   STRING_Shavian0
   STRING_Siddham0
+  STRING_SignWriting0
   STRING_Sinhala0
   STRING_Sk0
   STRING_Sm0
@@ -570,175 +582,181 @@ const char PRIV(utt_names)[] =
   STRING_Zs0;
 
 const ucp_type_table PRIV(utt)[] = {
-  {   0, PT_ANY, 0 },
-  {   4, PT_SC, ucp_Arabic },
-  {  11, PT_SC, ucp_Armenian },
-  {  20, PT_SC, ucp_Avestan },
-  {  28, PT_SC, ucp_Balinese },
-  {  37, PT_SC, ucp_Bamum },
-  {  43, PT_SC, ucp_Bassa_Vah },
-  {  53, PT_SC, ucp_Batak },
-  {  59, PT_SC, ucp_Bengali },
-  {  67, PT_SC, ucp_Bopomofo },
-  {  76, PT_SC, ucp_Brahmi },
-  {  83, PT_SC, ucp_Braille },
-  {  91, PT_SC, ucp_Buginese },
-  { 100, PT_SC, ucp_Buhid },
-  { 106, PT_GC, ucp_C },
-  { 108, PT_SC, ucp_Canadian_Aboriginal },
-  { 128, PT_SC, ucp_Carian },
-  { 135, PT_SC, ucp_Caucasian_Albanian },
-  { 154, PT_PC, ucp_Cc },
-  { 157, PT_PC, ucp_Cf },
-  { 160, PT_SC, ucp_Chakma },
-  { 167, PT_SC, ucp_Cham },
-  { 172, PT_SC, ucp_Cherokee },
-  { 181, PT_PC, ucp_Cn },
-  { 184, PT_PC, ucp_Co },
-  { 187, PT_SC, ucp_Common },
-  { 194, PT_SC, ucp_Coptic },
-  { 201, PT_PC, ucp_Cs },
-  { 204, PT_SC, ucp_Cuneiform },
-  { 214, PT_SC, ucp_Cypriot },
-  { 222, PT_SC, ucp_Cyrillic },
-  { 231, PT_SC, ucp_Deseret },
-  { 239, PT_SC, ucp_Devanagari },
-  { 250, PT_SC, ucp_Duployan },
-  { 259, PT_SC, ucp_Egyptian_Hieroglyphs },
-  { 280, PT_SC, ucp_Elbasan },
-  { 288, PT_SC, ucp_Ethiopic },
-  { 297, PT_SC, ucp_Georgian },
-  { 306, PT_SC, ucp_Glagolitic },
-  { 317, PT_SC, ucp_Gothic },
-  { 324, PT_SC, ucp_Grantha },
-  { 332, PT_SC, ucp_Greek },
-  { 338, PT_SC, ucp_Gujarati },
-  { 347, PT_SC, ucp_Gurmukhi },
-  { 356, PT_SC, ucp_Han },
-  { 360, PT_SC, ucp_Hangul },
-  { 367, PT_SC, ucp_Hanunoo },
-  { 375, PT_SC, ucp_Hebrew },
-  { 382, PT_SC, ucp_Hiragana },
-  { 391, PT_SC, ucp_Imperial_Aramaic },
-  { 408, PT_SC, ucp_Inherited },
-  { 418, PT_SC, ucp_Inscriptional_Pahlavi },
-  { 440, PT_SC, ucp_Inscriptional_Parthian },
-  { 463, PT_SC, ucp_Javanese },
-  { 472, PT_SC, ucp_Kaithi },
-  { 479, PT_SC, ucp_Kannada },
-  { 487, PT_SC, ucp_Katakana },
-  { 496, PT_SC, ucp_Kayah_Li },
-  { 505, PT_SC, ucp_Kharoshthi },
-  { 516, PT_SC, ucp_Khmer },
-  { 522, PT_SC, ucp_Khojki },
-  { 529, PT_SC, ucp_Khudawadi },
-  { 539, PT_GC, ucp_L },
-  { 541, PT_LAMP, 0 },
-  { 544, PT_SC, ucp_Lao },
-  { 548, PT_SC, ucp_Latin },
-  { 554, PT_SC, ucp_Lepcha },
-  { 561, PT_SC, ucp_Limbu },
-  { 567, PT_SC, ucp_Linear_A },
-  { 576, PT_SC, ucp_Linear_B },
-  { 585, PT_SC, ucp_Lisu },
-  { 590, PT_PC, ucp_Ll },
-  { 593, PT_PC, ucp_Lm },
-  { 596, PT_PC, ucp_Lo },
-  { 599, PT_PC, ucp_Lt },
-  { 602, PT_PC, ucp_Lu },
-  { 605, PT_SC, ucp_Lycian },
-  { 612, PT_SC, ucp_Lydian },
-  { 619, PT_GC, ucp_M },
-  { 621, PT_SC, ucp_Mahajani },
-  { 630, PT_SC, ucp_Malayalam },
-  { 640, PT_SC, ucp_Mandaic },
-  { 648, PT_SC, ucp_Manichaean },
-  { 659, PT_PC, ucp_Mc },
-  { 662, PT_PC, ucp_Me },
-  { 665, PT_SC, ucp_Meetei_Mayek },
-  { 678, PT_SC, ucp_Mende_Kikakui },
-  { 692, PT_SC, ucp_Meroitic_Cursive },
-  { 709, PT_SC, ucp_Meroitic_Hieroglyphs },
-  { 730, PT_SC, ucp_Miao },
-  { 735, PT_PC, ucp_Mn },
-  { 738, PT_SC, ucp_Modi },
-  { 743, PT_SC, ucp_Mongolian },
-  { 753, PT_SC, ucp_Mro },
-  { 757, PT_SC, ucp_Myanmar },
-  { 765, PT_GC, ucp_N },
-  { 767, PT_SC, ucp_Nabataean },
-  { 777, PT_PC, ucp_Nd },
-  { 780, PT_SC, ucp_New_Tai_Lue },
-  { 792, PT_SC, ucp_Nko },
-  { 796, PT_PC, ucp_Nl },
-  { 799, PT_PC, ucp_No },
-  { 802, PT_SC, ucp_Ogham },
-  { 808, PT_SC, ucp_Ol_Chiki },
-  { 817, PT_SC, ucp_Old_Italic },
-  { 828, PT_SC, ucp_Old_North_Arabian },
-  { 846, PT_SC, ucp_Old_Permic },
-  { 857, PT_SC, ucp_Old_Persian },
-  { 869, PT_SC, ucp_Old_South_Arabian },
-  { 887, PT_SC, ucp_Old_Turkic },
-  { 898, PT_SC, ucp_Oriya },
-  { 904, PT_SC, ucp_Osmanya },
-  { 912, PT_GC, ucp_P },
-  { 914, PT_SC, ucp_Pahawh_Hmong },
-  { 927, PT_SC, ucp_Palmyrene },
-  { 937, PT_SC, ucp_Pau_Cin_Hau },
-  { 949, PT_PC, ucp_Pc },
-  { 952, PT_PC, ucp_Pd },
-  { 955, PT_PC, ucp_Pe },
-  { 958, PT_PC, ucp_Pf },
-  { 961, PT_SC, ucp_Phags_Pa },
-  { 970, PT_SC, ucp_Phoenician },
-  { 981, PT_PC, ucp_Pi },
-  { 984, PT_PC, ucp_Po },
-  { 987, PT_PC, ucp_Ps },
-  { 990, PT_SC, ucp_Psalter_Pahlavi },
-  { 1006, PT_SC, ucp_Rejang },
-  { 1013, PT_SC, ucp_Runic },
-  { 1019, PT_GC, ucp_S },
-  { 1021, PT_SC, ucp_Samaritan },
-  { 1031, PT_SC, ucp_Saurashtra },
-  { 1042, PT_PC, ucp_Sc },
-  { 1045, PT_SC, ucp_Sharada },
-  { 1053, PT_SC, ucp_Shavian },
-  { 1061, PT_SC, ucp_Siddham },
-  { 1069, PT_SC, ucp_Sinhala },
-  { 1077, PT_PC, ucp_Sk },
-  { 1080, PT_PC, ucp_Sm },
-  { 1083, PT_PC, ucp_So },
-  { 1086, PT_SC, ucp_Sora_Sompeng },
-  { 1099, PT_SC, ucp_Sundanese },
-  { 1109, PT_SC, ucp_Syloti_Nagri },
-  { 1122, PT_SC, ucp_Syriac },
-  { 1129, PT_SC, ucp_Tagalog },
-  { 1137, PT_SC, ucp_Tagbanwa },
-  { 1146, PT_SC, ucp_Tai_Le },
-  { 1153, PT_SC, ucp_Tai_Tham },
-  { 1162, PT_SC, ucp_Tai_Viet },
-  { 1171, PT_SC, ucp_Takri },
-  { 1177, PT_SC, ucp_Tamil },
-  { 1183, PT_SC, ucp_Telugu },
-  { 1190, PT_SC, ucp_Thaana },
-  { 1197, PT_SC, ucp_Thai },
-  { 1202, PT_SC, ucp_Tibetan },
-  { 1210, PT_SC, ucp_Tifinagh },
-  { 1219, PT_SC, ucp_Tirhuta },
-  { 1227, PT_SC, ucp_Ugaritic },
-  { 1236, PT_SC, ucp_Vai },
-  { 1240, PT_SC, ucp_Warang_Citi },
-  { 1252, PT_ALNUM, 0 },
-  { 1256, PT_PXSPACE, 0 },
-  { 1260, PT_SPACE, 0 },
-  { 1264, PT_UCNC, 0 },
-  { 1268, PT_WORD, 0 },
-  { 1272, PT_SC, ucp_Yi },
-  { 1275, PT_GC, ucp_Z },
-  { 1277, PT_PC, ucp_Zl },
-  { 1280, PT_PC, ucp_Zp },
-  { 1283, PT_PC, ucp_Zs }
+  {   0, PT_SC, ucp_Ahom },
+  {   5, PT_SC, ucp_Anatolian_Hieroglyphs },
+  {  27, PT_ANY, 0 },
+  {  31, PT_SC, ucp_Arabic },
+  {  38, PT_SC, ucp_Armenian },
+  {  47, PT_SC, ucp_Avestan },
+  {  55, PT_SC, ucp_Balinese },
+  {  64, PT_SC, ucp_Bamum },
+  {  70, PT_SC, ucp_Bassa_Vah },
+  {  80, PT_SC, ucp_Batak },
+  {  86, PT_SC, ucp_Bengali },
+  {  94, PT_SC, ucp_Bopomofo },
+  { 103, PT_SC, ucp_Brahmi },
+  { 110, PT_SC, ucp_Braille },
+  { 118, PT_SC, ucp_Buginese },
+  { 127, PT_SC, ucp_Buhid },
+  { 133, PT_GC, ucp_C },
+  { 135, PT_SC, ucp_Canadian_Aboriginal },
+  { 155, PT_SC, ucp_Carian },
+  { 162, PT_SC, ucp_Caucasian_Albanian },
+  { 181, PT_PC, ucp_Cc },
+  { 184, PT_PC, ucp_Cf },
+  { 187, PT_SC, ucp_Chakma },
+  { 194, PT_SC, ucp_Cham },
+  { 199, PT_SC, ucp_Cherokee },
+  { 208, PT_PC, ucp_Cn },
+  { 211, PT_PC, ucp_Co },
+  { 214, PT_SC, ucp_Common },
+  { 221, PT_SC, ucp_Coptic },
+  { 228, PT_PC, ucp_Cs },
+  { 231, PT_SC, ucp_Cuneiform },
+  { 241, PT_SC, ucp_Cypriot },
+  { 249, PT_SC, ucp_Cyrillic },
+  { 258, PT_SC, ucp_Deseret },
+  { 266, PT_SC, ucp_Devanagari },
+  { 277, PT_SC, ucp_Duployan },
+  { 286, PT_SC, ucp_Egyptian_Hieroglyphs },
+  { 307, PT_SC, ucp_Elbasan },
+  { 315, PT_SC, ucp_Ethiopic },
+  { 324, PT_SC, ucp_Georgian },
+  { 333, PT_SC, ucp_Glagolitic },
+  { 344, PT_SC, ucp_Gothic },
+  { 351, PT_SC, ucp_Grantha },
+  { 359, PT_SC, ucp_Greek },
+  { 365, PT_SC, ucp_Gujarati },
+  { 374, PT_SC, ucp_Gurmukhi },
+  { 383, PT_SC, ucp_Han },
+  { 387, PT_SC, ucp_Hangul },
+  { 394, PT_SC, ucp_Hanunoo },
+  { 402, PT_SC, ucp_Hatran },
+  { 409, PT_SC, ucp_Hebrew },
+  { 416, PT_SC, ucp_Hiragana },
+  { 425, PT_SC, ucp_Imperial_Aramaic },
+  { 442, PT_SC, ucp_Inherited },
+  { 452, PT_SC, ucp_Inscriptional_Pahlavi },
+  { 474, PT_SC, ucp_Inscriptional_Parthian },
+  { 497, PT_SC, ucp_Javanese },
+  { 506, PT_SC, ucp_Kaithi },
+  { 513, PT_SC, ucp_Kannada },
+  { 521, PT_SC, ucp_Katakana },
+  { 530, PT_SC, ucp_Kayah_Li },
+  { 539, PT_SC, ucp_Kharoshthi },
+  { 550, PT_SC, ucp_Khmer },
+  { 556, PT_SC, ucp_Khojki },
+  { 563, PT_SC, ucp_Khudawadi },
+  { 573, PT_GC, ucp_L },
+  { 575, PT_LAMP, 0 },
+  { 578, PT_SC, ucp_Lao },
+  { 582, PT_SC, ucp_Latin },
+  { 588, PT_SC, ucp_Lepcha },
+  { 595, PT_SC, ucp_Limbu },
+  { 601, PT_SC, ucp_Linear_A },
+  { 610, PT_SC, ucp_Linear_B },
+  { 619, PT_SC, ucp_Lisu },
+  { 624, PT_PC, ucp_Ll },
+  { 627, PT_PC, ucp_Lm },
+  { 630, PT_PC, ucp_Lo },
+  { 633, PT_PC, ucp_Lt },
+  { 636, PT_PC, ucp_Lu },
+  { 639, PT_SC, ucp_Lycian },
+  { 646, PT_SC, ucp_Lydian },
+  { 653, PT_GC, ucp_M },
+  { 655, PT_SC, ucp_Mahajani },
+  { 664, PT_SC, ucp_Malayalam },
+  { 674, PT_SC, ucp_Mandaic },
+  { 682, PT_SC, ucp_Manichaean },
+  { 693, PT_PC, ucp_Mc },
+  { 696, PT_PC, ucp_Me },
+  { 699, PT_SC, ucp_Meetei_Mayek },
+  { 712, PT_SC, ucp_Mende_Kikakui },
+  { 726, PT_SC, ucp_Meroitic_Cursive },
+  { 743, PT_SC, ucp_Meroitic_Hieroglyphs },
+  { 764, PT_SC, ucp_Miao },
+  { 769, PT_PC, ucp_Mn },
+  { 772, PT_SC, ucp_Modi },
+  { 777, PT_SC, ucp_Mongolian },
+  { 787, PT_SC, ucp_Mro },
+  { 791, PT_SC, ucp_Multani },
+  { 799, PT_SC, ucp_Myanmar },
+  { 807, PT_GC, ucp_N },
+  { 809, PT_SC, ucp_Nabataean },
+  { 819, PT_PC, ucp_Nd },
+  { 822, PT_SC, ucp_New_Tai_Lue },
+  { 834, PT_SC, ucp_Nko },
+  { 838, PT_PC, ucp_Nl },
+  { 841, PT_PC, ucp_No },
+  { 844, PT_SC, ucp_Ogham },
+  { 850, PT_SC, ucp_Ol_Chiki },
+  { 859, PT_SC, ucp_Old_Hungarian },
+  { 873, PT_SC, ucp_Old_Italic },
+  { 884, PT_SC, ucp_Old_North_Arabian },
+  { 902, PT_SC, ucp_Old_Permic },
+  { 913, PT_SC, ucp_Old_Persian },
+  { 925, PT_SC, ucp_Old_South_Arabian },
+  { 943, PT_SC, ucp_Old_Turkic },
+  { 954, PT_SC, ucp_Oriya },
+  { 960, PT_SC, ucp_Osmanya },
+  { 968, PT_GC, ucp_P },
+  { 970, PT_SC, ucp_Pahawh_Hmong },
+  { 983, PT_SC, ucp_Palmyrene },
+  { 993, PT_SC, ucp_Pau_Cin_Hau },
+  { 1005, PT_PC, ucp_Pc },
+  { 1008, PT_PC, ucp_Pd },
+  { 1011, PT_PC, ucp_Pe },
+  { 1014, PT_PC, ucp_Pf },
+  { 1017, PT_SC, ucp_Phags_Pa },
+  { 1026, PT_SC, ucp_Phoenician },
+  { 1037, PT_PC, ucp_Pi },
+  { 1040, PT_PC, ucp_Po },
+  { 1043, PT_PC, ucp_Ps },
+  { 1046, PT_SC, ucp_Psalter_Pahlavi },
+  { 1062, PT_SC, ucp_Rejang },
+  { 1069, PT_SC, ucp_Runic },
+  { 1075, PT_GC, ucp_S },
+  { 1077, PT_SC, ucp_Samaritan },
+  { 1087, PT_SC, ucp_Saurashtra },
+  { 1098, PT_PC, ucp_Sc },
+  { 1101, PT_SC, ucp_Sharada },
+  { 1109, PT_SC, ucp_Shavian },
+  { 1117, PT_SC, ucp_Siddham },
+  { 1125, PT_SC, ucp_SignWriting },
+  { 1137, PT_SC, ucp_Sinhala },
+  { 1145, PT_PC, ucp_Sk },
+  { 1148, PT_PC, ucp_Sm },
+  { 1151, PT_PC, ucp_So },
+  { 1154, PT_SC, ucp_Sora_Sompeng },
+  { 1167, PT_SC, ucp_Sundanese },
+  { 1177, PT_SC, ucp_Syloti_Nagri },
+  { 1190, PT_SC, ucp_Syriac },
+  { 1197, PT_SC, ucp_Tagalog },
+  { 1205, PT_SC, ucp_Tagbanwa },
+  { 1214, PT_SC, ucp_Tai_Le },
+  { 1221, PT_SC, ucp_Tai_Tham },
+  { 1230, PT_SC, ucp_Tai_Viet },
+  { 1239, PT_SC, ucp_Takri },
+  { 1245, PT_SC, ucp_Tamil },
+  { 1251, PT_SC, ucp_Telugu },
+  { 1258, PT_SC, ucp_Thaana },
+  { 1265, PT_SC, ucp_Thai },
+  { 1270, PT_SC, ucp_Tibetan },
+  { 1278, PT_SC, ucp_Tifinagh },
+  { 1287, PT_SC, ucp_Tirhuta },
+  { 1295, PT_SC, ucp_Ugaritic },
+  { 1304, PT_SC, ucp_Vai },
+  { 1308, PT_SC, ucp_Warang_Citi },
+  { 1320, PT_ALNUM, 0 },
+  { 1324, PT_PXSPACE, 0 },
+  { 1328, PT_SPACE, 0 },
+  { 1332, PT_UCNC, 0 },
+  { 1336, PT_WORD, 0 },
+  { 1340, PT_SC, ucp_Yi },
+  { 1343, PT_GC, ucp_Z },
+  { 1345, PT_PC, ucp_Zl },
+  { 1348, PT_PC, ucp_Zp },
+  { 1351, PT_PC, ucp_Zs }
 };
 
 const size_t PRIV(utt_size) = sizeof(PRIV(utt)) / sizeof(ucp_type_table);

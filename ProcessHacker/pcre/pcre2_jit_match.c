@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -129,10 +129,12 @@ arguments.match_data = match_data;
 arguments.startchar_ptr = subject;
 arguments.mark_ptr = NULL;
 arguments.options = options;
+
 if (mcontext != NULL)
   {
   arguments.callout = mcontext->callout;
   arguments.callout_data = mcontext->callout_data;
+  arguments.offset_limit = mcontext->offset_limit;
   arguments.limit_match = (mcontext->match_limit < re->limit_match)?
     mcontext->match_limit : re->limit_match;
   if (mcontext->jit_callback != NULL)
@@ -144,6 +146,7 @@ else
   {
   arguments.callout = NULL;
   arguments.callout_data = NULL;
+  arguments.offset_limit = PCRE2_UNSET;
   arguments.limit_match = (MATCH_LIMIT < re->limit_match)?
     MATCH_LIMIT : re->limit_match;
   jit_stack = NULL;

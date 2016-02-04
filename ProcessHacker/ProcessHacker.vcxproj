@@ -302,6 +302,7 @@
     <ClCompile Include="pcre\pcre2_context.c" />
     <ClCompile Include="pcre\pcre2_dfa_match.c" />
     <ClCompile Include="pcre\pcre2_error.c" />
+    <ClCompile Include="pcre\pcre2_find_bracket.c" />
     <ClCompile Include="pcre\pcre2_jit_compile.c" />
     <ClCompile Include="pcre\pcre2_maketables.c" />
     <ClCompile Include="pcre\pcre2_match.c" />

@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -253,7 +253,14 @@ enum {
   ucp_Pau_Cin_Hau,
   ucp_Siddham,
   ucp_Tirhuta,
-  ucp_Warang_Citi
+  ucp_Warang_Citi,
+  /* New for Unicode 8.0.0: */
+  ucp_Ahom,
+  ucp_Anatolian_Hieroglyphs,
+  ucp_Hatran,
+  ucp_Multani,
+  ucp_Old_Hungarian,
+  ucp_SignWriting
 };
 
 #endif

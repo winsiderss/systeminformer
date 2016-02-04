@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -247,7 +247,7 @@ while ((t = *data++) != XCL_END)
 
       case PT_PXPUNCT:
       if ((PRIV(ucp_gentype)[prop->chartype] == ucp_P ||
-            (c < 256 && PRIV(ucp_gentype)[prop->chartype] == ucp_S)) == isprop)
+            (c < 128 && PRIV(ucp_gentype)[prop->chartype] == ucp_S)) == isprop)
         return !negated;
       break;
 

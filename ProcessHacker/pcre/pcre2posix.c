@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module is a wrapper that provides a POSIX API to the underlying PCRE2
 functions. */
 
+// dmex: Disable warnings
 #pragma warning(push)
 #pragma warning(disable : 4996)
 #pragma warning(disable : 4267)
@@ -110,7 +111,7 @@ static const int eint1[] = {
 
 static const int eint2[] = {
   30, REG_ECTYPE,  /* unknown POSIX class name */
-  32, REG_INVARG,  /* this version of PCRE does not have UTF or UCP support */
+  32, REG_INVARG,  /* this version of PCRE2 does not have Unicode support */
   37, REG_EESCAPE, /* PCRE2 does not support \L, \l, \N{name}, \U, or \u */
   56, REG_INVARG,  /* internal error: unknown newline setting */
 };
@@ -148,29 +149,23 @@ static const char *const pstring[] = {
 PCRE2POSIX_EXP_DEFN size_t PCRE2_CALL_CONVENTION
 regerror(int errcode, const regex_t *preg, char *errbuf, size_t errbuf_size)
 {
-const char *message, *addmessage;
-size_t length, addlength;
+int used;
+const char *message;
 
-message = (errcode >= (int)(sizeof(pstring)/sizeof(char *)))?
+message = (errcode <= 0 || errcode >= (int)(sizeof(pstring)/sizeof(char *)))?
   "unknown error code" : pstring[errcode];
-length = strlen(message) + 1;
 
-addmessage = " at offset ";
-addlength = (preg != NULL && (int)preg->re_erroffset != -1)?
-  strlen(addmessage) + 6 : 0;
-
-if (errbuf_size > 0)
+if (preg != NULL && (int)preg->re_erroffset != -1)
   {
-  if (addlength > 0 && errbuf_size >= length + addlength)
-    sprintf(errbuf, "%s%s%-6d", message, addmessage, (int)preg->re_erroffset);
-  else
-    {
-    strncpy(errbuf, message, errbuf_size - 1);
-    errbuf[errbuf_size-1] = 0;
-    }
+  used = snprintf(errbuf, errbuf_size, "%s at offset %-6d", message,
+    (int)preg->re_erroffset);
+  }
+else
+  {
+  used = snprintf(errbuf, errbuf_size, "%s", message);
   }
 
-return length + addlength;
+return used + 1;
 }
 
 
@@ -227,8 +222,13 @@ preg->re_erroffset = erroffset;
 if (preg->re_pcre2_code == NULL)
   {
   unsigned int i;
-  if (errorcode < 0) return REG_BADPAT;   /* UTF error */
+
+  /* A negative value is a UTF error; otherwise all error codes are greater
+  than COMPILE_ERROR_BASE, but check, just in case. */
+
+  if (errorcode < COMPILE_ERROR_BASE) return REG_BADPAT;
   errorcode -= COMPILE_ERROR_BASE;
+
   if (errorcode < (int)(sizeof(eint1)/sizeof(const int)))
     return eint1[errorcode];
   for (i = 0; i < sizeof(eint2)/(2*sizeof(const int)); i += 2)
@@ -241,6 +241,13 @@ if (preg->re_pcre2_code == NULL)
 preg->re_nsub = (size_t)re_nsub;
 if ((options & PCRE2_NO_AUTO_CAPTURE) != 0) re_nsub = -1;
 preg->re_match_data = pcre2_match_data_create(re_nsub + 1, NULL);
+
+if (preg->re_match_data == NULL)
+  {
+  pcre2_code_free(preg->re_pcre2_code);
+  return REG_ESPACE;
+  }
+
 return 0;
 }
 
@@ -283,6 +290,7 @@ start location rather than being passed as a PCRE2 "starting offset". */
 
 if ((eflags & REG_STARTEND) != 0)
   {
+  if (pmatch == NULL) return REG_INVARG;
   so = pmatch[0].rm_so;
   eo = pmatch[0].rm_eo;
   }

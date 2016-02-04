@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2014 University of Cambridge
+         New API code Copyright (c) 2016 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "pcre2_internal.h"
 
 
+
 /*************************************************
 *          Default malloc/free functions         *
 *************************************************/
@@ -57,15 +58,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 static void *default_malloc(size_t size, void *data)
 {
-    (void)data;
-    return PhAllocateSafe(size);
+(void)data;
+return PhAllocateSafe(size);
 }
 
 
 static void default_free(void *block, void *data)
 {
-    (void)data;
-    PhFree(block);
+(void)data;
+PhFree(block);
 }
 
 
@@ -133,13 +134,14 @@ return gcontext;
 when no context is supplied to the compile function. */
 
 const pcre2_compile_context PRIV(default_compile_context) = {
-  { default_malloc, default_free, NULL },
-  NULL,
-  NULL,
-  PRIV(default_tables),
-  BSR_DEFAULT,
-  NEWLINE_DEFAULT,
-  PARENS_NEST_LIMIT };
+  { default_malloc, default_free, NULL },    /* Default memory handling */
+  NULL,                                      /* Stack guard */
+  NULL,                                      /* Stack guard data */
+  PRIV(default_tables),                      /* Character tables */
+  PCRE2_UNSET,                               /* Max pattern length */
+  BSR_DEFAULT,                               /* Backslash R default */
+  NEWLINE_DEFAULT,                           /* Newline convention */
+  PARENS_NEST_LIMIT };                       /* As it says */
 
 /* The create function copies the default into the new memory, but must
 override the default memory handling functions if a gcontext was provided. */
@@ -171,6 +173,7 @@ const pcre2_match_context PRIV(default_match_context) = {
 #endif
   NULL,
   NULL,
+  PCRE2_UNSET,   /* Offset limit */
   MATCH_LIMIT,
   MATCH_LIMIT_RECURSION };
 
@@ -297,6 +300,13 @@ switch(value)
 }
 
 PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
+pcre2_set_max_pattern_length(pcre2_compile_context *ccontext, PCRE2_SIZE length)
+{
+ccontext->max_pattern_length = length;
+return 0;
+}
+
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
 pcre2_set_newline(pcre2_compile_context *ccontext, uint32_t newline)
 {
 switch(newline)
@@ -346,6 +356,13 @@ PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
 pcre2_set_match_limit(pcre2_match_context *mcontext, uint32_t limit)
 {
 mcontext->match_limit = limit;
+return 0;
+}
+
+PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
+pcre2_set_offset_limit(pcre2_match_context *mcontext, PCRE2_SIZE limit)
+{
+mcontext->offset_limit = limit;
 return 0;
 }
 
