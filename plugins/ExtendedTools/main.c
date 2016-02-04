@@ -177,7 +177,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Extended Tools";
             info->Author = L"wj32";
             info->Description = L"Extended functionality for Windows Vista and above, including ETW monitoring, GPU monitoring and a Disk tab.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1114";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1114";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(

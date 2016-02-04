@@ -119,7 +119,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Extended Notifications";
             info->Author = L"wj32";
             info->Description = L"Filters notifications.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1112";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1112";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(

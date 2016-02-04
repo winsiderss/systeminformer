@@ -112,7 +112,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Network Adapters";
             info->Author = L"dmex";
             info->Description = L"Plugin for monitoring specific network adapter throughput via the System Information window.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1820";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1820";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(

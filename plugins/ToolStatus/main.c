@@ -1361,7 +1361,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Toolbar and Status Bar";
             info->Author = L"dmex, wj32";
             info->Description = L"Adds a Toolbar, Status Bar and Search box.\r\n\r\nModern Toolbar icons by http://www.icons8.com";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1119";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1119";
             info->HasOptions = TRUE;
             info->Interface = &PluginInterface;
 

@@ -130,7 +130,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Sandboxie Support";
             info->Author = L"wj32";
             info->Description = L"Provides functionality for sandboxed processes.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1115";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1115";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
