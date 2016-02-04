@@ -3,6 +3,7 @@ Process Hacker
 2.38
  * HIGHLIGHTS:
  * OTHER CHANGES:
+   * Added "Not responding" text to tray icon rich pop-up for programs that are hung
    * Fixed ASLR state being shown as N/A in process properties
    * Improved performance when handling a large number of threads, modules or handles
    * Updated UserNotes plugin:

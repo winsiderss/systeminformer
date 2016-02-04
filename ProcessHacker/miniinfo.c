@@ -1394,6 +1394,12 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
     _In_ PPH_PROCESS_GROUP ProcessGroup
     )
 {
+    // This is an undocumented function exported by user32.dll that
+    // retrieves the hung window represented by a ghost window.
+    static HWND (WINAPI *HungWindowFromGhostWindow_I)(
+        _In_ HWND hWnd
+        );
+
     PPH_MIP_GROUP_NODE node;
 
     node = PhAllocate(sizeof(PH_MIP_GROUP_NODE));
@@ -1403,6 +1409,17 @@ PPH_MIP_GROUP_NODE PhMipAddGroupNode(
     node->ProcessGroup = ProcessGroup;
     node->RepresentativeProcessId = ProcessGroup->Representative->ProcessId;
     node->RepresentativeCreateTime = ProcessGroup->Representative->CreateTime;
+    node->RepresentativeIsHung = ProcessGroup->WindowHandle && IsHungAppWindow(ProcessGroup->WindowHandle);
+
+    if (node->RepresentativeIsHung)
+    {
+        if (!HungWindowFromGhostWindow_I)
+            HungWindowFromGhostWindow_I = PhGetModuleProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
+
+        // Make sure this is a real hung window, not a ghost window.
+        if (HungWindowFromGhostWindow_I && HungWindowFromGhostWindow_I(ProcessGroup->WindowHandle))
+            node->RepresentativeIsHung = FALSE;
+    }
 
     PhAddItemList(ListSection->NodeList, node);
 
@@ -1552,6 +1569,15 @@ BOOLEAN PhMipListSectionTreeNewCallback(
 
             getTitleText.TitleColor = originalTextColor;
             getTitleText.SubtitleColor = GetSysColor(COLOR_GRAYTEXT);
+
+            // Special text for hung windows
+            if (node->RepresentativeIsHung)
+            {
+                static PH_STRINGREF hungPrefix = PH_STRINGREF_INIT(L"(Not responding) ");
+
+                PhMoveReference(&getTitleText.Title, PhConcatStringRef2(&hungPrefix, &getTitleText.Title->sr));
+                getTitleText.TitleColor = RGB(0xff, 0x00, 0x00);
+            }
 
             listSection->Callback(listSection, MiListSectionGetTitleText, &getTitleText, NULL);
 

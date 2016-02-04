@@ -27,7 +27,7 @@ typedef struct _PHP_PROCESS_DATA
 {
     PPH_PROCESS_NODE Process;
     LIST_ENTRY ListEntry;
-    BOOLEAN HasWindow;
+    HWND WindowHandle;
 } PHP_PROCESS_DATA, *PPHP_PROCESS_DATA;
 
 PPH_LIST PhpCreateProcessDataList(
@@ -127,13 +127,13 @@ BOOL CALLBACK PhpQueryWindowsEnumWindowsProc(
     GetWindowThreadProcessId(hwnd, &processId);
     processData = PhFindItemSimpleHashtable2(context->ProcessDataHashtable, UlongToHandle(processId));
 
-    if (!processData || processData->HasWindow)
+    if (!processData || processData->WindowHandle)
         return TRUE;
 
-    if (!((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // skip windows with no title
+    if (!((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // Skip windows with a visible parent
+        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // Skip windows with no title
     {
-        processData->HasWindow = TRUE;
+        processData->WindowHandle = hwnd;
     }
 
     return TRUE;
@@ -186,7 +186,7 @@ PPHP_PROCESS_DATA PhpFindGroupRoot(
     fileName = PhpGetRelevantFileName(ProcessData->Process->ProcessItem, Flags);
     userName = ProcessData->Process->ProcessItem->UserName;
 
-    if (ProcessData->HasWindow)
+    if (ProcessData->WindowHandle)
         return rootProcessData;
 
     while (parent = root->Parent)
@@ -197,7 +197,7 @@ PPHP_PROCESS_DATA PhpFindGroupRoot(
             root = parent;
             rootProcessData = processData;
 
-            if (processData->HasWindow)
+            if (processData->WindowHandle)
                 break;
         }
         else
@@ -242,7 +242,7 @@ VOID PhpAddGroupMembersFromRoot(
         if ((processData = PhFindItemSimpleHashtable2(ProcessDataHashtable, node->ProcessId)) &&
             PhpEqualFileNameAndUserName(fileName, userName, node->ProcessItem, Flags) &&
             node->ProcessItem->UserName && PhEqualString(node->ProcessItem->UserName, userName, TRUE) &&
-            !processData->HasWindow)
+            !processData->WindowHandle)
         {
             PhpAddGroupMembersFromRoot(processData, List, ProcessDataHashtable, Flags);
         }
@@ -263,10 +263,13 @@ PPH_LIST PhCreateProcessGroupList(
     QUERY_WINDOWS_CONTEXT queryWindowsContext;
     PPH_LIST processGroupList;
 
-    // We group together processes that share a common ancestor and have the same file name, where the ancestor must
-    // have a visible window and all other processes in the group do not have a visible window. All processes in the
-    // group must have the same user name. All ancestors up to the lowest common ancestor must have the same file name
-    // and user name.
+    // We group together processes that share a common ancestor and have the same file name, where
+    // the ancestor must have a visible window and all other processes in the group do not have a
+    // visible window. All processes in the group must have the same user name. All ancestors up to
+    // the lowest common ancestor must have the same file name and user name.
+    //
+    // The current algorithm is greedy and may not detect groups that have many processes, each with
+    // a small usage amount.
 
     processList = PhDuplicateProcessNodeList();
 
@@ -306,6 +309,8 @@ PPH_LIST PhCreateProcessGroupList(
             processGroup->Representative = processData->Process->ProcessItem;
             PhpAddGroupMembersFromRoot(processData, processGroup->Processes, processDataHashtable, Flags);
         }
+
+        processGroup->WindowHandle = processData->WindowHandle;
 
         PhAddItemList(processGroupList, processGroup);
     }

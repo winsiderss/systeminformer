@@ -242,6 +242,7 @@ typedef struct _PH_MIP_GROUP_NODE
     PPH_PROCESS_GROUP ProcessGroup;
     HANDLE RepresentativeProcessId;
     LARGE_INTEGER RepresentativeCreateTime;
+    BOOLEAN RepresentativeIsHung;
 
     PPH_STRING TooltipText;
 } PH_MIP_GROUP_NODE, *PPH_MIP_GROUP_NODE;

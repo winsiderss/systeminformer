@@ -6,6 +6,7 @@ typedef struct _PH_PROCESS_GROUP
 {
     PPH_PROCESS_ITEM Representative; // An element of Processes (no extra reference added)
     PPH_LIST Processes; // List of PPH_PROCESS_ITEM
+    HWND WindowHandle; // Window handle of representative
 } PH_PROCESS_GROUP, *PPH_PROCESS_GROUP;
 // end_phapppub
 
