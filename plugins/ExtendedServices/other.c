@@ -20,7 +20,38 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <phdk.h>
+#include <windowsx.h>
 #include "extsrv.h"
+#include "resource.h"
+
+typedef struct _SERVICE_OTHER_CONTEXT
+{
+    PPH_SERVICE_ITEM ServiceItem;
+
+    struct
+    {
+        ULONG Ready : 1;
+        ULONG Dirty : 1;
+        ULONG PreshutdownTimeoutValid : 1;
+        ULONG RequiredPrivilegesValid : 1;
+        ULONG SidTypeValid : 1;
+        ULONG LaunchProtectedValid : 1;
+    };
+    HWND PrivilegesLv;
+    PPH_LIST PrivilegeList;
+
+    ULONG OriginalLaunchProtected;
+} SERVICE_OTHER_CONTEXT, *PSERVICE_OTHER_CONTEXT;
+
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
+
+BOOLEAN EspChangeServiceConfig2(
+    _In_ PWSTR ServiceName,
+    _In_opt_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel,
+    _In_ PVOID Info
+    );
 
 static PH_KEY_VALUE_PAIR EspServiceSidTypePairs[] =
 {
@@ -37,22 +68,10 @@ static PH_KEY_VALUE_PAIR EspServiceLaunchProtectedPairs[] =
     SIP(L"Light (Antimalware)", SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT)
 };
 
-static PWSTR EspServiceSidTypeStrings[] =
-{
-    L"None", 
-    L"Restricted",
-    L"Unrestricted"
-};
+WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
+WCHAR *EspServiceLaunchProtectedStrings[4] = { L"None", L"Full (Windows)", L"Light (Windows)", L"Light (Antimalware)" };
 
-static PWSTR EspServiceLaunchProtectedStrings[] =
-{ 
-    L"None", 
-    L"Full (Windows)", 
-    L"Light (Windows)", 
-    L"Light (Antimalware)"
-};
-
-static PWSTR EspGetServiceSidTypeString(
+PWSTR EspGetServiceSidTypeString(
     _In_ ULONG SidType
     )
 {
@@ -69,7 +88,7 @@ static PWSTR EspGetServiceSidTypeString(
         return L"Unknown";
 }
 
-static ULONG EspGetServiceSidTypeInteger(
+ULONG EspGetServiceSidTypeInteger(
     _In_ PWSTR SidType
     )
 {
@@ -86,7 +105,7 @@ static ULONG EspGetServiceSidTypeInteger(
         return -1;
 }
 
-static PWSTR EspGetServiceLaunchProtectedString(
+PWSTR EspGetServiceLaunchProtectedString(
     _In_ ULONG LaunchProtected
     )
 {
@@ -103,7 +122,7 @@ static PWSTR EspGetServiceLaunchProtectedString(
         return L"Unknown";
 }
 
-static ULONG EspGetServiceLaunchProtectedInteger(
+ULONG EspGetServiceLaunchProtectedInteger(
     _In_ PWSTR LaunchProtected
     )
 {
@@ -120,7 +139,7 @@ static ULONG EspGetServiceLaunchProtectedInteger(
         return -1;
 }
 
-static NTSTATUS EspLoadOtherInfo(
+NTSTATUS EspLoadOtherInfo(
     _In_ HWND hwndDlg,
     _In_ PSERVICE_OTHER_CONTEXT Context
     )
@@ -238,10 +257,7 @@ static PPH_STRING EspGetServiceSidString(
     PPH_STRING sidString = NULL;
 
     if (!RtlCreateServiceSid_I)
-    {
-        if (!(RtlCreateServiceSid_I = PhGetModuleProcAddress(L"ntdll.dll", "RtlCreateServiceSid")))
-            return NULL;
-    }
+        return NULL;
 
     PhStringRefToUnicodeString(ServiceName, &serviceNameUs);
 
@@ -256,33 +272,6 @@ static PPH_STRING EspGetServiceSidString(
     }
 
     return sidString;
-}
-
-static BOOLEAN EspChangeServiceConfig2(
-    _In_ PWSTR ServiceName,
-    _In_opt_ SC_HANDLE ServiceHandle,
-    _In_ ULONG InfoLevel,
-    _In_ PVOID Info
-    )
-{
-    if (ServiceHandle)
-    {
-        return !!ChangeServiceConfig2(ServiceHandle, InfoLevel, Info);
-    }
-    else
-    {
-        NTSTATUS status;
-
-        if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(ServiceName, InfoLevel, Info)))
-        {
-            return TRUE;
-        }
-        else
-        {
-            SetLastError(PhNtStatusToDosError(status));
-            return FALSE;
-        }
-    }
 }
 
 static int __cdecl PrivilegeNameCompareFunction(
@@ -352,9 +341,9 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_REMOVE), FALSE);
 
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_SIDTYPE),
-                EspServiceSidTypeStrings, ARRAYSIZE(EspServiceSidTypeStrings));
+                EspServiceSidTypeStrings, sizeof(EspServiceSidTypeStrings) / sizeof(PWSTR));
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_PROTECTION),
-                EspServiceLaunchProtectedStrings, ARRAYSIZE(EspServiceLaunchProtectedStrings));
+                EspServiceLaunchProtectedStrings, sizeof(EspServiceLaunchProtectedStrings) / sizeof(PWSTR));
 
             if (WindowsVersion < WINDOWS_8_1)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_PROTECTION), FALSE);
@@ -722,4 +711,31 @@ Done:
     }
 
     return FALSE;
+}
+
+BOOLEAN EspChangeServiceConfig2(
+    _In_ PWSTR ServiceName,
+    _In_opt_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel,
+    _In_ PVOID Info
+    )
+{
+    if (ServiceHandle)
+    {
+        return !!ChangeServiceConfig2(ServiceHandle, InfoLevel, Info);
+    }
+    else
+    {
+        NTSTATUS status;
+
+        if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(ServiceName, InfoLevel, Info)))
+        {
+            return TRUE;
+        }
+        else
+        {
+            SetLastError(PhNtStatusToDosError(status));
+            return FALSE;
+        }
+    }
 }

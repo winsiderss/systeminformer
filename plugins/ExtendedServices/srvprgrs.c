@@ -20,9 +20,49 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <phdk.h>
+#include <windowsx.h>
 #include "extsrv.h"
+#include "resource.h"
 
-static INT_PTR CALLBACK EspRestartServiceDlgProc(
+typedef struct _RESTART_SERVICE_CONTEXT
+{
+    PPH_SERVICE_ITEM ServiceItem;
+    SC_HANDLE ServiceHandle;
+    BOOLEAN Starting;
+    BOOLEAN DisableTimer;
+} RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
+
+INT_PTR CALLBACK EspRestartServiceDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID EsRestartServiceWithProgress(
+    _In_ HWND hWnd,
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    RESTART_SERVICE_CONTEXT context;
+
+    context.ServiceItem = ServiceItem;
+    context.ServiceHandle = ServiceHandle;
+    context.Starting = FALSE;
+    context.DisableTimer = FALSE;
+
+    DialogBoxParam(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_SRVPROGRESS),
+        hWnd,
+        EspRestartServiceDlgProc,
+        (LPARAM)&context
+        );
+}
+
+INT_PTR CALLBACK EspRestartServiceDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -118,26 +158,4 @@ static INT_PTR CALLBACK EspRestartServiceDlgProc(
     }
 
     return FALSE;
-}
-
-VOID EsRestartServiceWithProgress(
-    _In_ HWND hWnd,
-    _In_ PPH_SERVICE_ITEM ServiceItem,
-    _In_ SC_HANDLE ServiceHandle
-    )
-{
-    RESTART_SERVICE_CONTEXT context;
-
-    context.ServiceItem = ServiceItem;
-    context.ServiceHandle = ServiceHandle;
-    context.Starting = FALSE;
-    context.DisableTimer = FALSE;
-
-    DialogBoxParam(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_SRVPROGRESS),
-        hWnd,
-        EspRestartServiceDlgProc,
-        (LPARAM)&context
-        );
 }
