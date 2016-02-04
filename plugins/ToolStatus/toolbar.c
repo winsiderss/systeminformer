@@ -61,10 +61,8 @@ VOID RebarBandInsert(
     rebarBandInfo.cxMinChild = cxMinChild;
     rebarBandInfo.cyMinChild = cyMinChild;
 
-    if (BandID == REBAR_BAND_ID_SEARCHBOX)
-    {
-        rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
-    }
+    //if (BandID == REBAR_BAND_ID_SEARCHBOX)
+    //rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
 
     if (ToolStatusConfig.ToolBarLocked)
     {

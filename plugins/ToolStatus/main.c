@@ -265,6 +265,7 @@ VOID ShowCustomizeMenu(
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings();
+                ReBarSaveLayoutSettings();
 
                 if (ToolStatusConfig.SearchBoxEnabled)
                 {
