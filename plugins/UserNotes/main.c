@@ -60,7 +60,7 @@ static BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0) &&
         (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) &&
         (!(Intent & INTENT_PROCESS_HIGHLIGHT) || Object->BackColor != ULONG_MAX) &&
-        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse == TRUE);
+        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse);
 }
 
 static PDB_OBJECT FindDbObjectForProcess(
@@ -99,7 +99,7 @@ static VOID DeleteDbObjectForProcessIfUnused(
         Object->PriorityClass == 0 &&
         Object->IoPriorityPlusOne == 0 &&
         Object->BackColor == ULONG_MAX &&
-        Object->Collapse == FALSE
+        !Object->Collapse
         )
     {
         DeleteDbObject(Object);
@@ -382,32 +382,43 @@ static VOID NTAPI MenuItemCallback(
             }
         }
         break;
-    case PROCESS_ADD_HIGHLIGHT_ID:
+    case PROCESS_HIGHLIGHT_ID:
         {
-            CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
-            chooseColor.hwndOwner = PhMainWndHandle;
-            chooseColor.lpCustColors = ProcessCustomColors;
-            chooseColor.lpfnHook = ColorDlgHookProc;
-            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
+            BOOLEAN highlightPresent = (BOOLEAN)menuItem->Context;
 
-            if (ChooseColor(&chooseColor))
+            if (!highlightPresent)
             {
-                PPH_STRING customColors;
+                CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
+                chooseColor.hwndOwner = PhMainWndHandle;
+                chooseColor.lpCustColors = ProcessCustomColors;
+                chooseColor.lpfnHook = ColorDlgHookProc;
+                chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
 
-                customColors = SaveCustomColors();
-                PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &customColors->sr);
-                PhDereferenceObject(customColors);
+                if (ChooseColor(&chooseColor))
+                {
+                    PPH_STRING customColors;
 
+                    customColors = SaveCustomColors();
+                    PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &customColors->sr);
+                    PhDereferenceObject(customColors);
+
+                    LockDb();
+
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->BackColor = chooseColor.rgbResult;
+
+                    UnlockDb();
+                    SaveDb();
+                }
+            }
+            else
+            {
                 LockDb();
 
                 if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
                 {
-                    object->BackColor = chooseColor.rgbResult;
-                }
-                else
-                {
-                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                    object->BackColor = chooseColor.rgbResult;
+                    object->BackColor = ULONG_MAX;
+                    DeleteDbObjectForProcessIfUnused(object);
                 }
 
                 UnlockDb();
@@ -417,55 +428,7 @@ static VOID NTAPI MenuItemCallback(
             PhInvalidateAllProcessNodes();
         }
         break;
-    case PROCESS_REMOVE_HIGHLIGHT_ID:
-        {
-            LockDb();
-
-            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
-            {
-                object->BackColor = ULONG_MAX;
-                DeleteDbObjectForProcessIfUnused(object);
-            }
-
-            UnlockDb();
-            SaveDb();
-
-            PhInvalidateAllProcessNodes();
-        }
-        break;
-    case PROCESS_ADD_STARTUP_COLLAPSE:
-        {
-            BOOLEAN cont = FALSE;
-
-            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowMessage(
-                menuItem->OwnerWindow,
-                MB_YESNO | MB_ICONQUESTION,
-                L"Do you want to collapse this process at startup?"
-                ) == IDYES)
-            {
-                cont = TRUE;
-            }
-
-            if (cont)
-            {
-                LockDb();
-
-                if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && !object->Collapse)
-                {
-                    object->Collapse = TRUE;
-                }
-                else
-                {
-                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                    object->Collapse = TRUE;
-                }
-
-                UnlockDb();
-                SaveDb();
-            }
-        }
-        break;
-    case PROCESS_REMOVE_STARTUP_COLLAPSE:
+    case PROCESS_COLLAPSE_ID:
         {
             LockDb();
 
@@ -473,6 +436,11 @@ static VOID NTAPI MenuItemCallback(
             {
                 object->Collapse = FALSE;
                 DeleteDbObjectForProcessIfUnused(object);
+            }
+            else
+            {
+                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                object->Collapse = TRUE;
             }
 
             UnlockDb();
@@ -807,56 +775,37 @@ static VOID ProcessMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_PROCESS_ITEM processItem;
     PPH_EMENU_ITEM miscMenuItem;
+    BOOLEAN highlightPresent = FALSE;
+    PPH_EMENU_ITEM collapseMenuItem;
     PPH_EMENU_ITEM highlightMenuItem;
     PDB_OBJECT object;
 
     if (menuInfo->u.Process.NumberOfProcesses != 1)
         return;
 
-    AddSavePriorityMenuItemsAndHook(menuInfo, menuInfo->u.Process.Processes[0], TRUE);
+    processItem = menuInfo->u.Process.Processes[0];
+    AddSavePriorityMenuItemsAndHook(menuInfo, processItem, TRUE);
 
     if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0)))
         return;
 
     LockDb();
+    if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->BackColor != ULONG_MAX)
+        highlightPresent = TRUE;
+    UnlockDb();
 
-    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->BackColor != ULONG_MAX)
-    {
-        highlightMenuItem = PhPluginCreateEMenuItem(
-            PluginInstance,
-            0,
-            PROCESS_REMOVE_HIGHLIGHT_ID,
-            L"Highlight Process",
-            menuInfo->u.Process.Processes[0]
-            );
-        highlightMenuItem->Flags |= PH_EMENU_CHECKED;
+    PhInsertEMenuItem(miscMenuItem, collapseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_COLLAPSE_ID, L"Collapse by Default", NULL), 0);
+    PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_HIGHLIGHT_ID, L"Highlight", UlongToPtr(highlightPresent)), 1);
+    PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), 2);
 
-        PhInsertEMenuItem(miscMenuItem, highlightMenuItem, 0);
-    }
-    else
-    {
-        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_HIGHLIGHT_ID, L"Highlight Process", menuInfo->u.Process.Processes[0]), 0);
-    }
+    LockDb();
 
     if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->Collapse)
-    {
-        highlightMenuItem = PhPluginCreateEMenuItem(
-            PluginInstance,
-            0,
-            PROCESS_REMOVE_STARTUP_COLLAPSE,
-            L"Collapse by Default",
-            menuInfo->u.Process.Processes[0]
-            );
+        collapseMenuItem->Flags |= PH_EMENU_CHECKED;
+    if (highlightPresent)
         highlightMenuItem->Flags |= PH_EMENU_CHECKED;
-
-        PhInsertEMenuItem(miscMenuItem, highlightMenuItem, 0);
-    }
-    else
-    {
-        PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_ADD_STARTUP_COLLAPSE, L"Collapse by Default", menuInfo->u.Process.Processes[0]), 0);
-    }
-
 
     UnlockDb();
 }

@@ -125,7 +125,6 @@ PDB_OBJECT CreateDbObject(
     object->Tag = Tag;
     object->Key = *Name;
     object->BackColor = ULONG_MAX;
-    object->Collapse = FALSE;
 
     realObject = PhAddEntryHashtableEx(ObjectDb, &object, &added);
 
@@ -301,7 +300,7 @@ NTSTATUS LoadDb(
 
             PhStringToInteger64(&collapse->sr, 10, &collapseInteger);
 
-            object->Collapse = (BOOLEAN)collapseInteger;
+            object->Collapse = !!collapseInteger;
         }
 
         PhClearReference(&tag);
