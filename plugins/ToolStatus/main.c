@@ -568,6 +568,26 @@ static BOOLEAN NTAPI MessageLoopFilter(
                 return TRUE;
             }
         }
+        else if (Message->message == WM_SYSKEYDOWN)
+        {
+            UINT vkCode = (UINT)Message->wParam;
+
+            if (vkCode == VK_MENU)
+            {
+                if (ToolStatusConfig.AutoHideMenu)
+                {
+                    if (GetMenu(PhMainWndHandle))
+                    {
+                        SetMenu(PhMainWndHandle, NULL);
+                    }
+                    else
+                    {
+                        SetMenu(PhMainWndHandle, MainMenu);
+                        DrawMenuBar(PhMainWndHandle);
+                    }
+                }
+            }
+        }
     }
 
     return FALSE;
@@ -1242,22 +1262,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SYSCOMMAND:
         {
-            if ((wParam & 0xFFF0) == SC_KEYMENU && lParam == 0)
-            {
-                if (!ToolStatusConfig.AutoHideMenu)
-                    break;
-
-                if (GetMenu(PhMainWndHandle))
-                {
-                    SetMenu(PhMainWndHandle, NULL);
-                }
-                else
-                {
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
-                }
-            }
-            else if ((wParam & 0xFFF0) == SC_MINIMIZE)
+            if ((wParam & 0xFFF0) == SC_MINIMIZE)
             {
                 UpdateGraphs = FALSE;
             }
