@@ -20,18 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <windowsx.h>
 #include "extsrv.h"
-#include "resource.h"
 
-typedef struct _SERVICE_LIST_CONTEXT
-{
-    HWND ServiceListHandle;
-    PH_LAYOUT_MANAGER LayoutManager;
-} SERVICE_LIST_CONTEXT, *PSERVICE_LIST_CONTEXT;
-
-LPENUM_SERVICE_STATUS EsEnumDependentServices(
+static LPENUM_SERVICE_STATUS EsEnumDependentServices(
     _In_ SC_HANDLE ServiceHandle,
     _In_opt_ ULONG State,
     _Out_ PULONG Count

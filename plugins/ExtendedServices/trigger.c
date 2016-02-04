@@ -20,86 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <windowsx.h>
 #include "extsrv.h"
-#include "resource.h"
-
-typedef struct _ES_TRIGGER_DATA
-{
-    ULONG Type;
-    union
-    {
-        PPH_STRING String;
-        struct
-        {
-            PVOID Binary;
-            ULONG BinaryLength;
-        };
-        UCHAR Byte;
-        ULONG64 UInt64;
-    };
-} ES_TRIGGER_DATA, *PES_TRIGGER_DATA;
-
-typedef struct _ES_TRIGGER_INFO
-{
-    ULONG Type;
-    PGUID Subtype;
-    ULONG Action;
-    PPH_LIST DataList;
-    GUID SubtypeBuffer;
-} ES_TRIGGER_INFO, *PES_TRIGGER_INFO;
-
-typedef struct _ES_TRIGGER_CONTEXT
-{
-    PPH_SERVICE_ITEM ServiceItem;
-    HWND WindowHandle;
-    HWND TriggersLv;
-    BOOLEAN Dirty;
-    ULONG InitialNumberOfTriggers;
-    PPH_LIST InfoList;
-
-    // Trigger dialog box
-    PES_TRIGGER_INFO EditingInfo;
-    ULONG LastSelectedType;
-    PPH_STRING LastCustomSubType;
-
-    // Value dialog box
-    PPH_STRING EditingValue;
-} ES_TRIGGER_CONTEXT, *PES_TRIGGER_CONTEXT;
-
-typedef struct _TYPE_ENTRY
-{
-    ULONG Type;
-    PWSTR Name;
-} TYPE_ENTRY, PTYPE_ENTRY;
-
-typedef struct _SUBTYPE_ENTRY
-{
-    ULONG Type;
-    PGUID Guid;
-    PWSTR Name;
-} SUBTYPE_ENTRY, PSUBTYPE_ENTRY;
-
-typedef struct _ETW_PUBLISHER_ENTRY
-{
-    PPH_STRING PublisherName;
-    GUID Guid;
-} ETW_PUBLISHER_ENTRY, *PETW_PUBLISHER_ENTRY;
-
-INT_PTR CALLBACK EspServiceTriggerDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-INT_PTR CALLBACK ValueDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
 
 static GUID NetworkManagerFirstIpAddressArrivalGuid = { 0x4f27f2de, 0x14e2, 0x430b, { 0xa5, 0x49, 0x7c, 0xd4, 0x8c, 0xbc, 0x82, 0x45 } };
 static GUID NetworkManagerLastIpAddressRemovalGuid = { 0xcc4ba62a, 0x162e, 0x4648, { 0x84, 0x7a, 0xb6, 0xbd, 0xf9, 0x93, 0xe3, 0x35 } };
@@ -151,7 +72,7 @@ static SUBTYPE_ENTRY SubTypeEntries[] =
 
 static PH_STRINGREF PublishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
 
-PES_TRIGGER_DATA EspCreateTriggerData(
+static PES_TRIGGER_DATA EspCreateTriggerData(
     _In_opt_ PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM DataItem
     )
 {
@@ -191,7 +112,7 @@ PES_TRIGGER_DATA EspCreateTriggerData(
     return data;
 }
 
-PES_TRIGGER_DATA EspCloneTriggerData(
+static PES_TRIGGER_DATA EspCloneTriggerData(
     _In_ PES_TRIGGER_DATA Data
     )
 {
@@ -213,7 +134,7 @@ PES_TRIGGER_DATA EspCloneTriggerData(
     return newData;
 }
 
-VOID EspDestroyTriggerData(
+static VOID EspDestroyTriggerData(
     _In_ PES_TRIGGER_DATA Data
     )
 {
@@ -231,7 +152,7 @@ VOID EspDestroyTriggerData(
     PhFree(Data);
 }
 
-PES_TRIGGER_INFO EspCreateTriggerInfo(
+static PES_TRIGGER_INFO EspCreateTriggerInfo(
     _In_opt_ PSERVICE_TRIGGER Trigger
     )
 {
@@ -273,7 +194,7 @@ PES_TRIGGER_INFO EspCreateTriggerInfo(
     return info;
 }
 
-PES_TRIGGER_INFO EspCloneTriggerInfo(
+static PES_TRIGGER_INFO EspCloneTriggerInfo(
     _In_ PES_TRIGGER_INFO Info
     )
 {
@@ -298,7 +219,7 @@ PES_TRIGGER_INFO EspCloneTriggerInfo(
     return newInfo;
 }
 
-VOID EspDestroyTriggerInfo(
+static VOID EspDestroyTriggerInfo(
     _In_ PES_TRIGGER_INFO Info
     )
 {
@@ -317,7 +238,7 @@ VOID EspDestroyTriggerInfo(
     PhFree(Info);
 }
 
-VOID EspClearTriggerInfoList(
+static VOID EspClearTriggerInfoList(
     _In_ PPH_LIST List
     )
 {
@@ -331,49 +252,7 @@ VOID EspClearTriggerInfoList(
     PhClearList(List);
 }
 
-struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
-    _In_ PPH_SERVICE_ITEM ServiceItem,
-    _In_ HWND WindowHandle,
-    _In_ HWND TriggersLv
-    )
-{
-    PES_TRIGGER_CONTEXT context;
-
-    context = PhAllocate(sizeof(ES_TRIGGER_CONTEXT));
-    memset(context, 0, sizeof(ES_TRIGGER_CONTEXT));
-    context->ServiceItem = ServiceItem;
-    context->WindowHandle = WindowHandle;
-    context->TriggersLv = TriggersLv;
-    context->InfoList = PhCreateList(4);
-
-    PhSetListViewStyle(TriggersLv, FALSE, TRUE);
-    PhSetControlTheme(TriggersLv, L"explorer");
-    PhAddListViewColumn(TriggersLv, 0, 0, 0, LVCFMT_LEFT, 300, L"Trigger");
-    PhAddListViewColumn(TriggersLv, 1, 1, 1, LVCFMT_LEFT, 60, L"Action");
-    PhSetExtendedListView(TriggersLv);
-
-    EnableWindow(GetDlgItem(WindowHandle, IDC_EDIT), FALSE);
-    EnableWindow(GetDlgItem(WindowHandle, IDC_DELETE), FALSE);
-
-    return context;
-}
-
-VOID EsDestroyServiceTriggerContext(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < Context->InfoList->Count; i++)
-    {
-        EspDestroyTriggerInfo(Context->InfoList->Items[i]);
-    }
-
-    PhDereferenceObject(Context->InfoList);
-    PhFree(Context);
-}
-
-PPH_STRING EspLookupEtwPublisherName(
+static PPH_STRING EspLookupEtwPublisherName(
     _In_ PGUID Guid
     )
 {
@@ -420,7 +299,7 @@ PPH_STRING EspLookupEtwPublisherName(
     }
 }
 
-BOOLEAN EspEnumerateEtwPublishers(
+static BOOLEAN EspEnumerateEtwPublishers(
     _Out_ PETW_PUBLISHER_ENTRY *Entries,
     _Out_ PULONG NumberOfEntries
     )
@@ -542,7 +421,7 @@ BOOLEAN EspEnumerateEtwPublishers(
     return TRUE;
 }
 
-BOOLEAN EspLookupEtwPublisherGuid(
+static BOOLEAN EspLookupEtwPublisherGuid(
     _In_ PPH_STRINGREF PublisherName,
     _Out_ PGUID Guid
     )
@@ -696,170 +575,6 @@ VOID EspFormatTriggerInfo(
     *StringUsed = stringUsed;
 }
 
-VOID EsLoadServiceTriggerInfo(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
-    _In_ SC_HANDLE ServiceHandle
-    )
-{
-    PSERVICE_TRIGGER_INFO triggerInfo;
-    ULONG i;
-
-    EspClearTriggerInfoList(Context->InfoList);
-
-    if (triggerInfo = PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_TRIGGER_INFO))
-    {
-        for (i = 0; i < triggerInfo->cTriggers; i++)
-        {
-            PSERVICE_TRIGGER trigger = &triggerInfo->pTriggers[i];
-            PES_TRIGGER_INFO info;
-            PWSTR triggerString;
-            PWSTR actionString;
-            PPH_STRING stringUsed;
-            INT lvItemIndex;
-
-            info = EspCreateTriggerInfo(trigger);
-            PhAddItemList(Context->InfoList, info);
-
-            EspFormatTriggerInfo(info, &triggerString, &actionString, &stringUsed);
-
-            lvItemIndex = PhAddListViewItem(Context->TriggersLv, MAXINT, triggerString, info);
-            PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 1, actionString);
-
-            if (stringUsed)
-                PhDereferenceObject(stringUsed);
-        }
-
-        Context->InitialNumberOfTriggers = triggerInfo->cTriggers;
-
-        ExtendedListView_SortItems(Context->TriggersLv);
-
-        PhFree(triggerInfo);
-    }
-}
-
-BOOLEAN EsSaveServiceTriggerInfo(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
-    _Out_ PULONG Win32Result
-    )
-{
-    BOOLEAN result = TRUE;
-    PH_AUTO_POOL autoPool;
-    SC_HANDLE serviceHandle;
-    SERVICE_TRIGGER_INFO triggerInfo;
-    ULONG i;
-    ULONG j;
-
-    if (!Context->Dirty)
-        return TRUE;
-
-    // Do not try to change trigger information if we didn't have any triggers before and we don't
-    // have any now. ChangeServiceConfig2 returns an error in this situation.
-    if (Context->InitialNumberOfTriggers == 0 && Context->InfoList->Count == 0)
-        return TRUE;
-
-    PhInitializeAutoPool(&autoPool);
-
-    memset(&triggerInfo, 0, sizeof(SERVICE_TRIGGER_INFO));
-    triggerInfo.cTriggers = Context->InfoList->Count;
-
-    // pTriggers needs to be NULL when there are no triggers.
-    if (Context->InfoList->Count != 0)
-    {
-        triggerInfo.pTriggers = PhAutoDereferenceObject(PhCreateAlloc(Context->InfoList->Count * sizeof(SERVICE_TRIGGER)));
-        memset(triggerInfo.pTriggers, 0, Context->InfoList->Count * sizeof(SERVICE_TRIGGER));
-
-        for (i = 0; i < Context->InfoList->Count; i++)
-        {
-            PSERVICE_TRIGGER trigger = &triggerInfo.pTriggers[i];
-            PES_TRIGGER_INFO info = Context->InfoList->Items[i];
-
-            trigger->dwTriggerType = info->Type;
-            trigger->dwAction = info->Action;
-            trigger->pTriggerSubtype = info->Subtype;
-
-            if (info->DataList && info->DataList->Count != 0)
-            {
-                trigger->cDataItems = info->DataList->Count;
-                trigger->pDataItems = PhAutoDereferenceObject(PhCreateAlloc(info->DataList->Count * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM)));
-
-                for (j = 0; j < info->DataList->Count; j++)
-                {
-                    PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM dataItem = &trigger->pDataItems[j];
-                    PES_TRIGGER_DATA data = info->DataList->Items[j];
-
-                    dataItem->dwDataType = data->Type;
-
-                    if (data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
-                    {
-                        dataItem->cbData = (ULONG)data->String->Length + 2; // include null terminator
-                        dataItem->pData = (PBYTE)data->String->Buffer;
-                    }
-                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
-                    {
-                        dataItem->cbData = data->BinaryLength;
-                        dataItem->pData = data->Binary;
-                    }
-                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
-                    {
-                        dataItem->cbData = sizeof(UCHAR);
-                        dataItem->pData = (PBYTE)&data->Byte;
-                    }
-                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY || data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
-                    {
-                        dataItem->cbData = sizeof(ULONG64);
-                        dataItem->pData = (PBYTE)&data->UInt64;
-                    }
-                }
-            }
-        }
-    }
-
-    if (serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG))
-    {
-        if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
-        {
-            result = FALSE;
-            *Win32Result = GetLastError();
-        }
-
-        CloseServiceHandle(serviceHandle);
-    }
-    else
-    {
-        result = FALSE;
-        *Win32Result = GetLastError();
-
-        if (*Win32Result == ERROR_ACCESS_DENIED && !PhElevated)
-        {
-            // Elevate using phsvc.
-            if (PhUiConnectToPhSvc(Context->WindowHandle, FALSE))
-            {
-                NTSTATUS status;
-
-                result = TRUE;
-
-                if (!NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(Context->ServiceItem->Name->Buffer,
-                    SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo)))
-                {
-                    result = FALSE;
-                    *Win32Result = PhNtStatusToDosError(status);
-                }
-
-                PhUiDisconnectFromPhSvc();
-            }
-            else
-            {
-                // User cancelled elevation.
-                *Win32Result = ERROR_CANCELLED;
-            }
-        }
-    }
-
-    PhDeleteAutoPool(&autoPool);
-
-    return result;
-}
-
 LOGICAL EspSetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
@@ -874,140 +589,6 @@ LOGICAL EspSetListViewItemParam(
     item.lParam = (LPARAM)Param;
 
     return ListView_SetItem(ListViewHandle, &item);
-}
-
-VOID EsHandleEventServiceTrigger(
-    _In_ struct _ES_TRIGGER_CONTEXT *Context,
-    _In_ ULONG Event
-    )
-{
-    switch (Event)
-    {
-    case ES_TRIGGER_EVENT_NEW:
-        {
-            Context->EditingInfo = EspCreateTriggerInfo(NULL);
-            Context->EditingInfo->Type = SERVICE_TRIGGER_TYPE_IP_ADDRESS_AVAILABILITY;
-            Context->EditingInfo->SubtypeBuffer = NetworkManagerFirstIpAddressArrivalGuid;
-            Context->EditingInfo->Subtype = &Context->EditingInfo->SubtypeBuffer;
-            Context->EditingInfo->Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
-
-            if (DialogBoxParam(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_SRVTRIGGER),
-                Context->WindowHandle,
-                EspServiceTriggerDlgProc,
-                (LPARAM)Context
-                ) == IDOK)
-            {
-                PWSTR triggerString;
-                PWSTR actionString;
-                PPH_STRING stringUsed;
-                INT lvItemIndex;
-
-                Context->Dirty = TRUE;
-                PhAddItemList(Context->InfoList, Context->EditingInfo);
-
-                EspFormatTriggerInfo(Context->EditingInfo, &triggerString, &actionString, &stringUsed);
-
-                lvItemIndex = PhAddListViewItem(Context->TriggersLv, MAXINT, triggerString, Context->EditingInfo);
-                PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 1, actionString);
-
-                if (stringUsed)
-                    PhDereferenceObject(stringUsed);
-            }
-            else
-            {
-                EspDestroyTriggerInfo(Context->EditingInfo);
-            }
-
-            Context->EditingInfo = NULL;
-        }
-        break;
-    case ES_TRIGGER_EVENT_EDIT:
-        {
-            INT lvItemIndex;
-            PES_TRIGGER_INFO info;
-            ULONG index;
-
-            lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
-
-            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
-            {
-                index = PhFindItemList(Context->InfoList, info);
-
-                if (index != -1)
-                {
-                    Context->EditingInfo = EspCloneTriggerInfo(info);
-
-                    if (DialogBoxParam(
-                        PluginInstance->DllBase,
-                        MAKEINTRESOURCE(IDD_SRVTRIGGER),
-                        Context->WindowHandle,
-                        EspServiceTriggerDlgProc,
-                        (LPARAM)Context
-                        ) == IDOK)
-                    {
-                        PWSTR triggerString;
-                        PWSTR actionString;
-                        PPH_STRING stringUsed;
-
-                        Context->Dirty = TRUE;
-                        EspDestroyTriggerInfo(Context->InfoList->Items[index]);
-                        Context->InfoList->Items[index] = Context->EditingInfo;
-
-                        EspFormatTriggerInfo(Context->EditingInfo, &triggerString, &actionString, &stringUsed);
-                        PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 0, triggerString);
-                        PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 1, actionString);
-
-                        if (stringUsed)
-                            PhDereferenceObject(stringUsed);
-
-                        EspSetListViewItemParam(Context->TriggersLv, lvItemIndex, Context->EditingInfo);
-                    }
-                    else
-                    {
-                        EspDestroyTriggerInfo(Context->EditingInfo);
-                    }
-
-                    Context->EditingInfo = NULL;
-                }
-            }
-        }
-        break;
-    case ES_TRIGGER_EVENT_DELETE:
-        {
-            INT lvItemIndex;
-            PES_TRIGGER_INFO info;
-            ULONG index;
-
-            lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
-
-            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
-            {
-                index = PhFindItemList(Context->InfoList, info);
-
-                if (index != -1)
-                {
-                    EspDestroyTriggerInfo(info);
-                    PhRemoveItemList(Context->InfoList, index);
-                    PhRemoveListViewItem(Context->TriggersLv, lvItemIndex);
-                }
-            }
-
-            Context->Dirty = TRUE;
-        }
-        break;
-    case ES_TRIGGER_EVENT_SELECTIONCHANGED:
-        {
-            ULONG selectedCount;
-
-            selectedCount = ListView_GetSelectedCount(Context->TriggersLv);
-
-            EnableWindow(GetDlgItem(Context->WindowHandle, IDC_EDIT), selectedCount == 1);
-            EnableWindow(GetDlgItem(Context->WindowHandle, IDC_DELETE), selectedCount == 1);
-        }
-        break;
-    }
 }
 
 static ULONG EspTriggerTypeStringToInteger(
@@ -1133,7 +714,7 @@ static VOID EspFixServiceTriggerControls(
     PhDereferenceObject(selectedSubTypeString);
 }
 
-PPH_STRING EspConvertNullsToNewLines(
+static PPH_STRING EspConvertNullsToNewLines(
     _In_ PPH_STRING String
     )
 {
@@ -1156,7 +737,7 @@ PPH_STRING EspConvertNullsToNewLines(
     return PhFinalStringBuilderString(&sb);
 }
 
-PPH_STRING EspConvertNewLinesToNulls(
+static PPH_STRING EspConvertNewLinesToNulls(
     _In_ PPH_STRING String
     )
 {
@@ -1197,7 +778,7 @@ PPH_STRING EspConvertNewLinesToNulls(
     return text;
 }
 
-PPH_STRING EspConvertNullsToSpaces(
+static PPH_STRING EspConvertNullsToSpaces(
     _In_ PPH_STRING String
     )
 {
@@ -1215,7 +796,7 @@ PPH_STRING EspConvertNullsToSpaces(
     return text;
 }
 
-VOID EspFormatTriggerData(
+static VOID EspFormatTriggerData(
     _In_ PES_TRIGGER_DATA Data,
     _Out_ PPH_STRING *Text
     )
@@ -1255,7 +836,60 @@ VOID EspFormatTriggerData(
     }
 }
 
-INT_PTR CALLBACK EspServiceTriggerDlgProc(
+static INT_PTR CALLBACK ValueDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PES_TRIGGER_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PES_TRIGGER_CONTEXT)lParam;
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PES_TRIGGER_CONTEXT)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_DESTROY)
+            RemoveProp(hwndDlg, L"Context");
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            SetDlgItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUES), TRUE);
+            Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUES), 0, -1);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                PhMoveReference(&context->EditingValue, PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUES)));
+                EndDialog(hwndDlg, IDOK);
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+static INT_PTR CALLBACK EspServiceTriggerDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1617,7 +1251,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                     EndDialog(hwndDlg, IDOK);
 
-DoNotClose:
+                DoNotClose:
                     PhDeleteAutoPool(&autoPool);
                 }
                 break;
@@ -1669,55 +1303,342 @@ DoNotClose:
     return FALSE;
 }
 
-static INT_PTR CALLBACK ValueDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+VOID EsHandleEventServiceTrigger(
+    _In_ PES_TRIGGER_CONTEXT Context,
+    _In_ ULONG Event
+    )
+{
+    switch (Event)
+    {
+    case ES_TRIGGER_EVENT_NEW:
+        {
+            Context->EditingInfo = EspCreateTriggerInfo(NULL);
+            Context->EditingInfo->Type = SERVICE_TRIGGER_TYPE_IP_ADDRESS_AVAILABILITY;
+            Context->EditingInfo->SubtypeBuffer = NetworkManagerFirstIpAddressArrivalGuid;
+            Context->EditingInfo->Subtype = &Context->EditingInfo->SubtypeBuffer;
+            Context->EditingInfo->Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
+
+            if (DialogBoxParam(
+                PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_SRVTRIGGER),
+                Context->WindowHandle,
+                EspServiceTriggerDlgProc,
+                (LPARAM)Context
+                ) == IDOK)
+            {
+                PWSTR triggerString;
+                PWSTR actionString;
+                PPH_STRING stringUsed;
+                INT lvItemIndex;
+
+                Context->Dirty = TRUE;
+                PhAddItemList(Context->InfoList, Context->EditingInfo);
+
+                EspFormatTriggerInfo(Context->EditingInfo, &triggerString, &actionString, &stringUsed);
+
+                lvItemIndex = PhAddListViewItem(Context->TriggersLv, MAXINT, triggerString, Context->EditingInfo);
+                PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 1, actionString);
+
+                if (stringUsed)
+                    PhDereferenceObject(stringUsed);
+            }
+            else
+            {
+                EspDestroyTriggerInfo(Context->EditingInfo);
+            }
+
+            Context->EditingInfo = NULL;
+        }
+        break;
+    case ES_TRIGGER_EVENT_EDIT:
+        {
+            INT lvItemIndex;
+            PES_TRIGGER_INFO info;
+            ULONG index;
+
+            lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
+
+            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
+            {
+                index = PhFindItemList(Context->InfoList, info);
+
+                if (index != -1)
+                {
+                    Context->EditingInfo = EspCloneTriggerInfo(info);
+
+                    if (DialogBoxParam(
+                        PluginInstance->DllBase,
+                        MAKEINTRESOURCE(IDD_SRVTRIGGER),
+                        Context->WindowHandle,
+                        EspServiceTriggerDlgProc,
+                        (LPARAM)Context
+                        ) == IDOK)
+                    {
+                        PWSTR triggerString;
+                        PWSTR actionString;
+                        PPH_STRING stringUsed;
+
+                        Context->Dirty = TRUE;
+                        EspDestroyTriggerInfo(Context->InfoList->Items[index]);
+                        Context->InfoList->Items[index] = Context->EditingInfo;
+
+                        EspFormatTriggerInfo(Context->EditingInfo, &triggerString, &actionString, &stringUsed);
+                        PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 0, triggerString);
+                        PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 1, actionString);
+
+                        if (stringUsed)
+                            PhDereferenceObject(stringUsed);
+
+                        EspSetListViewItemParam(Context->TriggersLv, lvItemIndex, Context->EditingInfo);
+                    }
+                    else
+                    {
+                        EspDestroyTriggerInfo(Context->EditingInfo);
+                    }
+
+                    Context->EditingInfo = NULL;
+                }
+            }
+        }
+        break;
+    case ES_TRIGGER_EVENT_DELETE:
+        {
+            INT lvItemIndex;
+            PES_TRIGGER_INFO info;
+            ULONG index;
+
+            lvItemIndex = ListView_GetNextItem(Context->TriggersLv, -1, LVNI_SELECTED);
+
+            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
+            {
+                index = PhFindItemList(Context->InfoList, info);
+
+                if (index != -1)
+                {
+                    EspDestroyTriggerInfo(info);
+                    PhRemoveItemList(Context->InfoList, index);
+                    PhRemoveListViewItem(Context->TriggersLv, lvItemIndex);
+                }
+            }
+
+            Context->Dirty = TRUE;
+        }
+        break;
+    case ES_TRIGGER_EVENT_SELECTIONCHANGED:
+        {
+            ULONG selectedCount;
+
+            selectedCount = ListView_GetSelectedCount(Context->TriggersLv);
+
+            EnableWindow(GetDlgItem(Context->WindowHandle, IDC_EDIT), selectedCount == 1);
+            EnableWindow(GetDlgItem(Context->WindowHandle, IDC_DELETE), selectedCount == 1);
+        }
+        break;
+    }
+}
+
+PES_TRIGGER_CONTEXT EsCreateServiceTriggerContext(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ HWND WindowHandle,
+    _In_ HWND TriggersLv
     )
 {
     PES_TRIGGER_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    context = PhAllocate(sizeof(ES_TRIGGER_CONTEXT));
+    memset(context, 0, sizeof(ES_TRIGGER_CONTEXT));
+    context->ServiceItem = ServiceItem;
+    context->WindowHandle = WindowHandle;
+    context->TriggersLv = TriggersLv;
+    context->InfoList = PhCreateList(4);
+
+    PhSetListViewStyle(TriggersLv, FALSE, TRUE);
+    PhSetControlTheme(TriggersLv, L"explorer");
+    PhAddListViewColumn(TriggersLv, 0, 0, 0, LVCFMT_LEFT, 300, L"Trigger");
+    PhAddListViewColumn(TriggersLv, 1, 1, 1, LVCFMT_LEFT, 60, L"Action");
+    PhSetExtendedListView(TriggersLv);
+
+    EnableWindow(GetDlgItem(WindowHandle, IDC_EDIT), FALSE);
+    EnableWindow(GetDlgItem(WindowHandle, IDC_DELETE), FALSE);
+
+    return context;
+}
+
+VOID EsDestroyServiceTriggerContext(
+    _In_ PES_TRIGGER_CONTEXT Context
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Context->InfoList->Count; i++)
     {
-        context = (PES_TRIGGER_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        EspDestroyTriggerInfo(Context->InfoList->Items[i]);
+    }
+
+    PhDereferenceObject(Context->InfoList);
+    PhFree(Context);
+}
+
+VOID EsLoadServiceTriggerInfo(
+    _In_ PES_TRIGGER_CONTEXT Context,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    PSERVICE_TRIGGER_INFO triggerInfo;
+    ULONG i;
+
+    EspClearTriggerInfoList(Context->InfoList);
+
+    if (triggerInfo = PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_TRIGGER_INFO))
+    {
+        for (i = 0; i < triggerInfo->cTriggers; i++)
+        {
+            PSERVICE_TRIGGER trigger = &triggerInfo->pTriggers[i];
+            PES_TRIGGER_INFO info;
+            PWSTR triggerString;
+            PWSTR actionString;
+            PPH_STRING stringUsed;
+            INT lvItemIndex;
+
+            info = EspCreateTriggerInfo(trigger);
+            PhAddItemList(Context->InfoList, info);
+
+            EspFormatTriggerInfo(info, &triggerString, &actionString, &stringUsed);
+
+            lvItemIndex = PhAddListViewItem(Context->TriggersLv, MAXINT, triggerString, info);
+            PhSetListViewSubItem(Context->TriggersLv, lvItemIndex, 1, actionString);
+
+            if (stringUsed)
+                PhDereferenceObject(stringUsed);
+        }
+
+        Context->InitialNumberOfTriggers = triggerInfo->cTriggers;
+
+        ExtendedListView_SortItems(Context->TriggersLv);
+
+        PhFree(triggerInfo);
+    }
+}
+
+BOOLEAN EsSaveServiceTriggerInfo(
+    _In_ PES_TRIGGER_CONTEXT Context,
+    _Out_ PULONG Win32Result
+    )
+{
+    BOOLEAN result = TRUE;
+    PH_AUTO_POOL autoPool;
+    SC_HANDLE serviceHandle;
+    SERVICE_TRIGGER_INFO triggerInfo;
+    ULONG i;
+    ULONG j;
+
+    if (!Context->Dirty)
+        return TRUE;
+
+    // Do not try to change trigger information if we didn't have any triggers before and we don't
+    // have any now. ChangeServiceConfig2 returns an error in this situation.
+    if (Context->InitialNumberOfTriggers == 0 && Context->InfoList->Count == 0)
+        return TRUE;
+
+    PhInitializeAutoPool(&autoPool);
+
+    memset(&triggerInfo, 0, sizeof(SERVICE_TRIGGER_INFO));
+    triggerInfo.cTriggers = Context->InfoList->Count;
+
+    // pTriggers needs to be NULL when there are no triggers.
+    if (Context->InfoList->Count != 0)
+    {
+        triggerInfo.pTriggers = PhAutoDereferenceObject(PhCreateAlloc(Context->InfoList->Count * sizeof(SERVICE_TRIGGER)));
+        memset(triggerInfo.pTriggers, 0, Context->InfoList->Count * sizeof(SERVICE_TRIGGER));
+
+        for (i = 0; i < Context->InfoList->Count; i++)
+        {
+            PSERVICE_TRIGGER trigger = &triggerInfo.pTriggers[i];
+            PES_TRIGGER_INFO info = Context->InfoList->Items[i];
+
+            trigger->dwTriggerType = info->Type;
+            trigger->dwAction = info->Action;
+            trigger->pTriggerSubtype = info->Subtype;
+
+            if (info->DataList && info->DataList->Count != 0)
+            {
+                trigger->cDataItems = info->DataList->Count;
+                trigger->pDataItems = PhAutoDereferenceObject(PhCreateAlloc(info->DataList->Count * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM)));
+
+                for (j = 0; j < info->DataList->Count; j++)
+                {
+                    PSERVICE_TRIGGER_SPECIFIC_DATA_ITEM dataItem = &trigger->pDataItems[j];
+                    PES_TRIGGER_DATA data = info->DataList->Items[j];
+
+                    dataItem->dwDataType = data->Type;
+
+                    if (data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
+                    {
+                        dataItem->cbData = (ULONG)data->String->Length + 2; // include null terminator
+                        dataItem->pData = (PBYTE)data->String->Buffer;
+                    }
+                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
+                    {
+                        dataItem->cbData = data->BinaryLength;
+                        dataItem->pData = data->Binary;
+                    }
+                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_LEVEL)
+                    {
+                        dataItem->cbData = sizeof(UCHAR);
+                        dataItem->pData = (PBYTE)&data->Byte;
+                    }
+                    else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ANY || data->Type == SERVICE_TRIGGER_DATA_TYPE_KEYWORD_ALL)
+                    {
+                        dataItem->cbData = sizeof(ULONG64);
+                        dataItem->pData = (PBYTE)&data->UInt64;
+                    }
+                }
+            }
+        }
+    }
+
+    if (serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG))
+    {
+        if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
+        {
+            result = FALSE;
+            *Win32Result = GetLastError();
+        }
+
+        CloseServiceHandle(serviceHandle);
     }
     else
     {
-        context = (PES_TRIGGER_CONTEXT)GetProp(hwndDlg, L"Context");
+        result = FALSE;
+        *Win32Result = GetLastError();
 
-        if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
-    }
-
-    if (!context)
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
+        if (*Win32Result == ERROR_ACCESS_DENIED && !PhElevated)
         {
-            SetDlgItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUES), TRUE);
-            Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUES), 0, -1);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
+            // Elevate using phsvc.
+            if (PhUiConnectToPhSvc(Context->WindowHandle, FALSE))
             {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                PhMoveReference(&context->EditingValue, PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUES)));
-                EndDialog(hwndDlg, IDOK);
-                break;
+                NTSTATUS status;
+
+                result = TRUE;
+
+                if (!NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(Context->ServiceItem->Name->Buffer,
+                    SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo)))
+                {
+                    result = FALSE;
+                    *Win32Result = PhNtStatusToDosError(status);
+                }
+
+                PhUiDisconnectFromPhSvc();
+            }
+            else
+            {
+                // User cancelled elevation.
+                *Win32Result = ERROR_CANCELLED;
             }
         }
-        break;
     }
 
-    return FALSE;
+    PhDeleteAutoPool(&autoPool);
+
+    return result;
 }

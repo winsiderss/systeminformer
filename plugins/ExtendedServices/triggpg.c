@@ -20,19 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <windowsx.h>
 #include "extsrv.h"
-#include "resource.h"
 
-typedef struct _SERVICE_TRIGGERS_CONTEXT
-{
-    PPH_SERVICE_ITEM ServiceItem;
-    HWND TriggersLv;
-    struct _ES_TRIGGER_CONTEXT *TriggerContext;
-} SERVICE_TRIGGERS_CONTEXT, *PSERVICE_TRIGGERS_CONTEXT;
-
-NTSTATUS EspLoadTriggerInfo(
+static NTSTATUS EspLoadTriggerInfo(
     _In_ HWND hwndDlg,
     _In_ PSERVICE_TRIGGERS_CONTEXT Context
     )

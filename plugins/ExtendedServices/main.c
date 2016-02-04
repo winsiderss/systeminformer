@@ -20,128 +20,18 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
 #include "extsrv.h"
-#include "resource.h"
-
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ServicePropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ServiceMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
 
 PPH_PLUGIN PluginInstance;
 _RtlCreateServiceSid RtlCreateServiceSid_I;
-PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 
-LOGICAL DllMain(
-    _In_ HINSTANCE Instance,
-    _In_ ULONG Reason,
-    _Reserved_ PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-
-            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"Extended Services";
-            info->Author = L"wj32";
-            info->Description = L"Extends service management capabilities.";
-            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1113";
-            info->HasOptions = TRUE;
-
-            RtlCreateServiceSid_I = PhGetModuleProcAddress(L"ntdll.dll", "RtlCreateServiceSid");
-
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-                ProcessMenuInitializingCallback,
-                NULL,
-                &ProcessMenuInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
-                ServicePropertiesInitializingCallback,
-                NULL,
-                &ServicePropertiesInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing),
-                ServiceMenuInitializingCallback,
-                NULL,
-                &ServiceMenuInitializingCallbackRegistration
-                );
-
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { IntegerSettingType, SETTING_NAME_ENABLE_SERVICES_MENU, L"1" }
-                };
-
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            }
-        }
-        break;
-    }
-
-    return TRUE;
-}
-
-VOID NTAPI LoadCallback(
+static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -149,7 +39,7 @@ VOID NTAPI LoadCallback(
     // Nothing
 }
 
-VOID NTAPI ShowOptionsCallback(
+static VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -157,7 +47,7 @@ VOID NTAPI ShowOptionsCallback(
     EsShowOptionsDialog((HWND)Parameter);
 }
 
-VOID NTAPI MenuItemCallback(
+static VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -233,7 +123,7 @@ static int __cdecl ServiceForServicesMenuCompare(
     return PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE);
 }
 
-VOID NTAPI ProcessMenuInitializingCallback(
+static VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -399,7 +289,38 @@ VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
-VOID NTAPI ServicePropertiesInitializingCallback(
+static VOID NTAPI ServiceMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM menuItem;
+    ULONG indexOfMenuItem;
+
+    if (
+        menuInfo->u.Service.NumberOfServices == 1 &&
+        (menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING || menuInfo->u.Service.Services[0]->State == SERVICE_PAUSED)
+        )
+    {
+        // Insert our Restart menu item after the Stop menu item.
+
+        menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Stop", 0);
+
+        if (menuItem)
+            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
+        else
+            indexOfMenuItem = -1;
+
+        PhInsertEMenuItem(
+            menuInfo->Menu,
+            PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"Restart", menuInfo->u.Service.Services[0]),
+            indexOfMenuItem + 1
+            );
+    }
+}
+
+static VOID NTAPI ServicePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -491,33 +412,75 @@ VOID NTAPI ServicePropertiesInitializingCallback(
     }
 }
 
-VOID NTAPI ServiceMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+LOGICAL DllMain(
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
     )
 {
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-    PPH_EMENU_ITEM menuItem;
-    ULONG indexOfMenuItem;
-
-    if (
-        menuInfo->u.Service.NumberOfServices == 1 &&
-        (menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING || menuInfo->u.Service.Services[0]->State == SERVICE_PAUSED)
-        )
+    switch (Reason)
     {
-        // Insert our Restart menu item after the Stop menu item.
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerSettingType, SETTING_NAME_ENABLE_SERVICES_MENU, L"1" }
+            };
 
-        menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Stop", 0);
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
-        if (menuItem)
-            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
-        else
-            indexOfMenuItem = -1;
+            if (!PluginInstance)
+                return FALSE;
 
-        PhInsertEMenuItem(
-            menuInfo->Menu,
-            PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"Restart", menuInfo->u.Service.Services[0]),
-            indexOfMenuItem + 1
-            );
+            info->DisplayName = L"Extended Services";
+            info->Author = L"wj32";
+            info->Description = L"Extends service management capabilities.";
+            info->Url = L"http://processhacker.sf.net/forums/viewtopic.php?t=1113";
+            info->HasOptions = TRUE;
+
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
+                ProcessMenuInitializingCallback,
+                NULL,
+                &ProcessMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
+                ServicePropertiesInitializingCallback,
+                NULL,
+                &ServicePropertiesInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing),
+                ServiceMenuInitializingCallback,
+                NULL,
+                &ServiceMenuInitializingCallbackRegistration
+                );
+
+            PhAddSettings(settings, ARRAYSIZE(settings));
+        }
+        break;
     }
+
+    return TRUE;
 }
