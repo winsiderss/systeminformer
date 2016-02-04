@@ -539,6 +539,8 @@ VOID PhpFillUmdfDrivers(
                     PhDereferenceObject(driverKeyPath);
                 }
             }
+
+            break;
         }
 
         PhFreePage(environment);
