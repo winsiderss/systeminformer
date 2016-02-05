@@ -2679,7 +2679,9 @@ VOID PhLoadDbgHelpFromPath(
         PH_STRINGREF dbghelpFolder;
         PPH_STRING symsrvPath;
 
-        if (fullDbghelpPath = PH_AUTO(PhGetDllFileName(dbghelpModule, &indexOfFileName)))
+        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+
+        if (fullDbghelpPath)
         {
             if (indexOfFileName != 0)
             {
@@ -2688,9 +2690,12 @@ VOID PhLoadDbgHelpFromPath(
                 dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
                 dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
 
-                symsrvPath = PH_AUTO(PhConcatStringRef2(&dbghelpFolder, &symsrvString));
+                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
                 LoadLibrary(symsrvPath->Buffer);
+                PhDereferenceObject(symsrvPath);
             }
+
+            PhDereferenceObject(fullDbghelpPath);
         }
     }
     else
