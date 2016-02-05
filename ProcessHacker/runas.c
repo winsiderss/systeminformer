@@ -288,9 +288,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
             SetDlgItemText(hwndDlg, IDC_DESKTOP, L"WinSta0\\Default");
-
-            SetDlgItemText(hwndDlg, IDC_PROGRAM,
-                ((PPH_STRING)PH_AUTO(PhGetStringSetting(L"RunAsProgram")))->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PROGRAM, PhaGetStringSetting(L"RunAsProgram")->Buffer);
 
             if (!context->ProcessId)
             {

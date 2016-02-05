@@ -882,13 +882,9 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
             {
             case PSN_APPLY:
                 {
-                    PPH_STRING dbgHelpPath;
-                    PPH_STRING existingDbgHelpPath;
+                    PPH_STRING dbgHelpPath = PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH);
 
-                    dbgHelpPath = PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH);
-                    existingDbgHelpPath = PH_AUTO(PhGetStringSetting(L"DbgHelpPath"));
-
-                    if (!PhEqualString(dbgHelpPath, existingDbgHelpPath, TRUE))
+                    if (!PhEqualString(dbgHelpPath, PhaGetStringSetting(L"DbgHelpPath"), TRUE))
                         RestartRequired = TRUE;
 
                     PhSetStringSetting2(L"DbgHelpPath", &dbgHelpPath->sr);
