@@ -548,9 +548,14 @@ VOID PhWriteProcessTree(
     _In_ ULONG Mode
     );
 
-PPH_LIST PhDuplicateProcessNodeList(
+// begin_phapppub
+PHAPPAPI
+PPH_LIST
+NTAPI
+PhDuplicateProcessNodeList(
     VOID
     );
+// end_phapppub
 
 // srvlist
 

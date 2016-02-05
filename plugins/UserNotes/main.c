@@ -22,6 +22,12 @@
  */
 
 #include "usernotes.h"
+#include <toolstatusintf.h>
+
+VOID SearchChangedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
 
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -40,6 +46,9 @@ static PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION SearchChangedRegistration;
+
+static PTOOLSTATUS_INTERFACE ToolStatusInterface;
 
 HWND ProcessTreeNewHandle;
 LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
@@ -238,8 +247,17 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_PLUGIN toolStatusPlugin;
     PPH_STRING path;
     PPH_STRING realPath;
+
+    if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
+    {
+        ToolStatusInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+
+        if (ToolStatusInterface->Version < TOOLSTATUS_INTERFACE_VERSION)
+            ToolStatusInterface = NULL;
+    }
 
     path = PhGetStringSetting(SETTING_NAME_DATABASE_PATH);
     realPath = PhExpandEnvironmentStrings(&path->sr);
@@ -698,7 +716,10 @@ static VOID MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    if (ToolStatusInterface)
+    {
+        PhRegisterCallback(ToolStatusInterface->SearchChangedEvent, SearchChangedHandler, NULL, &SearchChangedRegistration);
+    }
 }
 
 static VOID ProcessPropertiesInitializingCallback(
@@ -1020,6 +1041,43 @@ static VOID ProcessesUpdatedCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
+static VOID SearchChangedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_STRING searchText = Parameter;
+
+    if (PhIsNullOrEmptyString(searchText))
+    {
+        // ToolStatus expanded all nodes for searching, but the search text just became empty. We
+        // should re-collapse processes.
+
+        PPH_LIST nodes = PhAutoDereferenceObject(PhDuplicateProcessNodeList());
+        ULONG i;
+        BOOLEAN changed = FALSE;
+
+        LockDb();
+
+        for (i = 0; i < nodes->Count; i++)
+        {
+            PPH_PROCESS_NODE node = nodes->Items[i];
+            PDB_OBJECT object;
+
+            if ((object = FindDbObjectForProcess(node->ProcessItem, INTENT_PROCESS_COLLAPSE)) && object->Collapse)
+            {
+                node->Node.Expanded = FALSE;
+                changed = TRUE;
+            }
+        }
+
+        UnlockDb();
+
+        if (changed)
+            TreeNew_NodesStructured(ProcessTreeNewHandle);
+    }
+}
+
 static VOID ProcessItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -1063,13 +1121,8 @@ static VOID ProcessNodeCreateCallback(
 
     LockDb();
 
-    if (object = FindDbObjectForProcess(processNode->ProcessItem, INTENT_PROCESS_COLLAPSE))
-    {
-        if (object->Collapse)
-        {
-            processNode->Node.Expanded = FALSE;
-        }
-    }
+    if ((object = FindDbObjectForProcess(processNode->ProcessItem, INTENT_PROCESS_COLLAPSE)) && object->Collapse)
+        processNode->Node.Expanded = FALSE;
 
     UnlockDb();
 }

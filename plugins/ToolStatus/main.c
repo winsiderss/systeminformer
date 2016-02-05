@@ -631,22 +631,32 @@ static LRESULT CALLBACK MainWndSubclassProc(
             {
             case EN_CHANGE:
                 {
+                    PPH_STRING newSearchboxText;
+
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    // Cache the current search text for our callback.
-                    PhMoveReference(&SearchboxText, PhGetWindowText(SearchboxHandle));
+                    newSearchboxText = PhAutoDereferenceObject(PhGetWindowText(SearchboxHandle));
 
-                    // Expand the nodes so we can search them
-                    PhExpandAllProcessNodes(TRUE);
-                    PhDeselectAllProcessNodes();
-                    PhDeselectAllServiceNodes();
+                    if (!PhEqualString(SearchboxText, newSearchboxText, FALSE))
+                    {
+                        // Cache the current search text for our callback.
+                        PhSwapReference(&SearchboxText, newSearchboxText);
 
-                    PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
-                    PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
-                    PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
+                        if (!PhIsNullOrEmptyString(SearchboxText))
+                        {
+                            // Expand the nodes to ensure that they will be visible to the user.
+                            PhExpandAllProcessNodes(TRUE);
+                            PhDeselectAllProcessNodes();
+                            PhDeselectAllServiceNodes();
+                        }
 
-                    PhInvokeCallback(&SearchChangedEvent, SearchboxText);
+                        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+                        PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
+                        PhApplyTreeNewFilters(PhGetFilterSupportNetworkTreeList());
+
+                        PhInvokeCallback(&SearchChangedEvent, SearchboxText);
+                    }
 
                     goto DefaultWndProc;
                 }
