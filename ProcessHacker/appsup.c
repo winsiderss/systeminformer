@@ -566,7 +566,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             {
                 dllName = PhaConcatStrings(
                     3,
-                    ((PPH_STRING)PH_AUTO(PhGetSystemDirectory()))->Buffer,
+                    PH_AUTO_T(PH_STRING, PhGetSystemDirectory())->Buffer,
                     L"\\",
                     dllName->Buffer
                     );

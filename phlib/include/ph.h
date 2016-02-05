@@ -2589,8 +2589,7 @@ PhFormatDateTime(
     _In_opt_ PSYSTEMTIME DateTime
     );
 
-#define PhaFormatDateTime(DateTime) \
-    ((PPH_STRING)PH_AUTO(PhFormatDateTime(DateTime)))
+#define PhaFormatDateTime(DateTime) PH_AUTO_T(PH_STRING, PhFormatDateTime(DateTime))
 
 PHLIBAPI
 PPH_STRING
@@ -2607,8 +2606,7 @@ PhFormatUInt64(
     _In_ BOOLEAN GroupDigits
     );
 
-#define PhaFormatUInt64(Value, GroupDigits) \
-    ((PPH_STRING)PH_AUTO(PhFormatUInt64((Value), (GroupDigits))))
+#define PhaFormatUInt64(Value, GroupDigits) PH_AUTO_T(PH_STRING, PhFormatUInt64((Value), (GroupDigits)))
 
 PHLIBAPI
 PPH_STRING
@@ -2620,7 +2618,7 @@ PhFormatDecimal(
     );
 
 #define PhaFormatDecimal(Value, FractionalDigits, GroupDigits) \
-    ((PPH_STRING)PH_AUTO(PhFormatDecimal((Value), (FractionalDigits), (GroupDigits))))
+    PH_AUTO_T(PH_STRING, PhFormatDecimal((Value), (FractionalDigits), (GroupDigits)))
 
 PHLIBAPI
 PPH_STRING
@@ -2630,8 +2628,7 @@ PhFormatSize(
     _In_ ULONG MaxSizeUnit
     );
 
-#define PhaFormatSize(Size, MaxSizeUnit) \
-    ((PPH_STRING)PH_AUTO(PhFormatSize((Size), (MaxSizeUnit))))
+#define PhaFormatSize(Size, MaxSizeUnit) PH_AUTO_T(PH_STRING, PhFormatSize((Size), (MaxSizeUnit)))
 
 PHLIBAPI
 PPH_STRING

@@ -257,28 +257,25 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 PPH_STRING accessString;
                 PPH_STRING grantedAccessString;
 
-                accessString = PhGetAccessString(
+                accessString = PH_AUTO(PhGetAccessString(
                     context->HandleItem->GrantedAccess,
                     accessEntries,
                     numberOfAccessEntries
-                    );
+                    ));
 
                 if (accessString->Length != 0)
                 {
-                    grantedAccessString = PhFormatString(
+                    grantedAccessString = PhaFormatString(
                         L"%s (%s)",
                         context->HandleItem->GrantedAccessString,
                         accessString->Buffer
                         );
                     SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
-                    PhDereferenceObject(grantedAccessString);
                 }
                 else
                 {
                     SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
                 }
-
-                PhDereferenceObject(accessString);
 
                 PhFree(accessEntries);
             }

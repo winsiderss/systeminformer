@@ -140,14 +140,8 @@ BOOLEAN PhMainWndInitialization(
         PPH_STRING autoDbghelpPath;
 
         // Try to set up the dbghelp path automatically if this is the first run.
-
-        autoDbghelpPath = PhMwpFindDbghelpPath();
-
-        if (autoDbghelpPath)
-        {
+        if (autoDbghelpPath = PH_AUTO(PhMwpFindDbghelpPath()))
             PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
-            PhDereferenceObject(autoDbghelpPath);
-        }
 
         PhSetIntegerSetting(L"FirstRun", FALSE);
     }
@@ -1108,17 +1102,13 @@ VOID PhMwpOnCommand(
 
             if (PhShowFileDialog(PhMainWndHandle, fileDialog))
             {
-                PPH_STRING fileName;
-
-                fileName = PhGetFileDialogFileName(fileDialog);
                 PhShellExecuteUserString(
                     PhMainWndHandle,
                     L"ProgramInspectExecutables",
-                    fileName->Buffer,
+                    PH_AUTO_T(PH_STRING, PhGetFileDialogFileName(fileDialog))->Buffer,
                     FALSE,
                     L"Make sure the PE Viewer executable file is present."
                     );
-                PhDereferenceObject(fileName);
             }
 
             PhFreeFileDialog(fileDialog);
@@ -1134,9 +1124,8 @@ VOID PhMwpOnCommand(
             PPH_STRING systemDirectory;
             PPH_STRING taskmgrFileName;
 
-            systemDirectory = PhGetSystemDirectory();
-            taskmgrFileName = PhConcatStrings2(systemDirectory->Buffer, L"\\taskmgr.exe");
-            PhDereferenceObject(systemDirectory);
+            systemDirectory = PH_AUTO(PhGetSystemDirectory());
+            taskmgrFileName = PH_AUTO(PhConcatStrings2(systemDirectory->Buffer, L"\\taskmgr.exe"));
 
             if (WindowsVersion >= WINDOWS_8 && !PhElevated)
             {
@@ -1150,8 +1139,6 @@ VOID PhMwpOnCommand(
             {
                 PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
             }
-
-            PhDereferenceObject(taskmgrFileName);
         }
         break;
     case ID_USER_CONNECT:
@@ -1651,7 +1638,7 @@ VOID PhMwpOnCommand(
             if (serviceItem)
             {
                 HANDLE keyHandle;
-                PPH_STRING serviceKeyName = PhConcatStringRef2(&servicesKeyName, &serviceItem->Name->sr);
+                PPH_STRING serviceKeyName = PH_AUTO(PhConcatStringRef2(&servicesKeyName, &serviceItem->Name->sr));
 
                 if (NT_SUCCESS(PhOpenKey(
                     &keyHandle,
@@ -1663,14 +1650,10 @@ VOID PhMwpOnCommand(
                 {
                     PPH_STRING hklmServiceKeyName;
 
-                    hklmServiceKeyName = PhConcatStringRef2(&hklm, &serviceKeyName->sr);
+                    hklmServiceKeyName = PH_AUTO(PhConcatStringRef2(&hklm, &serviceKeyName->sr));
                     PhShellOpenKey2(PhMainWndHandle, hklmServiceKeyName);
-                    PhDereferenceObject(hklmServiceKeyName);
-
                     NtClose(keyHandle);
                 }
-
-                PhDereferenceObject(serviceKeyName);
             }
         }
         break;
@@ -2297,7 +2280,7 @@ ULONG_PTR PhMwpOnUserMessage(
             PPH_STRING fontHexString;
             LOGFONT font;
 
-            fontHexString = PhGetStringSetting(L"Font");
+            fontHexString = PhaGetStringSetting(L"Font");
 
             if (
                 fontHexString->Length / 2 / 2 == sizeof(LOGFONT) &&
@@ -2335,8 +2318,6 @@ ULONG_PTR PhMwpOnUserMessage(
                     }
                 }
             }
-
-            PhDereferenceObject(fontHexString);
         }
         break;
     case WM_PH_GET_FONT:
@@ -2640,12 +2621,10 @@ VOID PhMwpLoadSettings(
         SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
     }
 
-    customFont = PhGetStringSetting(L"Font");
+    customFont = PhaGetStringSetting(L"Font");
 
     if (customFont->Length / 2 / 2 == sizeof(LOGFONT))
         SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
-
-    PhDereferenceObject(customFont);
 
     PhLoadSettingsProcessTreeList();
     // Service and network list settings are loaded on demand.
@@ -2700,9 +2679,7 @@ VOID PhLoadDbgHelpFromPath(
         PH_STRINGREF dbghelpFolder;
         PPH_STRING symsrvPath;
 
-        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
-
-        if (fullDbghelpPath)
+        if (fullDbghelpPath = PH_AUTO(PhGetDllFileName(dbghelpModule, &indexOfFileName)))
         {
             if (indexOfFileName != 0)
             {
@@ -2711,12 +2688,9 @@ VOID PhLoadDbgHelpFromPath(
                 dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
                 dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
 
-                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+                symsrvPath = PH_AUTO(PhConcatStringRef2(&dbghelpFolder, &symsrvString));
                 LoadLibrary(symsrvPath->Buffer);
-                PhDereferenceObject(symsrvPath);
             }
-
-            PhDereferenceObject(fullDbghelpPath);
         }
     }
     else

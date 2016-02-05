@@ -333,7 +333,7 @@ INT PhAddTabControlTab(
     );
 
 #define PhaGetDlgItemText(hwndDlg, id) \
-    ((PPH_STRING)PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, id))))
+    PH_AUTO_T(PH_STRING, PhGetWindowText(GetDlgItem(hwndDlg, id)))
 
 PHLIBAPI
 PPH_STRING PhGetWindowText(

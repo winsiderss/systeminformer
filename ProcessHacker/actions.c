@@ -88,13 +88,6 @@ BOOLEAN PhpShowElevatePrompt(
     config.pszWindowTitle = L"Process Hacker";
     config.pszMainIcon = TD_ERROR_ICON;
     config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
-    /*config.pszContent = PhaConcatStrings(
-        3,
-        L"Unable to perform the action: ",
-        ((PPH_STRING)PH_AUTO(PhGetNtMessage(Status)))->Buffer,
-        L"\nYou will need to provide administrator permission. "
-        L"Click Continue to complete this operation."
-        )->Buffer;*/
     config.pszContent = L"You will need to provide administrator permission. "
         L"Click Continue to complete this operation.";
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
@@ -1088,10 +1081,8 @@ BOOLEAN PhpUiTerminateTreeProcess(
 
     do
     {
-        if (
-            process->UniqueProcessId != Process->ProcessId &&
-            process->InheritedFromUniqueProcessId == Process->ProcessId
-            )
+        if (process->UniqueProcessId != Process->ProcessId &&
+            process->InheritedFromUniqueProcessId == Process->ProcessId)
         {
             if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
             {
@@ -1458,17 +1449,13 @@ BOOLEAN PhUiDebugProcess(
             0
             )))
         {
-            debugger = PhQueryRegistryString(keyHandle, L"Debugger");
-
-            if (debugger)
+            if (debugger = PH_AUTO(PhQueryRegistryString(keyHandle, L"Debugger")))
             {
                 if (PhSplitStringRefAtChar(&debugger->sr, '"', &dummy, &commandPart) &&
                     PhSplitStringRefAtChar(&commandPart, '"', &commandPart, &dummy))
                 {
                     DebuggerCommand = PhCreateString2(&commandPart);
                 }
-
-                PhDereferenceObject(debugger);
             }
 
             NtClose(keyHandle);

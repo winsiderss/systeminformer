@@ -870,6 +870,8 @@ static PPH_STRING PhpaGetHandleString(
         NULL,
         &name
         );
+    PH_AUTO(typeName);
+    PH_AUTO(name);
 
     if (typeName && name)
     {
@@ -887,11 +889,6 @@ static PPH_STRING PhpaGetHandleString(
             Handle
             );
     }
-
-    if (typeName)
-        PhDereferenceObject(typeName);
-    if (name)
-        PhDereferenceObject(name);
 
     return result;
 }

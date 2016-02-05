@@ -107,7 +107,7 @@ VOID PhResetSettings(
     VOID
     );
 
-#define PhaGetStringSetting(Name) ((PPH_STRING)PH_AUTO(PhGetStringSetting(Name))) // phapppub
+#define PhaGetStringSetting(Name) PH_AUTO_T(PH_STRING, PhGetStringSetting(Name)) // phapppub
 
 // begin_phapppub
 // High-level settings creation

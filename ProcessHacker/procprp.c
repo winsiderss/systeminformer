@@ -676,7 +676,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     case WM_INITDIALOG:
         {
             HANDLE processHandle = NULL;
-            PPH_STRING curdir = NULL;
+            PPH_STRING curDir = NULL;
             PROCESS_BASIC_INFORMATION basicInfo;
 #ifdef _WIN64
             PVOID peb32;
@@ -722,14 +722,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 PPH_STRING inspectExecutables;
 
-                inspectExecutables = PhGetStringSetting(L"ProgramInspectExecutables");
+                inspectExecutables = PhaGetStringSetting(L"ProgramInspectExecutables");
 
                 if (!processItem->FileName || inspectExecutables->Length == 0)
                 {
                     EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
                 }
-
-                PhDereferenceObject(inspectExecutables);
             }
 
             if (processItem->VerifyResult == VrTrusted)
@@ -790,18 +788,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhGetProcessPebString(
                     processHandle,
                     pebOffset,
-                    &curdir
+                    &curDir
                     );
+                PH_AUTO(curDir);
 
                 NtClose(processHandle);
                 processHandle = NULL;
             }
 
-            SetDlgItemText(hwndDlg, IDC_CURDIR,
-                PhpGetStringOrNa(curdir));
-
-            if (curdir)
-                PhDereferenceObject(curdir);
+            SetDlgItemText(hwndDlg, IDC_CURDIR, PhpGetStringOrNa(curDir));
 
             // Started
 
@@ -840,7 +835,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 clientId.UniqueThread = NULL;
 
                 SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
-                    ((PPH_STRING)PH_AUTO(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+                    PH_AUTO_T(PH_STRING, PhGetClientIdNameEx(&clientId, parentProcess->ProcessName))->Buffer);
 
                 PhDereferenceObject(parentProcess);
             }
@@ -1816,7 +1811,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhMoveReference(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%%\n%s",
                                 (cpuKernel + cpuUser) * 100,
-                                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer
                                 ));
                         }
 
@@ -1836,7 +1831,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhMoveReference(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
                                 L"Private Bytes: %s\n%s",
                                 PhaFormatSize(privateBytes, -1)->Buffer,
-                                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer
                                 ));
                         }
 
@@ -1862,7 +1857,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 PhaFormatSize(ioRead, -1)->Buffer,
                                 PhaFormatSize(ioWrite, -1)->Buffer,
                                 PhaFormatSize(ioOther, -1)->Buffer,
-                                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer
                                 ));
                         }
 
@@ -3248,15 +3243,13 @@ VOID PhpInitializeModuleMenu(
     PPH_EMENU_ITEM item;
     PPH_STRING inspectExecutables;
 
-    inspectExecutables = PhGetStringSetting(L"ProgramInspectExecutables");
+    inspectExecutables = PhaGetStringSetting(L"ProgramInspectExecutables");
 
     if (inspectExecutables->Length == 0)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_MODULE_INSPECT))
             PhDestroyEMenuItem(item);
     }
-
-    PhDereferenceObject(inspectExecutables);
 
     if (NumberOfModules == 0)
     {

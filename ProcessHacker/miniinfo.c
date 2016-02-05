@@ -918,13 +918,13 @@ VOID PhMipUpdateSectionText(
 {
     if (Section->Text)
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PH_AUTO(
-            PhConcatStringRef2(&DownArrowPrefix, &Section->Text->sr)))->Buffer);
+        SetDlgItemText(PhMipWindow, IDC_SECTION,
+            PH_AUTO_T(PH_STRING, PhConcatStringRef2(&DownArrowPrefix, &Section->Text->sr))->Buffer);
     }
     else
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PH_AUTO(
-            PhConcatStringRef2(&DownArrowPrefix, &Section->Name)))->Buffer);
+        SetDlgItemText(PhMipWindow, IDC_SECTION,
+            PH_AUTO_T(PH_STRING, PhConcatStringRef2(&DownArrowPrefix, &Section->Name))->Buffer);
     }
 }
 
@@ -1046,7 +1046,7 @@ VOID PhMipShowSectionMenu(
         menuItem = PhCreateEMenuItem(
             (section == CurrentSection ? (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK) : 0),
             0,
-            ((PPH_STRING)PH_AUTO(PhCreateString2(&section->Name)))->Buffer,
+            PH_AUTO_T(PH_STRING, PhCreateString2(&section->Name))->Buffer,
             NULL,
             section
             );

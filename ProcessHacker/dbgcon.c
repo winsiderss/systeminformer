@@ -145,9 +145,9 @@ static PWSTR PhpGetSymbolForAddress(
     _In_ PVOID Address
     )
 {
-    return ((PPH_STRING)PH_AUTO(PhGetSymbolFromAddress(
+    return PH_AUTO_T(PH_STRING, PhGetSymbolFromAddress(
         DebugConsoleSymbolProvider, (ULONG64)Address, NULL, NULL, NULL, NULL
-        )))->Buffer;
+        ))->Buffer;
 }
 
 static VOID PhpPrintObjectInfo(

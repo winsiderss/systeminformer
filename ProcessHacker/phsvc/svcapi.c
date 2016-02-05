@@ -326,6 +326,8 @@ NTSTATUS PhSvcApiPlugin(
 
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.Plugin.i.ApiId, FALSE, &apiId)))
     {
+        PH_AUTO(apiId);
+
         if (PhPluginsEnabled &&
             PhEmParseCompoundId(&apiId->sr, &pluginName, &request.SubId) &&
             (plugin = PhFindPlugin2(&pluginName)))
@@ -347,8 +349,6 @@ NTSTATUS PhSvcApiPlugin(
         {
             status = STATUS_NOT_FOUND;
         }
-
-        PhDereferenceObject(apiId);
     }
 
     return status;
@@ -546,6 +546,8 @@ NTSTATUS PhSvcApiControlService(
 
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ControlService.i.ServiceName, FALSE, &serviceName)))
     {
+        PH_AUTO(serviceName);
+
         switch (Payload->u.ControlService.i.Command)
         {
         case PhSvcControlServiceStart:
@@ -632,8 +634,6 @@ NTSTATUS PhSvcApiControlService(
             status = STATUS_INVALID_PARAMETER;
             break;
         }
-
-        PhDereferenceObject(serviceName);
     }
 
     return status;
@@ -1202,14 +1202,14 @@ NTSTATUS PhSvcApiAddAccountRight(
     {
         if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.AddAccountRight.i.UserRight, FALSE, &userRight)))
         {
+            PH_AUTO(userRight);
+
             if (NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, NULL)))
             {
                 PhStringRefToUnicodeString(&userRight->sr, &userRightUs);
                 status = LsaAddAccountRights(policyHandle, accountSid, &userRightUs, 1);
                 LsaClose(policyHandle);
             }
-
-            PhDereferenceObject(userRight);
         }
 
         PhFree(accountSid);
@@ -1306,10 +1306,10 @@ NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
 
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateProcessIgnoreIfeoDebugger.i.FileName, FALSE, &fileName)))
     {
+        PH_AUTO(fileName);
+
         if (!PhCreateProcessIgnoreIfeoDebugger(fileName->Buffer))
             status = STATUS_UNSUCCESSFUL;
-
-        PhDereferenceObject(fileName);
     }
 
     return status;
@@ -1328,6 +1328,8 @@ NTSTATUS PhSvcApiSetServiceSecurity(
 
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.SetServiceSecurity.i.ServiceName, FALSE, &serviceName)))
     {
+        PH_AUTO(serviceName);
+
         if (NT_SUCCESS(status = PhSvcCaptureSecurityDescriptor(&Payload->u.SetServiceSecurity.i.SecurityDescriptor, FALSE, 0, &securityDescriptor)))
         {
             desiredAccess = 0;
@@ -1365,8 +1367,6 @@ NTSTATUS PhSvcApiSetServiceSecurity(
 
             PhFree(securityDescriptor);
         }
-
-        PhDereferenceObject(serviceName);
     }
 
     return status;
@@ -1387,8 +1387,8 @@ NTSTATUS PhSvcApiLoadDbgHelp(
 
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.LoadDbgHelp.i.DbgHelpPath, FALSE, &dbgHelpPath)))
     {
+        PH_AUTO(dbgHelpPath);
         PhLoadDbgHelpFromPath(dbgHelpPath->Buffer);
-        PhDereferenceObject(dbgHelpPath);
         alreadyLoaded = TRUE;
     }
 

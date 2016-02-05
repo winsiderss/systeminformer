@@ -119,6 +119,7 @@ NTSTATUS PhSvcApiRequestThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PH_AUTO_POOL autoPool;
     NTSTATUS status;
     PHSVC_THREAD_CONTEXT threadContext;
     HANDLE portHandle;
@@ -129,6 +130,8 @@ NTSTATUS PhSvcApiRequestThreadStart(
     CSHORT messageType;
     PPHSVC_CLIENT client;
     PPHSVC_API_PAYLOAD payload;
+
+    PhInitializeAutoPool(&autoPool);
 
     threadContext.CurrentClient = NULL;
     threadContext.OldClient = NULL;
@@ -194,7 +197,10 @@ NTSTATUS PhSvcApiRequestThreadStart(
         }
 
         assert(!threadContext.OldClient);
+        PhDrainAutoPool(&autoPool);
     }
+
+    PhDeleteAutoPool(&autoPool);
 }
 
 VOID PhSvcHandleConnectionRequest(

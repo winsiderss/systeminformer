@@ -151,7 +151,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                     clientId.UniqueThread = NULL;
 
                     SetDlgItemText(hwndDlg, IDC_PARENT,
-                        ((PPH_STRING)PH_AUTO(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+                        PH_AUTO_T(PH_STRING, PhGetClientIdNameEx(&clientId, parentProcess->ProcessName))->Buffer);
 
                     PhDereferenceObject(parentProcess);
                 }

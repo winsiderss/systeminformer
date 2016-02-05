@@ -302,6 +302,7 @@ PhAutoDereferenceObject(
     );
 
 #define PH_AUTO PhAutoDereferenceObject
+#define PH_AUTO_T(Type, Object) ((Type *)PH_AUTO(Object))
 
 /** Deprecated. Use PhAutoDereferenceObject instead. */
 PHLIBAPI VOID NTAPI PhaDereferenceObject(PVOID Object);

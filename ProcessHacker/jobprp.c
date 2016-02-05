@@ -293,9 +293,8 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                     if (flags & JOB_OBJECT_LIMIT_JOB_MEMORY)
                     {
-                        PPH_STRING value = PhFormatSize(extendedLimits.JobMemoryLimit, -1);
+                        PPH_STRING value = PhaFormatSize(extendedLimits.JobMemoryLimit, -1);
                         PhpAddLimit(limitsLv, L"Job Memory", value->Buffer);
-                        PhDereferenceObject(value);
                     }
 
                     if (flags & JOB_OBJECT_LIMIT_JOB_TIME)
@@ -319,9 +318,8 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                     if (flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)
                     {
-                        PPH_STRING value = PhFormatSize(extendedLimits.ProcessMemoryLimit, -1);
+                        PPH_STRING value = PhaFormatSize(extendedLimits.ProcessMemoryLimit, -1);
                         PhpAddLimit(limitsLv, L"Process Memory", value->Buffer);
-                        PhDereferenceObject(value);
                     }
 
                     if (flags & JOB_OBJECT_LIMIT_PROCESS_TIME)
@@ -348,13 +346,11 @@ INT_PTR CALLBACK PhpJobPageProc(
                     {
                         PPH_STRING value;
 
-                        value = PhFormatSize(extendedLimits.BasicLimitInformation.MinimumWorkingSetSize, -1);
+                        value = PhaFormatSize(extendedLimits.BasicLimitInformation.MinimumWorkingSetSize, -1);
                         PhpAddLimit(limitsLv, L"Working Set Minimum", value->Buffer);
-                        PhDereferenceObject(value);
 
-                        value = PhFormatSize(extendedLimits.BasicLimitInformation.MaximumWorkingSetSize, -1);
+                        value = PhaFormatSize(extendedLimits.BasicLimitInformation.MaximumWorkingSetSize, -1);
                         PhpAddLimit(limitsLv, L"Working Set Maximum", value->Buffer);
-                        PhDereferenceObject(value);
                     }
                 }
 

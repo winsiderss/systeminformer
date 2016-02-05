@@ -295,7 +295,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             if (!context->ProcessId)
             {
                 SetDlgItemText(hwndDlg, IDC_USERNAME,
-                    ((PPH_STRING)PH_AUTO(PhGetStringSetting(L"RunAsUserName")))->Buffer);
+                    PH_AUTO_T(PH_STRING, PhGetStringSetting(L"RunAsUserName"))->Buffer);
 
                 // Fire the user name changed event so we can fix the logon type.
                 SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);

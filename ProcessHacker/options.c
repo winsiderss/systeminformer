@@ -367,16 +367,14 @@ static BOOLEAN GetCurrentFont(
     PPH_STRING fontHexString;
 
     if (NewFontSelection)
-        PhSetReference(&fontHexString, NewFontSelection);
+        fontHexString = NewFontSelection;
     else
-        fontHexString = PhGetStringSetting(L"Font");
+        fontHexString = PhaGetStringSetting(L"Font");
 
     if (fontHexString->Length / 2 / 2 == sizeof(LOGFONT))
         result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
     else
         result = FALSE;
-
-    PhDereferenceObject(fontHexString);
 
     return result;
 }
@@ -611,8 +609,7 @@ VOID PhpAdvancedPageLoad(
             0
             )))
         {
-            if (OldTaskMgrDebugger)
-                PhDereferenceObject(OldTaskMgrDebugger);
+            PhClearReference(&OldTaskMgrDebugger);
 
             if (OldTaskMgrDebugger = PhQueryRegistryString(taskmgrKeyHandle, L"Debugger"))
             {
@@ -686,9 +683,8 @@ VOID PhpAdvancedPageSave(
                 {
                     PPH_STRING quotedFileName;
 
-                    quotedFileName = PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\"");
+                    quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\""));
                     status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, (ULONG)quotedFileName->Length + 2);
-                    PhDereferenceObject(quotedFileName);
                 }
                 else
                 {
@@ -765,8 +761,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (OldTaskMgrDebugger)
-                PhDereferenceObject(OldTaskMgrDebugger);
+            PhClearReference(&OldTaskMgrDebugger);
         }
         break;
     case WM_COMMAND:
@@ -864,15 +859,13 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH));
+                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH)));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-                    PhDereferenceObject(fileName);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
-                        fileName = PhGetFileDialogFileName(fileDialog);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                         SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, fileName->Buffer);
-                        PhDereferenceObject(fileName);
                     }
 
                     PhFreeFileDialog(fileDialog);

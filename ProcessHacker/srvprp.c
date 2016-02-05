@@ -553,7 +553,7 @@ ErrorCase:
                         hwndDlg,
                         MB_ICONERROR | MB_RETRYCANCEL,
                         L"Unable to change service configuration: %s",
-                        ((PPH_STRING)PH_AUTO(PhGetWin32Message(GetLastError())))->Buffer
+                        PH_AUTO_T(PH_STRING, PhGetWin32Message(GetLastError()))->Buffer
                         ) == IDRETRY)
                     {
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
