@@ -85,7 +85,6 @@ Name                  | Use                     | Type
 `PH_POINTER_LIST`     | Array                   | Non-intrusive
 `LIST_ENTRY`          | Stack                   | Intrusive
 `SINGLE_LIST_ENTRY`   | Stack                   | Intrusive
-`PH_QUEUE`            | Queue                   | Non-intrusive
 `LIST_ENTRY`          | Queue                   | Intrusive
 `RTL_AVL_TABLE`       | Binary tree (AVL)       | Non-intrusive
 `PH_AVL_LINKS`        | Binary tree (AVL)       | Intrusive
