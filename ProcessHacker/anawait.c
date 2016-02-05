@@ -1010,12 +1010,12 @@ static PPH_STRING PhpaGetSendMessageReceiver(
 
     clientId.UniqueProcess = UlongToHandle(processId);
     clientId.UniqueThread = UlongToHandle(threadId);
-    clientIdName = PhAutoDereferenceObject(PhGetClientIdName(&clientId));
+    clientIdName = PH_AUTO(PhGetClientIdName(&clientId));
 
     if (!GetClassName(windowHandle, windowClass, sizeof(windowClass) / sizeof(WCHAR)))
         windowClass[0] = 0;
 
-    windowText = PhAutoDereferenceObject(PhGetWindowText(windowHandle));
+    windowText = PH_AUTO(PhGetWindowText(windowHandle));
 
     return PhaFormatString(L"Window 0x%Ix (%s): %s \"%s\"", windowHandle, clientIdName->Buffer, windowClass, PhGetStringOrEmpty(windowText));
 }
@@ -1063,7 +1063,7 @@ static PPH_STRING PhpaGetAlpcInformation(
 
         clientId.UniqueProcess = serverInfo->Out.ConnectedProcessId;
         clientId.UniqueThread = NULL;
-        clientIdName = PhAutoDereferenceObject(PhGetClientIdName(&clientId));
+        clientIdName = PH_AUTO(PhGetClientIdName(&clientId));
 
         string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->Out.ConnectionPortName.Length / 2, serverInfo->Out.ConnectionPortName.Buffer, clientIdName->Buffer);
     }

@@ -349,14 +349,14 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_PROTECTION), FALSE);
 
             SetDlgItemText(hwndDlg, IDC_SERVICESID,
-                PhGetStringOrDefault(PhAutoDereferenceObject(EspGetServiceSidString(&serviceItem->Name->sr)), L"N/A"));
+                PhGetStringOrDefault(PH_AUTO(EspGetServiceSidString(&serviceItem->Name->sr)), L"N/A"));
 
             status = EspLoadOtherInfo(hwndDlg, context);
 
             if (!NT_SUCCESS(status))
             {
                 PhShowWarning(hwndDlg, L"Unable to query service information: %s",
-                    ((PPH_STRING)PhAutoDereferenceObject(PhGetNtMessage(status)))->Buffer);
+                    ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
             }
 
             context->Ready = TRUE;
@@ -565,7 +565,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
 
-                    launchProtectedString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_PROTECTION)));
+                    launchProtectedString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_PROTECTION)));
                     launchProtected = EspGetServiceLaunchProtectedInteger(launchProtectedString->Buffer);
 
                     if (context->LaunchProtectedValid && launchProtected != 0 && launchProtected != context->OriginalLaunchProtected)
@@ -652,7 +652,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                         {
                             PPH_STRING sidTypeString;
 
-                            sidTypeString = PhAutoDereferenceObject(PhGetWindowText(GetDlgItem(hwndDlg, IDC_SIDTYPE)));
+                            sidTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_SIDTYPE)));
                             sidInfo.dwServiceSidType = EspGetServiceSidTypeInteger(sidTypeString->Buffer);
 
                             if (win32Result == 0 && !EspChangeServiceConfig2(context->ServiceItem->Name->Buffer, serviceHandle,
@@ -686,7 +686,7 @@ Done:
                                 hwndDlg,
                                 MB_ICONERROR | MB_RETRYCANCEL,
                                 L"Unable to change service information: %s",
-                                ((PPH_STRING)PhAutoDereferenceObject(PhGetWin32Message(win32Result)))->Buffer
+                                ((PPH_STRING)PH_AUTO(PhGetWin32Message(win32Result)))->Buffer
                                 ) == IDRETRY)
                             {
                                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);

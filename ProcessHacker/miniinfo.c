@@ -918,12 +918,12 @@ VOID PhMipUpdateSectionText(
 {
     if (Section->Text)
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PhAutoDereferenceObject(
+        SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PH_AUTO(
             PhConcatStringRef2(&DownArrowPrefix, &Section->Text->sr)))->Buffer);
     }
     else
     {
-        SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PhAutoDereferenceObject(
+        SetDlgItemText(PhMipWindow, IDC_SECTION, ((PPH_STRING)PH_AUTO(
             PhConcatStringRef2(&DownArrowPrefix, &Section->Name)))->Buffer);
     }
 }
@@ -1046,7 +1046,7 @@ VOID PhMipShowSectionMenu(
         menuItem = PhCreateEMenuItem(
             (section == CurrentSection ? (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK) : 0),
             0,
-            ((PPH_STRING)PhAutoDereferenceObject(PhCreateString2(&section->Name)))->Buffer,
+            ((PPH_STRING)PH_AUTO(PhCreateString2(&section->Name)))->Buffer,
             NULL,
             section
             );
@@ -1984,7 +1984,7 @@ BOOLEAN PhMipCommitListSectionCallback(
             PhInitFormatF(&format[3], commitFraction * 100, 2);
             PhInitFormatS(&format[4], L"%)");
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PhAutoDereferenceObject(PhFormat(format, 5, 96)));
+                PH_AUTO(PhFormat(format, 5, 96)));
         }
         break;
     case MiListSectionSortProcessList:
@@ -2075,7 +2075,7 @@ BOOLEAN PhMipPhysicalListSectionCallback(
             PhInitFormatF(&format[3], physicalFraction * 100, 2);
             PhInitFormatS(&format[4], L"%)");
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PhAutoDereferenceObject(PhFormat(format, 5, 96)));
+                PH_AUTO(PhFormat(format, 5, 96)));
         }
         break;
     case MiListSectionSortProcessList:
@@ -2171,7 +2171,7 @@ BOOLEAN PhMipIoListSectionCallback(
             format[5].Type |= FormatUsePrecision;
             format[5].Precision = 0;
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PhAutoDereferenceObject(PhFormat(format, 6, 80)));
+                PH_AUTO(PhFormat(format, 6, 80)));
         }
         break;
     case MiListSectionSortProcessList:

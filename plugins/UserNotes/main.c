@@ -1053,7 +1053,7 @@ static VOID SearchChangedHandler(
         // ToolStatus expanded all nodes for searching, but the search text just became empty. We
         // should re-collapse processes.
 
-        PPH_LIST nodes = PhAutoDereferenceObject(PhDuplicateProcessNodeList());
+        PPH_LIST nodes = PH_AUTO(PhDuplicateProcessNodeList());
         ULONG i;
         BOOLEAN changed = FALSE;
 

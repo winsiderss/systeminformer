@@ -282,7 +282,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                     if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
                     {
-                        selectedChoice = PhAutoDereferenceObject(PhGetWindowText(context->ComboBoxHandle));
+                        selectedChoice = PH_AUTO(PhGetWindowText(context->ComboBoxHandle));
                         *context->SelectedChoice = selectedChoice;
                     }
                     else

@@ -324,7 +324,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                             if (!SearchRegexCompiledExpression)
                             {
                                 PhShowError(hwndDlg, L"Unable to compile the regular expression: \"%s\" at position %zu.",
-                                    PhGetStringOrDefault(PhAutoDereferenceObject(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
+                                    PhGetStringOrDefault(PH_AUTO(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
                                     errorOffset
                                     );
                                 break;

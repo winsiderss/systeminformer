@@ -26,7 +26,7 @@ PPH_STRING PhaCreateString(
     _In_ PWSTR Buffer
     )
 {
-    return PhAutoDereferenceObject(PhCreateString(Buffer));
+    return PH_AUTO(PhCreateString(Buffer));
 }
 
 PPH_STRING PhaCreateStringEx(
@@ -34,14 +34,14 @@ PPH_STRING PhaCreateStringEx(
     _In_ SIZE_T Length
     )
 {
-    return PhAutoDereferenceObject(PhCreateStringEx(Buffer, Length));
+    return PH_AUTO(PhCreateStringEx(Buffer, Length));
 }
 
 PPH_STRING PhaDuplicateString(
     _In_ PPH_STRING String
     )
 {
-    return PhAutoDereferenceObject(PhDuplicateString(String));
+    return PH_AUTO(PhDuplicateString(String));
 }
 
 PPH_STRING PhaConcatStrings(
@@ -53,7 +53,7 @@ PPH_STRING PhaConcatStrings(
 
     va_start(argptr, Count);
 
-    return PhAutoDereferenceObject(PhConcatStrings_V(Count, argptr));
+    return PH_AUTO(PhConcatStrings_V(Count, argptr));
 }
 
 PPH_STRING PhaConcatStrings2(
@@ -61,7 +61,7 @@ PPH_STRING PhaConcatStrings2(
     _In_ PWSTR String2
     )
 {
-    return PhAutoDereferenceObject(PhConcatStrings2(String1, String2));
+    return PH_AUTO(PhConcatStrings2(String1, String2));
 }
 
 PPH_STRING PhaFormatString(
@@ -73,7 +73,7 @@ PPH_STRING PhaFormatString(
 
     va_start(argptr, Format);
 
-    return PhAutoDereferenceObject(PhFormatString_V(Format, argptr));
+    return PH_AUTO(PhFormatString_V(Format, argptr));
 }
 
 PPH_STRING PhaLowerString(
@@ -106,5 +106,5 @@ PPH_STRING PhaSubstring(
     _In_ SIZE_T Count
     )
 {
-    return PhAutoDereferenceObject(PhSubstring(String, StartIndex, Count));
+    return PH_AUTO(PhSubstring(String, StartIndex, Count));
 }

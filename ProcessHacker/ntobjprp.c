@@ -500,10 +500,10 @@ static VOID PhpRefreshSectionPageInfo(
     {
         PPH_STRING newFileName;
 
-        PhAutoDereferenceObject(fileName);
+        PH_AUTO(fileName);
 
         if (newFileName = PhResolveDevicePrefix(fileName))
-            fileName = PhAutoDereferenceObject(newFileName);
+            fileName = PH_AUTO(newFileName);
     }
 
     SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);

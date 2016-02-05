@@ -65,7 +65,7 @@ PPH_STRING PhpaGetRelativeTimeString(
 
     time = *Time;
     PhQuerySystemTime(&currentTime);
-    timeRelativeString = PhAutoDereferenceObject(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
+    timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - time.QuadPart));
 
     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
     timeString = PhaFormatDateTime(&timeFields);
@@ -151,7 +151,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                     clientId.UniqueThread = NULL;
 
                     SetDlgItemText(hwndDlg, IDC_PARENT,
-                        ((PPH_STRING)PhAutoDereferenceObject(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+                        ((PPH_STRING)PH_AUTO(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
 
                     PhDereferenceObject(parentProcess);
                 }

@@ -260,7 +260,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                         PPH_STRING string;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        PhAutoDereferenceObject(fileName);
+                        PH_AUTO(fileName);
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

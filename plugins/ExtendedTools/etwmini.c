@@ -62,7 +62,7 @@ BOOLEAN EtpDiskListSectionCallback(
             format[3].Type |= FormatUsePrecision;
             format[3].Precision = 0;
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PhAutoDereferenceObject(PhFormat(format, 4, 50)));
+                PH_AUTO(PhFormat(format, 4, 50)));
         }
         break;
     case MiListSectionSortProcessList:
@@ -174,7 +174,7 @@ BOOLEAN EtpNetworkListSectionCallback(
             format[3].Type |= FormatUsePrecision;
             format[3].Precision = 0;
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
-                PhAutoDereferenceObject(PhFormat(format, 4, 50)));
+                PH_AUTO(PhFormat(format, 4, 50)));
         }
         break;
     case MiListSectionSortProcessList:

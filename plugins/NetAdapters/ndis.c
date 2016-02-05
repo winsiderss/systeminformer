@@ -592,16 +592,16 @@ MIB_IFROW QueryInterfaceRowXP(
 //      
 //        if (config.EnableDHCP)
 //        {
-//            config.Domain = PhAutoDereferenceObject(PhQueryRegistryString(keyHandle, L"DhcpDomain"));
-//            config.IPAddress = PhAutoDereferenceObject(PhQueryRegistryString(keyHandle, L"DhcpIPAddress"));
+//            config.Domain = PH_AUTO(PhQueryRegistryString(keyHandle, L"DhcpDomain"));
+//            config.IPAddress = PH_AUTO(PhQueryRegistryString(keyHandle, L"DhcpIPAddress"));
 //            config.SubnetMask = PhQueryRegistryString(keyHandle, L"DhcpSubnetMask");
 //            config.DefaultGateway = PhQueryRegistryString(keyHandle, L"DhcpDefaultGateway");
 //            config.NameServer = PhQueryRegistryString(keyHandle, L"DhcpNameServer");
 //        }
 //        else
 //        {
-//            config.Domain = PhAutoDereferenceObject(PhQueryRegistryString(keyHandle, L"Domain"));
-//            config.IPAddress = PhAutoDereferenceObject(PhQueryRegistryString(keyHandle, L"IPAddress"));
+//            config.Domain = PH_AUTO(PhQueryRegistryString(keyHandle, L"Domain"));
+//            config.IPAddress = PH_AUTO(PhQueryRegistryString(keyHandle, L"IPAddress"));
 //            config.SubnetMask = PhQueryRegistryString(keyHandle, L"SubnetMask");
 //            config.DefaultGateway = PhQueryRegistryString(keyHandle, L"DefaultGateway");
 //            config.NameServer = PhQueryRegistryString(keyHandle, L"NameServer");

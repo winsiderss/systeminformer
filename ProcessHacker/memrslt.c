@@ -199,7 +199,7 @@ static VOID FilterResults(
             if (!compiledExpression)
             {
                 PhShowError(hwndDlg, L"Unable to compile the regular expression: \"%s\" at position %zu.",
-                    PhGetStringOrDefault(PhAutoDereferenceObject(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
+                    PhGetStringOrDefault(PH_AUTO(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
                     errorOffset
                     );
                 continue;
@@ -413,7 +413,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         PPH_STRING string;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        PhAutoDereferenceObject(fileName);
+                        PH_AUTO(fileName);
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

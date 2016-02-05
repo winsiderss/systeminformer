@@ -765,7 +765,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
     // pTriggers needs to be NULL when there are no triggers.
     if (Context->InfoList->Count != 0)
     {
-        triggerInfo.pTriggers = PhAutoDereferenceObject(PhCreateAlloc(Context->InfoList->Count * sizeof(SERVICE_TRIGGER)));
+        triggerInfo.pTriggers = PH_AUTO(PhCreateAlloc(Context->InfoList->Count * sizeof(SERVICE_TRIGGER)));
         memset(triggerInfo.pTriggers, 0, Context->InfoList->Count * sizeof(SERVICE_TRIGGER));
 
         for (i = 0; i < Context->InfoList->Count; i++)
@@ -780,7 +780,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
             if (info->DataList && info->DataList->Count != 0)
             {
                 trigger->cDataItems = info->DataList->Count;
-                trigger->pDataItems = PhAutoDereferenceObject(PhCreateAlloc(info->DataList->Count * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM)));
+                trigger->pDataItems = PH_AUTO(PhCreateAlloc(info->DataList->Count * sizeof(SERVICE_TRIGGER_SPECIFIC_DATA_ITEM)));
 
                 for (j = 0; j < info->DataList->Count; j++)
                 {

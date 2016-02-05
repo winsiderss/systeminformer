@@ -1945,7 +1945,7 @@ PPH_STRING PhSipFormatSizeWithPrecision(
     format.Precision = Precision;
     format.u.Size = Size;
 
-    return PhAutoDereferenceObject(PhFormat(&format, 1, 0));
+    return PH_AUTO(PhFormat(&format, 1, 0));
 }
 
 BOOLEAN PhSipCpuSectionCallback(
@@ -2012,7 +2012,7 @@ BOOLEAN PhSipCpuSectionCallback(
                 L"%.2f%%%s\n%s",
                 (cpuKernel + cpuUser) * 100,
                 PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
-                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
@@ -2491,7 +2491,7 @@ VOID PhSipNotifyCpuGraph(
                             L"%.2f%%%s\n%s",
                             (cpuKernel + cpuUser) * 100,
                             PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
-                            ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                             ));
                     }
 
@@ -2513,7 +2513,7 @@ VOID PhSipNotifyCpuGraph(
                             cpuKernel * 100,
                             cpuUser * 100,
                             PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
-                            ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                             ));
                     }
 
@@ -2974,7 +2974,7 @@ BOOLEAN PhSipMemorySectionCallback(
                 PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                     L"Commit Charge: %s\n%s",
                     PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                    ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                     ));
                 getTooltipText->Text = Section->GraphState.TooltipText->sr;
             }
@@ -2985,7 +2985,7 @@ BOOLEAN PhSipMemorySectionCallback(
                 PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
                     L"Physical Memory: %s\n%s",
                     PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                    ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                     ));
                 getTooltipText->Text = Section->GraphState.TooltipText->sr;
             }
@@ -3356,7 +3356,7 @@ VOID PhSipNotifyCommitGraph(
                     PhMoveReference(&CommitGraphState.TooltipText, PhFormatString(
                         L"Commit Charge: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }
 
@@ -3424,7 +3424,7 @@ VOID PhSipNotifyPhysicalGraph(
                     PhMoveReference(&PhysicalGraphState.TooltipText, PhFormatString(
                         L"Physical Memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }
 
@@ -3830,7 +3830,7 @@ BOOLEAN PhSipIoSectionCallback(
                 PhaFormatSize(ioWrite, -1)->Buffer,
                 PhaFormatSize(ioOther, -1)->Buffer,
                 PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
-                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
         }
@@ -4064,7 +4064,7 @@ VOID PhSipNotifyIoGraph(
                         PhaFormatSize(ioWrite, -1)->Buffer,
                         PhaFormatSize(ioOther, -1)->Buffer,
                         PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
-                        ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                         ));
                 }
 

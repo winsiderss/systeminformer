@@ -139,7 +139,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                         PPH_FILE_STREAM fileStream;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        PhAutoDereferenceObject(fileName);
+                        PH_AUTO(fileName);
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

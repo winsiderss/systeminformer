@@ -636,7 +636,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    newSearchboxText = PhAutoDereferenceObject(PhGetWindowText(SearchboxHandle));
+                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchboxHandle));
 
                     if (!PhEqualString(SearchboxText, newSearchboxText, FALSE))
                     {

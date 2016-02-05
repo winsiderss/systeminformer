@@ -2590,7 +2590,7 @@ PhFormatDateTime(
     );
 
 #define PhaFormatDateTime(DateTime) \
-    ((PPH_STRING)PhAutoDereferenceObject(PhFormatDateTime(DateTime)))
+    ((PPH_STRING)PH_AUTO(PhFormatDateTime(DateTime)))
 
 PHLIBAPI
 PPH_STRING
@@ -2608,7 +2608,7 @@ PhFormatUInt64(
     );
 
 #define PhaFormatUInt64(Value, GroupDigits) \
-    ((PPH_STRING)PhAutoDereferenceObject(PhFormatUInt64((Value), (GroupDigits))))
+    ((PPH_STRING)PH_AUTO(PhFormatUInt64((Value), (GroupDigits))))
 
 PHLIBAPI
 PPH_STRING
@@ -2620,7 +2620,7 @@ PhFormatDecimal(
     );
 
 #define PhaFormatDecimal(Value, FractionalDigits, GroupDigits) \
-    ((PPH_STRING)PhAutoDereferenceObject(PhFormatDecimal((Value), (FractionalDigits), (GroupDigits))))
+    ((PPH_STRING)PH_AUTO(PhFormatDecimal((Value), (FractionalDigits), (GroupDigits))))
 
 PHLIBAPI
 PPH_STRING
@@ -2631,7 +2631,7 @@ PhFormatSize(
     );
 
 #define PhaFormatSize(Size, MaxSizeUnit) \
-    ((PPH_STRING)PhAutoDereferenceObject(PhFormatSize((Size), (MaxSizeUnit))))
+    ((PPH_STRING)PH_AUTO(PhFormatSize((Size), (MaxSizeUnit))))
 
 PHLIBAPI
 PPH_STRING

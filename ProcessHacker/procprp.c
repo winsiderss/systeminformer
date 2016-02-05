@@ -815,7 +815,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                 startTime = processItem->CreateTime;
                 PhQuerySystemTime(&currentTime);
-                startTimeRelativeString = PhAutoDereferenceObject(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+                startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
 
                 PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
                 startTimeString = PhaFormatDateTime(&startTimeFields);
@@ -840,7 +840,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 clientId.UniqueThread = NULL;
 
                 SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
-                    ((PPH_STRING)PhAutoDereferenceObject(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+                    ((PPH_STRING)PH_AUTO(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
 
                 PhDereferenceObject(parentProcess);
             }
@@ -1816,7 +1816,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhMoveReference(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%%\n%s",
                                 (cpuKernel + cpuUser) * 100,
-                                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
                                 ));
                         }
 
@@ -1836,7 +1836,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhMoveReference(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
                                 L"Private Bytes: %s\n%s",
                                 PhaFormatSize(privateBytes, -1)->Buffer,
-                                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
                                 ));
                         }
 
@@ -1862,7 +1862,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 PhaFormatSize(ioRead, -1)->Buffer,
                                 PhaFormatSize(ioWrite, -1)->Buffer,
                                 PhaFormatSize(ioOther, -1)->Buffer,
-                                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
                                 ));
                         }
 
@@ -2377,7 +2377,7 @@ VOID PhpUpdateThreadDetails(
                 PhInitFormatS(&format[1], L" (");
                 PhInitFormatU(&format[2], suspendCount);
                 PhInitFormatS(&format[3], L")");
-                state = PhAutoDereferenceObject(PhFormat(format, 4, 30));
+                state = PH_AUTO(PhFormat(format, 4, 30));
             }
 
             NtClose(threadHandle);
@@ -4008,7 +4008,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             ULONG_PTR offset;
 
                             fileName = PhGetFileDialogFileName(fileDialog);
-                            PhAutoDereferenceObject(fileName);
+                            PH_AUTO(fileName);
 
                             if (NT_SUCCESS(status = PhCreateFileStream(
                                 &fileStream,

@@ -356,7 +356,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                     L"R: %s\nS: %s\n%s",
                                     PhaFormatSize(adapterInboundValue, -1)->Buffer,
                                     PhaFormatSize(adapterOutboundValue, -1)->Buffer,
-                                    ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                    ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                                     ));
                             }
 
@@ -623,7 +623,7 @@ static BOOLEAN NetAdapterSectionCallback(
                 L"R: %s\nS: %s\n%s",
                 PhaFormatSize(adapterInboundValue, -1)->Buffer,
                 PhaFormatSize(adapterOutboundValue, -1)->Buffer,
-                ((PPH_STRING)PhAutoDereferenceObject(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
                 ));
 
             getTooltipText->Text = Section->GraphState.TooltipText->sr;
