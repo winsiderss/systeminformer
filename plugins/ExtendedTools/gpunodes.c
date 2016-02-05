@@ -332,7 +332,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                    drawInfo->Flags = PH_GRAPH_USE_GRID;
+                    drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                     SysInfoParameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
                     for (i = 0; i < EtGpuTotalNodeCount; i++)

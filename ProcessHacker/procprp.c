@@ -1646,7 +1646,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
                         PhGraphStateGetDrawInfo(
@@ -1686,7 +1686,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
 
                         PhGraphStateGetDrawInfo(
@@ -1741,7 +1741,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
 
                         PhGraphStateGetDrawInfo(
@@ -1784,6 +1784,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                     max,
                                     drawInfo->LineDataCount
                                     );
+                                drawInfo->GridHeight = 1 / max;
                             }
 
                             performanceContext->IoGraphState.Valid = TRUE;

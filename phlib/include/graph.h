@@ -3,12 +3,12 @@
 
 // Graph drawing
 
-#ifndef _PH_GRAPH_PRIVATE
 extern RECT PhNormalGraphTextMargin;
 extern RECT PhNormalGraphTextPadding;
-#endif
 
-#define PH_GRAPH_USE_GRID 0x1
+#define PH_GRAPH_USE_GRID_X 0x1
+#define PH_GRAPH_USE_GRID_Y 0x2
+#define PH_GRAPH_LOGARITHMIC_GRID_Y 0x4
 #define PH_GRAPH_USE_LINE_2 0x10
 #define PH_GRAPH_OVERLAY_LINE_2 0x20
 
@@ -33,8 +33,10 @@ typedef struct _PH_GRAPH_DRAW_INFO
     // Grid
     COLORREF GridColor;
     ULONG GridWidth;
-    ULONG GridHeight;
-    ULONG GridStart;
+    FLOAT GridHeight;
+    ULONG GridXOffset;
+    ULONG GridYThreshold;
+    FLOAT GridBase; // Base for logarithmic grid
 
     // Text
     PH_STRINGREF Text;
@@ -50,12 +52,6 @@ typedef struct _PH_GRAPH_DRAW_INFO
 
 BOOLEAN PhGraphControlInitialization(
     VOID
-    );
-
-PHLIBAPI
-VOID PhDrawGraph(
-    _In_ HDC hdc,
-    _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     );
 
 PHLIBAPI

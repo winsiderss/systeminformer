@@ -451,7 +451,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
                         PhGraphStateGetDrawInfo(&context->GpuGraphState, getDrawInfo, context->GpuHistory.Count);
 
@@ -488,7 +488,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
                         PhGraphStateGetDrawInfo(
                             &context->MemoryGraphState,
@@ -538,7 +538,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
                         PhGraphStateGetDrawInfo(
                             &context->MemorySharedGraphState,

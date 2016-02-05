@@ -90,7 +90,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, EtGpuNodeHistory.Count);
 
@@ -405,7 +405,7 @@ VOID EtpNotifyGpuGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -479,7 +479,7 @@ VOID EtpNotifyDedicatedGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -548,7 +548,7 @@ VOID EtpNotifySharedGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
 
             PhGraphStateGetDrawInfo(

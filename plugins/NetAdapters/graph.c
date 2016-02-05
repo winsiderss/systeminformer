@@ -286,7 +286,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                         PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                         PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
                         context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
                         PhGraphStateGetDrawInfo(
@@ -329,6 +329,8 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                 max,
                                 drawInfo->LineDataCount
                                 );
+
+                            drawInfo->GridHeight = 1 / max;
 
                             context->GraphState.Valid = TRUE;
                         }
@@ -564,7 +566,7 @@ static BOOLEAN NetAdapterSectionCallback(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->InboundBuffer.Count);
 
@@ -601,6 +603,9 @@ static BOOLEAN NetAdapterSectionCallback(
                     max,
                     drawInfo->LineDataCount
                     );
+
+                drawInfo->GridHeight = 1 / max;
+
                 Section->GraphState.Valid = TRUE;
             }
         }

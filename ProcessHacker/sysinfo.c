@@ -650,7 +650,7 @@ BOOLEAN PhSipOnNotify(
                     section->Callback(section, SysInfoGraphGetDrawInfo, drawInfo, 0);
 
                     if (CurrentView == SysInfoSectionView)
-                        drawInfo->Flags &= ~PH_GRAPH_USE_GRID;
+                        drawInfo->Flags &= ~(PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y);
 
                     break;
                 }
@@ -1985,7 +1985,7 @@ BOOLEAN PhSipCpuSectionCallback(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
 
@@ -2434,7 +2434,7 @@ VOID PhSipNotifyCpuGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
             if (Index == -1)
@@ -2908,7 +2908,7 @@ BOOLEAN PhSipMemorySectionCallback(
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
-                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                 Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCommitHistory.Count);
 
@@ -2934,7 +2934,7 @@ BOOLEAN PhSipMemorySectionCallback(
             }
             else
             {
-                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                 Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
 
@@ -3309,7 +3309,7 @@ VOID PhSipNotifyCommitGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
 
             PhGraphStateGetDrawInfo(
@@ -3377,7 +3377,7 @@ VOID PhSipNotifyPhysicalGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0);
 
             PhGraphStateGetDrawInfo(
@@ -3765,7 +3765,7 @@ BOOLEAN PhSipIoSectionCallback(
             ULONG i;
             FLOAT max;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhIoReadHistory.Count);
 
@@ -3804,6 +3804,7 @@ BOOLEAN PhSipIoSectionCallback(
                     max,
                     drawInfo->LineDataCount
                     );
+                drawInfo->GridHeight = 1 / max;
 
                 Section->GraphState.Valid = TRUE;
             }
@@ -3989,7 +3990,7 @@ VOID PhSipNotifyIoGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
 
             PhGraphStateGetDrawInfo(
@@ -4033,6 +4034,7 @@ VOID PhSipNotifyIoGraph(
                     max,
                     drawInfo->LineDataCount
                     );
+                drawInfo->GridHeight = 1 / max;
 
                 IoGraphState.Valid = TRUE;
             }

@@ -396,7 +396,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
                 PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
 
                 if (ProcessesUpdatedCount < 2)
@@ -419,7 +419,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X;
                 PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
 
                 if (ProcessesUpdatedCount < 2)
@@ -448,7 +448,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                drawInfo->Flags = PH_GRAPH_USE_GRID;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X;
                 PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
 
                 if (ProcessesUpdatedCount < 2)
@@ -477,7 +477,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                 PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
                 PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
                 PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
                 if (ProcessesUpdatedCount < 2)
@@ -503,6 +503,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                     PhDivideSinglesBySingle(IoGraphState.Data1, max, drawInfo->LineDataCount);
                     PhDivideSinglesBySingle(IoGraphState.Data2, max, drawInfo->LineDataCount);
+                    drawInfo->GridHeight = 1 / max;
 
                     IoGraphState.Valid = TRUE;
                 }
