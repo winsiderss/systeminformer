@@ -252,7 +252,10 @@ NTSTATUS PhpWorkQueueThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PH_AUTO_POOL autoPool;
     PPH_WORK_QUEUE workQueue = (PPH_WORK_QUEUE)Parameter;
+
+    PhInitializeAutoPool(&autoPool);
 
     while (TRUE)
     {
@@ -345,9 +348,12 @@ NTSTATUS PhpWorkQueueThreadStart(
             if (terminate)
                 break;
         }
+
+        PhDrainAutoPool(&autoPool);
     }
 
     PhReleaseRundownProtection(&workQueue->RundownProtect);
+    PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
 }

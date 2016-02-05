@@ -538,10 +538,13 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PH_AUTO_POOL autoPool;
     NTSTATUS status;
     PTHREAD_STACK_CONTEXT threadStackContext = Parameter;
     CLIENT_ID clientId;
     BOOLEAN defaultWalk;
+
+    PhInitializeAutoPool(&autoPool);
 
     PhLoadSymbolsThreadProvider(threadStackContext->ThreadProvider);
 
@@ -603,6 +606,8 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
 
     threadStackContext->WalkStatus = status;
     PostMessage(threadStackContext->ProgressWindowHandle, WM_PH_COMPLETED, 0, 0);
+
+    PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
 }

@@ -100,6 +100,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PH_AUTO_POOL autoPool;
     PPH_PROVIDER_THREAD providerThread = (PPH_PROVIDER_THREAD)Parameter;
     NTSTATUS status = STATUS_SUCCESS;
     PLIST_ENTRY listEntry;
@@ -107,6 +108,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     PPH_PROVIDER_FUNCTION providerFunction;
     PVOID object;
     LIST_ENTRY tempListHead;
+
+    PhInitializeAutoPool(&autoPool);
 
     while (providerThread->State != ProviderThreadStopping)
     {
@@ -187,6 +190,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
             PhReleaseQueuedLockExclusive(&providerThread->Lock);
             providerFunction(object);
+            PhDrainAutoPool(&autoPool);
             PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
             if (object)
@@ -218,6 +222,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             NULL
             );
     }
+
+    PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
 }
