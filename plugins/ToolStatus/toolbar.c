@@ -49,6 +49,8 @@ VOID RebarBandInsert(
     _In_ UINT cyMinChild
     )
 {
+    UINT bandIndex;
+    UINT bandCount;
     REBARBANDINFO rebarBandInfo = 
     { 
         REBARBANDINFO_V6_SIZE,
@@ -69,7 +71,18 @@ VOID RebarBandInsert(
         rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
     }
 
-    SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+    // Insert bands before the Searchbox (same behavior as RBBS_FIXEDSIZE above)
+    bandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)REBAR_BAND_ID_SEARCHBOX, 0);
+    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+    if (bandIndex != -1 && bandCount > 1)
+    {
+        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)bandCount - 1, (LPARAM)&rebarBandInfo);
+    }
+    else
+    {
+        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+    }
 }
 
 VOID RebarBandRemove(
