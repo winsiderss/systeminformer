@@ -1,30 +1,17 @@
 /*
- * "$Id: mxml-set.c 270 2007-04-23 21:48:03Z mike $"
+ * "$Id: mxml-set.c 451 2014-01-04 21:50:06Z msweet $"
  *
  * Node set functions for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2003-2007 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * Contents:
- *
- *   mxmlSetCustom()  - Set the data and destructor of a custom data node.
- *   mxmlSetCDATA()   - Set the element name of a CDATA node.
- *   mxmlSetElement() - Set the name of an element node.
- *   mxmlSetInteger() - Set the value of an integer node.
- *   mxmlSetOpaque()  - Set the value of an opaque node.
- *   mxmlSetReal()    - Set the value of a real number node.
- *   mxmlSetText()    - Set the value of a text node.
- *   mxmlSetTextf()   - Set the value of a text node to a formatted string.
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
 
 /*
@@ -37,9 +24,48 @@
 
 
 /*
+ * 'mxmlSetCDATA()' - Set the element name of a CDATA node.
+ *
+ * The node is not changed if it (or its first child) is not a CDATA element node.
+ *
+ * @since Mini-XML 2.3@
+ */
+
+int					/* O - 0 on success, -1 on failure */
+mxmlSetCDATA(mxml_node_t *node,		/* I - Node to set */
+             const char  *data)		/* I - New data string */
+{
+ /*
+  * Range check input...
+  */
+
+  if (node && node->type == MXML_ELEMENT &&
+      strncmp(node->value.element.name, "![CDATA[", 8) &&
+      node->child && node->child->type == MXML_ELEMENT &&
+      !strncmp(node->child->value.element.name, "![CDATA[", 8))
+    node = node->child;
+
+  if (!node || node->type != MXML_ELEMENT || !data ||
+      strncmp(node->value.element.name, "![CDATA[", 8))
+    return (-1);
+
+ /*
+  * Free any old element value and set the new value...
+  */
+
+  if (node->value.element.name)
+    PhFree(node->value.element.name);
+
+  node->value.element.name = _mxml_strdupf("![CDATA[%s]]", data);
+
+  return (0);
+}
+
+
+/*
  * 'mxmlSetCustom()' - Set the data and destructor of a custom data node.
  *
- * The node is not changed if it is not a custom node.
+ * The node is not changed if it (or its first child) is not a custom node.
  *
  * @since Mini-XML 2.1@
  */
@@ -54,6 +80,10 @@ mxmlSetCustom(
   * Range check input...
   */
 
+  if (node && node->type == MXML_ELEMENT &&
+      node->child && node->child->type == MXML_CUSTOM)
+    node = node->child;
+
   if (!node || node->type != MXML_CUSTOM)
     return (-1);
 
@@ -66,39 +96,6 @@ mxmlSetCustom(
 
   node->value.custom.data    = data;
   node->value.custom.destroy = destroy;
-
-  return (0);
-}
-
-
-/*
- * 'mxmlSetCDATA()' - Set the element name of a CDATA node.
- *
- * The node is not changed if it is not a CDATA element node.
- *
- * @since Mini-XML 2.3@
- */
-
-int					/* O - 0 on success, -1 on failure */
-mxmlSetCDATA(mxml_node_t *node,		/* I - Node to set */
-             const char  *data)		/* I - New data string */
-{
- /*
-  * Range check input...
-  */
-
-  if (!node || node->type != MXML_ELEMENT || !data ||
-      strncmp(node->value.element.name, "![CDATA[", 8))
-    return (-1);
-
- /*
-  * Free any old element value and set the new value...
-  */
-
-  if (node->value.element.name)
-    PhFree(node->value.element.name);
-
-  node->value.element.name = _mxml_strdupf("![CDATA[%s]]", data);
 
   return (0);
 }
@@ -137,7 +134,7 @@ mxmlSetElement(mxml_node_t *node,	/* I - Node to set */
 /*
  * 'mxmlSetInteger()' - Set the value of an integer node.
  *
- * The node is not changed if it is not an integer node.
+ * The node is not changed if it (or its first child) is not an integer node.
  */
 
 int					/* O - 0 on success, -1 on failure */
@@ -147,6 +144,10 @@ mxmlSetInteger(mxml_node_t *node,	/* I - Node to set */
  /*
   * Range check input...
   */
+
+  if (node && node->type == MXML_ELEMENT &&
+      node->child && node->child->type == MXML_INTEGER)
+    node = node->child;
 
   if (!node || node->type != MXML_INTEGER)
     return (-1);
@@ -164,7 +165,7 @@ mxmlSetInteger(mxml_node_t *node,	/* I - Node to set */
 /*
  * 'mxmlSetOpaque()' - Set the value of an opaque node.
  *
- * The node is not changed if it is not an opaque node.
+ * The node is not changed if it (or its first child) is not an opaque node.
  */
 
 int					/* O - 0 on success, -1 on failure */
@@ -174,6 +175,10 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
  /*
   * Range check input...
   */
+
+  if (node && node->type == MXML_ELEMENT &&
+      node->child && node->child->type == MXML_OPAQUE)
+    node = node->child;
 
   if (!node || node->type != MXML_OPAQUE || !opaque)
     return (-1);
@@ -194,7 +199,7 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
 /*
  * 'mxmlSetReal()' - Set the value of a real number node.
  *
- * The node is not changed if it is not a real number node.
+ * The node is not changed if it (or its first child) is not a real number node.
  */
 
 int					/* O - 0 on success, -1 on failure */
@@ -204,6 +209,10 @@ mxmlSetReal(mxml_node_t *node,		/* I - Node to set */
  /*
   * Range check input...
   */
+
+  if (node && node->type == MXML_ELEMENT &&
+      node->child && node->child->type == MXML_REAL)
+    node = node->child;
 
   if (!node || node->type != MXML_REAL)
     return (-1);
@@ -221,17 +230,21 @@ mxmlSetReal(mxml_node_t *node,		/* I - Node to set */
 /*
  * 'mxmlSetText()' - Set the value of a text node.
  *
- * The node is not changed if it is not a text node.
+ * The node is not changed if it (or its first child) is not a text node.
  */
 
 int					/* O - 0 on success, -1 on failure */
 mxmlSetText(mxml_node_t *node,		/* I - Node to set */
             int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
-	    const char  *string)	/* I - String */
+        const char  *string)	/* I - String */
 {
  /*
   * Range check input...
   */
+
+  if (node && node->type == MXML_ELEMENT &&
+      node->child && node->child->type == MXML_TEXT)
+    node = node->child;
 
   if (!node || node->type != MXML_TEXT || !string)
     return (-1);
@@ -253,14 +266,14 @@ mxmlSetText(mxml_node_t *node,		/* I - Node to set */
 /*
  * 'mxmlSetTextf()' - Set the value of a text node to a formatted string.
  *
- * The node is not changed if it is not a text node.
+ * The node is not changed if it (or its first child) is not a text node.
  */
 
 int					/* O - 0 on success, -1 on failure */
 mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
              int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
              const char  *format,	/* I - Printf-style format string */
-	     ...)			/* I - Additional arguments as needed */
+         ...)			/* I - Additional arguments as needed */
 {
   va_list	ap;			/* Pointer to arguments */
 
@@ -268,6 +281,10 @@ mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
  /*
   * Range check input...
   */
+
+  if (node && node->type == MXML_ELEMENT &&
+      node->child && node->child->type == MXML_TEXT)
+    node = node->child;
 
   if (!node || node->type != MXML_TEXT || !format)
     return (-1);
@@ -291,5 +308,31 @@ mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
 
 
 /*
- * End of "$Id: mxml-set.c 270 2007-04-23 21:48:03Z mike $".
+ * 'mxmlSetUserData()' - Set the user data pointer for a node.
+ *
+ * @since Mini-XML 2.7@
+ */
+
+int					/* O - 0 on success, -1 on failure */
+mxmlSetUserData(mxml_node_t *node,	/* I - Node to set */
+                void        *data)	/* I - User data pointer */
+{
+ /*
+  * Range check input...
+  */
+
+  if (!node)
+    return (-1);
+
+ /*
+  * Set the user data pointer and return...
+  */
+
+  node->user_data = data;
+  return (0);
+}
+
+
+/*
+ * End of "$Id: mxml-set.c 451 2014-01-04 21:50:06Z msweet $".
  */

@@ -1,43 +1,22 @@
 /*
- * "$Id: mxml-node.c 363 2008-10-26 18:28:05Z mike $"
+ * "$Id: mxml-node.c 451 2014-01-04 21:50:06Z msweet $"
  *
  * Node support code for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2003-2007 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * Contents:
- *
- *   mxmlAdd()        - Add a node to a tree.
- *   mxmlDelete()     - Delete a node and all of its children.
- *   mxmlNewCDATA()   - Create a new CDATA node.
- *   mxmlNewCustom()  - Create a new custom data node.
- *   mxmlNewElement() - Create a new element node.
- *   mxmlNewInteger() - Create a new integer node.
- *   mxmlNewOpaque()  - Create a new opaque string.
- *   mxmlNewReal()    - Create a new real number node.
- *   mxmlNewText()    - Create a new text fragment node.
- *   mxmlNewTextf()   - Create a new formatted text fragment node.
- *   mxmlNewXML()     - Create a new XML document tree.
- *   mxmlRelease()    - Release a node.
- *   mxmlRemove()     - Remove a node from its parent.
- *   mxmlRetain()     - Retain a node.
- *   mxml_new()       - Create a new node.
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
 
 /*
  * Include necessary headers...
  */
-
 #include <phbase.h>
 #include "config.h"
 #include "mxml.h"
@@ -65,7 +44,7 @@ void
 mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
         int         where,		/* I - Where to add, MXML_ADD_BEFORE or MXML_ADD_AFTER */
         mxml_node_t *child,		/* I - Child node for where or MXML_ADD_TO_PARENT */
-	mxml_node_t *node)		/* I - Node to add */
+    mxml_node_t *node)		/* I - Node to add */
 {
 #ifdef DEBUG
   fprintf(stderr, "mxmlAdd(parent=%p, where=%d, child=%p, node=%p)\n", parent,
@@ -107,71 +86,71 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
   {
     case MXML_ADD_BEFORE :
         if (!child || child == parent->child || child->parent != parent)
-	{
-	 /*
-	  * Insert as first node under parent...
-	  */
+    {
+     /*
+      * Insert as first node under parent...
+      */
 
-	  node->next = parent->child;
+      node->next = parent->child;
 
-	  if (parent->child)
-	    parent->child->prev = node;
-	  else
-	    parent->last_child = node;
+      if (parent->child)
+        parent->child->prev = node;
+      else
+        parent->last_child = node;
 
-	  parent->child = node;
-	}
-	else
-	{
-	 /*
-	  * Insert node before this child...
-	  */
+      parent->child = node;
+    }
+    else
+    {
+     /*
+      * Insert node before this child...
+      */
 
-	  node->next = child;
-	  node->prev = child->prev;
+      node->next = child;
+      node->prev = child->prev;
 
-	  if (child->prev)
-	    child->prev->next = node;
-	  else
-	    parent->child = node;
+      if (child->prev)
+        child->prev->next = node;
+      else
+        parent->child = node;
 
-	  child->prev = node;
-	}
+      child->prev = node;
+    }
         break;
 
     case MXML_ADD_AFTER :
         if (!child || child == parent->last_child || child->parent != parent)
-	{
-	 /*
-	  * Insert as last node under parent...
-	  */
+    {
+     /*
+      * Insert as last node under parent...
+      */
 
-	  node->parent = parent;
-	  node->prev   = parent->last_child;
+      node->parent = parent;
+      node->prev   = parent->last_child;
 
-	  if (parent->last_child)
-	    parent->last_child->next = node;
-	  else
-	    parent->child = node;
+      if (parent->last_child)
+        parent->last_child->next = node;
+      else
+        parent->child = node;
 
-	  parent->last_child = node;
+      parent->last_child = node;
         }
-	else
-	{
-	 /*
-	  * Insert node after this child...
-	  */
+    else
+    {
+     /*
+      * Insert node after this child...
+      */
 
-	  node->prev = child;
-	  node->next = child->next;
+      node->prev = child;
+      node->next = child->next;
 
-	  if (child->next)
-	    child->next->prev = node;
-	  else
-	    parent->last_child = node;
+      if (child->next)
+        child->next->prev = node;
+      else
+        parent->last_child = node;
 
-	  child->next = node;
-	}
+      child->next = node;
+    }
         break;
   }
 
@@ -233,40 +212,40 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
   {
     case MXML_ELEMENT :
         if (node->value.element.name)
-	  PhFree(node->value.element.name);
+      PhFree(node->value.element.name);
 
-	if (node->value.element.num_attrs)
-	{
-	  for (i = 0; i < node->value.element.num_attrs; i ++)
-	  {
-	    if (node->value.element.attrs[i].name)
-	      PhFree(node->value.element.attrs[i].name);
-	    if (node->value.element.attrs[i].value)
-	      PhFree(node->value.element.attrs[i].value);
-	  }
+    if (node->value.element.num_attrs)
+    {
+      for (i = 0; i < node->value.element.num_attrs; i ++)
+      {
+        if (node->value.element.attrs[i].name)
+          PhFree(node->value.element.attrs[i].name);
+        if (node->value.element.attrs[i].value)
+          PhFree(node->value.element.attrs[i].value);
+      }
 
-          PhFree(node->value.element.attrs);
-	}
+      PhFree(node->value.element.attrs);
+    }
         break;
     case MXML_INTEGER :
        /* Nothing to do */
         break;
     case MXML_OPAQUE :
         if (node->value.opaque)
-	  PhFree(node->value.opaque);
+          PhFree(node->value.opaque);
         break;
     case MXML_REAL :
        /* Nothing to do */
         break;
     case MXML_TEXT :
         if (node->value.text.string)
-	  PhFree(node->value.text.string);
+          PhFree(node->value.text.string);
         break;
     case MXML_CUSTOM :
         if (node->value.custom.data &&
-	    node->value.custom.destroy)
-	  (*(node->value.custom.destroy))(node->value.custom.data);
-	break;
+        node->value.custom.destroy)
+      (*(node->value.custom.destroy))(node->value.custom.data);
+    break;
     default :
         break;
   }
@@ -276,6 +255,34 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
   */
 
   PhFree(node);
+}
+
+
+/*
+ * 'mxmlGetRefCount()' - Get the current reference (use) count for a node.
+ *
+ * The initial reference count of new nodes is 1. Use the @link mxmlRetain@
+ * and @link mxmlRelease@ functions to increment and decrement a node's
+ * reference count.
+ *
+ * @since Mini-XML 2.7@.
+ */
+
+int					/* O - Reference count */
+mxmlGetRefCount(mxml_node_t *node)	/* I - Node */
+{
+ /*
+  * Range check input...
+  */
+
+  if (!node)
+    return (0);
+
+ /*
+  * Return the reference count...
+  */
+
+  return (node->ref_count);
 }
 
 
@@ -292,7 +299,7 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
 
 mxml_node_t *				/* O - New node */
 mxmlNewCDATA(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
-	     const char  *data)		/* I - Data string */
+         const char  *data)		/* I - Data string */
 {
   mxml_node_t	*node;			/* New node */
 
@@ -503,13 +510,13 @@ mxmlNewReal(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
  * list. The constant MXML_NO_PARENT can be used to specify that the new
  * text node has no parent. The whitespace parameter is used to specify
  * whether leading whitespace is present before the node. The text
- * string must be nul-terminated and is copied into the new node.  
+ * string must be nul-terminated and is copied into the new node.
  */
 
 mxml_node_t *				/* O - New node */
 mxmlNewText(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
             int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
-	    const char  *string)	/* I - String */
+        const char  *string)	/* I - String */
 {
   mxml_node_t	*node;			/* New node */
 
@@ -547,14 +554,14 @@ mxmlNewText(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
  * list. The constant MXML_NO_PARENT can be used to specify that the new
  * text node has no parent. The whitespace parameter is used to specify
  * whether leading whitespace is present before the node. The format
- * string must be nul-terminated and is formatted into the new node.  
+ * string must be nul-terminated and is formatted into the new node.
  */
 
 mxml_node_t *				/* O - New node */
 mxmlNewTextf(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
              int         whitespace,	/* I - 1 = leading whitespace, 0 = no whitespace */
-	     const char  *format,	/* I - Printf-style frmat string */
-	     ...)			/* I - Additional args as needed */
+         const char  *format,	/* I - Printf-style frmat string */
+         ...)			/* I - Additional args as needed */
 {
   mxml_node_t	*node;			/* New node */
   va_list	ap;			/* Pointer to arguments */
@@ -777,5 +784,5 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
 
 
 /*
- * End of "$Id: mxml-node.c 363 2008-10-26 18:28:05Z mike $".
+ * End of "$Id: mxml-node.c 451 2014-01-04 21:50:06Z msweet $".
  */

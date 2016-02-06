@@ -1,31 +1,17 @@
 /*
- * "$Id: mxml-index.c 184 2005-01-29 07:21:44Z mike $"
+ * "$Id: mxml-index.c 451 2014-01-04 21:50:06Z msweet $"
  *
  * Index support code for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2003-2005 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * Contents:
- *
- *   mxmlIndexDelete()   - Delete an index.
- *   mxmlIndexEnum()     - Return the next node in the index.
- *   mxmlIndexFind()     - Find the next matching node.
- *   mxmlIndexNew()      - Create a new index.
- *   mxmlIndexReset()    - Reset the enumeration/find pointer in the index and
- *                         return the first node in the index.
- *   index_compare()     - Compare two nodes.
- *   index_find()        - Compare a node with index values.
- *   index_sort()        - Sort the nodes in the index...
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
 
 /*
@@ -42,9 +28,9 @@
  */
 
 static int	index_compare(mxml_index_t *ind, mxml_node_t *first,
-		              mxml_node_t *second);
+                      mxml_node_t *second);
 static int	index_find(mxml_index_t *ind, const char *element,
-		           const char *value, mxml_node_t *node);
+                   const char *value, mxml_node_t *node);
 static void	index_sort(mxml_index_t *ind, int left, int right);
 
 
@@ -115,12 +101,12 @@ mxmlIndexEnum(mxml_index_t *ind)	/* I - Index to enumerate */
 mxml_node_t *				/* O - Node or NULL if none found */
 mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
               const char   *element,	/* I - Element name to find, if any */
-	      const char   *value)	/* I - Attribute value, if any */
+          const char   *value)	/* I - Attribute value, if any */
 {
   int		diff,			/* Difference between names */
-		current,		/* Current entity in search */
-		first,			/* First entity in search */
-		last;			/* Last entity in search */
+        current,		/* Current entity in search */
+        first,			/* First entity in search */
+        last;			/* Last entity in search */
 
 
 #ifdef DEBUG
@@ -193,15 +179,15 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
       {
        /*
         * Found a match, move back to find the first...
-	*/
+    */
 
 #ifdef DEBUG
         puts("    match!");
 #endif /* DEBUG */
 
         while (current > 0 &&
-	       !index_find(ind, element, value, ind->nodes[current - 1]))
-	  current --;
+           !index_find(ind, element, value, ind->nodes[current - 1]))
+      current --;
 
 #ifdef DEBUG
         printf("    returning first match=%d\n", current);
@@ -209,16 +195,16 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
        /*
         * Return the first match and save the index to the next...
-	*/
+    */
 
         ind->cur_node = current + 1;
 
-	return (ind->nodes[current]);
+    return (ind->nodes[current]);
       }
       else if (diff < 0)
-	last = current;
+    last = current;
       else
-	first = current;
+    first = current;
 
 #ifdef DEBUG
       printf("    diff=%d\n", diff);
@@ -233,16 +219,16 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
       if (!index_find(ind, element, value, ind->nodes[current]))
       {
        /*
-	* Found exactly one (or possibly two) match...
-	*/
+    * Found exactly one (or possibly two) match...
+    */
 
 #ifdef DEBUG
-	printf("    returning only match %d...\n", current);
+    printf("    returning only match %d...\n", current);
 #endif /* DEBUG */
 
-	ind->cur_node = current + 1;
+    ind->cur_node = current + 1;
 
-	return (ind->nodes[current]);
+    return (ind->nodes[current]);
       }
 
    /*
@@ -286,6 +272,30 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
 
 /*
+ * 'mxmlIndexGetCount()' - Get the number of nodes in an index.
+ *
+ * @since Mini-XML 2.7@
+ */
+
+int					/* I - Number of nodes in index */
+mxmlIndexGetCount(mxml_index_t *ind)	/* I - Index of nodes */
+{
+ /*
+  * Range check input...
+  */
+
+  if (!ind)
+    return (0);
+
+ /*
+  * Return the number of nodes in the index...
+  */
+
+  return (ind->num_nodes);
+}
+
+
+/*
  * 'mxmlIndexNew()' - Create a new index.
  *
  * The index will contain all nodes that contain the named element and/or
@@ -302,7 +312,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 {
   mxml_index_t	*ind;			/* New index */
   mxml_node_t	*current,		/* Current node in index */
-  		**temp;			/* Temporary node pointer array */
+        **temp;			/* Temporary node pointer array */
 
 
  /*
@@ -349,14 +359,14 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       {
        /*
         * Unable to allocate memory for the index, so abort...
-	*/
+    */
 
         mxml_error("Unable to allocate %d bytes for index: %s",
-	           (ind->alloc_nodes + 64) * sizeof(mxml_node_t *),
-		   strerror(errno));
+               (ind->alloc_nodes + 64) * sizeof(mxml_node_t *),
+           strerror(errno));
 
         mxmlIndexDelete(ind);
-	return (NULL);
+    return (NULL);
       }
 
       ind->nodes       = temp;
@@ -385,9 +395,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------  ------------------------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name,
-	       mxmlElementGetAttr(ind->nodes[i], attr));
+    printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name,
+           mxmlElementGetAttr(ind->nodes[i], attr));
     }
     else
     {
@@ -395,8 +405,8 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name);
+    printf("%8d  %-8p  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name);
     }
 
     putchar('\n');
@@ -419,9 +429,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------  ------------------------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name,
-	       mxmlElementGetAttr(ind->nodes[i], attr));
+    printf("%8d  %-8p  %-14.14s  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name,
+           mxmlElementGetAttr(ind->nodes[i], attr));
     }
     else
     {
@@ -429,8 +439,8 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       puts("--------  --------  --------------");
 
       for (i = 0; i < ind->num_nodes; i ++)
-	printf("%8d  %-8p  %s\n", i, ind->nodes[i],
-	       ind->nodes[i]->value.element.name);
+    printf("%8d  %-8p  %s\n", i, ind->nodes[i],
+           ind->nodes[i]->value.element.name);
     }
 
     putchar('\n');
@@ -530,7 +540,7 @@ index_compare(mxml_index_t *ind,	/* I - Index */
 static int				/* O - Result of comparison */
 index_find(mxml_index_t *ind,		/* I - Index */
            const char   *element,	/* I - Element name or NULL */
-	   const char   *value,		/* I - Attribute value or NULL */
+       const char   *value,		/* I - Attribute value or NULL */
            mxml_node_t  *node)		/* I - Node */
 {
   int	diff;				/* Difference */
@@ -573,12 +583,12 @@ index_find(mxml_index_t *ind,		/* I - Index */
 static void
 index_sort(mxml_index_t *ind,		/* I - Index to sort */
            int          left,		/* I - Left node in partition */
-	   int          right)		/* I - Right node in partition */
+       int          right)		/* I - Right node in partition */
 {
   mxml_node_t	*pivot,			/* Pivot node */
-		*temp;			/* Swap node */
+        *temp;			/* Swap node */
   int		templ,			/* Temporary left node */
-		tempr;			/* Temporary right node */
+        tempr;			/* Temporary right node */
 
 
  /*
@@ -601,7 +611,7 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
       while ((templ < right) &&
              index_compare(ind, ind->nodes[templ], pivot) <= 0)
-	templ ++;
+    templ ++;
 
      /*
       * Move right while right node > pivot node...
@@ -609,7 +619,7 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
       while ((tempr > left) &&
              index_compare(ind, ind->nodes[tempr], pivot) > 0)
-	tempr --;
+    tempr --;
 
      /*
       * Swap nodes if needed...
@@ -617,9 +627,9 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
       if (templ < tempr)
       {
-	temp              = ind->nodes[templ];
-	ind->nodes[templ] = ind->nodes[tempr];
-	ind->nodes[tempr] = temp;
+    temp              = ind->nodes[templ];
+    ind->nodes[templ] = ind->nodes[tempr];
+    ind->nodes[tempr] = temp;
       }
     }
 
@@ -646,5 +656,5 @@ index_sort(mxml_index_t *ind,		/* I - Index to sort */
 
 
 /*
- * End of "$Id: mxml-index.c 184 2005-01-29 07:21:44Z mike $".
+ * End of "$Id: mxml-index.c 451 2014-01-04 21:50:06Z msweet $".
  */
