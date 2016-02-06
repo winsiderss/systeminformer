@@ -312,9 +312,9 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                     max = data1 + data2;
                             }
 
-                            // Minimum scaling of 1 MB.
-                            //if (max < 1024 * 1024)
-                            //    max = 1024 * 1024;
+                            // Minimum scaling 4KB.
+                            if (max < 1024 * 4)
+                                max = 1024 * 4;
 
                             // Scale the data.
                             PhDivideSinglesBySingle(
@@ -586,9 +586,9 @@ static BOOLEAN NetAdapterSectionCallback(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                //if (max < 1024 * 1024)
-                //    max = 1024 * 1024;
+                // Minimum scaling 4KB.
+                if (max < 1024 * 4)
+                    max = 1024 * 4;
 
                 // Scale the data.
                 PhDivideSinglesBySingle(
