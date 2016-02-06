@@ -268,7 +268,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
       */
 
       if (attr->value)
-        free(attr->value);
+        PhFree(attr->value);
 
       attr->value = value;
 
