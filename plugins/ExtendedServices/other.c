@@ -257,7 +257,10 @@ static PPH_STRING EspGetServiceSidString(
     PPH_STRING sidString = NULL;
 
     if (!RtlCreateServiceSid_I)
-        return NULL;
+    {
+        if (!(RtlCreateServiceSid_I = PhGetModuleProcAddress(L"ntdll.dll", "RtlCreateServiceSid")))
+            return NULL;
+    }
 
     PhStringRefToUnicodeString(ServiceName, &serviceNameUs);
 

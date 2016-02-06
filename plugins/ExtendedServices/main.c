@@ -86,8 +86,6 @@ LOGICAL DllMain(
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1113";
             info->HasOptions = TRUE;
 
-            RtlCreateServiceSid_I = PhGetModuleProcAddress(L"ntdll.dll", "RtlCreateServiceSid");
-
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
                 LoadCallback,
