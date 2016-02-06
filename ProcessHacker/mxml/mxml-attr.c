@@ -66,7 +66,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
        i --, attr ++)
   {
 #ifdef DEBUG
-    printf("    %s=\"%s\"\n", attr->name, attr->value);
+    fprintf(stderr, "    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
@@ -75,8 +75,8 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
       * Delete this attribute...
       */
 
-        PhFree(attr->name);
-        PhFree(attr->value);
+      PhFree(attr->name);
+      PhFree(attr->value);
 
       i --;
       if (i > 0)
@@ -85,7 +85,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
       node->value.element.num_attrs --;
 
       if (node->value.element.num_attrs == 0)
-          PhFree(node->value.element.attrs);
+        PhFree(node->value.element.attrs);
       return;
     }
   }
@@ -128,13 +128,13 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
        i --, attr ++)
   {
 #ifdef DEBUG
-    printf("    %s=\"%s\"\n", attr->name, attr->value);
+    fprintf(stderr, "    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
     {
 #ifdef DEBUG
-      printf("    Returning \"%s\"!\n", attr->value);
+      fprintf(stderr, "    Returning \"%s\"!\n", attr->value);
 #endif /* DEBUG */
       return (attr->value);
     }
@@ -145,7 +145,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   */
 
 #ifdef DEBUG
-  puts("    Returning NULL!\n");
+  fputs("    Returning NULL!\n", stderr);
 #endif /* DEBUG */
 
   return (NULL);
@@ -187,7 +187,7 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
     valuec = NULL;
 
   if (mxml_set_attr(node, name, valuec))
-      PhFree(valuec);
+    PhFree(valuec);
 }
 
 
@@ -237,7 +237,7 @@ mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);
   else if (mxml_set_attr(node, name, value))
-      PhFree(value);
+    PhFree(value);
 }
 
 

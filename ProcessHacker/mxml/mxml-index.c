@@ -53,10 +53,10 @@ mxmlIndexDelete(mxml_index_t *ind)	/* I - Index to delete */
   */
 
   if (ind->attr)
-      PhFree(ind->attr);
+    PhFree(ind->attr);
 
   if (ind->alloc_nodes)
-      PhFree(ind->nodes);
+    PhFree(ind->nodes);
 
   PhFree(ind);
 }

@@ -219,12 +219,12 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
       for (i = 0; i < node->value.element.num_attrs; i ++)
       {
         if (node->value.element.attrs[i].name)
-            PhFree(node->value.element.attrs[i].name);
+          PhFree(node->value.element.attrs[i].name);
         if (node->value.element.attrs[i].value)
-            PhFree(node->value.element.attrs[i].value);
+          PhFree(node->value.element.attrs[i].value);
       }
 
-            PhFree(node->value.element.attrs);
+      PhFree(node->value.element.attrs);
     }
         break;
     case MXML_INTEGER :
@@ -232,14 +232,14 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
         break;
     case MXML_OPAQUE :
         if (node->value.opaque)
-      PhFree(node->value.opaque);
+          PhFree(node->value.opaque);
         break;
     case MXML_REAL :
        /* Nothing to do */
         break;
     case MXML_TEXT :
         if (node->value.text.string)
-            PhFree(node->value.text.string);
+          PhFree(node->value.text.string);
         break;
     case MXML_CUSTOM :
         if (node->value.custom.data &&
