@@ -20,31 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <windowsx.h>
 #include "extsrv.h"
-#include "resource.h"
 
-INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-VOID EsShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
-    )
-{
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        ParentWindowHandle,
-        OptionsDlgProc
-        );
-}
-
-INT_PTR CALLBACK OptionsDlgProc(
+static INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -79,4 +57,16 @@ INT_PTR CALLBACK OptionsDlgProc(
     }
 
     return FALSE;
+}
+
+VOID EsShowOptionsDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    DialogBox(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        ParentWindowHandle,
+        OptionsDlgProc
+        );
 }

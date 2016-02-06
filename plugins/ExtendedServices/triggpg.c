@@ -20,10 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phdk.h>
-#include <windowsx.h>
 #include "extsrv.h"
-#include "resource.h"
 
 typedef struct _SERVICE_TRIGGERS_CONTEXT
 {

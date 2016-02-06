@@ -24,9 +24,6 @@
     <ClCompile Include="srvprgrs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="recovery.c">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="other.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -37,6 +34,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="triggpg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="recovery.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,6 +1,11 @@
 #ifndef ES_EXTSRV_H
 #define ES_EXTSRV_H
 
+#include <phdk.h>
+#include <windowsx.h>
+
+#include "resource.h"
+
 // main
 
 typedef NTSTATUS (NTAPI *_RtlCreateServiceSid)(
