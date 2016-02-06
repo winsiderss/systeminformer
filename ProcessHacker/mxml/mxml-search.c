@@ -40,9 +40,9 @@ mxml_node_t *				/* O - Element node or NULL */
 mxmlFindElement(mxml_node_t *node,	/* I - Current node */
                 mxml_node_t *top,	/* I - Top node */
                 const char  *name,	/* I - Element name or NULL for any */
-		const char  *attr,	/* I - Attribute name, or NULL for none */
-		const char  *value,	/* I - Attribute value, or NULL for any */
-		int         descend)	/* I - Descend into tree - MXML_DESCEND, MXML_NO_DESCEND, or MXML_DESCEND_FIRST */
+        const char  *attr,	/* I - Attribute name, or NULL for none */
+        const char  *value,	/* I - Attribute value, or NULL for any */
+        int         descend)	/* I - Descend into tree - MXML_DESCEND, MXML_NO_DESCEND, or MXML_DESCEND_FIRST */
 {
   const char	*temp;			/* Current attribute value */
 
@@ -72,7 +72,7 @@ mxmlFindElement(mxml_node_t *node,	/* I - Current node */
 
     if (node->type == MXML_ELEMENT &&
         node->value.element.name &&
-	(!name || !strcmp(node->value.element.name, name)))
+    (!name || !strcmp(node->value.element.name, name)))
     {
      /*
       * See if we need to check for an attribute...
@@ -89,10 +89,10 @@ mxmlFindElement(mxml_node_t *node,	/* I - Current node */
       {
        /*
         * OK, we have the attribute, does it match?
-	*/
+    */
 
-	if (!value || !strcmp(value, temp))
-	  return (node);		/* Yes, return it... */
+    if (!value || !strcmp(value, temp))
+      return (node);		/* Yes, return it... */
       }
     }
 
@@ -125,7 +125,7 @@ mxmlFindElement(mxml_node_t *node,	/* I - Current node */
 
 mxml_node_t *				/* O - Found node or NULL */
 mxmlFindPath(mxml_node_t *top,		/* I - Top node */
-	     const char  *path)		/* I - Path to element */
+         const char  *path)		/* I - Path to element */
 {
   mxml_node_t	*node;			/* Current node */
   char		element[256];		/* Current element name */
