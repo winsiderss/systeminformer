@@ -21,7 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,

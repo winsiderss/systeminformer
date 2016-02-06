@@ -3,7 +3,7 @@
  *   GPU process properties page
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,42 +22,66 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
-
-#define MSG_UPDATE (WM_APP + 1)
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
-typedef struct _ET_GPU_CONTEXT
+VOID GpuPropUpdatePanel(
+    _Inout_ PET_GPU_CONTEXT Context
+    );
+
+static INT_PTR CALLBACK GpuDetailsDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
 {
-    HWND WindowHandle;
-    PET_PROCESS_BLOCK Block;
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-    BOOLEAN Enabled;
-    PH_LAYOUT_MANAGER LayoutManager;
+    PET_GPU_CONTEXT context = NULL;
 
-    HWND GpuGroupBox;
-    HWND MemGroupBox;
-    HWND SharedGroupBox;
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PET_GPU_CONTEXT)lParam;
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PET_GPU_CONTEXT)GetProp(hwndDlg, L"Context");
 
-    HWND GpuGraphHandle;
-    HWND MemGraphHandle;
-    HWND SharedGraphHandle;
-    HWND PanelHandle;
+        if (uMsg == WM_DESTROY)
+        {
+            context->DetailsHandle = NULL;
+            RemoveProp(hwndDlg, L"Context");
+        }
+    }
 
-    FLOAT CurrentGpuUsage;
-    ULONG CurrentMemUsage;
-    ULONG CurrentMemSharedUsage;
+    if (context == NULL)
+        return FALSE;
 
-    PH_GRAPH_STATE GpuGraphState;
-    PH_GRAPH_STATE MemoryGraphState;
-    PH_GRAPH_STATE MemorySharedGraphState;
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->DetailsHandle = hwndDlg;
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-    PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
-    PH_CIRCULAR_BUFFER_ULONG MemoryHistory;
-    PH_CIRCULAR_BUFFER_ULONG MemorySharedHistory;
-} ET_GPU_CONTEXT, *PET_GPU_CONTEXT;
+            GpuPropUpdatePanel(context);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lparam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
 
 static INT_PTR CALLBACK GpuPanelDialogProc(
     _In_ HWND hwndDlg,
@@ -66,6 +90,48 @@ static INT_PTR CALLBACK GpuPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
+    PET_GPU_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PET_GPU_CONTEXT)lParam;
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PET_GPU_CONTEXT)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_DESTROY)
+        {
+            RemoveProp(hwndDlg, L"Context");
+        }
+    }
+
+    if (context == NULL)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lparam))
+            {
+            case IDC_GPUDETAILS:
+                {
+                    DialogBoxParam(
+                        PluginInstance->DllBase, 
+                        MAKEINTRESOURCE(IDD_PROCGPU_DETAILS), 
+                        hwndDlg, 
+                        GpuDetailsDialogProc,
+                        (LPARAM)context
+                        );
+                }
+                break;
+            }
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -255,7 +321,7 @@ static VOID GpuPropUpdateGraphs(
     InvalidateRect(Context->SharedGraphHandle, NULL, FALSE);
 }
 
-static VOID GpuPropUpdatePanel(
+VOID GpuPropUpdatePanel(
     _Inout_ PET_GPU_CONTEXT Context
     )
 {
@@ -272,18 +338,22 @@ static VOID GpuPropUpdatePanel(
     SetDlgItemText(Context->PanelHandle, IDC_ZRUNNINGTIME_V, runningTimeString);
     SetDlgItemText(Context->PanelHandle, IDC_ZCONTEXTSWITCHES_V, PhaFormatUInt64(statistics.ContextSwitches, TRUE)->Buffer);
     SetDlgItemText(Context->PanelHandle, IDC_ZTOTALNODES_V, PhaFormatUInt64(statistics.NodeCount, TRUE)->Buffer);
-
-    SetDlgItemText(Context->PanelHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(statistics.DedicatedCommitted, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(statistics.SharedCommitted, -1)->Buffer);
     SetDlgItemText(Context->PanelHandle, IDC_ZTOTALSEGMENTS_V, PhaFormatUInt64(statistics.SegmentCount, TRUE)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(statistics.BytesAllocated, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(statistics.BytesReserved, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(statistics.WriteCombinedBytesAllocated, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(statistics.WriteCombinedBytesReserved, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(statistics.CachedBytesAllocated, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(statistics.CachedBytesReserved, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(statistics.SectionBytesAllocated, -1)->Buffer);
-    SetDlgItemText(Context->PanelHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(statistics.SectionBytesReserved, -1)->Buffer);
+
+    if (Context->DetailsHandle)
+    {
+        // Note: no lock is needed because we only ever update the 'details' dialog text on this same thread.
+        SetDlgItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(statistics.DedicatedCommitted, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(statistics.SharedCommitted, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(statistics.BytesAllocated, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZTOTALRESERVED_V, PhaFormatSize(statistics.BytesReserved, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDALLOCATED_V, PhaFormatSize(statistics.WriteCombinedBytesAllocated, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZWRITECOMBINEDRESERVED_V, PhaFormatSize(statistics.WriteCombinedBytesReserved, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZCACHEDALLOCATED_V, PhaFormatSize(statistics.CachedBytesAllocated, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZCACHEDRESERVED_V, PhaFormatSize(statistics.CachedBytesReserved, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZSECTIONALLOCATED_V, PhaFormatSize(statistics.SectionBytesAllocated, -1)->Buffer);
+        SetDlgItemText(Context->DetailsHandle, IDC_ZSECTIONRESERVED_V, PhaFormatSize(statistics.SectionBytesReserved, -1)->Buffer);
+    }
 }
 
 static VOID GpuPropUpdateInfo(
@@ -313,7 +383,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
 
     if (context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
     }
 }
 
@@ -630,7 +700,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             }
         }
         break;
-    case MSG_UPDATE:
+    case UPDATE_MSG:
         {
             if (context->Enabled)
             {

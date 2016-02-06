@@ -22,7 +22,6 @@
 
 #include "exttools.h"
 #include "etwmon.h"
-#include "resource.h"
 #include <toolstatusintf.h>
 #include "disktabp.h"
 

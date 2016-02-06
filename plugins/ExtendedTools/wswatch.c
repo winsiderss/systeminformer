@@ -21,7 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
 #include <symprv.h>
 
 typedef struct _WS_WATCH_CONTEXT

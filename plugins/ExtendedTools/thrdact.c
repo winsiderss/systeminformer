@@ -21,7 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
 
 BOOLEAN EtUiCancelIoThread(
     _In_ HWND hWnd,

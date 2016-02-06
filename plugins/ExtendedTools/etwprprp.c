@@ -22,9 +22,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
-
-#define MSG_UPDATE (WM_APP + 1)
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
@@ -270,7 +267,7 @@ static VOID NTAPI EtwDiskNetworkUpdateHandler(
 
     if (context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
     }
 }
 
@@ -576,11 +573,14 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             }
         }
         break;
-    case MSG_UPDATE:
+    case UPDATE_MSG:
         {
-            EtwDiskNetworkUpdateInfo(context);
-            EtwDiskNetworkUpdateGraphs(context);
-            EtwDiskNetworkUpdatePanel(context);
+            if (context->Enabled)
+            {
+                EtwDiskNetworkUpdateInfo(context);
+                EtwDiskNetworkUpdateGraphs(context);
+                EtwDiskNetworkUpdatePanel(context);
+            }
         }
         break;
     case WM_SIZE:

@@ -21,8 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
-#include <windowsx.h>
 #include "gpusys.h"
 
 static PPH_SYSINFO_SECTION GpuSection;

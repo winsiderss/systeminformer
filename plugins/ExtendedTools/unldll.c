@@ -21,7 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
 
 typedef struct _UNLOADED_DLLS_CONTEXT
 {
