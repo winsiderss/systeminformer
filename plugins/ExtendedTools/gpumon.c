@@ -21,7 +21,7 @@
  */
 
 #include "exttools.h"
-#include "setupapi.h"
+#include <setupapi.h>
 #include "d3dkmt.h"
 #include "gpumon.h"
 

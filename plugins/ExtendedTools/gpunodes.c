@@ -21,11 +21,7 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
-#include <windowsx.h>
-#include <math.h>
 
-#define UPDATE_MSG (WM_APP + 1)
 #define GRAPH_PADDING 5
 #define CHECKBOX_PADDING 3
 

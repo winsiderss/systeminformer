@@ -30,6 +30,7 @@
 #define IDD_DISKTABRESTART              127
 #define IDD_DISKTABERROR                128
 #define IDD_PROCDISKNET_PANEL           129
+#define IDD_PROCGPU_DETAILS             131
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -95,6 +96,7 @@
 #define IDC_ERROR                       1087
 #define IDC_GROUPDISK                   1088
 #define IDC_GROUPNETWORK                1089
+#define IDC_GPUDETAILS                  1090
 #define ID_EMPTY_EMPTYWORKINGSETS       40001
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
 #define ID_EMPTY_EMPTYSTANDBYLIST       40003
@@ -108,9 +110,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        130
+#define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1090
+#define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           130
 #endif
 #endif

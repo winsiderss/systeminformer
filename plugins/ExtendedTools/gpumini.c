@@ -21,7 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
 #include "gpumini.h"
 
 VOID EtGpuMiniInformationInitializing(

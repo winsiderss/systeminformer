@@ -21,8 +21,6 @@
  */
 
 #include "exttools.h"
-#include "resource.h"
-#include <windowsx.h>
 
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
