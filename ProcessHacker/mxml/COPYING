@@ -1,26 +1,26 @@
 			   Mini-XML License
-			   October 18, 2005
+			  September 18, 2010
 
 
 The Mini-XML library and included programs are provided under the
-terms of the GNU Library General Public License (LGPL) with the
-following exceptions:
+terms of the GNU Library General Public License version 2 (LGPL2)
+with the following exceptions:
 
-    1. Static linking of applications to the Mini-XML library
-       does not constitute a derivative work and does not require
-       the author to provide source code for the application, use
-       the shared Mini-XML libraries, or link their applications
-       against a user-supplied version of Mini-XML.
+  1. Static linking of applications to the Mini-XML library
+does not constitute a derivative work and does not require
+the author to provide source code for the application, use
+the shared Mini-XML libraries, or link their applications
+against a user-supplied version of Mini-XML.
 
-       If you link the application to a modified version of
-       Mini-XML, then the changes to Mini-XML must be provided
-       under the terms of the LGPL in sections 1, 2, and 4.
+If you link the application to a modified version of
+Mini-XML, then the changes to Mini-XML must be provided
+under the terms of the LGPL2 in sections 1, 2, and 4.
 
-    2. You do not have to provide a copy of the Mini-XML license
-       with programs that are linked to the Mini-XML library, nor
-       do you have to identify the Mini-XML license in your
-       program or documentation as required by section 6 of the
-       LGPL.
+  2. You do not have to provide a copy of the Mini-XML license
+with programs that are linked to the Mini-XML library, nor
+do you have to identify the Mini-XML license in your
+program or documentation as required by section 6 of the
+LGPL2.
 
 
 		  GNU LIBRARY GENERAL PUBLIC LICENSE

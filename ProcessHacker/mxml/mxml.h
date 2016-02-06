@@ -1,24 +1,18 @@
 /*
- * "$Id: mxml.h 385 2009-03-19 05:38:52Z mike $"
+ * "$Id: mxml.h 451 2014-01-04 21:50:06Z msweet $"
  *
  * Header file for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2003-2009 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
-
-// This release of Mini-XML has been modified for Process Hacker in the following ways:
-// * Memory allocations are done through Process Hacker's PhAllocate*/PhFree* functions.
-// * The file descriptor functions now use file handles.
 
 /*
  * Prevent multiple inclusion...
@@ -44,10 +38,12 @@
 #define PHMXMLAPI
 #endif
 
-
 /*
  * Constants...
  */
+
+#  define MXML_MAJOR_VERSION	2	/* Major version number */
+#  define MXML_MINOR_VERSION	8	/* Minor version number */
 
 #  define MXML_TAB		8	/* Tabs every N columns */
 
@@ -106,35 +102,35 @@ typedef enum mxml_type_e		/**** The XML node type. ****/
 typedef void (*mxml_custom_destroy_cb_t)(void *);
 					/**** Custom data destructor ****/
 
-typedef void (*mxml_error_cb_t)(const char *);  
+typedef void (*mxml_error_cb_t)(const char *);
 					/**** Error callback function ****/
 
-typedef struct mxml_attr_s		/**** An XML element attribute value. ****/
+typedef struct mxml_attr_s		/**** An XML element attribute value. @private@ ****/
 {
   char			*name;		/* Attribute name */
   char			*value;		/* Attribute value */
 } mxml_attr_t;
 
-typedef struct mxml_element_s		/**** An XML element value. ****/
+typedef struct mxml_element_s		/**** An XML element value. @private@ ****/
 {
   char			*name;		/* Name of element */
   int			num_attrs;	/* Number of attributes */
   mxml_attr_t		*attrs;		/* Attributes */
 } mxml_element_t;
 
-typedef struct mxml_text_s		/**** An XML text value. ****/
+typedef struct mxml_text_s		/**** An XML text value. @private@ ****/
 {
   int			whitespace;	/* Leading whitespace? */
   char			*string;	/* Fragment string */
 } mxml_text_t;
 
-typedef struct mxml_custom_s		/**** An XML custom value. @since Mini-XML 2.1@ ****/
+typedef struct mxml_custom_s		/**** An XML custom value. @private@ ****/
 {
   void			*data;		/* Pointer to (allocated) custom data */
   mxml_custom_destroy_cb_t destroy;	/* Pointer to destructor function */
 } mxml_custom_t;
 
-typedef union mxml_value_u		/**** An XML node value. ****/
+typedef union mxml_value_u		/**** An XML node value. @private@ ****/
 {
   mxml_element_t	element;	/* Element */
   int			integer;	/* Integer number */
@@ -144,7 +140,7 @@ typedef union mxml_value_u		/**** An XML node value. ****/
   mxml_custom_t		custom;		/* Custom data @since Mini-XML 2.1@ */
 } mxml_value_t;
 
-typedef struct mxml_node_s		/**** An XML node. ****/
+struct mxml_node_s			/**** An XML node. @private@ ****/
 {
   mxml_type_t		type;		/* Node type */
   struct mxml_node_s	*next;		/* Next node under same parent */
@@ -155,21 +151,26 @@ typedef struct mxml_node_s		/**** An XML node. ****/
   mxml_value_t		value;		/* Node value */
   int			ref_count;	/* Use count */
   void			*user_data;	/* User data */
-} mxml_node_t;
+};
 
-typedef struct mxml_index_s		/**** An XML node index. ****/
+typedef struct mxml_node_s mxml_node_t;	/**** An XML node. ****/
+
+struct mxml_index_s			 /**** An XML node index. @private@ ****/
 {
   char			*attr;		/* Attribute used for indexing or NULL */
   int			num_nodes;	/* Number of nodes in index */
   int			alloc_nodes;	/* Allocated nodes in index */
   int			cur_node;	/* Current node */
   mxml_node_t		**nodes;	/* Node array */
-} mxml_index_t;
+};
+
+typedef struct mxml_index_s mxml_index_t;
+					/**** An XML node index. ****/
 
 typedef int (*mxml_custom_load_cb_t)(mxml_node_t *, const char *);
 					/**** Custom data load callback function ****/
 
-typedef char *(*mxml_custom_save_cb_t)(mxml_node_t *);  
+typedef char *(*mxml_custom_save_cb_t)(mxml_node_t *);
 					/**** Custom data save callback function ****/
 
 typedef int (*mxml_entity_cb_t)(const char *);
@@ -181,7 +182,7 @@ typedef mxml_type_t (*mxml_load_cb_t)(mxml_node_t *);
 typedef const char *(*mxml_save_cb_t)(mxml_node_t *, int);
 					/**** Save callback function ****/
 
-typedef void (*mxml_sax_cb_t)(mxml_node_t *, mxml_sax_event_t, void *);  
+typedef void (*mxml_sax_cb_t)(mxml_node_t *, mxml_sax_event_t, void *);
 					/**** SAX callback function ****/
 
 
@@ -218,11 +219,28 @@ extern void		mxmlEntityRemoveCallback(mxml_entity_cb_t cb);
 PHMXMLAPI extern mxml_node_t	*mxmlFindElement(mxml_node_t *node, mxml_node_t *top,
 			                 const char *name, const char *attr,
 					 const char *value, int descend);
+extern mxml_node_t	*mxmlFindPath(mxml_node_t *node, const char *path);
+extern const char	*mxmlGetCDATA(mxml_node_t *node);
+extern const void	*mxmlGetCustom(mxml_node_t *node);
+extern const char	*mxmlGetElement(mxml_node_t *node);
+extern mxml_node_t	*mxmlGetFirstChild(mxml_node_t *node);
+extern int		mxmlGetInteger(mxml_node_t *node);
+extern mxml_node_t	*mxmlGetLastChild(mxml_node_t *node);
+extern mxml_node_t	*mxmlGetNextSibling(mxml_node_t *node);
+extern const char	*mxmlGetOpaque(mxml_node_t *node);
+extern mxml_node_t	*mxmlGetParent(mxml_node_t *node);
+extern mxml_node_t	*mxmlGetPrevSibling(mxml_node_t *node);
+extern double		mxmlGetReal(mxml_node_t *node);
+extern int		mxmlGetRefCount(mxml_node_t *node);
+extern const char	*mxmlGetText(mxml_node_t *node, int *whitespace);
+extern mxml_type_t	mxmlGetType(mxml_node_t *node);
+extern void		*mxmlGetUserData(mxml_node_t *node);
 extern void		mxmlIndexDelete(mxml_index_t *ind);
 extern mxml_node_t	*mxmlIndexEnum(mxml_index_t *ind);
 extern mxml_node_t	*mxmlIndexFind(mxml_index_t *ind,
 			               const char *element,
 			               const char *value);
+extern int		mxmlIndexGetCount(mxml_index_t *ind);
 extern mxml_index_t	*mxmlIndexNew(mxml_node_t *node, const char *element,
 			              const char *attr);
 extern mxml_node_t	*mxmlIndexReset(mxml_index_t *ind);
@@ -236,9 +254,9 @@ PHMXMLAPI extern mxml_node_t	*mxmlNewCDATA(mxml_node_t *parent, const char *stri
 PHMXMLAPI extern mxml_node_t	*mxmlNewCustom(mxml_node_t *parent, void *data,
 			               mxml_custom_destroy_cb_t destroy);
 PHMXMLAPI extern mxml_node_t	*mxmlNewElement(mxml_node_t *parent, const char *name);
-extern mxml_node_t	*mxmlNewInteger(mxml_node_t *parent, int integer);
+PHMXMLAPI extern mxml_node_t	*mxmlNewInteger(mxml_node_t *parent, int integer);
 PHMXMLAPI extern mxml_node_t	*mxmlNewOpaque(mxml_node_t *parent, const char *opaque);
-extern mxml_node_t	*mxmlNewReal(mxml_node_t *parent, double real);
+PHMXMLAPI extern mxml_node_t	*mxmlNewReal(mxml_node_t *parent, double real);
 PHMXMLAPI extern mxml_node_t	*mxmlNewText(mxml_node_t *parent, int whitespace,
 			             const char *string);
 extern mxml_node_t	*mxmlNewTextf(mxml_node_t *parent, int whitespace,
@@ -286,6 +304,7 @@ extern int		mxmlSetTextf(mxml_node_t *node, int whitespace,
 __attribute__ ((__format__ (__printf__, 3, 4)))
 #    endif /* __GNUC__ */
 ;
+PHMXMLAPI extern int		mxmlSetUserData(mxml_node_t *node, void *data);
 extern void		mxmlSetWrapMargin(int column);
 PHMXMLAPI extern mxml_node_t	*mxmlWalkNext(mxml_node_t *node, mxml_node_t *top,
 			              int descend);
@@ -315,5 +334,5 @@ extern mxml_type_t	mxml_real_cb(mxml_node_t *node);
 
 
 /*
- * End of "$Id: mxml.h 385 2009-03-19 05:38:52Z mike $".
+ * End of "$Id: mxml.h 451 2014-01-04 21:50:06Z msweet $".
  */

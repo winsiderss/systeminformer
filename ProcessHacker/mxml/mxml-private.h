@@ -1,19 +1,17 @@
 /*
- * "$Id: mxml-private.h 309 2007-09-21 04:46:02Z mike $"
+ * "$Id: mxml-private.h 451 2014-01-04 21:50:06Z msweet $"
  *
  * Private definitions for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2007 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
 
 /*
@@ -48,5 +46,5 @@ extern int		_mxml_entity_cb(const char *name);
 
 
 /*
- * End of "$Id: mxml-private.h 309 2007-09-21 04:46:02Z mike $".
+ * End of "$Id: mxml-private.h 451 2014-01-04 21:50:06Z msweet $".
  */

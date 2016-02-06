@@ -1,26 +1,18 @@
 /*
- * "$Id: mxml-search.c 297 2007-09-09 07:16:52Z mike $"
+ * "$Id: mxml-search.c 451 2014-01-04 21:50:06Z msweet $"
  *
  * Search/navigation functions for Mini-XML, a small XML-like file
  * parsing library.
  *
- * Copyright 2003-2007 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * Contents:
- *
- *   mxmlFindElement() - Find the named element.
- *   mxmlWalkNext()    - Walk to the next logical node in the tree.
- *   mxmlWalkPrev()    - Walk to the previous logical node in the tree.
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
 
 /*
@@ -119,6 +111,93 @@ mxmlFindElement(mxml_node_t *node,	/* I - Current node */
 
 
 /*
+ * 'mxmlFindPath()' - Find a node with the given path.
+ *
+ * The "path" is a slash-separated list of element names. The name "*" is
+ * considered a wildcard for one or more levels of elements.  For example,
+ * "foo/one/two", "bar/two/one", "*\/one", and so forth.
+ *
+ * The first child node of the found node is returned if the given node has
+ * children and the first child is a value node.
+ *
+ * @since Mini-XML 2.7@
+ */
+
+mxml_node_t *				/* O - Found node or NULL */
+mxmlFindPath(mxml_node_t *top,		/* I - Top node */
+	     const char  *path)		/* I - Path to element */
+{
+  mxml_node_t	*node;			/* Current node */
+  char		element[256];		/* Current element name */
+  const char	*pathsep;		/* Separator in path */
+  int		descend;		/* mxmlFindElement option */
+
+
+ /*
+  * Range check input...
+  */
+
+  if (!top || !path || !*path)
+    return (NULL);
+
+ /*
+  * Search each element in the path...
+  */
+
+  node = top;
+  while (*path)
+  {
+   /*
+    * Handle wildcards...
+    */
+
+    if (!strncmp(path, "*/", 2))
+    {
+      path += 2;
+      descend = MXML_DESCEND;
+    }
+    else
+      descend = MXML_DESCEND_FIRST;
+
+   /*
+    * Get the next element in the path...
+    */
+
+    if ((pathsep = strchr(path, '/')) == NULL)
+      pathsep = path + strlen(path);
+
+    if (pathsep == path || (pathsep - path) >= sizeof(element))
+      return (NULL);
+
+    memcpy(element, path, pathsep - path);
+    element[pathsep - path] = '\0';
+
+    if (*pathsep)
+      path = pathsep + 1;
+    else
+      path = pathsep;
+
+   /*
+    * Search for the element...
+    */
+
+    if ((node = mxmlFindElement(node, node, element, NULL, NULL,
+                                descend)) == NULL)
+      return (NULL);
+  }
+
+ /*
+  * If we get this far, return the node or its first child...
+  */
+
+  if (node->child && node->child->type != MXML_ELEMENT)
+    return (node->child);
+  else
+    return (node);
+}
+
+
+/*
  * 'mxmlWalkNext()' - Walk to the next logical node in the tree.
  *
  * The descend argument controls whether the first child is considered
@@ -197,5 +276,5 @@ mxmlWalkPrev(mxml_node_t *node,		/* I - Current node */
 
 
 /*
- * End of "$Id: mxml-search.c 297 2007-09-09 07:16:52Z mike $".
+ * End of "$Id: mxml-search.c 451 2014-01-04 21:50:06Z msweet $".
  */

@@ -28,6 +28,9 @@
     <Filter Include="PCRE\Headers">
       <UniqueIdentifier>{e72b6c69-b510-4578-9ed5-34a16d8dffc1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Mini-XML\Headers">
+      <UniqueIdentifier>{c4b014d0-6bd0-4848-a23f-e639563d998e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\phlib\basesup.c">
@@ -485,19 +488,10 @@
     <ClInclude Include="..\phlib\format_i.h">
       <Filter>phlib</Filter>
     </ClInclude>
-    <ClInclude Include="mxml\config.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="include\hidnproc.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\memsrch.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\mxml-private.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\mxml.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phapp.h">
@@ -589,6 +583,15 @@
     </ClInclude>
     <ClInclude Include="pcre\pcre2posix.h">
       <Filter>PCRE\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\config.h">
+      <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml-private.h">
+      <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml.h">
+      <Filter>Mini-XML\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

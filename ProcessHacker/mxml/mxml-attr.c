@@ -1,27 +1,17 @@
 /*
- * "$Id: mxml-attr.c 308 2007-09-15 20:04:56Z mike $"
+ * "$Id: mxml-attr.c 451 2014-01-04 21:50:06Z msweet $"
  *
  * Attribute support code for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2003-2007 by Michael Sweet.
+ * Copyright 2003-2014 by Michael R Sweet.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2, or (at your option) any later version.
+ * These coded instructions, statements, and computer programs are the
+ * property of Michael R Sweet and are protected by Federal copyright
+ * law.  Distribution and use rights are outlined in the file "COPYING"
+ * which should have been included with this file.  If this file is
+ * missing or damaged, see the license at:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * Contents:
- *
- *   mxmlElementDeleteAttr() - Delete an attribute.
- *   mxmlElementGetAttr()    - Get an attribute.
- *   mxmlElementSetAttr()    - Set an attribute.
- *   mxmlElementSetAttrf()   - Set an attribute with a formatted value.
- *   mxml_set_attr()         - Set or add an attribute name/value pair.
+ *     http://www.msweet.org/projects.php/Mini-XML
  */
 
 /*
@@ -38,7 +28,7 @@
  */
 
 static int	mxml_set_attr(mxml_node_t *node, const char *name,
-		              char *value);
+                      char *value);
 
 
 /*
@@ -85,14 +75,17 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
       * Delete this attribute...
       */
 
-      PhFree(attr->name);
-      PhFree(attr->value);
+        PhFree(attr->name);
+        PhFree(attr->value);
 
       i --;
       if (i > 0)
         memmove(attr, attr + 1, i * sizeof(mxml_attr_t));
 
       node->value.element.num_attrs --;
+
+      if (node->value.element.num_attrs == 0)
+          PhFree(node->value.element.attrs);
       return;
     }
   }
@@ -152,7 +145,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   */
 
 #ifdef DEBUG
-  fputs("    Returning NULL!\n", stderr);
+  puts("    Returning NULL!\n");
 #endif /* DEBUG */
 
   return (NULL);
@@ -194,7 +187,7 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
     valuec = NULL;
 
   if (mxml_set_attr(node, name, valuec))
-    PhFree(valuec);
+      PhFree(valuec);
 }
 
 
@@ -213,7 +206,7 @@ void
 mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
                     const char  *name,	/* I - Name of attribute */
                     const char  *format,/* I - Printf-style attribute value */
-		    ...)		/* I - Additional arguments as needed */
+            ...)		/* I - Additional arguments as needed */
 {
   va_list	ap;			/* Argument pointer */
   char		*value;			/* Value */
@@ -244,7 +237,7 @@ mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);
   else if (mxml_set_attr(node, name, value))
-    PhFree(value);
+      PhFree(value);
 }
 
 
@@ -275,7 +268,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
       */
 
       if (attr->value)
-        PhFree(attr->value);
+        free(attr->value);
 
       attr->value = value;
 
@@ -318,5 +311,5 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
 
 
 /*
- * End of "$Id: mxml-attr.c 308 2007-09-15 20:04:56Z mike $".
+ * End of "$Id: mxml-attr.c 451 2014-01-04 21:50:06Z msweet $".
  */
