@@ -224,9 +224,8 @@ VOID NTAPI LoadCallback(
         32
         );
 
-    sbieDllPath = PhGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
+    sbieDllPath = PhaGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
     module = LoadLibrary(sbieDllPath->Buffer);
-    PhDereferenceObject(sbieDllPath);
 
     SbieApi_QueryBoxPath = PhGetProcedureAddress(module, SbieApi_QueryBoxPath_Name, 0);
     SbieApi_EnumBoxes = PhGetProcedureAddress(module, SbieApi_EnumBoxes_Name, 0);
@@ -499,9 +498,8 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             PPH_STRING sbieDllPath;
 
-            sbieDllPath = PhGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
+            sbieDllPath = PhaGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
             SetDlgItemText(hwndDlg, IDC_SBIEDLLPATH, sbieDllPath->Buffer);
-            PhDereferenceObject(sbieDllPath);
         }
         break;
     case WM_COMMAND:
@@ -532,15 +530,13 @@ INT_PTR CALLBACK OptionsDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_SBIEDLLPATH));
+                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_SBIEDLLPATH)));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-                    PhDereferenceObject(fileName);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
-                        fileName = PhGetFileDialogFileName(fileDialog);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                         SetDlgItemText(hwndDlg, IDC_SBIEDLLPATH, fileName->Buffer);
-                        PhDereferenceObject(fileName);
                     }
 
                     PhFreeFileDialog(fileDialog);

@@ -196,8 +196,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     NTSTATUS status;
                     PPH_STRING method;
 
-                    method = PhGetWindowText(GetDlgItem(hwndDlg, IDC_METHOD));
-                    PH_AUTO(method);
+                    method = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_METHOD)));
 
                     if (ProcessesList)
                     {
@@ -345,8 +344,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
 
-                        fileName = PhGetFileDialogFileName(fileDialog);
-                        PH_AUTO(fileName);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

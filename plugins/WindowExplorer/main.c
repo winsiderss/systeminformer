@@ -255,7 +255,7 @@ VOID NTAPI MenuItemCallback(
             PPH_LIST desktopNames;
             PPH_STRING selectedChoice = NULL;
 
-            desktopNames = PhCreateList(4);
+            desktopNames = PH_AUTO(PhCreateList(4));
             EnumDesktops(GetProcessWindowStation(), WepEnumDesktopProc, (LPARAM)desktopNames);
 
             if (PhaChoiceDialog(
@@ -277,8 +277,6 @@ VOID NTAPI MenuItemCallback(
                 PhSetReference(&selector.Desktop.DesktopName, selectedChoice);
                 WeShowWindowsDialog(WE_PhMainWndHandle, &selector);
             }
-
-            PhDereferenceObject(desktopNames);
         }
         break;
     case ID_PROCESS_WINDOWS:

@@ -261,12 +261,9 @@ VOID EtLoadSettingsDiskTreeList(
     VOID
     )
 {
-    PPH_STRING settings;
     PH_INTEGER_PAIR sortSettings;
 
-    settings = PhGetStringSetting(SETTING_NAME_DISK_TREE_LIST_COLUMNS);
-    PhCmLoadSettings(DiskTreeNewHandle, &settings->sr);
-    PhDereferenceObject(settings);
+    PhCmLoadSettings(DiskTreeNewHandle, &PhaGetStringSetting(SETTING_NAME_DISK_TREE_LIST_COLUMNS)->sr);
 
     sortSettings = PhGetIntegerPairSetting(SETTING_NAME_DISK_TREE_LIST_SORT);
     TreeNew_SetSort(DiskTreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
@@ -284,9 +281,8 @@ VOID EtSaveSettingsDiskTreeList(
     if (!DiskTreeNewCreated)
         return;
 
-    settings = PhCmSaveSettings(DiskTreeNewHandle);
+    settings = PH_AUTO(PhCmSaveSettings(DiskTreeNewHandle));
     PhSetStringSetting2(SETTING_NAME_DISK_TREE_LIST_COLUMNS, &settings->sr);
-    PhDereferenceObject(settings);
 
     TreeNew_GetSort(DiskTreeNewHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;

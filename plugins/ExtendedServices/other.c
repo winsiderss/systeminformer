@@ -388,7 +388,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                     PPH_LIST choices;
                     PPH_STRING selectedChoice = NULL;
 
-                    choices = PhCreateList(100);
+                    choices = PH_AUTO(PhCreateList(100));
 
                     if (!NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
                     {
@@ -487,8 +487,6 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
                         break;
                     }
-
-                    PhDereferenceObject(choices);
                 }
                 break;
             case IDC_REMOVE:

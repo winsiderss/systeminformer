@@ -38,7 +38,7 @@ VOID FileLogInitialization(
     NTSTATUS status;
     PPH_STRING fileName;
 
-    fileName = PhGetStringSetting(SETTING_NAME_LOG_FILENAME);
+    fileName = PhaGetStringSetting(SETTING_NAME_LOG_FILENAME);
 
     if (fileName->Length != 0)
     {
@@ -61,8 +61,6 @@ VOID FileLogInitialization(
                 );
         }
     }
-
-    PhDereferenceObject(fileName);
 }
 
 VOID NTAPI LoggedCallback(
@@ -71,14 +69,11 @@ VOID NTAPI LoggedCallback(
     )
 {
     PPH_LOG_ENTRY logEntry = Parameter;
-    PPH_STRING formattedTime;
-    PPH_STRING formatted;
 
-    formattedTime = PhFormatDateTime(NULL);
-    formatted = PhFormatLogEntry(logEntry);
-
-    PhWriteStringFormatAsUtf8FileStream(LogFileStream, L"%s: %s\r\n", formattedTime->Buffer, formatted->Buffer);
-
-    PhDereferenceObject(formatted);
-    PhDereferenceObject(formattedTime);
+    PhWriteStringFormatAsUtf8FileStream(
+        LogFileStream,
+        L"%s: %s\r\n",
+        PhaFormatDateTime(NULL)->Buffer,
+        PH_AUTO_T(PH_STRING, PhFormatLogEntry(logEntry))->Buffer
+        );
 }

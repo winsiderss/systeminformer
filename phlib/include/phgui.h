@@ -445,6 +445,7 @@ HWND PhCreateDialogFromTemplate(
     _In_ PVOID Parameter
     );
 
+PHLIBAPI
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     );

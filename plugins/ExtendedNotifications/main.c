@@ -321,15 +321,8 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_STRING string;
-
-    string = PhGetStringSetting(SETTING_NAME_PROCESS_LIST);
-    LoadFilterList(ProcessFilterList, string);
-    PhDereferenceObject(string);
-
-    string = PhGetStringSetting(SETTING_NAME_SERVICE_LIST);
-    LoadFilterList(ServiceFilterList, string);
-    PhDereferenceObject(string);
+    LoadFilterList(ProcessFilterList, PhaGetStringSetting(SETTING_NAME_PROCESS_LIST));
+    LoadFilterList(ServiceFilterList, PhaGetStringSetting(SETTING_NAME_SERVICE_LIST));
 
     FileLogInitialization();
 
@@ -390,7 +383,7 @@ VOID NTAPI ShowOptionsCallback(
     propSheetPage.pfnDlgProc = GrowlDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 }
 
 BOOLEAN MatchFilterList(
@@ -508,7 +501,6 @@ VOID NotifyGrowl(
         processItem = NotifyEvent->Parameter;
         notification = GrowlNotifications[0];
         title = processItem->ProcessName;
-        PhReferenceObject(title);
 
         parentProcessItem = PhReferenceProcessItemForParent(
             processItem->ParentProcessId,
@@ -516,7 +508,7 @@ VOID NotifyGrowl(
             &processItem->CreateTime
             );
 
-        message = PhFormatString(
+        message = PhaFormatString(
             L"The process %s (%lu) was started by %s.",
             processItem->ProcessName->Buffer,
             HandleToUlong(processItem->ProcessId),
@@ -531,9 +523,8 @@ VOID NotifyGrowl(
         processItem = NotifyEvent->Parameter;
         notification = GrowlNotifications[1];
         title = processItem->ProcessName;
-        PhReferenceObject(title);
 
-        message = PhFormatString(L"The process %s (%lu) was terminated.",
+        message = PhaFormatString(L"The process %s (%lu) was terminated.",
             processItem->ProcessName->Buffer,
             HandleToUlong(processItem->ProcessId)
             );
@@ -543,9 +534,8 @@ VOID NotifyGrowl(
         serviceItem = NotifyEvent->Parameter;
         notification = GrowlNotifications[2];
         title = serviceItem->DisplayName;
-        PhReferenceObject(title);
 
-        message = PhFormatString(L"The service %s (%s) has been created.",
+        message = PhaFormatString(L"The service %s (%s) has been created.",
             serviceItem->Name->Buffer,
             serviceItem->DisplayName->Buffer
             );
@@ -555,9 +545,8 @@ VOID NotifyGrowl(
         serviceItem = NotifyEvent->Parameter;
         notification = GrowlNotifications[3];
         title = serviceItem->DisplayName;
-        PhReferenceObject(title);
 
-        message = PhFormatString(L"The service %s (%s) has been deleted.",
+        message = PhaFormatString(L"The service %s (%s) has been deleted.",
             serviceItem->Name->Buffer,
             serviceItem->DisplayName->Buffer
             );
@@ -567,9 +556,8 @@ VOID NotifyGrowl(
         serviceItem = NotifyEvent->Parameter;
         notification = GrowlNotifications[4];
         title = serviceItem->DisplayName;
-        PhReferenceObject(title);
 
-        message = PhFormatString(L"The service %s (%s) has been started.",
+        message = PhaFormatString(L"The service %s (%s) has been started.",
             serviceItem->Name->Buffer,
             serviceItem->DisplayName->Buffer
             );
@@ -579,9 +567,8 @@ VOID NotifyGrowl(
         serviceItem = NotifyEvent->Parameter;
         notification = GrowlNotifications[5];
         title = serviceItem->DisplayName;
-        PhReferenceObject(title);
 
-        message = PhFormatString(L"The service %s (%s) has been stopped.",
+        message = PhaFormatString(L"The service %s (%s) has been stopped.",
             serviceItem->Name->Buffer,
             serviceItem->DisplayName->Buffer
             );
@@ -591,18 +578,13 @@ VOID NotifyGrowl(
         return;
     }
 
-    titleUtf8 = PhConvertUtf16ToUtf8Ex(title->Buffer, title->Length);
-    messageUtf8 = PhConvertUtf16ToUtf8Ex(message->Buffer, message->Length);
+    titleUtf8 = PH_AUTO(PhConvertUtf16ToUtf8Ex(title->Buffer, title->Length));
+    messageUtf8 = PH_AUTO(PhConvertUtf16ToUtf8Ex(message->Buffer, message->Length));
 
     RegisterGrowl(TRUE);
 
     if (growl_tcp_notify("127.0.0.1", "Process Hacker", notification, titleUtf8->Buffer, messageUtf8->Buffer, NULL, NULL, NULL) == 0)
         NotifyEvent->Handled = TRUE;
-
-    PhDereferenceObject(messageUtf8);
-    PhDereferenceObject(titleUtf8);
-    PhDereferenceObject(message);
-    PhDereferenceObject(title);
 }
 
 NTSTATUS NTAPI RegisterGrowlCallback(
@@ -631,11 +613,8 @@ VOID AddEntriesToListBox(
     for (i = 0; i < FilterList->Count; i++)
     {
         PFILTER_ENTRY entry = FilterList->Items[i];
-        PPH_STRING string;
 
-        string = FormatFilterEntry(entry);
-        ListBox_AddString(ListBox, string->Buffer);
-        PhDereferenceObject(string);
+        ListBox_AddString(ListBox, PH_AUTO_T(PH_STRING, FormatFilterEntry(entry))->Buffer);
     }
 }
 
@@ -1048,15 +1027,13 @@ INT_PTR CALLBACK LoggingDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME));
+                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-                    PhDereferenceObject(fileName);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
-                        fileName = PhGetFileDialogFileName(fileDialog);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                         SetDlgItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
-                        PhDereferenceObject(fileName);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1097,11 +1074,7 @@ INT_PTR CALLBACK GrowlDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_STRING licenseText;
-
-            licenseText = PhConvertMultiByteToUtf16(gntp_send_license_text);
-            SetDlgItemText(hwndDlg, IDC_LICENSE, licenseText->Buffer);
-            PhDereferenceObject(licenseText);
+            SetDlgItemText(hwndDlg, IDC_LICENSE, PH_AUTO_T(PH_STRING, PhConvertUtf8ToUtf16(gntp_send_license_text))->Buffer);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL), PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL) ? BST_CHECKED : BST_UNCHECKED);
         }

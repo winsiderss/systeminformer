@@ -252,10 +252,6 @@ PPH_STRING WepGetWindowTitleForSelector(
     _In_ PWE_WINDOW_SELECTOR Selector
     )
 {
-    PPH_STRING title;
-    CLIENT_ID clientId;
-    PPH_STRING clientIdName;
-
     switch (Selector->Type)
     {
     case WeWindowSelectorAll:
@@ -270,14 +266,12 @@ PPH_STRING WepGetWindowTitleForSelector(
         break;
     case WeWindowSelectorProcess:
         {
+            CLIENT_ID clientId;
+
             clientId.UniqueProcess = Selector->Process.ProcessId;
             clientId.UniqueThread = NULL;
-            clientIdName = PhGetClientIdName(&clientId);
 
-            title = PhConcatStrings2(L"Windows - ", clientIdName->Buffer);
-            PhDereferenceObject(clientIdName);
-
-            return title;
+            return PhConcatStrings2(L"Windows - ", PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer);
         }
         break;
     case WeWindowSelectorDesktop:
@@ -357,9 +351,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             windowRectangle.Top += 20;
             PhSetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, windowRectangle.Position);
 
-            windowTitle = WepGetWindowTitleForSelector(&context->Selector);
+            windowTitle = PH_AUTO(WepGetWindowTitleForSelector(&context->Selector));
             SetWindowText(hwndDlg, windowTitle->Buffer);
-            PhDereferenceObject(windowTitle);
 
             WepRefreshWindows(context);
         }

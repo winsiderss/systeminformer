@@ -4001,8 +4001,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             ULONG i;
                             ULONG_PTR offset;
 
-                            fileName = PhGetFileDialogFileName(fileDialog);
-                            PH_AUTO(fileName);
+                            fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
                             if (NT_SUCCESS(status = PhCreateFileStream(
                                 &fileStream,

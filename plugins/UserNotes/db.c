@@ -340,6 +340,13 @@ char *MxmlSaveCallback(
     return NULL;
 }
 
+PPH_BYTES StringRefToUtf8(
+    _In_ PPH_STRINGREF String
+    )
+{
+    return PH_AUTO(PhConvertUtf16ToUtf8Ex(String->Buffer, String->Length));
+}
+
 mxml_node_t *CreateObjectElement(
     _Inout_ mxml_node_t *ParentNode,
     _In_ PPH_STRINGREF Tag,
@@ -353,53 +360,43 @@ mxml_node_t *CreateObjectElement(
 {
     mxml_node_t *objectNode;
     mxml_node_t *textNode;
-    PPH_BYTES valueUtf8;
 
     // Create the setting element.
     objectNode = mxmlNewElement(ParentNode, "object");
 
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(Tag->Buffer, Tag->Length);
-    mxmlElementSetAttr(objectNode, "tag", valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
-
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(Name->Buffer, Name->Length);
-    mxmlElementSetAttr(objectNode, "name", valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
-
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(PriorityClass->Buffer, PriorityClass->Length);
-    mxmlElementSetAttr(objectNode, "priorityclass", valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
-
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(IoPriorityPlusOne->Buffer, IoPriorityPlusOne->Length);
-    mxmlElementSetAttr(objectNode, "iopriorityplusone", valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
-
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(BackColor->Buffer, BackColor->Length);
-    mxmlElementSetAttr(objectNode, "backcolor", valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
-
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(Collapse->Buffer, Collapse->Length);
-    mxmlElementSetAttr(objectNode, "collapse", valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
+    // Set the attributes.
+    mxmlElementSetAttr(objectNode, "tag", StringRefToUtf8(Tag)->Buffer);
+    mxmlElementSetAttr(objectNode, "name", StringRefToUtf8(Name)->Buffer);
+    mxmlElementSetAttr(objectNode, "priorityclass", StringRefToUtf8(PriorityClass)->Buffer);
+    mxmlElementSetAttr(objectNode, "iopriorityplusone", StringRefToUtf8(IoPriorityPlusOne)->Buffer);
+    mxmlElementSetAttr(objectNode, "backcolor", StringRefToUtf8(BackColor)->Buffer);
+    mxmlElementSetAttr(objectNode, "collapse", StringRefToUtf8(Collapse)->Buffer);
 
     // Set the value.
-
-    valueUtf8 = PhConvertUtf16ToUtf8Ex(Comment->Buffer, Comment->Length);
-    textNode = mxmlNewOpaque(objectNode, valueUtf8->Buffer);
-    PhDereferenceObject(valueUtf8);
+    textNode = mxmlNewOpaque(objectNode, StringRefToUtf8(Comment)->Buffer);
 
     return objectNode;
+}
+
+PPH_STRING UInt64ToBase10String(
+    _In_ ULONG64 Integer
+    )
+{
+    return PH_AUTO(PhIntegerToString64(Integer, 10, FALSE));
 }
 
 NTSTATUS SaveDb(
     VOID
     )
 {
+    PH_AUTO_POOL autoPool;
     NTSTATUS status;
     HANDLE fileHandle;
     mxml_node_t *topNode;
     ULONG enumerationKey = 0;
     PDB_OBJECT *object;
+
+    PhInitializeAutoPool(&autoPool);
 
     topNode = mxmlNewElement(MXML_NO_PARENT, "objects");
 
@@ -407,34 +404,17 @@ NTSTATUS SaveDb(
 
     while (PhEnumHashtable(ObjectDb, (PVOID*)&object, &enumerationKey))
     {
-        PPH_STRING tagString;
-        PPH_STRING priorityClassString;
-        PPH_STRING ioPriorityPlusOneString;
-        PPH_STRING backColorString;
-        PPH_STRING collapseString;
-
-        tagString = PhIntegerToString64((*object)->Tag, 10, FALSE);
-        priorityClassString = PhIntegerToString64((*object)->PriorityClass, 10, FALSE);
-        ioPriorityPlusOneString = PhIntegerToString64((*object)->IoPriorityPlusOne, 10, FALSE);
-        backColorString = PhIntegerToString64((*object)->BackColor, 10, FALSE);
-        collapseString = PhIntegerToString64((*object)->Collapse, 10, FALSE);
-
         CreateObjectElement(
             topNode,
-            &tagString->sr,
+            &UInt64ToBase10String((*object)->Tag)->sr,
             &(*object)->Name->sr,
-            &priorityClassString->sr,
-            &ioPriorityPlusOneString->sr,
+            &UInt64ToBase10String((*object)->PriorityClass)->sr,
+            &UInt64ToBase10String((*object)->IoPriorityPlusOne)->sr,
             &(*object)->Comment->sr,
-            &backColorString->sr,
-            &collapseString->sr
+            &UInt64ToBase10String((*object)->BackColor)->sr,
+            &UInt64ToBase10String((*object)->Collapse)->sr
             );
-
-        PhDereferenceObject(tagString);
-        PhDereferenceObject(priorityClassString);
-        PhDereferenceObject(ioPriorityPlusOneString);
-        PhDereferenceObject(backColorString);
-        PhDereferenceObject(collapseString);
+        PhDrainAutoPool(&autoPool);
     }
 
     UnlockDb();
@@ -443,20 +423,15 @@ NTSTATUS SaveDb(
     {
         PPH_STRING fullPath;
         ULONG indexOfFileName;
-        PPH_STRING directoryName;
 
-        if (fullPath = PhGetFullPath(ObjectDbPath->Buffer, &indexOfFileName))
+        if (fullPath = PH_AUTO(PhGetFullPath(ObjectDbPath->Buffer, &indexOfFileName)))
         {
             if (indexOfFileName != -1)
-            {
-                directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-                SHCreateDirectoryEx(NULL, directoryName->Buffer, NULL);
-                PhDereferenceObject(directoryName);
-            }
-
-            PhDereferenceObject(fullPath);
+                SHCreateDirectoryEx(NULL, PhaSubstring(fullPath, 0, indexOfFileName)->Buffer, NULL);
         }
     }
+
+    PhDeleteAutoPool(&autoPool);
 
     status = PhCreateFileWin32(
         &fileHandle,

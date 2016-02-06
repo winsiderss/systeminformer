@@ -820,8 +820,7 @@ VOID PhMwpOnCommand(
                 ULONG filterIndex;
                 PPH_FILE_STREAM fileStream;
 
-                fileName = PhGetFileDialogFileName(fileDialog);
-                PH_AUTO(fileName);
+                fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                 filterIndex = PhGetFileDialogFilterIndex(fileDialog);
 
                 if (NT_SUCCESS(status = PhCreateFileStream(
@@ -3750,10 +3749,8 @@ VOID PhMwpAddIconProcesses(
         clientId.UniqueProcess = processItem->ProcessId;
         clientId.UniqueThread = NULL;
 
-        clientIdName = PhGetClientIdName(&clientId);
-        escapedName = PhEscapeStringForMenuPrefix(&clientIdName->sr);
-        PhDereferenceObject(clientIdName);
-        PH_AUTO(escapedName);
+        clientIdName = PH_AUTO(PhGetClientIdName(&clientId));
+        escapedName = PH_AUTO(PhEscapeStringForMenuPrefix(&clientIdName->sr));
 
         subMenu = PhCreateEMenuItem(
             0,

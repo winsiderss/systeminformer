@@ -756,7 +756,7 @@ VOID ToolbarLoadButtonSettings(
     PH_STRINGREF remaining;
     PH_STRINGREF part;
 
-    settingsString = PhGetStringSetting(SETTING_NAME_TOOLBAR_CONFIG);
+    settingsString = PhaGetStringSetting(SETTING_NAME_TOOLBAR_CONFIG);
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
@@ -815,7 +815,6 @@ VOID ToolbarLoadButtonSettings(
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);
 
     PhFree(buttonArray);
-    PhDereferenceObject(settingsString);
 }
 
 VOID ToolbarSaveButtonSettings(
@@ -859,9 +858,8 @@ VOID ToolbarSaveButtonSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PhFinalStringBuilderString(&stringBuilder);
+    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
     PhSetStringSetting2(SETTING_NAME_TOOLBAR_CONFIG, &settingsString->sr);
-    PhDereferenceObject(settingsString);
 }
 
 VOID ReBarLoadLayoutSettings(
@@ -975,7 +973,6 @@ VOID ReBarSaveLayoutSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PhFinalStringBuilderString(&stringBuilder);
+    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
     PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
-    PhDereferenceObject(settingsString);
 }

@@ -412,8 +412,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         PPH_FILE_STREAM fileStream;
                         PPH_STRING string;
 
-                        fileName = PhGetFileDialogFileName(fileDialog);
-                        PH_AUTO(fileName);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

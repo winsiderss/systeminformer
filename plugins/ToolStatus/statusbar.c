@@ -77,7 +77,7 @@ VOID StatusBarLoadSettings(
     PH_STRINGREF remaining;
     PH_STRINGREF part;
 
-    settingsString = PhGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
+    settingsString = PhaGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
@@ -126,8 +126,6 @@ VOID StatusBarLoadSettings(
             PhInsertItemList(StatusBarItemList, i, statusItem);
         }
     }
-
-    PhDereferenceObject(settingsString);
 }
 
 VOID StatusBarSaveSettings(
@@ -160,9 +158,8 @@ VOID StatusBarSaveSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PhFinalStringBuilderString(&stringBuilder);
+    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
     PhSetStringSetting2(SETTING_NAME_STATUSBAR_CONFIG, &settingsString->sr);
-    PhDereferenceObject(settingsString);
 }
 
 VOID StatusBarResetSettings(

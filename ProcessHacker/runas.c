@@ -388,13 +388,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                         if (NT_SUCCESS(PhLookupName(&userName->sr, &sid, NULL, NULL)))
                         {
-                            newUserName = PhGetSidFullName(sid, TRUE, NULL);
-
-                            if (newUserName)
-                            {
-                                PH_AUTO(newUserName);
+                            if (newUserName = PH_AUTO(PhGetSidFullName(sid, TRUE, NULL)))
                                 userName = newUserName;
-                            }
 
                             PhFree(sid);
                         }
@@ -605,7 +600,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 sessions[i].WinStationName[0] != 0
                                 )
                             {
-                                menuString = PhFormatString(
+                                menuString = PhaFormatString(
                                     L"%u: %s (%s\\%s)",
                                     sessions[i].SessionId,
                                     sessions[i].WinStationName,
@@ -615,7 +610,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             }
                             else if (winStationInfo.UserName[0] != 0)
                             {
-                                menuString = PhFormatString(
+                                menuString = PhaFormatString(
                                     L"%u: %s\\%s",
                                     sessions[i].SessionId,
                                     winStationInfo.Domain,
@@ -624,7 +619,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             }
                             else if (sessions[i].WinStationName[0] != 0)
                             {
-                                menuString = PhFormatString(
+                                menuString = PhaFormatString(
                                     L"%u: %s",
                                     sessions[i].SessionId,
                                     sessions[i].WinStationName
@@ -632,12 +627,11 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             }
                             else
                             {
-                                menuString = PhFormatString(L"%u", sessions[i].SessionId);
+                                menuString = PhaFormatString(L"%u", sessions[i].SessionId);
                             }
 
                             PhInsertEMenuItem(sessionsMenu,
                                 PhCreateEMenuItem(0, 0, menuString->Buffer, NULL, UlongToPtr(sessions[i].SessionId)), -1);
-                            PH_AUTO(menuString);
                         }
 
                         WinStationFreeMemory(sessions);

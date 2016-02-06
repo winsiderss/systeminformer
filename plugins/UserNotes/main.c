@@ -123,14 +123,11 @@ static VOID LoadCustomColors(
     PH_STRINGREF remaining;
     PH_STRINGREF part;
 
-    settingsString = PhGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
+    settingsString = PhaGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
-    {
-        PhDereferenceObject(settingsString);
         return;
-    }
 
     for (ULONG i = 0; i < ARRAYSIZE(ProcessCustomColors); i++)
     {
@@ -146,8 +143,6 @@ static VOID LoadCustomColors(
             ProcessCustomColors[i] = (COLORREF)integer;
         }
     }
-
-    PhDereferenceObject(settingsString);
 }
 
 static PPH_STRING SaveCustomColors(
@@ -249,7 +244,6 @@ static VOID NTAPI LoadCallback(
 {
     PPH_PLUGIN toolStatusPlugin;
     PPH_STRING path;
-    PPH_STRING realPath;
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
     {
@@ -259,10 +253,8 @@ static VOID NTAPI LoadCallback(
             ToolStatusInterface = NULL;
     }
 
-    path = PhGetStringSetting(SETTING_NAME_DATABASE_PATH);
-    realPath = PhExpandEnvironmentStrings(&path->sr);
-    PhDereferenceObject(path);
-    path = realPath;
+    path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
+    path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
 
     LoadCustomColors();
 
@@ -270,16 +262,11 @@ static VOID NTAPI LoadCallback(
     {
         PPH_STRING directory;
 
-        directory = PhGetApplicationDirectory();
-        realPath = PhConcatStringRef2(&directory->sr, &path->sr);
-        PhDereferenceObject(directory);
-        PhDereferenceObject(path);
-        path = realPath;
+        directory = PH_AUTO(PhGetApplicationDirectory());
+        path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
     }
 
     SetDbPath(path);
-    PhDereferenceObject(path);
-
     LoadDb();
 }
 
@@ -414,11 +401,7 @@ static VOID NTAPI MenuItemCallback(
 
                 if (ChooseColor(&chooseColor))
                 {
-                    PPH_STRING customColors;
-
-                    customColors = SaveCustomColors();
-                    PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &customColors->sr);
-                    PhDereferenceObject(customColors);
+                    PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &PH_AUTO_T(PH_STRING, SaveCustomColors())->sr);
 
                     LockDb();
 
@@ -1320,11 +1303,7 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_STRING path;
-
-            path = PhGetStringSetting(SETTING_NAME_DATABASE_PATH);
-            SetDlgItemText(hwndDlg, IDC_DATABASE, path->Buffer);
-            PhDereferenceObject(path);
+            SetDlgItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
         }
         break;
     case WM_COMMAND:
@@ -1355,15 +1334,13 @@ INT_PTR CALLBACK OptionsDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DATABASE));
+                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DATABASE)));
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-                    PhDereferenceObject(fileName);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
-                        fileName = PhGetFileDialogFileName(fileDialog);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                         SetDlgItemText(hwndDlg, IDC_DATABASE, fileName->Buffer);
-                        PhDereferenceObject(fileName);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1446,7 +1423,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             BOOLEAN matchCommandLine;
             BOOLEAN done = FALSE;
 
-            comment = PhGetWindowText(context->CommentHandle);
+            comment = PH_AUTO(PhGetWindowText(context->CommentHandle));
             matchCommandLine = Button_GetCheck(context->MatchCommandlineHandle) == BST_CHECKED;
 
             if (!processItem->CommandLine)
@@ -1465,7 +1442,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                 if (object && objectForProcessName && object->Comment->Length != 0 && objectForProcessName->Comment->Length != 0 &&
                     !PhEqualString(comment, objectForProcessName->Comment, FALSE))
                 {
-                    message = PhFormatString(
+                    message = PhaFormatString(
                         L"Do you want to replace the comment for %s which is currently\n    \"%s\"\n"
                         L"with\n    \"%s\"?",
                         processItem->ProcessName->Buffer,
@@ -1491,7 +1468,6 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
                     }
 
                     LockDb();
-                    PhDereferenceObject(message);
                 }
             }
 
@@ -1518,8 +1494,6 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             }
 
             UnlockDb();
-
-            PhDereferenceObject(comment);
 
             PhDereferenceObject(context->OriginalComment);
             PhFree(context);
@@ -1631,14 +1605,13 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
             LockDb();
 
             if (object = FindDbObject(SERVICE_TAG, &serviceItem->Name->sr))
-                PhSetReference(&comment, object->Comment);
+                comment = object->Comment;
             else
-                comment = PhReferenceEmptyString();
+                comment = PH_AUTO(PhReferenceEmptyString());
 
             UnlockDb();
 
             SetDlgItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
-            PhDereferenceObject(comment);
         }
         break;
     case WM_DESTROY:
@@ -1681,7 +1654,7 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
                     PDB_OBJECT object;
                     PPH_STRING comment;
 
-                    comment = PhGetWindowText(GetDlgItem(hwndDlg, IDC_COMMENT));
+                    comment = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_COMMENT)));
 
                     LockDb();
 
@@ -1696,8 +1669,6 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
                     }
 
                     UnlockDb();
-
-                    PhDereferenceObject(comment);
 
                     SaveDb();
                     InvalidateServiceComments();

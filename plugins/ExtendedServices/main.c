@@ -260,7 +260,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
         // Create a service list so we can sort it.
 
-        serviceList = PhCreateList(processItem->ServiceList->Count);
+        serviceList = PH_AUTO(PhCreateList(processItem->ServiceList->Count));
         enumerationKey = 0;
 
         PhAcquireQueuedLockShared(&processItem->ServiceListLock);
@@ -298,8 +298,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
             PPH_EMENU_ITEM stopMenuItem;
 
             serviceItem = serviceList->Items[i];
-            escapedName = PhEscapeStringForMenuPrefix(&serviceItem->Name->sr);
-            PH_AUTO(escapedName);
+            escapedName = PH_AUTO(PhEscapeStringForMenuPrefix(&serviceItem->Name->sr));
 
             if (serviceList->Count == 1)
             {
@@ -379,9 +378,6 @@ VOID NTAPI ProcessMenuInitializingCallback(
             if (serviceList->Count != 1)
                 PhInsertEMenuItem(servicesMenuItem, serviceMenuItem, -1);
         }
-
-        // Destroy the service list (the service items were placed in the auto pool).
-        PhDereferenceObject(serviceList);
 
         // Insert our Services menu after the I/O Priority menu.
 

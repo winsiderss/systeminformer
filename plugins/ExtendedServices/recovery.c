@@ -95,18 +95,14 @@ static SC_ACTION_TYPE ComboBoxToServiceAction(
     _In_ HWND ComboBoxHandle
     )
 {
-    SC_ACTION_TYPE actionType;
     PPH_STRING string;
 
-    string = PhGetComboBoxString(ComboBoxHandle, ComboBox_GetCurSel(ComboBoxHandle));
+    string = PH_AUTO(PhGetComboBoxString(ComboBoxHandle, ComboBox_GetCurSel(ComboBoxHandle)));
 
     if (!string)
         return SC_ACTION_NONE;
 
-    actionType = EspStringToServiceAction(string->Buffer);
-    PhDereferenceObject(string);
-
-    return actionType;
+    return EspStringToServiceAction(string->Buffer);
 }
 
 static VOID ServiceActionToComboBox(
@@ -393,9 +389,8 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
-                        fileName = PhGetFileDialogFileName(fileDialog);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
                         SetDlgItemText(hwndDlg, IDC_RUNPROGRAM, fileName->Buffer);
-                        PhDereferenceObject(fileName);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -683,7 +678,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
 
                     // This message is exactly the same as the one in the Services console,
                     // except the double spaces are replaced by single spaces.
-                    message = PhFormatString(
+                    message = PhaFormatString(
                         L"Your computer is connected to the computer named %s. "
                         L"The %s service on %s has ended unexpectedly. "
                         L"%s will restart automatically, and then you can reestablish the connection.",
@@ -693,7 +688,6 @@ INT_PTR CALLBACK RestartComputerDlgProc(
                         computerName
                         );
                     SetDlgItemText(hwndDlg, IDC_RESTARTMESSAGE, message->Buffer);
-                    PhDereferenceObject(message);
 
                     if (allocated)
                         PhFree(computerName);

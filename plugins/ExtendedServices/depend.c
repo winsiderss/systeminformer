@@ -161,7 +161,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
                     PPH_SERVICE_ITEM dependencyService;
 
                     dependency = serviceConfig->lpDependencies;
-                    serviceList = PhCreateList(8);
+                    serviceList = PH_AUTO(PhCreateList(8));
                     success = TRUE;
 
                     if (dependency)
@@ -193,7 +193,6 @@ ContinueLoop:
                     EspLayoutServiceListControl(hwndDlg, serviceListHandle);
                     ShowWindow(serviceListHandle, SW_SHOW);
 
-                    PhDereferenceObject(serviceList);
                     PhFree(serviceConfig);
                 }
                 else
@@ -290,7 +289,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
                     ULONG i;
                     PPH_SERVICE_ITEM dependentService;
 
-                    serviceList = PhCreateList(8);
+                    serviceList = PH_AUTO(PhCreateList(8));
                     success = TRUE;
 
                     for (i = 0; i < numberOfDependentServices; i++)
@@ -306,7 +305,6 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
                     EspLayoutServiceListControl(hwndDlg, serviceListHandle);
                     ShowWindow(serviceListHandle, SW_SHOW);
 
-                    PhDereferenceObject(serviceList);
                     PhFree(dependentServices);
                 }
                 else

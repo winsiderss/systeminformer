@@ -1008,8 +1008,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 {
                     PPH_STRING message;
 
-                    message = PhGetNtMessage(GetExceptionCode());
-                    PH_AUTO(message);
+                    message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
                     wprintf(L"Error: %s\n", PhGetString(message));
 
                     goto EndCommand;

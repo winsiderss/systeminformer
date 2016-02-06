@@ -380,8 +380,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
 
-                        fileName = PhGetFileDialogFileName(fileDialog);
-                        PH_AUTO(fileName);
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,

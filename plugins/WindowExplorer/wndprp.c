@@ -761,18 +761,12 @@ static VOID WepRefreshWindowGeneralInfo(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
-    PPH_STRING windowText;
-    PPH_STRING clientIdName;
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
 
-    clientIdName = PhGetClientIdName(&Context->ClientId);
-    SetDlgItemText(hwndDlg, IDC_THREAD, clientIdName->Buffer);
-    PhDereferenceObject(clientIdName);
-
-    windowText = PH_AUTO(PhGetWindowText(Context->WindowHandle));
-    SetDlgItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(windowText));
+    SetDlgItemText(hwndDlg, IDC_THREAD, PH_AUTO_T(PH_STRING, PhGetClientIdName(&Context->ClientId))->Buffer);
+    SetDlgItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(PH_AUTO(PhGetWindowText(Context->WindowHandle))));
 
     if (GetWindowInfo(Context->WindowHandle, &windowInfo))
     {
