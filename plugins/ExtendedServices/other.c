@@ -41,14 +41,7 @@ typedef struct _SERVICE_OTHER_CONTEXT
     ULONG OriginalLaunchProtected;
 } SERVICE_OTHER_CONTEXT, *PSERVICE_OTHER_CONTEXT;
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-
-BOOLEAN EspChangeServiceConfig2(
-    _In_ PWSTR ServiceName,
-    _In_opt_ SC_HANDLE ServiceHandle,
-    _In_ ULONG InfoLevel,
-    _In_ PVOID Info
-    );
+static _RtlCreateServiceSid RtlCreateServiceSid_I = NULL;
 
 static PH_KEY_VALUE_PAIR EspServiceSidTypePairs[] =
 {
@@ -65,10 +58,10 @@ static PH_KEY_VALUE_PAIR EspServiceLaunchProtectedPairs[] =
     SIP(L"Light (Antimalware)", SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT)
 };
 
-WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
-WCHAR *EspServiceLaunchProtectedStrings[4] = { L"None", L"Full (Windows)", L"Light (Windows)", L"Light (Antimalware)" };
+static WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
+static WCHAR *EspServiceLaunchProtectedStrings[4] = { L"None", L"Full (Windows)", L"Light (Windows)", L"Light (Antimalware)" };
 
-PWSTR EspGetServiceSidTypeString(
+static PWSTR EspGetServiceSidTypeString(
     _In_ ULONG SidType
     )
 {
@@ -85,7 +78,7 @@ PWSTR EspGetServiceSidTypeString(
         return L"Unknown";
 }
 
-ULONG EspGetServiceSidTypeInteger(
+static ULONG EspGetServiceSidTypeInteger(
     _In_ PWSTR SidType
     )
 {
@@ -102,7 +95,7 @@ ULONG EspGetServiceSidTypeInteger(
         return -1;
 }
 
-PWSTR EspGetServiceLaunchProtectedString(
+static PWSTR EspGetServiceLaunchProtectedString(
     _In_ ULONG LaunchProtected
     )
 {
@@ -119,7 +112,7 @@ PWSTR EspGetServiceLaunchProtectedString(
         return L"Unknown";
 }
 
-ULONG EspGetServiceLaunchProtectedInteger(
+static ULONG EspGetServiceLaunchProtectedInteger(
     _In_ PWSTR LaunchProtected
     )
 {
@@ -136,7 +129,7 @@ ULONG EspGetServiceLaunchProtectedInteger(
         return -1;
 }
 
-NTSTATUS EspLoadOtherInfo(
+static NTSTATUS EspLoadOtherInfo(
     _In_ HWND hwndDlg,
     _In_ PSERVICE_OTHER_CONTEXT Context
     )
@@ -273,6 +266,34 @@ static PPH_STRING EspGetServiceSidString(
 
     return sidString;
 }
+
+static BOOLEAN EspChangeServiceConfig2(
+    _In_ PWSTR ServiceName,
+    _In_opt_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel,
+    _In_ PVOID Info
+    )
+{
+    if (ServiceHandle)
+    {
+        return !!ChangeServiceConfig2(ServiceHandle, InfoLevel, Info);
+    }
+    else
+    {
+        NTSTATUS status;
+
+        if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(ServiceName, InfoLevel, Info)))
+        {
+            return TRUE;
+        }
+        else
+        {
+            SetLastError(PhNtStatusToDosError(status));
+            return FALSE;
+        }
+    }
+}
+
 
 static int __cdecl PrivilegeNameCompareFunction(
     _In_ const void *elem1,
@@ -709,31 +730,4 @@ Done:
     }
 
     return FALSE;
-}
-
-BOOLEAN EspChangeServiceConfig2(
-    _In_ PWSTR ServiceName,
-    _In_opt_ SC_HANDLE ServiceHandle,
-    _In_ ULONG InfoLevel,
-    _In_ PVOID Info
-    )
-{
-    if (ServiceHandle)
-    {
-        return !!ChangeServiceConfig2(ServiceHandle, InfoLevel, Info);
-    }
-    else
-    {
-        NTSTATUS status;
-
-        if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(ServiceName, InfoLevel, Info)))
-        {
-            return TRUE;
-        }
-        else
-        {
-            SetLastError(PhNtStatusToDosError(status));
-            return FALSE;
-        }
-    }
 }

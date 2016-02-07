@@ -29,7 +29,7 @@ typedef struct _SERVICE_TRIGGERS_CONTEXT
     struct _ES_TRIGGER_CONTEXT *TriggerContext;
 } SERVICE_TRIGGERS_CONTEXT, *PSERVICE_TRIGGERS_CONTEXT;
 
-NTSTATUS EspLoadTriggerInfo(
+static NTSTATUS EspLoadTriggerInfo(
     _In_ HWND hwndDlg,
     _In_ PSERVICE_TRIGGERS_CONTEXT Context
     )

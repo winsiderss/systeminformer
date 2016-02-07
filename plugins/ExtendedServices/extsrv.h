@@ -8,17 +8,12 @@
 
 // main
 
-typedef NTSTATUS (NTAPI *_RtlCreateServiceSid)(
-    _In_ PUNICODE_STRING ServiceName,
-    _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
-    _Inout_ PULONG ServiceSidLength
-    );
-
 extern PPH_PLUGIN PluginInstance;
-extern _RtlCreateServiceSid RtlCreateServiceSid_I;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedServices"
 #define SETTING_NAME_ENABLE_SERVICES_MENU (PLUGIN_NAME L".EnableServicesMenu")
+
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
 // depend
 
@@ -49,6 +44,12 @@ VOID EsShowOptionsDialog(
     );
 
 // other
+
+typedef NTSTATUS (NTAPI *_RtlCreateServiceSid)(
+    _In_ PUNICODE_STRING ServiceName,
+    _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
+    _Inout_ PULONG ServiceSidLength
+    );
 
 INT_PTR CALLBACK EspServiceOtherDlgProc(
     _In_ HWND hwndDlg,

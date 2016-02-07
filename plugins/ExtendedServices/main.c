@@ -23,7 +23,6 @@
 #include "extsrv.h"
 
 PPH_PLUGIN PluginInstance;
-_RtlCreateServiceSid RtlCreateServiceSid_I;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;

@@ -35,8 +35,6 @@ typedef struct _SERVICE_RECOVERY_CONTEXT
     BOOLEAN Dirty;
 } SERVICE_RECOVERY_CONTEXT, *PSERVICE_RECOVERY_CONTEXT;
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-
 static PH_KEY_VALUE_PAIR ServiceActionPairs[] =
 {
     SIP(L"Take no action", SC_ACTION_NONE),
