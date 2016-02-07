@@ -427,21 +427,22 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             //if (max < 1024 * 1024)
                             //    max = 1024 * 1024;
 
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->DiskGraphState.Data1,
-                                max,
-                                drawInfo->LineDataCount
-                                );
+                            if (max != 0)
+                            {
+                                // Scale the data.
 
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->DiskGraphState.Data2,
-                                max,
-                                drawInfo->LineDataCount
-                                );
-
-                            drawInfo->GridHeight = 1 / max;
+                                PhDivideSinglesBySingle(
+                                    context->DiskGraphState.Data1,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                                PhDivideSinglesBySingle(
+                                    context->DiskGraphState.Data2,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                                drawInfo->GridHeight = 1 / max;
+                            }
 
                             context->DiskGraphState.Valid = TRUE;
                         }
@@ -492,21 +493,22 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             //if (max < 1024 * 1024)
                             //    max = 1024 * 1024;
 
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->NetworkGraphState.Data1,
-                                max,
-                                drawInfo->LineDataCount
-                                );
+                            if (max != 0)
+                            {
+                                // Scale the data.
 
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->NetworkGraphState.Data2,
-                                max,
-                                drawInfo->LineDataCount
-                                );
-
-                            drawInfo->GridHeight = 1 / max;
+                                PhDivideSinglesBySingle(
+                                    context->NetworkGraphState.Data1,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                                PhDivideSinglesBySingle(
+                                    context->NetworkGraphState.Data2,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                                drawInfo->GridHeight = 1 / max;
+                            }
 
                             context->NetworkGraphState.Valid = TRUE;
                         }

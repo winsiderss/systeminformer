@@ -503,7 +503,6 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                     PhDivideSinglesBySingle(IoGraphState.Data1, max, drawInfo->LineDataCount);
                     PhDivideSinglesBySingle(IoGraphState.Data2, max, drawInfo->LineDataCount);
-                    drawInfo->GridHeight = 1 / max;
 
                     IoGraphState.Valid = TRUE;
                 }

@@ -298,7 +298,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                         if (!context->GraphState.Valid)
                         {
                             ULONG i;
-                            FLOAT max = 0;
+                            FLOAT max = 4 * 1024; // Minimum scaling 4KB
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
@@ -312,25 +312,22 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                     max = data1 + data2;
                             }
 
-                            // Minimum scaling 4KB.
-                            if (max < 1024 * 4)
-                                max = 1024 * 4;
+                            if (max != 0)
+                            {
+                                // Scale the data.
 
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->GraphState.Data1,
-                                max,
-                                drawInfo->LineDataCount
-                                );
-
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->GraphState.Data2,
-                                max,
-                                drawInfo->LineDataCount
-                                );
-
-                            drawInfo->GridHeight = 1 / max;
+                                PhDivideSinglesBySingle(
+                                    context->GraphState.Data1,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                                PhDivideSinglesBySingle(
+                                    context->GraphState.Data2,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                                drawInfo->GridHeight = 1 / max;
+                            }
 
                             context->GraphState.Valid = TRUE;
                         }
@@ -572,7 +569,7 @@ static BOOLEAN NetAdapterSectionCallback(
 
             if (!Section->GraphState.Valid)
             {
-                FLOAT max = 0;
+                FLOAT max = 4 * 1024; // Minimum scaling 4KB
 
                 for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -586,25 +583,22 @@ static BOOLEAN NetAdapterSectionCallback(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling 4KB.
-                if (max < 1024 * 4)
-                    max = 1024 * 4;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-
-                // Scale the data.
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 Section->GraphState.Valid = TRUE;
             }

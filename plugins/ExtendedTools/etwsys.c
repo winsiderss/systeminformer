@@ -105,7 +105,7 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
             if (!Section->GraphState.Valid)
             {
                 ULONG i;
-                FLOAT max = 0;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -121,23 +121,22 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 Section->GraphState.Valid = TRUE;
             }
@@ -285,7 +284,7 @@ VOID EtpNotifyDiskGraph(
             if (!DiskGraphState.Valid)
             {
                 ULONG i;
-                FLOAT max = 0;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -301,23 +300,22 @@ VOID EtpNotifyDiskGraph(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-
-                PhDivideSinglesBySingle(
-                    DiskGraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                PhDivideSinglesBySingle(
-                    DiskGraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        DiskGraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        DiskGraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 DiskGraphState.Valid = TRUE;
             }
@@ -479,7 +477,7 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
             if (!Section->GraphState.Valid)
             {
                 ULONG i;
-                FLOAT max = 0;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -495,23 +493,22 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 Section->GraphState.Valid = TRUE;
             }
@@ -659,7 +656,7 @@ VOID EtpNotifyNetworkGraph(
             if (!NetworkGraphState.Valid)
             {
                 ULONG i;
-                FLOAT max = 0;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -675,23 +672,22 @@ VOID EtpNotifyNetworkGraph(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-
-                PhDivideSinglesBySingle(
-                    NetworkGraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                PhDivideSinglesBySingle(
-                    NetworkGraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        NetworkGraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        NetworkGraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 NetworkGraphState.Valid = TRUE;
             }

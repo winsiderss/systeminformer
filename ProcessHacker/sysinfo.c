@@ -3771,7 +3771,7 @@ BOOLEAN PhSipIoSectionCallback(
 
             if (!Section->GraphState.Valid)
             {
-                max = 0;
+                max = 1024 * 1024; // Minimum scaling of 1 MB
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -3788,23 +3788,22 @@ BOOLEAN PhSipIoSectionCallback(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                PhDivideSinglesBySingle(
-                    Section->GraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        Section->GraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 Section->GraphState.Valid = TRUE;
             }
@@ -4001,7 +4000,7 @@ VOID PhSipNotifyIoGraph(
 
             if (!IoGraphState.Valid)
             {
-                FLOAT max = 0;
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -4018,23 +4017,22 @@ VOID PhSipNotifyIoGraph(
                         max = data1 + data2;
                 }
 
-                // Minimum scaling of 1 MB.
-                if (max < 1024 * 1024)
-                    max = 1024 * 1024;
+                if (max != 0)
+                {
+                    // Scale the data.
 
-                // Scale the data.
-
-                PhDivideSinglesBySingle(
-                    IoGraphState.Data1,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                PhDivideSinglesBySingle(
-                    IoGraphState.Data2,
-                    max,
-                    drawInfo->LineDataCount
-                    );
-                drawInfo->GridHeight = 1 / max;
+                    PhDivideSinglesBySingle(
+                        IoGraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    PhDivideSinglesBySingle(
+                        IoGraphState.Data2,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                    drawInfo->GridHeight = 1 / max;
+                }
 
                 IoGraphState.Valid = TRUE;
             }
