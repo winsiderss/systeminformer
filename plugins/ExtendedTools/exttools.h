@@ -440,37 +440,6 @@ VOID EtQueryProcessGpuStatistics(
 
 // gpuprprp
 
-typedef struct _ET_GPU_CONTEXT
-{
-    HWND WindowHandle;
-    HWND PanelHandle;
-    HWND DetailsHandle;
-    PET_PROCESS_BLOCK Block;
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-    BOOLEAN Enabled;
-    PH_LAYOUT_MANAGER LayoutManager;
-
-    HWND GpuGroupBox;
-    HWND MemGroupBox;
-    HWND SharedGroupBox;
-
-    HWND GpuGraphHandle;
-    HWND MemGraphHandle;
-    HWND SharedGraphHandle;
-
-    FLOAT CurrentGpuUsage;
-    ULONG CurrentMemUsage;
-    ULONG CurrentMemSharedUsage;
-
-    PH_GRAPH_STATE GpuGraphState;
-    PH_GRAPH_STATE MemoryGraphState;
-    PH_GRAPH_STATE MemorySharedGraphState;
-
-    PH_CIRCULAR_BUFFER_FLOAT GpuHistory;
-    PH_CIRCULAR_BUFFER_ULONG MemoryHistory;
-    PH_CIRCULAR_BUFFER_ULONG MemorySharedHistory;
-} ET_GPU_CONTEXT, *PET_GPU_CONTEXT;
-
 VOID EtProcessGpuPropertiesInitializing(
     _In_ PVOID Parameter
     );
