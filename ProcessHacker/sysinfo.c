@@ -922,14 +922,25 @@ PPH_STRING PhSiSizeLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    PH_FORMAT format;
+    ULONG64 size;
 
-    format.Type = SizeFormatType | FormatUsePrecision | FormatUseRadix;
-    format.Precision = 0;
-    format.Radix = -1;
-    format.u.Size = (ULONG64)(Value * Parameter);
+    size = (ULONG64)(Value * Parameter);
 
-    return PhFormat(&format, 1, 0);
+    if (size != 0)
+    {
+        PH_FORMAT format;
+
+        format.Type = SizeFormatType | FormatUsePrecision | FormatUseRadix;
+        format.Precision = 0;
+        format.Radix = -1;
+        format.u.Size = size;
+
+        return PhFormat(&format, 1, 0);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
 }
 
 VOID PhSipRegisterDialog(
