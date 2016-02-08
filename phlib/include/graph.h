@@ -51,6 +51,7 @@ typedef struct _PH_GRAPH_DRAW_INFO
     FLOAT LabelYFunctionParameter;
     HFONT LabelYFont;
     COLORREF LabelYColor;
+    ULONG LabelMaxYIndexLimit;
 
     // Text
     PH_STRINGREF Text;

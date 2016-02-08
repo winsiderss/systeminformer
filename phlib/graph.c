@@ -280,9 +280,9 @@ VOID PhDrawGraphDirect(
             h2 = h2_o;
             h2_left = (h2_i + h2_o) / 2;
 
-            if (flags & PH_GRAPH_LABEL_MAX_Y)
+            if ((flags & PH_GRAPH_LABEL_MAX_Y) && dataIndex < DrawInfo->LabelMaxYIndexLimit)
             {
-                if (yLabelMax < h2_i)
+                if (yLabelMax <= h2_i)
                 {
                     yLabelMax = h2_i;
                     yLabelDataIndex = dataIndex;
@@ -656,6 +656,7 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.GridYThreshold = 10;
     context->DrawInfo.GridBase = 2.0f;
     context->DrawInfo.LabelYColor = RGB(0x77, 0x77, 0x77);
+    context->DrawInfo.LabelMaxYIndexLimit = -1;
     context->DrawInfo.TextColor = RGB(0x00, 0xff, 0x00);
     context->DrawInfo.TextBoxColor = RGB(0x00, 0x22, 0x00);
 

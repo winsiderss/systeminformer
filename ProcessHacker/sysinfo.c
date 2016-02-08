@@ -650,7 +650,20 @@ BOOLEAN PhSipOnNotify(
                     section->Callback(section, SysInfoGraphGetDrawInfo, drawInfo, 0);
 
                     if (CurrentView == SysInfoSectionView)
+                    {
                         drawInfo->Flags &= ~(PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y);
+                    }
+                    else
+                    {
+                        ULONG badWidth = CurrentParameters.PanelWidth;
+
+                        // Try not to draw max data point labels that will get covered by the
+                        // fade-out part of the graph.
+                        if (badWidth < drawInfo->Width)
+                            drawInfo->LabelMaxYIndexLimit = (drawInfo->Width - badWidth) / 2;
+                        else
+                            drawInfo->LabelMaxYIndexLimit = -1;
+                    }
 
                     break;
                 }
@@ -897,7 +910,7 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
         DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
         DrawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
-        DrawInfo->LabelYColor = RGB(0xa0, 0x70, 0x40);
+        DrawInfo->LabelYColor = RGB(0xa0, 0x60, 0x20);
         DrawInfo->TextColor = RGB(0x00, 0x00, 0x00);
         DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
         break;
