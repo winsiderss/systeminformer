@@ -403,7 +403,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
                         PhGraphStateGetDrawInfo(&context->DiskGraphState, getDrawInfo, context->DiskReadHistory.Count);
 
@@ -441,8 +441,10 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     max,
                                     drawInfo->LineDataCount
                                     );
-                                drawInfo->GridHeight = 1 / max;
                             }
+
+                            drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                            drawInfo->LabelYFunctionParameter = max;
 
                             context->DiskGraphState.Valid = TRUE;
                         }
@@ -469,7 +471,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
                         PhGraphStateGetDrawInfo(&context->NetworkGraphState, getDrawInfo, context->NetworkSendHistory.Count);
 
@@ -507,8 +509,10 @@ static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                                     max,
                                     drawInfo->LineDataCount
                                     );
-                                drawInfo->GridHeight = 1 / max;
                             }
+
+                            drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                            drawInfo->LabelYFunctionParameter = max;
 
                             context->NetworkGraphState.Valid = TRUE;
                         }

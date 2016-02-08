@@ -1718,7 +1718,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     }
                     else if (header->hwndFrom == performanceContext->IoGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
 
                         PhGraphStateGetDrawInfo(
@@ -1761,8 +1761,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                     max,
                                     drawInfo->LineDataCount
                                     );
-                                drawInfo->GridHeight = 1 / max;
                             }
+
+                            drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                            drawInfo->LabelYFunctionParameter = max;
 
                             performanceContext->IoGraphState.Valid = TRUE;
                         }
