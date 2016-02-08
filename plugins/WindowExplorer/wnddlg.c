@@ -341,7 +341,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION);
             windowRectangle.Size = PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_SIZE);
-            PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
+            PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
             MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
                 windowRectangle.Width, windowRectangle.Height, FALSE);
