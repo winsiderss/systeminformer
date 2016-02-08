@@ -81,6 +81,7 @@ extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
+extern INT PhPixelsPerInchV;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
 extern PH_PROVIDER_THREAD PhPrimaryProviderThread;

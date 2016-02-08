@@ -71,6 +71,7 @@ BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
+INT PhPixelsPerInchV;
 PH_STARTUP_PARAMETERS PhStartupParameters;
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
@@ -455,7 +456,7 @@ HFONT PhpCreateFont(
     if (hdc)
     {
         font = CreateFont(
-            -MulDiv(Size, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+            -MulDiv(Size, PhPixelsPerInchV, 72),
             0,
             0,
             0,
@@ -486,6 +487,17 @@ VOID PhInitializeFont(
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
     BOOLEAN success;
+    HDC hdc;
+
+    if (hdc = GetDC(hWnd))
+    {
+        PhPixelsPerInchV = GetDeviceCaps(hdc, LOGPIXELSY);
+        ReleaseDC(hWnd, hdc);
+    }
+    else
+    {
+        PhPixelsPerInchV = 96;
+    }
 
     success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
 

@@ -853,8 +853,40 @@ VOID PhSiSetColorsGraphDrawInfo(
     _In_ COLORREF Color2
     )
 {
-    DrawInfo->LabelYFont = PhApplicationFont;
+    static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
+    static ULONG lastPixelsPerInch = -1;
+    static HFONT iconTitleFont;
+
+    // Get the appropriate fonts.
+
+    if (DrawInfo->Flags & PH_GRAPH_LABEL_MAX_Y)
+    {
+        PhAcquireQueuedLockExclusive(&lock);
+
+        if (lastPixelsPerInch != PhPixelsPerInchV)
+        {
+            LOGFONT logFont;
+
+            if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+            {
+                logFont.lfHeight += MulDiv(1, PhPixelsPerInchV, 72);
+                iconTitleFont = CreateFontIndirect(&logFont);
+            }
+
+            if (!iconTitleFont)
+                iconTitleFont = PhApplicationFont;
+
+            lastPixelsPerInch = PhPixelsPerInchV;
+        }
+
+        DrawInfo->LabelYFont = iconTitleFont;
+
+        PhReleaseQueuedLockExclusive(&lock);
+    }
+
     DrawInfo->TextFont = PhApplicationFont;
+
+    // Set up the colors.
 
     switch (PhCsGraphColorMode)
     {
@@ -865,7 +897,7 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
         DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
         DrawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
-        DrawInfo->LabelYColor = RGB(0xa0, 0xa0, 0xa0);
+        DrawInfo->LabelYColor = RGB(0xa0, 0x70, 0x40);
         DrawInfo->TextColor = RGB(0x00, 0x00, 0x00);
         DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
         break;
