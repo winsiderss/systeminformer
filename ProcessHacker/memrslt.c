@@ -329,7 +329,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemResultsPosition");
                 windowRectangle.Size = PhGetIntegerPairSetting(L"MemResultsSize");
-                PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
+                PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
                     windowRectangle.Width, windowRectangle.Height, FALSE);

@@ -1197,11 +1197,7 @@ VOID PhLoadWindowPlacementFromSetting(
 
         windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
         windowRectangle.Size = PhGetIntegerPairSetting(SizeSettingName);
-
-        PhAdjustRectangleToWorkingArea(
-            WindowHandle,
-            &windowRectangle
-            );
+        PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
         // Let the window adjust for the minimum size if needed.
         rectForAdjust = PhRectangleToRect(windowRectangle);

@@ -197,10 +197,7 @@ BOOLEAN PhMainWndInitialization(
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
 
     // Choose a more appropriate rectangle for the window.
-    PhAdjustRectangleToWorkingArea(
-        PhMainWndHandle,
-        &windowRectangle
-        );
+    PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
     MoveWindow(PhMainWndHandle, windowRectangle.Left, windowRectangle.Top,
         windowRectangle.Width, windowRectangle.Height, FALSE);
 

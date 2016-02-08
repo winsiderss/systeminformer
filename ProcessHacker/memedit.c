@@ -275,7 +275,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
                 windowRectangle.Size = PhGetIntegerPairSetting(L"MemEditSize");
-                PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
+                PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
                     windowRectangle.Width, windowRectangle.Height, FALSE);

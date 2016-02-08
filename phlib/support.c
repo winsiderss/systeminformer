@@ -94,20 +94,30 @@ VOID PhCenterRectangle(
 /**
  * Ensures a rectangle is positioned within the working area of the specified window's monitor.
  *
- * \param hWnd A handle to a window.
+ * \param hWnd A handle to a window. If NULL, the monitor closest to \a Rectangle is used.
  * \param Rectangle The rectangle to be adjusted.
  */
 VOID PhAdjustRectangleToWorkingArea(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _Inout_ PPH_RECTANGLE Rectangle
     )
 {
+    HMONITOR monitor;
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
-    if (GetMonitorInfo(
-        MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST),
-        &monitorInfo
-        ))
+    if (hWnd)
+    {
+        monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+    }
+    else
+    {
+        RECT rect;
+
+        rect = PhRectangleToRect(*Rectangle);
+        monitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
+    }
+
+    if (GetMonitorInfo(monitor, &monitorInfo))
     {
         PH_RECTANGLE bounds;
 

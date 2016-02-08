@@ -2,14 +2,15 @@ Process Hacker
 
 2.38
  * HIGHLIGHTS:
-   * Added a label to indicate the maximum data point in each I/O graph
+   * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
+   * Updated UserNotes plugin:
+     * Added "Collapse by Default" option for processes
  * OTHER CHANGES:
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
    * Fixed ASLR state being shown as N/A in process properties
+   * Fixed multi monitor window placement bug
    * Improved performance when handling a large number of threads, modules or handles
-   * Updated UserNotes plugin:
-     * Added "Collapse by Default" option for processes
 
 2.37
  * HIGHLIGHTS:

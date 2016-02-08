@@ -2292,7 +2292,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhAdjustRectangleToWorkingArea(
-    _In_ HWND hWnd,
+    _In_opt_ HWND hWnd,
     _Inout_ PPH_RECTANGLE Rectangle
     );
 
