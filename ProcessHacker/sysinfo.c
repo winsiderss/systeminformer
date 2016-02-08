@@ -650,7 +650,7 @@ BOOLEAN PhSipOnNotify(
                     section->Callback(section, SysInfoGraphGetDrawInfo, drawInfo, 0);
 
                     if (CurrentView == SysInfoSectionView)
-                        drawInfo->Flags &= ~(PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y);
+                        drawInfo->Flags &= ~(PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y);
 
                     break;
                 }
@@ -853,6 +853,9 @@ VOID PhSiSetColorsGraphDrawInfo(
     _In_ COLORREF Color2
     )
 {
+    DrawInfo->LabelYFont = PhApplicationFont;
+    DrawInfo->TextFont = PhApplicationFont;
+
     switch (PhCsGraphColorMode)
     {
     case 0: // New colors
@@ -862,6 +865,7 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->LineColor2 = PhHalveColorBrightness(Color2);
         DrawInfo->LineBackColor2 = PhMakeColorBrighter(Color2, 125);
         DrawInfo->GridColor = RGB(0xc7, 0xc7, 0xc7);
+        DrawInfo->LabelYColor = RGB(0xa0, 0xa0, 0xa0);
         DrawInfo->TextColor = RGB(0x00, 0x00, 0x00);
         DrawInfo->TextBoxColor = RGB(0xe7, 0xe7, 0xe7);
         break;
@@ -872,10 +876,28 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->LineColor2 = Color2;
         DrawInfo->LineBackColor2 = PhHalveColorBrightness(Color2);
         DrawInfo->GridColor = RGB(0x00, 0x57, 0x00);
+        DrawInfo->LabelYColor = RGB(0x33, 0x97, 0x33);
         DrawInfo->TextColor = RGB(0x00, 0xff, 0x00);
         DrawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
         break;
     }
+}
+
+PPH_STRING PhSiSizeLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    PH_FORMAT format;
+
+    format.Type = SizeFormatType | FormatUsePrecision | FormatUseRadix;
+    format.Precision = 0;
+    format.Radix = -1;
+    format.u.Size = (ULONG64)(Value * Parameter);
+
+    return PhFormat(&format, 1, 0);
 }
 
 VOID PhSipRegisterDialog(
@@ -3765,7 +3787,7 @@ BOOLEAN PhSipIoSectionCallback(
             ULONG i;
             FLOAT max;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhIoReadHistory.Count);
 
@@ -3802,8 +3824,10 @@ BOOLEAN PhSipIoSectionCallback(
                         max,
                         drawInfo->LineDataCount
                         );
-                    drawInfo->GridHeight = 1 / max;
                 }
+
+                drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                drawInfo->LabelYFunctionParameter = max;
 
                 Section->GraphState.Valid = TRUE;
             }
@@ -3989,7 +4013,7 @@ VOID PhSipNotifyIoGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
 
             PhGraphStateGetDrawInfo(
@@ -4031,8 +4055,10 @@ VOID PhSipNotifyIoGraph(
                         max,
                         drawInfo->LineDataCount
                         );
-                    drawInfo->GridHeight = 1 / max;
                 }
+
+                drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                drawInfo->LabelYFunctionParameter = max;
 
                 IoGraphState.Valid = TRUE;
             }

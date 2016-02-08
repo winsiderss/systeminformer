@@ -119,6 +119,10 @@ FORCEINLINE VOID PhpGetGraphPoint(
 
             *H2 = (ULONG)(f2 * (DrawInfo->Height - 1));
         }
+        else
+        {
+            *H2 = *H1;
+        }
     }
     else
     {
@@ -147,16 +151,16 @@ VOID PhDrawGraphDirect(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo
     )
 {
-    PULONG bits;
-    LONG width;
-    LONG height;
-    LONG numberOfPixels;
-    ULONG flags;
+    PULONG bits = Bits;
+    LONG width = DrawInfo->Width;
+    LONG height = DrawInfo->Height;
+    LONG numberOfPixels = width * height;
+    ULONG flags = DrawInfo->Flags;
     LONG i;
     LONG x;
 
-    BOOLEAN intermediate; // whether we are currently between two data positions
-    ULONG dataIndex; // the data index of the current position
+    BOOLEAN intermediate = FALSE; // whether we are currently between two data positions
+    ULONG dataIndex = 0; // the data index of the current position
     ULONG h1_i; // the line 1 height value to the left of the current position
     ULONG h1_o; // the line 1 height value at the current position
     ULONG h2_i; // the line 1 + line 2 height value to the left of the current position
@@ -187,13 +191,11 @@ VOID PhDrawGraphDirect(
     ULONG gridYCounter;
     ULONG gridColor;
     FLOAT gridBase;
-    FLOAT gridLogLevel;
+    FLOAT gridLevel;
 
-    bits = Bits;
-    width = DrawInfo->Width;
-    height = DrawInfo->Height;
-    numberOfPixels = width * height;
-    flags = DrawInfo->Flags;
+    ULONG yLabelMax;
+    ULONG yLabelDataIndex;
+
     lineColor1 = COLORREF_TO_BITS(DrawInfo->LineColor1);
     lineBackColor1 = COLORREF_TO_BITS(DrawInfo->LineBackColor1);
     lineColor2 = COLORREF_TO_BITS(DrawInfo->LineColor2);
@@ -209,8 +211,6 @@ VOID PhDrawGraphDirect(
     }
 
     x = width - 1;
-    intermediate = FALSE;
-    dataIndex = 0;
     h1_low2 = MAXLONG;
     h1_high2 = 0;
     h2_low2 = MAXLONG;
@@ -221,6 +221,7 @@ VOID PhDrawGraphDirect(
     if (flags & (PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y))
     {
         gridHeight = max(DrawInfo->GridHeight, 0);
+        gridLevel = gridHeight;
         gridYThreshold = DrawInfo->GridYThreshold;
         gridYCounter = DrawInfo->GridWidth - (DrawInfo->GridXOffset * DrawInfo->Step) % DrawInfo->GridWidth - 1;
         gridColor = COLORREF_TO_BITS(DrawInfo->GridColor);
@@ -236,21 +237,29 @@ VOID PhDrawGraphDirect(
         {
             DOUBLE logBase;
             DOUBLE exponent;
+            DOUBLE high;
 
             logBase = log(gridBase);
             exponent = ceil(-log(gridHeight) / logBase) - 1; // Works for both GridHeight > 1 and GridHeight < 1
-            gridLogLevel = (FLOAT)(gridHeight * exp(exponent * logBase));
+            high = exp(exponent * logBase);
+            gridLevel = (FLOAT)(gridHeight * high);
 
-            if (gridLogLevel < 0 || !isfinite(gridLogLevel))
-                gridLogLevel = 0;
-            if (gridLogLevel > 1)
-                gridLogLevel = 1;
+            if (gridLevel < 0 || !isfinite(gridLevel))
+                gridLevel = 0;
+            if (gridLevel > 1)
+                gridLevel = 1;
         }
         else
         {
             // This is an error.
-            gridLogLevel = 0;
+            gridLevel = 0;
         }
+    }
+
+    if (flags & PH_GRAPH_LABEL_MAX_Y)
+    {
+        yLabelMax = h2_i;
+        yLabelDataIndex = 0;
     }
 
     while (x >= 0)
@@ -270,6 +279,15 @@ VOID PhDrawGraphDirect(
             h1_left = (h1_i + h1_o) / 2;
             h2 = h2_o;
             h2_left = (h2_i + h2_o) / 2;
+
+            if (flags & PH_GRAPH_LABEL_MAX_Y)
+            {
+                if (yLabelMax < h2_i)
+                {
+                    yLabelMax = h2_i;
+                    yLabelDataIndex = dataIndex;
+                }
+            }
         }
         else
         {
@@ -421,7 +439,7 @@ VOID PhDrawGraphDirect(
             // Draw the horizontal grid line.
             if (flags & PH_GRAPH_LOGARITHMIC_GRID_Y)
             {
-                level = gridLogLevel;
+                level = gridLevel;
                 h = (LONG)(level * (height - 1));
                 h_last = height + gridYThreshold - 1;
 
@@ -480,8 +498,57 @@ VOID PhDrawGraphDirect(
         x--;
     }
 
+    if ((flags & PH_GRAPH_LABEL_MAX_Y) && yLabelDataIndex < DrawInfo->LineDataCount)
+    {
+        FLOAT value;
+        PPH_STRING label;
+
+        value = DrawInfo->LineData1[yLabelDataIndex];
+
+        if (flags & PH_GRAPH_USE_LINE_2)
+            value += DrawInfo->LineData2[yLabelDataIndex];
+
+        if (label = DrawInfo->LabelYFunction(DrawInfo, yLabelDataIndex, value, DrawInfo->LabelYFunctionParameter))
+        {
+            HFONT oldFont = NULL;
+            SIZE textSize;
+            RECT rect;
+
+            if (DrawInfo->LabelYFont)
+                oldFont = SelectObject(hdc, DrawInfo->LabelYFont);
+
+            SetTextColor(hdc, DrawInfo->LabelYColor);
+            SetBkMode(hdc, TRANSPARENT);
+
+            GetTextExtentPoint32(hdc, label->Buffer, (ULONG)label->Length / 2, &textSize);
+
+            rect.bottom = height - yLabelMax - PhNormalGraphTextPadding.top;
+            rect.top = rect.bottom - textSize.cy;
+
+            if (rect.top < PhNormalGraphTextPadding.top)
+            {
+                rect.top = PhNormalGraphTextPadding.top;
+                rect.bottom = rect.top + textSize.cy;
+            }
+
+            rect.left = 0;
+            rect.right = width - min((LONG)yLabelDataIndex * 2, width) - PhNormalGraphTextPadding.right;
+            DrawText(hdc, label->Buffer, (ULONG)label->Length / 2, &rect, DT_NOCLIP | DT_RIGHT);
+
+            if (oldFont)
+                SelectObject(hdc, oldFont);
+
+            PhDereferenceObject(label);
+        }
+    }
+
     if (DrawInfo->Text.Buffer)
     {
+        HFONT oldFont = NULL;
+
+        if (DrawInfo->TextFont)
+            oldFont = SelectObject(hdc, DrawInfo->TextFont);
+
         // Fill in the text box.
         SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
         FillRect(hdc, &DrawInfo->TextBoxRect, GetStockObject(DC_BRUSH));
@@ -490,6 +557,9 @@ VOID PhDrawGraphDirect(
         SetTextColor(hdc, DrawInfo->TextColor);
         SetBkMode(hdc, TRANSPARENT);
         DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / 2, &DrawInfo->TextRect, DT_NOCLIP);
+
+        if (oldFont)
+            SelectObject(hdc, oldFont);
     }
 }
 
@@ -513,12 +583,19 @@ VOID PhSetGraphText(
     _In_ ULONG Align
     )
 {
+    HFONT oldFont = NULL;
     SIZE textSize;
     PH_RECTANGLE boxRectangle;
     PH_RECTANGLE textRectangle;
 
+    if (DrawInfo->TextFont)
+        oldFont = SelectObject(hdc, DrawInfo->TextFont);
+
     DrawInfo->Text = *Text;
     GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / 2, &textSize);
+
+    if (oldFont)
+        SelectObject(hdc, oldFont);
 
     // Calculate the box rectangle.
 
@@ -578,6 +655,7 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.GridXOffset = 0;
     context->DrawInfo.GridYThreshold = 10;
     context->DrawInfo.GridBase = 2.0f;
+    context->DrawInfo.LabelYColor = RGB(0x77, 0x77, 0x77);
     context->DrawInfo.TextColor = RGB(0x00, 0xff, 0x00);
     context->DrawInfo.TextBoxColor = RGB(0x00, 0x22, 0x00);
 

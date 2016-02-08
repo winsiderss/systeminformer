@@ -136,6 +136,16 @@ PhSiSetColorsGraphDrawInfo(
     _In_ COLORREF Color1,
     _In_ COLORREF Color2
     );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhSiSizeLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    );
 // end_phapppub
 
 VOID PhShowSystemInformationDialog(

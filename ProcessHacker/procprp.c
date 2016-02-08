@@ -1627,25 +1627,6 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
-                        if (PhCsGraphShowText)
-                        {
-                            HDC hdc;
-
-                            PhMoveReference(&performanceContext->CpuGraphState.Text,
-                                PhFormatString(L"%.2f%%",
-                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
-                                ));
-
-                            hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.Text->sr,
-                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
@@ -1663,29 +1644,27 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 performanceContext->CpuGraphState.Data2, drawInfo->LineDataCount);
                             performanceContext->CpuGraphState.Valid = TRUE;
                         }
-                    }
-                    else if (header->hwndFrom == performanceContext->PrivateGraphHandle)
-                    {
+
                         if (PhCsGraphShowText)
                         {
                             HDC hdc;
 
-                            PhMoveReference(&performanceContext->PrivateGraphState.Text,
-                                PhConcatStrings2(
-                                L"Private Bytes: ",
-                                PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
+                            PhMoveReference(&performanceContext->CpuGraphState.Text,
+                                PhFormatString(L"%.2f%%",
+                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100
                                 ));
 
-                            hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.Text->sr,
+                            hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.Text->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
                         else
                         {
                             drawInfo->Text.Buffer = NULL;
                         }
-
+                    }
+                    else if (header->hwndFrom == performanceContext->PrivateGraphHandle)
+                    {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
 
@@ -1717,30 +1696,28 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             performanceContext->PrivateGraphState.Valid = TRUE;
                         }
-                    }
-                    else if (header->hwndFrom == performanceContext->IoGraphHandle)
-                    {
+
                         if (PhCsGraphShowText)
                         {
                             HDC hdc;
 
-                            PhMoveReference(&performanceContext->IoGraphState.Text,
-                                PhFormatString(
-                                L"R+O: %s, W: %s",
-                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
-                                PhaFormatSize(processItem->IoWriteDelta.Delta, -1)->Buffer
+                            PhMoveReference(&performanceContext->PrivateGraphState.Text,
+                                PhConcatStrings2(
+                                L"Private Bytes: ",
+                                PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
                                 ));
 
-                            hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
-                            PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.Text->sr,
+                            hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.Text->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
                         else
                         {
                             drawInfo->Text.Buffer = NULL;
                         }
-
+                    }
+                    else if (header->hwndFrom == performanceContext->IoGraphHandle)
+                    {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LOGARITHMIC_GRID_Y | PH_GRAPH_USE_LINE_2;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
 
@@ -1788,6 +1765,26 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             }
 
                             performanceContext->IoGraphState.Valid = TRUE;
+                        }
+
+                        if (PhCsGraphShowText)
+                        {
+                            HDC hdc;
+
+                            PhMoveReference(&performanceContext->IoGraphState.Text,
+                                PhFormatString(
+                                L"R+O: %s, W: %s",
+                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
+                                PhaFormatSize(processItem->IoWriteDelta.Delta, -1)->Buffer
+                                ));
+
+                            hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.Text->sr,
+                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
                         }
                     }
                 }

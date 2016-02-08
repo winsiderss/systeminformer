@@ -11,6 +11,14 @@ extern RECT PhNormalGraphTextPadding;
 #define PH_GRAPH_LOGARITHMIC_GRID_Y 0x4
 #define PH_GRAPH_USE_LINE_2 0x10
 #define PH_GRAPH_OVERLAY_LINE_2 0x20
+#define PH_GRAPH_LABEL_MAX_Y 0x1000
+
+typedef PPH_STRING (NTAPI *PPH_GRAPH_LABEL_Y_FUNCTION)(
+    _In_ struct _PH_GRAPH_DRAW_INFO *DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    );
 
 typedef struct _PH_GRAPH_DRAW_INFO
 {
@@ -38,10 +46,17 @@ typedef struct _PH_GRAPH_DRAW_INFO
     ULONG GridYThreshold;
     FLOAT GridBase; // Base for logarithmic grid
 
+    // y-axis label
+    PPH_GRAPH_LABEL_Y_FUNCTION LabelYFunction;
+    FLOAT LabelYFunctionParameter;
+    HFONT LabelYFont;
+    COLORREF LabelYColor;
+
     // Text
     PH_STRINGREF Text;
     RECT TextRect;
     RECT TextBoxRect;
+    HFONT TextFont;
     COLORREF TextColor;
     COLORREF TextBoxColor;
 } PH_GRAPH_DRAW_INFO, *PPH_GRAPH_DRAW_INFO;
