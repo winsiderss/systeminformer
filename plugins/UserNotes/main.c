@@ -2,7 +2,7 @@
  * Process Hacker User Notes -
  *   main program
  *
- * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2011-2016 wj32
  * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
