@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -25,23 +25,13 @@
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 
-static VOID FreeAdaptersEntry(
-    _In_ PPH_NETADAPTER_ENTRY Entry
-    )
-{
-    if (Entry->InterfaceGuid)
-        PhDereferenceObject(Entry->InterfaceGuid);
-
-    PhFree(Entry);
-}
-
 static VOID ClearAdaptersList(
     _Inout_ PPH_LIST FilterList
     )
 {
     for (ULONG i = 0; i < FilterList->Count; i++)
     {
-        FreeAdaptersEntry((PPH_NETADAPTER_ENTRY)FilterList->Items[i]);
+        PhDereferenceObject(FilterList->Items[i]);
     }
 
     PhClearList(FilterList);
@@ -57,8 +47,11 @@ static VOID CopyAdaptersList(
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)Source->Items[i];
         PPH_NETADAPTER_ENTRY newEntry;
 
-        newEntry = (PPH_NETADAPTER_ENTRY)PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
+        newEntry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
         memset(newEntry, 0, sizeof(PH_NETADAPTER_ENTRY));
+
+        PhInitializeCircularBuffer_ULONG64(&newEntry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+        PhInitializeCircularBuffer_ULONG64(&newEntry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
 
         newEntry->InterfaceIndex = entry->InterfaceIndex;
         newEntry->InterfaceLuid = entry->InterfaceLuid;
@@ -69,59 +62,68 @@ static VOID CopyAdaptersList(
 }
 
 VOID LoadAdaptersList(
-    _Inout_ PPH_LIST FilterList,
-    _In_ PPH_STRING String
+    VOID
     )
 {
-    PH_STRINGREF remaining = String->sr;
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
+
+    settingsString = PhaGetStringSetting(SETTING_NAME_INTERFACE_LIST);
+    remaining = settingsString->sr;
+
+    if (remaining.Length == 0)
+    {
+        return;
+    }
 
     while (remaining.Length != 0)
     {
-        PPH_NETADAPTER_ENTRY entry = NULL;
-
         ULONG64 ifindex;
         ULONG64 luid64;
         PH_STRINGREF part1;
         PH_STRINGREF part2;
         PH_STRINGREF part3;
+        PPH_NETADAPTER_ENTRY entry;
 
-        entry = (PPH_NETADAPTER_ENTRY)PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
+        if (remaining.Length == 0)
+            break;
+
+        entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
         memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
         PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
         PhSplitStringRefAtChar(&remaining, ',', &part2, &remaining);
         PhSplitStringRefAtChar(&remaining, ',', &part3, &remaining);
 
-        if (PhStringToInteger64(&part1, 10, &ifindex))
-        {
-            entry->InterfaceIndex = (IF_INDEX)ifindex;
-        }
-        if (PhStringToInteger64(&part2, 10, &luid64))
-        {
-            entry->InterfaceLuid.Value = luid64;
-        }
-        if (part3.Buffer)
-        {
-            entry->InterfaceGuid = PhCreateString2(&part3);
-        }
+        PhStringToInteger64(&part1, 10, &ifindex);
+        PhStringToInteger64(&part2, 10, &luid64);
 
-        PhAddItemList(FilterList, entry);
+        entry->InterfaceIndex = (IF_INDEX)ifindex;
+        entry->InterfaceLuid.Value = luid64;
+        entry->InterfaceGuid = PhCreateString2(&part3);
+
+        PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+        PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+
+        PhAddItemList(NetworkAdaptersList, entry);
     }
 }
 
-static PPH_STRING SaveAdaptersList(
-    _Inout_ PPH_LIST FilterList
+static VOID SaveAdaptersList(
+    VOID
     )
 {
     PH_STRING_BUILDER stringBuilder;
+    PPH_STRING settingsString;
 
-    PhInitializeStringBuilder(&stringBuilder, 100);
+    PhInitializeStringBuilder(&stringBuilder, 260);
 
-    for (SIZE_T i = 0; i < FilterList->Count; i++)
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)FilterList->Items[i];
+        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
 
-        PhAppendFormatStringBuilder(&stringBuilder,
+        PhAppendFormatStringBuilder(
+            &stringBuilder,
             L"%lu,%I64u,%s,",
             entry->InterfaceIndex,    // This value is UNSAFE and may change after reboot.
             entry->InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
@@ -132,7 +134,8 @@ static PPH_STRING SaveAdaptersList(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    return PhFinalStringBuilderString(&stringBuilder);
+    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    PhSetStringSetting2(SETTING_NAME_INTERFACE_LIST, &settingsString->sr);
 }
 
 static VOID AddNetworkAdapterToListView(
@@ -140,16 +143,20 @@ static VOID AddNetworkAdapterToListView(
     _In_ PIP_ADAPTER_ADDRESSES Adapter
     )
 {
+    INT lvItemIndex;
     PPH_NETADAPTER_ENTRY entry;
 
-    entry = (PPH_NETADAPTER_ENTRY)PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
+    entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
     memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
     entry->InterfaceIndex = Adapter->IfIndex;
     entry->InterfaceLuid = Adapter->Luid;
     entry->InterfaceGuid = PhConvertMultiByteToUtf16(Adapter->AdapterName);
 
-    INT index = PhAddListViewItem(
+    PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+    PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+
+    lvItemIndex = PhAddListViewItem(
         Context->ListViewHandle,
         MAXINT,
         Adapter->Description,
@@ -158,13 +165,15 @@ static VOID AddNetworkAdapterToListView(
 
     for (ULONG i = 0; i < Context->NetworkAdaptersListEdited->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY currentEntry = (PPH_NETADAPTER_ENTRY)Context->NetworkAdaptersListEdited->Items[i];
+        PPH_NETADAPTER_ENTRY currentEntry;
+        
+        currentEntry = (PPH_NETADAPTER_ENTRY)Context->NetworkAdaptersListEdited->Items[i];
 
         if (WindowsVersion > WINDOWS_XP)
         {
             if (entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
             {
-                ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+                ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
                 break;
             }
         }
@@ -172,7 +181,7 @@ static VOID AddNetworkAdapterToListView(
         {
             if (entry->InterfaceIndex == currentEntry->InterfaceIndex)
             {
-                ListView_SetItemState(Context->ListViewHandle, index, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+                ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
                 break;
             }
         }
@@ -245,7 +254,6 @@ static INT_PTR CALLBACK OptionsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PPH_STRING string;
             PPH_LIST list;
             ULONG index;
             PVOID param;
@@ -274,9 +282,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
             CopyAdaptersList(NetworkAdaptersList, list);
             PhDereferenceObject(context->NetworkAdaptersListEdited);
 
-            string = SaveAdaptersList(NetworkAdaptersList);
-            PhSetStringSetting2(SETTING_NAME_INTERFACE_LIST, &string->sr);
-            PhDereferenceObject(string);
+            SaveAdaptersList();
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
@@ -304,7 +310,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
             ClearAdaptersList(context->NetworkAdaptersListEdited);
             CopyAdaptersList(context->NetworkAdaptersListEdited, NetworkAdaptersList);
 
-            FindNetworkAdapters(context, PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) == 1 ? TRUE : FALSE);
+            FindNetworkAdapters(context, !!PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS));
         }
         break;
     case WM_COMMAND:
@@ -317,7 +323,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
 
                     ListView_DeleteAllItems(context->ListViewHandle);
 
-                    FindNetworkAdapters(context, PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) == 1 ? TRUE : FALSE);
+                    FindNetworkAdapters(context, !!PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS));
                 }
                 break;
             case IDCANCEL:

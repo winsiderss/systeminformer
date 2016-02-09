@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -51,86 +51,86 @@ static VOID NetAdapterUpdatePanel(
     _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    ULONG64 inOctets = 0;
-    ULONG64 outOctets = 0;
-    ULONG64 linkSpeed = 0;
-    NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
+    //ULONG64 inOctets = 0;
+    //ULONG64 outOctets = 0;
+    //ULONG64 linkSpeed = 0;
+    //NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
 
-    if (Context->DeviceHandle)
-    {
-        NDIS_STATISTICS_INFO interfaceStats;
-        NDIS_LINK_STATE interfaceState;
+    //if (Context->DeviceHandle)
+    //{
+    //    NDIS_STATISTICS_INFO interfaceStats;
+    //    NDIS_LINK_STATE interfaceState;
 
-        if (NT_SUCCESS(NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats)))
-        {
-            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
-            else
-                inOctets = interfaceStats.ifHCInOctets;
+    //    if (NT_SUCCESS(NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats)))
+    //    {
+    //        if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
+    //            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
+    //        else
+    //            inOctets = interfaceStats.ifHCInOctets;
 
-            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
-            else
-                outOctets = interfaceStats.ifHCOutOctets;
-        }
-        else
-        {
-            // Note: The above code fails for some drivers that don't implement statistics (even though statistics are mandatory).
-            // NDIS handles these two OIDs for all miniport drivers and we can use these for those special cases.
+    //        if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
+    //            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
+    //        else
+    //            outOctets = interfaceStats.ifHCOutOctets;
+    //    }
+    //    else
+    //    {
+    //        // Note: The above code fails for some drivers that don't implement statistics (even though statistics are mandatory).
+    //        // NDIS handles these two OIDs for all miniport drivers and we can use these for those special cases.
 
-            // https://msdn.microsoft.com/en-us/library/ff569443.aspx
-            inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
+    //        // https://msdn.microsoft.com/en-us/library/ff569443.aspx
+    //        inOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_RCV);
 
-            // https://msdn.microsoft.com/en-us/library/ff569445.aspx
-            outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
-        }
+    //        // https://msdn.microsoft.com/en-us/library/ff569445.aspx
+    //        outOctets = NetworkAdapterQueryValue(Context->DeviceHandle, OID_GEN_BYTES_XMIT);
+    //    }
 
-        if (NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
-        {
-            mediaState = interfaceState.MediaConnectState;
-            linkSpeed = interfaceState.XmitLinkSpeed;
-        }
-        else
-        {
-            NetworkAdapterQueryLinkSpeed(Context->DeviceHandle, &linkSpeed);
-        }
-    }
-    else if (GetIfEntry2_I)
-    {
-        MIB_IF_ROW2 interfaceRow;
+    //    if (NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
+    //    {
+    //        mediaState = interfaceState.MediaConnectState;
+    //        linkSpeed = interfaceState.XmitLinkSpeed;
+    //    }
+    //    else
+    //    {
+    //        NetworkAdapterQueryLinkSpeed(Context->DeviceHandle, &linkSpeed);
+    //    }
+    //}
+    //else if (GetIfEntry2_I)
+    //{
+    //    MIB_IF_ROW2 interfaceRow;
 
-        interfaceRow = QueryInterfaceRowVista(Context->AdapterEntry);
+    //    interfaceRow = QueryInterfaceRowVista(Context->AdapterEntry);
 
-        inOctets = interfaceRow.InOctets;
-        outOctets = interfaceRow.OutOctets;
-        mediaState = interfaceRow.MediaConnectState;
-        linkSpeed = interfaceRow.TransmitLinkSpeed;
-    }
-    else
-    {
-        MIB_IFROW interfaceRow;
+    //    inOctets = interfaceRow.InOctets;
+    //    outOctets = interfaceRow.OutOctets;
+    //    mediaState = interfaceRow.MediaConnectState;
+    //    linkSpeed = interfaceRow.TransmitLinkSpeed;
+    //}
+    //else
+    //{
+    //    MIB_IFROW interfaceRow;
 
-        interfaceRow = QueryInterfaceRowXP(Context->AdapterEntry);
+    //    interfaceRow = QueryInterfaceRowXP(Context->AdapterEntry);
 
-        inOctets = interfaceRow.dwInOctets;
-        outOctets = interfaceRow.dwOutOctets;
-        linkSpeed = interfaceRow.dwSpeed;
+    //    inOctets = interfaceRow.dwInOctets;
+    //    outOctets = interfaceRow.dwOutOctets;
+    //    linkSpeed = interfaceRow.dwSpeed;
 
-        if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
-            mediaState = MediaConnectStateConnected;
-        else
-            mediaState = MediaConnectStateDisconnected;
-    }
+    //    if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
+    //        mediaState = MediaConnectStateConnected;
+    //    else
+    //        mediaState = MediaConnectStateDisconnected;
+    //}
 
-    if (mediaState == MediaConnectStateConnected)
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
-    else
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
+    //if (mediaState == MediaConnectStateConnected)
+    //    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
+    //else
+    //    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
 
-    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(inOctets, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
+    //SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
+    //SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
+    //SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(inOctets, -1)->Buffer);
+    //SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
 }
 
 static INT_PTR CALLBACK NetAdapterPanelDialogProc(
@@ -235,7 +235,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
-            SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->SysinfoSection->Name.Buffer);
+            //SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->SysinfoSection->Name.Buffer);
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -292,7 +292,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                         PhGraphStateGetDrawInfo(
                             &context->GraphState,
                             getDrawInfo,
-                            context->InboundBuffer.Count
+                            context->AdapterEntry->InboundBuffer.Count
                             );
 
                         if (!context->GraphState.Valid)
@@ -305,8 +305,8 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                                 FLOAT data1;
                                 FLOAT data2;
 
-                                context->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->InboundBuffer, i);
-                                context->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->OutboundBuffer, i);
+                                context->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->InboundBuffer, i);
+                                context->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->OutboundBuffer, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
@@ -344,12 +344,12 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                             if (context->GraphState.TooltipIndex != getTooltipText->Index)
                             {
                                 ULONG64 adapterInboundValue = PhGetItemCircularBuffer_ULONG64(
-                                    &context->InboundBuffer,
+                                    &context->AdapterEntry->InboundBuffer,
                                     getTooltipText->Index
                                     );
 
                                 ULONG64 adapterOutboundValue = PhGetItemCircularBuffer_ULONG64(
-                                    &context->OutboundBuffer,
+                                    &context->AdapterEntry->OutboundBuffer,
                                     getTooltipText->Index
                                     );
 
@@ -393,162 +393,162 @@ static BOOLEAN NetAdapterSectionCallback(
     {
     case SysInfoCreate:
         {
-            if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
-            {
-                // Create the handle to the network device
-                PhCreateFileWin32(
-                    &context->DeviceHandle,
-                    PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
-                    FILE_GENERIC_READ,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    FILE_OPEN,
-                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                    );
+            //if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+            //{
+            //    // Create the handle to the network device
+            //    PhCreateFileWin32(
+            //        &context->DeviceHandle,
+            //        PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+            //        FILE_GENERIC_READ,
+            //        FILE_ATTRIBUTE_NORMAL,
+            //        FILE_SHARE_READ | FILE_SHARE_WRITE,
+            //        FILE_OPEN,
+            //        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            //        );
 
-                if (context->DeviceHandle)
-                {
-                    // Check the network adapter supports the OIDs we're going to be using.
-                    if (!NetworkAdapterQuerySupported(context->DeviceHandle))
-                    {
-                        // Device is faulty. Close the handle so we can fallback to GetIfEntry.
-                        NtClose(context->DeviceHandle);
-                        context->DeviceHandle = NULL;
-                    }
-                }
-            }
+            //    if (context->DeviceHandle)
+            //    {
+            //        // Check the network adapter supports the OIDs we're going to be using.
+            //        if (!NetworkAdapterQuerySupported(context->DeviceHandle))
+            //        {
+            //            // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+            //            NtClose(context->DeviceHandle);
+            //            context->DeviceHandle = NULL;
+            //        }
+            //    }
+            //}
 
-            PhInitializeCircularBuffer_ULONG64(&context->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-            PhInitializeCircularBuffer_ULONG64(&context->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+            //PhInitializeCircularBuffer_ULONG64(&context->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+            //PhInitializeCircularBuffer_ULONG64(&context->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
         }
         return TRUE;
     case SysInfoDestroy:
         {
-            PhDeleteCircularBuffer_ULONG64(&context->InboundBuffer);
-            PhDeleteCircularBuffer_ULONG64(&context->OutboundBuffer);
+            //PhDeleteCircularBuffer_ULONG64(&context->InboundBuffer);
+            //PhDeleteCircularBuffer_ULONG64(&context->OutboundBuffer);
 
-            if (context->AdapterName)
-                PhDereferenceObject(context->AdapterName);
+            //if (context->AdapterName)
+            //    PhDereferenceObject(context->AdapterName);
 
-            if (context->DeviceHandle)
-                NtClose(context->DeviceHandle);
+            //if (context->DeviceHandle)
+            //    NtClose(context->DeviceHandle);
 
             PhFree(context);
         }
         return TRUE;
     case SysInfoTick:
         {
-            ULONG64 networkInOctets = 0;
-            ULONG64 networkOutOctets = 0;
-            ULONG64 networkRcvSpeed = 0;
-            ULONG64 networkXmitSpeed = 0;
-            //ULONG64 networkLinkSpeed = 0;
+            //ULONG64 networkInOctets = 0;
+            //ULONG64 networkOutOctets = 0;
+            //ULONG64 networkRcvSpeed = 0;
+            //ULONG64 networkXmitSpeed = 0;
+            ////ULONG64 networkLinkSpeed = 0;
 
-            if (context->DeviceHandle)
-            {
-                NDIS_STATISTICS_INFO interfaceStats;
-                //NDIS_LINK_STATE interfaceState;
+            //if (context->DeviceHandle)
+            //{
+            //    NDIS_STATISTICS_INFO interfaceStats;
+            //    //NDIS_LINK_STATE interfaceState;
 
-                if (NT_SUCCESS(NetworkAdapterQueryStatistics(context->DeviceHandle, &interfaceStats)))
-                {
-                    if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                        networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
-                    else
-                        networkInOctets = interfaceStats.ifHCInOctets;
+            //    if (NT_SUCCESS(NetworkAdapterQueryStatistics(context->DeviceHandle, &interfaceStats)))
+            //    {
+            //        if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
+            //            networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
+            //        else
+            //            networkInOctets = interfaceStats.ifHCInOctets;
 
-                    if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                        networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
-                    else
-                        networkOutOctets = interfaceStats.ifHCOutOctets;
+            //        if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
+            //            networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
+            //        else
+            //            networkOutOctets = interfaceStats.ifHCOutOctets;
 
-                    networkRcvSpeed = networkInOctets - context->LastInboundValue;
-                    networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                }
-                else
-                {
-                    networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
-                    networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
+            //        networkRcvSpeed = networkInOctets - context->LastInboundValue;
+            //        networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
+            //    }
+            //    else
+            //    {
+            //        networkInOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_RCV);
+            //        networkOutOctets = NetworkAdapterQueryValue(context->DeviceHandle, OID_GEN_BYTES_XMIT);
 
-                    networkRcvSpeed = networkInOctets - context->LastInboundValue;
-                    networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                }
+            //        networkRcvSpeed = networkInOctets - context->LastInboundValue;
+            //        networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
+            //    }
 
-                //if (NT_SUCCESS(NetworkAdapterQueryLinkState(context->DeviceHandle, &interfaceState)))
-                //{
-                //    networkLinkSpeed = interfaceState.XmitLinkSpeed;
-                //}
-                //else
-                //{
-                //    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);
-                //}
+            //    //if (NT_SUCCESS(NetworkAdapterQueryLinkState(context->DeviceHandle, &interfaceState)))
+            //    //{
+            //    //    networkLinkSpeed = interfaceState.XmitLinkSpeed;
+            //    //}
+            //    //else
+            //    //{
+            //    //    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);
+            //    //}
 
-                // HACK: Pull the Adapter name from the current query.
-                if (context->SysinfoSection->Name.Length == 0)
-                {
-                    if (context->AdapterName = NetworkAdapterQueryName(context))
-                    {
-                        context->SysinfoSection->Name = context->AdapterName->sr;
-                    }
-                }
-            }
-            else if (GetIfEntry2_I)
-            {
-                MIB_IF_ROW2 interfaceRow;
+            //    // HACK: Pull the Adapter name from the current query.
+            //    if (context->SysinfoSection->Name.Length == 0)
+            //    {
+            //        if (context->AdapterName = NetworkAdapterQueryName(context))
+            //        {
+            //            context->SysinfoSection->Name = context->AdapterName->sr;
+            //        }
+            //    }
+            //}
+            //else if (GetIfEntry2_I)
+            //{
+            //    MIB_IF_ROW2 interfaceRow;
 
-                interfaceRow = QueryInterfaceRowVista(context->AdapterEntry);
+            //    interfaceRow = QueryInterfaceRowVista(context->AdapterEntry);
 
-                networkInOctets = interfaceRow.InOctets;
-                networkOutOctets = interfaceRow.OutOctets;
-                networkRcvSpeed = networkInOctets - context->LastInboundValue;
-                networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                //networkLinkSpeed = interfaceRow.TransmitLinkSpeed; // interfaceRow.ReceiveLinkSpeed
+            //    networkInOctets = interfaceRow.InOctets;
+            //    networkOutOctets = interfaceRow.OutOctets;
+            //    networkRcvSpeed = networkInOctets - context->LastInboundValue;
+            //    networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
+            //    //networkLinkSpeed = interfaceRow.TransmitLinkSpeed; // interfaceRow.ReceiveLinkSpeed
 
-                // HACK: Pull the Adapter name from the current query.
-                if (context->SysinfoSection->Name.Length == 0)
-                {
-                    if (context->AdapterName = PhCreateString(interfaceRow.Description))
-                    {
-                        context->SysinfoSection->Name = context->AdapterName->sr;
-                    }
-                }
-            }
-            else
-            {
-                MIB_IFROW interfaceRow;
+            //    // HACK: Pull the Adapter name from the current query.
+            //    if (context->SysinfoSection->Name.Length == 0)
+            //    {
+            //        if (context->AdapterName = PhCreateString(interfaceRow.Description))
+            //        {
+            //            context->SysinfoSection->Name = context->AdapterName->sr;
+            //        }
+            //    }
+            //}
+            //else
+            //{
+            //    MIB_IFROW interfaceRow;
 
-                interfaceRow = QueryInterfaceRowXP(context->AdapterEntry);
+            //    interfaceRow = QueryInterfaceRowXP(context->AdapterEntry);
 
-                networkInOctets = interfaceRow.dwInOctets;
-                networkOutOctets = interfaceRow.dwOutOctets;
-                networkRcvSpeed = networkInOctets - context->LastInboundValue;
-                networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
-                //networkLinkSpeed = interfaceRow.dwSpeed;
+            //    networkInOctets = interfaceRow.dwInOctets;
+            //    networkOutOctets = interfaceRow.dwOutOctets;
+            //    networkRcvSpeed = networkInOctets - context->LastInboundValue;
+            //    networkXmitSpeed = networkOutOctets - context->LastOutboundValue;
+            //    //networkLinkSpeed = interfaceRow.dwSpeed;
 
-                // HACK: Pull the Adapter name from the current query.
-                if (context->SysinfoSection->Name.Length == 0)
-                {
-                    if (context->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr))
-                    {
-                        context->SysinfoSection->Name = context->AdapterName->sr;
-                    }
-                }
-            }
+            //    // HACK: Pull the Adapter name from the current query.
+            //    if (context->SysinfoSection->Name.Length == 0)
+            //    {
+            //        if (context->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr))
+            //        {
+            //            context->SysinfoSection->Name = context->AdapterName->sr;
+            //        }
+            //    }
+            //}
 
-            if (!context->HaveFirstSample)
-            {
-                networkRcvSpeed = 0;
-                networkXmitSpeed = 0;
-                context->HaveFirstSample = TRUE;
-            }
+            //if (!context->HaveFirstSample)
+            //{
+            //    networkRcvSpeed = 0;
+            //    networkXmitSpeed = 0;
+            //    context->HaveFirstSample = TRUE;
+            //}
 
-            PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkRcvSpeed);
-            PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkXmitSpeed);
+            //PhAddItemCircularBuffer_ULONG64(&context->InboundBuffer, networkRcvSpeed);
+            //PhAddItemCircularBuffer_ULONG64(&context->OutboundBuffer, networkXmitSpeed);
 
-            //context->LinkSpeed = networkLinkSpeed;
-            context->InboundValue = networkRcvSpeed;
-            context->OutboundValue = networkXmitSpeed;
-            context->LastInboundValue = networkInOctets;
-            context->LastOutboundValue = networkOutOctets;
+            ////context->LinkSpeed = networkLinkSpeed;
+            //context->InboundValue = networkRcvSpeed;
+            //context->OutboundValue = networkXmitSpeed;
+            //context->LastInboundValue = networkInOctets;
+            //context->LastOutboundValue = networkOutOctets;
         }
         return TRUE;
     case SysInfoCreateDialog:
@@ -567,7 +567,7 @@ static BOOLEAN NetAdapterSectionCallback(
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
-            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->InboundBuffer.Count);
+            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->AdapterEntry->InboundBuffer.Count);
 
             if (!Section->GraphState.Valid)
             {
@@ -578,8 +578,8 @@ static BOOLEAN NetAdapterSectionCallback(
                     FLOAT data1;
                     FLOAT data2;
 
-                    Section->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->InboundBuffer, i);
-                    Section->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->OutboundBuffer, i);
+                    Section->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->InboundBuffer, i);
+                    Section->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->OutboundBuffer, i);
 
                     if (max < data1 + data2)
                         max = data1 + data2;
@@ -613,12 +613,12 @@ static BOOLEAN NetAdapterSectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = (PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT)Parameter1;
 
             ULONG64 adapterInboundValue = PhGetItemCircularBuffer_ULONG64(
-                &context->InboundBuffer,
+                &context->AdapterEntry->InboundBuffer,
                 getTooltipText->Index
                 );
 
             ULONG64 adapterOutboundValue = PhGetItemCircularBuffer_ULONG64(
-                &context->OutboundBuffer,
+                &context->AdapterEntry->OutboundBuffer,
                 getTooltipText->Index
                 );
 
@@ -639,8 +639,8 @@ static BOOLEAN NetAdapterSectionCallback(
             drawPanel->Title = PhCreateString(Section->Name.Buffer);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nS: %s",
-                PhaFormatSize(context->InboundValue, -1)->Buffer,
-                PhaFormatSize(context->OutboundValue, -1)->Buffer
+                PhaFormatSize(context->AdapterEntry->InboundValue, -1)->Buffer,
+                PhaFormatSize(context->AdapterEntry->OutboundValue, -1)->Buffer
                 );
         }
         return TRUE;
@@ -666,7 +666,7 @@ VOID NetAdapterSysInfoInitializing(
     section.Context = context;
     section.Callback = NetAdapterSectionCallback;
 
-    PhInitializeStringRef(&section.Name, L"");
+    PhInitializeStringRefLongHint(&section.Name, AdapterEntry->AdapterName->Buffer);
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }

@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,9 +22,9 @@
 
 #include "main.h"
 
-_NotifyIpInterfaceChange NotifyIpInterfaceChange_I;
-_CancelMibChangeNotify2 CancelMibChangeNotify2_I;
-_ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I;
+_NotifyIpInterfaceChange NotifyIpInterfaceChange_I = NULL;
+_CancelMibChangeNotify2 CancelMibChangeNotify2_I = NULL;
+_ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I = NULL;
 
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
@@ -586,11 +586,6 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         if (uMsg == WM_DESTROY)
         {
             RemoveProp(hwndDlg, L"Context");
-
-            PhDereferenceObject(context->AdapterEntry->InterfaceGuid);
-            PhFree(context->AdapterEntry);
-
-            PhDereferenceObject(context->AdapterName);
             PhFree(context);
         }
     }
@@ -773,7 +768,7 @@ VOID ShowDetailsDialog(
     memset(context, 0, sizeof(PH_NETADAPTER_DETAILS_CONTEXT));
 
     context->ParentHandle = Context->WindowHandle;
-    context->AdapterName = PhReferenceObject(Context->AdapterName);
+    context->AdapterName = PhReferenceObject(Context->AdapterEntry->AdapterName);
 
     context->AdapterEntry = PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
     context->AdapterEntry->InterfaceIndex = Context->AdapterEntry->InterfaceIndex;

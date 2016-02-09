@@ -64,6 +64,7 @@
     <Import Project="..\Plugins.props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="adapter.c" />
     <ClCompile Include="details.c" />
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />

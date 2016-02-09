@@ -35,6 +35,9 @@
     <ClCompile Include="details.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="adapter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

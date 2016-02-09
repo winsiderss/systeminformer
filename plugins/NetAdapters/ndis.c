@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -140,7 +140,8 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
 }
 
 PPH_STRING NetworkAdapterQueryName(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ HANDLE DeviceHandle,
+    _In_ PPH_STRING InterfaceGuid
     )
 {
     NDIS_OID opcode;
@@ -151,7 +152,7 @@ PPH_STRING NetworkAdapterQueryName(
     opcode = OID_GEN_FRIENDLY_NAME;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
-        Context->DeviceHandle,
+        DeviceHandle,
         NULL,
         NULL,
         NULL,
@@ -172,7 +173,7 @@ PPH_STRING NetworkAdapterQueryName(
         GUID deviceGuid = GUID_NULL;
         UNICODE_STRING guidStringUs;
 
-        PhStringRefToUnicodeString(&Context->AdapterEntry->InterfaceGuid->sr, &guidStringUs);
+        PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
 
         if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
         {

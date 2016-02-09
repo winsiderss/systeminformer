@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -53,12 +53,27 @@
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_LIST NetworkAdaptersList;
+extern PPH_OBJECT_TYPE PhAdapterItemType;
 
 typedef struct _PH_NETADAPTER_ENTRY
 {
     NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid;
     PPH_STRING InterfaceGuid;
+
+    PPH_STRING AdapterName;
+
+    BOOLEAN HaveFirstSample;
+    BOOLEAN HaveFirstDetailsSample;
+
+    //ULONG64 LinkSpeed;
+    ULONG64 InboundValue;
+    ULONG64 OutboundValue;
+    ULONG64 LastInboundValue;
+    ULONG64 LastOutboundValue;
+
+    PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
+    PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
 } PH_NETADAPTER_ENTRY, *PPH_NETADAPTER_ENTRY;
 
 typedef struct _PH_NETADAPTER_CONTEXT
@@ -69,31 +84,16 @@ typedef struct _PH_NETADAPTER_CONTEXT
 
 typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
 {
-    BOOLEAN HaveFirstSample;
-    BOOLEAN HaveFirstDetailsSample;
-
-    //ULONG64 LinkSpeed;
-    ULONG64 InboundValue;
-    ULONG64 OutboundValue;
-    ULONG64 LastInboundValue;
-    ULONG64 LastOutboundValue;
-
-    PPH_STRING AdapterName;
     PPH_NETADAPTER_ENTRY AdapterEntry;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
     HWND GraphHandle;
 
-    HANDLE DeviceHandle;
-
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-
-    PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
-    PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
 } PH_NETADAPTER_SYSINFO_CONTEXT, *PPH_NETADAPTER_SYSINFO_CONTEXT;
 
 typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
@@ -122,8 +122,7 @@ typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
 } PH_NETADAPTER_DETAILS_CONTEXT, *PPH_NETADAPTER_DETAILS_CONTEXT;
 
 VOID LoadAdaptersList(
-    _Inout_ PPH_LIST FilterList,
-    _In_ PPH_STRING String
+    VOID
     );
 
 VOID ShowOptionsDialog(
@@ -133,6 +132,16 @@ VOID ShowOptionsDialog(
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ PPH_NETADAPTER_ENTRY AdapterInfo
+    );
+
+// adapters.c
+
+VOID NetAdaptersInitialize(
+    VOID
+    );
+
+VOID NetAdaptersUpdate(
+    VOID
     );
 
 // dialog.c
@@ -252,7 +261,8 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     );
 
 PPH_STRING NetworkAdapterQueryName(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ HANDLE DeviceHandle,
+    _In_ PPH_STRING InterfaceGuid
     );
 
 NTSTATUS NetworkAdapterQueryStatistics(
