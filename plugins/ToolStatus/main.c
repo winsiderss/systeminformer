@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2016 dmex
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *

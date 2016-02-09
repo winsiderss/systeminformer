@@ -507,7 +507,7 @@ VOID PhHandleProviderUpdate(
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
 
-            if (handle->UniqueProcessId == (USHORT)handleProvider->ProcessId)
+            if (handle->UniqueProcessId == (ULONG_PTR)handleProvider->ProcessId)
             {
                 PhAddItemSimpleHashtable(
                     handleProvider->TempListHashtable,

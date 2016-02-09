@@ -628,8 +628,6 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
-
                     if (header->hwndFrom == context->PingGraphHandle)
                     {
                         if (PhGetIntegerSetting(L"GraphShowText"))
@@ -649,11 +647,9 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                             drawInfo->Text.Buffer = NULL;
                         }
 
-                        PhGraphStateGetDrawInfo(
-                            &context->PingGraphState,
-                            getDrawInfo,
-                            context->PingHistory.Count
-                            );
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+                        PhGraphStateGetDrawInfo(&context->PingGraphState, getDrawInfo, context->PingHistory.Count);
 
                         if (!context->PingGraphState.Valid)
                         {
