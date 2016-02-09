@@ -4264,7 +4264,7 @@ NTSTATUS PhEnumProcessesEx(
         return status;
     }
 
-    if (bufferSize <= 0x40000) initialBufferSize[classIndex] = bufferSize;
+    if (bufferSize <= 0x100000) initialBufferSize[classIndex] = bufferSize;
     *Processes = buffer;
 
     return status;
@@ -4325,7 +4325,7 @@ NTSTATUS PhEnumProcessesForSession(
         return status;
     }
 
-    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
+    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
     *Processes = buffer;
 
     return status;
