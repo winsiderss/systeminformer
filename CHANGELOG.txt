@@ -8,9 +8,10 @@ Process Hacker
      * Added "Collapse by Default" option for processes
  * OTHER CHANGES:
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
+   * Improved performance when handling a large number of threads, modules or handles
    * Fixed ASLR state being shown as N/A in process properties
    * Fixed multi monitor window placement bug
-   * Improved performance when handling a large number of threads, modules or handles
+   * Fixed handle enumeration bug affecting processes with PID >= 65536
 
 2.37
  * HIGHLIGHTS:
