@@ -79,6 +79,7 @@ typedef struct _PH_NETADAPTER_ENTRY
 typedef struct _PH_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
+    BOOLEAN OptionsChanged;
     PPH_LIST NetworkAdaptersListEdited;
 } PH_NETADAPTER_CONTEXT, *PPH_NETADAPTER_CONTEXT;
 

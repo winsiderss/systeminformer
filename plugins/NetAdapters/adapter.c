@@ -38,7 +38,7 @@ VOID NetAdaptersInitialize(
     )
 {
     NetworkAdaptersList = PhCreateList(1);
-    PhAdapterItemType = PhCreateObjectType(L"NetAdapterItem", 0, AdapterEntryDeleteProcedure);
+    PhAdapterItemType = PhCreateObjectType(L"NetAdapterEntry", 0, AdapterEntryDeleteProcedure);
 }
 
 VOID NetAdaptersUpdate(
@@ -47,7 +47,7 @@ VOID NetAdaptersUpdate(
 {
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)PhReferenceObject(NetworkAdaptersList->Items[i]);
+        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
 
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
@@ -80,7 +80,6 @@ VOID NetAdaptersUpdate(
                 }
             }
         }
-
 
         if (adapterHandle)
         {
@@ -179,7 +178,10 @@ VOID NetAdaptersUpdate(
         entry->LastInboundValue = networkInOctets;
         entry->LastOutboundValue = networkOutOctets;
 
-        NtClose(adapterHandle);
-        PhDereferenceObject(entry);
+
+        if (adapterHandle)
+        {
+            NtClose(adapterHandle);
+        }
     }
 }

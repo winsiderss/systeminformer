@@ -61,7 +61,7 @@ BOOLEAN NetworkAdapterQuerySupported(
     {
         ndisQuerySupported = TRUE;
 
-        for (ULONG i = 0; i < (ULONG)isb.Information; i++)
+        for (ULONG i = 0; i < (ULONG)isb.Information / sizeof(NDIS_OID); i++)
         {
             NDIS_OID opcode = ndisObjectIdentifiers[i];
 

@@ -22,6 +22,7 @@
 
 #include "main.h"
 
+static BOOLEAN OptionsChanged = FALSE;
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 
@@ -153,9 +154,6 @@ static VOID AddNetworkAdapterToListView(
     entry->InterfaceLuid = Adapter->Luid;
     entry->InterfaceGuid = PhConvertMultiByteToUtf16(Adapter->AdapterName);
 
-    PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-    PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-
     lvItemIndex = PhAddListViewItem(
         Context->ListViewHandle,
         MAXINT,
@@ -213,13 +211,10 @@ static VOID FindNetworkAdapters(
 
         if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
         {
-            PIP_ADAPTER_ADDRESSES addressesBuffer = buffer;
-
-            while (addressesBuffer)
+            for (PIP_ADAPTER_ADDRESSES i = buffer; i; i = i->Next)
             {
                 //if (addressesBuffer->IfType != IF_TYPE_SOFTWARE_LOOPBACK)
-                AddNetworkAdapterToListView(Context, addressesBuffer);
-                addressesBuffer = addressesBuffer->Next;
+                AddNetworkAdapterToListView(Context, i);
             }
         }
     }
@@ -254,35 +249,38 @@ static INT_PTR CALLBACK OptionsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PPH_LIST list;
-            ULONG index;
-            PVOID param;
-
-            list = PhCreateList(2);
-            index = -1;
-
-            while ((index = PhFindListViewItemByFlags(
-                context->ListViewHandle,
-                index,
-                LVNI_ALL
-                )) != -1)
+            if (context->OptionsChanged)
             {
-                BOOL checked = ListView_GetItemState(context->ListViewHandle, index, LVIS_STATEIMAGEMASK) == ITEM_CHECKED;
+                PPH_LIST list;
+                ULONG index;
+                PVOID param;
 
-                if (checked)
+                list = PhCreateList(2);
+                index = -1;
+
+                while ((index = PhFindListViewItemByFlags(
+                    context->ListViewHandle,
+                    index,
+                    LVNI_ALL
+                    )) != -1)
                 {
-                    if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
+                    BOOL checked = ListView_GetItemState(context->ListViewHandle, index, LVIS_STATEIMAGEMASK) == ITEM_CHECKED;
+
+                    if (checked)
                     {
-                        PhAddItemList(list, param);
+                        if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
+                        {
+                            PhAddItemList(list, param);
+                        }
                     }
                 }
+
+                ClearAdaptersList(NetworkAdaptersList);
+                CopyAdaptersList(NetworkAdaptersList, list);
+                PhDereferenceObject(context->NetworkAdaptersListEdited);
+
+                SaveAdaptersList();
             }
-
-            ClearAdaptersList(NetworkAdaptersList);
-            CopyAdaptersList(NetworkAdaptersList, list);
-            PhDereferenceObject(context->NetworkAdaptersListEdited);
-
-            SaveAdaptersList();
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
@@ -311,6 +309,8 @@ static INT_PTR CALLBACK OptionsDlgProc(
             CopyAdaptersList(context->NetworkAdaptersListEdited, NetworkAdaptersList);
 
             FindNetworkAdapters(context, !!PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS));
+
+            context->OptionsChanged = FALSE;
         }
         break;
     case WM_COMMAND:
@@ -332,6 +332,27 @@ static INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
                 break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            if (header->code == LVN_ITEMCHANGED)
+            {
+                LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
+
+                if (listView->uChanged & LVIF_STATE)
+                {
+                    switch (listView->uNewState & 0x3000)
+                    {
+                    case 0x2000: // checked
+                    case 0x1000: // unchecked
+                        context->OptionsChanged = TRUE;
+                        break;
+                    }
+                }
             }
         }
         break;
