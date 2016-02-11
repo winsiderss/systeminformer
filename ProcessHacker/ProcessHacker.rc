@@ -53,15 +53,10 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
-
 IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
-
 IDI_COG                 ICON                    "resources\\cog.ico"
-
 IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
-
 IDI_COGGO               ICON                    "resources\\cog_go.ico"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -518,13 +513,13 @@ BEGIN
     PUSHBUTTON      "Open",IDC_OPENFILENAME,230,64,17,15,BS_BITMAP
     GROUPBOX        "Process",IDC_PROCESS,7,92,246,161
     LTEXT           "Command Line:",IDC_STATIC,13,103,50,8
-    EDITTEXT        IDC_CMDLINE,78,101,168,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_CMDLINE,79,101,168,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Current Directory:",IDC_STATIC,13,119,60,8
-    EDITTEXT        IDC_CURDIR,78,117,168,12,ES_AUTOHSCROLL | ES_READONLY
-    LTEXT           "Started:",IDC_STATIC,14,135,28,8
-    EDITTEXT        IDC_STARTED,65,133,181,12,ES_AUTOHSCROLL | ES_READONLY
-    LTEXT           "PEB Address:",IDC_STATIC,14,151,44,8
-    EDITTEXT        IDC_PEBADDRESS,65,149,181,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_CURDIR,79,117,168,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Started:",IDC_STATIC,13,135,28,8
+    EDITTEXT        IDC_STARTED,65,133,182,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "PEB Address:",IDC_STATIC,13,151,44,8
+    EDITTEXT        IDC_PEBADDRESS,65,149,182,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Parent:",IDC_STATIC,13,167,25,8
     EDITTEXT        IDC_PARENTPROCESS,65,165,161,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "View",IDC_VIEWPARENTPROCESS,230,163,17,15,BS_BITMAP
@@ -2467,19 +2462,12 @@ END
 //
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
-
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
-
 IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
-
 IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
-
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
-
 IDB_PIN                 BITMAP                  "resources\\pin.bmp"
-
 IDB_COG                 BITMAP                  "resources\\cog.bmp"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2487,7 +2475,6 @@ IDB_COG                 BITMAP                  "resources\\cog.bmp"
 //
 
 IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2510,6 +2497,11 @@ BEGIN
 END
 
 IDD_ABOUT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PROCGENERAL AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
