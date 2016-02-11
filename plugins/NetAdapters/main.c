@@ -145,12 +145,14 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
+
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
-                ProcessesUpdatedCallback,
-                NULL,
+                &PhProcessesUpdatedEvent, 
+                ProcessesUpdatedCallback, 
+                NULL, 
                 &ProcessesUpdatedCallbackRegistration
                 );
+
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing),
                 SystemInformationInitializingCallback,
