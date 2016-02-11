@@ -621,7 +621,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
                 // Create the handle to the network device
                 PhCreateFileWin32(
                     &context->DeviceHandle,
-                    PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+                    PhaConcatStrings(2, L"\\\\.\\", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
                     FILE_GENERIC_READ,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,

@@ -62,7 +62,7 @@ static VOID CopyAdaptersList(
     }
 }
 
-VOID LoadAdaptersList(
+VOID NetAdaptersLoadList(
     VOID
     )
 {

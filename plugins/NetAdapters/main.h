@@ -123,7 +123,7 @@ typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
     ULONG64 LastDetailsIOutboundValue;
 } PH_NETADAPTER_DETAILS_CONTEXT, *PPH_NETADAPTER_DETAILS_CONTEXT;
 
-VOID LoadAdaptersList(
+VOID NetAdaptersLoadList(
     VOID
     );
 

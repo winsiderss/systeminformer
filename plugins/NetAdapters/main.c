@@ -50,7 +50,7 @@ static VOID NTAPI LoadCallback(
     }
 
     NetAdaptersInitialize();
-    LoadAdaptersList();
+    NetAdaptersLoadList();
 }
 
 static VOID NTAPI UnloadCallback(

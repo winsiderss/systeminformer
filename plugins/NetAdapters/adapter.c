@@ -55,7 +55,6 @@ VOID NetAdaptersUpdate(
         ULONG64 networkOutOctets = 0;
         ULONG64 networkRcvSpeed = 0;
         ULONG64 networkXmitSpeed = 0;
-        //ULONG64 networkLinkSpeed = 0;
         HANDLE adapterHandle = NULL;
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
@@ -63,53 +62,35 @@ VOID NetAdaptersUpdate(
             // Create the handle to the network device
             PhCreateFileWin32(
                 &adapterHandle,
-                PhaFormatString(L"\\\\.\\%s", entry->InterfaceGuid->Buffer)->Buffer,
+                PhaConcatStrings(2, L"\\\\.\\", entry->InterfaceGuid->Buffer)->Buffer,
                 FILE_GENERIC_READ,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 FILE_OPEN,
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 );
-
-            //if (adapterHandle)
-            //{
-            //    // Check the network adapter supports the OIDs we're going to be using.
-            //    if (!NetworkAdapterQuerySupported(adapterHandle))
-            //    {
-            //        // Device is faulty. Close the handle so we can fallback to GetIfEntry.
-            //        NtClose(adapterHandle);
-            //        adapterHandle = NULL;
-            //    }
-            //}
         }
 
         if (adapterHandle)
         {
             NDIS_STATISTICS_INFO interfaceStats;
 
-            if (NT_SUCCESS(NetworkAdapterQueryStatistics(adapterHandle, &interfaceStats)))
-            {
-                if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                    networkInOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_RCV);
-                else
-                    networkInOctets = interfaceStats.ifHCInOctets;
+            memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
 
-                if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                    networkOutOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_XMIT);
-                else
-                    networkOutOctets = interfaceStats.ifHCOutOctets;
+            NetworkAdapterQueryStatistics(adapterHandle, &interfaceStats);
 
-                networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-                networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-            }
-            else
-            {
+            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
                 networkInOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_RCV);
-                networkOutOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_XMIT);
+            else
+                networkInOctets = interfaceStats.ifHCInOctets;
 
-                networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-                networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-            }
+            if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
+                networkOutOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_XMIT);
+            else
+                networkOutOctets = interfaceStats.ifHCOutOctets;
+
+            networkRcvSpeed = networkInOctets - entry->LastInboundValue;
+            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
