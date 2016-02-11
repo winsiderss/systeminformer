@@ -509,7 +509,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes of data:", context->IpAddressString)->Buffer);
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                &PhProcessesUpdatedEvent,
                 NetworkPingUpdateHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -530,7 +530,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                &PhProcessesUpdatedEvent,
                 &context->ProcessesUpdatedRegistration
                 );
 
