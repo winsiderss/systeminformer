@@ -22,11 +22,10 @@
 
 #include "main.h"
 
-PPH_OBJECT_TYPE PhAdapterItemType;
-
+PPH_OBJECT_TYPE PhAdapterItemType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
+PH_QUEUED_LOCK NetworkAdaptersListLock = PH_QUEUED_LOCK_INIT;
 PPH_PLUGIN PluginInstance = NULL;
-static ULONG ProcessesUpdatedCount = 0;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -75,11 +74,6 @@ static VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    ProcessesUpdatedCount++;
-
-    //if (ProcessesUpdatedCount < 3)
-    //    return;
-
     NetAdaptersUpdate();
 }
 
@@ -90,12 +84,16 @@ static VOID NTAPI SystemInformationInitializingCallback(
 {
     PPH_PLUGIN_SYSINFO_POINTERS pluginEntry = (PPH_PLUGIN_SYSINFO_POINTERS)Parameter;
 
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
         
         NetAdapterSysInfoInitializing(pluginEntry, entry);
     }
+
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 }
 
 LOGICAL DllMain(

@@ -119,6 +119,8 @@ static VOID SaveAdaptersList(
 
     PhInitializeStringBuilder(&stringBuilder, 260);
 
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
@@ -131,6 +133,8 @@ static VOID SaveAdaptersList(
             entry->InterfaceGuid->Buffer
             );
     }
+
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
@@ -275,11 +279,14 @@ static INT_PTR CALLBACK OptionsDlgProc(
                     }
                 }
 
+                PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
                 ClearAdaptersList(NetworkAdaptersList);
                 CopyAdaptersList(NetworkAdaptersList, list);
-                PhDereferenceObject(context->NetworkAdaptersListEdited);
+                PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
 
                 SaveAdaptersList();
+
+                PhDereferenceObject(context->NetworkAdaptersListEdited);
             }
 
             RemoveProp(hwndDlg, L"Context");
@@ -304,9 +311,11 @@ static INT_PTR CALLBACK OptionsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) ? BST_CHECKED : BST_UNCHECKED);
-
+            
+            PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
             ClearAdaptersList(context->NetworkAdaptersListEdited);
             CopyAdaptersList(context->NetworkAdaptersListEdited, NetworkAdaptersList);
+            PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 
             FindNetworkAdapters(context, !!PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS));
 

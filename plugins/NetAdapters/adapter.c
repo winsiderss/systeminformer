@@ -45,6 +45,8 @@ VOID NetAdaptersUpdate(
     VOID
     )
 {
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
@@ -69,22 +71,21 @@ VOID NetAdaptersUpdate(
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 );
 
-            if (adapterHandle)
-            {
-                // Check the network adapter supports the OIDs we're going to be using.
-                if (!NetworkAdapterQuerySupported(adapterHandle))
-                {
-                    // Device is faulty. Close the handle so we can fallback to GetIfEntry.
-                    NtClose(adapterHandle);
-                    adapterHandle = NULL;
-                }
-            }
+            //if (adapterHandle)
+            //{
+            //    // Check the network adapter supports the OIDs we're going to be using.
+            //    if (!NetworkAdapterQuerySupported(adapterHandle))
+            //    {
+            //        // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+            //        NtClose(adapterHandle);
+            //        adapterHandle = NULL;
+            //    }
+            //}
         }
 
         if (adapterHandle)
         {
             NDIS_STATISTICS_INFO interfaceStats;
-            //NDIS_LINK_STATE interfaceState;
 
             if (NT_SUCCESS(NetworkAdapterQueryStatistics(adapterHandle, &interfaceStats)))
             {
@@ -110,15 +111,6 @@ VOID NetAdaptersUpdate(
                 networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
             }
 
-            //if (NT_SUCCESS(NetworkAdapterQueryLinkState(context->DeviceHandle, &interfaceState)))
-            //{
-            //    networkLinkSpeed = interfaceState.XmitLinkSpeed;
-            //}
-            //else
-            //{
-            //    NetworkAdapterQueryLinkSpeed(context->DeviceHandle, &networkLinkSpeed);
-            //}
-
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
             {
@@ -135,7 +127,6 @@ VOID NetAdaptersUpdate(
             networkOutOctets = interfaceRow.OutOctets;
             networkRcvSpeed = networkInOctets - entry->LastInboundValue;
             networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-            //networkLinkSpeed = interfaceRow.TransmitLinkSpeed; // interfaceRow.ReceiveLinkSpeed
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
@@ -184,4 +175,6 @@ VOID NetAdaptersUpdate(
             NtClose(adapterHandle);
         }
     }
+
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 }
