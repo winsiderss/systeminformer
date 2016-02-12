@@ -51,12 +51,12 @@ static VOID CopyAdaptersList(
         newEntry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
         memset(newEntry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
-        PhInitializeCircularBuffer_ULONG64(&newEntry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-        PhInitializeCircularBuffer_ULONG64(&newEntry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-
         newEntry->InterfaceIndex = entry->InterfaceIndex;
         newEntry->InterfaceLuid = entry->InterfaceLuid;
         newEntry->InterfaceGuid = entry->InterfaceGuid;
+
+        PhInitializeCircularBuffer_ULONG64(&newEntry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+        PhInitializeCircularBuffer_ULONG64(&newEntry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
 
         PhAddItemList(Destination, newEntry);
     }
@@ -313,7 +313,6 @@ static INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) ? BST_CHECKED : BST_UNCHECKED);
             
             PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
-            ClearAdaptersList(context->NetworkAdaptersListEdited);
             CopyAdaptersList(context->NetworkAdaptersListEdited, NetworkAdaptersList);
             PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 

@@ -30,6 +30,8 @@ static VOID AdapterEntryDeleteProcedure(
     PPH_NETADAPTER_ENTRY Entry = Object;
 
     PhClearReference(&Entry->InterfaceGuid);
+    PhClearReference(&Entry->AdapterName);
+
     PhDeleteCircularBuffer_ULONG64(&Entry->InboundBuffer);
     PhDeleteCircularBuffer_ULONG64(&Entry->OutboundBuffer);
 }
@@ -83,6 +85,11 @@ VOID NetAdaptersUpdate(
 
             NetworkAdapterQueryStatistics(adapterHandle, &interfaceStats);
 
+            if (NT_SUCCESS(NetworkAdapterQueryLinkState(adapterHandle, &interfaceState)))
+            {
+                mediaState = interfaceState.MediaConnectState;
+            }
+
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
                 networkInOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_RCV);
             else
@@ -100,11 +107,6 @@ VOID NetAdaptersUpdate(
             if (!entry->AdapterName)
             {
                 entry->AdapterName = NetworkAdapterQueryName(adapterHandle, entry->InterfaceGuid);
-            }
-
-            if (NT_SUCCESS(NetworkAdapterQueryLinkState(adapterHandle, &interfaceState)))
-            {
-                mediaState = interfaceState.MediaConnectState;
             }
 
             NtClose(adapterHandle);

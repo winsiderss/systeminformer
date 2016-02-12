@@ -60,8 +60,8 @@ typedef struct _PH_NETADAPTER_ENTRY
 {
     NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid;
-    PPH_STRING InterfaceGuid;
 
+    PPH_STRING InterfaceGuid;
     PPH_STRING AdapterName;
 
     BOOLEAN HaveFirstSample;
