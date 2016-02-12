@@ -36,8 +36,8 @@
 #define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
-#include <windowsx.h>
 
+#include <windowsx.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <ws2tcpip.h>
@@ -91,6 +91,7 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     HWND WindowHandle;
     HWND PanelWindowHandle;
     HWND GraphHandle;
+    BOOLEAN Enabled;
 
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;

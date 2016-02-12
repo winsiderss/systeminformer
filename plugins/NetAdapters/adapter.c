@@ -29,8 +29,9 @@ static VOID AdapterEntryDeleteProcedure(
 {
     PPH_NETADAPTER_ENTRY Entry = Object;
 
-    if (Entry->InterfaceGuid)
-        PhDereferenceObject(Entry->InterfaceGuid);
+    PhClearReference(&Entry->InterfaceGuid);
+    PhDeleteCircularBuffer_ULONG64(&Entry->InboundBuffer);
+    PhDeleteCircularBuffer_ULONG64(&Entry->OutboundBuffer);
 }
 
 VOID NetAdaptersInitialize(
@@ -49,13 +50,15 @@ VOID NetAdaptersUpdate(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
-
+        HANDLE adapterHandle = NULL;
+        PPH_NETADAPTER_ENTRY entry;
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
         ULONG64 networkRcvSpeed = 0;
         ULONG64 networkXmitSpeed = 0;
-        HANDLE adapterHandle = NULL;
+        NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
+
+        entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
         {
@@ -74,6 +77,7 @@ VOID NetAdaptersUpdate(
         if (adapterHandle)
         {
             NDIS_STATISTICS_INFO interfaceStats;
+            NDIS_LINK_STATE interfaceState;
 
             memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
 
@@ -97,6 +101,13 @@ VOID NetAdaptersUpdate(
             {
                 entry->AdapterName = NetworkAdapterQueryName(adapterHandle, entry->InterfaceGuid);
             }
+
+            if (NT_SUCCESS(NetworkAdapterQueryLinkState(adapterHandle, &interfaceState)))
+            {
+                mediaState = interfaceState.MediaConnectState;
+            }
+
+            NtClose(adapterHandle);
         }
         else if (GetIfEntry2_I)
         {
@@ -106,6 +117,7 @@ VOID NetAdaptersUpdate(
 
             networkInOctets = interfaceRow.InOctets;
             networkOutOctets = interfaceRow.OutOctets;
+            mediaState = interfaceRow.MediaConnectState;
             networkRcvSpeed = networkInOctets - entry->LastInboundValue;
             networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
 
@@ -125,7 +137,11 @@ VOID NetAdaptersUpdate(
             networkOutOctets = interfaceRow.dwOutOctets;
             networkRcvSpeed = networkInOctets - entry->LastInboundValue;
             networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-            //networkLinkSpeed = interfaceRow.dwSpeed;
+
+            if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
+                mediaState = MediaConnectStateConnected;
+            else
+                mediaState = MediaConnectStateUnknown;
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
@@ -141,6 +157,13 @@ VOID NetAdaptersUpdate(
             entry->HaveFirstSample = TRUE;
         }
 
+        // We don't want incorrect data when the adapter is disabled.
+        if (mediaState == MediaConnectStateUnknown)
+        {
+            networkRcvSpeed = 0;
+            networkXmitSpeed = 0;
+        }
+
         PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
         PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
 
@@ -149,12 +172,6 @@ VOID NetAdaptersUpdate(
         entry->OutboundValue = networkXmitSpeed;
         entry->LastInboundValue = networkInOctets;
         entry->LastOutboundValue = networkOutOctets;
-
-
-        if (adapterHandle)
-        {
-            NtClose(adapterHandle);
-        }
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
