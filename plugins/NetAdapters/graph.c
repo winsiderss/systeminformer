@@ -422,6 +422,7 @@ static BOOLEAN NetAdapterSectionCallback(
         return TRUE;
     case SysInfoDestroy:
         {
+            PhDereferenceObject(context->AdapterEntry);
             PhFree(context);
         }
         return TRUE;

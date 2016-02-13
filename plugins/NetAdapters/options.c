@@ -26,40 +26,60 @@ static BOOLEAN OptionsChanged = FALSE;
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 
-static VOID ClearAdaptersList(
-    _Inout_ PPH_LIST FilterList
+static BOOLEAN AdapterEntryExists(
+    _In_ PPH_NETADAPTER_ENTRY Entry
     )
 {
-    for (ULONG i = 0; i < FilterList->Count; i++)
+    BOOLEAN found = FALSE;
+
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PhDereferenceObject(FilterList->Items[i]);
+        PPH_NETADAPTER_ENTRY currentEntry;
+
+        currentEntry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
+
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (Entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
+            {
+                found = TRUE;
+                break;
+            }
+        }
+        else
+        {
+            if (Entry->InterfaceIndex == currentEntry->InterfaceIndex)
+            {
+                found = TRUE;
+                break;
+            }
+        }
     }
 
-    PhClearList(FilterList);
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+
+    return found;
 }
 
-static VOID CopyAdaptersList(
-    _Inout_ PPH_LIST Destination,
-    _In_ PPH_LIST Source
+static VOID AdapterEntryAdd(
+    _In_ PPH_NETADAPTER_ENTRY Entry
     )
 {
-    for (ULONG i = 0; i < Source->Count; i++)
-    {
-        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)Source->Items[i];
-        PPH_NETADAPTER_ENTRY newEntry;
+    PhInitializeCircularBuffer_ULONG64(&Entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+    PhInitializeCircularBuffer_ULONG64(&Entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
 
-        newEntry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
-        memset(newEntry, 0, sizeof(PH_NETADAPTER_ENTRY));
+    PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
+    PhAddItemList(NetworkAdaptersList, Entry);
+    PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
+}
 
-        newEntry->InterfaceIndex = entry->InterfaceIndex;
-        newEntry->InterfaceLuid = entry->InterfaceLuid;
-        newEntry->InterfaceGuid = entry->InterfaceGuid;
-
-        PhInitializeCircularBuffer_ULONG64(&newEntry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-        PhInitializeCircularBuffer_ULONG64(&newEntry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-
-        PhAddItemList(Destination, newEntry);
-    }
+static VOID AdapterEntryRemove(
+    _In_ PPH_NETADAPTER_ENTRY Entry
+    )
+{
+    PhDereferenceObject(Entry);
 }
 
 VOID NetAdaptersLoadList(
@@ -103,10 +123,7 @@ VOID NetAdaptersLoadList(
         entry->InterfaceLuid.Value = luid64;
         entry->InterfaceGuid = PhCreateString2(&part3);
 
-        PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-        PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-
-        PhAddItemList(NetworkAdaptersList, entry);
+        AdapterEntryAdd(entry);
     }
 }
 
@@ -149,31 +166,56 @@ static VOID AddNetworkAdapterToListView(
     )
 {
     INT lvItemIndex;
-    PPH_NETADAPTER_ENTRY entry;
+    PPH_NETADAPTER_ENTRY newEntry = NULL;
 
-    entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
-    memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    {
+        PPH_NETADAPTER_ENTRY entry = NetworkAdaptersList->Items[i];
 
-    entry->InterfaceIndex = Adapter->IfIndex;
-    entry->InterfaceLuid = Adapter->Luid;
-    entry->InterfaceGuid = PhConvertMultiByteToUtf16(Adapter->AdapterName);
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (entry->InterfaceLuid.Value == Adapter->Luid.Value)
+            {
+                newEntry = entry;
+                break;
+            }
+        }
+        else
+        {
+            if (entry->InterfaceIndex == Adapter->IfIndex)
+            {
+                newEntry = entry;
+                break;
+            }
+        }
+    }
+
+    if (!newEntry)
+    {
+        newEntry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
+        memset(newEntry, 0, sizeof(PH_NETADAPTER_ENTRY));
+
+        newEntry->InterfaceIndex = Adapter->IfIndex;
+        newEntry->InterfaceLuid = Adapter->Luid;
+        newEntry->InterfaceGuid = PhConvertMultiByteToUtf16(Adapter->AdapterName);
+    }
 
     lvItemIndex = PhAddListViewItem(
         Context->ListViewHandle,
         MAXINT,
         Adapter->Description,
-        entry
+        newEntry
         );
 
-    for (ULONG i = 0; i < Context->NetworkAdaptersListEdited->Count; i++)
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         PPH_NETADAPTER_ENTRY currentEntry;
         
-        currentEntry = (PPH_NETADAPTER_ENTRY)Context->NetworkAdaptersListEdited->Items[i];
+        currentEntry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
 
-        if (WindowsVersion > WINDOWS_XP)
+        if (WindowsVersion >= WINDOWS_VISTA)
         {
-            if (entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
+            if (newEntry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
             {
                 ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
                 break;
@@ -181,7 +223,7 @@ static VOID AddNetworkAdapterToListView(
         }
         else
         {
-            if (entry->InterfaceIndex == currentEntry->InterfaceIndex)
+            if (newEntry->InterfaceIndex == currentEntry->InterfaceIndex)
             {
                 ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
                 break;
@@ -255,12 +297,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
         {
             if (context->OptionsChanged)
             {
-                PPH_LIST list;
-                ULONG index;
-                PVOID param;
-
-                list = PhCreateList(2);
-                index = -1;
+                ULONG index = -1;
 
                 while ((index = PhFindListViewItemByFlags(
                     context->ListViewHandle,
@@ -268,25 +305,34 @@ static INT_PTR CALLBACK OptionsDlgProc(
                     LVNI_ALL
                     )) != -1)
                 {
-                    BOOL checked = ListView_GetItemState(context->ListViewHandle, index, LVIS_STATEIMAGEMASK) == ITEM_CHECKED;
+                    BOOLEAN checked;
+                    PPH_NETADAPTER_ENTRY param;
+
+                    checked = ListView_GetItemState(context->ListViewHandle, index, LVIS_STATEIMAGEMASK) == ITEM_CHECKED;
 
                     if (checked)
                     {
                         if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
                         {
-                            PhAddItemList(list, param);
+                            if (!AdapterEntryExists(param))
+                            {
+                                AdapterEntryAdd(param);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
+                        {
+                            if (AdapterEntryExists(param))
+                            {
+                                AdapterEntryRemove(param);
+                            }
                         }
                     }
                 }
 
-                PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
-                ClearAdaptersList(NetworkAdaptersList);
-                CopyAdaptersList(NetworkAdaptersList, list);
-                PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
-
                 SaveAdaptersList();
-
-                PhDereferenceObject(context->NetworkAdaptersListEdited);
             }
 
             RemoveProp(hwndDlg, L"Context");
@@ -301,7 +347,6 @@ static INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->NetworkAdaptersListEdited = PhCreateList(2);
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_NETADAPTERS_LISTVIEW);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -311,13 +356,8 @@ static INT_PTR CALLBACK OptionsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) ? BST_CHECKED : BST_UNCHECKED);
-            
-            PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
-            CopyAdaptersList(context->NetworkAdaptersListEdited, NetworkAdaptersList);
-            PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 
             FindNetworkAdapters(context, !!PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS));
-
             context->OptionsChanged = FALSE;
         }
         break;

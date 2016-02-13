@@ -90,6 +90,8 @@ static VOID NTAPI SystemInformationInitializingCallback(
     {
         PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
         
+        PhReferenceObject(entry);
+
         NetAdapterSysInfoInitializing(pluginEntry, entry);
     }
 

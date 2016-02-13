@@ -29,6 +29,34 @@ static VOID AdapterEntryDeleteProcedure(
 {
     PPH_NETADAPTER_ENTRY Entry = Object;
 
+    PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
+
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    {
+        PPH_NETADAPTER_ENTRY currentEntry;
+
+        currentEntry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
+
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (Entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
+            {
+                PhRemoveItemList(NetworkAdaptersList, i);
+                break;
+            }
+        }
+        else
+        {
+            if (Entry->InterfaceIndex == currentEntry->InterfaceIndex)
+            {
+                PhRemoveItemList(NetworkAdaptersList, i);
+                break;
+            }
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
+
     PhClearReference(&Entry->InterfaceGuid);
     PhClearReference(&Entry->AdapterName);
 
