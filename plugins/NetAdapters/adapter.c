@@ -88,7 +88,10 @@ VOID NetAdaptersUpdate(
         ULONG64 networkXmitSpeed = 0;
         NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
 
-        entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
+        entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+
+        if (!entry)
+            continue;
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
         {
@@ -202,6 +205,8 @@ VOID NetAdaptersUpdate(
         entry->OutboundValue = networkXmitSpeed;
         entry->LastInboundValue = networkInOctets;
         entry->LastOutboundValue = networkOutOctets;
+
+        PhDereferenceObject(entry);
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);

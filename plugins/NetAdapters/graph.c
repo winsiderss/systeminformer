@@ -528,7 +528,7 @@ static BOOLEAN NetAdapterSectionCallback(
 
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ _Assume_refs_(1) PPH_NETADAPTER_ENTRY AdapterEntry
     )
 {
     PH_SYSINFO_SECTION section;
@@ -542,8 +542,7 @@ VOID NetAdapterSysInfoInitializing(
 
     section.Context = context;
     section.Callback = NetAdapterSectionCallback;
-
-    PhInitializeStringRefLongHint(&section.Name, AdapterEntry->AdapterName->Buffer);
+    section.Name = AdapterEntry->AdapterName->sr;
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }

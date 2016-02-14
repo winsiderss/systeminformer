@@ -133,7 +133,7 @@ VOID ShowOptionsDialog(
 
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ PPH_NETADAPTER_ENTRY AdapterInfo
+    _In_ _Assume_refs_(1) PPH_NETADAPTER_ENTRY AdapterInfo
     );
 
 // adapter.c

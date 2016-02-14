@@ -36,26 +36,26 @@ static BOOLEAN AdapterEntryExists(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY currentEntry;
+        PPH_NETADAPTER_ENTRY currentEntry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
-        currentEntry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
+        if (!currentEntry)
+            continue;
 
         if (WindowsVersion >= WINDOWS_VISTA)
         {
             if (Entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
-            {
                 found = TRUE;
-                break;
-            }
         }
         else
         {
             if (Entry->InterfaceIndex == currentEntry->InterfaceIndex)
-            {
                 found = TRUE;
-                break;
-            }
         }
+
+        PhDereferenceObject(currentEntry);
+
+        if (found)
+            break;
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
@@ -91,11 +91,6 @@ VOID NetAdaptersLoadList(
 
     settingsString = PhaGetStringSetting(SETTING_NAME_INTERFACE_LIST);
     remaining = settingsString->sr;
-
-    if (remaining.Length == 0)
-    {
-        return;
-    }
 
     while (remaining.Length != 0)
     {
@@ -140,7 +135,10 @@ static VOID SaveAdaptersList(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
+        PPH_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+
+        if (!entry)
+            continue;
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
@@ -149,6 +147,7 @@ static VOID SaveAdaptersList(
             entry->InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
             entry->InterfaceGuid->Buffer
             );
+        PhDereferenceObject(entry);
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
