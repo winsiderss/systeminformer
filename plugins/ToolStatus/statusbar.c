@@ -52,10 +52,12 @@ VOID StatusBarLoadDefault(
     VOID
     )
 {
+    ULONG i;
+
     if (!StatusBarItemList)
         StatusBarItemList = PhCreateList(MAX_DEFAULT_STATUSBAR_ITEMS);
 
-    for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
+    for (i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
         PSTATUSBAR_ITEM statusItem;
 
@@ -260,8 +262,7 @@ VOID StatusBarUpdate(
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
 
-    // TODO: Review
-    if (!StatusBarItemList || StatusBarItemList->Count == 0)
+    if (ProcessesUpdatedCount < 2 || !StatusBarItemList || StatusBarItemList->Count == 0)
     {
         // The status bar doesn't cope well with 0 parts.
         widths[0] = -1;

@@ -120,7 +120,7 @@ PhReferenceObjectEx(
     );
 
 PHLIBAPI
-BOOLEAN
+PVOID
 NTAPI
 PhReferenceObjectSafe(
     _In_ PVOID Object
