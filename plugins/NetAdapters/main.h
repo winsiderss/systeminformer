@@ -136,7 +136,7 @@ VOID NetAdapterSysInfoInitializing(
     _In_ PPH_NETADAPTER_ENTRY AdapterInfo
     );
 
-// adapters.c
+// adapter.c
 
 VOID NetAdaptersInitialize(
     VOID
