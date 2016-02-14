@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -20,18 +20,18 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
+#include "netadapters.h"
 
-_NotifyIpInterfaceChange NotifyIpInterfaceChange_I;
-_CancelMibChangeNotify2 CancelMibChangeNotify2_I;
-_ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I;
+_NotifyIpInterfaceChange NotifyIpInterfaceChange_I = NULL;
+_CancelMibChangeNotify2 CancelMibChangeNotify2_I = NULL;
+_ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I = NULL;
 
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context = Context;
+    PDV_NETADAPTER_DETAILS_CONTEXT context = Context;
 
     if (context->WindowHandle)
     {
@@ -139,7 +139,7 @@ static VOID AddListViewItemGroups(
 
 
 static VOID NetAdapterLookupConfig(
-    _Inout_ PPH_NETADAPTER_DETAILS_CONTEXT Context
+    _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -177,7 +177,7 @@ static VOID NetAdapterLookupConfig(
 
             for (PIP_ADAPTER_ADDRESSES addressesBuffer = buffer; addressesBuffer; addressesBuffer = addressesBuffer->Next)
             {
-                if (addressesBuffer->Luid.Value != Context->AdapterEntry->InterfaceLuid.Value)
+                if (addressesBuffer->Luid.Value != Context->AdapterId.InterfaceLuid.Value)
                     continue;
 
                 for (PIP_ADAPTER_UNICAST_ADDRESS unicastAddress = addressesBuffer->FirstUnicastAddress; unicastAddress; unicastAddress = unicastAddress->Next)
@@ -283,24 +283,18 @@ static VOID NetAdapterLookupConfig(
                 gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
 
                 //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, PhIsNullOrEmptyString(subnetAddressString) ? L"" : subnetAddressString->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString->Buffer);
             }
         }
         __finally
         {
             if (buffer)
-            {
                 PhFree(buffer);
-            }
 
-            if (domainString)
-            {
-                PhDereferenceObject(domainString);
-            }
-
+            PhClearReference(&domainString);
             PhDeleteStringBuilder(&ipAddressBuffer);
             PhDeleteStringBuilder(&subnetAddressBuffer);
             PhDeleteStringBuilder(&gatewayAddressBuffer);
@@ -312,7 +306,7 @@ static VOID NetAdapterLookupConfig(
         HANDLE keyHandle;
         PPH_STRING keyNameIpV4;
 
-        keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterEntry->InterfaceGuid->sr);
+        keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterId.InterfaceGuid->sr);
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
@@ -333,36 +327,16 @@ static VOID NetAdapterLookupConfig(
             gatewayAddressString = PhQueryRegistryString(keyHandle, L"DhcpDefaultGateway");
 
             if (PhIsNullOrEmptyString(domainString))
-            {
-                if (domainString)
-                    PhDereferenceObject(domainString);
-
-                domainString = PhQueryRegistryString(keyHandle, L"Domain");
-            }
+                PhMoveReference(&domainString, PhQueryRegistryString(keyHandle, L"Domain"));
 
             if (PhIsNullOrEmptyString(ipAddressString))
-            {
-                if (ipAddressString)
-                    PhDereferenceObject(ipAddressString);
-
-                ipAddressString = PhQueryRegistryString(keyHandle, L"IPAddress");
-            }
+                PhMoveReference(&ipAddressString, PhQueryRegistryString(keyHandle, L"IPAddress"));
 
             if (PhIsNullOrEmptyString(subnetAddressString))
-            {
-                if (subnetAddressString)
-                    PhDereferenceObject(subnetAddressString);
-
-                subnetAddressString = PhQueryRegistryString(keyHandle, L"SubnetMask");
-            }
+                PhMoveReference(&subnetAddressString, PhQueryRegistryString(keyHandle, L"SubnetMask"));
 
             if (PhIsNullOrEmptyString(gatewayAddressString))
-            {
-                if (gatewayAddressString)
-                    PhDereferenceObject(gatewayAddressString);
-
-                gatewayAddressString = PhQueryRegistryString(keyHandle, L"DefaultGateway");
-            }
+                PhMoveReference(&gatewayAddressString, PhQueryRegistryString(keyHandle, L"DefaultGateway"));
 
             //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
             PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
@@ -370,20 +344,15 @@ static VOID NetAdapterLookupConfig(
             PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
 
-            if (domainString)
-                PhDereferenceObject(domainString);
-
-            if (ipAddressString)
-                PhDereferenceObject(ipAddressString);
-
-            if (subnetAddressString)
-                PhDereferenceObject(subnetAddressString);
-
-            if (gatewayAddressString)
-                PhDereferenceObject(gatewayAddressString);
+            PhClearReference(&domainString);
+            PhClearReference(&ipAddressString);
+            PhClearReference(&subnetAddressString);
+            PhClearReference(&gatewayAddressString);
 
             NtClose(keyHandle);
         }
+
+        PhDereferenceObject(keyNameIpV4);
     }
 }
 
@@ -393,7 +362,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
     _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context = CallerContext;
+    PDV_NETADAPTER_DETAILS_CONTEXT context = CallerContext;
 
     if (NotificationType == MibInitialNotification)
     {
@@ -401,7 +370,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
     }
     else if (NotificationType == MibParameterNotification)
     {
-        if (Row->InterfaceLuid.Value = context->AdapterEntry->InterfaceLuid.Value)
+        if (Row->InterfaceLuid.Value = context->AdapterId.InterfaceLuid.Value)
         {
             NetAdapterLookupConfig(context);
         }
@@ -409,7 +378,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
 }
 
 static VOID NetAdapterUpdateDetails(
-    _Inout_ PPH_NETADAPTER_DETAILS_CONTEXT Context
+    _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
     ULONG64 interfaceLinkSpeed = 0;
@@ -441,7 +410,7 @@ static VOID NetAdapterUpdateDetails(
         {
             MIB_IF_ROW2 interfaceRow;
 
-            interfaceRow = QueryInterfaceRowVista(Context->AdapterEntry);
+            interfaceRow = QueryInterfaceRowVista(&Context->AdapterId);
 
             interfaceStats.ifInDiscards = interfaceRow.InDiscards;
             interfaceStats.ifInErrors = interfaceRow.InErrors;
@@ -473,7 +442,7 @@ static VOID NetAdapterUpdateDetails(
         {
             MIB_IFROW interfaceRow;
 
-            interfaceRow = QueryInterfaceRowXP(Context->AdapterEntry);
+            interfaceRow = QueryInterfaceRowXP(&Context->AdapterId);
 
             interfaceStats.ifInDiscards = interfaceRow.dwInDiscards;
             interfaceStats.ifInErrors = interfaceRow.dwInErrors;
@@ -572,27 +541,19 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context;
+    PDV_NETADAPTER_DETAILS_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PPH_NETADAPTER_DETAILS_CONTEXT)lParam;
+        context = (PDV_NETADAPTER_DETAILS_CONTEXT)lParam;
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PPH_NETADAPTER_DETAILS_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PDV_NETADAPTER_DETAILS_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
-        {
             RemoveProp(hwndDlg, L"Context");
-
-            PhDereferenceObject(context->AdapterEntry->InterfaceGuid);
-            PhFree(context->AdapterEntry);
-
-            PhDereferenceObject(context->AdapterName);
-            PhFree(context);
-        }
     }
 
     if (!context)
@@ -626,7 +587,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
                 // Create the handle to the network device
                 PhCreateFileWin32(
                     &context->DeviceHandle,
-                    PhaFormatString(L"\\\\.\\%s", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+                    PhaConcatStrings(2, L"\\\\.\\", context->AdapterId.InterfaceGuid->Buffer)->Buffer,
                     FILE_GENERIC_READ,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -721,10 +682,20 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     return FALSE;
 }
 
+static VOID FreeDetailsContext(
+    _In_ PDV_NETADAPTER_DETAILS_CONTEXT Context
+    )
+{
+    DeleteNetAdapterId(&Context->AdapterId);
+    PhDereferenceObject(Context->AdapterName);
+    PhFree(Context);
+}
+
 static NTSTATUS ShowDetailsDialogThread(
     _In_ PVOID Parameter
     )
 {
+    PDV_NETADAPTER_DETAILS_CONTEXT context = (PDV_NETADAPTER_DETAILS_CONTEXT)Parameter;
     BOOL result;
     MSG message;
     HWND dialogHandle;
@@ -737,7 +708,7 @@ static NTSTATUS ShowDetailsDialogThread(
         MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS),
         NULL,
         AdapterDetailsDlgProc,
-        (LPARAM)Parameter
+        (LPARAM)context
         );
 
     PostMessage(dialogHandle, WM_SHOWDIALOG, 0, 0);
@@ -757,29 +728,28 @@ static NTSTATUS ShowDetailsDialogThread(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(dialogHandle);
+
+    FreeDetailsContext(context);
 
     return STATUS_SUCCESS;
 }
 
 VOID ShowDetailsDialog(
-    _In_opt_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_opt_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     HANDLE dialogThread = NULL;
-    PPH_NETADAPTER_DETAILS_CONTEXT context;
+    PDV_NETADAPTER_DETAILS_CONTEXT context;
 
-    context = PhAllocate(sizeof(PH_NETADAPTER_DETAILS_CONTEXT));
-    memset(context, 0, sizeof(PH_NETADAPTER_DETAILS_CONTEXT));
+    context = PhAllocate(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
+    memset(context, 0, sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
 
     context->ParentHandle = Context->WindowHandle;
-    context->AdapterName = PhReferenceObject(Context->AdapterName);
-
-    context->AdapterEntry = PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
-    context->AdapterEntry->InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
-    context->AdapterEntry->InterfaceLuid = Context->AdapterEntry->InterfaceLuid;
-    context->AdapterEntry->InterfaceGuid = PhReferenceObject(Context->AdapterEntry->InterfaceGuid);
+    context->AdapterName = PhReferenceObject(Context->AdapterEntry->AdapterName);
+    CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->Id);
 
     if (dialogThread = PhCreateThread(0, ShowDetailsDialogThread, context))
         NtClose(dialogThread);
+    else
+        FreeDetailsContext(context);
 }

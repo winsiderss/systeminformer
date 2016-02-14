@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -20,13 +20,16 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
+#include "netadapters.h"
 
+PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
+PH_QUEUED_LOCK NetworkAdaptersListLock = PH_QUEUED_LOCK_INIT;
 PPH_PLUGIN PluginInstance = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 
 static VOID NTAPI LoadCallback(
@@ -34,11 +37,9 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_STRING string = NULL;
-
     if (WindowsVersion > WINDOWS_VISTA)
     {
-        if (IphlpHandle = PhGetDllHandle(L"iphlpapi.dll"))
+        if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
         {
             GetIfEntry2_I = PhGetProcedureAddress(IphlpHandle, "GetIfEntry2", 0);
             GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
@@ -48,11 +49,8 @@ static VOID NTAPI LoadCallback(
         }
     }
 
-    NetworkAdaptersList = PhCreateList(1);
-
-    string = PhGetStringSetting(SETTING_NAME_INTERFACE_LIST);
-    LoadAdaptersList(NetworkAdaptersList, string);
-    PhDereferenceObject(string);
+    NetAdaptersInitialize();
+    NetAdaptersLoadList();
 }
 
 static VOID NTAPI UnloadCallback(
@@ -71,6 +69,14 @@ static VOID NTAPI ShowOptionsCallback(
     ShowOptionsDialog((HWND)Parameter);
 }
 
+static VOID NTAPI ProcessesUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    NetAdaptersUpdate();
+}
+
 static VOID NTAPI SystemInformationInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -78,12 +84,19 @@ static VOID NTAPI SystemInformationInitializingCallback(
 {
     PPH_PLUGIN_SYSINFO_POINTERS pluginEntry = (PPH_PLUGIN_SYSINFO_POINTERS)Parameter;
 
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+
+        if (!entry)
+            continue;
 
         NetAdapterSysInfoInitializing(pluginEntry, entry);
     }
+
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 }
 
 LOGICAL DllMain(
@@ -133,6 +146,14 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent, 
+                ProcessesUpdatedCallback, 
+                NULL, 
+                &ProcessesUpdatedCallbackRegistration
+                );
+
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing),
                 SystemInformationInitializingCallback,

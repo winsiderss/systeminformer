@@ -1,8 +1,8 @@
 /*
- * Process Hacker Extra Plugins -
+ * Process Hacker Plugins -
  *   Network Adapters Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
+#include "netadapters.h"
 
 PVOID IphlpHandle = NULL;
 _GetIfEntry2 GetIfEntry2_I = NULL;
@@ -61,7 +61,7 @@ BOOLEAN NetworkAdapterQuerySupported(
     {
         ndisQuerySupported = TRUE;
 
-        for (ULONG i = 0; i < (ULONG)isb.Information; i++)
+        for (ULONG i = 0; i < (ULONG)isb.Information / sizeof(NDIS_OID); i++)
         {
             NDIS_OID opcode = ndisObjectIdentifiers[i];
 
@@ -140,7 +140,8 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
 }
 
 PPH_STRING NetworkAdapterQueryName(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ HANDLE DeviceHandle,
+    _In_ PPH_STRING InterfaceGuid
     )
 {
     NDIS_OID opcode;
@@ -151,7 +152,7 @@ PPH_STRING NetworkAdapterQueryName(
     opcode = OID_GEN_FRIENDLY_NAME;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
-        Context->DeviceHandle,
+        DeviceHandle,
         NULL,
         NULL,
         NULL,
@@ -172,7 +173,7 @@ PPH_STRING NetworkAdapterQueryName(
         GUID deviceGuid = GUID_NULL;
         UNICODE_STRING guidStringUs;
 
-        PhStringRefToUnicodeString(&Context->AdapterEntry->InterfaceGuid->sr, &guidStringUs);
+        PhStringRefToUnicodeString(&InterfaceGuid->sr, &guidStringUs);
 
         if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
         {
@@ -385,15 +386,15 @@ ULONG64 NetworkAdapterQueryValue(
 }
 
 MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ PDV_NETADAPTER_ID Id
     )
 {
     MIB_IF_ROW2 interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
 
-    interfaceRow.InterfaceLuid = AdapterEntry->InterfaceLuid;
-    interfaceRow.InterfaceIndex = AdapterEntry->InterfaceIndex;
+    interfaceRow.InterfaceLuid = Id->InterfaceLuid;
+    interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
     if (GetIfEntry2_I)
     {
@@ -411,14 +412,14 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
 }
 
 MIB_IFROW QueryInterfaceRowXP(
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ PDV_NETADAPTER_ID Id
     )
 {
     MIB_IFROW interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IFROW));
 
-    interfaceRow.dwIndex = AdapterEntry->InterfaceIndex;
+    interfaceRow.dwIndex = Id->InterfaceIndex;
 
     GetIfEntry(&interfaceRow);
 
@@ -433,7 +434,7 @@ MIB_IFROW QueryInterfaceRowXP(
 
 
 //BOOLEAN NetworkAdapterQueryInternet(
-//    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context,
+//    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
 //    _In_ PPH_STRING IpAddress
 //    )
 //{
@@ -561,7 +562,7 @@ MIB_IFROW QueryInterfaceRowXP(
 //}
 
 //BOOLEAN NetworkAdapterQueryConfig(
-//    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context, 
+//    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context, 
 //    _Out_ PPH_NETADAPTER_CONFIG Config
 //    )
 //{

@@ -15,7 +15,7 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="main.h">
+    <ClInclude Include="netadapters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -33,6 +33,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="details.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="adapter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
