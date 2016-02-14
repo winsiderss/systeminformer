@@ -1151,7 +1151,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                                 // Reset the progress bar (might be a download retry)
                                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, 0, 0);
 
-                                if (WindowsVersion > WINDOWS_XP)
+                                if (WindowsVersion >= WINDOWS_VISTA)
                                     SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
 
                                 // Start file download thread
@@ -1289,7 +1289,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
         {
             context->UpdaterState = PhUpdateDefault;
 
-            if (WindowsVersion > WINDOWS_XP)
+            if (WindowsVersion >= WINDOWS_VISTA)
                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
 
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
