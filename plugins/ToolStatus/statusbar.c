@@ -52,10 +52,12 @@ VOID StatusBarLoadDefault(
     VOID
     )
 {
+    ULONG i;
+
     if (!StatusBarItemList)
         StatusBarItemList = PhCreateList(MAX_DEFAULT_STATUSBAR_ITEMS);
 
-    for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
+    for (i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
         PSTATUSBAR_ITEM statusItem;
 
@@ -260,7 +262,6 @@ VOID StatusBarUpdate(
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
 
-    // TODO: Review
     if (!StatusBarItemList || StatusBarItemList->Count == 0)
     {
         // The status bar doesn't cope well with 0 parts.
@@ -308,8 +309,8 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_COMMITCHARGE:
             {
-                ULONG commitUsage = SystemStatistics.Performance->CommittedPages;
-                FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
+                ULONG commitUsage = SystemStatistics.Performance ? SystemStatistics.Performance->CommittedPages : 0;
+                FLOAT commitFraction = (FLOAT)commitUsage / (SystemStatistics.Performance ? SystemStatistics.Performance->CommitLimit : 1) * 100;
 
                 text[count] = PhFormatString(
                     L"Commit Charge: %s (%.2f%%)",
@@ -320,7 +321,7 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_PHYSICALMEMORY:
             {
-                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
+                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - (SystemStatistics.Performance ? SystemStatistics.Performance->AvailablePages : 0);
                 FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
@@ -332,7 +333,7 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_FREEMEMORY:
             {
-                ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
+                ULONG physicalFree = SystemStatistics.Performance ? SystemStatistics.Performance->AvailablePages : 0;
                 FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(

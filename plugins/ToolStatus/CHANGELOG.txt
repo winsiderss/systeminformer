@@ -1,3 +1,6 @@
+2.4
+ * Fixed Statusbar crash
+
 2.3
  * Added Auto-hide main menu
  * Added CPU, Memory and IO graphs to main window
