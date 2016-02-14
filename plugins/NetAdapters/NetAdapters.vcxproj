@@ -72,7 +72,7 @@
     <ClCompile Include="options.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
+    <ClInclude Include="netadapters.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

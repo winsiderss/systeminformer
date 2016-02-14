@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
+#include "netadapters.h"
 
 static VOID AdapterEntryDeleteProcedure(
     _In_ PVOID Object,

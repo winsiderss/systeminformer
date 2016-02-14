@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
+#include "netadapters.h"
 
 _NotifyIpInterfaceChange NotifyIpInterfaceChange_I = NULL;
 _CancelMibChangeNotify2 CancelMibChangeNotify2_I = NULL;

@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
+#include "netadapters.h"
 
 PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
