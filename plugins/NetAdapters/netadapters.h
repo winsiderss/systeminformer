@@ -3,6 +3,7 @@
  *   Network Adapters Plugin
  *
  * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -70,7 +71,6 @@ typedef struct _DV_NETADAPTER_ENTRY
     PPH_STRING AdapterName;
 
     BOOLEAN UserReference;
-    BOOLEAN HaveFirstSample;
     BOOLEAN HaveFirstDetailsSample;
 
     //ULONG64 LinkSpeed;

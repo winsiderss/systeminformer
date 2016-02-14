@@ -3,6 +3,7 @@
  *   Network Adapters Plugin
  *
  * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -161,13 +162,6 @@ VOID NetAdaptersUpdate(
             }
         }
 
-        if (!entry->HaveFirstSample)
-        {
-            networkRcvSpeed = 0;
-            networkXmitSpeed = 0;
-            entry->HaveFirstSample = TRUE;
-        }
-
         // We don't want incorrect data when the adapter is disabled.
         if (mediaState == MediaConnectStateUnknown)
         {
@@ -179,6 +173,12 @@ VOID NetAdaptersUpdate(
         {
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
+        }
+        else
+        {
+            // The first sample must be zero.
+            networkRcvSpeed = 0;
+            networkXmitSpeed = 0;
         }
 
         //context->LinkSpeed = networkLinkSpeed;
