@@ -343,6 +343,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
                 }
                 break;
             case IDCANCEL:
+                context->OptionsChanged = FALSE;
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             case IDOK:
