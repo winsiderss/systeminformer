@@ -69,7 +69,7 @@ VOID NetAdaptersInitialize(
     )
 {
     NetworkAdaptersList = PhCreateList(1);
-    PhAdapterItemType = PhCreateObjectType(L"NetAdapterEntry", 0, AdapterEntryDeleteProcedure);
+    NetAdapterEntryType = PhCreateObjectType(L"NetAdapterEntry", 0, AdapterEntryDeleteProcedure);
 }
 
 VOID NetAdaptersUpdate(

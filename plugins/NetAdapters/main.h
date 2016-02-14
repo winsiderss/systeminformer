@@ -51,7 +51,7 @@
 #define WM_SHOWDIALOG (WM_APP + 1)
 #define MSG_UPDATE (WM_APP + 2)
 
-extern PPH_OBJECT_TYPE PhAdapterItemType;
+extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;
 extern PH_QUEUED_LOCK NetworkAdaptersListLock;
 extern PPH_PLUGIN PluginInstance;

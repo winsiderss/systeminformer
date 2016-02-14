@@ -22,7 +22,7 @@
 
 #include "main.h"
 
-PPH_OBJECT_TYPE PhAdapterItemType = NULL;
+PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
 PH_QUEUED_LOCK NetworkAdaptersListLock = PH_QUEUED_LOCK_INIT;
 PPH_PLUGIN PluginInstance = NULL;

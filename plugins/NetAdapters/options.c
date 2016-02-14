@@ -109,7 +109,7 @@ VOID NetAdaptersLoadList(
         if (remaining.Length == 0)
             break;
 
-        entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
+        entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), NetAdapterEntryType);
         memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
         PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
@@ -192,7 +192,7 @@ static VOID AddNetworkAdapterToListView(
 
     if (!newEntry)
     {
-        newEntry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), PhAdapterItemType);
+        newEntry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), NetAdapterEntryType);
         memset(newEntry, 0, sizeof(PH_NETADAPTER_ENTRY));
 
         newEntry->InterfaceIndex = Adapter->IfIndex;
