@@ -49,8 +49,6 @@ VOID RebarBandInsert(
     _In_ UINT cyMinChild
     )
 {
-    UINT bandIndex;
-    UINT bandCount;
     REBARBANDINFO rebarBandInfo =
     {
         REBARBANDINFO_V6_SIZE,
@@ -63,27 +61,17 @@ VOID RebarBandInsert(
     rebarBandInfo.cxMinChild = cxMinChild;
     rebarBandInfo.cyMinChild = cyMinChild;
 
-    //if (BandID == REBAR_BAND_ID_SEARCHBOX)
-    //rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
+    if (BandID == REBAR_BAND_ID_SEARCHBOX)
+    {
+        rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
+    }
 
     if (ToolStatusConfig.ToolBarLocked)
     {
         rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
     }
 
-    // Insert bands before the Searchbox when the Searchbox is in the (default) last position.
-    //  This is sort-of like the same behavior as the RBBS_FIXEDSIZE flag.
-    bandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)REBAR_BAND_ID_SEARCHBOX, 0);
-    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
-
-    if (bandIndex != -1 && bandCount > 1 && bandIndex == bandCount - 1)
-    {
-        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)bandCount - 1, (LPARAM)&rebarBandInfo);
-    }
-    else
-    {
-        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
-    }
+    SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
 }
 
 VOID RebarBandRemove(
@@ -236,7 +224,7 @@ static VOID RebarLoadSettings(
             ShowWindow(RebarHandle, SW_HIDE);
     }
 
-    if (ToolStatusConfig.SearchBoxEnabled && RebarHandle)
+    if (ToolStatusConfig.SearchBoxEnabled && RebarHandle && SearchboxHandle)
     {
         UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
 
@@ -244,8 +232,14 @@ static VOID RebarLoadSettings(
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
             RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, height - 2);
 
-        if (SearchboxHandle && !IsWindowVisible(SearchboxHandle))
+        if (!IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
+
+        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+        {
+            if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
+        }
     }
     else
     {
@@ -261,23 +255,6 @@ static VOID RebarLoadSettings(
 
             if (IsWindowVisible(SearchboxHandle))
                 ShowWindow(SearchboxHandle, SW_HIDE);
-        }
-    }
-
-    if (ToolStatusConfig.SearchBoxEnabled)
-    {
-        // TODO: Is there a better way of handling this in the above code?
-        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
-        {
-            if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
-        }
-        else
-        {
-            UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
-
-            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, height - 2);
         }
     }
 
