@@ -43,7 +43,6 @@ static BOOLEAN FindAdapterEntry(
             continue;
 
         found = EquivalentNetAdapterId(&currentEntry->Id, Id);
-        PhDereferenceObjectDeferDelete(currentEntry);
 
         if (found)
         {
@@ -56,7 +55,13 @@ static BOOLEAN FindAdapterEntry(
                 }
             }
 
+            PhDereferenceObjectDeferDelete(currentEntry);
+
             break;
+        }
+        else
+        {
+            PhDereferenceObjectDeferDelete(currentEntry);
         }
     }
 
