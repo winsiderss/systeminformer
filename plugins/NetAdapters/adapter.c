@@ -152,8 +152,6 @@ VOID NetAdaptersUpdate(
 
             if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
                 mediaState = MediaConnectStateConnected;
-            else
-                mediaState = MediaConnectStateUnknown;
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)

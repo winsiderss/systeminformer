@@ -385,25 +385,62 @@ static VOID NetAdapterUpdateDetails(
     ULONG64 interfaceLinkSpeed = 0;
     ULONG64 interfaceRcvSpeed = 0;
     ULONG64 interfaceXmitSpeed = 0;
-    FLOAT utilization = 0.0f;
     NDIS_STATISTICS_INFO interfaceStats = { 0 };
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
+    HANDLE deviceHandle = NULL;
 
-    if (Context->DeviceHandle)
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+    {
+        // Create the handle to the network device
+        PhCreateFileWin32(
+            &deviceHandle,
+            PhaConcatStrings(2, L"\\\\.\\", Context->AdapterId.InterfaceGuid->Buffer)->Buffer,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+
+        if (deviceHandle)
+        {
+            if (!Context->HaveCheckedDeviceSupport)
+            {
+                // Check the network adapter supports the OIDs we're going to be using.
+                if (NetworkAdapterQuerySupported(deviceHandle))
+                {
+                    Context->HaveDeviceSupport = TRUE;
+                }
+
+                Context->HaveCheckedDeviceSupport = TRUE;
+            }
+
+            if (!Context->HaveDeviceSupport)
+            {
+                // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+                NtClose(deviceHandle);
+                deviceHandle = NULL;
+            }
+        }
+    }
+
+    if (deviceHandle)
     {
         NDIS_LINK_STATE interfaceState;
 
-        NetworkAdapterQueryStatistics(Context->DeviceHandle, &interfaceStats);
+        NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats);
 
-        if (!NT_SUCCESS(NetworkAdapterQueryLinkState(Context->DeviceHandle, &interfaceState)))
-        {
-            NetworkAdapterQueryLinkSpeed(Context->DeviceHandle, &interfaceLinkSpeed);
-        }
-        else
+        if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
         {
             mediaState = interfaceState.MediaConnectState;
             interfaceLinkSpeed = interfaceState.XmitLinkSpeed;
         }
+        else
+        {
+            NetworkAdapterQueryLinkSpeed(deviceHandle, &interfaceLinkSpeed);
+        }
+
+        NtClose(deviceHandle);
     }
     else
     {
@@ -485,7 +522,6 @@ static VOID NetAdapterUpdateDetails(
         Context->HaveFirstDetailsSample = TRUE;
     }
 
-    utilization = (FLOAT)(interfaceRcvSpeed + interfaceXmitSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE) * 100;
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");
 
@@ -495,7 +531,7 @@ static VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_TOTAL, 1, PhaFormatSize(interfaceStats.ifHCInOctets + interfaceStats.ifHCOutOctets, -1)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENDING, 1, interfaceXmitSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceXmitSpeed, -1)->Buffer)->Buffer : L"");
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVING, 1, interfaceRcvSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceRcvSpeed, -1)->Buffer)->Buffer : L"");
-    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UTILIZATION, 1, PhaFormatString(L"%.2f%%", utilization)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UTILIZATION, 1, PhaFormatString(L"%.2f%%", (FLOAT)(interfaceRcvSpeed + interfaceXmitSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE) * 100)->Buffer);
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UNICAST_SENTPKTS, 1, PhaFormatUInt64(interfaceStats.ifHCOutUcastPkts, TRUE)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_UNICAST_RECVPKTS, 1, PhaFormatUInt64(interfaceStats.ifHCInUcastPkts, TRUE)->Buffer);
@@ -583,31 +619,6 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
 
             AddListViewItemGroups(context->ListViewHandle);
 
-            if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
-            {
-                // Create the handle to the network device
-                PhCreateFileWin32(
-                    &context->DeviceHandle,
-                    PhaConcatStrings(2, L"\\\\.\\", context->AdapterId.InterfaceGuid->Buffer)->Buffer,
-                    FILE_GENERIC_READ,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    FILE_OPEN,
-                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                    );
-
-                if (context->DeviceHandle)
-                {
-                    // Check the network adapter supports the OIDs we're going to be using.
-                    if (!NetworkAdapterQuerySupported(context->DeviceHandle))
-                    {
-                        // Device is faulty. Close the handle so we can fallback to GetIfEntry.
-                        NtClose(context->DeviceHandle);
-                        context->DeviceHandle = NULL;
-                    }
-                }
-            }
-
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedHandler,
@@ -632,19 +643,17 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterCallback(
+                &PhProcessesUpdatedEvent,
+                &context->ProcessesUpdatedRegistration
+                );
+
             if (context->NotifyHandle && CancelMibChangeNotify2_I)
             {
                 CancelMibChangeNotify2_I(context->NotifyHandle);
             }
 
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
-
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            if (context->DeviceHandle)
-            {
-                NtClose(context->DeviceHandle);
-            }
         }
         break;
     case WM_COMMAND:
@@ -730,13 +739,15 @@ static NTSTATUS ShowDetailsDialogThread(
 
     PhDeleteAutoPool(&autoPool);
 
+    DestroyWindow(dialogHandle);
+
     FreeDetailsContext(context);
 
     return STATUS_SUCCESS;
 }
 
 VOID ShowDetailsDialog(
-    _In_opt_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     HANDLE dialogThread = NULL;

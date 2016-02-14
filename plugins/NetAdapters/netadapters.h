@@ -91,13 +91,13 @@ typedef struct _DV_NETADAPTER_CONTEXT
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
+    BOOLEAN Enabled;
     PDV_NETADAPTER_ENTRY AdapterEntry;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
     HWND GraphHandle;
-    BOOLEAN Enabled;
-
+    
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -106,7 +106,8 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 
 typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 {
-    BOOLEAN HaveFirstSample;
+    BOOLEAN HaveDeviceSupport;
+    BOOLEAN HaveCheckedDeviceSupport;
     BOOLEAN HaveFirstDetailsSample;
 
     PPH_STRING AdapterName;
@@ -115,15 +116,11 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
     HWND WindowHandle;
     HWND ParentHandle;
     HWND ListViewHandle;
-
-    HANDLE DeviceHandle;
+   
     HANDLE NotifyHandle;
 
     PH_LAYOUT_MANAGER LayoutManager;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-
-    PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
-    PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
 
     ULONG64 LastDetailsInboundValue;
     ULONG64 LastDetailsIOutboundValue;
@@ -239,7 +236,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
 } NETADAPTER_DETAILS_INDEX;
 
 VOID ShowDetailsDialog(
-    _In_opt_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     );
 
 typedef NETIO_STATUS (WINAPI* _ConvertLengthToIpv4Mask)(
