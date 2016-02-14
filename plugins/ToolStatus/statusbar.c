@@ -262,7 +262,7 @@ VOID StatusBarUpdate(
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
 
-    if (!StatusBarItemList || StatusBarItemList->Count == 0)
+    if (ProcessesUpdatedCount < 2 || !StatusBarItemList || StatusBarItemList->Count == 0)
     {
         // The status bar doesn't cope well with 0 parts.
         widths[0] = -1;
@@ -309,8 +309,8 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_COMMITCHARGE:
             {
-                ULONG commitUsage = SystemStatistics.Performance ? SystemStatistics.Performance->CommittedPages : 0;
-                FLOAT commitFraction = (FLOAT)commitUsage / (SystemStatistics.Performance ? SystemStatistics.Performance->CommitLimit : 1) * 100;
+                ULONG commitUsage = SystemStatistics.Performance->CommittedPages;
+                FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
 
                 text[count] = PhFormatString(
                     L"Commit Charge: %s (%.2f%%)",
@@ -321,7 +321,7 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_PHYSICALMEMORY:
             {
-                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - (SystemStatistics.Performance ? SystemStatistics.Performance->AvailablePages : 0);
+                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
                 FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
@@ -333,7 +333,7 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_FREEMEMORY:
             {
-                ULONG physicalFree = SystemStatistics.Performance ? SystemStatistics.Performance->AvailablePages : 0;
+                ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
                 FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
