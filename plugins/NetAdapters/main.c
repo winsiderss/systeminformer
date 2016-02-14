@@ -37,7 +37,7 @@ static VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (WindowsVersion > WINDOWS_VISTA)
+    if (WindowsVersion >= WINDOWS_VISTA)
     {
         if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
         {
