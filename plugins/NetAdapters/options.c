@@ -27,7 +27,7 @@ static BOOLEAN OptionsChanged = FALSE;
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 
 static BOOLEAN FindAdapterEntry(
-    _In_ PPH_NETADAPTER_ID Id,
+    _In_ PDV_NETADAPTER_ID Id,
     _In_ BOOLEAN RemoveUserReference
     )
 {
@@ -37,7 +37,7 @@ static BOOLEAN FindAdapterEntry(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY currentEntry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY currentEntry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
         if (!currentEntry)
             continue;
@@ -83,8 +83,8 @@ VOID NetAdaptersLoadList(
         PH_STRINGREF part2;
         PH_STRINGREF part3;
         IF_LUID ifLuid;
-        PH_NETADAPTER_ID id;
-        PPH_NETADAPTER_ENTRY entry;
+        DV_NETADAPTER_ID id;
+        PDV_NETADAPTER_ENTRY entry;
 
         if (remaining.Length == 0)
             break;
@@ -118,7 +118,7 @@ static VOID SaveAdaptersList(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
         if (!entry)
             continue;
@@ -143,27 +143,27 @@ static VOID SaveAdaptersList(
 }
 
 static VOID AddNetworkAdapterToListView(
-    _In_ PPH_NETADAPTER_CONTEXT Context,
+    _In_ PDV_NETADAPTER_CONTEXT Context,
     _In_ PIP_ADAPTER_ADDRESSES Adapter
     )
 {
-    PH_NETADAPTER_ID adapterId;
+    DV_NETADAPTER_ID adapterId;
     INT lvItemIndex;
     BOOLEAN found = FALSE;
-    PPH_NETADAPTER_ID newId = NULL;
+    PDV_NETADAPTER_ID newId = NULL;
 
     InitializeNetAdapterId(&adapterId, Adapter->IfIndex, Adapter->Luid, NULL);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        PPH_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
         if (!entry)
             continue;
 
         if (EquivalentNetAdapterId(&entry->Id, &adapterId))
         {
-            newId = PhAllocate(sizeof(PH_NETADAPTER_ID));
+            newId = PhAllocate(sizeof(DV_NETADAPTER_ID));
             CopyNetAdapterId(newId, &entry->Id);
             found = TRUE;
         }
@@ -176,7 +176,7 @@ static VOID AddNetworkAdapterToListView(
 
     if (!newId)
     {
-        newId = PhAllocate(sizeof(PH_NETADAPTER_ID));
+        newId = PhAllocate(sizeof(DV_NETADAPTER_ID));
         CopyNetAdapterId(newId, &adapterId);
         PhMoveReference(&newId->InterfaceGuid, PhConvertMultiByteToUtf16(Adapter->AdapterName));
     }
@@ -195,7 +195,7 @@ static VOID AddNetworkAdapterToListView(
 }
 
 static VOID FindNetworkAdapters(
-    _In_ PPH_NETADAPTER_CONTEXT Context,
+    _In_ PDV_NETADAPTER_CONTEXT Context,
     _In_ BOOLEAN ShowHiddenAdapters
     )
 {
@@ -246,18 +246,18 @@ static INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_NETADAPTER_CONTEXT context = NULL;
+    PDV_NETADAPTER_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PPH_NETADAPTER_CONTEXT)PhAllocate(sizeof(PH_NETADAPTER_CONTEXT));
-        memset(context, 0, sizeof(PH_NETADAPTER_CONTEXT));
+        context = (PDV_NETADAPTER_CONTEXT)PhAllocate(sizeof(DV_NETADAPTER_CONTEXT));
+        memset(context, 0, sizeof(DV_NETADAPTER_CONTEXT));
 
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PPH_NETADAPTER_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PDV_NETADAPTER_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
         {
@@ -269,7 +269,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
                 LVNI_ALL
                 )) != -1)
             {
-                PPH_NETADAPTER_ID param;
+                PDV_NETADAPTER_ID param;
 
                 if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
                 {
@@ -283,7 +283,7 @@ static INT_PTR CALLBACK OptionsDlgProc(
                         {
                             if (!FindAdapterEntry(param, FALSE))
                             {
-                                PPH_NETADAPTER_ENTRY entry;
+                                PDV_NETADAPTER_ENTRY entry;
 
                                 entry = CreateNetAdapterEntry(param);
                                 entry->UserReference = TRUE;

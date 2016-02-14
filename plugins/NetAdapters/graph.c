@@ -27,7 +27,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PPH_NETADAPTER_SYSINFO_CONTEXT context = Context;
+    PDV_NETADAPTER_SYSINFO_CONTEXT context = Context;
 
     if (context->WindowHandle)
     {
@@ -36,7 +36,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
 }
 
 static VOID NetAdapterUpdateGraphs(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     Context->GraphState.Valid = FALSE;
@@ -48,7 +48,7 @@ static VOID NetAdapterUpdateGraphs(
 }
 
 static VOID NetAdapterUpdatePanel(
-    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     ULONG64 inOctets = 0;
@@ -155,17 +155,17 @@ static INT_PTR CALLBACK NetAdapterPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_NETADAPTER_SYSINFO_CONTEXT context = NULL;
+    PDV_NETADAPTER_SYSINFO_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PPH_NETADAPTER_SYSINFO_CONTEXT)lParam;
+        context = (PDV_NETADAPTER_SYSINFO_CONTEXT)lParam;
 
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PPH_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PDV_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_NCDESTROY)
         {
@@ -200,17 +200,17 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_NETADAPTER_SYSINFO_CONTEXT context = NULL;
+    PDV_NETADAPTER_SYSINFO_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PPH_NETADAPTER_SYSINFO_CONTEXT)lParam;
+        context = (PDV_NETADAPTER_SYSINFO_CONTEXT)lParam;
 
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PPH_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PDV_NETADAPTER_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
         {
@@ -414,7 +414,7 @@ static BOOLEAN NetAdapterSectionCallback(
     _In_opt_ PVOID Parameter2
     )
 {
-    PPH_NETADAPTER_SYSINFO_CONTEXT context = (PPH_NETADAPTER_SYSINFO_CONTEXT)Section->Context;
+    PDV_NETADAPTER_SYSINFO_CONTEXT context = (PDV_NETADAPTER_SYSINFO_CONTEXT)Section->Context;
 
     switch (Message)
     {
@@ -528,14 +528,14 @@ static BOOLEAN NetAdapterSectionCallback(
 
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ _Assume_refs_(1) PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
     PH_SYSINFO_SECTION section;
-    PPH_NETADAPTER_SYSINFO_CONTEXT context;
+    PDV_NETADAPTER_SYSINFO_CONTEXT context;
 
-    context = (PPH_NETADAPTER_SYSINFO_CONTEXT)PhAllocate(sizeof(PH_NETADAPTER_SYSINFO_CONTEXT));
-    memset(context, 0, sizeof(PH_NETADAPTER_SYSINFO_CONTEXT));
+    context = (PDV_NETADAPTER_SYSINFO_CONTEXT)PhAllocate(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
+    memset(context, 0, sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
 
     context->AdapterEntry = AdapterEntry;

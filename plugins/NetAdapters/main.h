@@ -56,16 +56,16 @@ extern PPH_LIST NetworkAdaptersList;
 extern PH_QUEUED_LOCK NetworkAdaptersListLock;
 extern PPH_PLUGIN PluginInstance;
 
-typedef struct _PH_NETADAPTER_ID
+typedef struct _DV_NETADAPTER_ID
 {
     NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid;
     PPH_STRING InterfaceGuid;
-} PH_NETADAPTER_ID, *PPH_NETADAPTER_ID;
+} DV_NETADAPTER_ID, *PDV_NETADAPTER_ID;
 
-typedef struct _PH_NETADAPTER_ENTRY
+typedef struct _DV_NETADAPTER_ENTRY
 {
-    PH_NETADAPTER_ID Id;
+    DV_NETADAPTER_ID Id;
 
     PPH_STRING AdapterName;
 
@@ -81,17 +81,17 @@ typedef struct _PH_NETADAPTER_ENTRY
 
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
-} PH_NETADAPTER_ENTRY, *PPH_NETADAPTER_ENTRY;
+} DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
 
-typedef struct _PH_NETADAPTER_CONTEXT
+typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
     BOOLEAN OptionsChanged;
-} PH_NETADAPTER_CONTEXT, *PPH_NETADAPTER_CONTEXT;
+} DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
-typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
+typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
-    PPH_NETADAPTER_ENTRY AdapterEntry;
+    PDV_NETADAPTER_ENTRY AdapterEntry;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -102,15 +102,15 @@ typedef struct _PH_NETADAPTER_SYSINFO_CONTEXT
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-} PH_NETADAPTER_SYSINFO_CONTEXT, *PPH_NETADAPTER_SYSINFO_CONTEXT;
+} DV_NETADAPTER_SYSINFO_CONTEXT, *PDV_NETADAPTER_SYSINFO_CONTEXT;
 
-typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
+typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 {
     BOOLEAN HaveFirstSample;
     BOOLEAN HaveFirstDetailsSample;
 
     PPH_STRING AdapterName;
-    PH_NETADAPTER_ID AdapterId;
+    DV_NETADAPTER_ID AdapterId;
 
     HWND WindowHandle;
     HWND ParentHandle;
@@ -127,7 +127,7 @@ typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
 
     ULONG64 LastDetailsInboundValue;
     ULONG64 LastDetailsIOutboundValue;
-} PH_NETADAPTER_DETAILS_CONTEXT, *PPH_NETADAPTER_DETAILS_CONTEXT;
+} DV_NETADAPTER_DETAILS_CONTEXT, *PDV_NETADAPTER_DETAILS_CONTEXT;
 
 VOID NetAdaptersLoadList(
     VOID
@@ -139,7 +139,7 @@ VOID ShowOptionsDialog(
 
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ _Assume_refs_(1) PPH_NETADAPTER_ENTRY AdapterInfo
+    _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterInfo
     );
 
 // adapter.c
@@ -153,28 +153,28 @@ VOID NetAdaptersUpdate(
     );
 
 VOID InitializeNetAdapterId(
-    _Out_ PPH_NETADAPTER_ID Id,
+    _Out_ PDV_NETADAPTER_ID Id,
     _In_ NET_IFINDEX InterfaceIndex,
     _In_ IF_LUID InterfaceLuid,
     _In_ PPH_STRING InterfaceGuid
     );
 
 VOID CopyNetAdapterId(
-    _Out_ PPH_NETADAPTER_ID Destination,
-    _In_ PPH_NETADAPTER_ID Source
+    _Out_ PDV_NETADAPTER_ID Destination,
+    _In_ PDV_NETADAPTER_ID Source
     );
 
 VOID DeleteNetAdapterId(
-    _Inout_ PPH_NETADAPTER_ID Id
+    _Inout_ PDV_NETADAPTER_ID Id
     );
 
 BOOLEAN EquivalentNetAdapterId(
-    _In_ PPH_NETADAPTER_ID Id1,
-    _In_ PPH_NETADAPTER_ID Id2
+    _In_ PDV_NETADAPTER_ID Id1,
+    _In_ PDV_NETADAPTER_ID Id2
     );
 
-PPH_NETADAPTER_ENTRY CreateNetAdapterEntry(
-    _In_ PPH_NETADAPTER_ID Id
+PDV_NETADAPTER_ENTRY CreateNetAdapterEntry(
+    _In_ PDV_NETADAPTER_ID Id
     );
 
 // dialog.c
@@ -239,7 +239,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
 } NETADAPTER_DETAILS_INDEX;
 
 VOID ShowDetailsDialog(
-    _In_opt_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_opt_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     );
 
 typedef NETIO_STATUS (WINAPI* _ConvertLengthToIpv4Mask)(
@@ -324,11 +324,11 @@ ULONG64 NetworkAdapterQueryValue(
     );
 
 MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PPH_NETADAPTER_ID Id
+    _In_ PDV_NETADAPTER_ID Id
     );
 
 MIB_IFROW QueryInterfaceRowXP(
-    _In_ PPH_NETADAPTER_ID Id
+    _In_ PDV_NETADAPTER_ID Id
     );
 
 #endif _NETADAPTER_H_

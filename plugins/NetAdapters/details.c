@@ -31,7 +31,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context = Context;
+    PDV_NETADAPTER_DETAILS_CONTEXT context = Context;
 
     if (context->WindowHandle)
     {
@@ -139,7 +139,7 @@ static VOID AddListViewItemGroups(
 
 
 static VOID NetAdapterLookupConfig(
-    _Inout_ PPH_NETADAPTER_DETAILS_CONTEXT Context
+    _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -362,7 +362,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
     _In_ MIB_NOTIFICATION_TYPE NotificationType
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context = CallerContext;
+    PDV_NETADAPTER_DETAILS_CONTEXT context = CallerContext;
 
     if (NotificationType == MibInitialNotification)
     {
@@ -378,7 +378,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
 }
 
 static VOID NetAdapterUpdateDetails(
-    _Inout_ PPH_NETADAPTER_DETAILS_CONTEXT Context
+    _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
     ULONG64 interfaceLinkSpeed = 0;
@@ -541,16 +541,16 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context;
+    PDV_NETADAPTER_DETAILS_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PPH_NETADAPTER_DETAILS_CONTEXT)lParam;
+        context = (PDV_NETADAPTER_DETAILS_CONTEXT)lParam;
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PPH_NETADAPTER_DETAILS_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PDV_NETADAPTER_DETAILS_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
             RemoveProp(hwndDlg, L"Context");
@@ -683,7 +683,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
 }
 
 static VOID FreeDetailsContext(
-    _In_ PPH_NETADAPTER_DETAILS_CONTEXT Context
+    _In_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
     DeleteNetAdapterId(&Context->AdapterId);
@@ -695,7 +695,7 @@ static NTSTATUS ShowDetailsDialogThread(
     _In_ PVOID Parameter
     )
 {
-    PPH_NETADAPTER_DETAILS_CONTEXT context = (PPH_NETADAPTER_DETAILS_CONTEXT)Parameter;
+    PDV_NETADAPTER_DETAILS_CONTEXT context = (PDV_NETADAPTER_DETAILS_CONTEXT)Parameter;
     BOOL result;
     MSG message;
     HWND dialogHandle;
@@ -735,14 +735,14 @@ static NTSTATUS ShowDetailsDialogThread(
 }
 
 VOID ShowDetailsDialog(
-    _In_opt_ PPH_NETADAPTER_SYSINFO_CONTEXT Context
+    _In_opt_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
     HANDLE dialogThread = NULL;
-    PPH_NETADAPTER_DETAILS_CONTEXT context;
+    PDV_NETADAPTER_DETAILS_CONTEXT context;
 
-    context = PhAllocate(sizeof(PH_NETADAPTER_DETAILS_CONTEXT));
-    memset(context, 0, sizeof(PH_NETADAPTER_DETAILS_CONTEXT));
+    context = PhAllocate(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
+    memset(context, 0, sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
 
     context->ParentHandle = Context->WindowHandle;
     context->AdapterName = PhReferenceObject(Context->AdapterEntry->AdapterName);

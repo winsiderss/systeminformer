@@ -386,7 +386,7 @@ ULONG64 NetworkAdapterQueryValue(
 }
 
 MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PPH_NETADAPTER_ID Id
+    _In_ PDV_NETADAPTER_ID Id
     )
 {
     MIB_IF_ROW2 interfaceRow;
@@ -412,7 +412,7 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
 }
 
 MIB_IFROW QueryInterfaceRowXP(
-    _In_ PPH_NETADAPTER_ID Id
+    _In_ PDV_NETADAPTER_ID Id
     )
 {
     MIB_IFROW interfaceRow;
@@ -434,7 +434,7 @@ MIB_IFROW QueryInterfaceRowXP(
 
 
 //BOOLEAN NetworkAdapterQueryInternet(
-//    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context,
+//    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
 //    _In_ PPH_STRING IpAddress
 //    )
 //{
@@ -562,7 +562,7 @@ MIB_IFROW QueryInterfaceRowXP(
 //}
 
 //BOOLEAN NetworkAdapterQueryConfig(
-//    _Inout_ PPH_NETADAPTER_SYSINFO_CONTEXT Context, 
+//    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context, 
 //    _Out_ PPH_NETADAPTER_CONFIG Config
 //    )
 //{

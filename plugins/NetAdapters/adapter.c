@@ -27,7 +27,7 @@ static VOID AdapterEntryDeleteProcedure(
     _In_ ULONG Flags
     )
 {
-    PPH_NETADAPTER_ENTRY entry = Object;
+    PDV_NETADAPTER_ENTRY entry = Object;
 
     PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
     PhRemoveItemList(NetworkAdaptersList, PhFindItemList(NetworkAdaptersList, entry));
@@ -59,7 +59,7 @@ VOID NetAdaptersUpdate(
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         HANDLE adapterHandle = NULL;
-        PPH_NETADAPTER_ENTRY entry;
+        PDV_NETADAPTER_ENTRY entry;
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
         ULONG64 networkRcvSpeed = 0;
@@ -196,7 +196,7 @@ VOID NetAdaptersUpdate(
 }
 
 VOID InitializeNetAdapterId(
-    _Out_ PPH_NETADAPTER_ID Id,
+    _Out_ PDV_NETADAPTER_ID Id,
     _In_ NET_IFINDEX InterfaceIndex,
     _In_ IF_LUID InterfaceLuid,
     _In_ PPH_STRING InterfaceGuid
@@ -208,8 +208,8 @@ VOID InitializeNetAdapterId(
 }
 
 VOID CopyNetAdapterId(
-    _Out_ PPH_NETADAPTER_ID Destination,
-    _In_ PPH_NETADAPTER_ID Source
+    _Out_ PDV_NETADAPTER_ID Destination,
+    _In_ PDV_NETADAPTER_ID Source
     )
 {
     InitializeNetAdapterId(
@@ -221,15 +221,15 @@ VOID CopyNetAdapterId(
 }
 
 VOID DeleteNetAdapterId(
-    _Inout_ PPH_NETADAPTER_ID Id
+    _Inout_ PDV_NETADAPTER_ID Id
     )
 {
     PhClearReference(&Id->InterfaceGuid);
 }
 
 BOOLEAN EquivalentNetAdapterId(
-    _In_ PPH_NETADAPTER_ID Id1,
-    _In_ PPH_NETADAPTER_ID Id2
+    _In_ PDV_NETADAPTER_ID Id1,
+    _In_ PDV_NETADAPTER_ID Id2
     )
 {
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -246,14 +246,14 @@ BOOLEAN EquivalentNetAdapterId(
     return FALSE;
 }
 
-PPH_NETADAPTER_ENTRY CreateNetAdapterEntry(
-    _In_ PPH_NETADAPTER_ID Id
+PDV_NETADAPTER_ENTRY CreateNetAdapterEntry(
+    _In_ PDV_NETADAPTER_ID Id
     )
 {
-    PPH_NETADAPTER_ENTRY entry;
+    PDV_NETADAPTER_ENTRY entry;
 
-    entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), NetAdapterEntryType);
-    memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
+    entry = PhCreateObject(sizeof(DV_NETADAPTER_ENTRY), NetAdapterEntryType);
+    memset(entry, 0, sizeof(DV_NETADAPTER_ENTRY));
 
     CopyNetAdapterId(&entry->Id, Id);
 
