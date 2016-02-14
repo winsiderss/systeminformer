@@ -259,10 +259,13 @@ VOID StatusBarUpdate(
     PPH_STRING text[MAX_STATUSBAR_ITEMS];
     ULONG widths[MAX_STATUSBAR_ITEMS];
 
+    if (ProcessesUpdatedCount < 2)
+        return;
+
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
 
-    if (ProcessesUpdatedCount < 2 || !StatusBarItemList || StatusBarItemList->Count == 0)
+    if (!StatusBarItemList || StatusBarItemList->Count == 0)
     {
         // The status bar doesn't cope well with 0 parts.
         widths[0] = -1;
