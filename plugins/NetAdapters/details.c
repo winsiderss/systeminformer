@@ -283,24 +283,18 @@ static VOID NetAdapterLookupConfig(
                 gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
 
                 //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, PhIsNullOrEmptyString(subnetAddressString) ? L"" : subnetAddressString->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
-                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString->Buffer);
             }
         }
         __finally
         {
             if (buffer)
-            {
                 PhFree(buffer);
-            }
 
-            if (domainString)
-            {
-                PhDereferenceObject(domainString);
-            }
-
+            PhClearReference(&domainString);
             PhDeleteStringBuilder(&ipAddressBuffer);
             PhDeleteStringBuilder(&subnetAddressBuffer);
             PhDeleteStringBuilder(&gatewayAddressBuffer);
@@ -333,36 +327,16 @@ static VOID NetAdapterLookupConfig(
             gatewayAddressString = PhQueryRegistryString(keyHandle, L"DhcpDefaultGateway");
 
             if (PhIsNullOrEmptyString(domainString))
-            {
-                if (domainString)
-                    PhDereferenceObject(domainString);
-
-                domainString = PhQueryRegistryString(keyHandle, L"Domain");
-            }
+                PhMoveReference(&domainString, PhQueryRegistryString(keyHandle, L"Domain"));
 
             if (PhIsNullOrEmptyString(ipAddressString))
-            {
-                if (ipAddressString)
-                    PhDereferenceObject(ipAddressString);
-
-                ipAddressString = PhQueryRegistryString(keyHandle, L"IPAddress");
-            }
+                PhMoveReference(&ipAddressString, PhQueryRegistryString(keyHandle, L"IPAddress"));
 
             if (PhIsNullOrEmptyString(subnetAddressString))
-            {
-                if (subnetAddressString)
-                    PhDereferenceObject(subnetAddressString);
-
-                subnetAddressString = PhQueryRegistryString(keyHandle, L"SubnetMask");
-            }
+                PhMoveReference(&subnetAddressString, PhQueryRegistryString(keyHandle, L"SubnetMask"));
 
             if (PhIsNullOrEmptyString(gatewayAddressString))
-            {
-                if (gatewayAddressString)
-                    PhDereferenceObject(gatewayAddressString);
-
-                gatewayAddressString = PhQueryRegistryString(keyHandle, L"DefaultGateway");
-            }
+                PhMoveReference(&gatewayAddressString, PhQueryRegistryString(keyHandle, L"DefaultGateway"));
 
             //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
             PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
@@ -370,20 +344,15 @@ static VOID NetAdapterLookupConfig(
             PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
             PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
 
-            if (domainString)
-                PhDereferenceObject(domainString);
-
-            if (ipAddressString)
-                PhDereferenceObject(ipAddressString);
-
-            if (subnetAddressString)
-                PhDereferenceObject(subnetAddressString);
-
-            if (gatewayAddressString)
-                PhDereferenceObject(gatewayAddressString);
+            PhClearReference(&domainString);
+            PhClearReference(&ipAddressString);
+            PhClearReference(&subnetAddressString);
+            PhClearReference(&gatewayAddressString);
 
             NtClose(keyHandle);
         }
+
+        PhDereferenceObject(keyNameIpV4);
     }
 }
 
@@ -584,10 +553,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
         context = (PPH_NETADAPTER_DETAILS_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
-        {
             RemoveProp(hwndDlg, L"Context");
-            PhFree(context);
-        }
     }
 
     if (!context)
@@ -716,10 +682,19 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     return FALSE;
 }
 
+static VOID FreeDetailsContext(
+    _In_ PPH_NETADAPTER_DETAILS_CONTEXT Context
+    )
+{
+    PhDereferenceObject(Context->AdapterName);
+    PhFree(Context);
+}
+
 static NTSTATUS ShowDetailsDialogThread(
     _In_ PVOID Parameter
     )
 {
+    PPH_NETADAPTER_DETAILS_CONTEXT context = (PPH_NETADAPTER_DETAILS_CONTEXT)Parameter;
     BOOL result;
     MSG message;
     HWND dialogHandle;
@@ -732,7 +707,7 @@ static NTSTATUS ShowDetailsDialogThread(
         MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS),
         NULL,
         AdapterDetailsDlgProc,
-        (LPARAM)Parameter
+        (LPARAM)context
         );
 
     PostMessage(dialogHandle, WM_SHOWDIALOG, 0, 0);
@@ -752,7 +727,8 @@ static NTSTATUS ShowDetailsDialogThread(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(dialogHandle);
+
+    FreeDetailsContext(context);
 
     return STATUS_SUCCESS;
 }
@@ -777,4 +753,6 @@ VOID ShowDetailsDialog(
 
     if (dialogThread = PhCreateThread(0, ShowDetailsDialogThread, context))
         NtClose(dialogThread);
+    else
+        FreeDetailsContext(context);
 }
