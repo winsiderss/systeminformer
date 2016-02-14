@@ -56,14 +56,20 @@ extern PPH_LIST NetworkAdaptersList;
 extern PH_QUEUED_LOCK NetworkAdaptersListLock;
 extern PPH_PLUGIN PluginInstance;
 
-typedef struct _PH_NETADAPTER_ENTRY
+typedef struct _PH_NETADAPTER_ID
 {
     NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid;
-
     PPH_STRING InterfaceGuid;
+} PH_NETADAPTER_ID, *PPH_NETADAPTER_ID;
+
+typedef struct _PH_NETADAPTER_ENTRY
+{
+    PH_NETADAPTER_ID Id;
+
     PPH_STRING AdapterName;
 
+    BOOLEAN UserReference;
     BOOLEAN HaveFirstSample;
     BOOLEAN HaveFirstDetailsSample;
 
@@ -104,7 +110,7 @@ typedef struct _PH_NETADAPTER_DETAILS_CONTEXT
     BOOLEAN HaveFirstDetailsSample;
 
     PPH_STRING AdapterName;
-    PPH_NETADAPTER_ENTRY AdapterEntry;
+    PH_NETADAPTER_ID AdapterId;
 
     HWND WindowHandle;
     HWND ParentHandle;
@@ -144,6 +150,31 @@ VOID NetAdaptersInitialize(
 
 VOID NetAdaptersUpdate(
     VOID
+    );
+
+VOID InitializeNetAdapterId(
+    _Out_ PPH_NETADAPTER_ID Id,
+    _In_ NET_IFINDEX InterfaceIndex,
+    _In_ IF_LUID InterfaceLuid,
+    _In_ PPH_STRING InterfaceGuid
+    );
+
+VOID CopyNetAdapterId(
+    _Out_ PPH_NETADAPTER_ID Destination,
+    _In_ PPH_NETADAPTER_ID Source
+    );
+
+VOID DeleteNetAdapterId(
+    _Inout_ PPH_NETADAPTER_ID Id
+    );
+
+BOOLEAN EquivalentNetAdapterId(
+    _In_ PPH_NETADAPTER_ID Id1,
+    _In_ PPH_NETADAPTER_ID Id2
+    );
+
+PPH_NETADAPTER_ENTRY CreateNetAdapterEntry(
+    _In_ PPH_NETADAPTER_ID Id
     );
 
 // dialog.c
@@ -293,11 +324,11 @@ ULONG64 NetworkAdapterQueryValue(
     );
 
 MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ PPH_NETADAPTER_ID Id
     );
 
 MIB_IFROW QueryInterfaceRowXP(
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ PPH_NETADAPTER_ID Id
     );
 
 #endif _NETADAPTER_H_

@@ -386,15 +386,15 @@ ULONG64 NetworkAdapterQueryValue(
 }
 
 MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ PPH_NETADAPTER_ID Id
     )
 {
     MIB_IF_ROW2 interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
 
-    interfaceRow.InterfaceLuid = AdapterEntry->InterfaceLuid;
-    interfaceRow.InterfaceIndex = AdapterEntry->InterfaceIndex;
+    interfaceRow.InterfaceLuid = Id->InterfaceLuid;
+    interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
     if (GetIfEntry2_I)
     {
@@ -412,14 +412,14 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
 }
 
 MIB_IFROW QueryInterfaceRowXP(
-    _In_ PPH_NETADAPTER_ENTRY AdapterEntry
+    _In_ PPH_NETADAPTER_ID Id
     )
 {
     MIB_IFROW interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IFROW));
 
-    interfaceRow.dwIndex = AdapterEntry->InterfaceIndex;
+    interfaceRow.dwIndex = Id->InterfaceIndex;
 
     GetIfEntry(&interfaceRow);
 

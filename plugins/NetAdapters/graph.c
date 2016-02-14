@@ -62,7 +62,7 @@ static VOID NetAdapterUpdatePanel(
         // Create the handle to the network device
         PhCreateFileWin32(
             &adapterHandle,
-            PhaConcatStrings(2, L"\\\\.\\", Context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+            PhaConcatStrings(2, L"\\\\.\\", Context->AdapterEntry->Id.InterfaceGuid->Buffer)->Buffer,
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -116,7 +116,7 @@ static VOID NetAdapterUpdatePanel(
     {
         MIB_IF_ROW2 interfaceRow;
 
-        interfaceRow = QueryInterfaceRowVista(Context->AdapterEntry);
+        interfaceRow = QueryInterfaceRowVista(&Context->AdapterEntry->Id);
 
         inOctets = interfaceRow.InOctets;
         outOctets = interfaceRow.OutOctets;
@@ -127,7 +127,7 @@ static VOID NetAdapterUpdatePanel(
     {
         MIB_IFROW interfaceRow;
 
-        interfaceRow = QueryInterfaceRowXP(Context->AdapterEntry);
+        interfaceRow = QueryInterfaceRowXP(&Context->AdapterEntry->Id);
 
         inOctets = interfaceRow.dwInOctets;
         outOctets = interfaceRow.dwOutOctets;

@@ -27,41 +27,17 @@ static VOID AdapterEntryDeleteProcedure(
     _In_ ULONG Flags
     )
 {
-    PPH_NETADAPTER_ENTRY Entry = Object;
+    PPH_NETADAPTER_ENTRY entry = Object;
 
     PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
-
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
-    {
-        PPH_NETADAPTER_ENTRY currentEntry;
-
-        currentEntry = (PPH_NETADAPTER_ENTRY)NetworkAdaptersList->Items[i];
-
-        if (WindowsVersion >= WINDOWS_VISTA)
-        {
-            if (Entry->InterfaceLuid.Value == currentEntry->InterfaceLuid.Value)
-            {
-                PhRemoveItemList(NetworkAdaptersList, i);
-                break;
-            }
-        }
-        else
-        {
-            if (Entry->InterfaceIndex == currentEntry->InterfaceIndex)
-            {
-                PhRemoveItemList(NetworkAdaptersList, i);
-                break;
-            }
-        }
-    }
-
+    PhRemoveItemList(NetworkAdaptersList, PhFindItemList(NetworkAdaptersList, entry));
     PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
 
-    PhClearReference(&Entry->InterfaceGuid);
-    PhClearReference(&Entry->AdapterName);
+    DeleteNetAdapterId(&entry->Id);
+    PhClearReference(&entry->AdapterName);
 
-    PhDeleteCircularBuffer_ULONG64(&Entry->InboundBuffer);
-    PhDeleteCircularBuffer_ULONG64(&Entry->OutboundBuffer);
+    PhDeleteCircularBuffer_ULONG64(&entry->InboundBuffer);
+    PhDeleteCircularBuffer_ULONG64(&entry->OutboundBuffer);
 }
 
 VOID NetAdaptersInitialize(
@@ -76,6 +52,8 @@ VOID NetAdaptersUpdate(
     VOID
     )
 {
+    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+
     PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
@@ -98,7 +76,7 @@ VOID NetAdaptersUpdate(
             // Create the handle to the network device
             PhCreateFileWin32(
                 &adapterHandle,
-                PhaConcatStrings(2, L"\\\\.\\", entry->InterfaceGuid->Buffer)->Buffer,
+                PhaConcatStrings(2, L"\\\\.\\", entry->Id.InterfaceGuid->Buffer)->Buffer,
                 FILE_GENERIC_READ,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -137,7 +115,7 @@ VOID NetAdaptersUpdate(
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
             {
-                entry->AdapterName = NetworkAdapterQueryName(adapterHandle, entry->InterfaceGuid);
+                entry->AdapterName = NetworkAdapterQueryName(adapterHandle, entry->Id.InterfaceGuid);
             }
 
             NtClose(adapterHandle);
@@ -146,7 +124,7 @@ VOID NetAdaptersUpdate(
         {
             MIB_IF_ROW2 interfaceRow;
 
-            interfaceRow = QueryInterfaceRowVista(entry);
+            interfaceRow = QueryInterfaceRowVista(&entry->Id);
 
             networkInOctets = interfaceRow.InOctets;
             networkOutOctets = interfaceRow.OutOctets;
@@ -164,7 +142,7 @@ VOID NetAdaptersUpdate(
         {
             MIB_IFROW interfaceRow;
 
-            interfaceRow = QueryInterfaceRowXP(entry);
+            interfaceRow = QueryInterfaceRowXP(&entry->Id);
 
             networkInOctets = interfaceRow.dwInOctets;
             networkOutOctets = interfaceRow.dwOutOctets;
@@ -197,8 +175,11 @@ VOID NetAdaptersUpdate(
             networkXmitSpeed = 0;
         }
 
-        PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
-        PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
+        if (runCount != 0)
+        {
+            PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
+            PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
+        }
 
         //context->LinkSpeed = networkLinkSpeed;
         entry->InboundValue = networkRcvSpeed;
@@ -206,8 +187,82 @@ VOID NetAdaptersUpdate(
         entry->LastInboundValue = networkInOctets;
         entry->LastOutboundValue = networkOutOctets;
 
-        PhDereferenceObject(entry);
+        PhDereferenceObjectDeferDelete(entry);
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+
+    runCount++;
+}
+
+VOID InitializeNetAdapterId(
+    _Out_ PPH_NETADAPTER_ID Id,
+    _In_ NET_IFINDEX InterfaceIndex,
+    _In_ IF_LUID InterfaceLuid,
+    _In_ PPH_STRING InterfaceGuid
+    )
+{
+    Id->InterfaceIndex = InterfaceIndex;
+    Id->InterfaceLuid = InterfaceLuid;
+    PhSetReference(&Id->InterfaceGuid, InterfaceGuid);
+}
+
+VOID CopyNetAdapterId(
+    _Out_ PPH_NETADAPTER_ID Destination,
+    _In_ PPH_NETADAPTER_ID Source
+    )
+{
+    InitializeNetAdapterId(
+        Destination,
+        Source->InterfaceIndex,
+        Source->InterfaceLuid,
+        Source->InterfaceGuid
+        );
+}
+
+VOID DeleteNetAdapterId(
+    _Inout_ PPH_NETADAPTER_ID Id
+    )
+{
+    PhClearReference(&Id->InterfaceGuid);
+}
+
+BOOLEAN EquivalentNetAdapterId(
+    _In_ PPH_NETADAPTER_ID Id1,
+    _In_ PPH_NETADAPTER_ID Id2
+    )
+{
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        if (Id1->InterfaceLuid.Value == Id2->InterfaceLuid.Value)
+            return TRUE;
+    }
+    else
+    {
+        if (Id1->InterfaceIndex == Id2->InterfaceIndex)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+PPH_NETADAPTER_ENTRY CreateNetAdapterEntry(
+    _In_ PPH_NETADAPTER_ID Id
+    )
+{
+    PPH_NETADAPTER_ENTRY entry;
+
+    entry = PhCreateObject(sizeof(PH_NETADAPTER_ENTRY), NetAdapterEntryType);
+    memset(entry, 0, sizeof(PH_NETADAPTER_ENTRY));
+
+    CopyNetAdapterId(&entry->Id, Id);
+
+    PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+    PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+
+    PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
+    PhAddItemList(NetworkAdaptersList, entry);
+    PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
+
+    return entry;
 }

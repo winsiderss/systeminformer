@@ -177,7 +177,7 @@ static VOID NetAdapterLookupConfig(
 
             for (PIP_ADAPTER_ADDRESSES addressesBuffer = buffer; addressesBuffer; addressesBuffer = addressesBuffer->Next)
             {
-                if (addressesBuffer->Luid.Value != Context->AdapterEntry->InterfaceLuid.Value)
+                if (addressesBuffer->Luid.Value != Context->AdapterId.InterfaceLuid.Value)
                     continue;
 
                 for (PIP_ADAPTER_UNICAST_ADDRESS unicastAddress = addressesBuffer->FirstUnicastAddress; unicastAddress; unicastAddress = unicastAddress->Next)
@@ -306,7 +306,7 @@ static VOID NetAdapterLookupConfig(
         HANDLE keyHandle;
         PPH_STRING keyNameIpV4;
 
-        keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterEntry->InterfaceGuid->sr);
+        keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterId.InterfaceGuid->sr);
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
@@ -370,7 +370,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
     }
     else if (NotificationType == MibParameterNotification)
     {
-        if (Row->InterfaceLuid.Value = context->AdapterEntry->InterfaceLuid.Value)
+        if (Row->InterfaceLuid.Value = context->AdapterId.InterfaceLuid.Value)
         {
             NetAdapterLookupConfig(context);
         }
@@ -410,7 +410,7 @@ static VOID NetAdapterUpdateDetails(
         {
             MIB_IF_ROW2 interfaceRow;
 
-            interfaceRow = QueryInterfaceRowVista(Context->AdapterEntry);
+            interfaceRow = QueryInterfaceRowVista(&Context->AdapterId);
 
             interfaceStats.ifInDiscards = interfaceRow.InDiscards;
             interfaceStats.ifInErrors = interfaceRow.InErrors;
@@ -442,7 +442,7 @@ static VOID NetAdapterUpdateDetails(
         {
             MIB_IFROW interfaceRow;
 
-            interfaceRow = QueryInterfaceRowXP(Context->AdapterEntry);
+            interfaceRow = QueryInterfaceRowXP(&Context->AdapterId);
 
             interfaceStats.ifInDiscards = interfaceRow.dwInDiscards;
             interfaceStats.ifInErrors = interfaceRow.dwInErrors;
@@ -587,7 +587,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
                 // Create the handle to the network device
                 PhCreateFileWin32(
                     &context->DeviceHandle,
-                    PhaConcatStrings(2, L"\\\\.\\", context->AdapterEntry->InterfaceGuid->Buffer)->Buffer,
+                    PhaConcatStrings(2, L"\\\\.\\", context->AdapterId.InterfaceGuid->Buffer)->Buffer,
                     FILE_GENERIC_READ,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -686,6 +686,7 @@ static VOID FreeDetailsContext(
     _In_ PPH_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
+    DeleteNetAdapterId(&Context->AdapterId);
     PhDereferenceObject(Context->AdapterName);
     PhFree(Context);
 }
@@ -745,11 +746,7 @@ VOID ShowDetailsDialog(
 
     context->ParentHandle = Context->WindowHandle;
     context->AdapterName = PhReferenceObject(Context->AdapterEntry->AdapterName);
-
-    context->AdapterEntry = PhAllocate(sizeof(PH_NETADAPTER_ENTRY));
-    context->AdapterEntry->InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
-    context->AdapterEntry->InterfaceLuid = Context->AdapterEntry->InterfaceLuid;
-    context->AdapterEntry->InterfaceGuid = PhReferenceObject(Context->AdapterEntry->InterfaceGuid);
+    CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->Id);
 
     if (dialogThread = PhCreateThread(0, ShowDetailsDialogThread, context))
         NtClose(dialogThread);
