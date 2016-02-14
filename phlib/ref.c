@@ -202,24 +202,26 @@ _May_raise_ LONG PhReferenceObjectEx(
  *
  * \param Object The object to reference if it is not being deleted.
  *
- * \return TRUE if the object was referenced, FALSE if it was being deleted and was not referenced.
+ * \return The object itself if the object was referenced, NULL if it was being deleted and was not
+ * referenced.
  *
  * \remarks This function is useful if a reference to an object is held, protected by a mutex, and
  * the delete procedure of the object's type attempts to acquire the mutex. If this function is
  * called while the mutex is owned, you can avoid referencing an object that is being destroyed.
  */
-BOOLEAN PhReferenceObjectSafe(
+PVOID PhReferenceObjectSafe(
     _In_ PVOID Object
     )
 {
     PPH_OBJECT_HEADER objectHeader;
-    BOOLEAN result;
 
     objectHeader = PhObjectToObjectHeader(Object);
-    // Increase the reference count only if it isn't 0 (atomically).
-    result = PhpInterlockedIncrementSafe(&objectHeader->RefCount);
 
-    return result;
+    // Increase the reference count only if it isn't 0 (atomically).
+    if (PhpInterlockedIncrementSafe(&objectHeader->RefCount))
+        return Object;
+    else
+        return NULL;
 }
 
 /**
