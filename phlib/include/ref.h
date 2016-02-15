@@ -2,7 +2,7 @@
  * Process Hacker -
  *   internal object manager
  *
- * Copyright (C) 2009-2015 wj32
+ * Copyright (C) 2009-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -112,7 +112,7 @@ PhReferenceObject(
 
 _May_raise_
 PHLIBAPI
-LONG
+PVOID
 NTAPI
 PhReferenceObjectEx(
     _In_ PVOID Object,
@@ -134,7 +134,7 @@ PhDereferenceObject(
     );
 
 PHLIBAPI
-BOOLEAN
+VOID
 NTAPI
 PhDereferenceObjectDeferDelete(
     _In_ PVOID Object
@@ -142,7 +142,7 @@ PhDereferenceObjectDeferDelete(
 
 _May_raise_
 PHLIBAPI
-LONG
+VOID
 NTAPI
 PhDereferenceObjectEx(
     _In_ PVOID Object,

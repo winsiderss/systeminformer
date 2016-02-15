@@ -353,6 +353,33 @@ FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
     }
 }
 
+FORCEINLINE BOOLEAN _InterlockedIncrementPositive(
+    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    )
+{
+    LONG value;
+    LONG newValue;
+
+    value = *Addend;
+
+    while (TRUE)
+    {
+        if (value <= 0)
+            return FALSE;
+
+        if ((newValue = _InterlockedCompareExchange(
+            Addend,
+            value + 1,
+            value
+            )) == value)
+        {
+            return TRUE;
+        }
+
+        value = newValue;
+    }
+}
+
 // Strings
 
 #define PH_INT32_STR_LEN 12

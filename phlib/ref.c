@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object manager
  *
- * Copyright (C) 2009-2015 wj32
+ * Copyright (C) 2009-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -178,9 +178,9 @@ PVOID PhReferenceObject(
  * \param Object A pointer to the object to reference.
  * \param RefCount The number of references to add.
  *
- * \return The new reference count of the object.
+ * \return The object.
  */
-_May_raise_ LONG PhReferenceObjectEx(
+_May_raise_ PVOID PhReferenceObjectEx(
     _In_ PVOID Object,
     _In_ LONG RefCount
     )
@@ -194,7 +194,7 @@ _May_raise_ LONG PhReferenceObjectEx(
     // Increase the reference count.
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
 
-    return oldRefCount + RefCount;
+    return Object;
 }
 
 /**
@@ -217,7 +217,7 @@ PVOID PhReferenceObjectSafe(
 
     objectHeader = PhObjectToObjectHeader(Object);
 
-    // Increase the reference count only if it isn't 0 (atomically).
+    // Increase the reference count only if it positive already (atomically).
     if (PhpInterlockedIncrementSafe(&objectHeader->RefCount))
         return Object;
     else
@@ -229,8 +229,6 @@ PVOID PhReferenceObjectSafe(
  * The object will be freed if its reference count reaches 0.
  *
  * \param Object A pointer to the object to dereference.
- *
- * \return TRUE if the object was freed, otherwise FALSE.
  */
 VOID PhDereferenceObject(
     _In_ PVOID Object
@@ -253,18 +251,15 @@ VOID PhDereferenceObject(
 
 /**
  * Dereferences the specified object.
- * The object will be freed in a worker thread if its reference count
- * reaches 0.
+ * The object will be freed in a worker thread if its reference count reaches 0.
  *
  * \param Object A pointer to the object to dereference.
- *
- * \return TRUE if the object was freed, otherwise FALSE.
  */
-BOOLEAN PhDereferenceObjectDeferDelete(
+VOID PhDereferenceObjectDeferDelete(
     _In_ PVOID Object
     )
 {
-    return PhDereferenceObjectEx(Object, 1, TRUE) == 0;
+    PhDereferenceObjectEx(Object, 1, TRUE);
 }
 
 /**
@@ -274,10 +269,8 @@ BOOLEAN PhDereferenceObjectDeferDelete(
  * \param Object A pointer to the object to dereference.
  * \param RefCount The number of references to remove.
  * \param DeferDelete Whether to defer deletion of the object.
- *
- * \return The new reference count of the object.
  */
-_May_raise_ LONG PhDereferenceObjectEx(
+_May_raise_ VOID PhDereferenceObjectEx(
     _In_ PVOID Object,
     _In_ LONG RefCount,
     _In_ BOOLEAN DeferDelete
@@ -312,8 +305,6 @@ _May_raise_ LONG PhDereferenceObjectEx(
     {
         PhRaiseStatus(STATUS_INVALID_PARAMETER);
     }
-
-    return newRefCount;
 }
 
 /**
@@ -527,6 +518,13 @@ VOID PhpDeferDeleteObject(
 {
     PSLIST_ENTRY oldFirstEntry;
 
+    // Save TypeIndex and Flags since they get overwritten when we push the object onto the defer
+    // delete list.
+    ObjectHeader->DeferDelete = 1;
+    MemoryBarrier();
+    ObjectHeader->SavedTypeIndex = ObjectHeader->TypeIndex;
+    ObjectHeader->SavedFlags = ObjectHeader->Flags;
+
     oldFirstEntry = RtlFirstEntrySList(&PhObjectDeferDeleteListHead);
     RtlInterlockedPushEntrySList(&PhObjectDeferDeleteListHead, &ObjectHeader->DeferDeleteListEntry);
     REF_STAT_UP(RefObjectsDeleteDeferred);
@@ -555,6 +553,10 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
     {
         objectHeader = CONTAINING_RECORD(listEntry, PH_OBJECT_HEADER, DeferDeleteListEntry);
         listEntry = listEntry->Next;
+
+        // Restore TypeIndex and Flags.
+        objectHeader->TypeIndex = (USHORT)objectHeader->SavedTypeIndex;
+        objectHeader->Flags = (UCHAR)objectHeader->SavedFlags;
 
         PhpFreeObject(objectHeader);
     }
