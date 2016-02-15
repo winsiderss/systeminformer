@@ -30,7 +30,7 @@ typedef struct _RESTART_SERVICE_CONTEXT
     BOOLEAN DisableTimer;
 } RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
 
-static INT_PTR CALLBACK EspRestartServiceDlgProc(
+INT_PTR CALLBACK EspRestartServiceDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

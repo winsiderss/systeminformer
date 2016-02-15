@@ -1007,7 +1007,7 @@ VOID EsHandleEventServiceTrigger(
     }
 }
 
-static ULONG EspTriggerTypeStringToInteger(
+ULONG EspTriggerTypeStringToInteger(
     _In_ PWSTR String
     )
 {
@@ -1033,7 +1033,7 @@ static int __cdecl EtwPublisherByNameCompareFunction(
     return PhCompareString(entry1->PublisherName, entry2->PublisherName, TRUE);
 }
 
-static VOID EspFixServiceTriggerControls(
+VOID EspFixServiceTriggerControls(
     _In_ HWND hwndDlg,
     _In_ PES_TRIGGER_CONTEXT Context
     )

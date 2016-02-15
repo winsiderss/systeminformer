@@ -113,7 +113,7 @@ static VOID ServiceActionToComboBox(
         PhSelectComboBoxString(ComboBoxHandle, (PWSTR)ServiceActionPairs[0].Key, FALSE);
 }
 
-static VOID EspFixControls(
+VOID EspFixControls(
     _In_ HWND hwndDlg,
     _In_ PSERVICE_RECOVERY_CONTEXT Context
     )

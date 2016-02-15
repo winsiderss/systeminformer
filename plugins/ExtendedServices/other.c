@@ -61,7 +61,7 @@ static PH_KEY_VALUE_PAIR EspServiceLaunchProtectedPairs[] =
 static WCHAR *EspServiceSidTypeStrings[3] = { L"None", L"Restricted", L"Unrestricted" };
 static WCHAR *EspServiceLaunchProtectedStrings[4] = { L"None", L"Full (Windows)", L"Light (Windows)", L"Light (Antimalware)" };
 
-static PWSTR EspGetServiceSidTypeString(
+PWSTR EspGetServiceSidTypeString(
     _In_ ULONG SidType
     )
 {
@@ -78,7 +78,7 @@ static PWSTR EspGetServiceSidTypeString(
         return L"Unknown";
 }
 
-static ULONG EspGetServiceSidTypeInteger(
+ULONG EspGetServiceSidTypeInteger(
     _In_ PWSTR SidType
     )
 {
@@ -95,7 +95,7 @@ static ULONG EspGetServiceSidTypeInteger(
         return -1;
 }
 
-static PWSTR EspGetServiceLaunchProtectedString(
+PWSTR EspGetServiceLaunchProtectedString(
     _In_ ULONG LaunchProtected
     )
 {
@@ -112,7 +112,7 @@ static PWSTR EspGetServiceLaunchProtectedString(
         return L"Unknown";
 }
 
-static ULONG EspGetServiceLaunchProtectedInteger(
+ULONG EspGetServiceLaunchProtectedInteger(
     _In_ PWSTR LaunchProtected
     )
 {
@@ -129,7 +129,7 @@ static ULONG EspGetServiceLaunchProtectedInteger(
         return -1;
 }
 
-static NTSTATUS EspLoadOtherInfo(
+NTSTATUS EspLoadOtherInfo(
     _In_ HWND hwndDlg,
     _In_ PSERVICE_OTHER_CONTEXT Context
     )
@@ -237,7 +237,7 @@ static NTSTATUS EspLoadOtherInfo(
     return status;
 }
 
-static PPH_STRING EspGetServiceSidString(
+PPH_STRING EspGetServiceSidString(
     _In_ PPH_STRINGREF ServiceName
     )
 {
@@ -267,7 +267,7 @@ static PPH_STRING EspGetServiceSidString(
     return sidString;
 }
 
-static BOOLEAN EspChangeServiceConfig2(
+BOOLEAN EspChangeServiceConfig2(
     _In_ PWSTR ServiceName,
     _In_opt_ SC_HANDLE ServiceHandle,
     _In_ ULONG InfoLevel,
@@ -293,7 +293,6 @@ static BOOLEAN EspChangeServiceConfig2(
         }
     }
 }
-
 
 static int __cdecl PrivilegeNameCompareFunction(
     _In_ const void *elem1,

@@ -83,7 +83,7 @@ LPENUM_SERVICE_STATUS EsEnumDependentServices(
     return buffer;
 }
 
-static VOID EspLayoutServiceListControl(
+VOID EspLayoutServiceListControl(
     _In_ HWND hwndDlg,
     _In_ HWND ServiceListHandle
     )
