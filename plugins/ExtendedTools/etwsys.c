@@ -23,6 +23,7 @@
 #include "exttools.h"
 #include "etwsys.h"
 
+static BOOLEAN DiskEnabled;
 static PPH_SYSINFO_SECTION DiskSection;
 static HWND DiskDialog;
 static PH_LAYOUT_MANAGER DiskLayoutManager;
@@ -30,6 +31,7 @@ static HWND DiskGraphHandle;
 static PH_GRAPH_STATE DiskGraphState;
 static HWND DiskPanel;
 
+static BOOLEAN NetworkEnabled;
 static PPH_SYSINFO_SECTION NetworkSection;
 static HWND NetworkDialog;
 static PH_LAYOUT_MANAGER NetworkLayoutManager;
@@ -68,20 +70,12 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
     switch (Message)
     {
     case SysInfoDestroy:
-        {
-            if (DiskDialog)
-            {
-                PhDeleteGraphState(&DiskGraphState);
-                DiskDialog = NULL;
-            }
-        }
         return TRUE;
     case SysInfoTick:
         {
-            if (DiskDialog)
+            if (DiskEnabled && DiskDialog)
             {
-                EtpUpdateDiskGraph();
-                EtpUpdateDiskPanel();
+                PostMessage(DiskDialog, UPDATE_MSG, 0, 0);
             }
         }
         return TRUE;
@@ -194,6 +188,8 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
 
+            DiskEnabled = TRUE;
+
             PhInitializeGraphState(&DiskGraphState);
 
             DiskDialog = hwndDlg;
@@ -231,6 +227,9 @@ INT_PTR CALLBACK EtpDiskDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&DiskLayoutManager);
+
+            PhDeleteGraphState(&DiskGraphState);
+            DiskDialog = NULL;
         }
         break;
     case WM_SIZE:
@@ -245,6 +244,24 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             if (header->hwndFrom == DiskGraphHandle)
             {
                 EtpNotifyDiskGraph(header);
+            }
+        }
+        break;
+    case UPDATE_MSG:
+        {
+            if (DiskEnabled)
+            {
+                EtpUpdateDiskGraph();
+                EtpUpdateDiskPanel();
+            }
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (DiskEnabled = (BOOLEAN)wParam)
+            {
+                EtpUpdateDiskGraph();
+                EtpUpdateDiskPanel();
             }
         }
         break;
@@ -444,20 +461,12 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
     switch (Message)
     {
     case SysInfoDestroy:
-        {
-            if (NetworkDialog)
-            {
-                PhDeleteGraphState(&NetworkGraphState);
-                NetworkDialog = NULL;
-            }
-        }
         return TRUE;
     case SysInfoTick:
         {
-            if (NetworkDialog)
+            if (NetworkEnabled && NetworkDialog)
             {
-                EtpUpdateNetworkGraph();
-                EtpUpdateNetworkPanel();
+                PostMessage(NetworkDialog, UPDATE_MSG, 0, 0);
             }
         }
         return TRUE;
@@ -570,6 +579,8 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
 
+            NetworkEnabled = TRUE;
+
             PhInitializeGraphState(&NetworkGraphState);
 
             NetworkDialog = hwndDlg;
@@ -607,6 +618,9 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&NetworkLayoutManager);
+
+            PhDeleteGraphState(&NetworkGraphState);
+            NetworkDialog = NULL;
         }
         break;
     case WM_SIZE:
@@ -621,6 +635,24 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             if (header->hwndFrom == NetworkGraphHandle)
             {
                 EtpNotifyNetworkGraph(header);
+            }
+        }
+        break;
+    case UPDATE_MSG:
+        {
+            if (NetworkEnabled)
+            {
+                EtpUpdateNetworkGraph();
+                EtpUpdateNetworkPanel();
+            }
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (NetworkEnabled = (BOOLEAN)wParam)
+            {
+                EtpUpdateNetworkGraph();
+                EtpUpdateNetworkPanel();
             }
         }
         break;
