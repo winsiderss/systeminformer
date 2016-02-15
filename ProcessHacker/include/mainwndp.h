@@ -185,7 +185,7 @@ VOID PhMwpSaveSettings(
     VOID
     );
 
-VOID PhMwpSaveWindowSettings(
+VOID PhMwpSaveWindowState(
     VOID
     );
 

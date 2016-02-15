@@ -59,6 +59,12 @@ VOID PhSipOnShowWindow(
     _In_ ULONG State
     );
 
+BOOLEAN PhSipOnSysCommand(
+    _In_ ULONG Type,
+    _In_ LONG CursorScreenX,
+    _In_ LONG CursorScreenY
+    );
+
 VOID PhSipOnSize(
     VOID
     );
@@ -195,6 +201,10 @@ VOID PhSipUpdateThemeData(
     );
 
 VOID PhSipSetAlwaysOnTop(
+    VOID
+    );
+
+VOID PhSipSaveWindowState(
     VOID
     );
 

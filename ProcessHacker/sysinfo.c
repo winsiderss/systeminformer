@@ -278,6 +278,12 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhSipOnShowWindow(!!wParam, (ULONG)lParam);
         }
         break;
+    case WM_SYSCOMMAND:
+        {
+            if (PhSipOnSysCommand((ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))
+                return 0;
+        }
+        break;
     case WM_SIZE:
         {
             PhSipOnSize();
@@ -380,6 +386,7 @@ VOID PhSipOnDestroy(
     PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
 
     PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
+    PhSipSaveWindowState();
 }
 
 VOID PhSipOnNcDestroy(
@@ -511,6 +518,9 @@ VOID PhSipOnShowWindow(
 
     PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
 
+    if (PhGetIntegerSetting(L"SysInfoWindowState") == SW_MAXIMIZE)
+        ShowWindow(PhSipWindow, SW_MAXIMIZE);
+
     if (InitialSectionName)
         PhInitializeStringRefLongHint(&sectionName, InitialSectionName);
     else
@@ -527,6 +537,25 @@ VOID PhSipOnShowWindow(
 
     PhSipOnSize();
     PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
+}
+
+BOOLEAN PhSipOnSysCommand(
+    _In_ ULONG Type,
+    _In_ LONG CursorScreenX,
+    _In_ LONG CursorScreenY
+    )
+{
+    switch (Type)
+    {
+    case SC_MINIMIZE:
+        {
+            // Save the current window state because we may not have a chance to later.
+            PhSipSaveWindowState();
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 VOID PhSipOnSize(
@@ -2018,6 +2047,20 @@ VOID PhSipSetAlwaysOnTop(
     SetFocus(PhSipWindow); // HACK - SetWindowPos doesn't work properly without this
     SetWindowPos(PhSipWindow, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+}
+
+VOID PhSipSaveWindowState(
+    VOID
+    )
+{
+    WINDOWPLACEMENT placement = { sizeof(placement) };
+
+    GetWindowPlacement(PhSipWindow, &placement);
+
+    if (placement.showCmd == SW_NORMAL)
+        PhSetIntegerSetting(L"SysInfoWindowState", SW_NORMAL);
+    else if (placement.showCmd == SW_MAXIMIZE)
+        PhSetIntegerSetting(L"SysInfoWindowState", SW_MAXIMIZE);
 }
 
 VOID NTAPI PhSipSysInfoUpdateHandler(

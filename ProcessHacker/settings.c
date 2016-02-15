@@ -173,6 +173,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
     PhpAddStringSetting(L"SysInfoWindowSection", L"");
     PhpAddIntegerPairSetting(L"SysInfoWindowSize", L"620,590");
+    PhpAddIntegerSetting(L"SysInfoWindowState", L"1");
     PhpAddIntegerSetting(L"ThinRows", L"0");
     PhpAddStringSetting(L"ThreadTreeListColumns", L"");
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder

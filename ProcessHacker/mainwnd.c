@@ -1818,9 +1818,8 @@ BOOLEAN PhMwpOnSysCommand(
         break;
     case SC_MINIMIZE:
         {
-            // Save the current window state because we
-            // may not have a chance to later.
-            PhMwpSaveWindowSettings();
+            // Save the current window state because we may not have a chance to later.
+            PhMwpSaveWindowState();
 
             if (PhGetIntegerSetting(L"HideOnMinimize") && PhNfTestIconMask(PH_ICON_ALL))
             {
@@ -2645,13 +2644,13 @@ VOID PhMwpSaveSettings(
 
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", PhMainWndHandle);
 
-    PhMwpSaveWindowSettings();
+    PhMwpSaveWindowState();
 
     if (PhSettingsFileName)
         PhSaveSettings(PhSettingsFileName->Buffer);
 }
 
-VOID PhMwpSaveWindowSettings(
+VOID PhMwpSaveWindowState(
     VOID
     )
 {
