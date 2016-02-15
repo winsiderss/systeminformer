@@ -177,7 +177,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             MinimumSize.left = 0;
             MinimumSize.top = 0;
-            MinimumSize.right = 45;
+            MinimumSize.right = 55;
             MinimumSize.bottom = 60;
             MapDialogRect(hwndDlg, &MinimumSize);
             MinimumSize.right += (MinimumSize.right + GRAPH_PADDING) * numberOfColumns;
