@@ -654,6 +654,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:
@@ -662,7 +663,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                PostQuitMessage(0);
+                DestroyWindow(hwndDlg);
                 break;
             }
         }
@@ -738,8 +739,6 @@ static NTSTATUS ShowDetailsDialogThread(
     }
 
     PhDeleteAutoPool(&autoPool);
-
-    DestroyWindow(dialogHandle);
 
     FreeDetailsContext(context);
 
