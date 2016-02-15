@@ -1157,6 +1157,8 @@ static INT_PTR CALLBACK UploadDlgProc(
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
+
+            PostQuitMessage(0);
         }
     }
 
@@ -1170,7 +1172,7 @@ static INT_PTR CALLBACK UploadDlgProc(
             HANDLE dialogThread = NULL;
             HWND parentWindow = GetParent(hwndDlg);
 
-            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsIconic(parentWindow)) ? parentWindow : NULL);
+            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsMinimized(parentWindow)) ? parentWindow : NULL);
 
             context->DialogHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
@@ -1213,7 +1215,7 @@ static INT_PTR CALLBACK UploadDlgProc(
                         PhShellExecute(hwndDlg, context->LaunchCommand->Buffer, NULL);
                     }
 
-                    PostQuitMessage(0);
+                    DestroyWindow(hwndDlg);
                 }
                 break;
             case IDNO:
@@ -1237,14 +1239,14 @@ static INT_PTR CALLBACK UploadDlgProc(
                     else
                     {
                         context->UploadServiceState = PhUploadServiceMaximum;
-                        PostQuitMessage(0);
+                        DestroyWindow(hwndDlg);
                     }
                 }
                 break;
             case IDCANCEL:
                 {
                     context->UploadServiceState = PhUploadServiceMaximum;
-                    PostQuitMessage(0);
+                    DestroyWindow(hwndDlg);
                 }
             }
             break;
@@ -1290,7 +1292,7 @@ static INT_PTR CALLBACK UploadDlgProc(
                 PhShellExecute(hwndDlg, context->LaunchCommand->Buffer, NULL);
             }
 
-            PostQuitMessage(0);
+            DestroyWindow(hwndDlg);
         }
         break;
     case UM_ERROR:
@@ -1356,7 +1358,6 @@ static NTSTATUS PhUploadToDialogThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(dialogHandle);
 
     return STATUS_SUCCESS;
 }

@@ -1002,6 +1002,8 @@ static INT_PTR CALLBACK UpdaterWndProc(
         {
             RemoveProp(hwndDlg, L"Context");
             FreeUpdateContext(context);
+
+            PostQuitMessage(0);
         }
     }
 
@@ -1085,7 +1087,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
         break;
     case WM_SHOWDIALOG:
         {
-            if (IsIconic(hwndDlg))
+            if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
             else
                 ShowWindow(hwndDlg, SW_SHOW);
@@ -1119,9 +1121,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             {
             case IDCANCEL:
             case IDOK:
-                {
-                    PostQuitMessage(0);
-                }
+                DestroyWindow(hwndDlg);
                 break;
             case IDC_DOWNLOAD:
                 {
@@ -1162,7 +1162,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                             {
                                 // Let the user handle non-setup installation, show the homepage and close this dialog.
                                 PhShellExecute(hwndDlg, L"http://processhacker.sourceforge.net/downloads.php", NULL);
-                                PostQuitMessage(0);
+                                DestroyWindow(hwndDlg);
                             }
                         }
                         break;
@@ -1380,12 +1380,6 @@ static NTSTATUS ShowUpdateDialogThread(
 
     PhDeleteAutoPool(&autoPool);
     PhResetEvent(&InitializedEvent);
-
-    if (UpdateDialogHandle)
-    {
-        DestroyWindow(UpdateDialogHandle);
-        UpdateDialogHandle = NULL;
-    }
 
     if (UpdateDialogThreadHandle)
     {

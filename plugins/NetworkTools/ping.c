@@ -522,7 +522,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             {
             case IDCANCEL:
             case IDOK:
-                PostQuitMessage(0);
+                DestroyWindow(hwndDlg);
                 break;
             }
         }
@@ -555,6 +555,8 @@ static INT_PTR CALLBACK NetworkPingWndProc(
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_SIZE:
@@ -750,7 +752,6 @@ NTSTATUS PhNetworkPingDialogThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(windowHandle);
 
     return STATUS_SUCCESS;
 }

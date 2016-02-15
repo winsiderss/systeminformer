@@ -63,6 +63,8 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
+
+            PostQuitMessage(0);
         }
     }
 
@@ -167,7 +169,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                PostQuitMessage(0);
+                DestroyWindow(hwndDlg);
                 break;
             }
         }
@@ -389,7 +391,6 @@ static NTSTATUS PhNetworkOutputDialogThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    DestroyWindow(windowHandle);
 
     return STATUS_SUCCESS;
 }
