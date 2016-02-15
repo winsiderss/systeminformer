@@ -1295,13 +1295,15 @@ PPH_STRING PhGetPhVersion(
     VOID
     )
 {
-    PH_FORMAT format[3];
+    PH_FORMAT format[5];
 
     PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
     PhInitFormatC(&format[1], '.');
     PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
+    PhInitFormatC(&format[3], '.');
+    PhInitFormatU(&format[4], PHAPP_VERSION_REVISION);
 
-    return PhFormat(format, 3, 16);
+    return PhFormat(format, 5, 16);
 }
 
 VOID PhGetPhVersionNumbers(
