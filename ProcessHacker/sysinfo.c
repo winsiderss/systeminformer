@@ -71,6 +71,7 @@ static HANDLE PhSipThread = NULL;
 static HWND PhSipWindow = NULL;
 static PPH_LIST PhSipDialogList = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
+static PWSTR InitialSectionName;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
@@ -150,6 +151,8 @@ VOID PhShowSystemInformationDialog(
     _In_opt_ PWSTR SectionName
     )
 {
+    InitialSectionName = SectionName;
+
     if (!PhSipWindow)
     {
         if (!(PhSipThread = PhCreateThread(0, PhSipSysInfoThreadStart, NULL)))
@@ -161,7 +164,7 @@ VOID PhShowSystemInformationDialog(
         PhWaitForEvent(&InitializedEvent, NULL);
     }
 
-    SendMessage(PhSipWindow, SI_MSG_SYSINFO_ACTIVATE, 0, 0);
+    SendMessage(PhSipWindow, SI_MSG_SYSINFO_ACTIVATE, (WPARAM)SectionName, 0);
 }
 
 NTSTATUS PhSipSysInfoThreadStart(
@@ -413,7 +416,7 @@ VOID PhSipOnShowWindow(
 {
     RECT buttonRect;
     RECT clientRect;
-    PPH_STRING sectionName;
+    PH_STRINGREF sectionName;
     PPH_SYSINFO_SECTION section;
 
     if (SectionList)
@@ -508,9 +511,12 @@ VOID PhSipOnShowWindow(
 
     PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
 
-    sectionName = PhaGetStringSetting(L"SysInfoWindowSection");
+    if (InitialSectionName)
+        PhInitializeStringRefLongHint(&sectionName, InitialSectionName);
+    else
+        sectionName = PhaGetStringSetting(L"SysInfoWindowSection")->sr;
 
-    if (sectionName->Length != 0 && (section = PhSipFindSection(&sectionName->sr)))
+    if (sectionName.Length != 0 && (section = PhSipFindSection(&sectionName)))
     {
         PhSipEnterSectionView(section);
     }
@@ -786,6 +792,22 @@ VOID PhSipOnUserMessage(
     {
     case SI_MSG_SYSINFO_ACTIVATE:
         {
+            PWSTR sectionName = (PWSTR)WParam;
+
+            if (SectionList && sectionName)
+            {
+                PH_STRINGREF sectionNameSr;
+                PPH_SYSINFO_SECTION section;
+
+                PhInitializeStringRefLongHint(&sectionNameSr, sectionName);
+                section = PhSipFindSection(&sectionNameSr);
+
+                if (section)
+                    PhSipEnterSectionView(section);
+                else
+                    PhSipRestoreSummaryView();
+            }
+
             if (IsIconic(PhSipWindow))
                 ShowWindow(PhSipWindow, SW_RESTORE);
             else

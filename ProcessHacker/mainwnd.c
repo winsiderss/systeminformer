@@ -259,6 +259,9 @@ BOOLEAN PhMainWndInitialization(
             PhMwpSelectTabPage(tabIndex);
     }
 
+    if (PhStartupParameters.SysInfo)
+        PhShowSystemInformationDialog(PhStartupParameters.SysInfo->Buffer);
+
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 

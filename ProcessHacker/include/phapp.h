@@ -69,6 +69,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
+    PPH_STRING SysInfo;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern PPH_STRING PhApplicationDirectory;
