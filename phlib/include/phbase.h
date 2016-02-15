@@ -324,7 +324,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhReAllocate(
-    _Frees_ptr_opt_ PVOID Memory,
+    _Frees_ptr_ PVOID Memory,
     _In_ SIZE_T Size
     );
 

@@ -3271,7 +3271,7 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlDestroyHeap(
-    _In_ _Post_invalid_ PVOID HeapHandle
+    _Frees_ptr_ PVOID HeapHandle
     );
 
 NTSYSAPI
@@ -3289,7 +3289,7 @@ NTAPI
 RtlFreeHeap(
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG Flags,
-    _In_ _Post_invalid_ PVOID BaseAddress
+    _Frees_ptr_opt_ PVOID BaseAddress
     );
 
 NTSYSAPI
@@ -3339,7 +3339,7 @@ NTAPI
 RtlReAllocateHeap(
     _In_ PVOID HeapHandle,
     _In_ ULONG Flags,
-    _In_ PVOID BaseAddress,
+    _Frees_ptr_opt_ PVOID BaseAddress,
     _In_ SIZE_T Size
     );
 

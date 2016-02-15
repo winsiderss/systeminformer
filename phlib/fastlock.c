@@ -106,7 +106,9 @@ FORCEINLINE ULONG PhpGetSpinCount(
         return 0;
 }
 
-_May_raise_ VOID FASTCALL PhfAcquireFastLockExclusive(
+_May_raise_
+_Acquires_exclusive_lock_(*FastLock)
+VOID FASTCALL PhfAcquireFastLockExclusive(
     _Inout_ PPH_FAST_LOCK FastLock
     )
 {
@@ -164,7 +166,9 @@ _May_raise_ VOID FASTCALL PhfAcquireFastLockExclusive(
     }
 }
 
-_May_raise_ VOID FASTCALL PhfAcquireFastLockShared(
+_May_raise_
+_Acquires_shared_lock_(*FastLock)
+VOID FASTCALL PhfAcquireFastLockShared(
     _Inout_ PPH_FAST_LOCK FastLock
     )
 {
@@ -230,6 +234,7 @@ _May_raise_ VOID FASTCALL PhfAcquireFastLockShared(
     }
 }
 
+_Releases_exclusive_lock_(*FastLock)
 VOID FASTCALL PhfReleaseFastLockExclusive(
     _Inout_ PPH_FAST_LOCK FastLock
     )
@@ -276,6 +281,7 @@ VOID FASTCALL PhfReleaseFastLockExclusive(
     }
 }
 
+_Releases_shared_lock_(*FastLock)
 VOID FASTCALL PhfReleaseFastLockShared(
     _Inout_ PPH_FAST_LOCK FastLock
     )
@@ -323,6 +329,7 @@ VOID FASTCALL PhfReleaseFastLockShared(
     }
 }
 
+_When_(return != 0, _Acquires_exclusive_lock_(*FastLock))
 BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
     _Inout_ PPH_FAST_LOCK FastLock
     )
@@ -341,6 +348,7 @@ BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
         ) == value;
 }
 
+_When_(return != 0, _Acquires_shared_lock_(*FastLock))
 BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
     _Inout_ PPH_FAST_LOCK FastLock
     )
