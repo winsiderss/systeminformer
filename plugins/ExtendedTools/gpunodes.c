@@ -120,7 +120,6 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             ULONG numberOfColumns;
 
             WindowHandle = hwndDlg;
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -199,6 +198,9 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 MinimumSize.right = labelRect.right;
 
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+            
+            // Note: This dialog must be centered after all other graphs and controls have been added.
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             EtpLoadNodeBitMap();
         }

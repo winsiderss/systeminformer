@@ -23,6 +23,7 @@
 #include "exttools.h"
 #include "gpusys.h"
 
+static BOOLEAN Enabled;
 static PPH_SYSINFO_SECTION GpuSection;
 static HWND GpuDialog;
 static PH_LAYOUT_MANAGER GpuLayoutManager;
@@ -59,19 +60,12 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
     switch (Message)
     {
     case SysInfoDestroy:
-        {
-            if (GpuDialog)
-            {
-                EtpUninitializeGpuDialog();
-                GpuDialog = NULL;
-            }
-        }
         return TRUE;
     case SysInfoTick:
         {
-            if (GpuDialog)
+            if (Enabled && GpuDialog)
             {
-                EtpTickGpuDialog();
+                PostMessage(GpuDialog, UPDATE_MSG, 0, 0);
             }
         }
         return TRUE;
@@ -128,7 +122,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
     return FALSE;
 }
 
-VOID EtpInitializeGpuDialog(
+static VOID EtpInitializeGpuDialog(
     VOID
     )
 {
@@ -137,7 +131,7 @@ VOID EtpInitializeGpuDialog(
     PhInitializeGraphState(&SharedGraphState);
 }
 
-VOID EtpUninitializeGpuDialog(
+static VOID EtpUninitializeGpuDialog(
     VOID
     )
 {
@@ -146,7 +140,7 @@ VOID EtpUninitializeGpuDialog(
     PhDeleteGraphState(&SharedGraphState);
 }
 
-VOID EtpTickGpuDialog(
+static VOID EtpTickGpuDialog(
     VOID
     )
 {
@@ -167,6 +161,8 @@ INT_PTR CALLBACK EtpGpuDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
+
+            Enabled = TRUE;
 
             EtpInitializeGpuDialog();
 
@@ -194,6 +190,9 @@ INT_PTR CALLBACK EtpGpuDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&GpuLayoutManager);
+
+            EtpUninitializeGpuDialog();
+            GpuDialog = NULL;
         }
         break;
     case WM_SIZE:
@@ -217,6 +216,22 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             else if (header->hwndFrom == SharedGraphHandle)
             {
                 EtpNotifySharedGraph(header);
+            }
+        }
+        break;
+    case UPDATE_MSG:
+        {
+            if (Enabled)
+            {
+                EtpTickGpuDialog();
+            }
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (Enabled = (BOOLEAN)wParam)
+            {
+                EtpTickGpuDialog();
             }
         }
         break;
