@@ -160,9 +160,17 @@ VOID NetAdaptersUpdate(
             }
         }
 
-        // We don't want incorrect data when the adapter is disabled.
+        if (!entry->HaveFirstSample)
+        {
+            // The first sample must be zero.
+            networkRcvSpeed = 0;
+            networkXmitSpeed = 0;
+            entry->HaveFirstSample = TRUE;
+        }
+       
         if (mediaState == MediaConnectStateUnknown)
         {
+            // We don't want incorrect data when the adapter is disabled.
             networkRcvSpeed = 0;
             networkXmitSpeed = 0;
         }
@@ -171,12 +179,6 @@ VOID NetAdaptersUpdate(
         {
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
-        }
-        else
-        {
-            // The first sample must be zero.
-            networkRcvSpeed = 0;
-            networkXmitSpeed = 0;
         }
 
         //context->LinkSpeed = networkLinkSpeed;

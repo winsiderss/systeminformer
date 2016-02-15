@@ -23,7 +23,6 @@
 
 #include "netadapters.h"
 
-static BOOLEAN OptionsChanged = FALSE;
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 

@@ -71,7 +71,7 @@ typedef struct _DV_NETADAPTER_ENTRY
     PPH_STRING AdapterName;
 
     BOOLEAN UserReference;
-    BOOLEAN HaveFirstDetailsSample;
+    BOOLEAN HaveFirstSample;
 
     //ULONG64 LinkSpeed;
     ULONG64 InboundValue;
