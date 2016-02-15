@@ -24,7 +24,7 @@
 #include <cpysave.h>
 #include <verify.h>
 #include <shlobj.h>
-#include <Uxtheme.h>
+#include <uxtheme.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)

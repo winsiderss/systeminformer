@@ -104,8 +104,8 @@ typedef HRESULT (WINAPI *_GetThemeInt)(
     _Out_ int *piVal
     );
 
-typedef HRESULT(WINAPI *_EnableThemeDialogTexture)(
-    _In_ HWND  hwnd,
+typedef HRESULT (WINAPI *_EnableThemeDialogTexture)(
+    _In_ HWND hwnd,
     _In_ DWORD dwFlags
     );
 

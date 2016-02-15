@@ -31,7 +31,7 @@
 #include <verify.h>
 #include <procprpp.h>
 #include <windowsx.h>
-#include <Uxtheme.h>
+#include <uxtheme.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \
     SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
