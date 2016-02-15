@@ -4601,8 +4601,8 @@ BOOLEAN PhParseCommandLine(
     SIZE_T i;
     SIZE_T j;
     SIZE_T length;
-    BOOLEAN cont;
-    BOOLEAN wasFirst;
+    BOOLEAN cont = TRUE;
+    BOOLEAN wasFirst = TRUE;
 
     PH_STRINGREF optionName;
     PPH_COMMAND_LINE_OPTION option = NULL;
@@ -4613,7 +4613,6 @@ BOOLEAN PhParseCommandLine(
 
     i = 0;
     length = CommandLine->Length / 2;
-    wasFirst = TRUE;
 
     while (TRUE)
     {
@@ -4661,6 +4660,18 @@ BOOLEAN PhParseCommandLine(
 
             optionName.Buffer = &CommandLine->Buffer[originalIndex];
             optionName.Length = optionNameLength * 2;
+
+            // Take care of any pending optional argument.
+
+            if (option && option->Type == OptionalArgumentType)
+            {
+                cont = Callback(option, NULL, Context);
+
+                if (!cont)
+                    break;
+
+                option = NULL;
+            }
 
             // Find the option descriptor.
 
@@ -4714,6 +4725,9 @@ BOOLEAN PhParseCommandLine(
             wasFirst = FALSE;
         }
     }
+
+    if (cont && option && option->Type == OptionalArgumentType)
+        Callback(option, NULL, Context);
 
     return TRUE;
 }
