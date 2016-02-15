@@ -68,7 +68,7 @@ static HFONT InitializeFont(
     return NULL;
 }
 
-static VOID PhNetworkPingUpdateGraph(
+static VOID NetworkPingUpdateGraph(
     _In_ PNETWORK_OUTPUT_CONTEXT Context
     )
 {
@@ -86,7 +86,7 @@ static VOID PhNetworkPingUpdateGraph(
  * \param Format The format-control string.
  * \param ArgPtr A pointer to the list of arguments.
  */
-static PPH_BYTES PhFormatAnsiString_V(
+static PPH_BYTES FormatAnsiString_V(
     _In_ _Printf_format_string_ PSTR Format,
     _In_ va_list ArgPtr
     )
@@ -115,7 +115,7 @@ static PPH_BYTES PhFormatAnsiString_V(
  *
  * \param Format The format-control string.
  */
-static PPH_BYTES PhFormatAnsiString(
+static PPH_BYTES FormatAnsiString(
     _In_ _Printf_format_string_ PSTR Format,
     ...
     )
@@ -124,10 +124,10 @@ static PPH_BYTES PhFormatAnsiString(
 
     va_start(argptr, Format);
 
-    return PhFormatAnsiString_V(Format, argptr);
+    return FormatAnsiString_V(Format, argptr);
 }
 
-static NTSTATUS PhNetworkPingThreadStart(
+static NTSTATUS NetworkPingThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -156,7 +156,7 @@ static NTSTATUS PhNetworkPingThreadStart(
             __leave;
 
         // Create ICMP echo buffer.
-        if ((icmpEchoBuffer = PhFormatAnsiString("processhacker_%S_0x0D06F00D_x1", phVersion->Buffer)) == NULL)
+        if ((icmpEchoBuffer = FormatAnsiString("processhacker_%S_0x0D06F00D_x1", phVersion->Buffer)) == NULL)
             __leave;
 
         if (context->IpAddress.Type == PH_IPV6_NETWORK_TYPE)
@@ -386,7 +386,7 @@ static VOID NTAPI NetworkPingUpdateHandler(
     // Queue up the next ping into our work queue...
     PhQueueItemWorkQueue(
         &context->PingWorkQueue,
-        PhNetworkPingThreadStart,
+        NetworkPingThreadStart,
         (PVOID)context
         );
 }
@@ -591,7 +591,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             ULONG maxGraphHeight = 0;
             ULONG pingAvgValue = 0;
 
-            PhNetworkPingUpdateGraph(context);
+            NetworkPingUpdateGraph(context);
 
             for (i = 0; i < context->PingHistory.Count; i++)
             {

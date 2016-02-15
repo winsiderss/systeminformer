@@ -253,6 +253,10 @@ VOID ToolbarUpdateGraphs(VOID)
     }
 }
 
+//
+// BEGIN copied from ProcessHacker/sysinfo.c
+//
+
 static PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     _In_ LONG Index
     )
@@ -384,6 +388,10 @@ static PPH_STRING PhSipGetMaxIoString(
 
     return maxUsageString;
 }
+
+//
+// END copied from ProcessHacker/sysinfo.c
+//
 
 VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 {
