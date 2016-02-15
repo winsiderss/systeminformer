@@ -36,7 +36,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
 
     if (context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
     }
 }
 
@@ -683,7 +683,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case MSG_UPDATE:
+    case UPDATE_MSG:
         {
             NetAdapterUpdateDetails(context);
         }

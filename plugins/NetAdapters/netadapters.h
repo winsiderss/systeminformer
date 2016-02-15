@@ -50,7 +50,7 @@
 #include "resource.h"
 
 #define WM_SHOWDIALOG (WM_APP + 1)
-#define MSG_UPDATE (WM_APP + 2)
+#define UPDATE_MSG (WM_APP + 2)
 
 extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;

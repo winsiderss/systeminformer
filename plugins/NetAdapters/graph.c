@@ -30,9 +30,12 @@ static VOID NTAPI ProcessesUpdatedHandler(
 {
     PDV_NETADAPTER_SYSINFO_CONTEXT context = Context;
 
+    if (!context->Enabled)
+        return;
+
     if (context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
     }
 }
 
@@ -385,7 +388,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             }
         }
         break;
-    case MSG_UPDATE:
+    case UPDATE_MSG:
         {
             if (context->Enabled)
             {
