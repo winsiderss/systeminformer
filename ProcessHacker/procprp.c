@@ -31,6 +31,7 @@
 #include <verify.h>
 #include <procprpp.h>
 #include <windowsx.h>
+#include <Uxtheme.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \
     SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
@@ -3424,6 +3425,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -3648,11 +3652,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (count != 0)
                 TreeNew_SetRedraw(tnHandle, TRUE);
-        }
-        break;
-    case WM_CTLCOLORDLG:
-        {
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
@@ -4263,6 +4262,9 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
                 NtClose(processHandle);
             }
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -4291,11 +4293,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_LIST), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
-        }
-        break;
-    case WM_CTLCOLORDLG:
-        {
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }

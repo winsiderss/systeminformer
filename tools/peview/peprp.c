@@ -24,6 +24,7 @@
 #include <cpysave.h>
 #include <verify.h>
 #include <shlobj.h>
+#include <Uxtheme.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
@@ -692,16 +693,14 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
-    case WM_CTLCOLORDLG:
-        {
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
@@ -782,16 +781,14 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
-    case WM_CTLCOLORDLG:
-        {
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }
@@ -880,16 +877,14 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
             }
 
             PhDeleteAutoPool(&autoPool);
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
-    case WM_CTLCOLORDLG:
-        {
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     }

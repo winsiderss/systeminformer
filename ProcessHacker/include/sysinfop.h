@@ -20,13 +20,6 @@
 #define SI_MSG_SYSINFO_CHANGE_SETTINGS (WM_APP + 152)
 #define SI_MSG_SYSINFO_LAST (WM_APP + 152)
 
-// Misc.
-
-typedef HRESULT (WINAPI *_EnableThemeDialogTexture)(
-    _In_ HWND hwnd,
-    _In_ DWORD dwFlags
-    );
-
 // Thread & window
 
 NTSTATUS PhSipSysInfoThreadStart(

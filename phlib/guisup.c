@@ -35,6 +35,7 @@ _IsThemePartDefined IsThemePartDefined_I;
 _DrawThemeBackground DrawThemeBackground_I;
 _DrawThemeText DrawThemeText_I;
 _GetThemeInt GetThemeInt_I;
+_EnableThemeDialogTexture EnableThemeDialogTexture_I;
 _SHAutoComplete SHAutoComplete_I;
 _SHCreateShellItem SHCreateShellItem_I;
 _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
@@ -66,6 +67,7 @@ VOID PhGuiSupportInitialization(
     DrawThemeBackground_I = (PVOID)GetProcAddress(uxthemeHandle, "DrawThemeBackground");
     DrawThemeText_I = (PVOID)GetProcAddress(uxthemeHandle, "DrawThemeText");
     GetThemeInt_I = (PVOID)GetProcAddress(uxthemeHandle, "GetThemeInt");
+    EnableThemeDialogTexture_I = (PVOID)GetProcAddress(uxthemeHandle, "EnableThemeDialogTexture");
     SHAutoComplete_I = (PVOID)GetProcAddress(shlwapiHandle, "SHAutoComplete");
     SHCreateShellItem_I = (PVOID)GetProcAddress(shell32Handle, "SHCreateShellItem");
     SHOpenFolderAndSelectItems_I = (PVOID)GetProcAddress(shell32Handle, "SHOpenFolderAndSelectItems");

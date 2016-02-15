@@ -104,6 +104,11 @@ typedef HRESULT (WINAPI *_GetThemeInt)(
     _Out_ int *piVal
     );
 
+typedef HRESULT(WINAPI *_EnableThemeDialogTexture)(
+    _In_ HWND  hwnd,
+    _In_ DWORD dwFlags
+    );
+
 typedef HRESULT (WINAPI *_SHAutoComplete)(
     _In_ HWND hwndEdit,
     _In_ DWORD dwFlags
@@ -126,6 +131,7 @@ extern _IsThemePartDefined IsThemePartDefined_I;
 extern _DrawThemeBackground DrawThemeBackground_I;
 extern _DrawThemeText DrawThemeText_I;
 extern _GetThemeInt GetThemeInt_I;
+extern _EnableThemeDialogTexture EnableThemeDialogTexture_I;
 extern _SHAutoComplete SHAutoComplete_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 

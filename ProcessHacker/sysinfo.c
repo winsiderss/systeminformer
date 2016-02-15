@@ -86,7 +86,6 @@ static WNDPROC RestoreSummaryControlOldWndProc;
 static BOOLEAN RestoreSummaryControlHot;
 static BOOLEAN RestoreSummaryControlHasFocus;
 
-static _EnableThemeDialogTexture EnableThemeDialogTexture_I;
 static HTHEME ThemeData;
 static BOOLEAN ThemeHasItemBackground;
 
@@ -356,9 +355,6 @@ VOID PhSipOnInitDialog(
         PhSipWindow,
         PhSipContainerDialogProc
         );
-
-    if (!EnableThemeDialogTexture_I)
-        EnableThemeDialogTexture_I = PhGetModuleProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
 
     PhSetControlTheme(PhSipWindow, L"explorer");
     PhSipUpdateThemeData();
