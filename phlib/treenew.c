@@ -5798,7 +5798,7 @@ VOID PhTnpGetTooltipText(
         return;
     if (!(hitTest.Flags & TN_HIT_ITEM))
         return;
-    if (hitTest.Flags & TN_HIT_DIVIDER)
+    if (hitTest.Flags & (TN_HIT_ITEM_PLUSMINUS | TN_HIT_DIVIDER))
         return;
     if (!hitTest.Column)
         return;
