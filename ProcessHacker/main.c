@@ -809,8 +809,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_PLUGIN:
             if (!PhStartupParameters.PluginParameters)
                 PhStartupParameters.PluginParameters = PhCreateList(3);
-            PhReferenceObject(Value);
-            PhAddItemList(PhStartupParameters.PluginParameters, Value);
+            PhAddItemList(PhStartupParameters.PluginParameters, PhReferenceObject(Value));
             break;
         case PH_ARG_SELECTTAB:
             PhSwapReference(&PhStartupParameters.SelectTab, Value);

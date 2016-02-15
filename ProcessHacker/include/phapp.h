@@ -32,20 +32,20 @@ typedef struct _PH_STARTUP_PARAMETERS
     {
         struct
         {
-            ULONG NoKph : 1;
             ULONG NoSettings : 1;
-            ULONG NoPlugins : 1;
-            ULONG ShowHidden : 1;
             ULONG ShowVisible : 1;
-            ULONG ShowOptions : 1;
-            ULONG NewInstance : 1;
-            ULONG Elevate : 1;
-            ULONG Silent : 1;
+            ULONG ShowHidden : 1;
             ULONG CommandMode : 1;
-            ULONG PhSvc : 1;
+            ULONG NoKph : 1;
             ULONG InstallKph : 1;
             ULONG UninstallKph : 1;
             ULONG Debug : 1;
+            ULONG ShowOptions : 1;
+            ULONG PhSvc : 1;
+            ULONG NoPlugins : 1;
+            ULONG NewInstance : 1;
+            ULONG Elevate : 1;
+            ULONG Silent : 1;
             ULONG Help : 1;
             ULONG Spare : 17;
         };

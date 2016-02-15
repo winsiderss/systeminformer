@@ -1380,6 +1380,23 @@ BOOLEAN PhShellProcessHacker(
         );
 }
 
+VOID PhpAppendCommandLineArgument(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PWSTR Name,
+    _In_ PPH_STRINGREF Value
+    )
+{
+    PPH_STRING temp;
+
+    PhAppendStringBuilder2(StringBuilder, L" -");
+    PhAppendStringBuilder2(StringBuilder, Name);
+    PhAppendStringBuilder2(StringBuilder, L" \"");
+    temp = PhEscapeCommandLinePart(Value);
+    PhAppendStringBuilder(StringBuilder, &temp->sr);
+    PhDereferenceObject(temp);
+    PhAppendCharStringBuilder(StringBuilder, '\"');
+}
+
 BOOLEAN PhShellProcessHackerEx(
     _In_opt_ HWND hWnd,
     _In_opt_ PWSTR FileName,
@@ -1394,7 +1411,6 @@ BOOLEAN PhShellProcessHackerEx(
     BOOLEAN result;
     PH_STRING_BUILDER sb;
     PWSTR parameters;
-    PPH_STRING temp;
 
     if (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS)
     {
@@ -1408,53 +1424,79 @@ BOOLEAN PhShellProcessHackerEx(
         }
         else if (PhStartupParameters.SettingsFileName && (PhSettingsFileName || (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS)))
         {
-            PhAppendStringBuilder2(&sb, L" -settings \"");
+            PPH_STRINGREF fileName;
 
             if (PhSettingsFileName)
-                temp = PhEscapeCommandLinePart(&PhSettingsFileName->sr);
+                fileName = &PhSettingsFileName->sr;
             else
-                temp = PhEscapeCommandLinePart(&PhStartupParameters.SettingsFileName->sr);
+                fileName = &PhStartupParameters.SettingsFileName->sr;
 
-            PhAppendStringBuilder(&sb, &temp->sr);
-            PhDereferenceObject(temp);
-            PhAppendCharStringBuilder(&sb, '\"');
+            PhpAppendCommandLineArgument(&sb, L"settings", fileName);
         }
 
         if (PhStartupParameters.NoKph)
-        {
             PhAppendStringBuilder2(&sb, L" -nokph");
-        }
-
+        if (PhStartupParameters.InstallKph)
+            PhAppendStringBuilder2(&sb, L" -installkph");
+        if (PhStartupParameters.UninstallKph)
+            PhAppendStringBuilder2(&sb, L" -uninstallkph");
+        if (PhStartupParameters.Debug)
+            PhAppendStringBuilder2(&sb, L" -debug");
         if (PhStartupParameters.NoPlugins)
-        {
             PhAppendStringBuilder2(&sb, L" -noplugins");
+        if (PhStartupParameters.NewInstance)
+            PhAppendStringBuilder2(&sb, L" -newinstance");
+
+        if (PhStartupParameters.SelectPid != 0)
+            PhAppendFormatStringBuilder(&sb, L" -selectpid %u", PhStartupParameters.SelectPid);
+
+        if (PhStartupParameters.PriorityClass != 0)
+        {
+            CHAR value = 0;
+
+            switch (PhStartupParameters.PriorityClass)
+            {
+            case PROCESS_PRIORITY_CLASS_REALTIME:
+                value = L'r';
+                break;
+            case PROCESS_PRIORITY_CLASS_HIGH:
+                value = L'h';
+                break;
+            case PROCESS_PRIORITY_CLASS_NORMAL:
+                value = L'n';
+                break;
+            case PROCESS_PRIORITY_CLASS_IDLE:
+                value = L'l';
+                break;
+            }
+
+            if (value != 0)
+            {
+                PhAppendStringBuilder2(&sb, L" -priority ");
+                PhAppendCharStringBuilder(&sb, value);
+            }
         }
 
-        if (PhStartupParameters.NewInstance)
+        if (PhStartupParameters.PluginParameters)
         {
-            PhAppendStringBuilder2(&sb, L" -newinstance");
+            ULONG i;
+
+            for (i = 0; i < PhStartupParameters.PluginParameters->Count; i++)
+            {
+                PPH_STRING value = PhStartupParameters.PluginParameters->Items[i];
+                PhpAppendCommandLineArgument(&sb, L"plugin", &value->sr);
+            }
         }
 
         if (PhStartupParameters.SelectTab)
-        {
-            PhAppendStringBuilder2(&sb, L" -selecttab \"");
-            temp = PhEscapeCommandLinePart(&PhStartupParameters.SelectTab->sr);
-            PhAppendStringBuilder(&sb, &temp->sr);
-            PhDereferenceObject(temp);
-            PhAppendCharStringBuilder(&sb, '\"');
-        }
+            PhpAppendCommandLineArgument(&sb, L"selecttab", &PhStartupParameters.SelectTab->sr);
 
         if (!(AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY))
         {
             if (PhStartupParameters.ShowVisible)
-            {
                 PhAppendStringBuilder2(&sb, L" -v");
-            }
-
             if (PhStartupParameters.ShowHidden)
-            {
                 PhAppendStringBuilder2(&sb, L" -hide");
-            }
         }
 
         // Add user-specified parameters last so they can override the propagated parameters.
