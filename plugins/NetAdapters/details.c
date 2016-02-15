@@ -698,7 +698,7 @@ static VOID FreeDetailsContext(
     )
 {
     DeleteNetAdapterId(&Context->AdapterId);
-    PhDereferenceObject(Context->AdapterName);
+    PhClearReference(&Context->AdapterName);
     PhFree(Context);
 }
 
@@ -756,7 +756,7 @@ VOID ShowDetailsDialog(
     memset(context, 0, sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
 
     context->ParentHandle = Context->WindowHandle;
-    context->AdapterName = PhReferenceObject(Context->AdapterEntry->AdapterName);
+    PhSetReference(&context->AdapterName, Context->AdapterEntry->AdapterName);
     CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->Id);
 
     if (dialogThread = PhCreateThread(0, ShowDetailsDialogThread, context))

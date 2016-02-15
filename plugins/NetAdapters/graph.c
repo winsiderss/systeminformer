@@ -424,6 +424,7 @@ static BOOLEAN NetAdapterSectionCallback(
     case SysInfoDestroy:
         {
             PhDereferenceObject(context->AdapterEntry);
+            PhDereferenceObject(context->SectionName);
             PhFree(context);
         }
         return TRUE;
@@ -514,12 +515,15 @@ static BOOLEAN NetAdapterSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            drawPanel->Title = PhCreateString(Section->Name.Buffer);
+            PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nS: %s",
                 PhaFormatSize(context->AdapterEntry->InboundValue, -1)->Buffer,
                 PhaFormatSize(context->AdapterEntry->OutboundValue, -1)->Buffer
                 );
+
+            if (!drawPanel->Title)
+                drawPanel->Title = PhCreateString(L"Network adapter");
         }
         return TRUE;
     }
@@ -540,10 +544,11 @@ VOID NetAdapterSysInfoInitializing(
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
 
     context->AdapterEntry = AdapterEntry;
+    context->SectionName = PhConcatStrings2(L"NetAdapter ", AdapterEntry->Id.InterfaceGuid->Buffer);
 
     section.Context = context;
     section.Callback = NetAdapterSectionCallback;
-    section.Name = AdapterEntry->AdapterName->sr;
+    section.Name = context->SectionName->sr;
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }

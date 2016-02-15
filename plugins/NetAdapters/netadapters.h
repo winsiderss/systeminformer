@@ -93,6 +93,7 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
     BOOLEAN Enabled;
     PDV_NETADAPTER_ENTRY AdapterEntry;
+    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
