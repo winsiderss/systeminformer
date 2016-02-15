@@ -921,7 +921,7 @@ VOID PhSiSetColorsGraphDrawInfo(
         DrawInfo->LineColor2 = Color2;
         DrawInfo->LineBackColor2 = PhHalveColorBrightness(Color2);
         DrawInfo->GridColor = RGB(0x00, 0x57, 0x00);
-        DrawInfo->LabelYColor = RGB(0x33, 0x97, 0x33);
+        DrawInfo->LabelYColor = RGB(0xd0, 0xa0, 0x70);
         DrawInfo->TextColor = RGB(0x00, 0xff, 0x00);
         DrawInfo->TextBoxColor = RGB(0x00, 0x22, 0x00);
         break;
