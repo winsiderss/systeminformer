@@ -262,13 +262,18 @@ static PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     )
 {
     LARGE_INTEGER time;
-    ULONG maxProcessId;
+    LONG maxProcessIdLong;
+    HANDLE maxProcessId;
 
     // Find the process record for the max. CPU process for the particular time.
-    maxProcessId = PhGetItemCircularBuffer_ULONG(SystemStatistics.MaxCpuHistory, Index);
 
-    if (!maxProcessId)
+    maxProcessIdLong = PhGetItemCircularBuffer_ULONG(SystemStatistics.MaxCpuHistory, Index);
+
+    if (!maxProcessIdLong)
         return NULL;
+
+    // This must be treated as a signed integer to handle Interrupts correctly.
+    maxProcessId = LongToHandle(maxProcessIdLong);
 
     // Note that the time we get has its components beyond seconds cleared.
     // For example:
@@ -285,7 +290,7 @@ static PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
-    return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
+    return PhFindProcessRecord(maxProcessId, &time);
 }
 
 static PPH_STRING PhSipGetMaxCpuString(
