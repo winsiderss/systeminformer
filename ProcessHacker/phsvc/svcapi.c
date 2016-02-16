@@ -508,22 +508,36 @@ NTSTATUS PhSvcApiControlProcess(
         }
         break;
     case PhSvcControlProcessPriority:
-        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+        if (processId != SYSTEM_PROCESS_ID)
         {
-            PROCESS_PRIORITY_CLASS priorityClass;
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            {
+                PROCESS_PRIORITY_CLASS priorityClass;
 
-            priorityClass.Foreground = FALSE;
-            priorityClass.PriorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
-            status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+                priorityClass.Foreground = FALSE;
+                priorityClass.PriorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
+                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
 
-            NtClose(processHandle);
+                NtClose(processHandle);
+            }
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
         }
         break;
     case PhSvcControlProcessIoPriority:
-        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+        if (processId != SYSTEM_PROCESS_ID)
         {
-            status = PhSetProcessIoPriority(processHandle, Payload->u.ControlProcess.i.Argument);
-            NtClose(processHandle);
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            {
+                status = PhSetProcessIoPriority(processHandle, Payload->u.ControlProcess.i.Argument);
+                NtClose(processHandle);
+            }
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
         }
         break;
     default:

@@ -790,6 +790,10 @@ static VOID ProcessMenuInitializingCallback(
         return;
 
     processItem = menuInfo->u.Process.Processes[0];
+
+    if (PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) || processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || processItem->ProcessId == SYSTEM_PROCESS_ID)
+        return;
+
     AddSavePriorityMenuItemsAndHook(menuInfo, processItem, TRUE);
 
     if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0)))
@@ -938,8 +942,12 @@ static VOID MiListSectionMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_PROCESS_ITEM processItem = menuInfo->u.MiListSection.ProcessGroup->Representative;
 
-    AddSavePriorityMenuItemsAndHook(menuInfo, menuInfo->u.MiListSection.ProcessGroup->Representative, FALSE);
+    if (PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) || processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || processItem->ProcessId == SYSTEM_PROCESS_ID)
+        return;
+
+    AddSavePriorityMenuItemsAndHook(menuInfo, processItem, FALSE);
 }
 
 static VOID ProcessModifiedCallback(

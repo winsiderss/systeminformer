@@ -1739,7 +1739,15 @@ BOOLEAN PhUiSetIoPriorityProcesses(
             Processes[i]->ProcessId
             )))
         {
-            status = PhSetProcessIoPriority(processHandle, IoPriority);
+            if (Processes[i]->ProcessId != SYSTEM_PROCESS_ID)
+            {
+                status = PhSetProcessIoPriority(processHandle, IoPriority);
+            }
+            else
+            {
+                // See comment in PhUiSetPriorityProcesses.
+                status = STATUS_UNSUCCESSFUL;
+            }
 
             NtClose(processHandle);
         }
@@ -1798,12 +1806,20 @@ BOOLEAN PhUiSetPagePriorityProcess(
         Process->ProcessId
         )))
     {
-        status = NtSetInformationProcess(
-            processHandle,
-            ProcessPagePriority,
-            &PagePriority,
-            sizeof(ULONG)
-            );
+        if (Process->ProcessId != SYSTEM_PROCESS_ID)
+        {
+            status = NtSetInformationProcess(
+                processHandle,
+                ProcessPagePriority,
+                &PagePriority,
+                sizeof(ULONG)
+                );
+        }
+        else
+        {
+            // See comment in PhUiSetPriorityProcesses.
+            status = STATUS_UNSUCCESSFUL;
+        }
 
         NtClose(processHandle);
     }
@@ -1840,9 +1856,18 @@ BOOLEAN PhUiSetPriorityProcesses(
             Processes[i]->ProcessId
             )))
         {
-            priorityClass.Foreground = FALSE;
-            priorityClass.PriorityClass = (UCHAR)PriorityClass;
-            status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+            if (Processes[i]->ProcessId != SYSTEM_PROCESS_ID)
+            {
+                priorityClass.Foreground = FALSE;
+                priorityClass.PriorityClass = (UCHAR)PriorityClass;
+                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+            }
+            else
+            {
+                // Changing the priority of System can lead to a BSOD on some versions of Windows,
+                // so disallow this.
+                status = STATUS_UNSUCCESSFUL;
+            }
 
             NtClose(processHandle);
         }
