@@ -81,7 +81,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 break;
             case IDC_DIAGNOSTICS:
                 {
-                    PhShowInformationDialog(hwndDlg, PH_AUTO_T(PH_STRING, PhGetDiagnosticsString())->Buffer);
+                    PhShowInformationDialog(hwndDlg, PH_AUTO_T(PH_STRING, PhGetDiagnosticsString())->Buffer, 0);
                 }
                 break;
             }

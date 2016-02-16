@@ -1679,7 +1679,8 @@ VOID PhShowHandleStatisticsDialog(
 
 VOID PhShowInformationDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PWSTR String
+    _In_ PWSTR String,
+    _Reserved_ ULONG Flags
     );
 
 // jobprp

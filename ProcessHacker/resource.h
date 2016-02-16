@@ -120,6 +120,8 @@
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
 #define IDR_MINIINFO_PROCESS            212
+#define IDR_MENU1                       214
+#define IDR_ENVIRONMENT                 214
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -728,6 +730,8 @@
 #define ID_PROCESS_GOTOPROCESS          40287
 #define ID_MINIINFO_REFRESH             40288
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
+#define ID_ENVIRONMENT_VIEW             40290
+#define ID_ENVIRONMENT_COPY             40291
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -735,8 +739,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        214
-#define _APS_NEXT_COMMAND_VALUE         40290
+#define _APS_NEXT_RESOURCE_VALUE        215
+#define _APS_NEXT_COMMAND_VALUE         40292
 #define _APS_NEXT_CONTROL_VALUE         1378
 #define _APS_NEXT_SYMED_VALUE           169
 #endif

@@ -12,6 +12,7 @@ Process Hacker
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
    * Improved performance when handling a large number of threads, modules or handles
    * Added -sysinfo command line parameter for opening System Information at startup
+   * Added right-click menu and double-click action for environment variables
    * Fixed ASLR state being shown as N/A in process properties
    * Fixed multi monitor window placement bug
    * Fixed handle enumeration bug affecting processes with PID >= 65536

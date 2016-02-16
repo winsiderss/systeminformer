@@ -4188,10 +4188,21 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
+    PPH_ENVIRONMENT_CONTEXT environmentContext;
+    HWND lvHandle;
 
-    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
+    {
+        environmentContext = propPageContext->Context;
+
+        if (environmentContext)
+            lvHandle = environmentContext->ListViewHandle;
+    }
+    else
+    {
         return FALSE;
+    }
 
     switch (uMsg)
     {
@@ -4202,7 +4213,13 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             ULONG environmentLength;
             ULONG enumerationKey;
             PH_ENVIRONMENT_VARIABLE variable;
-            HWND lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            environmentContext = propPageContext->Context =
+                PhAllocate(PhEmGetObjectSize(EmMemoryContextType, sizeof(PH_ENVIRONMENT_CONTEXT)));
+            memset(environmentContext, 0, sizeof(PH_ENVIRONMENT_CONTEXT));
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            environmentContext->ListViewHandle = lvHandle;
+            environmentContext->Values = PhCreateList(100);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -4250,11 +4267,11 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                         nameString = PhCreateString2(&variable.Name);
                         valueString = PhCreateString2(&variable.Value);
 
-                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, nameString->Buffer, NULL);
+                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, nameString->Buffer, valueString);
                         PhSetListViewSubItem(lvHandle, lvItemIndex, 1, valueString->Buffer);
 
                         PhDereferenceObject(nameString);
-                        PhDereferenceObject(valueString);
+                        PhAddItemList(environmentContext->Values, valueString);
                     }
 
                     PhFreePage(environment);
@@ -4270,6 +4287,11 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"EnvironmentListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+
+            PhDereferenceObjects(environmentContext->Values->Items, environmentContext->Values->Count);
+            PhDereferenceObject(environmentContext->Values);
+            PhFree(environmentContext);
+
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -4290,9 +4312,93 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             }
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case ID_ENVIRONMENT_VIEW:
+                {
+                    PPH_STRING *items;
+                    ULONG numberOfItems;
+
+                    PhGetSelectedListViewItemParams(lvHandle, &items, &numberOfItems);
+
+                    if (numberOfItems == 1)
+                    {
+                        PhShowInformationDialog(hwndDlg, items[0]->Buffer, 0);
+                    }
+                    else
+                    {
+                        PhShowInformationDialog(hwndDlg, PH_AUTO_T(PH_STRING, PhGetListViewText(lvHandle))->Buffer, 0);
+                    }
+
+                    PhFree(items);
+                }
+                break;
+            case ID_ENVIRONMENT_COPY:
+                {
+                    PhCopyListView(lvHandle);
+                }
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
-            PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_LIST), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            PhHandleListViewNotifyBehaviors(lParam, lvHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
+            switch (header->code)
+            {
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        SendMessage(hwndDlg, WM_COMMAND, ID_ENVIRONMENT_VIEW, 0);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == lvHandle)
+            {
+                POINT point;
+                PPH_STRING *items;
+                ULONG numberOfItems;
+
+                point.x = (SHORT)LOWORD(lParam);
+                point.y = (SHORT)HIWORD(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(lvHandle, &items, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    PPH_EMENU menu;
+
+                    menu = PhCreateEMenu();
+                    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_ENVIRONMENT), 0);
+                    PhSetFlagsEMenuItem(menu, ID_ENVIRONMENT_VIEW, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
+                    PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(items);
+            }
         }
         break;
     }

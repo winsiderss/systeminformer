@@ -178,7 +178,7 @@ VOID PhUiAnalyzeWaitThread(
 
     if (context.Found)
     {
-        PhShowInformationDialog(hWnd, context.StringBuilder.String->Buffer);
+        PhShowInformationDialog(hWnd, context.StringBuilder.String->Buffer, 0);
     }
     else
     {
@@ -273,7 +273,7 @@ VOID PhpAnalyzeWaitPassive(
     if (stringBuilder.String->Length == 0)
         PhAppendStringBuilder2(&stringBuilder, L"Unable to determine why the thread is waiting.");
 
-    PhShowInformationDialog(hWnd, stringBuilder.String->Buffer);
+    PhShowInformationDialog(hWnd, stringBuilder.String->Buffer, 0);
 
     PhDeleteStringBuilder(&stringBuilder);
     NtClose(processHandle);

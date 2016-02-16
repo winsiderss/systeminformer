@@ -488,6 +488,15 @@ BEGIN
     END
 END
 
+IDR_ENVIRONMENT MENU
+BEGIN
+    POPUP "Environment"
+    BEGIN
+        MENUITEM "&View",                       ID_ENVIRONMENT_VIEW
+        MENUITEM "&Copy\aCtrl+C",               ID_ENVIRONMENT_COPY
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
