@@ -15,18 +15,31 @@
 #define IDC_STAT_BSENT                  1006
 #define IDC_STAT_BRECIEVED              1007
 #define IDC_STAT_BTOTAL                 1008
-#define IDC_DETAILS_BUTTON              1009
+#define IDC_STAT_BTOTAL2                1009
 #define IDC_DETAILS                     1010
 #define IDC_DETAILS_LIST                1011
 #define IDC_SHOW_HIDDEN_ADAPTERS        1012
+#define IDD_DISKDRIVE_OPTIONS           1013
+#define IDD_DISKDRIVE_DIALOG            1014
+#define IDC_BUTTON1                     1014
+#define IDD_DISKDRIVE_PANEL             1016
+#define IDC_DISKDRIVE_LISTVIEW          1017
+#define IDC_STAT_BREAD                  1020
+#define IDC_STAT_BWRITE                 1021
+#define IDC_STAT_BREAD2                 1022
+#define IDC_STAT_ACTIVE                 1023
+#define IDC_STAT_RESPONSETIME           1024
+#define IDC_STAT_QUEUELENGTH            1025
+#define IDC_STAT_CAPACITY               1026
+#define IDC_STAT_BWRITE2                1026
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1013
+#define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

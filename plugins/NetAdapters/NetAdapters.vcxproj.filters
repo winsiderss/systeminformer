@@ -10,6 +10,12 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{00475F04-2369-42D8-9A52-9DB77E37AE62}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Disk">
+      <UniqueIdentifier>{1ccecf79-cd82-4ae5-b891-64a0a2d18e8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Network">
+      <UniqueIdentifier>{c7c48d78-64cd-4559-87c1-74e2141dcd2e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -23,20 +29,32 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="options.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="graph.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="diskoptions.c">
+      <Filter>Source Files\Disk</Filter>
     </ClCompile>
     <ClCompile Include="ndis.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Network</Filter>
     </ClCompile>
-    <ClCompile Include="details.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="storage.c">
+      <Filter>Source Files\Disk</Filter>
     </ClCompile>
     <ClCompile Include="adapter.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="netgraph.c">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="netoptions.c">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="netdetails.c">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="disk.c">
+      <Filter>Source Files\Disk</Filter>
+    </ClCompile>
+    <ClCompile Include="diskgraph.c">
+      <Filter>Source Files\Disk</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

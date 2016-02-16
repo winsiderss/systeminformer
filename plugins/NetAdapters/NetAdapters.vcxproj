@@ -65,11 +65,15 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="adapter.c" />
-    <ClCompile Include="details.c" />
-    <ClCompile Include="graph.c" />
+    <ClCompile Include="netdetails.c" />
+    <ClCompile Include="diskgraph.c" />
+    <ClCompile Include="diskoptions.c" />
+    <ClCompile Include="disk.c" />
+    <ClCompile Include="netgraph.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="ndis.c" />
-    <ClCompile Include="options.c" />
+    <ClCompile Include="netoptions.c" />
+    <ClCompile Include="storage.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="netadapters.h" />

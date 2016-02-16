@@ -32,13 +32,16 @@
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_ENABLE_HIDDEN_ADAPTERS (PLUGIN_NAME L".EnableHiddenAdapters")
 #define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".InterfaceList")
+#define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
 
 #define CINTERFACE
 #define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
+#include <phgui.h>
 
 #include <windowsx.h>
+#include <Uxtheme.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <ws2tcpip.h>
@@ -52,10 +55,17 @@
 #define WM_SHOWDIALOG (WM_APP + 1)
 #define UPDATE_MSG (WM_APP + 2)
 
+extern PPH_PLUGIN PluginInstance;
+
 extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;
 extern PH_QUEUED_LOCK NetworkAdaptersListLock;
-extern PPH_PLUGIN PluginInstance;
+
+extern PPH_OBJECT_TYPE DiskDriveEntryType;
+extern PPH_LIST DiskDrivesList;
+extern PH_QUEUED_LOCK DiskDrivesListLock;
+
+// Network Adapters
 
 typedef struct _DV_NETADAPTER_ID
 {
@@ -82,12 +92,6 @@ typedef struct _DV_NETADAPTER_ENTRY
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
 } DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
-
-typedef struct _DV_NETADAPTER_CONTEXT
-{
-    HWND ListViewHandle;
-    BOOLEAN OptionsChanged;
-} DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
@@ -126,6 +130,12 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
     ULONG64 LastDetailsInboundValue;
     ULONG64 LastDetailsIOutboundValue;
 } DV_NETADAPTER_DETAILS_CONTEXT, *PDV_NETADAPTER_DETAILS_CONTEXT;
+
+typedef struct _DV_NETADAPTER_CONTEXT
+{
+    HWND ListViewHandle;
+    BOOLEAN OptionsChanged;
+} DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
 VOID NetAdaptersLoadList(
     VOID
@@ -328,5 +338,156 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
 MIB_IFROW QueryInterfaceRowXP(
     _In_ PDV_NETADAPTER_ID Id
     );
+
+
+
+
+// options.c
+
+INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK DiskDriveOptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+
+
+// Disk Drives
+
+typedef struct _DV_DISK_ID
+{
+    NET_IFINDEX DiskIndex;
+} DV_DISK_ID, *PDV_DISK_ID;
+
+typedef struct _DV_DISK_ENTRY
+{
+    DV_DISK_ID Id;
+
+    PPH_STRING AdapterName;
+
+    BOOLEAN UserReference;
+    BOOLEAN HaveFirstSample;
+
+    ULONG64 BytesReadValue;
+    ULONG64 BytesWriteValue;
+
+    PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
+    PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;
+
+    ULONG64 LastBytesReadValue;
+    ULONG64 LastBytesWriteValue;
+    ULONG64 LastReadTime;
+    ULONG64 LastWriteTime;
+    ULONG64 LastIdletime;
+    ULONG64 LastQueryTime;
+
+    ULONG64 ResponseTime;
+    FLOAT ActiveTime;
+    ULONG QueueDepth;
+    ULONG SplitCount;
+
+    ////PPH_STRING DiskName;
+    //PPH_STRING DiskLength;
+
+    //PPH_SYSINFO_SECTION SysinfoSection;
+    //PH_GRAPH_STATE GraphState;
+    //PH_LAYOUT_MANAGER LayoutManager;
+    //PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
+    //PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
+    //PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;
+} DV_DISK_ENTRY, *PDV_DISK_ENTRY;
+
+typedef struct _DV_DISK_SYSINFO_CONTEXT
+{
+    BOOLEAN Enabled;
+    PDV_DISK_ENTRY AdapterEntry;
+    PPH_STRING SectionName;
+
+    HWND WindowHandle;
+    HWND PanelWindowHandle;
+    HWND GraphHandle;
+
+    PPH_SYSINFO_SECTION SysinfoSection;
+    PH_GRAPH_STATE GraphState;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+} DV_DISK_SYSINFO_CONTEXT, *PDV_DISK_SYSINFO_CONTEXT;
+
+typedef struct _DV_DISK_OPTIONS_CONTEXT
+{
+    HWND ListViewHandle;
+    BOOLEAN OptionsChanged;
+} DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
+
+
+
+VOID DiskInitialize(VOID);
+VOID DiskDriveLoadList(VOID);
+VOID DiskDrivesUpdate(VOID);
+
+
+
+VOID InitializeDiskId(
+    _Out_ PDV_DISK_ID Id,
+    _In_ ULONG DiskIndex
+    );
+VOID CopyDiskId(
+    _Out_ PDV_DISK_ID Destination,
+    _In_ PDV_DISK_ID Source
+    );
+VOID DeleteDiskId(
+    _Inout_ PDV_DISK_ID Id
+    );
+BOOLEAN EquivalentDiskId(
+    _In_ PDV_DISK_ID Id1,
+    _In_ PDV_DISK_ID Id2
+    );
+PDV_DISK_ENTRY CreateDiskEntry(
+    _In_ PDV_DISK_ID Id
+    );
+
+
+
+VOID DiskDriveSysInfoInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
+    _In_ PDV_DISK_ENTRY DiskEntry
+    );
+
+
+
+
+BOOLEAN DiskDriveQueryDeviceInformation(
+    _In_ HANDLE DeviceHandle,
+    _Out_opt_ PPH_STRING* DiskVendor,
+    _Out_opt_ PPH_STRING* DiskModel,
+    _Out_opt_ PPH_STRING* DiskRevision,
+    _Out_opt_ PPH_STRING* DiskSerial
+    );
+
+NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
+    _In_ HANDLE DeviceHandle,
+    _Out_opt_ PULONG DeviceNumber,
+    _Out_opt_ DEVICE_TYPE* DeviceType
+    );
+
+PPH_STRING DiskDriveQueryGeometry(
+    _In_ HANDLE DeviceHandle
+    );
+
+NTSTATUS DiskDriveQueryStatistics(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PDISK_PERFORMANCE Info
+    );
+
+
 
 #endif _NETADAPTER_H_
