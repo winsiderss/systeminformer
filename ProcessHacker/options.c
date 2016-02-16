@@ -82,6 +82,7 @@ static BOOLEAN PressedOk;
 static BOOLEAN RestartRequired;
 static POINT StartLocation;
 static WNDPROC OldWndProc;
+static HWND ResetButton;
 
 // General
 static HFONT CurrentFontInstance;
@@ -107,7 +108,6 @@ VOID PhShowOptionsDialog(
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE |
         PSH_USECALLBACK |
         PSH_USEPSTARTPAGE;
     propSheetHeader.hwndParent = ParentWindowHandle;
@@ -177,6 +177,12 @@ VOID PhShowOptionsDialog(
     OldTaskMgrDebugger = NULL;
 
     PhModalPropertySheet(&propSheetHeader);
+
+    if (ResetButton)
+    {
+        DestroyWindow(ResetButton);
+        ResetButton = NULL;
+    }
 
     if (PressedOk)
     {
@@ -248,7 +254,6 @@ static VOID PhpPageInit(
     if (!PageInit)
     {
         HWND optionsWindow;
-        HWND resetButton;
         RECT clientRect;
         RECT rect;
 
@@ -260,7 +265,7 @@ static VOID PhpPageInit(
         GetClientRect(optionsWindow, &clientRect);
         GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
         MapWindowPoints(NULL, optionsWindow, (POINT *)&rect, 2);
-        resetButton = CreateWindowEx(
+        ResetButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             L"BUTTON",
             L"Reset",
@@ -274,10 +279,10 @@ static VOID PhpPageInit(
             PhInstanceHandle,
             NULL
             );
-        SendMessage(resetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
+        SendMessage(ResetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
 
         if (PhStartupParameters.ShowOptions)
-            ShowWindow(resetButton, SW_HIDE);
+            ShowWindow(ResetButton, SW_HIDE);
 
         // Set the location of the options window.
         if (StartLocation.x == MINLONG)
@@ -289,8 +294,6 @@ static VOID PhpPageInit(
             SetWindowPos(optionsWindow, NULL, StartLocation.x, StartLocation.y, 0, 0,
                 SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
         }
-
-        SetWindowText(optionsWindow, L"Options"); // so the title isn't "Options Properties"
 
         PageInit = TRUE;
     }
