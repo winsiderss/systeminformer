@@ -84,7 +84,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
-    PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
+    PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
