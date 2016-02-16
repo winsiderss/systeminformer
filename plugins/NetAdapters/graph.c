@@ -197,6 +197,17 @@ static INT_PTR CALLBACK NetAdapterPanelDialogProc(
     return FALSE;
 }
 
+static VOID UpdateNetAdapterDialog(
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    if (Context->AdapterEntry->AdapterName)
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
+
+    NetAdapterUpdateGraphs(Context);
+    NetAdapterUpdatePanel(Context);
+}
+
 static INT_PTR CALLBACK NetAdapterDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -254,7 +265,9 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
-            SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->SysinfoSection->Name.Buffer);
+
+            if (context->AdapterEntry->AdapterName)
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -284,9 +297,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
-
-            NetAdapterUpdateGraphs(context);
-            NetAdapterUpdatePanel(context);
         }
         break;
     case WM_SIZE:
@@ -392,8 +402,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
         {
             if (context->Enabled)
             {
-                NetAdapterUpdateGraphs(context);
-                NetAdapterUpdatePanel(context);
+                UpdateNetAdapterDialog(context);
             }
         }
         break;
@@ -401,8 +410,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
         {
             if (context->Enabled = (BOOLEAN)wParam)
             {
-                NetAdapterUpdateGraphs(context);
-                NetAdapterUpdatePanel(context);
+                UpdateNetAdapterDialog(context);
             }
         }
         break;
