@@ -2708,8 +2708,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhCsUseColorPosixProcesses && processItem->IsPosix)
                 getNodeColor->BackColor = PhCsColorPosixProcesses;
-            else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
-                getNodeColor->BackColor = PhCsColorJobProcesses;
             else if (PhCsUseColorImmersiveProcesses && processItem->IsImmersive)
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (PhCsUseColorDotNet && processItem->IsDotNet)
@@ -2718,6 +2716,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorPacked;
             else if (PhCsUseColorWow64Processes && processItem->IsWow64)
                 getNodeColor->BackColor = PhCsColorWow64Processes;
+            else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
+                getNodeColor->BackColor = PhCsColorJobProcesses;
             else if (PhCsUseColorServiceProcesses && processItem->ServiceList && processItem->ServiceList->Count != 0)
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (

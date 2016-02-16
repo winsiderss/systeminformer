@@ -191,7 +191,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"ColorSystemProcesses", L"ffccaa");
     PhpAddIntegerSetting(L"UseColorServiceProcesses", L"1");
     PhpAddIntegerSetting(L"ColorServiceProcesses", L"ffffcc");
-    PhpAddIntegerSetting(L"UseColorJobProcesses", L"1");
+    PhpAddIntegerSetting(L"UseColorJobProcesses", L"0");
     PhpAddIntegerSetting(L"ColorJobProcesses", L"3f85cd"); // Peru
     PhpAddIntegerSetting(L"UseColorWow64Processes", L"1");
     PhpAddIntegerSetting(L"ColorWow64Processes", L"8f8fbc"); // Rosy Brown
