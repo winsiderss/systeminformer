@@ -37,6 +37,19 @@ static BOOLEAN NTAPI PvCommandLineCallback(
     return TRUE;
 }
 
+static VOID PvpInitializeDpi(
+    VOID
+    )
+{
+    HDC hdc;
+
+    if (hdc = GetDC(NULL))
+    {
+        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
+        ReleaseDC(NULL, hdc);
+    }
+}
+
 INT WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -54,6 +67,7 @@ INT WINAPI wWinMain(
         return 1;
 
     PhGuiSupportInitialization();
+    PvpInitializeDpi();
 
     PhApplicationName = L"PE Viewer";
 
