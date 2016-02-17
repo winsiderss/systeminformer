@@ -27,6 +27,76 @@
 
 static _EnableThemeDialogTexture EnableThemeDialogTexture_I = NULL;
 
+VOID DiskDrivesLoadList(
+    VOID
+    )
+{
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
+
+    settingsString = PhaGetStringSetting(SETTING_NAME_DISK_LIST);
+    remaining = settingsString->sr;
+
+    while (remaining.Length != 0)
+    {
+        ULONG64 diskindex;
+        PH_STRINGREF part1;
+        DV_DISK_ID id;
+        PDV_DISK_ENTRY entry;
+
+        if (remaining.Length == 0)
+            break;
+
+        PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
+        PhStringToInteger64(&part1, 10, &diskindex);
+
+        InitializeDiskId(&id, (ULONG)diskindex);
+        entry = CreateDiskEntry(&id);
+        DeleteDiskId(&id);
+
+        entry->UserReference = TRUE;
+    }
+}
+
+VOID DiskDrivesSaveList(
+    VOID
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING settingsString;
+
+    PhInitializeStringBuilder(&stringBuilder, 260);
+
+    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+
+    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+    {
+        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+
+        if (!entry)
+            continue;
+
+        if (entry->UserReference)
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%lu,",
+                entry->Id.DeviceNumber    // This value is UNSAFE
+                );
+        }
+
+        PhDereferenceObjectDeferDelete(entry);
+    }
+
+    PhReleaseQueuedLockShared(&DiskDrivesListLock);
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    PhSetStringSetting2(SETTING_NAME_DISK_LIST, &settingsString->sr);
+}
+
 static BOOLEAN FindDiskEntry(
     _In_ PDV_DISK_ID Id,
     _In_ BOOLEAN RemoveUserReference
@@ -69,76 +139,6 @@ static BOOLEAN FindDiskEntry(
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
 
     return found;
-}
-
-VOID DiskDriveLoadList(
-    VOID
-    )
-{
-    PPH_STRING settingsString;
-    PH_STRINGREF remaining;
-
-    settingsString = PhaGetStringSetting(SETTING_NAME_DISK_LIST);
-    remaining = settingsString->sr;
-
-    while (remaining.Length != 0)
-    {
-        ULONG64 diskindex;
-        PH_STRINGREF part1;
-        DV_DISK_ID id;
-        PDV_DISK_ENTRY entry;
-
-        if (remaining.Length == 0)
-            break;
-
-        PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
-        PhStringToInteger64(&part1, 10, &diskindex);
-
-        InitializeDiskId(&id, (ULONG)diskindex);
-        entry = CreateDiskEntry(&id);
-        DeleteDiskId(&id);
-
-        entry->UserReference = TRUE;
-    }
-}
-
-static VOID DiskDriveSaveList(
-    VOID
-    )
-{
-    PH_STRING_BUILDER stringBuilder;
-    PPH_STRING settingsString;
-
-    PhInitializeStringBuilder(&stringBuilder, 260);
-
-    PhAcquireQueuedLockShared(&DiskDrivesListLock);
-
-    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
-    {
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
-
-        if (!entry)
-            continue;
-
-        if (entry->UserReference)
-        {
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%lu,",
-                entry->Id.DiskIndex    // This value is UNSAFE
-                );
-        }
-
-        PhDereferenceObjectDeferDelete(entry);
-    }
-
-    PhReleaseQueuedLockShared(&DiskDrivesListLock);
-
-    if (stringBuilder.String->Length != 0)
-        PhRemoveEndStringBuilder(&stringBuilder, 1);
-
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
-    PhSetStringSetting2(SETTING_NAME_DISK_LIST, &settingsString->sr);
 }
 
 static VOID AddDiskDriveToListView(
@@ -196,14 +196,13 @@ static VOID AddDiskDriveToListView(
     DeleteDiskId(&adapterId);
 }
 
-
 static VOID FindDiskDrives(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
     for (ULONG i = 0; i < 64; i++)
     {
-        HANDLE deviceHandle = INVALID_HANDLE_VALUE;
+        HANDLE deviceHandle;
         PPH_STRING diskModel = NULL;
 
         // \\.\PhysicalDrive1
@@ -211,15 +210,7 @@ static VOID FindDiskDrives(
         // \\.\Volume{a978c827-cf64-44b4-b09a-57a55ef7f49f}
         // SetupAPI with GUID_DEVINTERFACE_DISK and DetailData->DevicePath
 
-        if (NT_SUCCESS(PhCreateFileWin32(
-            &deviceHandle,
-            PhaFormatString(L"\\\\.\\PhysicalDrive%lu", i)->Buffer,
-            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            )))
+        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, i)))
         {
             //DiskDriveQueryDeviceTypeAndNumber(deviceHandle, NULL, NULL);
 
@@ -241,7 +232,6 @@ static VOID FindDiskDrives(
         }
     }
 }
-
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     _In_ HWND hwndDlg,
@@ -305,7 +295,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             }
 
             if (context->OptionsChanged)
-                DiskDriveSaveList();
+                DiskDrivesSaveList();
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);

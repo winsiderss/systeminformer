@@ -40,7 +40,7 @@ static VOID DiskEntryDeleteProcedure(
     PhDeleteCircularBuffer_ULONG64(&entry->WriteBuffer);
 }
 
-VOID DiskInitialize(
+VOID DiskDrivesInitialize(
     VOID
     )
 {
@@ -70,14 +70,9 @@ VOID DiskDrivesUpdate(
         if (!entry)
             continue;
 
-        if (NT_SUCCESS(PhCreateFileWin32(
-            &deviceHandle,
-            PhaFormatString(L"\\\\.\\PhysicalDrive%lu", entry->Id.DiskIndex)->Buffer,
-            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        if (NT_SUCCESS(DiskDriveCreateHandle(
+            &deviceHandle, 
+            entry->Id.DeviceNumber
             )))
         {
             DISK_PERFORMANCE diskPerformance;
@@ -157,10 +152,10 @@ VOID DiskDrivesUpdate(
 
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
-    _In_ ULONG DiskIndex
+    _In_ ULONG DeviceNumber
     )
 {
-    Id->DiskIndex = DiskIndex;
+    Id->DeviceNumber = DeviceNumber;
 }
 
 VOID CopyDiskId(
@@ -170,7 +165,7 @@ VOID CopyDiskId(
 {
     InitializeDiskId(
         Destination,
-        Source->DiskIndex
+        Source->DeviceNumber
         );
 }
 
@@ -186,7 +181,7 @@ BOOLEAN EquivalentDiskId(
     _In_ PDV_DISK_ID Id2
     )
 {
-    if (Id1->DiskIndex == Id2->DiskIndex)
+    if (Id1->DeviceNumber == Id2->DeviceNumber)
         return TRUE;
 
     return FALSE;

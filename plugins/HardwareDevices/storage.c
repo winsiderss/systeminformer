@@ -22,6 +22,27 @@
 
 #include "devices.h"
 
+NTSTATUS DiskDriveCreateHandle(
+    _Out_ PHANDLE DeviceHandle,
+    _In_ ULONG DeviceNumber
+    )
+{
+    // \\.\PhysicalDrive1
+    // \\.\X:
+    // \\.\Volume{a978c827-cf64-44b4-b09a-57a55ef7f49f}
+    // SetupAPI with GUID_DEVINTERFACE_DISK and DetailData->DevicePath
+
+    return PhCreateFileWin32(
+        DeviceHandle,
+        PhaFormatString(L"\\\\.\\PhysicalDrive%lu", DeviceNumber)->Buffer,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+}
+
 BOOLEAN DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
@@ -195,6 +216,29 @@ NTSTATUS DiskDriveQueryStatistics(
         );
 
     *Info = result;
+
+    return status;
+}
+
+NTSTATUS DiskDriveDisableStatistics(
+    _In_ HANDLE DeviceHandle
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_DISK_PERFORMANCE_OFF, // https://msdn.microsoft.com/en-us/library/aa365184.aspx
+        NULL,
+        0,
+        NULL,
+        0
+        );
 
     return status;
 }

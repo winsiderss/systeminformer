@@ -439,7 +439,7 @@ VOID DiskDriveSysInfoInitializing(
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
 
     context->AdapterEntry = DiskEntry;
-    context->SectionName = PhFormatString(L"Disk %lu", DiskEntry->Id.DiskIndex);
+    context->SectionName = PhFormatString(L"Disk %lu", DiskEntry->Id.DeviceNumber);
 
     section.Context = context;
     section.Callback = DiskDriveSectionCallback;

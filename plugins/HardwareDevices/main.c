@@ -56,10 +56,10 @@ static VOID NTAPI LoadCallback(
         }
     }
 
-    DiskInitialize();
-    DiskDriveLoadList();
-
+    DiskDrivesInitialize();
     NetAdaptersInitialize();
+
+    DiskDrivesLoadList();
     NetAdaptersLoadList();
 }
 

@@ -26,6 +26,22 @@ PVOID IphlpHandle = NULL;
 _GetIfEntry2 GetIfEntry2_I = NULL;
 _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;
 
+NTSTATUS NetworkAdapterCreateHandle(
+    _Out_ PHANDLE DeviceHandle,
+    _In_ PPH_STRING InterfaceGuid
+    )
+{
+    return PhCreateFileWin32(
+        DeviceHandle,
+        PhaConcatStrings(2, L"\\\\.\\", InterfaceGuid->Buffer)->Buffer,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+}
+
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     )

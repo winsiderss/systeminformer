@@ -64,14 +64,9 @@ static VOID NetAdapterUpdatePanel(
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
         // Create the handle to the network device
-        PhCreateFileWin32(
+        NetworkAdapterCreateHandle(
             &adapterHandle,
-            PhaConcatStrings(2, L"\\\\.\\", Context->AdapterEntry->Id.InterfaceGuid->Buffer)->Buffer,
-            FILE_GENERIC_READ,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            Context->AdapterEntry->Id.InterfaceGuid
             );
     }
 

@@ -21,8 +21,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _NETADAPTER_H_
-#define _NETADAPTER_H_
+#ifndef _DEVICES_H_
+#define _DEVICES_H_
 
 #pragma comment(lib, "Iphlpapi.lib")
 //#pragma comment(lib, "Ws2_32.lib")
@@ -291,6 +291,11 @@ extern _NotifyIpInterfaceChange NotifyIpInterfaceChange_I;
 extern _CancelMibChangeNotify2 CancelMibChangeNotify2_I;
 extern _ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I;
 
+NTSTATUS NetworkAdapterCreateHandle(
+    _Out_ PHANDLE DeviceHandle,
+    _In_ PPH_STRING InterfaceGuid
+    );
+
 BOOLEAN NetworkAdapterQuerySupported(
     _In_ HANDLE DeviceHandle
     );
@@ -364,7 +369,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
 typedef struct _DV_DISK_ID
 {
-    NET_IFINDEX DiskIndex;
+    ULONG DeviceNumber;
 } DV_DISK_ID, *PDV_DISK_ID;
 
 typedef struct _DV_DISK_ENTRY
@@ -430,15 +435,15 @@ typedef struct _DV_DISK_OPTIONS_CONTEXT
 
 
 
-VOID DiskInitialize(VOID);
-VOID DiskDriveLoadList(VOID);
+VOID DiskDrivesInitialize(VOID);
+VOID DiskDrivesLoadList(VOID);
 VOID DiskDrivesUpdate(VOID);
 
 
 
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
-    _In_ ULONG DiskIndex
+    _In_ ULONG DeviceNumber
     );
 VOID CopyDiskId(
     _Out_ PDV_DISK_ID Destination,
@@ -463,7 +468,12 @@ VOID DiskDriveSysInfoInitializing(
     );
 
 
+// storage.c
 
+NTSTATUS DiskDriveCreateHandle(
+    _Out_ PHANDLE DeviceHandle,
+    _In_ ULONG DeviceNumber
+    );
 
 BOOLEAN DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
@@ -488,6 +498,4 @@ NTSTATUS DiskDriveQueryStatistics(
     _Out_ PDISK_PERFORMANCE Info
     );
 
-
-
-#endif _NETADAPTER_H_
+#endif _DEVICES_H_
