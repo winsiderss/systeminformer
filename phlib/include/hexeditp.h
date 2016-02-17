@@ -68,6 +68,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
 VOID PhpHexEditUpdateMetrics(
     _In_ HWND hwnd,
     _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ BOOLEAN UpdateLineHeight,
     _In_opt_ HDC hdc
     );
 

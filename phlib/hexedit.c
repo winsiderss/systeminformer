@@ -124,7 +124,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
     {
     case WM_CREATE:
         {
-            context->Font = CreateFont(-12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L"Courier New");
+            context->Font = CreateFont(-PhMultiplyDivide(12, PhGlobalDpi, 96), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L"Courier New");
         }
         break;
     case WM_DESTROY:
@@ -142,6 +142,11 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 PhpHexEditOnPaint(hwnd, context, &paintStruct, hdc);
                 EndPaint(hwnd, &paintStruct);
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhpHexEditUpdateMetrics(hwnd, context, FALSE, NULL);
         }
         break;
     case WM_SETFOCUS:
@@ -855,7 +860,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
             if (bytesPerRow >= 4)
             {
                 context->BytesPerRow = bytesPerRow;
-                PhpHexEditUpdateMetrics(hwnd, context, NULL);
+                PhpHexEditUpdateMetrics(hwnd, context, TRUE, NULL);
                 PhpHexEditUpdateScrollbars(hwnd, context);
                 PhpHexEditScrollTo(hwnd, context, context->CurrentAddress);
                 PhpHexEditRepositionCaret(hwnd, context, context->CurrentAddress);
@@ -954,6 +959,7 @@ FORCEINLINE COLORREF GetLighterHighlightColor(
 VOID PhpHexEditUpdateMetrics(
     _In_ HWND hwnd,
     _In_ PPHP_HEXEDIT_CONTEXT Context,
+    _In_ BOOLEAN UpdateLineHeight,
     _In_opt_ HDC hdc
     )
 {
@@ -961,7 +967,7 @@ VOID PhpHexEditUpdateMetrics(
     RECT clientRect;
     SIZE size;
 
-    if (!hdc)
+    if (!hdc && UpdateLineHeight)
     {
         hdc = CreateCompatibleDC(hdc);
         SelectObject(hdc, Context->Font);
@@ -969,24 +975,31 @@ VOID PhpHexEditUpdateMetrics(
     }
 
     GetClientRect(hwnd, &clientRect);
-    GetCharWidth(hdc, '0', '0', &Context->NullWidth);
-    GetTextExtentPoint32(hdc, L"0", 1, &size);
-    Context->LineHeight = size.cy;
+
+    if (UpdateLineHeight)
+    {
+        GetCharWidth(hdc, '0', '0', &Context->NullWidth);
+        GetTextExtentPoint32(hdc, L"0", 1, &size);
+        Context->LineHeight = size.cy;
+    }
 
     Context->HexOffset = Context->ShowAddress ? (Context->AddressIsWide ? Context->NullWidth * 9 : Context->NullWidth * 5) : 0;
     Context->AsciiOffset = Context->HexOffset + (Context->ShowHex ? (Context->BytesPerRow * 3 * Context->NullWidth) : 0);
 
-    Context->LinesPerPage = clientRect.bottom / Context->LineHeight;
-    Context->HalfPage = FALSE;
-
-    if (Context->LinesPerPage * Context->BytesPerRow > Context->Length)
+    if (Context->LineHeight != 0)
     {
-        Context->LinesPerPage = (Context->Length + Context->BytesPerRow / 2) / Context->BytesPerRow;
+        Context->LinesPerPage = clientRect.bottom / Context->LineHeight;
+        Context->HalfPage = FALSE;
 
-        if (Context->Length % Context->BytesPerRow != 0)
+        if (Context->LinesPerPage * Context->BytesPerRow > Context->Length)
         {
-            Context->HalfPage = TRUE;
-            Context->LinesPerPage++;
+            Context->LinesPerPage = (Context->Length + Context->BytesPerRow / 2) / Context->BytesPerRow;
+
+            if (Context->Length % Context->BytesPerRow != 0)
+            {
+                Context->HalfPage = TRUE;
+                Context->LinesPerPage++;
+            }
         }
     }
 
@@ -1042,7 +1055,7 @@ VOID PhpHexEditOnPaint(
         // Get character dimensions.
         if (Context->Update)
         {
-            PhpHexEditUpdateMetrics(hwnd, Context, bufferDc);
+            PhpHexEditUpdateMetrics(hwnd, Context, TRUE, bufferDc);
             Context->Update = FALSE;
             PhpHexEditUpdateScrollbars(hwnd, Context);
         }
