@@ -103,7 +103,7 @@ INT PhAddListViewColumn(
 
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = SCALE_DPI(Width);
+    column.cx = Width < 0 ? -Width : SCALE_DPI(Width);
     column.pszText = Text;
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
