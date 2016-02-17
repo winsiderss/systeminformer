@@ -358,7 +358,7 @@ static BOOLEAN QueryUpdateData(
             if (!(httpConnectionHandle = WinHttpConnect(
                 httpSessionHandle,
                 L"wj32.org",
-                INTERNET_DEFAULT_HTTP_PORT,
+                INTERNET_DEFAULT_HTTPS_PORT,
                 0
                 )))
             {
@@ -372,7 +372,7 @@ static BOOLEAN QueryUpdateData(
                 NULL,
                 WINHTTP_NO_REFERER,
                 WINHTTP_DEFAULT_ACCEPT_TYPES,
-                WINHTTP_FLAG_REFRESH
+                WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
                 )))
             {
                 __leave;
