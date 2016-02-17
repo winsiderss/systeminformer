@@ -1,0 +1,13 @@
+1.3
+ * Fixed Vista support
+ * Adapter information is now updated regardless of whether System Information is open
+ * Added disk statistics support 
+
+1.2
+ * Added network adapter details window
+
+1.1
+ * Added native network driver statistics support
+
+1.0
+ * Initial release
