@@ -4,6 +4,7 @@ Process Hacker
  * HIGHLIGHTS:
    * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
+   * Improved high DPI scaling
    * Updated NetAdapters plugin:
      * Adapter information is now updated regardless of whether System Information is open
    * Updated UserNotes plugin:

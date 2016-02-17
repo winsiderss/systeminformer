@@ -504,11 +504,11 @@ VOID PhSipOnShowWindow(
 
         newMinimumHeight =
             GetSystemMetrics(SM_CYCAPTION) +
-            PH_SYSINFO_WINDOW_PADDING +
+            CurrentParameters.WindowPadding +
             CurrentParameters.MinimumGraphHeight * SectionList->Count +
             CurrentParameters.MinimumGraphHeight + // Back button
-            PH_SYSINFO_GRAPH_PADDING * SectionList->Count +
-            PH_SYSINFO_WINDOW_PADDING +
+            CurrentParameters.GraphPadding * SectionList->Count +
+            CurrentParameters.WindowPadding +
             clientRect.bottom - buttonRect.top +
             GetSystemMetrics(SM_CYFRAME) * 2;
 
@@ -929,7 +929,7 @@ VOID PhSiSetColorsGraphDrawInfo(
 
             if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
             {
-                logFont.lfHeight += MulDiv(1, PhPixelsPerInchV, 72);
+                logFont.lfHeight += PhMultiplyDivide(1, PhPixelsPerInchV, 72);
                 iconTitleFont = CreateFontIndirect(&logFont);
             }
 
@@ -1049,10 +1049,10 @@ VOID PhSipInitializeParameters(
 
     hdc = GetDC(PhSipWindow);
 
-    logFont.lfHeight -= MulDiv(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    logFont.lfHeight -= MulDiv(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
     PhSipUpdateColorParameters();
@@ -1071,19 +1071,29 @@ VOID PhSipInitializeParameters(
 
     SelectObject(hdc, originalFont);
 
+    // Internal padding and other values
+    CurrentParameters.PanelPadding = PH_SCALE_DPI(PH_SYSINFO_PANEL_PADDING);
+    CurrentParameters.WindowPadding = PH_SCALE_DPI(PH_SYSINFO_WINDOW_PADDING);
+    CurrentParameters.GraphPadding = PH_SCALE_DPI(PH_SYSINFO_GRAPH_PADDING);
+    CurrentParameters.SmallGraphWidth = PH_SCALE_DPI(PH_SYSINFO_SMALL_GRAPH_WIDTH);
+    CurrentParameters.SmallGraphPadding = PH_SCALE_DPI(PH_SYSINFO_SMALL_GRAPH_PADDING);
+    CurrentParameters.SeparatorWidth = PH_SCALE_DPI(PH_SYSINFO_SEPARATOR_WIDTH);
+    CurrentParameters.CpuPadding = PH_SCALE_DPI(PH_SYSINFO_CPU_PADDING);
+    CurrentParameters.MemoryPadding = PH_SCALE_DPI(PH_SYSINFO_MEMORY_PADDING);
+
     CurrentParameters.MinimumGraphHeight =
-        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.PanelPadding +
         CurrentParameters.MediumFontHeight +
-        PH_SYSINFO_PANEL_PADDING;
+        CurrentParameters.PanelPadding;
 
     CurrentParameters.SectionViewGraphHeight =
-        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.PanelPadding +
         CurrentParameters.MediumFontHeight +
-        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.PanelPadding +
         CurrentParameters.FontHeight +
         2 +
         CurrentParameters.FontHeight +
-        PH_SYSINFO_PANEL_PADDING +
+        CurrentParameters.PanelPadding +
         2;
 
     CurrentParameters.PanelWidth = CurrentParameters.MediumFontAverageWidth * 10;
@@ -1402,8 +1412,8 @@ VOID PhSipDefaultDrawPanel(
 
     SetBkMode(hdc, TRANSPARENT);
 
-    rect.left = PH_SYSINFO_SMALL_GRAPH_PADDING + PH_SYSINFO_PANEL_PADDING;
-    rect.top = PH_SYSINFO_PANEL_PADDING;
+    rect.left = CurrentParameters.SmallGraphPadding + CurrentParameters.PanelPadding;
+    rect.top = CurrentParameters.PanelPadding;
     rect.right = CurrentParameters.PanelWidth;
     rect.bottom = DrawPanel->Rect.bottom;
 
@@ -1424,7 +1434,7 @@ VOID PhSipDefaultDrawPanel(
     {
         RECT measureRect;
 
-        rect.top += CurrentParameters.MediumFontHeight + PH_SYSINFO_PANEL_PADDING;
+        rect.top += CurrentParameters.MediumFontHeight + CurrentParameters.PanelPadding;
         SelectObject(hdc, CurrentParameters.Font);
 
         measureRect = rect;
@@ -1461,12 +1471,12 @@ VOID PhSipLayoutSummaryView(
     MapWindowPoints(NULL, PhSipWindow, (POINT *)&buttonRect, 2);
     GetClientRect(PhSipWindow, &clientRect);
 
-    availableHeight = buttonRect.top - PH_SYSINFO_WINDOW_PADDING * 2;
-    availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
-    graphHeight = (availableHeight - PH_SYSINFO_GRAPH_PADDING * (SectionList->Count - 1)) / SectionList->Count;
+    availableHeight = buttonRect.top - CurrentParameters.WindowPadding * 2;
+    availableWidth = clientRect.right - CurrentParameters.WindowPadding * 2;
+    graphHeight = (availableHeight - CurrentParameters.GraphPadding * (SectionList->Count - 1)) / SectionList->Count;
 
     deferHandle = BeginDeferWindowPos(SectionList->Count);
-    y = PH_SYSINFO_WINDOW_PADDING;
+    y = CurrentParameters.WindowPadding;
 
     for (i = 0; i < SectionList->Count; i++)
     {
@@ -1476,13 +1486,13 @@ VOID PhSipLayoutSummaryView(
             deferHandle,
             section->GraphHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING,
+            CurrentParameters.WindowPadding,
             y,
             availableWidth,
             graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
-        y += graphHeight + PH_SYSINFO_GRAPH_PADDING;
+        y += graphHeight + CurrentParameters.GraphPadding;
 
         section->GraphState.Valid = FALSE;
     }
@@ -1509,15 +1519,15 @@ VOID PhSipLayoutSectionView(
     MapWindowPoints(NULL, PhSipWindow, (POINT *)&buttonRect, 2);
     GetClientRect(PhSipWindow, &clientRect);
 
-    availableHeight = buttonRect.top - PH_SYSINFO_WINDOW_PADDING * 2;
-    availableWidth = clientRect.right - PH_SYSINFO_WINDOW_PADDING * 2;
-    graphHeight = (availableHeight - PH_SYSINFO_SMALL_GRAPH_PADDING * SectionList->Count) / (SectionList->Count + 1);
+    availableHeight = buttonRect.top - CurrentParameters.WindowPadding * 2;
+    availableWidth = clientRect.right - CurrentParameters.WindowPadding * 2;
+    graphHeight = (availableHeight - CurrentParameters.SmallGraphPadding * SectionList->Count) / (SectionList->Count + 1);
 
     if (graphHeight > CurrentParameters.SectionViewGraphHeight)
         graphHeight = CurrentParameters.SectionViewGraphHeight;
 
     deferHandle = BeginDeferWindowPos(SectionList->Count * 2 + 3);
-    y = PH_SYSINFO_WINDOW_PADDING;
+    y = CurrentParameters.WindowPadding;
 
     for (i = 0; i < SectionList->Count; i++)
     {
@@ -1527,9 +1537,9 @@ VOID PhSipLayoutSectionView(
             deferHandle,
             section->GraphHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING,
+            CurrentParameters.WindowPadding,
             y,
-            PH_SYSINFO_SMALL_GRAPH_WIDTH,
+            CurrentParameters.SmallGraphWidth,
             graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
@@ -1538,15 +1548,15 @@ VOID PhSipLayoutSectionView(
             deferHandle,
             section->PanelHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH,
+            CurrentParameters.WindowPadding + CurrentParameters.SmallGraphWidth,
             y,
-            PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth,
+            CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth,
             graphHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
         InvalidateRect(section->PanelHandle, NULL, TRUE);
 
-        y += graphHeight + PH_SYSINFO_SMALL_GRAPH_PADDING;
+        y += graphHeight + CurrentParameters.SmallGraphPadding;
 
         section->GraphState.Valid = FALSE;
     }
@@ -1555,9 +1565,9 @@ VOID PhSipLayoutSectionView(
         deferHandle,
         RestoreSummaryControl,
         NULL,
-        PH_SYSINFO_WINDOW_PADDING,
+        CurrentParameters.WindowPadding,
         y,
-        PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth,
+        CurrentParameters.SmallGraphWidth + CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth,
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
@@ -1567,14 +1577,14 @@ VOID PhSipLayoutSectionView(
         deferHandle,
         SeparatorControl,
         NULL,
-        PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth + PH_SYSINFO_WINDOW_PADDING - 7,
+        CurrentParameters.WindowPadding + CurrentParameters.SmallGraphWidth + CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth + CurrentParameters.WindowPadding - 7,
         0,
-        PH_SYSINFO_SEPARATOR_WIDTH,
-        PH_SYSINFO_WINDOW_PADDING + availableHeight,
+        CurrentParameters.SeparatorWidth,
+        CurrentParameters.WindowPadding + availableHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-    containerLeft = PH_SYSINFO_WINDOW_PADDING + PH_SYSINFO_SMALL_GRAPH_WIDTH + PH_SYSINFO_SMALL_GRAPH_PADDING + CurrentParameters.PanelWidth + PH_SYSINFO_WINDOW_PADDING - 7 + PH_SYSINFO_SEPARATOR_WIDTH;
+    containerLeft = CurrentParameters.WindowPadding + CurrentParameters.SmallGraphWidth + CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth + CurrentParameters.WindowPadding - 7 + CurrentParameters.SeparatorWidth;
     deferHandle = DeferWindowPos(
         deferHandle,
         ContainerControl,
@@ -1582,7 +1592,7 @@ VOID PhSipLayoutSectionView(
         containerLeft,
         0,
         clientRect.right - containerLeft,
-        PH_SYSINFO_WINDOW_PADDING + availableHeight,
+        CurrentParameters.WindowPadding + availableHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -1593,9 +1603,9 @@ VOID PhSipLayoutSectionView(
         SetWindowPos(
             CurrentSection->DialogHandle,
             NULL,
-            PH_SYSINFO_WINDOW_PADDING,
-            PH_SYSINFO_WINDOW_PADDING,
-            clientRect.right - containerLeft - PH_SYSINFO_WINDOW_PADDING - PH_SYSINFO_WINDOW_PADDING,
+            CurrentParameters.WindowPadding,
+            CurrentParameters.WindowPadding,
+            clientRect.right - containerLeft - CurrentParameters.WindowPadding - CurrentParameters.WindowPadding,
             availableHeight,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
@@ -2499,7 +2509,7 @@ VOID PhSipLayoutCpuGraphs(
         ULONG numberOfYPaddings = numberOfRows - 1;
         ULONG numberOfXPaddings = numberOfColumns - 1;
 
-        ULONG cellHeight = (clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom - PH_SYSINFO_CPU_PADDING * numberOfYPaddings) / numberOfRows;
+        ULONG cellHeight = (clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom - CurrentParameters.CpuPadding * numberOfYPaddings) / numberOfRows;
         ULONG y = CpuGraphMargin.top;
         ULONG cellWidth;
         ULONG x;
@@ -2512,7 +2522,7 @@ VOID PhSipLayoutCpuGraphs(
             if (row == numberOfRows - 1)
                 cellHeight = clientRect.bottom - CpuGraphMargin.bottom - y;
 
-            cellWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - PH_SYSINFO_CPU_PADDING * numberOfXPaddings) / numberOfColumns;
+            cellWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - CurrentParameters.CpuPadding * numberOfXPaddings) / numberOfColumns;
             x = CpuGraphMargin.left;
 
             for (ULONG column = 0; column < numberOfColumns; column++)
@@ -2537,10 +2547,10 @@ VOID PhSipLayoutCpuGraphs(
                     i++;
                 }
 
-                x += cellWidth + PH_SYSINFO_CPU_PADDING;
+                x += cellWidth + CurrentParameters.CpuPadding;
             }
 
-            y += cellHeight + PH_SYSINFO_CPU_PADDING;
+            y += cellHeight + CurrentParameters.CpuPadding;
         }
     }
 
@@ -3385,7 +3395,7 @@ VOID PhSipLayoutMemoryGraphs(
     GetClientRect(MemoryDialog, &clientRect);
     GetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect);
     graphWidth = clientRect.right - MemoryGraphMargin.left - MemoryGraphMargin.right;
-    graphHeight = (clientRect.bottom - MemoryGraphMargin.top - MemoryGraphMargin.bottom - labelRect.bottom * 2 - PH_SYSINFO_MEMORY_PADDING * 3) / 2;
+    graphHeight = (clientRect.bottom - MemoryGraphMargin.top - MemoryGraphMargin.bottom - labelRect.bottom * 2 - CurrentParameters.MemoryPadding * 3) / 2;
 
     deferHandle = BeginDeferWindowPos(4);
     y = MemoryGraphMargin.top;
@@ -3400,7 +3410,7 @@ VOID PhSipLayoutMemoryGraphs(
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + PH_SYSINFO_MEMORY_PADDING;
+    y += labelRect.bottom + CurrentParameters.MemoryPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -3412,7 +3422,7 @@ VOID PhSipLayoutMemoryGraphs(
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + PH_SYSINFO_MEMORY_PADDING;
+    y += graphHeight + CurrentParameters.MemoryPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -3424,7 +3434,7 @@ VOID PhSipLayoutMemoryGraphs(
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + PH_SYSINFO_MEMORY_PADDING;
+    y += labelRect.bottom + CurrentParameters.MemoryPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,

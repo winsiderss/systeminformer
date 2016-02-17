@@ -476,6 +476,15 @@ FORCEINLINE ULONG PhRoundNumber(
         return newValue + Multiplier;
 }
 
+FORCEINLINE LONG PhMultiplyDivide(
+    _In_ LONG Number,
+    _In_ LONG Numerator,
+    _In_ LONG Denominator
+    )
+{
+    return (LONG)(((LONG64)Number * (LONG64)Numerator) / (LONG64)Denominator);
+}
+
 FORCEINLINE VOID PhProbeAddress(
     _In_ PVOID UserAddress,
     _In_ SIZE_T UserLength,

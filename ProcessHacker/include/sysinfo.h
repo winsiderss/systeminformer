@@ -33,6 +33,17 @@ typedef struct _PH_SYSINFO_PARAMETERS
     ULONG MinimumGraphHeight;
     ULONG SectionViewGraphHeight;
     ULONG PanelWidth;
+// end_phapppub
+
+    ULONG PanelPadding;
+    ULONG WindowPadding;
+    ULONG GraphPadding;
+    ULONG SmallGraphWidth;
+    ULONG SmallGraphPadding;
+    ULONG SeparatorWidth;
+    ULONG CpuPadding;
+    ULONG MemoryPadding;
+// begin_phapppub
 } PH_SYSINFO_PARAMETERS, *PPH_SYSINFO_PARAMETERS;
 
 typedef enum _PH_SYSINFO_SECTION_MESSAGE

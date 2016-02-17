@@ -764,7 +764,7 @@ VOID PhMipInitializeParameters(
 
     hdc = GetDC(PhMipWindow);
 
-    logFont.lfHeight -= MulDiv(2, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= PhMultiplyDivide(2, GetDeviceCaps(hdc, LOGPIXELSY), 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
     originalFont = SelectObject(hdc, CurrentParameters.Font);
