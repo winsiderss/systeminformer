@@ -1563,7 +1563,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     // allows us to skip the Debugger IFEO value.
     if (CreateProcess(FileName, NULL, NULL, NULL, FALSE, DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS, NULL, NULL, &startupInfo, &processInfo))
     {
-        // Stop debugging taskmgr.exe now.
+        // Stop debugging the process now.
         debugSetProcessKillOnExit(FALSE);
         debugActiveProcessStop(processInfo.dwProcessId);
         result = TRUE;
