@@ -1,6 +1,6 @@
 /*
  * Process Hacker Plugins -
- *   Network Adapters Plugin
+ *   Hardware Devices Plugin
  *
  * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
@@ -21,7 +21,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "netadapters.h"
+#include "devices.h"
 
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))

@@ -1,6 +1,6 @@
 /*
  * Process Hacker Plugins -
- *   Network Adapters Plugin
+ *   Hardware Devices Plugin
  *
  * Copyright (C) 2015-2016 dmex
  *
@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "netadapters.h"
+#include "devices.h"
 
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
@@ -319,7 +319,8 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            // TODO: Why does this need to use GetParent?
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DISKDRIVE_LISTVIEW);
 

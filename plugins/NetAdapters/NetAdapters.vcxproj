@@ -20,9 +20,9 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5F0D72C4-8319-4B61-9E13-6084B680EB90}</ProjectGuid>
-    <RootNamespace>NetAdapters</RootNamespace>
+    <RootNamespace>HardwareDevices</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>NetAdapters</ProjectName>
+    <ProjectName>HardwareDevices</ProjectName>
     <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -76,7 +76,7 @@
     <ClCompile Include="storage.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="netadapters.h" />
+    <ClInclude Include="devices.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

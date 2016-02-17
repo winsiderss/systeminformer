@@ -1,6 +1,6 @@
 /*
  * Process Hacker Plugins -
- *   Network Adapters Plugin
+ *   Hardware Devices Plugin
  *
  * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
@@ -21,7 +21,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "netadapters.h"
+#include "devices.h"
 
 PPH_PLUGIN PluginInstance = NULL;
 
@@ -84,7 +84,7 @@ static VOID NTAPI ShowOptionsCallback(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP;
     propSheetHeader.hwndParent = (HWND)Parameter;
-    propSheetHeader.pszCaption = L"Devices Plugin";
+    propSheetHeader.pszCaption = L"Hardware Devices Plugin";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
@@ -181,9 +181,9 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"Network Adapters";
+            info->DisplayName = L"Hardware Devices";
             info->Author = L"dmex, wj32";
-            info->Description = L"Plugin for monitoring specific network adapter throughput via the System Information window.";
+            info->Description = L"Plugin for monitoring hardware devices like Disk drives and Network adpaters via the System Information window.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1820";
             info->HasOptions = TRUE;
 

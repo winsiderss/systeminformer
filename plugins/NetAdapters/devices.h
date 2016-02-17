@@ -1,6 +1,6 @@
 /*
  * Process Hacker Plugins -
- *   Network Adapters Plugin
+ *   Hardware Devices Plugin
  *
  * Copyright (C) 2015-2016 dmex
  * Copyright (C) 2016 wj32
@@ -28,10 +28,10 @@
 //#pragma comment(lib, "Ws2_32.lib")
 //#pragma comment(lib, "dnsapi.lib")
 
-#define PLUGIN_NAME L"ProcessHacker.NetAdapters"
+#define PLUGIN_NAME L"ProcessHacker.HardwareDevices"
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_ENABLE_HIDDEN_ADAPTERS (PLUGIN_NAME L".EnableHiddenAdapters")
-#define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".InterfaceList")
+#define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".NetworkList")
 #define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
 
 #define CINTERFACE
