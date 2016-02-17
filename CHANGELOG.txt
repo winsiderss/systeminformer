@@ -5,6 +5,8 @@ Process Hacker
    * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
    * Improved high DPI scaling
+   * Added right-click menu and double-click action for environment variables
+   * Clicking a tray icon now shows the pop-up UI (useful for touch-enabled devices)
    * Updated NetAdapters plugin:
      * Adapter information is now updated regardless of whether System Information is open
    * Updated UserNotes plugin:
@@ -13,8 +15,6 @@ Process Hacker
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
    * Improved performance when handling a large number of threads, modules or handles
    * Added -sysinfo command line parameter for opening System Information at startup
-   * Added right-click menu and double-click action for environment variables
-   * Clicking a tray icon now shows the pop-up UI
    * Fixed ASLR state being shown as N/A in process properties
    * Fixed multi monitor window placement bug
    * Fixed handle enumeration bug affecting processes with PID >= 65536
