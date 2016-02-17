@@ -59,6 +59,12 @@ PPH_LIST PhIgnoredSettings;
 #define PhpAddIntegerSetting(A, B) ADD_SETTING_WRAPPER(IntegerSettingType, A, B)
 #define PhpAddIntegerPairSetting(A, B) ADD_SETTING_WRAPPER(IntegerPairSettingType, A, B)
 
+#define PhpAddIntegerPairSettingDpiScale(Name, DefaultX, DefaultY) \
+    { \
+        static PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
+        PhpAddIntegerPairSettingDpiScaleInternal(&name, DefaultX, DefaultY); \
+    }
+
 VOID PhSettingsInitialization(
     VOID
     )
@@ -91,7 +97,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
-    PhpAddIntegerPairSetting(L"FindObjWindowSize", L"550,420");
+    PhpAddIntegerPairSettingDpiScale(L"FindObjWindowSize", 550, 420);
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddIntegerSetting(L"ForceNoParent", L"0");
@@ -99,7 +105,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"HiddenProcessesListViewColumns", L"");
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
-    PhpAddIntegerPairSetting(L"HiddenProcessesWindowSize", L"520,400");
+    PhpAddIntegerPairSettingDpiScale(L"HiddenProcessesWindowSize", 520, 400);
     PhpAddIntegerSetting(L"HideDriverServices", L"0");
     PhpAddIntegerSetting(L"HideOnClose", L"0");
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
@@ -116,21 +122,21 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
-    PhpAddIntegerPairSetting(L"LogWindowSize", L"450,500");
+    PhpAddIntegerPairSettingDpiScale(L"LogWindowSize", 450, 500);
     PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
-    PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
+    PhpAddIntegerPairSettingDpiScale(L"MainWindowSize", 800, 600);
     PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
     PhpAddIntegerSetting(L"MemEditBytesPerRow", L"10"); // 16
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
     PhpAddIntegerPairSetting(L"MemEditPosition", L"450,450");
-    PhpAddIntegerPairSetting(L"MemEditSize", L"600,500");
+    PhpAddIntegerPairSettingDpiScale(L"MemEditSize", 600, 500);
     PhpAddStringSetting(L"MemFilterChoices", L"");
     PhpAddStringSetting(L"MemResultsListViewColumns", L"");
     PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
-    PhpAddIntegerPairSetting(L"MemResultsSize", L"500,520");
+    PhpAddIntegerPairSettingDpiScale(L"MemResultsSize", 500, 520);
     PhpAddStringSetting(L"MemoryTreeListColumns", L"");
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");
@@ -140,7 +146,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"MiniInfoWindowPinned", L"0");
     PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
     PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"1");
-    PhpAddIntegerPairSetting(L"MiniInfoWindowSize", L"10,200");
+    PhpAddIntegerPairSettingDpiScale(L"MiniInfoWindowSize", 10, 200);
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
     PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
@@ -152,7 +158,7 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
-    PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
+    PhpAddIntegerPairSettingDpiScale(L"ProcPropSize", 460, 580);
     PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
     PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
@@ -172,13 +178,13 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
     PhpAddStringSetting(L"SysInfoWindowSection", L"");
-    PhpAddIntegerPairSetting(L"SysInfoWindowSize", L"620,590");
+    PhpAddIntegerPairSettingDpiScale(L"SysInfoWindowSize", 620, 590);
     PhpAddIntegerSetting(L"SysInfoWindowState", L"1");
     PhpAddIntegerSetting(L"ThinRows", L"0");
     PhpAddStringSetting(L"ThreadTreeListColumns", L"");
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
     PhpAddStringSetting(L"ThreadStackListViewColumns", L"");
-    PhpAddIntegerPairSetting(L"ThreadStackWindowSize", L"420,380");
+    PhpAddIntegerPairSettingDpiScale(L"ThreadStackWindowSize", 420, 380);
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
 
     // Colors are specified with R in the lowest byte, then G, then B.
@@ -324,6 +330,46 @@ static VOID PhpAddSetting(
     PhpSettingFromString(Type, &setting.DefaultValue, NULL, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
+}
+
+static VOID PhpAddIntegerPairSettingDpiScaleInternal(
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG X,
+    _In_ ULONG Y
+    )
+{
+    static PH_INITONCE initOnce;
+    static ULONG dpi = 96;
+
+    WCHAR buffer[PH_INT32_STR_LEN + 1 + PH_INT32_STR_LEN + 1];
+    PH_FORMAT format[3];
+    SIZE_T returnLength;
+    PH_STRINGREF defaultValue;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HDC hdc;
+
+        if (hdc = GetDC(NULL))
+        {
+            dpi = GetDeviceCaps(hdc, LOGPIXELSY);
+            ReleaseDC(NULL, hdc);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    X = PhMultiplyDivide(X, dpi, 96);
+    Y = PhMultiplyDivide(Y, dpi, 96);
+
+    PhInitFormatU(&format[0], X);
+    PhInitFormatC(&format[1], ',');
+    PhInitFormatU(&format[2], Y);
+    PhFormatToBuffer(format, 3, buffer, sizeof(buffer), &returnLength);
+    defaultValue.Buffer = buffer;
+    defaultValue.Length = returnLength - sizeof(WCHAR);
+
+    PhpAddSetting(IntegerPairSettingType, Name, &defaultValue);
 }
 
 static PPH_STRING PhpSettingToString(
