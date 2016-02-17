@@ -82,7 +82,6 @@ static BOOLEAN PressedOk;
 static BOOLEAN RestartRequired;
 static POINT StartLocation;
 static WNDPROC OldWndProc;
-static HWND ResetButton;
 
 // General
 static HFONT CurrentFontInstance;
@@ -178,12 +177,6 @@ VOID PhShowOptionsDialog(
 
     PhModalPropertySheet(&propSheetHeader);
 
-    if (ResetButton)
-    {
-        DestroyWindow(ResetButton);
-        ResetButton = NULL;
-    }
-
     if (PressedOk)
     {
         if (!PhStartupParameters.ShowOptions)
@@ -254,6 +247,7 @@ static VOID PhpPageInit(
     if (!PageInit)
     {
         HWND optionsWindow;
+        HWND resetButton;
         RECT clientRect;
         RECT rect;
 
@@ -265,7 +259,7 @@ static VOID PhpPageInit(
         GetClientRect(optionsWindow, &clientRect);
         GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
         MapWindowPoints(NULL, optionsWindow, (POINT *)&rect, 2);
-        ResetButton = CreateWindowEx(
+        resetButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             L"BUTTON",
             L"Reset",
@@ -279,10 +273,10 @@ static VOID PhpPageInit(
             PhInstanceHandle,
             NULL
             );
-        SendMessage(ResetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
+        SendMessage(resetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
 
         if (PhStartupParameters.ShowOptions)
-            ShowWindow(ResetButton, SW_HIDE);
+            ShowWindow(resetButton, SW_HIDE);
 
         // Set the location of the options window.
         if (StartLocation.x == MINLONG)
