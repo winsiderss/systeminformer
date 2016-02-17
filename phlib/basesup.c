@@ -5648,6 +5648,99 @@ BOOLEAN PhStringToInteger64(
     return valid;
 }
 
+BOOLEAN PhpStringToDouble(
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG Base,
+    _Out_ DOUBLE *Double
+    )
+{
+    BOOLEAN valid = TRUE;
+    BOOLEAN dotSeen = FALSE;
+    DOUBLE result;
+    DOUBLE fraction;
+    SIZE_T length;
+    SIZE_T i;
+
+    length = String->Length / sizeof(WCHAR);
+    result = 0;
+    fraction = 1;
+
+    for (i = 0; i < length; i++)
+    {
+        if (String->Buffer[i] == '.')
+        {
+            if (!dotSeen)
+                dotSeen = TRUE;
+            else
+                valid = FALSE;
+        }
+        else
+        {
+            ULONG value;
+
+            value = PhCharToInteger[(UCHAR)String->Buffer[i]];
+
+            if (value < Base)
+            {
+                if (!dotSeen)
+                {
+                    result = result * Base + value;
+                }
+                else
+                {
+                    fraction /= Base;
+                    result = result + value * fraction;
+                }
+            }
+            else
+            {
+                valid = FALSE;
+            }
+        }
+    }
+
+    *Double = result;
+
+    return valid;
+}
+
+/**
+ * Converts a string to a double-precision floating point value.
+ *
+ * \param String The string to process.
+ * \param Base Reserved.
+ * \param Double The resulting double value.
+ */
+BOOLEAN PhStringToDouble(
+    _In_ PPH_STRINGREF String,
+    _Reserved_ ULONG Base,
+    _Out_opt_ DOUBLE *Double
+    )
+{
+    BOOLEAN valid;
+    DOUBLE result;
+    PH_STRINGREF string;
+    BOOLEAN negative;
+
+    string = *String;
+    negative = FALSE;
+
+    if (string.Length != 0 && (string.Buffer[0] == '-' || string.Buffer[0] == '+'))
+    {
+        if (string.Buffer[0] == '-')
+            negative = TRUE;
+
+        PhSkipStringRef(&string, sizeof(WCHAR));
+    }
+
+    valid = PhpStringToDouble(&string, 10, &result);
+
+    if (Double)
+        *Double = negative ? -result : result;
+
+    return valid;
+}
+
 /**
  * Converts an integer to a string.
  *

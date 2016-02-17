@@ -3415,6 +3415,15 @@ PhStringToInteger64(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhStringToDouble(
+    _In_ PPH_STRINGREF String,
+    _Reserved_ ULONG Base,
+    _Out_opt_ DOUBLE *Double
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhIntegerToString64(
