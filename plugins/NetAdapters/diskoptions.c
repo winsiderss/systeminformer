@@ -120,11 +120,15 @@ static VOID DiskDriveSaveList(
         if (!entry)
             continue;
 
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%lu,",
-            entry->Id.DiskIndex    // This value is UNSAFE
-            );
+        if (entry->UserReference)
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%lu,",
+                entry->Id.DiskIndex    // This value is UNSAFE
+                );
+        }
+
         PhDereferenceObjectDeferDelete(entry);
     }
 
@@ -161,7 +165,9 @@ static VOID AddDiskDriveToListView(
         {
             newId = PhAllocate(sizeof(DV_DISK_ID));
             CopyDiskId(newId, &entry->Id);
-            found = TRUE;
+
+            if (entry->UserReference)
+                found = TRUE;
         }
 
         PhDereferenceObjectDeferDelete(entry);
@@ -198,7 +204,7 @@ static VOID FindDiskDrives(
     for (ULONG i = 0; i < 64; i++)
     {
         HANDLE deviceHandle = INVALID_HANDLE_VALUE;
-        PPH_STRING diskModel;
+        PPH_STRING diskModel = NULL;
 
         // \\.\PhysicalDrive1
         // \\.\X:
@@ -225,7 +231,11 @@ static VOID FindDiskDrives(
                 NULL
                 );
 
-            AddDiskDriveToListView(Context, i, diskModel);
+            if (diskModel)
+            {
+                AddDiskDriveToListView(Context, i, diskModel);
+                PhDereferenceObject(diskModel);
+            }
 
             NtClose(deviceHandle);
         }

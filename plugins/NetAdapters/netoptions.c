@@ -128,13 +128,17 @@ static VOID SaveAdaptersList(
         if (!entry)
             continue;
 
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%lu,%I64u,%s,",
-            entry->Id.InterfaceIndex,    // This value is UNSAFE and may change after reboot.
-            entry->Id.InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
-            entry->Id.InterfaceGuid->Buffer
-            );
+        if (entry->UserReference)
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%lu,%I64u,%s,",
+                entry->Id.InterfaceIndex,    // This value is UNSAFE and may change after reboot.
+                entry->Id.InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
+                entry->Id.InterfaceGuid->Buffer
+                );
+        }
+
         PhDereferenceObjectDeferDelete(entry);
     }
 
@@ -170,7 +174,9 @@ static VOID AddNetworkAdapterToListView(
         {
             newId = PhAllocate(sizeof(DV_NETADAPTER_ID));
             CopyNetAdapterId(newId, &entry->Id);
-            found = TRUE;
+
+            if (entry->UserReference)
+                found = TRUE;
         }
 
         PhDereferenceObjectDeferDelete(entry);
