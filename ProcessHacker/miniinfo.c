@@ -182,6 +182,9 @@ VOID PhPinMiniInformation(
             SetActiveWindow(PhMipContainerWindow);
     }
 
+    if (Flags & PH_MINIINFO_ACTIVATE_WINDOW)
+        SetForegroundWindow(PhMipContainerWindow);
+
     if (SectionName && (!PhMipPinned || !(Flags & PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED)))
     {
         PH_STRINGREF sectionName;

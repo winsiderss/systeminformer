@@ -593,6 +593,9 @@
     <ClInclude Include="mxml\mxml.h">
       <Filter>Mini-XML\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\notificop.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp">

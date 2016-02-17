@@ -2,7 +2,7 @@
  * Process Hacker -
  *   notification icon manager
  *
- * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2011-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -26,83 +26,9 @@
 #include <miniinfo.h>
 #include <phplug.h>
 #include <notifico.h>
+#include <notificop.h>
+#include <mainwndp.h>
 #include <windowsx.h>
-
-typedef struct _PH_NF_BITMAP
-{
-    BOOLEAN Initialized;
-    HDC Hdc;
-    BITMAPINFOHEADER Header;
-    HBITMAP Bitmap;
-    PVOID Bits;
-} PH_NF_BITMAP, *PPH_NF_BITMAP;
-
-HICON PhNfpGetBlackIcon(
-    VOID
-    );
-
-BOOLEAN PhNfpAddNotifyIcon(
-    _In_ ULONG Id
-    );
-
-BOOLEAN PhNfpRemoveNotifyIcon(
-    _In_ ULONG Id
-    );
-
-BOOLEAN PhNfpModifyNotifyIcon(
-    _In_ ULONG Id,
-    _In_ ULONG Flags,
-    _In_opt_ PPH_STRING Text,
-    _In_opt_ HICON Icon
-    );
-
-VOID PhNfpProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID PhNfpUpdateRegisteredIcon(
-    _In_ PPH_NF_ICON Icon
-    );
-
-VOID PhNfpBeginBitmap(
-    _Out_ PULONG Width,
-    _Out_ PULONG Height,
-    _Out_ HBITMAP *Bitmap,
-    _Out_opt_ PVOID *Bits,
-    _Out_ HDC *Hdc,
-    _Out_ HBITMAP *OldBitmap
-    );
-
-VOID PhNfpBeginBitmap2(
-    _Inout_ PPH_NF_BITMAP Context,
-    _Out_ PULONG Width,
-    _Out_ PULONG Height,
-    _Out_ HBITMAP *Bitmap,
-    _Out_opt_ PVOID *Bits,
-    _Out_ HDC *Hdc,
-    _Out_ HBITMAP *OldBitmap
-    );
-
-VOID PhNfpUpdateIconCpuHistory(
-    VOID
-    );
-
-VOID PhNfpUpdateIconIoHistory(
-    VOID
-    );
-
-VOID PhNfpUpdateIconCommitHistory(
-    VOID
-    );
-
-VOID PhNfpUpdateIconPhysicalHistory(
-    VOID
-    );
-
-VOID PhNfpUpdateIconCpuUsage(
-    VOID
-    );
 
 BOOLEAN PhNfTerminating = FALSE;
 ULONG PhNfIconMask;
@@ -119,6 +45,10 @@ PH_NF_BITMAP PhNfpDefaultBitmapContext = { 0 };
 PH_NF_BITMAP PhNfpBlackBitmapContext = { 0 };
 HBITMAP PhNfpBlackBitmap = NULL;
 HICON PhNfpBlackIcon = NULL;
+
+static POINT IconClickLocation;
+static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
+static BOOLEAN IconClickDoubleClicked;
 
 VOID PhNfLoadStage1(
     VOID
@@ -275,13 +205,58 @@ VOID PhNfForwardMessage(
     case WM_LBUTTONDOWN:
         {
             if (PhGetIntegerSetting(L"IconSingleClick"))
+            {
                 ProcessHacker_IconClick(PhMainWndHandle);
+            }
+        }
+        break;
+    case WM_LBUTTONUP:
+        {
+            if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled && !IconClickDoubleClicked)
+            {
+                PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
+
+                if (PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
+                {
+                    GetCursorPos(&IconClickLocation);
+
+                    if (IconClickShowMiniInfoSectionData.SectionName)
+                    {
+                        PhFree(IconClickShowMiniInfoSectionData.SectionName);
+                        IconClickShowMiniInfoSectionData.SectionName = NULL;
+                    }
+
+                    if (showMiniInfoSectionData.SectionName)
+                    {
+                        IconClickShowMiniInfoSectionData.SectionName = PhDuplicateStringZ(showMiniInfoSectionData.SectionName);
+                    }
+
+                    SetTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
+                }
+                else
+                {
+                    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+                }
+            }
         }
         break;
     case WM_LBUTTONDBLCLK:
         {
             if (!PhGetIntegerSetting(L"IconSingleClick"))
+            {
+                if (PhNfMiniInfoEnabled)
+                {
+                    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+
+                    // We will get a WM_LBUTTONUP message corresponding to the double-click. We set
+                    // a variable that makes our WM_LBUTTONUP handler ignore the message, and queue
+                    // a restoration function that resets the variable.
+                    IconClickDoubleClicked = TRUE;
+                    SetTimer(PhMainWndHandle, TIMER_ICON_CLICK_RESTORE, NFP_ICON_CLICK_RESTORE_DELAY, PhNfpIconClickRestoreTimerProc);
+                }
+
                 ProcessHacker_IconClick(PhMainWndHandle);
+            }
         }
         break;
     case WM_RBUTTONUP:
@@ -305,51 +280,9 @@ VOID PhNfForwardMessage(
     case NIN_POPUPOPEN:
         {
             PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
-            BOOLEAN showMiniInfo = FALSE;
             POINT location;
 
-            if (registeredIcon)
-            {
-                showMiniInfoSectionData.SectionName = NULL;
-
-                if (registeredIcon->Flags & PH_NF_ICON_SHOW_MINIINFO)
-                {
-                    if (registeredIcon->MessageCallback)
-                    {
-                        registeredIcon->MessageCallback(
-                            registeredIcon,
-                            (ULONG_PTR)&showMiniInfoSectionData,
-                            MAKELPARAM(PH_NF_MSG_SHOWMINIINFOSECTION, 0),
-                            registeredIcon->Context
-                            );
-                    }
-
-                    showMiniInfo = TRUE;
-                }
-            }
-            else
-            {
-                switch (1 << iconIndex)
-                {
-                case PH_ICON_CPU_HISTORY:
-                case PH_ICON_CPU_USAGE:
-                    showMiniInfoSectionData.SectionName = L"CPU";
-                    break;
-                case PH_ICON_IO_HISTORY:
-                    showMiniInfoSectionData.SectionName = L"I/O";
-                    break;
-                case PH_ICON_COMMIT_HISTORY:
-                    showMiniInfoSectionData.SectionName = L"Commit Charge";
-                    break;
-                case PH_ICON_PHYSICAL_HISTORY:
-                    showMiniInfoSectionData.SectionName = L"Physical Memory";
-                    break;
-                }
-
-                showMiniInfo = TRUE;
-            }
-
-            if (PhNfMiniInfoEnabled && showMiniInfo)
+            if (PhNfMiniInfoEnabled && PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
             {
                 GetCursorPos(&location);
                 PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
@@ -1312,4 +1245,80 @@ VOID PhNfpUpdateIconCpuUsage(
 
     DestroyIcon(icon);
     PhDereferenceObject(text);
+}
+
+BOOLEAN PhNfpGetShowMiniInfoSectionData(
+    _In_ ULONG IconIndex,
+    _In_ PPH_NF_ICON RegisteredIcon,
+    _Out_ PPH_NF_MSG_SHOWMINIINFOSECTION_DATA Data
+    )
+{
+    BOOLEAN showMiniInfo = FALSE;
+
+    if (RegisteredIcon)
+    {
+        Data->SectionName = NULL;
+
+        if (RegisteredIcon->Flags & PH_NF_ICON_SHOW_MINIINFO)
+        {
+            if (RegisteredIcon->MessageCallback)
+            {
+                RegisteredIcon->MessageCallback(
+                    RegisteredIcon,
+                    (ULONG_PTR)Data,
+                    MAKELPARAM(PH_NF_MSG_SHOWMINIINFOSECTION, 0),
+                    RegisteredIcon->Context
+                    );
+            }
+
+            showMiniInfo = TRUE;
+        }
+    }
+    else
+    {
+        switch (1 << IconIndex)
+        {
+        case PH_ICON_CPU_HISTORY:
+        case PH_ICON_CPU_USAGE:
+            Data->SectionName = L"CPU";
+            break;
+        case PH_ICON_IO_HISTORY:
+            Data->SectionName = L"I/O";
+            break;
+        case PH_ICON_COMMIT_HISTORY:
+            Data->SectionName = L"Commit Charge";
+            break;
+        case PH_ICON_PHYSICAL_HISTORY:
+            Data->SectionName = L"Physical Memory";
+            break;
+        }
+
+        showMiniInfo = TRUE;
+    }
+
+    return showMiniInfo;
+}
+
+VOID PhNfpIconClickActivateTimerProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ UINT_PTR idEvent,
+    _In_ DWORD dwTime
+    )
+{
+    PhPinMiniInformation(MiniInfoActivePinType, 1, 0,
+        PH_MINIINFO_ACTIVATE_WINDOW | PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
+        IconClickShowMiniInfoSectionData.SectionName, &IconClickLocation);
+    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+}
+
+VOID PhNfpIconClickRestoreTimerProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ UINT_PTR idEvent,
+    _In_ DWORD dwTime
+    )
+{
+    IconClickDoubleClicked = FALSE;
+    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_RESTORE);
 }

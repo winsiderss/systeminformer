@@ -367,6 +367,7 @@
     <ClInclude Include="include\mainwndp.h" />
     <ClInclude Include="include\miniinfop.h" />
     <ClInclude Include="include\notifico.h" />
+    <ClInclude Include="include\notificop.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\sysinfo.h" />
     <ClInclude Include="include\uimodels.h" />

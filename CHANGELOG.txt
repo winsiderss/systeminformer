@@ -13,6 +13,7 @@ Process Hacker
    * Improved performance when handling a large number of threads, modules or handles
    * Added -sysinfo command line parameter for opening System Information at startup
    * Added right-click menu and double-click action for environment variables
+   * Clicking a tray icon now shows the pop-up UI
    * Fixed ASLR state being shown as N/A in process properties
    * Fixed multi monitor window placement bug
    * Fixed handle enumeration bug affecting processes with PID >= 65536
