@@ -42,6 +42,8 @@ _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 _SHParseDisplayName SHParseDisplayName_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
+#define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
+
 VOID PhGuiSupportInitialization(
     VOID
     )
@@ -101,7 +103,7 @@ INT PhAddListViewColumn(
 
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = Width;
+    column.cx = SCALE_DPI(Width);
     column.pszText = Text;
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;

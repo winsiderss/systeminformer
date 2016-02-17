@@ -2354,6 +2354,12 @@ BOOLEAN PhTnpAddColumn(
 
     realColumn = PhAllocateCopy(Column, sizeof(PH_TREENEW_COLUMN));
 
+    if (realColumn->DpiScaleOnAdd)
+    {
+        realColumn->Width = PhMultiplyDivide(realColumn->Width, PhGlobalDpi, 96);
+        realColumn->DpiScaleOnAdd = FALSE;
+    }
+
     if (Context->AllocatedColumns < Context->NextId)
     {
         PhTnpExpandAllocatedColumns(Context);

@@ -63,6 +63,7 @@ PHLIBAPI extern ULONG PhCurrentSessionId;
 PHLIBAPI extern HANDLE PhCurrentTokenQueryHandle;
 PHLIBAPI extern BOOLEAN PhElevated;
 PHLIBAPI extern TOKEN_ELEVATION_TYPE PhElevationType;
+PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 PHLIBAPI extern PVOID PhHeapHandle;
 PHLIBAPI extern RTL_OSVERSIONINFOEXW PhOsVersion;
 PHLIBAPI extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;

@@ -494,12 +494,14 @@ VOID PhInitializeFont(
     {
         PhPixelsPerInchH = GetDeviceCaps(hdc, LOGPIXELSX);
         PhPixelsPerInchV = GetDeviceCaps(hdc, LOGPIXELSY);
+        PhGlobalDpi = PhPixelsPerInchV;
         ReleaseDC(hWnd, hdc);
     }
     else
     {
         PhPixelsPerInchH = 96;
         PhPixelsPerInchV = 96;
+        PhGlobalDpi = 96;
     }
 
     success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
