@@ -3,6 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2016 wj32
  *
  * This file is part of Process Hacker.
  *

@@ -263,6 +263,8 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
 
             if (context->AdapterEntry->AdapterName)
                 SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
+            else
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Network adapter");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);

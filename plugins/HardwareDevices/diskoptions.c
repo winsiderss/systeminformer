@@ -205,15 +205,8 @@ static VOID FindDiskDrives(
         HANDLE deviceHandle;
         PPH_STRING diskModel = NULL;
 
-        // \\.\PhysicalDrive1
-        // \\.\X:
-        // \\.\Volume{a978c827-cf64-44b4-b09a-57a55ef7f49f}
-        // SetupAPI with GUID_DEVINTERFACE_DISK and DetailData->DevicePath
-
         if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, i)))
         {
-            //DiskDriveQueryDeviceTypeAndNumber(deviceHandle, NULL, NULL);
-
             DiskDriveQueryDeviceInformation(
                 deviceHandle,
                 NULL,

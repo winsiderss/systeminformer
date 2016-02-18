@@ -147,6 +147,8 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
 
             if (context->AdapterEntry->DiskName)
                 SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->DiskName->Buffer);
+            else
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Disk Drive");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDrivePanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
