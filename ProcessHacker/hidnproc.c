@@ -690,7 +690,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
         }
     }
 
-    // POSIX, command line
+    // Command line
 
     status = PhOpenProcess(
         &processHandle2,
@@ -700,33 +700,19 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
     if (NT_SUCCESS(status))
     {
-        BOOLEAN isPosix = FALSE;
         PPH_STRING commandLine;
         ULONG i;
 
-        status = PhGetProcessIsPosix(processHandle2, &isPosix);
-        processItem->IsPosix = isPosix;
-
-        if (!NT_SUCCESS(status) || !isPosix)
+        if (NT_SUCCESS(status = PhGetProcessCommandLine(processHandle2, &commandLine)))
         {
-            status = PhGetProcessCommandLine(processHandle2, &commandLine);
-
-            if (NT_SUCCESS(status))
+            // Some command lines (e.g. from taskeng.exe) have nulls in them.
+            // Since Windows can't display them, we'll replace them with
+            // spaces.
+            for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
             {
-                // Some command lines (e.g. from taskeng.exe) have nulls in them.
-                // Since Windows can't display them, we'll replace them with
-                // spaces.
-                for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
-                {
-                    if (commandLine->Buffer[i] == 0)
-                        commandLine->Buffer[i] = ' ';
-                }
+                if (commandLine->Buffer[i] == 0)
+                    commandLine->Buffer[i] = ' ';
             }
-        }
-        else
-        {
-            // Get the POSIX command line.
-            status = PhGetProcessPosixCommandLine(processHandle2, &commandLine);
         }
 
         if (NT_SUCCESS(status))

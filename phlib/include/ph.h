@@ -249,14 +249,6 @@ PhGetProcessWindowTitle(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetProcessIsPosix(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN IsPosix
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhGetProcessExecuteFlags(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG ExecuteFlags
@@ -272,14 +264,6 @@ NTAPI
 PhGetProcessDepStatus(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG DepStatus
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetProcessPosixCommandLine(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPH_STRING *CommandLine
     );
 
 #define PH_GET_PROCESS_ENVIRONMENT_WOW64 0x1 // retrieve the WOW64 environment

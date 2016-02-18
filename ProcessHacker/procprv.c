@@ -95,7 +95,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     PPH_STRING PackageFullName;
 
     BOOLEAN IsDotNet;
-    BOOLEAN IsPosix;
     BOOLEAN IsWow64;
     BOOLEAN IsWow64Valid;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -996,7 +995,7 @@ VOID PhpProcessQueryStage1(
     Data->IsWow64Valid = TRUE;
 #endif
 
-    // POSIX, command line, .NET
+    // Command line, .NET
     {
         HANDLE processHandle;
         BOOLEAN queryAccess = FALSE;
@@ -1019,37 +1018,20 @@ VOID PhpProcessQueryStage1(
 
         if (NT_SUCCESS(status))
         {
-            BOOLEAN isPosix = FALSE;
             BOOLEAN isDotNet = FALSE;
             PPH_STRING commandLine;
             ULONG i;
 
-            if (!queryAccess)
+            if (NT_SUCCESS(status = PhGetProcessCommandLine(processHandle, &commandLine)))
             {
-                status = PhGetProcessIsPosix(processHandle, &isPosix);
-                Data->IsPosix = isPosix;
-            }
-
-            if (!NT_SUCCESS(status) || !isPosix)
-            {
-                status = PhGetProcessCommandLine(processHandle, &commandLine);
-
-                if (NT_SUCCESS(status))
+                // Some command lines (e.g. from taskeng.exe) have nulls in them.
+                // Since Windows can't display them, we'll replace them with
+                // spaces.
+                for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
                 {
-                    // Some command lines (e.g. from taskeng.exe) have nulls in them.
-                    // Since Windows can't display them, we'll replace them with
-                    // spaces.
-                    for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
-                    {
-                        if (commandLine->Buffer[i] == 0)
-                            commandLine->Buffer[i] = ' ';
-                    }
+                    if (commandLine->Buffer[i] == 0)
+                        commandLine->Buffer[i] = ' ';
                 }
-            }
-            else
-            {
-                // Get the POSIX command line.
-                status = PhGetProcessPosixCommandLine(processHandle, &commandLine);
             }
 
             if (NT_SUCCESS(status))
@@ -1304,7 +1286,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
-    processItem->IsPosix = Data->IsPosix;
     processItem->IsWow64 = Data->IsWow64;
     processItem->IsWow64Valid = Data->IsWow64Valid;
 

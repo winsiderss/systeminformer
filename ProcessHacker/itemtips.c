@@ -403,8 +403,6 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
             PhAppendStringBuilder2(&notes, L"    Process is in a job.\n");
-        if (Process->IsPosix)
-            PhAppendStringBuilder2(&notes, L"    Process is POSIX.\n");
         if (Process->IsWow64)
             PhAppendStringBuilder2(&notes, L"    Process is 32-bit (WOW64).\n");
 

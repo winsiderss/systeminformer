@@ -924,7 +924,6 @@ static COLOR_ITEM ColorItems[] =
 #ifdef _WIN64
     COLOR_ITEM(L"ColorWow64Processes", L"32-bit Processes", L"Processes running under WOW64, i.e. 32-bit."),
 #endif
-    COLOR_ITEM(L"ColorPosixProcesses", L"POSIX Processes", L"Processes running under the POSIX subsystem."),
     COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged Processes", L"Processes that are currently being debugged."),
     COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated Processes", L"Processes with full privileges on a system with UAC enabled."),
     COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive Processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),

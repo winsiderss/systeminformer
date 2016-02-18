@@ -201,8 +201,6 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"ColorJobProcesses", L"3f85cd"); // Peru
     PhpAddIntegerSetting(L"UseColorWow64Processes", L"1");
     PhpAddIntegerSetting(L"ColorWow64Processes", L"8f8fbc"); // Rosy Brown
-    PhpAddIntegerSetting(L"UseColorPosixProcesses", L"1");
-    PhpAddIntegerSetting(L"ColorPosixProcesses", L"8b3d48"); // Dark Slate Blue
     PhpAddIntegerSetting(L"UseColorDebuggedProcesses", L"1");
     PhpAddIntegerSetting(L"ColorDebuggedProcesses", L"ffbbcc");
     PhpAddIntegerSetting(L"UseColorElevatedProcesses", L"1");
@@ -262,8 +260,6 @@ VOID PhUpdateCachedSettings(
     UPDATE_INTEGER_CS(ColorJobProcesses);
     UPDATE_INTEGER_CS(UseColorWow64Processes);
     UPDATE_INTEGER_CS(ColorWow64Processes);
-    UPDATE_INTEGER_CS(UseColorPosixProcesses);
-    UPDATE_INTEGER_CS(ColorPosixProcesses);
     UPDATE_INTEGER_CS(UseColorDebuggedProcesses);
     UPDATE_INTEGER_CS(ColorDebuggedProcesses);
     UPDATE_INTEGER_CS(UseColorElevatedProcesses);

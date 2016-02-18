@@ -1298,7 +1298,6 @@ BOOLEAN PhUiRestartProcess(
     NTSTATUS status;
     BOOLEAN cont = FALSE;
     HANDLE processHandle = NULL;
-    BOOLEAN isPosix;
     PPH_STRING commandLine;
     PPH_STRING currentDirectory;
 
@@ -1330,15 +1329,6 @@ BOOLEAN PhUiRestartProcess(
         Process->ProcessId
         )))
         goto ErrorExit;
-
-    if (!NT_SUCCESS(status = PhGetProcessIsPosix(processHandle, &isPosix)))
-        goto ErrorExit;
-
-    if (isPosix)
-    {
-        PhShowError(hWnd, L"POSIX processes cannot be restarted.");
-        goto ErrorExit;
-    }
 
     if (!NT_SUCCESS(status = PhGetProcessCommandLine(
         processHandle,
