@@ -57,7 +57,7 @@ for %%a in (
     ExtendedNotifications
     ExtendedServices
     ExtendedTools
-    NetAdapters
+    HardwareDevices
     NetworkTools
     OnlineChecks
     SbieSupport
@@ -78,7 +78,7 @@ for %%a in (
     ExtendedNotifications
     ExtendedServices
     ExtendedTools
-    NetAdapters
+    HardwareDevices
     NetworkTools
     OnlineChecks
     SbieSupport
