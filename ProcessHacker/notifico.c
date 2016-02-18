@@ -49,6 +49,7 @@ HICON PhNfpBlackIcon = NULL;
 static POINT IconClickLocation;
 static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
 static BOOLEAN IconClickUpDueToDown;
+static BOOLEAN IconDisableHover;
 
 VOID PhNfLoadStage1(
     VOID
@@ -207,6 +208,7 @@ VOID PhNfForwardMessage(
             if (PhGetIntegerSetting(L"IconSingleClick"))
             {
                 ProcessHacker_IconClick(PhMainWndHandle);
+                PhNfpDisableHover();
             }
             else
             {
@@ -254,6 +256,7 @@ VOID PhNfForwardMessage(
                     // and we need to make sure that it doesn't start the activation timer again.
                     KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
                     IconClickUpDueToDown = FALSE;
+                    PhNfpDisableHover();
                 }
 
                 ProcessHacker_IconClick(PhMainWndHandle);
@@ -283,7 +286,7 @@ VOID PhNfForwardMessage(
             PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
             POINT location;
 
-            if (PhNfMiniInfoEnabled && PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
+            if (PhNfMiniInfoEnabled && !IconDisableHover && PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
             {
                 GetCursorPos(&location);
                 PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
@@ -1311,4 +1314,23 @@ VOID PhNfpIconClickActivateTimerProc(
         PH_MINIINFO_ACTIVATE_WINDOW | PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
         IconClickShowMiniInfoSectionData.SectionName, &IconClickLocation);
     KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+}
+
+VOID PhNfpDisableHover(
+    VOID
+    )
+{
+    IconDisableHover = TRUE;
+    SetTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconRestoreHoverTimerProc);
+}
+
+VOID PhNfpIconRestoreHoverTimerProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ UINT_PTR idEvent,
+    _In_ DWORD dwTime
+    )
+{
+    IconDisableHover = FALSE;
+    KillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
 }

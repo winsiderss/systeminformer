@@ -84,9 +84,20 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
     );
 
 #define NFP_ICON_CLICK_ACTIVATE_DELAY 140
-#define NFP_ICON_CLICK_RESTORE_DELAY 100
+#define NFP_ICON_RESTORE_HOVER_DELAY 1000
 
 VOID PhNfpIconClickActivateTimerProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ UINT_PTR idEvent,
+    _In_ DWORD dwTime
+    );
+
+VOID PhNfpDisableHover(
+    VOID
+    );
+
+VOID PhNfpIconRestoreHoverTimerProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ UINT_PTR idEvent,
