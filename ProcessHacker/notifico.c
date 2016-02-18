@@ -48,7 +48,7 @@ HICON PhNfpBlackIcon = NULL;
 
 static POINT IconClickLocation;
 static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
-static BOOLEAN IconClickDoubleClicked;
+static BOOLEAN IconClickUpDueToDown;
 
 VOID PhNfLoadStage1(
     VOID
@@ -208,11 +208,15 @@ VOID PhNfForwardMessage(
             {
                 ProcessHacker_IconClick(PhMainWndHandle);
             }
+            else
+            {
+                IconClickUpDueToDown = TRUE;
+            }
         }
         break;
     case WM_LBUTTONUP:
         {
-            if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled && !IconClickDoubleClicked)
+            if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled && IconClickUpDueToDown)
             {
                 PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
 
@@ -246,13 +250,10 @@ VOID PhNfForwardMessage(
             {
                 if (PhNfMiniInfoEnabled)
                 {
+                    // We will get another WM_LBUTTONUP message corresponding to the double-click,
+                    // and we need to make sure that it doesn't start the activation timer again.
                     KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
-
-                    // We will get a WM_LBUTTONUP message corresponding to the double-click. We set
-                    // a variable that makes our WM_LBUTTONUP handler ignore the message, and queue
-                    // a restoration function that resets the variable.
-                    IconClickDoubleClicked = TRUE;
-                    SetTimer(PhMainWndHandle, TIMER_ICON_CLICK_RESTORE, NFP_ICON_CLICK_RESTORE_DELAY, PhNfpIconClickRestoreTimerProc);
+                    IconClickUpDueToDown = FALSE;
                 }
 
                 ProcessHacker_IconClick(PhMainWndHandle);
@@ -1310,15 +1311,4 @@ VOID PhNfpIconClickActivateTimerProc(
         PH_MINIINFO_ACTIVATE_WINDOW | PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
         IconClickShowMiniInfoSectionData.SectionName, &IconClickLocation);
     KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
-}
-
-VOID PhNfpIconClickRestoreTimerProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
-    _In_ UINT_PTR idEvent,
-    _In_ DWORD dwTime
-    )
-{
-    IconClickDoubleClicked = FALSE;
-    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_RESTORE);
 }
