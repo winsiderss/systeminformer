@@ -50,6 +50,7 @@ typedef struct _MEMORY_EDITOR_CONTEXT
     ULONG Flags;
 
     BOOLEAN LoadCompleted;
+    BOOLEAN WriteAccess;
 } MEMORY_EDITOR_CONTEXT, *PMEMORY_EDITOR_CONTEXT;
 
 INT NTAPI PhpMemoryEditorCompareFunction(
@@ -205,19 +206,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (!NT_SUCCESS(status = PhOpenProcess(
                 &context->ProcessHandle,
-                PROCESS_VM_READ | PROCESS_VM_WRITE,
+                PROCESS_VM_READ,
                 context->ProcessId
                 )))
             {
-                if (!NT_SUCCESS(status = PhOpenProcess(
-                    &context->ProcessHandle,
-                    PROCESS_VM_READ,
-                    context->ProcessId
-                    )))
-                {
-                    PhShowStatus(NULL, L"Unable to open the process", status, 0);
-                    return TRUE;
-                }
+                PhShowStatus(NULL, L"Unable to open the process", status, 0);
+                return TRUE;
             }
 
             context->Buffer = PhAllocatePage(context->RegionSize, NULL);
@@ -442,6 +436,25 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             case IDC_WRITE:
                 {
                     NTSTATUS status;
+
+                    if (!context->WriteAccess)
+                    {
+                        HANDLE processHandle;
+
+                        if (!NT_SUCCESS(status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_VM_READ | PROCESS_VM_WRITE,
+                            context->ProcessId
+                            )))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                            break;
+                        }
+
+                        if (context->ProcessHandle) NtClose(context->ProcessHandle);
+                        context->ProcessHandle = processHandle;
+                        context->WriteAccess = TRUE;
+                    }
 
                     if (!NT_SUCCESS(status = PhWriteVirtualMemory(
                         context->ProcessHandle,
