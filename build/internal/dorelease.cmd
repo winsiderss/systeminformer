@@ -67,7 +67,7 @@ for %%a in (
     WindowExplorer
 ) do (
     if "%SIGN%" == "1" (
-        call %1\build\internal\sign.cmd %1\bin\Release32\plugins\%%a.dll
+        call %1\build\internal\sign.cmd %1\bin\Release32\plugins\%%a.dll sha2only
     )
     copy %1\bin\Release32\plugins\%%a.dll %2\bin\x86\plugins\%%a.dll
 )
@@ -88,7 +88,7 @@ for %%a in (
     WindowExplorer
 ) do (
     if "%SIGN%" == "1" (
-        call %1\build\internal\sign.cmd %1\bin\Release64\plugins\%%a.dll
+        call %1\build\internal\sign.cmd %1\bin\Release64\plugins\%%a.dll sha2only
     )
     copy %1\bin\Release64\plugins\%%a.dll %2\bin\x64\plugins\%%a.dll
 )
