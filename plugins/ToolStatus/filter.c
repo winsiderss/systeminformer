@@ -255,11 +255,6 @@ BOOLEAN ProcessTreeFilterCallback(
         return TRUE;
     }
 
-    if (WordMatchStringZ(L"IsPosix") && processNode->ProcessItem->IsPosix)
-    {
-        return TRUE;
-    }
-
     if (WordMatchStringZ(L"IsSuspended") && processNode->ProcessItem->IsSuspended)
     {
         return TRUE;
