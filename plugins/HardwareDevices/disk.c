@@ -71,10 +71,6 @@ VOID DiskDrivesUpdate(
             entry->Id.DeviceNumber
             )))
         {
-            ULONG64 diskBytesReadOctets;
-            ULONG64 diskBytesWrittenOctets;
-            ULONG64 diskBytesRead;
-            ULONG64 diskBytesWritten;
             DISK_PERFORMANCE diskPerformance;
 
             if (NT_SUCCESS(DiskDriveQueryStatistics(
@@ -82,43 +78,44 @@ VOID DiskDrivesUpdate(
                 &diskPerformance
                 )))
             {
-                ULONG64 ReadTime;
-                ULONG64 WriteTime;
-                ULONG64 IdleTime;
-                ULONG64 QueryTime;
+                ULONG64 readTime;
+                ULONG64 writeTime;
+                ULONG64 idleTime;
+                ULONG readCount;
+                ULONG writeCount;
+                ULONG64 queryTime;
 
-                ReadTime = diskPerformance.ReadTime.QuadPart - entry->LastReadTime;
-                WriteTime = diskPerformance.WriteTime.QuadPart - entry->LastWriteTime;
-                IdleTime = diskPerformance.IdleTime.QuadPart - entry->LastIdletime;
-                QueryTime = diskPerformance.QueryTime.QuadPart - entry->LastQueryTime;
+                PhUpdateDelta(&entry->BytesReadDelta, diskPerformance.BytesRead.QuadPart);
+                PhUpdateDelta(&entry->BytesWrittenDelta, diskPerformance.BytesWritten.QuadPart);
+                PhUpdateDelta(&entry->ReadTimeDelta, diskPerformance.ReadTime.QuadPart);
+                PhUpdateDelta(&entry->WriteTimeDelta, diskPerformance.WriteTime.QuadPart);
+                PhUpdateDelta(&entry->IdleTimeDelta, diskPerformance.IdleTime.QuadPart);
+                PhUpdateDelta(&entry->ReadCountDelta, diskPerformance.ReadCount);
+                PhUpdateDelta(&entry->WriteCountDelta, diskPerformance.WriteCount);
+                PhUpdateDelta(&entry->QueryTimeDelta, diskPerformance.QueryTime.QuadPart);
 
-                diskBytesReadOctets = diskPerformance.BytesRead.QuadPart;
-                diskBytesWrittenOctets = diskPerformance.BytesWritten.QuadPart;
-                diskBytesRead = diskBytesReadOctets - entry->LastBytesReadValue;
-                diskBytesWritten = diskBytesWrittenOctets - entry->LastBytesWriteValue;
+                readTime = entry->ReadTimeDelta.Delta;
+                writeTime = entry->WriteTimeDelta.Delta;
+                idleTime = entry->IdleTimeDelta.Delta;
+                readCount = entry->ReadCountDelta.Delta;
+                writeCount = entry->WriteCountDelta.Delta;
+                queryTime = entry->QueryTimeDelta.Delta;
 
-                if (QueryTime != 0)
-                {
-                    // TODO: check math... Task Manager is a lot more accurate and has better precision.
-                    entry->ResponseTime = (ReadTime + WriteTime / QueryTime) / PH_TICKS_PER_MS; // ReadTime + WriteTime + IdleTime
-                    entry->ActiveTime = (FLOAT)(QueryTime - IdleTime) / QueryTime * 100;
-                }
+                if (readCount + writeCount != 0)
+                    entry->ResponseTime = ((FLOAT)readTime + (FLOAT)writeTime) / (readCount + writeCount);
                 else
-                {
-                    // TODO: If querytime is 0 then enough time hasn't passed to calculate results?
                     entry->ResponseTime = 0;
+
+                if (queryTime != 0)
+                    entry->ActiveTime = (FLOAT)(queryTime - idleTime) / queryTime * 100;
+                else
                     entry->ActiveTime = 0.0f;
-                }
 
                 if (entry->ActiveTime > 100.f)
                     entry->ActiveTime = 0.f;
                 if (entry->ActiveTime < 0.f)
                     entry->ActiveTime = 0.f;
 
-                entry->LastReadTime = diskPerformance.ReadTime.QuadPart;
-                entry->LastWriteTime = diskPerformance.WriteTime.QuadPart;
-                entry->LastIdletime = diskPerformance.IdleTime.QuadPart;
-                entry->LastQueryTime = diskPerformance.QueryTime.QuadPart;
                 entry->QueueDepth = diskPerformance.QueueDepth;
                 entry->SplitCount = diskPerformance.SplitCount;
             }
@@ -129,20 +126,17 @@ VOID DiskDrivesUpdate(
                 DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
             }
 
-            if (!entry->HaveFirstSample)
+            if (entry->HaveFirstSample)
             {
-                diskBytesRead = 0;
-                diskBytesWritten = 0;
+                PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
+                PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->BytesWrittenDelta.Delta);
+            }
+            else
+            {
+                PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, 0);
+                PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, 0);
                 entry->HaveFirstSample = TRUE;
             }
-
-            PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, diskBytesRead);
-            PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, diskBytesWritten);
-
-            entry->BytesReadValue = diskBytesRead;
-            entry->BytesWriteValue = diskBytesWritten;
-            entry->LastBytesReadValue = diskBytesReadOctets;
-            entry->LastBytesWriteValue = diskBytesWrittenOctets;
 
             NtClose(deviceHandle);
         }

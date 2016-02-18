@@ -381,20 +381,19 @@ typedef struct _DV_DISK_ENTRY
     BOOLEAN UserReference;
     BOOLEAN HaveFirstSample;
 
-    ULONG64 BytesReadValue;
-    ULONG64 BytesWriteValue;
-
     PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;
 
-    ULONG64 LastBytesReadValue;
-    ULONG64 LastBytesWriteValue;
-    ULONG64 LastReadTime;
-    ULONG64 LastWriteTime;
-    ULONG64 LastIdletime;
-    ULONG64 LastQueryTime;
+    PH_UINT64_DELTA BytesReadDelta;
+    PH_UINT64_DELTA BytesWrittenDelta;
+    PH_UINT64_DELTA ReadTimeDelta;
+    PH_UINT64_DELTA WriteTimeDelta;
+    PH_UINT64_DELTA IdleTimeDelta;
+    PH_UINT32_DELTA ReadCountDelta;
+    PH_UINT32_DELTA WriteCountDelta;
+    PH_UINT64_DELTA QueryTimeDelta;
 
-    ULONG64 ResponseTime;
+    FLOAT ResponseTime;
     FLOAT ActiveTime;
     ULONG QueueDepth;
     ULONG SplitCount;

@@ -51,15 +51,15 @@ static VOID DiskDriveUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->AdapterEntry->LastBytesReadValue, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->AdapterEntry->LastBytesWriteValue, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->AdapterEntry->LastBytesReadValue + Context->AdapterEntry->LastBytesWriteValue, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->AdapterEntry->BytesReadDelta.Value, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->AdapterEntry->BytesWrittenDelta.Value, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->AdapterEntry->BytesReadDelta.Value + Context->AdapterEntry->BytesWrittenDelta.Value, -1)->Buffer);
 
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_ACTIVE,
         PhaFormatString(L"%.0f%%", Context->AdapterEntry->ActiveTime)->Buffer
         );
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_RESPONSETIME,
-        PhaFormatString(L"%s ms", PhaFormatUInt64(Context->AdapterEntry->ResponseTime, TRUE)->Buffer)->Buffer
+        PhaFormatString(L"%.1f ms", Context->AdapterEntry->ResponseTime / PH_TICKS_PER_MS)->Buffer
         );
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH,
         PhaFormatString(L"%lu", Context->AdapterEntry->QueueDepth)->Buffer
@@ -409,8 +409,8 @@ static BOOLEAN DiskDriveSectionCallback(
             PhSetReference(&drawPanel->Title, context->AdapterEntry->DiskName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nW: %s",
-                PhaFormatSize(context->AdapterEntry->BytesReadValue, -1)->Buffer,
-                PhaFormatSize(context->AdapterEntry->BytesWriteValue, -1)->Buffer
+                PhaFormatSize(context->AdapterEntry->BytesReadDelta.Delta, -1)->Buffer,
+                PhaFormatSize(context->AdapterEntry->BytesWrittenDelta.Delta, -1)->Buffer
                 );
 
             if (!drawPanel->Title)
