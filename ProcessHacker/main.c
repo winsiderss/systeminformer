@@ -457,7 +457,7 @@ HFONT PhpCreateFont(
     if (hdc)
     {
         font = CreateFont(
-            -PhMultiplyDivide(Size, PhPixelsPerInchV, 72),
+            -(LONG)PhMultiplyDivide(Size, PhPixelsPerInchV, 72),
             0,
             0,
             0,

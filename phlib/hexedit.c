@@ -124,7 +124,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
     {
     case WM_CREATE:
         {
-            context->Font = CreateFont(-PhMultiplyDivide(12, PhGlobalDpi, 96), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L"Courier New");
+            context->Font = CreateFont(-(LONG)PhMultiplyDivide(12, PhGlobalDpi, 96), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L"Courier New");
         }
         break;
     case WM_DESTROY:

@@ -456,33 +456,19 @@ FORCEINLINE ULONG PhCountBits(
 
 FORCEINLINE ULONG PhRoundNumber(
     _In_ ULONG Value,
-    _In_ ULONG Multiplier
+    _In_ ULONG Granularity
     )
 {
-    ULONG newValue;
-
-    newValue = Value / Multiplier * Multiplier;
-
-    // This new value has the multiplier truncated.
-    // E.g. 1099 / 100 * 100 = 1000.
-    // If the difference is less than half the multiplier, use the new value.
-    // E.g.
-    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use the new value plus the multiplier.
-    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use the new value.
-
-    if (Value - newValue < Multiplier / 2)
-        return newValue;
-    else
-        return newValue + Multiplier;
+    return (Value + Granularity / 2) / Granularity * Granularity;
 }
 
-FORCEINLINE LONG PhMultiplyDivide(
-    _In_ LONG Number,
-    _In_ LONG Numerator,
-    _In_ LONG Denominator
+FORCEINLINE ULONG PhMultiplyDivide(
+    _In_ ULONG Number,
+    _In_ ULONG Numerator,
+    _In_ ULONG Denominator
     )
 {
-    return (LONG)(((LONG64)Number * (LONG64)Numerator) / (LONG64)Denominator);
+    return (ULONG)(((ULONG64)Number * (ULONG64)Numerator + Denominator / 2) / (ULONG64)Denominator);
 }
 
 FORCEINLINE VOID PhProbeAddress(
