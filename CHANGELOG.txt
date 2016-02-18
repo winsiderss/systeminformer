@@ -7,7 +7,9 @@ Process Hacker
    * Improved high DPI scaling
    * Added right-click menu and double-click action for environment variables
    * Clicking a tray icon now shows the pop-up UI (useful for touch-enabled devices)
-   * The NetAdapters plugin has been renamed to HardwareDevices; this plugin shows network adapter and disk drive graphs
+   * The NetAdapters plugin has been renamed to HardwareDevices
+     * This plugin shows network adapter and disk drive graphs
+     * If you are manually upgrading, please delete NetAdapters.dll from the plugins folder
    * Updated UserNotes plugin:
      * Added "Collapse by Default" option for processes
  * OTHER CHANGES:
