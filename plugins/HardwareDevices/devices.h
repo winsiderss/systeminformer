@@ -376,7 +376,7 @@ typedef struct _DV_DISK_ENTRY
 {
     DV_DISK_ID Id;
 
-    PPH_STRING AdapterName;
+    PPH_STRING DiskName;
 
     BOOLEAN UserReference;
     BOOLEAN HaveFirstSample;
@@ -398,17 +398,6 @@ typedef struct _DV_DISK_ENTRY
     FLOAT ActiveTime;
     ULONG QueueDepth;
     ULONG SplitCount;
-
-    ////PPH_STRING DiskName;
-    //PPH_STRING DiskLength;
-
-    //PPH_SYSINFO_SECTION SysinfoSection;
-    //PH_GRAPH_STATE GraphState;
-    //PH_LAYOUT_MANAGER LayoutManager;
-    //PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-
-    //PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
-    //PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;
 } DV_DISK_ENTRY, *PDV_DISK_ENTRY;
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT

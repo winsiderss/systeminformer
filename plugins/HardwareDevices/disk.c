@@ -34,7 +34,7 @@ static VOID DiskEntryDeleteProcedure(
     PhReleaseQueuedLockExclusive(&DiskDrivesListLock);
 
     DeleteDiskId(&entry->Id);
-    PhClearReference(&entry->AdapterName);
+    PhClearReference(&entry->DiskName);
 
     PhDeleteCircularBuffer_ULONG64(&entry->ReadBuffer);
     PhDeleteCircularBuffer_ULONG64(&entry->WriteBuffer);
@@ -60,10 +60,6 @@ VOID DiskDrivesUpdate(
     {
         HANDLE deviceHandle = NULL;
         PDV_DISK_ENTRY entry;
-        ULONG64 diskBytesReadOctets = 0;
-        ULONG64 diskBytesWrittenOctets = 0;
-        ULONG64 diskBytesRead = 0;
-        ULONG64 diskBytesWritten = 0;
 
         entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
 
@@ -75,6 +71,10 @@ VOID DiskDrivesUpdate(
             entry->Id.DeviceNumber
             )))
         {
+            ULONG64 diskBytesReadOctets;
+            ULONG64 diskBytesWrittenOctets;
+            ULONG64 diskBytesRead;
+            ULONG64 diskBytesWritten;
             DISK_PERFORMANCE diskPerformance;
 
             if (NT_SUCCESS(DiskDriveQueryStatistics(
@@ -82,10 +82,15 @@ VOID DiskDrivesUpdate(
                 &diskPerformance
                 )))
             {
-                ULONG64 ReadTime = diskPerformance.ReadTime.QuadPart - entry->LastReadTime;
-                ULONG64 WriteTime = diskPerformance.WriteTime.QuadPart - entry->LastWriteTime;
-                ULONG64 IdleTime = diskPerformance.IdleTime.QuadPart - entry->LastIdletime;
-                ULONG64 QueryTime = diskPerformance.QueryTime.QuadPart - entry->LastQueryTime;
+                ULONG64 ReadTime;
+                ULONG64 WriteTime;
+                ULONG64 IdleTime;
+                ULONG64 QueryTime;
+
+                ReadTime = diskPerformance.ReadTime.QuadPart - entry->LastReadTime;
+                WriteTime = diskPerformance.WriteTime.QuadPart - entry->LastWriteTime;
+                IdleTime = diskPerformance.IdleTime.QuadPart - entry->LastIdletime;
+                QueryTime = diskPerformance.QueryTime.QuadPart - entry->LastQueryTime;
 
                 diskBytesReadOctets = diskPerformance.BytesRead.QuadPart;
                 diskBytesWrittenOctets = diskPerformance.BytesWritten.QuadPart;
@@ -119,9 +124,9 @@ VOID DiskDrivesUpdate(
             }
 
             // HACK: Pull the Disk name from the current query.
-            if (!entry->AdapterName)
+            if (!entry->DiskName)
             {
-                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->AdapterName, NULL, NULL);
+                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
             }
 
             if (!entry->HaveFirstSample)

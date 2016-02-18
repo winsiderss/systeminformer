@@ -64,9 +64,6 @@ static VOID DiskDriveUpdatePanel(
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH,
         PhaFormatString(L"%lu", Context->AdapterEntry->QueueDepth)->Buffer
         );
-    //SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_CAPACITY,
-    //    PhaFormatString(L"Capacity: %s", Context->AdapterEntry->DiskLength->Buffer)->Buffer
-    //    );
 }
 
 static INT_PTR CALLBACK DiskDrivePanelDialogProc(
@@ -79,13 +76,12 @@ static INT_PTR CALLBACK DiskDrivePanelDialogProc(
     return FALSE;
 }
 
-
 static VOID UpdateDiskDriveDialog(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    if (Context->AdapterEntry->AdapterName)
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
+    if (Context->AdapterEntry->DiskName)
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->DiskName->Buffer);
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
@@ -149,8 +145,8 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
 
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
 
-            if (context->AdapterEntry->AdapterName)
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
+            if (context->AdapterEntry->DiskName)
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->DiskName->Buffer);
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDrivePanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -410,7 +406,7 @@ static BOOLEAN DiskDriveSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
+            PhSetReference(&drawPanel->Title, context->AdapterEntry->DiskName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nW: %s",
                 PhaFormatSize(context->AdapterEntry->BytesReadValue, -1)->Buffer,
