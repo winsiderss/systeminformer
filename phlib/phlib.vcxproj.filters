@@ -217,9 +217,6 @@
     <ClInclude Include="include\ntlpcapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\ntlsa.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\ntmisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>

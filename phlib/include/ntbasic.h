@@ -3,6 +3,8 @@
 
 #ifndef _NTDEF_
 
+#define _NTDEF_
+
 // This header file provides basic NT types not included in Win32.
 
 #ifndef NOTHING

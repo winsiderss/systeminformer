@@ -224,7 +224,6 @@
     <ClInclude Include="include\ntkeapi.h" />
     <ClInclude Include="include\ntldr.h" />
     <ClInclude Include="include\ntlpcapi.h" />
-    <ClInclude Include="include\ntlsa.h" />
     <ClInclude Include="include\ntmisc.h" />
     <ClInclude Include="include\ntmmapi.h" />
     <ClInclude Include="include\ntnls.h" />
