@@ -293,12 +293,13 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
         {
             PPH_AVL_LINKS links;
 
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
+
             PluginsLv = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(PluginsLv, FALSE, TRUE);
             PhSetControlTheme(PluginsLv, L"explorer");
-            PhAddListViewColumn(PluginsLv, 0, 0, 0, LVCFMT_LEFT, 100, L"File");
-            PhAddListViewColumn(PluginsLv, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(PluginsLv, 2, 2, 2, LVCFMT_LEFT, 100, L"Author");
+            PhAddListViewColumn(PluginsLv, 0, 0, 0, LVCFMT_LEFT, 280, L"Name");
+            PhAddListViewColumn(PluginsLv, 1, 1, 1, LVCFMT_LEFT, 100, L"Author");
             PhSetExtendedListView(PluginsLv);
             ExtendedListView_SetItemColorFunction(PluginsLv, PhpPluginColorFunction);
 
@@ -310,12 +311,10 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 INT lvItemIndex;
                 PH_STRINGREF baseNameSr;
 
-                lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, PhpGetPluginBaseName(plugin), plugin);
-
-                PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name.Buffer);
+                lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name.Buffer, plugin);
 
                 if (plugin->Information.Author)
-                    PhSetListViewSubItem(PluginsLv, lvItemIndex, 2, plugin->Information.Author);
+                    PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.Author);
 
                 PhInitializeStringRefLongHint(&baseNameSr, PhpGetPluginBaseName(plugin));
 
