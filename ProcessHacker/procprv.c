@@ -121,6 +121,12 @@ typedef struct _PH_VERIFY_CACHE_ENTRY
     PPH_STRING VerifySignerName;
 } PH_VERIFY_CACHE_ENTRY, *PPH_VERIFY_CACHE_ENTRY;
 
+typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
+{
+    PSID Sid;
+    PPH_STRING FullName;
+} PH_SID_FULL_NAME_CACHE_ENTRY, *PPH_SID_FULL_NAME_CACHE_ENTRY;
+
 VOID NTAPI PhpProcessItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -241,6 +247,8 @@ static ULONG PhpTsNumberOfProcesses;
 static PH_AVL_TREE PhpVerifyCacheSet = PH_AVL_TREE_INIT(PhpVerifyCacheCompareFunction);
 static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
 #endif
+
+static PPH_HASHTABLE PhpSidFullNameCacheHashtable;
 
 BOOLEAN PhProcessProviderInitialization(
     VOID
@@ -844,6 +852,88 @@ VERIFY_RESULT PhVerifyFileCached(
 #endif
 }
 
+BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_SID_FULL_NAME_CACHE_ENTRY entry1 = Entry1;
+    PPH_SID_FULL_NAME_CACHE_ENTRY entry2 = Entry2;
+
+    return RtlEqualSid(entry1->Sid, entry2->Sid);
+}
+
+ULONG PhpSidFullNameCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
+
+    return PhHashBytes(entry->Sid, RtlLengthSid(entry->Sid));
+}
+
+PPH_STRING PhpGetSidFullNameCached(
+    _In_ PSID Sid
+    )
+{
+    PPH_STRING fullName;
+    PH_SID_FULL_NAME_CACHE_ENTRY newEntry;
+
+    if (PhpSidFullNameCacheHashtable)
+    {
+        PPH_SID_FULL_NAME_CACHE_ENTRY entry;
+        PH_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
+
+        lookupEntry.Sid = Sid;
+        entry = PhFindEntryHashtable(PhpSidFullNameCacheHashtable, &lookupEntry);
+
+        if (entry)
+            return PhReferenceObject(entry->FullName);
+    }
+
+    fullName = PhGetSidFullName(Sid, TRUE, NULL);
+
+    if (!fullName)
+        return NULL;
+
+    if (!PhpSidFullNameCacheHashtable)
+    {
+        PhpSidFullNameCacheHashtable = PhCreateHashtable(
+            sizeof(PH_SID_FULL_NAME_CACHE_ENTRY),
+            PhpSidFullNameCacheHashtableEqualFunction,
+            PhpSidFullNameCacheHashtableHashFunction,
+            16
+            );
+    }
+
+    newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
+    newEntry.FullName = PhReferenceObject(fullName);
+    PhAddEntryHashtable(PhpSidFullNameCacheHashtable, &newEntry);
+
+    return fullName;
+}
+
+VOID PhpFlushSidFullNameCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SID_FULL_NAME_CACHE_ENTRY entry;
+
+    if (!PhpSidFullNameCacheHashtable)
+        return;
+
+    PhBeginEnumHashtable(PhpSidFullNameCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        PhFree(entry->Sid);
+        PhDereferenceObject(entry->FullName);
+    }
+
+    PhClearReference(&PhpSidFullNameCacheHashtable);
+}
+
 VOID PhpProcessQueryStage1(
     _Inout_ PPH_PROCESS_QUERY_S1_DATA Data
     )
@@ -1323,7 +1413,7 @@ VOID PhpFillProcessItem(
 
                 if (NT_SUCCESS(status))
                 {
-                    ProcessItem->UserName = PhGetSidFullName(user->User.Sid, TRUE, NULL);
+                    ProcessItem->UserName = PhpGetSidFullNameCached(user->User.Sid);
                     PhFree(user);
                 }
             }
@@ -1364,7 +1454,7 @@ VOID PhpFillProcessItem(
             {
                 if (UlongToHandle(PhpTsProcesses[i].pTsProcessInfo->UniqueProcessId) == ProcessItem->ProcessId)
                 {
-                    ProcessItem->UserName = PhGetSidFullName(PhpTsProcesses[i].pSid, TRUE, NULL);
+                    ProcessItem->UserName = PhpGetSidFullNameCached(PhpTsProcesses[i].pSid);
                     break;
                 }
             }
@@ -2401,6 +2491,8 @@ VOID PhProcessProviderUpdate(
         WinStationFreeGAPMemory(0, PhpTsProcesses, PhpTsNumberOfProcesses);
         PhpTsProcesses = NULL;
     }
+
+    PhpFlushSidFullNameCache();
 
     // History cannot be updated on the first run because the deltas are invalid.
     // For example, the I/O "deltas" will be huge because they are currently the
