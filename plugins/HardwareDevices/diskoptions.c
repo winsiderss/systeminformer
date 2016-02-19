@@ -43,16 +43,16 @@ VOID DiskDrivesLoadList(
 
     while (remaining.Length != 0)
     {
-        PH_STRINGREF part1;
+        PH_STRINGREF part;
         DV_DISK_ID id;
         PDV_DISK_ENTRY entry;
 
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
+        PhSplitStringRefAtChar(&remaining, ',', &part, &remaining);
 
-        InitializeDiskId(&id, PhCreateString2(&part1));
+        InitializeDiskId(&id, PhCreateString2(&part));
         entry = CreateDiskEntry(&id);
         DeleteDiskId(&id);
 

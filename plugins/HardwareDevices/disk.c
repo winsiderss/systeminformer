@@ -160,7 +160,7 @@ VOID InitializeDiskId(
     _In_ PPH_STRING DevicePath
     )
 {
-    Id->DevicePath = DevicePath;
+    PhSetReference(&Id->DevicePath, DevicePath);
 }
 
 VOID CopyDiskId(
@@ -178,7 +178,7 @@ VOID DeleteDiskId(
     _Inout_ PDV_DISK_ID Id
     )
 {
-    NOTHING;
+    PhClearReference(&Id->DevicePath);
 }
 
 BOOLEAN EquivalentDiskId(
@@ -186,10 +186,7 @@ BOOLEAN EquivalentDiskId(
     _In_ PDV_DISK_ID Id2
     )
 {
-    if (PhEqualString(Id1->DevicePath, Id2->DevicePath, TRUE))
-        return TRUE;
-
-    return FALSE;
+    return PhEqualString(Id1->DevicePath, Id2->DevicePath, TRUE);
 }
 
 PDV_DISK_ENTRY CreateDiskEntry(
