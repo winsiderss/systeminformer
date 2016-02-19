@@ -153,6 +153,8 @@ static VOID AddDiskDriveToListView(
     INT lvItemIndex;
     BOOLEAN found = FALSE;
     PDV_DISK_ID newId = NULL;
+    HANDLE deviceHandle = NULL;
+    PPH_STRING diskName = NULL;
 
     InitializeDiskId(&adapterId, DiskPath);
 
@@ -185,10 +187,28 @@ static VOID AddDiskDriveToListView(
         PhMoveReference(&newId->DevicePath, DiskPath);
     }
 
+    if (NT_SUCCESS(DiskDriveCreateHandle(
+        &deviceHandle,
+        newId->DevicePath
+        )))
+    {
+        ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+
+        if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
+        {
+            diskName = PhFormatString(
+                L"Disk %lu (%s) [%s]",
+                diskIndex,
+                PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex))->Buffer,
+                DiskName
+                );
+        }
+    }
+
     lvItemIndex = PhAddListViewItem(
         Context->ListViewHandle,
         MAXINT,
-        DiskName,
+        diskName ? diskName->Buffer : DiskName,
         newId
         );
 

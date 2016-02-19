@@ -377,11 +377,11 @@ typedef struct _DV_DISK_ENTRY
     DV_DISK_ID Id;
 
     PPH_STRING DiskName;
+    PPH_STRING DiskIndexName;
     ULONG DiskIndex;
 
     BOOLEAN UserReference;
     BOOLEAN HaveFirstSample;
-    BOOLEAN HaveDiskIndex;
 
     PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;

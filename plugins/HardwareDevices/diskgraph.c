@@ -83,14 +83,8 @@ static VOID UpdateDiskDriveDialog(
     if (Context->AdapterEntry->DiskName)
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->AdapterEntry->DiskName->Buffer);
 
-    if (Context->AdapterEntry->HaveDiskIndex)
-    {
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, PhaFormatString(
-            L"Disk %lu (%s)",
-            Context->AdapterEntry->DiskIndex,
-            PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->AdapterEntry->DiskIndex))->Buffer
-            )->Buffer);
-    }
+    if (Context->AdapterEntry->DiskIndexName)
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->DiskIndexName->Buffer);
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
@@ -156,18 +150,10 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
 
-            if (context->AdapterEntry->HaveDiskIndex)
-            {
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, PhaFormatString(
-                    L"Disk %lu (%s)",
-                    context->AdapterEntry->DiskIndex,
-                    PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(context->AdapterEntry->DiskIndex))->Buffer
-                    )->Buffer);
-            }
+            if (context->AdapterEntry->DiskIndexName)
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->DiskIndexName->Buffer);
             else
-            {
                 SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown Disk");
-            }
 
             if (context->AdapterEntry->DiskName)
                 SetDlgItemText(hwndDlg, IDC_DISKNAME, context->AdapterEntry->DiskName->Buffer);
@@ -434,7 +420,7 @@ static BOOLEAN DiskDriveSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            PhSetReference(&drawPanel->Title, context->AdapterEntry->DiskName);
+            PhSetReference(&drawPanel->Title, context->AdapterEntry->DiskIndexName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nW: %s",
                 PhaFormatSize(context->AdapterEntry->BytesReadDelta.Delta, -1)->Buffer,

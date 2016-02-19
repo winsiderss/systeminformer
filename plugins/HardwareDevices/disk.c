@@ -127,9 +127,19 @@ VOID DiskDrivesUpdate(
                 DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
             }
 
-            if (!entry->HaveDiskIndex)
+            // HACK: Pull the Disk index and format the sysinfo title from the current query.
+            if (!entry->DiskIndexName)
             {
-                entry->HaveDiskIndex = NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &entry->DiskIndex, NULL));
+                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
+                {
+                    entry->DiskIndexName = PhFormatString(
+                        L"Disk %lu (%s)",
+                        diskIndex,
+                        PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex))->Buffer
+                        );
+                }
             }
 
             if (entry->HaveFirstSample)
