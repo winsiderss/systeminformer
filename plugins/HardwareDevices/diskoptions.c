@@ -224,6 +224,49 @@ static VOID FindDiskDrives(
             NtClose(deviceHandle);
         }
     }
+
+    // HACK: Remove all disconnected devices.
+    BOOLEAN needsrefresh = FALSE;
+
+    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+    {
+        ULONG index = -1;
+        BOOLEAN found = FALSE;
+        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+
+        if (!entry)
+            continue;
+
+        while ((index = PhFindListViewItemByFlags(
+            Context->ListViewHandle,
+            index,
+            LVNI_ALL
+            )) != -1)
+        {
+            PDV_DISK_ID param;
+
+            if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+            {
+                if (EquivalentDiskId(param, &entry->Id))
+                {
+                    found = TRUE;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            needsrefresh = TRUE;
+            FindDiskEntry(&entry->Id, TRUE);
+        }
+
+        PhDereferenceObjectDeferDelete(entry);
+    }
+
+    if (needsrefresh)
+    {
+        DiskDrivesSaveList();
+    }
 }
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(

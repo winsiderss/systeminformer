@@ -248,6 +248,49 @@ static VOID FindNetworkAdapters(
             PhFree(buffer);
         }
     }
+
+    // HACK: Remove all disconnected devices.
+    BOOLEAN needsrefresh = FALSE;
+
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    {
+        ULONG index = -1;
+        BOOLEAN found = FALSE;
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+
+        if (!entry)
+            continue;
+
+        while ((index = PhFindListViewItemByFlags(
+            Context->ListViewHandle,
+            index,
+            LVNI_ALL
+            )) != -1)
+        {
+            PDV_NETADAPTER_ID param;
+
+            if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+            {
+                if (EquivalentNetAdapterId(param, &entry->Id))
+                {
+                    found = TRUE;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            needsrefresh = TRUE;
+            FindAdapterEntry(&entry->Id, TRUE);
+        }
+
+        PhDereferenceObjectDeferDelete(entry);
+    }
+
+    if (needsrefresh)
+    {
+        SaveAdaptersList();
+    }
 }
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(

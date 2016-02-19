@@ -81,7 +81,7 @@ static VOID UpdateDiskDriveDialog(
     )
 {
     if (Context->AdapterEntry->DiskName)
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->DiskName->Buffer);
+        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->AdapterEntry->DiskName->Buffer);
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
@@ -139,16 +139,22 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
             PhInitializeGraphState(&context->GraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ADAPTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ADAPTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DISKNAME), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
+
+            SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, PhaFormatString(
+                L"Disk %lu (%s)",
+                context->AdapterEntry->Id.DeviceNumber,
+                PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(context->AdapterEntry->Id.DeviceNumber))->Buffer
+                )->Buffer);
 
             if (context->AdapterEntry->DiskName)
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->DiskName->Buffer);
-            else
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Disk Drive");
+                SetDlgItemText(hwndDlg, IDC_DISKNAME, context->AdapterEntry->DiskName->Buffer);
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDrivePanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);

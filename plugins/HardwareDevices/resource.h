@@ -27,6 +27,7 @@
 #define IDC_STAT_ACTIVE                 1023
 #define IDC_STAT_RESPONSETIME           1024
 #define IDC_STAT_QUEUELENGTH            1025
+#define IDC_DISKNAME                    1076
 
 // Next default values for new objects
 // 

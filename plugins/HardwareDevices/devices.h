@@ -463,6 +463,10 @@ NTSTATUS DiskDriveCreateHandle(
     _In_ ULONG DeviceNumber
     );
 
+PPH_STRING DiskDriveQueryDosMountPoints(
+    _In_ ULONG DeviceNumber
+    );
+
 BOOLEAN DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
