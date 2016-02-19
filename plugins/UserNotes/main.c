@@ -48,7 +48,8 @@ static PH_CALLBACK_REGISTRATION ProcessModifiedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION SearchChangedRegistration;
 
-static PTOOLSTATUS_INTERFACE ToolStatusInterface;
+static _EnableThemeDialogTexture EnableThemeDialogTexture_I = NULL;
+static PTOOLSTATUS_INTERFACE ToolStatusInterface = NULL;
 
 HWND ProcessTreeNewHandle;
 LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
@@ -1620,6 +1621,12 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
             UnlockDb();
 
             SetDlgItemText(hwndDlg, IDC_COMMENT, comment->Buffer);
+
+            if (!EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I = PhGetModuleProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
