@@ -104,7 +104,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 {
                     if (deviceNumber == DeviceNumber)
                     {
-                        PhAppendFormatStringBuilder(&stringBuilder, L"%c:,", devicePath[4]);
+                        PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", devicePath[4]);
                     }
                 }
 

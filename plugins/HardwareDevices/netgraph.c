@@ -288,6 +288,8 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
 
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
 
+            UpdateNetAdapterDialog(context);
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 ProcessesUpdatedHandler,

@@ -195,6 +195,8 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
             Graph_SetTooltip(context->GraphHandle, TRUE);
 
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
+            
+            UpdateDiskDriveDialog(context);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
