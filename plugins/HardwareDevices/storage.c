@@ -46,33 +46,42 @@ NTSTATUS DiskDriveCreateHandle(
         );
 }
 
+ULONG DiskDriveQueryDeviceMap(VOID)
+{
+#ifndef _WIN64
+    PROCESS_DEVICEMAP_INFORMATION deviceMapInfo;
+#else 
+    PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
+#endif
+
+    memset(&deviceMapInfo, 0, sizeof(deviceMapInfo));
+
+    if (NT_SUCCESS(NtQueryInformationProcess(
+        NtCurrentProcess(),
+        ProcessDeviceMap,
+        &deviceMapInfo,
+        sizeof(deviceMapInfo),
+        NULL
+        )))
+    {
+        return deviceMapInfo.Query.DriveMap;
+    }
+    else
+    {
+        return GetLogicalDrives();
+    }
+}
+
 PPH_STRING DiskDriveQueryDosMountPoints(
     _In_ ULONG DeviceNumber
     )
 {
     ULONG driveMask;
     PH_STRING_BUILDER stringBuilder;
-    PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
-
-    memset(&deviceMapInfo, 0, sizeof(PROCESS_DEVICEMAP_INFORMATION_EX));
-    //ProcessDeviceMapInfo.Flags = PROCESS_LUID_DOSDEVICES_ONLY;
     
-    if (NT_SUCCESS(NtQueryInformationProcess(
-        NtCurrentProcess(),
-        ProcessDeviceMap,
-        &deviceMapInfo,
-        sizeof(PROCESS_DEVICEMAP_INFORMATION_EX),
-        NULL
-        )))
-    {
-        driveMask = deviceMapInfo.Query.DriveMap;
-    }
-    else
-    {
-        driveMask = GetLogicalDrives();
-    }
-
     PhInitializeStringBuilder(&stringBuilder, MAX_PATH);
+
+    driveMask = DiskDriveQueryDeviceMap();
 
     // NOTE: This isn't the best way of doing this but it works.
     for (INT i = 0; i < 26; i++)
