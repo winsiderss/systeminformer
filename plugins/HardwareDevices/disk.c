@@ -134,11 +134,23 @@ VOID DiskDrivesUpdate(
 
                 if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
                 {
-                    entry->DiskIndexName = PhFormatString(
-                        L"Disk %lu (%s)",
-                        diskIndex,
-                        PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex))->Buffer
-                        );
+                    PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
+
+                    if (!PhIsNullOrEmptyString(diskMountPoints))
+                    {
+                        entry->DiskIndexName = PhFormatString(
+                            L"Disk %lu (%s)",
+                            diskIndex,
+                            diskMountPoints->Buffer
+                            );
+                    }
+                    else
+                    {
+                        entry->DiskIndexName = PhFormatString(
+                            L"Disk %lu",
+                            diskIndex
+                            );
+                    }
                 }
             }
 

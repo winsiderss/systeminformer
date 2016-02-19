@@ -196,12 +196,25 @@ static VOID AddDiskDriveToListView(
 
         if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
         {
-            diskName = PhFormatString(
-                L"Disk %lu (%s) [%s]",
-                diskIndex,
-                PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex))->Buffer,
-                DiskName
-                );
+            PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
+
+            if (!PhIsNullOrEmptyString(diskMountPoints))
+            {
+                diskName = PhFormatString(
+                    L"Disk %lu (%s) [%s]",
+                    diskIndex,
+                    diskMountPoints->Buffer,
+                    DiskName
+                    );
+            }
+            else
+            {
+                diskName = PhFormatString(
+                    L"Disk %lu [%s]",
+                    diskIndex,
+                    DiskName
+                    );
+            }
         }
     }
 
