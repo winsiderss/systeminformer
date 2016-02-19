@@ -77,11 +77,20 @@ typedef struct _DV_NETADAPTER_ID
 typedef struct _DV_NETADAPTER_ENTRY
 {
     DV_NETADAPTER_ID Id;
-
     PPH_STRING AdapterName;
 
-    BOOLEAN UserReference;
-    BOOLEAN HaveFirstSample;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG UserReference : 1;
+            ULONG HaveFirstSample : 1;
+            ULONG HaveCheckedDeviceSupport : 1;
+            ULONG HaveDeviceSupport : 1;
+            ULONG Spare : 28;
+        };
+    };
 
     //ULONG64 LinkSpeed;
     ULONG64 InboundValue;
@@ -111,12 +120,21 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 
 typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 {
-    BOOLEAN HaveDeviceSupport;
-    BOOLEAN HaveCheckedDeviceSupport;
-    BOOLEAN HaveFirstDetailsSample;
-
     PPH_STRING AdapterName;
     DV_NETADAPTER_ID AdapterId;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG UserReference : 1;
+            ULONG HaveFirstSample : 1;
+            ULONG HaveCheckedDeviceSupport : 1;
+            ULONG HaveDeviceSupport : 1;
+            ULONG Spare : 28;
+        };
+    };
 
     HWND WindowHandle;
     HWND ParentHandle;

@@ -59,7 +59,7 @@ VOID NetAdaptersUpdate(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        HANDLE adapterHandle = NULL;
+        HANDLE deviceHandle = NULL;
         PDV_NETADAPTER_ENTRY entry;
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
@@ -75,32 +75,53 @@ VOID NetAdaptersUpdate(
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
         {
             NetworkAdapterCreateHandle(
-                &adapterHandle,
+                &deviceHandle,
                 entry->Id.InterfaceGuid
                 );
+
+            if (deviceHandle)
+            {
+                if (!entry->HaveCheckedDeviceSupport)
+                {
+                    // Check the network adapter supports the OIDs we're going to be using.
+                    if (NetworkAdapterQuerySupported(deviceHandle))
+                    {
+                        entry->HaveDeviceSupport = TRUE;
+                    }
+
+                    entry->HaveCheckedDeviceSupport = TRUE;
+                }
+
+                if (!entry->HaveDeviceSupport)
+                {
+                    // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+                    NtClose(deviceHandle);
+                    deviceHandle = NULL;
+                }
+            }
         }
 
-        if (adapterHandle)
+        if (deviceHandle)
         {
             NDIS_STATISTICS_INFO interfaceStats;
             NDIS_LINK_STATE interfaceState;
 
             memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
 
-            NetworkAdapterQueryStatistics(adapterHandle, &interfaceStats);
+            NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats);
 
-            if (NT_SUCCESS(NetworkAdapterQueryLinkState(adapterHandle, &interfaceState)))
+            if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
             {
                 mediaState = interfaceState.MediaConnectState;
             }
 
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                networkInOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_RCV);
+                networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
             else
                 networkInOctets = interfaceStats.ifHCInOctets;
 
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                networkOutOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_XMIT);
+                networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             else
                 networkOutOctets = interfaceStats.ifHCOutOctets;
 
@@ -110,10 +131,10 @@ VOID NetAdaptersUpdate(
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
             {
-                entry->AdapterName = NetworkAdapterQueryName(adapterHandle, entry->Id.InterfaceGuid);
+                entry->AdapterName = NetworkAdapterQueryName(deviceHandle, entry->Id.InterfaceGuid);
             }
 
-            NtClose(adapterHandle);
+            NtClose(deviceHandle);
         }
         else if (GetIfEntry2_I)
         {
@@ -141,11 +162,9 @@ VOID NetAdaptersUpdate(
 
             networkInOctets = interfaceRow.dwInOctets;
             networkOutOctets = interfaceRow.dwOutOctets;
+            mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
             networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-
-            if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
-                mediaState = MediaConnectStateConnected;
+            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue; 
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)

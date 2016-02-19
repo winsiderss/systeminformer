@@ -59,31 +59,52 @@ static VOID NetAdapterUpdatePanel(
     ULONG64 outOctets = 0;
     ULONG64 linkSpeed = 0;
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
-    HANDLE adapterHandle = NULL;
+    HANDLE deviceHandle = NULL;
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
         // Create the handle to the network device
         NetworkAdapterCreateHandle(
-            &adapterHandle,
+            &deviceHandle,
             Context->AdapterEntry->Id.InterfaceGuid
             );
+
+        if (deviceHandle)
+        {
+            if (!Context->AdapterEntry->HaveCheckedDeviceSupport)
+            {
+                // Check the network adapter supports the OIDs we're going to be using.
+                if (NetworkAdapterQuerySupported(deviceHandle))
+                {
+                    Context->AdapterEntry->HaveDeviceSupport = TRUE;
+                }
+
+                Context->AdapterEntry->HaveCheckedDeviceSupport = TRUE;
+            }
+
+            if (!Context->AdapterEntry->HaveDeviceSupport)
+            {
+                // Device is faulty. Close the handle so we can fallback to GetIfEntry.
+                NtClose(deviceHandle);
+                deviceHandle = NULL;
+            }
+        }
     }
 
-    if (adapterHandle)
+    if (deviceHandle)
     {
         NDIS_STATISTICS_INFO interfaceStats;
         NDIS_LINK_STATE interfaceState;
 
-        if (NT_SUCCESS(NetworkAdapterQueryStatistics(adapterHandle, &interfaceStats)))
+        if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
         {
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                inOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_RCV);
+                inOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
             else
                 inOctets = interfaceStats.ifHCInOctets;
 
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                outOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_XMIT);
+                outOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             else
                 outOctets = interfaceStats.ifHCOutOctets;
         }
@@ -93,23 +114,23 @@ static VOID NetAdapterUpdatePanel(
             // NDIS handles these two OIDs for all miniport drivers and we can use these for those special cases.
 
             // https://msdn.microsoft.com/en-us/library/ff569443.aspx
-            inOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_RCV);
+            inOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
 
             // https://msdn.microsoft.com/en-us/library/ff569445.aspx
-            outOctets = NetworkAdapterQueryValue(adapterHandle, OID_GEN_BYTES_XMIT);
+            outOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
         }
 
-        if (NT_SUCCESS(NetworkAdapterQueryLinkState(adapterHandle, &interfaceState)))
+        if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
         {
             mediaState = interfaceState.MediaConnectState;
             linkSpeed = interfaceState.XmitLinkSpeed;
         }
         else
         {
-            NetworkAdapterQueryLinkSpeed(adapterHandle, &linkSpeed);
+            NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeed);
         }
 
-        NtClose(adapterHandle);
+        NtClose(deviceHandle);
     }
     else if (GetIfEntry2_I)
     {
@@ -130,10 +151,8 @@ static VOID NetAdapterUpdatePanel(
 
         inOctets = interfaceRow.dwInOctets;
         outOctets = interfaceRow.dwOutOctets;
+        mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateUnknown;
         linkSpeed = interfaceRow.dwSpeed;
-
-        if (interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL)
-            mediaState = MediaConnectStateConnected;
     }
 
     if (mediaState == MediaConnectStateConnected)

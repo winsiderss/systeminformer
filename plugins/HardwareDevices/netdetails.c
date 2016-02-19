@@ -510,13 +510,12 @@ static VOID NetAdapterUpdateDetails(
     //interfaceRcvUnicastSpeed = interfaceStats.ifHCInUcastOctets - Context->LastDetailsInboundUnicastValue;
     //interfaceXmitUnicastSpeed = interfaceStats.ifHCOutUcastOctets - Context->LastDetailsIOutboundUnicastValue;
 
-    if (!Context->HaveFirstDetailsSample)
+    if (!Context->HaveFirstSample)
     {
         interfaceRcvSpeed = 0;
         interfaceXmitSpeed = 0;
-        Context->HaveFirstDetailsSample = TRUE;
+        Context->HaveFirstSample = TRUE;
     }
-
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");
 

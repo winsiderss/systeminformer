@@ -294,36 +294,9 @@ static VOID FindDiskDrives(
         }
 
         PhFree(deviceInterfaceDetail);
-        deviceInterfaceDetail = NULL;
     }
 
     SetupDiDestroyDeviceInfoList(deviceInfoHandle);
-
-
-    //for (ULONG i = 0; i < 64; i++)
-    //{
-    //    HANDLE deviceHandle;
-    //    PPH_STRING diskModel = NULL;
-    //
-    //    if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, i)))
-    //    {
-    //        DiskDriveQueryDeviceInformation(
-    //            deviceHandle,
-    //            NULL,
-    //            &diskModel,
-    //            NULL,
-    //            NULL
-    //            );
-    //
-    //        if (diskModel)
-    //        {
-    //            AddDiskDriveToListView(Context, i, diskModel);
-    //            PhDereferenceObject(diskModel);
-    //        }
-    //
-    //        NtClose(deviceHandle);
-    //    }
-    //}
 
     // HACK: Remove all disconnected devices.
     BOOLEAN needsrefresh = FALSE;
