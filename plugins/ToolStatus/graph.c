@@ -542,7 +542,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                             L"%.2f%%%s\n%s",
                             (cpuKernel + cpuUser) * 100,
                             PhGetStringOrEmpty(PhSipGetMaxCpuString(getTooltipText->Index)),
-                            ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                            PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                             ));
                     }
 
@@ -557,7 +557,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     PhMoveReference(&MemGraphState.TooltipText, PhFormatString(
                         L"Physical Memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
                     getTooltipText->Text = MemGraphState.TooltipText->sr;
                 }
@@ -570,7 +570,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     PhMoveReference(&CommitGraphState.TooltipText, PhFormatString(
                         L"Commit: %s\n%s",
                         PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
                     getTooltipText->Text = CommitGraphState.TooltipText->sr;
                 }
@@ -590,7 +590,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                         PhaFormatSize(ioWrite, -1)->Buffer,
                         PhaFormatSize(ioOther, -1)->Buffer,
                         PhGetStringOrEmpty(PhSipGetMaxIoString(getTooltipText->Index)),
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                        PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
                     getTooltipText->Text = IoGraphState.TooltipText->sr;
                 }
