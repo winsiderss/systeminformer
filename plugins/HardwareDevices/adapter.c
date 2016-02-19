@@ -53,8 +53,6 @@ VOID NetAdaptersUpdate(
     VOID
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
     PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
@@ -81,18 +79,18 @@ VOID NetAdaptersUpdate(
 
             if (deviceHandle)
             {
-                if (!entry->HaveCheckedDeviceSupport)
+                if (!entry->CheckedDeviceSupport)
                 {
                     // Check the network adapter supports the OIDs we're going to be using.
                     if (NetworkAdapterQuerySupported(deviceHandle))
                     {
-                        entry->HaveDeviceSupport = TRUE;
+                        entry->DeviceSupported = TRUE;
                     }
 
-                    entry->HaveCheckedDeviceSupport = TRUE;
+                    entry->CheckedDeviceSupport = TRUE;
                 }
 
-                if (!entry->HaveDeviceSupport)
+                if (!entry->DeviceSupported)
                 {
                     // Device is faulty. Close the handle so we can fallback to GetIfEntry.
                     NtClose(deviceHandle);
@@ -188,10 +186,16 @@ VOID NetAdaptersUpdate(
             networkXmitSpeed = 0;
         }
 
-        if (runCount != 0)
+        if (entry->HaveFirstSample)
         {
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
+        }
+        else
+        {
+            PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, 0);
+            PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, 0);
+            entry->HaveFirstSample = TRUE;
         }
 
         //context->LinkSpeed = networkLinkSpeed;
@@ -204,8 +208,6 @@ VOID NetAdaptersUpdate(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
-
-    runCount++;
 }
 
 VOID InitializeNetAdapterId(

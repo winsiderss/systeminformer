@@ -53,8 +53,6 @@ VOID DiskDrivesUpdate(
     VOID
     )
 {
-    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
-
     PhAcquireQueuedLockShared(&DiskDrivesListLock);
 
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
@@ -154,27 +152,25 @@ VOID DiskDrivesUpdate(
                 }
             }
 
-            if (entry->HaveFirstSample)
-            {
-                PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
-                PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->BytesWrittenDelta.Delta);
-            }
-            else
-            {
-                PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, 0);
-                PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, 0);
-                entry->HaveFirstSample = TRUE;
-            }
-
             NtClose(deviceHandle);
+        }
+
+        if (entry->HaveFirstSample)
+        {
+            PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->BytesWrittenDelta.Delta);
+        }
+        else
+        {
+            PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, 0);
+            PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, 0);
+            entry->HaveFirstSample = TRUE;
         }
 
         PhDereferenceObjectDeferDelete(entry);
     }
 
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
-
-    runCount++;
 }
 
 VOID InitializeDiskId(

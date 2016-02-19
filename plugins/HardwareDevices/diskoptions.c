@@ -299,8 +299,6 @@ static VOID FindDiskDrives(
     SetupDiDestroyDeviceInfoList(deviceInfoHandle);
 
     // HACK: Remove all disconnected devices.
-    BOOLEAN needsrefresh = FALSE;
-
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
     {
         ULONG index = -1;
@@ -329,16 +327,11 @@ static VOID FindDiskDrives(
 
         if (!found)
         {
-            needsrefresh = TRUE;
+            Context->OptionsChanged = TRUE;
             FindDiskEntry(&entry->Id, TRUE);
         }
 
         PhDereferenceObjectDeferDelete(entry);
-    }
-
-    if (needsrefresh)
-    {
-        DiskDrivesSaveList();
     }
 }
 

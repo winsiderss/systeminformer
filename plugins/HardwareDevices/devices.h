@@ -86,8 +86,8 @@ typedef struct _DV_NETADAPTER_ENTRY
         {
             ULONG UserReference : 1;
             ULONG HaveFirstSample : 1;
-            ULONG HaveCheckedDeviceSupport : 1;
-            ULONG HaveDeviceSupport : 1;
+            ULONG CheckedDeviceSupport : 1;
+            ULONG DeviceSupported : 1;
             ULONG Spare : 28;
         };
     };

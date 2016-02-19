@@ -250,8 +250,6 @@ static VOID FindNetworkAdapters(
     }
 
     // HACK: Remove all disconnected devices.
-    BOOLEAN needsrefresh = FALSE;
-
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         ULONG index = -1;
@@ -280,16 +278,11 @@ static VOID FindNetworkAdapters(
 
         if (!found)
         {
-            needsrefresh = TRUE;
+            Context->OptionsChanged = TRUE;
             FindAdapterEntry(&entry->Id, TRUE);
         }
 
         PhDereferenceObjectDeferDelete(entry);
-    }
-
-    if (needsrefresh)
-    {
-        SaveAdaptersList();
     }
 }
 
