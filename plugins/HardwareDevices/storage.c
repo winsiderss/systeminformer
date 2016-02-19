@@ -24,27 +24,20 @@
 
 NTSTATUS DiskDriveCreateHandle(
     _Out_ PHANDLE DeviceHandle,
-    _In_ ULONG DeviceNumber
+    _In_ PPH_STRING DevicePath
     )
 {
-    // TODO: The use of DeviceNumber is not reliable and we need to find a better method of disk enumeration.
-    // There are a large number of ways to enumerate disks but we need to solve some issues.
-    //      1) Doesn't require +64 char strings (per each device) saved into settings.xml (for performance reasons).
-    //      2) Lets us easily query the DosDevice mount path (e.g. C:, D:, E:).
-    //      3) Also doesn't give us multiple volumes for the same disk.
-    //
-    // Some examples of paths that work fine opening the disk device for statistics:
+    // Some examples of paths that can be used to open the disk device for statistics:
     // \\.\PhysicalDrive1
     // \\.\X:
     // \\.\Volume{a978c827-cf64-44b4-b09a-57a55ef7f49f}
-    // SetupAPI with GUID_DEVINTERFACE_DISK and DetailData->DevicePath
     // IOCTL_MOUNTMGR_QUERY_POINTS (used by FindFirstVolume and FindFirstVolumeMountPoint)
     // HKEY_LOCAL_MACHINE\\SYSTEM\\MountedDevices (contains the DosDevice and path used by the SetupAPI with DetailData->DevicePath)
     // Other methods??
 
     return PhCreateFileWin32(
         DeviceHandle,
-        PhaFormatString(L"\\\\.\\PhysicalDrive%lu", DeviceNumber)->Buffer,
+        DevicePath->Buffer,
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,

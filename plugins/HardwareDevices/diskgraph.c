@@ -83,6 +83,15 @@ static VOID UpdateDiskDriveDialog(
     if (Context->AdapterEntry->DiskName)
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->AdapterEntry->DiskName->Buffer);
 
+    if (Context->AdapterEntry->HaveDiskIndex)
+    {
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, PhaFormatString(
+            L"Disk %lu (%s)",
+            Context->AdapterEntry->DiskIndex,
+            PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->AdapterEntry->DiskIndex))->Buffer
+            )->Buffer);
+    }
+
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
 }
@@ -147,14 +156,23 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
 
-            SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, PhaFormatString(
-                L"Disk %lu (%s)",
-                context->AdapterEntry->Id.DeviceNumber,
-                PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(context->AdapterEntry->Id.DeviceNumber))->Buffer
-                )->Buffer);
+            if (context->AdapterEntry->HaveDiskIndex)
+            {
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, PhaFormatString(
+                    L"Disk %lu (%s)",
+                    context->AdapterEntry->DiskIndex,
+                    PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(context->AdapterEntry->DiskIndex))->Buffer
+                    )->Buffer);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown Disk");
+            }
 
             if (context->AdapterEntry->DiskName)
                 SetDlgItemText(hwndDlg, IDC_DISKNAME, context->AdapterEntry->DiskName->Buffer);
+            else
+                SetDlgItemText(hwndDlg, IDC_DISKNAME, L"Unknown Disk");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDrivePanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -422,7 +440,7 @@ static BOOLEAN DiskDriveSectionCallback(
                 );
 
             if (!drawPanel->Title)
-                drawPanel->Title = PhCreateString(L"Disk Drive");
+                drawPanel->Title = PhCreateString(L"Unknown Disk");
         }
         return TRUE;
     }
@@ -443,7 +461,7 @@ VOID DiskDriveSysInfoInitializing(
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
 
     context->AdapterEntry = DiskEntry;
-    context->SectionName = PhFormatString(L"Disk %lu", DiskEntry->Id.DeviceNumber);
+    context->SectionName = PhFormatString(L"Disk %s", DiskEntry->Id.DevicePath);
 
     section.Context = context;
     section.Callback = DiskDriveSectionCallback;

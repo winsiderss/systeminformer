@@ -22,6 +22,10 @@
 
 #include "devices.h"
 
+#pragma comment(lib, "Setupapi.lib")
+#include <Setupapi.h>
+#include <ntdddisk.h>
+
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 
@@ -39,7 +43,6 @@ VOID DiskDrivesLoadList(
 
     while (remaining.Length != 0)
     {
-        ULONG64 diskindex;
         PH_STRINGREF part1;
         DV_DISK_ID id;
         PDV_DISK_ENTRY entry;
@@ -48,9 +51,8 @@ VOID DiskDrivesLoadList(
             break;
 
         PhSplitStringRefAtChar(&remaining, ',', &part1, &remaining);
-        PhStringToInteger64(&part1, 10, &diskindex);
 
-        InitializeDiskId(&id, (ULONG)diskindex);
+        InitializeDiskId(&id, PhCreateString2(&part1));
         entry = CreateDiskEntry(&id);
         DeleteDiskId(&id);
 
@@ -80,8 +82,8 @@ VOID DiskDrivesSaveList(
         {
             PhAppendFormatStringBuilder(
                 &stringBuilder,
-                L"%lu,",
-                entry->Id.DeviceNumber    // This value is UNSAFE
+                L"%s,",
+                entry->Id.DevicePath->Buffer // This value is SAFE and does not change.
                 );
         }
 
@@ -143,8 +145,8 @@ static BOOLEAN FindDiskEntry(
 
 static VOID AddDiskDriveToListView(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context,
-    _In_ ULONG DiskIndex,
-    _In_ PPH_STRING DiskName
+    _In_ PPH_STRING DiskPath,
+    _In_ PWSTR DiskName
     )
 {
     DV_DISK_ID adapterId;
@@ -152,7 +154,7 @@ static VOID AddDiskDriveToListView(
     BOOLEAN found = FALSE;
     PDV_DISK_ID newId = NULL;
 
-    InitializeDiskId(&adapterId, DiskIndex);
+    InitializeDiskId(&adapterId, DiskPath);
 
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
     {
@@ -180,13 +182,13 @@ static VOID AddDiskDriveToListView(
     {
         newId = PhAllocate(sizeof(DV_DISK_ID));
         CopyDiskId(newId, &adapterId);
-        //PhMoveReference(&newId->InterfaceGuid, PhConvertMultiByteToUtf16(Adapter->AdapterName));
+        PhMoveReference(&newId->DevicePath, DiskPath);
     }
 
     lvItemIndex = PhAddListViewItem(
         Context->ListViewHandle,
         MAXINT,
-        DiskName->Buffer,
+        DiskName,
         newId
         );
 
@@ -200,30 +202,95 @@ static VOID FindDiskDrives(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
-    for (ULONG i = 0; i < 64; i++)
-    {
-        HANDLE deviceHandle;
-        PPH_STRING diskModel = NULL;
+    HDEVINFO deviceInfoHandle;
+    SP_DEVICE_INTERFACE_DATA deviceInterfaceData = { sizeof(SP_DEVICE_INTERFACE_DATA) };
+    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
+    PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
+    ULONG deviceInfoLength = 0;
+    HANDLE ret_handle = NULL;
 
-        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, i)))
+    if ((deviceInfoHandle = SetupDiGetClassDevs(&GUID_DEVINTERFACE_DISK, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE)) == INVALID_HANDLE_VALUE)
+        return;
+
+    for (ULONG i = 0; i < 1000; i++)
+    {
+        if (!SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData))
+            break;
+
+        if (SetupDiGetDeviceInterfaceDetail(
+            deviceInfoHandle,
+            &deviceInterfaceData,
+            0,
+            0,
+            &deviceInfoLength,
+            &deviceInfoData
+            ) || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
-            DiskDriveQueryDeviceInformation(
-                deviceHandle,
+            continue;
+        }
+
+        deviceInterfaceDetail = PhAllocate(deviceInfoLength);
+        deviceInterfaceDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+
+        if (SetupDiGetDeviceInterfaceDetail(
+            deviceInfoHandle, 
+            &deviceInterfaceData, 
+            deviceInterfaceDetail, 
+            deviceInfoLength, 
+            &deviceInfoLength, 
+            &deviceInfoData
+            ))
+        {
+            WCHAR diskFriendlyName[MAX_PATH] = L"";
+
+            SetupDiGetDeviceRegistryProperty(
+                deviceInfoHandle,
+                &deviceInfoData,
+                SPDRP_FRIENDLYNAME,
                 NULL,
-                &diskModel,
-                NULL,
+                (PBYTE)diskFriendlyName,
+                ARRAYSIZE(diskFriendlyName),
                 NULL
                 );
 
-            if (diskModel)
-            {
-                AddDiskDriveToListView(Context, i, diskModel);
-                PhDereferenceObject(diskModel);
-            }
-
-            NtClose(deviceHandle);
+            AddDiskDriveToListView(
+                Context, 
+                PhCreateString(deviceInterfaceDetail->DevicePath), 
+                diskFriendlyName
+                );
         }
+
+        PhFree(deviceInterfaceDetail);
+        deviceInterfaceDetail = NULL;
     }
+
+    SetupDiDestroyDeviceInfoList(deviceInfoHandle);
+
+
+    //for (ULONG i = 0; i < 64; i++)
+    //{
+    //    HANDLE deviceHandle;
+    //    PPH_STRING diskModel = NULL;
+    //
+    //    if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, i)))
+    //    {
+    //        DiskDriveQueryDeviceInformation(
+    //            deviceHandle,
+    //            NULL,
+    //            &diskModel,
+    //            NULL,
+    //            NULL
+    //            );
+    //
+    //        if (diskModel)
+    //        {
+    //            AddDiskDriveToListView(Context, i, diskModel);
+    //            PhDereferenceObject(diskModel);
+    //        }
+    //
+    //        NtClose(deviceHandle);
+    //    }
+    //}
 
     // HACK: Remove all disconnected devices.
     BOOLEAN needsrefresh = FALSE;

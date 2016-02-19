@@ -369,7 +369,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
 typedef struct _DV_DISK_ID
 {
-    ULONG DeviceNumber;
+    PPH_STRING DevicePath;
 } DV_DISK_ID, *PDV_DISK_ID;
 
 typedef struct _DV_DISK_ENTRY
@@ -377,9 +377,11 @@ typedef struct _DV_DISK_ENTRY
     DV_DISK_ID Id;
 
     PPH_STRING DiskName;
+    ULONG DiskIndex;
 
     BOOLEAN UserReference;
     BOOLEAN HaveFirstSample;
+    BOOLEAN HaveDiskIndex;
 
     PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;
@@ -431,7 +433,7 @@ VOID DiskDrivesUpdate(VOID);
 
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
-    _In_ ULONG DeviceNumber
+    _In_ PPH_STRING DevicePath
     );
 VOID CopyDiskId(
     _Out_ PDV_DISK_ID Destination,
@@ -460,7 +462,7 @@ VOID DiskDriveSysInfoInitializing(
 
 NTSTATUS DiskDriveCreateHandle(
     _Out_ PHANDLE DeviceHandle,
-    _In_ ULONG DeviceNumber
+    _In_ PPH_STRING DevicePath
     );
 
 PPH_STRING DiskDriveQueryDosMountPoints(

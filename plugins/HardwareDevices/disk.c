@@ -69,7 +69,7 @@ VOID DiskDrivesUpdate(
 
         if (NT_SUCCESS(DiskDriveCreateHandle(
             &deviceHandle, 
-            entry->Id.DeviceNumber
+            entry->Id.DevicePath
             )))
         {
             DISK_PERFORMANCE diskPerformance;
@@ -127,6 +127,11 @@ VOID DiskDrivesUpdate(
                 DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
             }
 
+            if (!entry->HaveDiskIndex)
+            {
+                entry->HaveDiskIndex = NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &entry->DiskIndex, NULL));
+            }
+
             if (entry->HaveFirstSample)
             {
                 PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
@@ -152,10 +157,10 @@ VOID DiskDrivesUpdate(
 
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
-    _In_ ULONG DeviceNumber
+    _In_ PPH_STRING DevicePath
     )
 {
-    Id->DeviceNumber = DeviceNumber;
+    Id->DevicePath = DevicePath;
 }
 
 VOID CopyDiskId(
@@ -165,7 +170,7 @@ VOID CopyDiskId(
 {
     InitializeDiskId(
         Destination,
-        Source->DeviceNumber
+        Source->DevicePath
         );
 }
 
@@ -181,7 +186,7 @@ BOOLEAN EquivalentDiskId(
     _In_ PDV_DISK_ID Id2
     )
 {
-    if (Id1->DeviceNumber == Id2->DeviceNumber)
+    if (PhEqualString(Id1->DevicePath, Id2->DevicePath, TRUE))
         return TRUE;
 
     return FALSE;
