@@ -1620,11 +1620,15 @@ VOID PhSipEnterSectionView(
     PPH_SYSINFO_SECTION section;
     BOOLEAN fromSummaryView;
     PPH_SYSINFO_SECTION oldSection;
+    HDWP deferHandle;
+    HDWP containerDeferHandle;
 
     fromSummaryView = CurrentView == SysInfoSummaryView;
     CurrentView = SysInfoSectionView;
     oldSection = CurrentSection;
     CurrentSection = NewSection;
+    deferHandle = BeginDeferWindowPos(SectionList->Count + 4);
+    containerDeferHandle = BeginDeferWindowPos(SectionList->Count);
 
     for (i = 0; i < SectionList->Count; i++)
     {
@@ -1636,7 +1640,7 @@ VOID PhSipEnterSectionView(
         if (fromSummaryView)
         {
             PhSetWindowStyle(section->GraphHandle, GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL, 0);
-            ShowWindow(section->PanelHandle, SW_SHOW);
+            deferHandle = DeferWindowPos(deferHandle, section->PanelHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
         }
 
         if (section == CurrentSection && !section->DialogHandle)
@@ -1645,16 +1649,19 @@ VOID PhSipEnterSectionView(
         if (section->DialogHandle)
         {
             if (section == CurrentSection)
-                ShowWindow(section->DialogHandle, SW_SHOW);
+                containerDeferHandle = DeferWindowPos(containerDeferHandle, section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
             else
-                ShowWindow(section->DialogHandle, SW_HIDE);
+                containerDeferHandle = DeferWindowPos(containerDeferHandle, section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY);
         }
     }
 
-    ShowWindow(ContainerControl, SW_SHOW);
-    ShowWindow(RestoreSummaryControl, SW_SHOW);
-    ShowWindow(SeparatorControl, SW_SHOW);
-    ShowWindow(GetDlgItem(PhSipWindow, IDC_INSTRUCTION), SW_HIDE);
+    deferHandle = DeferWindowPos(deferHandle, ContainerControl, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+    deferHandle = DeferWindowPos(deferHandle, RestoreSummaryControl, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+    deferHandle = DeferWindowPos(deferHandle, SeparatorControl, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+    deferHandle = DeferWindowPos(deferHandle, GetDlgItem(PhSipWindow, IDC_INSTRUCTION), NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY);
+
+    EndDeferWindowPos(deferHandle);
+    EndDeferWindowPos(containerDeferHandle);
 
     if (oldSection)
         InvalidateRect(oldSection->PanelHandle, NULL, TRUE);
