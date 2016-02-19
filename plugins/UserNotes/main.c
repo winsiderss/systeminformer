@@ -1694,11 +1694,6 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
             }
         }
         break;
-    case WM_CTLCOLORDLG:
-        {
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
-        }
-        break;
     }
 
     return FALSE;
