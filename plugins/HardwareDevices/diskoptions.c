@@ -318,6 +318,8 @@ VOID FindDiskDrives(
                             );
                     }
                 }
+
+                NtClose(deviceHandle);
             }
 
             PhAddItemList(diskList, diskEntry);

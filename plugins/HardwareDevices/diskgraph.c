@@ -162,7 +162,6 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
 
-            context->Enabled = TRUE;
             context->WindowHandle = hwndDlg;
 
             PhInitializeGraphState(&context->GraphState);
@@ -319,18 +318,7 @@ INT_PTR CALLBACK DiskDriveDialogProc(
         break;
     case UPDATE_MSG:
         {
-            if (context->Enabled)
-            {
-                UpdateDiskDriveDialog(context);
-            }
-        }
-        break;
-    case WM_SHOWWINDOW:
-        {
-            if (context->Enabled = (BOOLEAN)wParam)
-            {
-                UpdateDiskDriveDialog(context);
-            }
+            UpdateDiskDriveDialog(context);
         }
         break;
     }

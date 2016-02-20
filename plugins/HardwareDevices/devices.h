@@ -104,7 +104,6 @@ typedef struct _DV_NETADAPTER_ENTRY
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
-    BOOLEAN Enabled;
     PDV_NETADAPTER_ENTRY AdapterEntry;
     PPH_STRING SectionName;
 
@@ -421,7 +420,6 @@ typedef struct _DV_DISK_ENTRY
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT
 {
-    BOOLEAN Enabled;
     PDV_DISK_ENTRY AdapterEntry;
     PPH_STRING SectionName;
 
