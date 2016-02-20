@@ -1623,6 +1623,9 @@ VOID PhSipEnterSectionView(
     HDWP deferHandle;
     HDWP containerDeferHandle;
 
+    if (CurrentSection == NewSection)
+        return;
+
     fromSummaryView = CurrentView == SysInfoSummaryView;
     CurrentView = SysInfoSectionView;
     oldSection = CurrentSection;
