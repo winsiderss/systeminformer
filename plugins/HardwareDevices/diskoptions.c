@@ -31,6 +31,25 @@
 
 static _EnableThemeDialogTexture EnableThemeDialogTexture_I = NULL;
 
+typedef struct _DISK_ENUM_ENTRY
+{
+    ULONG DeviceIndex;
+    PPH_STRING DevicePath;
+    PPH_STRING DeviceName;
+    PPH_STRING DeviceMountPoints;
+} DISK_ENUM_ENTRY, *PDISK_ENUM_ENTRY;
+
+static int __cdecl DiskEntryCompareFunction(
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PDISK_ENUM_ENTRY node1 = *(PDISK_ENUM_ENTRY *)elem1;
+    PDISK_ENUM_ENTRY node2 = *(PDISK_ENUM_ENTRY *)elem2;
+
+    return uint64cmp(node1->DeviceIndex, node2->DeviceIndex);
+}
+
 VOID DiskDrivesLoadList(
     VOID
     )
@@ -99,7 +118,7 @@ VOID DiskDrivesSaveList(
     PhSetStringSetting2(SETTING_NAME_DISK_LIST, &settingsString->sr);
 }
 
-static BOOLEAN FindDiskEntry(
+BOOLEAN FindDiskEntry(
     _In_ PDV_DISK_ID Id,
     _In_ BOOLEAN RemoveUserReference
     )
@@ -143,18 +162,16 @@ static BOOLEAN FindDiskEntry(
     return found;
 }
 
-static VOID AddDiskDriveToListView(
+VOID AddDiskDriveToListView(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context,
     _In_ PPH_STRING DiskPath,
-    _In_ PWSTR DiskName
+    _In_ PPH_STRING DiskName
     )
 {
     DV_DISK_ID adapterId;
     INT lvItemIndex;
     BOOLEAN found = FALSE;
     PDV_DISK_ID newId = NULL;
-    HANDLE deviceHandle = NULL;
-    PPH_STRING diskName = NULL;
 
     InitializeDiskId(&adapterId, DiskPath);
 
@@ -187,41 +204,10 @@ static VOID AddDiskDriveToListView(
         PhMoveReference(&newId->DevicePath, DiskPath);
     }
 
-    if (NT_SUCCESS(DiskDriveCreateHandle(
-        &deviceHandle,
-        newId->DevicePath
-        )))
-    {
-        ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
-
-        if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
-        {
-            PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
-
-            if (!PhIsNullOrEmptyString(diskMountPoints))
-            {
-                diskName = PhFormatString(
-                    L"Disk %lu (%s) [%s]",
-                    diskIndex,
-                    diskMountPoints->Buffer,
-                    DiskName
-                    );
-            }
-            else
-            {
-                diskName = PhFormatString(
-                    L"Disk %lu [%s]",
-                    diskIndex,
-                    DiskName
-                    );
-            }
-        }
-    }
-
     lvItemIndex = PhAddListViewItem(
         Context->ListViewHandle,
         MAXINT,
-        diskName ? diskName->Buffer : DiskName,
+        DiskName->Buffer,
         newId
         );
 
@@ -231,19 +217,28 @@ static VOID AddDiskDriveToListView(
     DeleteDiskId(&adapterId);
 }
 
-static VOID FindDiskDrives(
+VOID FindDiskDrives(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
+    PPH_LIST diskList;
     HDEVINFO deviceInfoHandle;
     SP_DEVICE_INTERFACE_DATA deviceInterfaceData = { sizeof(SP_DEVICE_INTERFACE_DATA) };
     SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
     PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
     ULONG deviceInfoLength = 0;
-    HANDLE ret_handle = NULL;
 
-    if ((deviceInfoHandle = SetupDiGetClassDevs(&GUID_DEVINTERFACE_DISK, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE)) == INVALID_HANDLE_VALUE)
+    if ((deviceInfoHandle = SetupDiGetClassDevs(
+        &GUID_DEVINTERFACE_DISK,
+        NULL,
+        NULL,
+        DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
+        )) == INVALID_HANDLE_VALUE)
+    {
         return;
+    }
+    
+    diskList = PH_AUTO(PhCreateList(1));
 
     for (ULONG i = 0; i < 1000; i++)
     {
@@ -274,7 +269,12 @@ static VOID FindDiskDrives(
             &deviceInfoData
             ))
         {
-            WCHAR diskFriendlyName[MAX_PATH] = L"";
+            HANDLE deviceHandle;
+            PDISK_ENUM_ENTRY diskEntry;
+            WCHAR diskFriendlyName[MAX_PATH] = L""; 
+            
+            diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
+            memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
 
             SetupDiGetDeviceRegistryProperty(
                 deviceInfoHandle,
@@ -286,17 +286,69 @@ static VOID FindDiskDrives(
                 NULL
                 );
 
-            AddDiskDriveToListView(
-                Context, 
-                PhCreateString(deviceInterfaceDetail->DevicePath), 
-                diskFriendlyName
-                );
+            diskEntry->DeviceName = PhCreateString(diskFriendlyName);
+            diskEntry->DevicePath = PhCreateString(deviceInterfaceDetail->DevicePath);
+
+            if (NT_SUCCESS(DiskDriveCreateHandle(
+                &deviceHandle,
+                diskEntry->DevicePath
+                )))
+            {
+                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
+                {
+                    PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
+
+                    if (!PhIsNullOrEmptyString(diskMountPoints))
+                    {
+                        diskEntry->DeviceMountPoints = PhFormatString(
+                            L"Disk %lu (%s) [%s]",
+                            diskIndex,
+                            diskMountPoints->Buffer,
+                            diskFriendlyName
+                            );
+                    }
+                    else
+                    {
+                        diskEntry->DeviceMountPoints = PhFormatString(
+                            L"Disk %lu [%s]",
+                            diskIndex,
+                            diskFriendlyName
+                            );
+                    }
+                }
+            }
+
+            PhAddItemList(diskList, diskEntry);
         }
 
         PhFree(deviceInterfaceDetail);
     }
 
     SetupDiDestroyDeviceInfoList(deviceInfoHandle);
+
+    // Sort the entries
+    qsort(diskList->Items, diskList->Count, sizeof(PVOID), DiskEntryCompareFunction);
+
+    for (ULONG i = 0; i < diskList->Count; i++)
+    {
+        PDISK_ENUM_ENTRY entry = diskList->Items[i];
+
+        AddDiskDriveToListView(
+            Context,
+            entry->DevicePath,
+            entry->DeviceMountPoints ? entry->DeviceMountPoints : entry->DeviceName
+            );
+
+        if (entry->DeviceMountPoints)
+            PhDereferenceObject(entry->DeviceMountPoints);
+        if (entry->DeviceName)
+            PhDereferenceObject(entry->DeviceName);
+        // Note: DevicePath is disposed by WM_DESTROY.
+
+        PhFree(entry);
+    }
 
     // HACK: Remove all disconnected devices.
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
