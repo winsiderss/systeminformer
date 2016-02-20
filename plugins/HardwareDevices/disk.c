@@ -118,6 +118,18 @@ VOID DiskDrivesUpdate(
                 entry->QueueDepth = diskPerformance.QueueDepth;
                 entry->SplitCount = diskPerformance.SplitCount;
             }
+            else
+            {
+                // Disk has been disconnected or dismounted.
+                PhUpdateDelta(&entry->BytesReadDelta, 0);
+                PhUpdateDelta(&entry->BytesWrittenDelta, 0);
+                PhUpdateDelta(&entry->ReadTimeDelta, 0);
+                PhUpdateDelta(&entry->WriteTimeDelta, 0);
+                PhUpdateDelta(&entry->IdleTimeDelta, 0);
+                PhUpdateDelta(&entry->ReadCountDelta, 0);
+                PhUpdateDelta(&entry->WriteCountDelta, 0);
+                PhUpdateDelta(&entry->QueryTimeDelta, 0);
+            }
 
             // HACK: Pull the Disk name from the current query.
             if (!entry->DiskName)
@@ -125,30 +137,14 @@ VOID DiskDrivesUpdate(
                 DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
             }
 
-            // HACK: Pull the Disk index and format the sysinfo title from the current query.
-            if (!entry->DiskIndexName)
+            // HACK: Pull the Disk index from the current query.
+            if (entry->DiskIndex == ULONG_MAX)
             {
                 ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
 
                 if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
                 {
-                    PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
-
-                    if (!PhIsNullOrEmptyString(diskMountPoints))
-                    {
-                        PhMoveReference(&entry->DiskIndexName, PhFormatString(
-                            L"Disk %lu (%s)",
-                            diskIndex,
-                            diskMountPoints->Buffer
-                            ));
-                    }
-                    else
-                    {
-                        PhMoveReference(&entry->DiskIndexName, PhFormatString(
-                            L"Disk %lu",
-                            diskIndex
-                            ));
-                    }
+                    entry->DiskIndex = diskIndex;
                 }
             }
 
@@ -216,6 +212,7 @@ PDV_DISK_ENTRY CreateDiskEntry(
     entry = PhCreateObject(sizeof(DV_DISK_ENTRY), DiskDriveEntryType);
     memset(entry, 0, sizeof(DV_DISK_ENTRY));
 
+    entry->DiskIndex = ULONG_MAX;
     CopyDiskId(&entry->Id, Id);
 
     PhInitializeCircularBuffer_ULONG64(&entry->ReadBuffer, PhGetIntegerSetting(L"SampleCount"));

@@ -31,6 +31,7 @@ NTSTATUS NetworkAdapterCreateHandle(
     _In_ PPH_STRING InterfaceGuid
     )
 {
+    // NOTE: Do not cache this handle. The user will be unable to enable, disable or change adapter configuration.
     return PhCreateFileWin32(
         DeviceHandle,
         PhaConcatStrings(2, L"\\\\.\\", InterfaceGuid->Buffer)->Buffer,

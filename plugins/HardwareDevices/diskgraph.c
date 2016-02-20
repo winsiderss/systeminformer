@@ -35,7 +35,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
     }
 }
 
-static VOID DiskDriveUpdateGraphs(
+VOID DiskDriveUpdateGraphs(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
@@ -47,7 +47,7 @@ static VOID DiskDriveUpdateGraphs(
     InvalidateRect(Context->GraphHandle, NULL, FALSE);
 }
 
-static VOID DiskDriveUpdatePanel(
+VOID DiskDriveUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
@@ -66,17 +66,7 @@ static VOID DiskDriveUpdatePanel(
         );
 }
 
-static INT_PTR CALLBACK DiskDrivePanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    return FALSE;
-}
-
-static VOID UpdateDiskDriveDialog(
+VOID UpdateDiskDriveDialog(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
@@ -90,7 +80,43 @@ static VOID UpdateDiskDriveDialog(
     DiskDriveUpdatePanel(Context);
 }
 
-static INT_PTR CALLBACK DiskDriveDialogProc(
+VOID UpdateDiskIndexText(
+    _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
+    )
+{
+    if (Context->AdapterEntry->DiskIndex != ULONG_MAX && !Context->AdapterEntry->DiskIndexName)
+    {
+        PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->AdapterEntry->DiskIndex));
+
+        if (!PhIsNullOrEmptyString(diskMountPoints))
+        {
+            PhMoveReference(&Context->AdapterEntry->DiskIndexName, PhFormatString(
+                L"Disk %lu (%s)",
+                Context->AdapterEntry->DiskIndex,
+                diskMountPoints->Buffer
+                ));
+        }
+        else
+        {
+            PhMoveReference(&Context->AdapterEntry->DiskIndexName, PhFormatString(
+                L"Disk %lu",
+                Context->AdapterEntry->DiskIndex
+                ));
+        }
+    }
+}
+
+INT_PTR CALLBACK DiskDrivePanelDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    return FALSE;
+}
+
+INT_PTR CALLBACK DiskDriveDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -181,7 +207,7 @@ static INT_PTR CALLBACK DiskDriveDialogProc(
             Graph_SetTooltip(context->GraphHandle, TRUE);
 
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
-            
+
             UpdateDiskDriveDialog(context);
 
             PhRegisterCallback(
@@ -324,6 +350,9 @@ static BOOLEAN DiskDriveSectionCallback(
     switch (Message)
     {
     case SysInfoCreate:
+        {
+            UpdateDiskIndexText(context);
+        }
         return TRUE;
     case SysInfoDestroy:
         {
@@ -333,6 +362,9 @@ static BOOLEAN DiskDriveSectionCallback(
         }
         return TRUE;
     case SysInfoTick:
+        {
+            UpdateDiskIndexText(context);
+        }
         return TRUE;
     case SysInfoCreateDialog:
         {
