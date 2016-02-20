@@ -20,8 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma comment(lib, "Winhttp.lib")
-
 #include "nettools.h"
 #include <mxml.h>
 #include <winhttp.h>

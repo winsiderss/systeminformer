@@ -23,7 +23,6 @@
 #include "devices.h"
 
 PVOID IphlpHandle = NULL;
-_GetIfEntry2 GetIfEntry2_I = NULL;
 _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;
 
 NTSTATUS NetworkAdapterCreateHandle(
@@ -413,9 +412,9 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
-    if (GetIfEntry2_I)
+    if (GetIfEntry2)
     {
-        GetIfEntry2_I(&interfaceRow);
+        GetIfEntry2(&interfaceRow);
     }
 
     //MIB_IPINTERFACE_ROW interfaceTable;

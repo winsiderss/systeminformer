@@ -24,8 +24,6 @@
 #ifndef ONLNCHK_H
 #define ONLNCHK_H
 
-#pragma comment(lib, "Winhttp.lib")
-
 #define CINTERFACE
 #define COBJMACROS
 #include <phdk.h>

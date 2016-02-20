@@ -136,7 +136,7 @@ VOID NetAdaptersUpdate(
 
             NtClose(deviceHandle);
         }
-        else if (GetIfEntry2_I)
+        else if (WindowsVersion >= WINDOWS_VISTA && GetIfEntry2)
         {
             MIB_IF_ROW2 interfaceRow;
 

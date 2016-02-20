@@ -23,10 +23,6 @@
 
 #include "devices.h"
 
-_NotifyIpInterfaceChange NotifyIpInterfaceChange_I = NULL;
-_CancelMibChangeNotify2 CancelMibChangeNotify2_I = NULL;
-_ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I = NULL;
-
 static VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -192,9 +188,9 @@ static VOID NetAdapterLookupConfig(
 
                         sockAddrIn = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
-                        if (ConvertLengthToIpv4Mask_I)
+                        if (WindowsVersion >= WINDOWS_VISTA && ConvertLengthToIpv4Mask)
                         {
-                            ConvertLengthToIpv4Mask_I(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
+                            ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
                         }
 
                         if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
@@ -439,7 +435,7 @@ static VOID NetAdapterUpdateDetails(
     }
     else
     {
-        if (GetIfEntry2_I)
+        if (WindowsVersion >= WINDOWS_VISTA && GetIfEntry2)
         {
             MIB_IF_ROW2 interfaceRow;
 
@@ -623,9 +619,9 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
             NetAdapterLookupConfig(context);
             NetAdapterUpdateDetails(context);
 
-            if (WindowsVersion >= WINDOWS_VISTA && NotifyIpInterfaceChange_I)
+            if (WindowsVersion >= WINDOWS_VISTA && NotifyIpInterfaceChange)
             {
-                NotifyIpInterfaceChange_I(
+                NotifyIpInterfaceChange(
                     AF_UNSPEC,
                     NetAdapterChangeCallback,
                     context,
@@ -642,9 +638,9 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            if (context->NotifyHandle && CancelMibChangeNotify2_I)
+            if (WindowsVersion >= WINDOWS_VISTA && CancelMibChangeNotify2 && context->NotifyHandle)
             {
-                CancelMibChangeNotify2_I(context->NotifyHandle);
+                CancelMibChangeNotify2(context->NotifyHandle);
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);

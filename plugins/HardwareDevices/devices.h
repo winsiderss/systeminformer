@@ -24,10 +24,6 @@
 #ifndef _DEVICES_H_
 #define _DEVICES_H_
 
-#pragma comment(lib, "Iphlpapi.lib")
-//#pragma comment(lib, "Ws2_32.lib")
-//#pragma comment(lib, "dnsapi.lib")
-
 #define PLUGIN_NAME L"ProcessHacker.HardwareDevices"
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_ENABLE_HIDDEN_ADAPTERS (PLUGIN_NAME L".EnableHiddenAdapters")
@@ -267,30 +263,10 @@ VOID ShowDetailsDialog(
     _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     );
 
-typedef NETIO_STATUS (WINAPI* _ConvertLengthToIpv4Mask)(
-    _In_ ULONG MaskLength,
-    _Out_ PULONG Mask
-    );
-typedef NETIO_STATUS (WINAPI* _CancelMibChangeNotify2)(
-    _In_ HANDLE NotificationHandle
-    );
-
-typedef NETIO_STATUS (WINAPI* _NotifyIpInterfaceChange)(
-    _In_ ADDRESS_FAMILY Family,
-    _In_ PIPINTERFACE_CHANGE_CALLBACK Callback,
-    _In_opt_ PVOID CallerContext,
-    _In_ BOOLEAN InitialNotification,
-    _Inout_ HANDLE *NotificationHandle
-    );
-
 // ndis.c
 
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
-
-typedef ULONG (WINAPI* _GetIfEntry2)(
-    _Inout_ PMIB_IF_ROW2 Row
-    );
 
 // dmex: rev
 typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
@@ -302,11 +278,7 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
     );
 
 extern PVOID IphlpHandle;
-extern _GetIfEntry2 GetIfEntry2_I;
 extern _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
-extern _NotifyIpInterfaceChange NotifyIpInterfaceChange_I;
-extern _CancelMibChangeNotify2 CancelMibChangeNotify2_I;
-extern _ConvertLengthToIpv4Mask ConvertLengthToIpv4Mask_I;
 
 NTSTATUS NetworkAdapterCreateHandle(
     _Out_ PHANDLE DeviceHandle,

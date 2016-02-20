@@ -49,11 +49,7 @@ VOID NTAPI LoadCallback(
     {
         if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
         {
-            GetIfEntry2_I = PhGetProcedureAddress(IphlpHandle, "GetIfEntry2", 0);
             GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
-            NotifyIpInterfaceChange_I = PhGetProcedureAddress(IphlpHandle, "NotifyUnicastIpAddressChange", 0);
-            CancelMibChangeNotify2_I = PhGetProcedureAddress(IphlpHandle, "CancelMibChangeNotify2", 0);
-            ConvertLengthToIpv4Mask_I = PhGetProcedureAddress(IphlpHandle, "ConvertLengthToIpv4Mask", 0);
         }
     }
 

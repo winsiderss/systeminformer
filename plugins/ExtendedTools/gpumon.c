@@ -30,11 +30,6 @@ static GUID GUID_DISPLAY_DEVICE_ARRIVAL_I = { 0x1ca05180, 0xa699, 0x450a, { 0x9a
 static PFND3DKMT_OPENADAPTERFROMDEVICENAME D3DKMTOpenAdapterFromDeviceName_I;
 static PFND3DKMT_CLOSEADAPTER D3DKMTCloseAdapter_I;
 static PFND3DKMT_QUERYSTATISTICS D3DKMTQueryStatistics_I;
-static _SetupDiGetClassDevsW SetupDiGetClassDevsW_I;
-static _SetupDiDestroyDeviceInfoList SetupDiDestroyDeviceInfoList_I;
-static _SetupDiEnumDeviceInterfaces SetupDiEnumDeviceInterfaces_I;
-static _SetupDiGetDeviceInterfaceDetailW SetupDiGetDeviceInterfaceDetailW_I;
-static _SetupDiGetDeviceRegistryPropertyW SetupDiGetDeviceRegistryPropertyW_I;
 
 BOOLEAN EtGpuEnabled;
 static PPH_LIST EtpGpuAdapterList;
@@ -74,7 +69,6 @@ VOID EtGpuMonitorInitialization(
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) && WindowsVersion >= WINDOWS_7)
     {
         PVOID gdi32Handle;
-        HMODULE setupapiHandle;
 
         if (gdi32Handle = PhGetDllHandle(L"gdi32.dll"))
         {
@@ -83,23 +77,10 @@ VOID EtGpuMonitorInitialization(
             D3DKMTQueryStatistics_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTQueryStatistics", 0);
         }
 
-        if (setupapiHandle = LoadLibrary(L"setupapi.dll"))
-        {
-            SetupDiGetClassDevsW_I = PhGetProcedureAddress(setupapiHandle, "SetupDiGetClassDevsW", 0);
-            SetupDiDestroyDeviceInfoList_I = PhGetProcedureAddress(setupapiHandle, "SetupDiDestroyDeviceInfoList", 0);
-            SetupDiEnumDeviceInterfaces_I = PhGetProcedureAddress(setupapiHandle, "SetupDiEnumDeviceInterfaces", 0);
-            SetupDiGetDeviceInterfaceDetailW_I = PhGetProcedureAddress(setupapiHandle, "SetupDiGetDeviceInterfaceDetailW", 0);
-            SetupDiGetDeviceRegistryPropertyW_I = PhGetProcedureAddress(setupapiHandle, "SetupDiGetDeviceRegistryPropertyW", 0);
-        }
-
         if (
             D3DKMTOpenAdapterFromDeviceName_I &&
             D3DKMTCloseAdapter_I &&
-            D3DKMTQueryStatistics_I &&
-            SetupDiGetClassDevsW_I &&
-            SetupDiDestroyDeviceInfoList_I &&
-            SetupDiEnumDeviceInterfaces_I &&
-            SetupDiGetDeviceInterfaceDetailW_I
+            D3DKMTQueryStatistics_I
             )
         {
             EtpGpuAdapterList = PhCreateList(4);
@@ -208,7 +189,7 @@ BOOLEAN EtpInitializeD3DStatistics(
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
 
-    deviceInfoSet = SetupDiGetClassDevsW_I(&GUID_DISPLAY_DEVICE_ARRIVAL_I, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
+    deviceInfoSet = SetupDiGetClassDevs(&GUID_DISPLAY_DEVICE_ARRIVAL_I, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
 
     if (!deviceInfoSet)
         return FALSE;
@@ -216,14 +197,14 @@ BOOLEAN EtpInitializeD3DStatistics(
     memberIndex = 0;
     deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
-    while (SetupDiEnumDeviceInterfaces_I(deviceInfoSet, NULL, &GUID_DISPLAY_DEVICE_ARRIVAL_I, memberIndex, &deviceInterfaceData))
+    while (SetupDiEnumDeviceInterfaces(deviceInfoSet, NULL, &GUID_DISPLAY_DEVICE_ARRIVAL_I, memberIndex, &deviceInterfaceData))
     {
         detailDataSize = 0x100;
         detailData = PhAllocate(detailDataSize);
         detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
-        if (!(result = SetupDiGetDeviceInterfaceDetailW_I(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData)) &&
+        if (!(result = SetupDiGetDeviceInterfaceDetail(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData)) &&
             GetLastError() == ERROR_INSUFFICIENT_BUFFER)
         {
             PhFree(detailData);
@@ -232,7 +213,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             if (detailDataSize >= sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA))
                 detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
-            result = SetupDiGetDeviceInterfaceDetailW_I(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData);
+            result = SetupDiGetDeviceInterfaceDetail(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData);
         }
 
         if (result)
@@ -305,7 +286,7 @@ BOOLEAN EtpInitializeD3DStatistics(
         memberIndex++;
     }
 
-    SetupDiDestroyDeviceInfoList_I(deviceInfoSet);
+    SetupDiDestroyDeviceInfoList(deviceInfoSet);
 
     EtGpuNodeBitMapBuffer = PhAllocate(BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount));
     RtlInitializeBitMap(&EtGpuNodeBitMap, EtGpuNodeBitMapBuffer, EtGpuTotalNodeCount);
@@ -340,13 +321,10 @@ PPH_STRING EtpQueryDeviceDescription(
     PPH_STRING string;
     ULONG bufferSize;
 
-    if (!SetupDiGetDeviceRegistryPropertyW_I)
-        return NULL;
-
     bufferSize = 0x40;
     string = PhCreateStringEx(NULL, bufferSize);
 
-    if (!(result = SetupDiGetDeviceRegistryPropertyW_I(
+    if (!(result = SetupDiGetDeviceRegistryProperty(
         DeviceInfoSet,
         DeviceInfoData,
         SPDRP_DEVICEDESC,
@@ -359,7 +337,7 @@ PPH_STRING EtpQueryDeviceDescription(
         PhDereferenceObject(string);
         string = PhCreateStringEx(NULL, bufferSize);
 
-        result = SetupDiGetDeviceRegistryPropertyW_I(
+        result = SetupDiGetDeviceRegistryProperty(
             DeviceInfoSet,
             DeviceInfoData,
             SPDRP_DEVICEDESC,

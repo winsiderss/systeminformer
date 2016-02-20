@@ -23,8 +23,6 @@
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
 
-#pragma comment(lib, "Winhttp.lib")
-
 #define CINTERFACE
 #define COBJMACROS
 #define INITGUID
@@ -33,9 +31,7 @@
 #include <verify.h>
 #include <mxml.h>
 #include <windowsx.h>
-#include <netlistmgr.h>
 #include <winhttp.h>
-#include <Wincodec.h>
 
 #include "resource.h"
 

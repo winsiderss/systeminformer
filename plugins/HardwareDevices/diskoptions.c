@@ -21,8 +21,6 @@
  */
 
 #include "devices.h"
-
-#pragma comment(lib, "Setupapi.lib")
 #include <Setupapi.h>
 #include <ntdddisk.h>
 

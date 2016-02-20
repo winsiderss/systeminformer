@@ -24,9 +24,6 @@
 #ifndef NETTOOLS_H
 #define NETTOOLS_H
 
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "ws2_32.lib")
-
 #define CINTERFACE
 #define COBJMACROS
 #include <windowsx.h>

@@ -181,7 +181,6 @@ static int get_dev_random_seed()
 #define HAVE_CRYPTGENRANDOM 1
 
 #include <windows.h>
-#pragma comment(lib, "advapi32.lib")
 
 static int get_cryptgenrandom_seed()
 {
