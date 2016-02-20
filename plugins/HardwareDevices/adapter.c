@@ -180,6 +180,14 @@ VOID NetAdaptersUpdate(
             networkXmitSpeed = 0;
         }
 
+        if (!entry->HaveFirstSample)
+        {
+            // The first sample must be zero.
+            networkRcvSpeed = 0;
+            networkXmitSpeed = 0;
+            entry->HaveFirstSample = TRUE;
+        }
+
         if (runCount != 0)
         {
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
