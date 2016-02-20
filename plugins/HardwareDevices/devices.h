@@ -85,10 +85,9 @@ typedef struct _DV_NETADAPTER_ENTRY
         struct
         {
             ULONG UserReference : 1;
-            ULONG HaveFirstSample : 1;
             ULONG CheckedDeviceSupport : 1;
             ULONG DeviceSupported : 1;
-            ULONG Spare : 28;
+            ULONG Spare : 29;
         };
     };
 
@@ -398,7 +397,6 @@ typedef struct _DV_DISK_ENTRY
     ULONG DiskIndex;
 
     BOOLEAN UserReference;
-    BOOLEAN HaveFirstSample;
 
     PH_CIRCULAR_BUFFER_ULONG64 ReadBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 WriteBuffer;

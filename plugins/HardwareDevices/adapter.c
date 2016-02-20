@@ -180,19 +180,10 @@ VOID NetAdaptersUpdate(
             networkXmitSpeed = 0;
         }
 
-        if (entry->HaveFirstSample)
+        if (runCount != 0)
         {
             PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, networkRcvSpeed);
             PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, networkXmitSpeed);
-        }
-        else
-        {
-            if (runCount != 0)
-            {
-                PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, 0);
-                PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, 0);
-                entry->HaveFirstSample = TRUE;
-            }
         }
 
         //context->LinkSpeed = networkLinkSpeed;

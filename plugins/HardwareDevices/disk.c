@@ -175,19 +175,10 @@ VOID DiskDrivesUpdate(
             entry->SplitCount = 0;
         }
 
-        if (entry->HaveFirstSample)
+        if (runCount != 0)
         {
             PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
             PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->BytesWrittenDelta.Delta);
-        }
-        else
-        {
-            if (runCount != 0)
-            {
-                PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, 0);
-                PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, 0);
-                entry->HaveFirstSample = TRUE;
-            }
         }
 
         PhDereferenceObjectDeferDelete(entry);
