@@ -21,6 +21,7 @@
  */
 
 #include <peview.h>
+#include <uxtheme.h>
 
 INT_PTR CALLBACK PvpLibExportsDlgProc(
     _In_ HWND hwndDlg,
@@ -164,6 +165,9 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:
