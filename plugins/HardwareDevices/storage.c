@@ -334,35 +334,6 @@ PPH_STRING DiskDriveQueryGeometry(
     return PhReferenceEmptyString();
 }
 
-BOOLEAN DiskDriveQuerySupported(
-    _In_ HANDLE DeviceHandle
-    )
-{
-    IO_STATUS_BLOCK isb;
-    BOOLEAN deviceQuerySupported = FALSE;
-    STORAGE_HOTPLUG_INFO storHotplugInfo;
-
-    memset(&storHotplugInfo, 0, sizeof(STORAGE_HOTPLUG_INFO));
-
-    if (NT_SUCCESS(NtDeviceIoControlFile(
-        DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        IOCTL_STORAGE_GET_HOTPLUG_INFO, // https://msdn.microsoft.com/en-us/library/aa363408.aspx
-        NULL,
-        0,
-        &storHotplugInfo,
-        sizeof(storHotplugInfo)
-        )))
-    {
-        deviceQuerySupported = TRUE;
-    }
-
-    return deviceQuerySupported;
-}
-
 BOOLEAN DiskDriveQueryImminentFailure(
     _In_ HANDLE DeviceHandle
     )

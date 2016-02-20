@@ -176,7 +176,6 @@ VOID NetAdaptersUpdate(
             // The first sample must be zero.
             networkRcvSpeed = 0;
             networkXmitSpeed = 0;
-            entry->HaveFirstSample = TRUE;
         }
        
         if (mediaState == MediaConnectStateUnknown)

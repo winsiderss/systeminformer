@@ -173,6 +173,13 @@ VOID DiskDrivesUpdate(
             entry->SplitCount = 0;
         }
 
+        if (!entry->HaveFirstSample)
+        {
+            // The first sample must be zero.
+            PhInitializeDelta(&entry->BytesReadDelta);
+            PhInitializeDelta(&entry->BytesWrittenDelta);
+        }
+
         if (entry->HaveFirstSample)
         {
             PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
