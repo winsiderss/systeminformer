@@ -183,6 +183,14 @@ PPH_STRING NetworkAdapterQueryName(
         return PhCreateString(adapterNameBuffer);
     }
 
+    if (!GetInterfaceDescriptionFromGuid_I)
+    {
+        if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
+        {
+            GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
+        }
+    }
+
     // HACK: Query adapter description using undocumented function.
     if (GetInterfaceDescriptionFromGuid_I)
     {

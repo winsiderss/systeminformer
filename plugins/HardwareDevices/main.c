@@ -45,14 +45,6 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
-        {
-            GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
-        }
-    }
-
     DiskDrivesInitialize();
     NetAdaptersInitialize();
 
