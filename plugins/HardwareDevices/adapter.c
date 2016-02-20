@@ -53,6 +53,8 @@ VOID NetAdaptersUpdate(
     VOID
     )
 {
+    static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
+
     PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
@@ -170,13 +172,6 @@ VOID NetAdaptersUpdate(
                 entry->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr);
             }
         }
-
-        if (!entry->HaveFirstSample)
-        {
-            // The first sample must be zero.
-            networkRcvSpeed = 0;
-            networkXmitSpeed = 0;
-        }
        
         if (mediaState == MediaConnectStateUnknown)
         {
@@ -192,9 +187,12 @@ VOID NetAdaptersUpdate(
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, 0);
-            PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, 0);
-            entry->HaveFirstSample = TRUE;
+            if (runCount != 0)
+            {
+                PhAddItemCircularBuffer_ULONG64(&entry->InboundBuffer, 0);
+                PhAddItemCircularBuffer_ULONG64(&entry->OutboundBuffer, 0);
+                entry->HaveFirstSample = TRUE;
+            }
         }
 
         //context->LinkSpeed = networkLinkSpeed;
@@ -207,6 +205,8 @@ VOID NetAdaptersUpdate(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+
+    runCount++;
 }
 
 VOID InitializeNetAdapterId(
