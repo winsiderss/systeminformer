@@ -340,6 +340,8 @@ VOID FindDiskDrives(
     // Sort the entries
     qsort(diskList->Items, diskList->Count, sizeof(PVOID), DiskEntryCompareFunction);
 
+    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+
     for (ULONG i = 0; i < diskList->Count; i++)
     {
         PDISK_ENUM_ENTRY entry = diskList->Items[i];
@@ -359,7 +361,11 @@ VOID FindDiskDrives(
         PhFree(entry);
     }
 
+    PhReleaseQueuedLockShared(&DiskDrivesListLock);
+
     // HACK: Remove all disconnected devices.
+    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
     {
         ULONG index = -1;
@@ -394,6 +400,8 @@ VOID FindDiskDrives(
 
         PhDereferenceObjectDeferDelete(entry);
     }
+
+    PhReleaseQueuedLockShared(&DiskDrivesListLock);
 }
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(

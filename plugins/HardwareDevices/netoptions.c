@@ -250,6 +250,8 @@ static VOID FindNetworkAdapters(
     }
 
     // HACK: Remove all disconnected devices.
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
         ULONG index = -1;
@@ -284,6 +286,8 @@ static VOID FindNetworkAdapters(
 
         PhDereferenceObjectDeferDelete(entry);
     }
+
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 }
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(

@@ -54,7 +54,6 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
 
                         for (ULONG i = 0; i < DiskDrivesList->Count; i++)
                         {
-                            HANDLE deviceHandle = NULL;
                             PDV_DISK_ENTRY entry;
 
                             entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
