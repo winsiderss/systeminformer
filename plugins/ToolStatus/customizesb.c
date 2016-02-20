@@ -342,8 +342,8 @@ static INT_PTR CALLBACK CustomizeDialogProc(
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->FontHandle = PhDuplicateFont((HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, 22); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, 22); // BitmapHeight 
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight 
 
             CustomizeLoadItems(context);
 

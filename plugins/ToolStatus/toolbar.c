@@ -230,7 +230,7 @@ static VOID RebarLoadSettings(
 
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, height - 2);
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), height - 2);
 
         if (!IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
@@ -892,6 +892,11 @@ VOID ReBarLoadLayoutSettings(
 
         if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
         {
+            if (idInteger == REBAR_BAND_ID_SEARCHBOX)
+            {
+                rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
+            }
+
             rebarBandInfo.cx = (UINT)cxInteger;
             rebarBandInfo.fStyle |= (UINT)styleInteger;
 

@@ -61,9 +61,9 @@ static VOID NcAreaInitializeFont(
         if (Context->WindowFont)
             DeleteObject(Context->WindowFont);
 
-        // Create the font handle
+        // Create the font handle 
         Context->WindowFont = CreateFont(
-            -MulDiv(-10, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+            -(LONG)PhMultiplyDivide(12, PhGlobalDpi, 96),
             0,
             0,
             0,
@@ -89,7 +89,7 @@ static VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    Context->CXWidth = 20;
+    Context->CXWidth = PhMultiplyDivide(20, PhGlobalDpi, 96);
     Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
@@ -142,8 +142,8 @@ static VOID NcAreaInitializeImageList(
     HBITMAP bitmapActive = NULL;
     HBITMAP bitmapInactive = NULL;
 
-    Context->ImageWidth = 23;
-    Context->ImageHeight = 20;
+    Context->ImageWidth = PhMultiplyDivide(23, PhGlobalDpi, 96);
+    Context->ImageHeight = PhMultiplyDivide(20, PhGlobalDpi, 96);
     Context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
 
     ImageList_SetBkColor(Context->ImageList, Context->BackgroundColorRef);
@@ -479,7 +479,8 @@ static LRESULT CALLBACK NcAreaWndSubclassProc(
 
             if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
             {
-                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, 180, 20);
+                UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
+                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), height - 2);
             }
         }
         break;
