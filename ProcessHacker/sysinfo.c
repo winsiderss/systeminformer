@@ -1627,32 +1627,19 @@ VOID PhSipEnterSectionView(
     CurrentView = SysInfoSectionView;
     oldSection = CurrentSection;
     CurrentSection = NewSection;
+
     deferHandle = BeginDeferWindowPos(SectionList->Count + 4);
     containerDeferHandle = BeginDeferWindowPos(SectionList->Count);
+
+    PhSipEnterSectionViewInner(NewSection, fromSummaryView, &deferHandle, &containerDeferHandle);
+    PhSipLayoutSectionView();
 
     for (i = 0; i < SectionList->Count; i++)
     {
         section = SectionList->Items[i];
 
-        section->HasFocus = FALSE;
-        section->Callback(section, SysInfoViewChanging, (PVOID)CurrentView, CurrentSection);
-
-        if (fromSummaryView)
-        {
-            PhSetWindowStyle(section->GraphHandle, GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL, 0);
-            deferHandle = DeferWindowPos(deferHandle, section->PanelHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
-        }
-
-        if (section == CurrentSection && !section->DialogHandle)
-            PhSipCreateSectionDialog(section);
-
-        if (section->DialogHandle)
-        {
-            if (section == CurrentSection)
-                containerDeferHandle = DeferWindowPos(containerDeferHandle, section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
-            else
-                containerDeferHandle = DeferWindowPos(containerDeferHandle, section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY);
-        }
+        if (section != NewSection)
+            PhSipEnterSectionViewInner(section, fromSummaryView, &deferHandle, &containerDeferHandle);
     }
 
     deferHandle = DeferWindowPos(deferHandle, ContainerControl, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
@@ -1668,7 +1655,36 @@ VOID PhSipEnterSectionView(
 
     InvalidateRect(NewSection->PanelHandle, NULL, TRUE);
 
-    PhSipLayoutSectionView();
+    if (NewSection->DialogHandle)
+        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+}
+
+VOID PhSipEnterSectionViewInner(
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ BOOLEAN FromSummaryView,
+    _Inout_ HDWP *DeferHandle,
+    _Inout_ HDWP *ContainerDeferHandle
+    )
+{
+    Section->HasFocus = FALSE;
+    Section->Callback(Section, SysInfoViewChanging, (PVOID)CurrentView, CurrentSection);
+
+    if (FromSummaryView)
+    {
+        PhSetWindowStyle(Section->GraphHandle, GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL, 0);
+        *DeferHandle = DeferWindowPos(*DeferHandle, Section->PanelHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
+    }
+
+    if (Section == CurrentSection && !Section->DialogHandle)
+        PhSipCreateSectionDialog(Section);
+
+    if (Section->DialogHandle)
+    {
+        if (Section == CurrentSection)
+            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY | SWP_NOREDRAW);
+        else
+            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY | SWP_NOREDRAW);
+    }
 }
 
 VOID PhSipRestoreSummaryView(

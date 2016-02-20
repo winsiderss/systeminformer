@@ -176,6 +176,13 @@ VOID PhSipEnterSectionView(
     _In_ PPH_SYSINFO_SECTION NewSection
     );
 
+VOID PhSipEnterSectionViewInner(
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ BOOLEAN FromSummaryView,
+    _Inout_ HDWP *DeferHandle,
+    _Inout_ HDWP *ContainerDeferHandle
+    );
+
 VOID PhSipRestoreSummaryView(
     VOID
     );
