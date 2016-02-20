@@ -44,10 +44,10 @@ static int __cdecl DiskEntryCompareFunction(
     _In_ const void *elem2
     )
 {
-    PDISK_ENUM_ENTRY node1 = *(PDISK_ENUM_ENTRY *)elem1;
-    PDISK_ENUM_ENTRY node2 = *(PDISK_ENUM_ENTRY *)elem2;
+    PDISK_ENUM_ENTRY entry1 = *(PDISK_ENUM_ENTRY *)elem1;
+    PDISK_ENUM_ENTRY entry2 = *(PDISK_ENUM_ENTRY *)elem2;
 
-    return uint64cmp(node1->DeviceIndex, node2->DeviceIndex);
+    return uint64cmp(entry1->DeviceIndex, entry2->DeviceIndex);
 }
 
 VOID DiskDrivesLoadList(
@@ -286,6 +286,7 @@ VOID FindDiskDrives(
                 NULL
                 );
 
+            diskEntry->DeviceIndex = ULONG_MAX; // Note: Do not initialize to zero.
             diskEntry->DeviceName = PhCreateString(diskFriendlyName);
             diskEntry->DevicePath = PhCreateString(deviceInterfaceDetail->DevicePath);
 
@@ -294,11 +295,17 @@ VOID FindDiskDrives(
                 diskEntry->DevicePath
                 )))
             {
-                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero
 
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
+                    deviceHandle, 
+                    &diskIndex,
+                    NULL
+                    )))
                 {
                     PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
+                    
+                    diskEntry->DeviceIndex = diskIndex;
 
                     if (!PhIsNullOrEmptyString(diskMountPoints))
                     {
