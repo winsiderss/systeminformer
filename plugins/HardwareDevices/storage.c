@@ -86,7 +86,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
     // NOTE: This isn't the best way of doing this but it works.
     for (INT i = 0; i < 26; i++)
     {
-        if (driveMask & (1 << i))
+        if (driveMask & (0x1 << i))
         {
             HANDLE deviceHandle;
             WCHAR devicePath[7] = L"\\\\.\\?:";
@@ -103,7 +103,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 )))
             {
-                ULONG deviceNumber = 0;
+                ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
 
                 if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
                     deviceHandle, 

@@ -510,4 +510,10 @@ NTSTATUS DiskDriveQueryStatistics(
     _Out_ PDISK_PERFORMANCE Info
     );
 
+// disknotify.c
+
+VOID SetupDeviceChangeCallback(
+    VOID
+    );
+
 #endif _DEVICES_H_

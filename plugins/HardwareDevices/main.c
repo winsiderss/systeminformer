@@ -33,13 +33,14 @@ PPH_OBJECT_TYPE DiskDriveEntryType = NULL;
 PPH_LIST DiskDrivesList = NULL;
 PH_QUEUED_LOCK DiskDrivesListLock = PH_QUEUED_LOCK_INIT;
 
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
-static PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 
-static VOID NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -63,7 +64,7 @@ static VOID NTAPI LoadCallback(
     NetAdaptersLoadList();
 }
 
-static VOID NTAPI UnloadCallback(
+VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -71,7 +72,7 @@ static VOID NTAPI UnloadCallback(
     NOTHING;
 }
 
-static VOID NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -108,7 +109,15 @@ static VOID NTAPI ShowOptionsCallback(
     PhModalPropertySheet(&propSheetHeader);
 }
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI MainWindowShowingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    SetupDeviceChangeCallback();
+}
+
+VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -117,7 +126,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
     NetAdaptersUpdate();
 }
 
-static VOID NTAPI SystemInformationInitializingCallback(
+VOID NTAPI SystemInformationInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -204,6 +213,12 @@ LOGICAL DllMain(
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
                 );
 
             PhRegisterCallback(

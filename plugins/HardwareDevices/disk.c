@@ -136,18 +136,18 @@ VOID DiskDrivesUpdate(
 
                     if (!PhIsNullOrEmptyString(diskMountPoints))
                     {
-                        entry->DiskIndexName = PhFormatString(
+                        PhMoveReference(&entry->DiskIndexName, PhFormatString(
                             L"Disk %lu (%s)",
                             diskIndex,
                             diskMountPoints->Buffer
-                            );
+                            ));
                     }
                     else
                     {
-                        entry->DiskIndexName = PhFormatString(
+                        PhMoveReference(&entry->DiskIndexName, PhFormatString(
                             L"Disk %lu",
                             diskIndex
-                            );
+                            ));
                     }
                 }
             }
