@@ -77,14 +77,14 @@ typedef struct _DV_NETADAPTER_ENTRY
 
     union
     {
-        ULONG Flags;
+        BOOLEAN BitField;
         struct
         {
-            ULONG UserReference : 1;
-            ULONG HaveFirstSample : 1;
-            ULONG CheckedDeviceSupport : 1;
-            ULONG DeviceSupported : 1;
-            ULONG Spare : 28;
+            BOOLEAN UserReference : 1;
+            BOOLEAN HaveFirstSample : 1;
+            BOOLEAN CheckedDeviceSupport : 1;
+            BOOLEAN DeviceSupported : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -120,14 +120,14 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 
     union
     {
-        ULONG Flags;
+        BOOLEAN BitField;
         struct
         {
-            ULONG UserReference : 1;
-            ULONG HaveFirstSample : 1;
-            ULONG HaveCheckedDeviceSupport : 1;
-            ULONG HaveDeviceSupport : 1;
-            ULONG Spare : 28;
+            BOOLEAN UserReference : 1;
+            BOOLEAN HaveFirstSample : 1;
+            BOOLEAN HaveCheckedDeviceSupport : 1;
+            BOOLEAN HaveDeviceSupport : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
