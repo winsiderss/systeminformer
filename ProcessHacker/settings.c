@@ -376,6 +376,9 @@ static PPH_STRING PhpSettingToString(
         {
             PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = Setting->u.Pointer;
 
+            if (!scalableIntegerPair)
+                return PhReferenceEmptyString();
+
             return PhFormatString(L"@%u|%d,%d", scalableIntegerPair->Scale, scalableIntegerPair->X, scalableIntegerPair->Y);
         }
     }
