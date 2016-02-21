@@ -85,6 +85,7 @@ BOOLEAN PhpShowElevatePrompt(
 
     config.hwndParent = hWnd;
     config.hInstance = PhInstanceHandle;
+    config.dwFlags = IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
     config.pszWindowTitle = L"Process Hacker";
     config.pszMainIcon = TD_ERROR_ICON;
     config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
