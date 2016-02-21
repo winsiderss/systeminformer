@@ -232,6 +232,9 @@ VOID PhMarkNeedsConfigUpdateServiceItem(
     )
 {
     ServiceItem->NeedsConfigUpdate = TRUE;
+
+    if (PhEnableServiceNonPoll)
+        PhpNonPollGate = 1;
 }
 
 VOID PhpRemoveServiceItem(
