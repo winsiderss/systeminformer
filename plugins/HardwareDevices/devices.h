@@ -125,8 +125,8 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
         {
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
-            BOOLEAN HaveCheckedDeviceSupport : 1;
-            BOOLEAN HaveDeviceSupport : 1;
+            BOOLEAN CheckedDeviceSupport : 1;
+            BOOLEAN DeviceSupported : 1;
             BOOLEAN Spare : 4;
         };
     };
@@ -371,12 +371,12 @@ typedef struct _DV_DISK_ENTRY
 
     union
     {
-        ULONG Flags;
+        BOOLEAN BitField;
         struct
         {
-            ULONG UserReference : 1;
-            ULONG HaveFirstSample : 1;
-            ULONG Spare : 30;
+            BOOLEAN UserReference : 1;
+            BOOLEAN HaveFirstSample : 1;
+            BOOLEAN Spare : 6;
         };
     };
 

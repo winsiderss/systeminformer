@@ -395,18 +395,18 @@ static VOID NetAdapterUpdateDetails(
 
         if (deviceHandle)
         {
-            if (!Context->HaveCheckedDeviceSupport)
+            if (!Context->CheckedDeviceSupport)
             {
                 // Check the network adapter supports the OIDs we're going to be using.
                 if (NetworkAdapterQuerySupported(deviceHandle))
                 {
-                    Context->HaveDeviceSupport = TRUE;
+                    Context->DeviceSupported = TRUE;
                 }
 
-                Context->HaveCheckedDeviceSupport = TRUE;
+                Context->CheckedDeviceSupport = TRUE;
             }
 
-            if (!Context->HaveDeviceSupport)
+            if (!Context->DeviceSupported)
             {
                 // Device is faulty. Close the handle so we can fallback to GetIfEntry.
                 NtClose(deviceHandle);

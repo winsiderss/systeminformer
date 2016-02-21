@@ -123,14 +123,14 @@ VOID DiskDrivesUpdate(
             else
             {
                 // Disk has been disconnected or dismounted.
-                PhUpdateDelta(&entry->BytesReadDelta, 0);
-                PhUpdateDelta(&entry->BytesWrittenDelta, 0);
-                PhUpdateDelta(&entry->ReadTimeDelta, 0);
-                PhUpdateDelta(&entry->WriteTimeDelta, 0);
-                PhUpdateDelta(&entry->IdleTimeDelta, 0);
-                PhUpdateDelta(&entry->ReadCountDelta, 0);
-                PhUpdateDelta(&entry->WriteCountDelta, 0);
-                PhUpdateDelta(&entry->QueryTimeDelta, 0);
+                PhInitializeDelta(&entry->BytesReadDelta);
+                PhInitializeDelta(&entry->BytesWrittenDelta);
+                PhInitializeDelta(&entry->ReadTimeDelta);
+                PhInitializeDelta(&entry->WriteTimeDelta);
+                PhInitializeDelta(&entry->IdleTimeDelta);
+                PhInitializeDelta(&entry->ReadCountDelta);
+                PhInitializeDelta(&entry->WriteCountDelta);
+                PhInitializeDelta(&entry->QueryTimeDelta);
 
                 entry->ResponseTime = 0;
                 entry->ActiveTime = 0.0f;
@@ -160,14 +160,14 @@ VOID DiskDrivesUpdate(
         else
         {
             // Disk has been disconnected or dismounted.
-            PhUpdateDelta(&entry->BytesReadDelta, 0);
-            PhUpdateDelta(&entry->BytesWrittenDelta, 0);
-            PhUpdateDelta(&entry->ReadTimeDelta, 0);
-            PhUpdateDelta(&entry->WriteTimeDelta, 0);
-            PhUpdateDelta(&entry->IdleTimeDelta, 0);
-            PhUpdateDelta(&entry->ReadCountDelta, 0);
-            PhUpdateDelta(&entry->WriteCountDelta, 0);
-            PhUpdateDelta(&entry->QueryTimeDelta, 0);
+            PhInitializeDelta(&entry->BytesReadDelta);
+            PhInitializeDelta(&entry->BytesWrittenDelta);
+            PhInitializeDelta(&entry->ReadTimeDelta);
+            PhInitializeDelta(&entry->WriteTimeDelta);
+            PhInitializeDelta(&entry->IdleTimeDelta);
+            PhInitializeDelta(&entry->ReadCountDelta);
+            PhInitializeDelta(&entry->WriteCountDelta);
+            PhInitializeDelta(&entry->QueryTimeDelta);
 
             entry->ResponseTime = 0;
             entry->ActiveTime = 0.0f;
