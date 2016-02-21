@@ -78,19 +78,19 @@ PPH_STRING DiskDriveQueryDosMountPoints(
 {
     ULONG driveMask;
     PH_STRING_BUILDER stringBuilder;
-    
+    WCHAR devicePath[] = L"\\\\.\\?:";
+
     PhInitializeStringBuilder(&stringBuilder, MAX_PATH);
 
     driveMask = DiskDriveQueryDeviceMap();
 
-    // NOTE: This isn't the best way of doing this but it works.
-    for (INT i = 0; i < 26; i++)
+    // NOTE: This isn't the best way of doing this but it works (It's also what Task Manager does).
+    for (INT i = 0; i < 0x1A; i++)
     {
         if (driveMask & (0x1 << i))
         {
             HANDLE deviceHandle;
-            WCHAR devicePath[7] = L"\\\\.\\?:";
-            
+
             devicePath[4] = 'A' + i;
             
             if (NT_SUCCESS(PhCreateFileWin32(

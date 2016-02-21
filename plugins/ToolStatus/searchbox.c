@@ -144,9 +144,7 @@ static VOID NcAreaInitializeImageList(
 
     Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
     Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
-    Context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
-
-    //ImageList_SetBkColor(Context->ImageList, Context->BackgroundColorRef);
+    Context->ImageList = ImageList_Create(32, 32, ILC_COLOR32, 2, 2);
     ImageList_SetImageCount(Context->ImageList, 2);
 
     // Add the images to the imagelist

@@ -162,7 +162,7 @@ PPH_STRING NetworkAdapterQueryName(
 {
     NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
-    WCHAR adapterNameBuffer[MAX_PATH] = L"";
+    WCHAR adapterName[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
 
     // https://msdn.microsoft.com/en-us/library/ff569584.aspx
     opcode = OID_GEN_FRIENDLY_NAME;
@@ -176,11 +176,11 @@ PPH_STRING NetworkAdapterQueryName(
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &opcode,
         sizeof(NDIS_OID),
-        adapterNameBuffer,
-        sizeof(adapterNameBuffer)
+        adapterName,
+        sizeof(adapterName)
         )))
     {
-        return PhCreateString(adapterNameBuffer);
+        return PhCreateString(adapterName);
     }
 
     if (!GetInterfaceDescriptionFromGuid_I)
@@ -201,10 +201,8 @@ PPH_STRING NetworkAdapterQueryName(
 
         if (NT_SUCCESS(RtlGUIDFromString(&guidStringUs, &deviceGuid)))
         {
-            SIZE_T adapterDescriptionLength = 0;
             WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-
-            adapterDescriptionLength = sizeof(adapterDescription);
+            SIZE_T adapterDescriptionLength = sizeof(adapterDescription);
 
             if (SUCCEEDED(GetInterfaceDescriptionFromGuid_I(&deviceGuid, adapterDescription, &adapterDescriptionLength, NULL, NULL)))
             {
@@ -213,7 +211,7 @@ PPH_STRING NetworkAdapterQueryName(
         }
     }
 
-    return PhCreateString(L"Unknown");
+    return PhCreateString(L"Unknown Network Adapter");
 }
 
 NTSTATUS NetworkAdapterQueryStatistics(

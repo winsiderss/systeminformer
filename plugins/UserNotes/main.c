@@ -1709,20 +1709,14 @@ UINT_PTR CALLBACK ColorDlgHookProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        PhCenterWindow(hwndDlg, PhMainWndHandle);
-        break;
-    case WM_CTLCOLORBTN:
-    case WM_CTLCOLORDLG:
-    case WM_CTLCOLORSTATIC:
         {
-            HDC hDC = (HDC)wParam;
-            HWND hwndChild = (HWND)lParam;
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            // Set a transparent background for the control.
-            SetBkMode(hDC, TRANSPARENT);
+            if (!EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I = PhGetModuleProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
 
-            // Set window background color.
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+            if (EnableThemeDialogTexture_I)
+                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     }
