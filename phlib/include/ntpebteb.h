@@ -47,7 +47,6 @@ typedef struct _PEB
             ULONG ProcessUsingFTH : 1;
             ULONG ReservedBits0 : 27;
         };
-        ULONG EnvironmentUpdateCount;
     };
     union
     {

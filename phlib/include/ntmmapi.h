@@ -9,7 +9,8 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryMappedFilenameInformation, // UNICODE_STRING
     MemoryRegionInformation, // MEMORY_REGION_INFORMATION
     MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
-    MemorySharedCommitInformation // MEMORY_SHARED_COMMIT_INFORMATION
+    MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
+    MemoryImageInformation // MEMORY_IMAGE_INFORMATION
 } MEMORY_INFORMATION_CLASS;
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
@@ -98,6 +99,23 @@ typedef struct _MEMORY_SHARED_COMMIT_INFORMATION
 {
     SIZE_T CommitSize;
 } MEMORY_SHARED_COMMIT_INFORMATION, *PMEMORY_SHARED_COMMIT_INFORMATION;
+
+// private
+typedef struct _MEMORY_IMAGE_INFORMATION
+{
+    PVOID ImageBase;
+    SIZE_T SizeOfImage;
+    union
+    {
+        ULONG ImageFlags;
+        struct
+        {
+            ULONG ImagePartialMap : 1;
+            ULONG ImageNotExecutable : 1;
+            ULONG Reserved : 30;
+        };
+    };
+} MEMORY_IMAGE_INFORMATION, *PMEMORY_IMAGE_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
 #define MMPFNLIST_FREE 1

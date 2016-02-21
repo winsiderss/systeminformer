@@ -101,6 +101,7 @@ typedef struct _SESSIONIDW
     WINSTATIONSTATECLASS State;
 } SESSIONIDW, *PSESSIONIDW;
 
+// private
 typedef enum _WINSTATIONINFOCLASS
 {
     WinStationCreateData,
@@ -136,10 +137,10 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationIdleTime,
     WinStationLastReconnectType,
     WinStationDisallowAutoReconnect,
-    WinStationUnused2,
-    WinStationUnused3,
-    WinStationUnused4,
-    WinStationUnused5,
+    WinStationMprNotifyInfo,
+    WinStationExecSrvSystemPipe,
+    WinStationSmartCardAutoLogon,
+    WinStationIsAdminLoggedOn,
     WinStationReconnectedFromId,
     WinStationEffectsPolicy,
     WinStationType,
