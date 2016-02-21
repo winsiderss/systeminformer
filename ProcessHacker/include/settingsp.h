@@ -18,10 +18,8 @@ VOID PhpAddSetting(
     _In_ PPH_STRINGREF DefaultValue
     );
 
-VOID PhpAddIntegerPairSettingDpiScaleInternal(
-    _In_ PPH_STRINGREF Name,
-    _In_ ULONG DefaultX,
-    _In_ ULONG DefaultY
+ULONG PhpGetCurrentScale(
+    VOID
     );
 
 PPH_STRING PhpSettingToString(

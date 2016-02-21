@@ -6,7 +6,8 @@ typedef enum _PH_SETTING_TYPE
 {
     StringSettingType,
     IntegerSettingType,
-    IntegerPairSettingType
+    IntegerPairSettingType,
+    ScalableIntegerPairSettingType
 } PH_SETTING_TYPE, PPH_SETTING_TYPE;
 // end_phapppub
 
@@ -33,53 +34,87 @@ VOID PhUpdateCachedSettings(
     );
 
 // begin_phapppub
+_May_raise_
 PHAPPAPI
-_May_raise_ ULONG
+ULONG
 NTAPI
 PhGetIntegerSetting(
     _In_ PWSTR Name
     );
 
+_May_raise_
 PHAPPAPI
-_May_raise_ PH_INTEGER_PAIR
+PH_INTEGER_PAIR
 NTAPI
 PhGetIntegerPairSetting(
     _In_ PWSTR Name
     );
 
+_May_raise_
 PHAPPAPI
-_May_raise_ PPH_STRING
+PH_SCALABLE_INTEGER_PAIR
+NTAPI
+PhGetScalableIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ BOOLEAN ScaleToCurrent
+    );
+
+_May_raise_
+PHAPPAPI
+PPH_STRING
 NTAPI
 PhGetStringSetting(
     _In_ PWSTR Name
     );
 
+_May_raise_
 PHAPPAPI
-_May_raise_ VOID
+VOID
 NTAPI
 PhSetIntegerSetting(
     _In_ PWSTR Name,
     _In_ ULONG Value
     );
 
+_May_raise_
 PHAPPAPI
-_May_raise_ VOID
+VOID
 NTAPI
 PhSetIntegerPairSetting(
     _In_ PWSTR Name,
     _In_ PH_INTEGER_PAIR Value
     );
 
+_May_raise_
 PHAPPAPI
-_May_raise_ VOID
+VOID
+NTAPI
+PhSetScalableIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    );
+
+_May_raise_
+PHAPPAPI
+VOID
+NTAPI
+PhSetScalableIntegerPairSetting2(
+    _In_ PWSTR Name,
+    _In_ PH_INTEGER_PAIR Value
+    );
+
+_May_raise_
+PHAPPAPI
+VOID
 NTAPI
 PhSetStringSetting(
     _In_ PWSTR Name,
     _In_ PWSTR Value
     );
 
+_May_raise_
 PHAPPAPI
-_May_raise_ VOID
+VOID
 NTAPI
 PhSetStringSetting2(
     _In_ PWSTR Name,

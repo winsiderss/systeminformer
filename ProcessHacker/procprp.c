@@ -323,7 +323,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     PH_RECTANGLE windowRectangle;
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
-    windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE).Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;

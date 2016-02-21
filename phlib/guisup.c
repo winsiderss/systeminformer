@@ -249,6 +249,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     ULONG columnIndex;
     ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
     ULONG maxOrder;
+    ULONG scale;
 
     if (Settings->Length == 0)
         return FALSE;
@@ -258,6 +259,24 @@ BOOLEAN PhLoadListViewColumnSettings(
     memset(orderArray, 0, sizeof(orderArray));
     maxOrder = 0;
 
+    if (remainingPart.Length != 0 && remainingPart.Buffer[0] == '@')
+    {
+        PH_STRINGREF scalePart;
+        ULONG64 integer;
+
+        PhSkipStringRef(&remainingPart, sizeof(WCHAR));
+        PhSplitStringRefAtChar(&remainingPart, '|', &scalePart, &remainingPart);
+
+        if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
+            return FALSE;
+
+        scale = (ULONG)integer;
+    }
+    else
+    {
+        scale = PhGlobalDpi;
+    }
+
     while (remainingPart.Length != 0)
     {
         PH_STRINGREF columnPart;
@@ -265,6 +284,7 @@ BOOLEAN PhLoadListViewColumnSettings(
         PH_STRINGREF widthPart;
         ULONG64 integer;
         ULONG order;
+        ULONG width;
         LVCOLUMN lvColumn;
 
         PhSplitStringRefAtChar(&remainingPart, '|', &columnPart, &remainingPart);
@@ -297,8 +317,13 @@ BOOLEAN PhLoadListViewColumnSettings(
         if (!PhStringToInteger64(&widthPart, 10, &integer))
             return FALSE;
 
+        width = (ULONG)integer;
+
+        if (scale != PhGlobalDpi && scale != 0)
+            width = PhMultiplyDivide(width, PhGlobalDpi, scale);
+
         lvColumn.mask = LVCF_WIDTH;
-        lvColumn.cx = (ULONG)integer;
+        lvColumn.cx = width;
         ListView_SetColumn(ListViewHandle, columnIndex, &lvColumn);
 
         columnIndex++;
@@ -318,6 +343,8 @@ PPH_STRING PhSaveListViewColumnSettings(
     LVCOLUMN lvColumn;
 
     PhInitializeStringBuilder(&stringBuilder, 20);
+
+    PhAppendFormatStringBuilder(&stringBuilder, L"@%u|", PhGlobalDpi);
 
     lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
 

@@ -268,7 +268,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 PH_RECTANGLE windowRectangle;
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
-                windowRectangle.Size = PhGetIntegerPairSetting(L"MemEditSize");
+                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE).Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -279,7 +279,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 windowRectangle.Top += 20;
 
                 PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                PhSetIntegerPairSetting(L"MemEditSize", windowRectangle.Size);
+                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size);
             }
 
             {

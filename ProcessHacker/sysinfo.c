@@ -914,7 +914,7 @@ VOID PhSiSetColorsGraphDrawInfo(
     )
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
-    static ULONG lastPixelsPerInch = -1;
+    static ULONG lastDpi = -1;
     static HFONT iconTitleFont;
 
     // Get the appropriate fonts.
@@ -923,20 +923,20 @@ VOID PhSiSetColorsGraphDrawInfo(
     {
         PhAcquireQueuedLockExclusive(&lock);
 
-        if (lastPixelsPerInch != PhPixelsPerInchV)
+        if (lastDpi != PhGlobalDpi)
         {
             LOGFONT logFont;
 
             if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
             {
-                logFont.lfHeight += PhMultiplyDivide(1, PhPixelsPerInchV, 72);
+                logFont.lfHeight += PhMultiplyDivide(1, PhGlobalDpi, 72);
                 iconTitleFont = CreateFontIndirect(&logFont);
             }
 
             if (!iconTitleFont)
                 iconTitleFont = PhApplicationFont;
 
-            lastPixelsPerInch = PhPixelsPerInchV;
+            lastDpi = PhGlobalDpi;
         }
 
         DrawInfo->LabelYFont = iconTitleFont;

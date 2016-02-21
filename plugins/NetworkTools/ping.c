@@ -432,7 +432,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
             context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
 
             windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION);
-            windowRectangle.Size = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE);
+            windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE, TRUE).Pair;
 
             // Create the font handle.
             context->FontHandle = InitializeFont(context->StatusHandle);

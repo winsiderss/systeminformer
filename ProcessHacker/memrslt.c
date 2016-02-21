@@ -328,7 +328,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 PH_RECTANGLE windowRectangle;
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemResultsPosition");
-                windowRectangle.Size = PhGetIntegerPairSetting(L"MemResultsSize");
+                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemResultsSize", TRUE).Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -339,7 +339,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 windowRectangle.Top += 20;
 
                 PhSetIntegerPairSetting(L"MemResultsPosition", windowRectangle.Position);
-                PhSetIntegerPairSetting(L"MemResultsSize", windowRectangle.Size);
+                PhSetScalableIntegerPairSetting2(L"MemResultsSize", windowRectangle.Size);
             }
         }
         break;

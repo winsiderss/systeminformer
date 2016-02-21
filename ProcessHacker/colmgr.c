@@ -312,11 +312,13 @@ BOOLEAN PhCmLoadSettingsEx(
     )
 {
     BOOLEAN result = FALSE;
+    PH_STRINGREF scalePart;
     PH_STRINGREF columnPart;
     PH_STRINGREF remainingColumnPart;
     PH_STRINGREF valuePart;
     PH_STRINGREF subPart;
     ULONG64 integer;
+    ULONG scale;
     ULONG total;
     BOOLEAN hasFixedColumn;
     ULONG count;
@@ -332,6 +334,21 @@ BOOLEAN PhCmLoadSettingsEx(
         columnHashtable = PhCreateSimpleHashtable(20);
 
         remainingColumnPart = *Settings;
+
+        if (remainingColumnPart.Length != 0 && remainingColumnPart.Buffer[0] == '@')
+        {
+            PhSkipStringRef(&remainingColumnPart, sizeof(WCHAR));
+            PhSplitStringRefAtChar(&remainingColumnPart, '|', &scalePart, &remainingColumnPart);
+
+            if (scalePart.Length == 0 || !PhStringToInteger64(&scalePart, 10, &integer))
+                goto CleanupExit;
+
+            scale = (ULONG)integer;
+        }
+        else
+        {
+            scale = PhGlobalDpi;
+        }
 
         while (remainingColumnPart.Length != 0)
         {
@@ -404,6 +421,9 @@ BOOLEAN PhCmLoadSettingsEx(
                     goto CleanupExit;
 
                 width = (ULONG)integer;
+
+                if (scale != PhGlobalDpi && scale != 0)
+                    width = PhMultiplyDivide(width, PhGlobalDpi, scale);
 
                 column = PhAllocate(sizeof(PH_TREENEW_COLUMN));
                 column->Id = id;
@@ -573,6 +593,8 @@ PPH_STRING PhCmSaveSettingsEx(
         increment = 0;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
+
+    PhAppendFormatStringBuilder(&stringBuilder, L"@%u|", PhGlobalDpi);
 
     while (count < total)
     {

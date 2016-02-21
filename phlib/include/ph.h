@@ -2174,6 +2174,20 @@ typedef struct _PH_INTEGER_PAIR
     LONG Y;
 } PH_INTEGER_PAIR, *PPH_INTEGER_PAIR;
 
+typedef struct _PH_SCALABLE_INTEGER_PAIR
+{
+    union
+    {
+        PH_INTEGER_PAIR Pair;
+        struct
+        {
+            LONG X;
+            LONG Y;
+        };
+    };
+    ULONG Scale;
+} PH_SCALABLE_INTEGER_PAIR, *PPH_SCALABLE_INTEGER_PAIR;
+
 typedef struct _PH_RECTANGLE
 {
     union

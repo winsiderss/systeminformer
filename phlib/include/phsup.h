@@ -471,6 +471,18 @@ FORCEINLINE ULONG PhMultiplyDivide(
     return (ULONG)(((ULONG64)Number * (ULONG64)Numerator + Denominator / 2) / (ULONG64)Denominator);
 }
 
+FORCEINLINE LONG PhMultiplyDivideSigned(
+    _In_ LONG Number,
+    _In_ ULONG Numerator,
+    _In_ ULONG Denominator
+    )
+{
+    if (Number >= 0)
+        return PhMultiplyDivide(Number, Numerator, Denominator);
+    else
+        return -(LONG)PhMultiplyDivide(-Number, Numerator, Denominator);
+}
+
 FORCEINLINE VOID PhProbeAddress(
     _In_ PVOID UserAddress,
     _In_ SIZE_T UserLength,

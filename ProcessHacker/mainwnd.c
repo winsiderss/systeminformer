@@ -155,7 +155,7 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRectangle.Size = PhGetIntegerPairSetting(L"MainWindowSize");
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE).Pair;
 
     // Create the window title.
 

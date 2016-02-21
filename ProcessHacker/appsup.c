@@ -1196,7 +1196,7 @@ VOID PhLoadWindowPlacementFromSetting(
         RECT rectForAdjust;
 
         windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
-        windowRectangle.Size = PhGetIntegerPairSetting(SizeSettingName);
+        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE).Pair;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
         // Let the window adjust for the minimum size if needed.
@@ -1228,7 +1228,7 @@ VOID PhLoadWindowPlacementFromSetting(
 
         if (SizeSettingName)
         {
-            size = PhGetIntegerPairSetting(SizeSettingName);
+            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE).Pair;
             flags &= ~SWP_NOSIZE;
         }
         else
@@ -1264,7 +1264,7 @@ VOID PhSaveWindowPlacementToSetting(
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
     if (SizeSettingName)
-        PhSetIntegerPairSetting(SizeSettingName, windowRectangle.Size);
+        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size);
 }
 
 VOID PhLoadListViewColumnsFromSetting(

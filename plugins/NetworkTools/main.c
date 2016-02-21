@@ -118,9 +118,9 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_POSITION, L"0,0" },
-                { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"600,365" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|600,365" },
                 { IntegerPairSettingType, SETTING_NAME_PING_WINDOW_POSITION, L"0,0" },
-                { IntegerPairSettingType, SETTING_NAME_PING_WINDOW_SIZE, L"420,250" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_PING_WINDOW_SIZE, L"@96|420,250" },
                 { IntegerSettingType, SETTING_NAME_PING_TIMEOUT, L"3e8" } // 1000 timeout.
             };
 
