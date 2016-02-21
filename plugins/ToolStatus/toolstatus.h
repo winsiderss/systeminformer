@@ -277,7 +277,7 @@ typedef struct _EDIT_CONTEXT
     HBRUSH BrushNormal;
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
-    COLORREF BackgroundColorRef;
+    //COLORREF BackgroundColorRef;
 
     union
     {

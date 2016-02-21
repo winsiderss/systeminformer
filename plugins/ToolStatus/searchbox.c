@@ -90,7 +90,7 @@ static VOID NcAreaInitializeTheme(
     )
 {
     Context->CXWidth = PhMultiplyDivide(20, PhGlobalDpi, 96);
-    Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
+    //Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
     Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
@@ -142,11 +142,11 @@ static VOID NcAreaInitializeImageList(
     HBITMAP bitmapActive = NULL;
     HBITMAP bitmapInactive = NULL;
 
-    Context->ImageWidth = PhMultiplyDivide(23, PhGlobalDpi, 96);
-    Context->ImageHeight = PhMultiplyDivide(20, PhGlobalDpi, 96);
+    Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
+    Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
     Context->ImageList = ImageList_Create(32, 32, ILC_COLOR32 | ILC_MASK, 0, 0);
 
-    ImageList_SetBkColor(Context->ImageList, Context->BackgroundColorRef);
+    //ImageList_SetBkColor(Context->ImageList, Context->BackgroundColorRef);
     ImageList_SetImageCount(Context->ImageList, 2);
 
     // Add the images to the imagelist
@@ -223,31 +223,23 @@ static VOID NcAreaDrawButton(
     // Draw the image centered within the rect.
     if (SearchboxText->Length > 0)
     {
-        ImageList_DrawEx(
+        ImageList_Draw(
             Context->ImageList,
             0,
             bufferDc,
             bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2,
-            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - Context->ImageHeight) / 2,
-            0,
-            0,
-            Context->BackgroundColorRef,
-            Context->BackgroundColorRef,
+            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - Context->ImageHeight - 2) / 2,  // (ImageHeight - 2) offset image by two 
             ILD_NORMAL | ILD_TRANSPARENT
             );
     }
     else
     {
-        ImageList_DrawEx(
+        ImageList_Draw(
             Context->ImageList,
             1,
             bufferDc,
-            bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2,
-            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 1)) / 2, // (Height - 1) image off by one pixel 
-            0,
-            0,
-            Context->BackgroundColorRef,
-            Context->BackgroundColorRef,
+            bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth + 2) / 2,  // (ImageWidth + 2) offset image by two 
+            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 1)) / 2, // (ImageHeight - 1) offset image by one 
             ILD_NORMAL | ILD_TRANSPARENT
             );
     }
@@ -634,14 +626,14 @@ HBITMAP LoadImageFromResources(
             __leave;
 
         // Check if the image format is supported:
-        if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppPBGRA)) // GUID_WICPixelFormat32bppRGB
+        if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppRGBA)) //  GUID_WICPixelFormat32bppPBGRA
         {
             wicBitmapSource = (IWICBitmapSource*)wicFrame;
         }
         else
         {
             // Convert the image to the correct format:
-            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppPBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
                 __leave;
 
             IWICBitmapFrameDecode_Release(wicFrame);
