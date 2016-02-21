@@ -22,19 +22,6 @@
 
 #include "devices.h"
 
-static VOID NTAPI ProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PDV_DISK_SYSINFO_CONTEXT context = Context;
-
-    if (context->WindowHandle)
-    {
-        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
-    }
-}
-
 VOID DiskDriveUpdateGraphs(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
@@ -137,8 +124,6 @@ INT_PTR CALLBACK DiskDriveDialogProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
-
             PhDeleteLayoutManager(&context->LayoutManager);
             PhDeleteGraphState(&context->GraphState);
 
@@ -208,13 +193,6 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
 
             UpdateDiskDriveDialog(context);
-
-            PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
-                ProcessesUpdatedHandler,
-                context,
-                &context->ProcessesUpdatedRegistration
-                );
         }
         break;
     case WM_SIZE:
@@ -234,7 +212,7 @@ INT_PTR CALLBACK DiskDriveDialogProc(
                         PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
+                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
 
                         PhGraphStateGetDrawInfo(
                             &context->GraphState,
@@ -352,6 +330,9 @@ static BOOLEAN DiskDriveSectionCallback(
     case SysInfoTick:
         {
             UpdateDiskIndexText(context);
+
+            if (context->WindowHandle)
+                PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
         }
         return TRUE;
     case SysInfoCreateDialog:
@@ -369,7 +350,7 @@ static BOOLEAN DiskDriveSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"));
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->AdapterEntry->ReadBuffer.Count);
 
             if (!Section->GraphState.Valid)

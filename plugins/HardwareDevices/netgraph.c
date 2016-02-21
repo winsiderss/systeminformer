@@ -23,19 +23,6 @@
 
 #include "devices.h"
 
-static VOID NTAPI ProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PDV_NETADAPTER_SYSINFO_CONTEXT context = Context;
-
-    if (context->WindowHandle)
-    {
-        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
-    }
-}
-
 static VOID NetAdapterUpdateGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
@@ -240,8 +227,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
-
             PhDeleteLayoutManager(&context->LayoutManager);
             PhDeleteGraphState(&context->GraphState);
 
@@ -304,13 +289,6 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
             PhAddLayoutItemEx(&context->LayoutManager, context->GraphHandle, NULL, PH_ANCHOR_ALL, graphItem->Margin);
 
             UpdateNetAdapterDialog(context);
-
-            PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
-                ProcessesUpdatedHandler,
-                context,
-                &context->ProcessesUpdatedRegistration
-                );
         }
         break;
     case WM_SIZE:
@@ -443,6 +421,10 @@ static BOOLEAN NetAdapterSectionCallback(
         }
         return TRUE;
     case SysInfoTick:
+        {
+            if (context->WindowHandle)
+                PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
+        }
         return TRUE;
     case SysInfoCreateDialog:
         {
