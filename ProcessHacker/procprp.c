@@ -4327,7 +4327,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     {
                         PhShowInformationDialog(hwndDlg, items[0]->Buffer, 0);
                     }
-                    else
+                    else if (numberOfItems > 1)
                     {
                         PhShowInformationDialog(hwndDlg, PH_AUTO_T(PH_STRING, PhGetListViewText(lvHandle))->Buffer, 0);
                     }
