@@ -2,7 +2,7 @@
  * Process Hacker -
  *   tree new column manager
  *
- * Copyright (C) 2011 wj32
+ * Copyright (C) 2011-2016 wj32
  *
  * This file is part of Process Hacker.
  *

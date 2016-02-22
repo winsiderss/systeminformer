@@ -2,7 +2,7 @@
  * Process Hacker -
  *   mini information window
  *
- * Copyright (C) 2015 wj32
+ * Copyright (C) 2015-2016 wj32
  *
  * This file is part of Process Hacker.
  *
