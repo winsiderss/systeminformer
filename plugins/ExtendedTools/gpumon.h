@@ -32,8 +32,7 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     );
 
 PPH_STRING EtpQueryDeviceDescription(
-    _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData
+    _In_ PWSTR DeviceInterface
     );
 
 VOID NTAPI ProcessesUpdatedCallback(

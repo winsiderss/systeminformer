@@ -20,8 +20,10 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define INITGUID
 #include "exttools.h"
-#include <setupapi.h>
+#include <cfgmgr32.h>
+#include <devpkey.h>
 #include "d3dkmt.h"
 #include "gpumon.h"
 
@@ -179,114 +181,102 @@ BOOLEAN EtpInitializeD3DStatistics(
     VOID
     )
 {
-    LOGICAL result;
-    HDEVINFO deviceInfoSet;
-    ULONG memberIndex;
-    SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
-    PSP_DEVICE_INTERFACE_DETAIL_DATA detailData;
-    SP_DEVINFO_DATA deviceInfoData;
-    ULONG detailDataSize;
+    PWSTR deviceInterfaceList = NULL;
+    ULONG deviceInterfaceListLength = 0;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
 
-    deviceInfoSet = SetupDiGetClassDevs(&GUID_DISPLAY_DEVICE_ARRIVAL_I, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
-
-    if (!deviceInfoSet)
-        return FALSE;
-
-    memberIndex = 0;
-    deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-
-    while (SetupDiEnumDeviceInterfaces(deviceInfoSet, NULL, &GUID_DISPLAY_DEVICE_ARRIVAL_I, memberIndex, &deviceInterfaceData))
+    if (CM_Get_Device_Interface_List_Size(
+        &deviceInterfaceListLength,
+        (LPGUID)&GUID_DISPLAY_DEVICE_ARRIVAL_I,
+        NULL,
+        CM_GET_DEVICE_INTERFACE_LIST_PRESENT
+        ) != CR_SUCCESS)
     {
-        detailDataSize = 0x100;
-        detailData = PhAllocate(detailDataSize);
-        detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+        return FALSE;
+    }
 
-        if (!(result = SetupDiGetDeviceInterfaceDetail(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData)) &&
-            GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+
+    if (CM_Get_Device_Interface_List(
+        (LPGUID)&GUID_DISPLAY_DEVICE_ARRIVAL_I,
+        NULL,
+        deviceInterfaceList,
+        deviceInterfaceListLength,
+        CM_GET_DEVICE_INTERFACE_LIST_PRESENT
+        ) != CR_SUCCESS)
+    {
+        PhFree(deviceInterfaceList);
+        return FALSE;
+    }
+
+    for (PWSTR deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    {
+        openAdapterFromDeviceName.pDeviceName = deviceInterface;
+
+        if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName_I(&openAdapterFromDeviceName)))
         {
-            PhFree(detailData);
-            detailData = PhAllocate(detailDataSize);
+            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
+            queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
 
-            if (detailDataSize >= sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA))
-                detailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-
-            result = SetupDiGetDeviceInterfaceDetail(deviceInfoSet, &deviceInterfaceData, detailData, detailDataSize, &detailDataSize, &deviceInfoData);
-        }
-
-        if (result)
-        {
-            openAdapterFromDeviceName.pDeviceName = detailData->DevicePath;
-
-            if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName_I(&openAdapterFromDeviceName)))
+            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
             {
-                memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-                queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
-                queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+                PETP_GPU_ADAPTER gpuAdapter;
+                ULONG i;
 
-                if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+                gpuAdapter = EtpAllocateGpuAdapter(queryStatistics.QueryResult.AdapterInformation.NbSegments);
+                gpuAdapter->AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+                gpuAdapter->Description = EtpQueryDeviceDescription(deviceInterface);
+                gpuAdapter->NodeCount = queryStatistics.QueryResult.AdapterInformation.NodeCount;
+                gpuAdapter->SegmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
+                RtlInitializeBitMap(&gpuAdapter->ApertureBitMap, gpuAdapter->ApertureBitMapBuffer, queryStatistics.QueryResult.AdapterInformation.NbSegments);
+
+                PhAddItemList(EtpGpuAdapterList, gpuAdapter);
+                EtGpuTotalNodeCount += gpuAdapter->NodeCount;
+                EtGpuTotalSegmentCount += gpuAdapter->SegmentCount;
+
+                gpuAdapter->FirstNodeIndex = EtGpuNextNodeIndex;
+                EtGpuNextNodeIndex += gpuAdapter->NodeCount;
+
+                for (i = 0; i < gpuAdapter->SegmentCount; i++)
                 {
-                    PETP_GPU_ADAPTER gpuAdapter;
-                    ULONG i;
+                    memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+                    queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
+                    queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+                    queryStatistics.QuerySegment.SegmentId = i;
 
-                    gpuAdapter = EtpAllocateGpuAdapter(queryStatistics.QueryResult.AdapterInformation.NbSegments);
-                    gpuAdapter->AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
-                    gpuAdapter->Description = EtpQueryDeviceDescription(deviceInfoSet, &deviceInfoData);
-                    gpuAdapter->NodeCount = queryStatistics.QueryResult.AdapterInformation.NodeCount;
-                    gpuAdapter->SegmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
-                    RtlInitializeBitMap(&gpuAdapter->ApertureBitMap, gpuAdapter->ApertureBitMapBuffer, queryStatistics.QueryResult.AdapterInformation.NbSegments);
-
-                    PhAddItemList(EtpGpuAdapterList, gpuAdapter);
-                    EtGpuTotalNodeCount += gpuAdapter->NodeCount;
-                    EtGpuTotalSegmentCount += gpuAdapter->SegmentCount;
-
-                    gpuAdapter->FirstNodeIndex = EtGpuNextNodeIndex;
-                    EtGpuNextNodeIndex += gpuAdapter->NodeCount;
-
-                    for (i = 0; i < gpuAdapter->SegmentCount; i++)
+                    if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
                     {
-                        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-                        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
-                        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
-                        queryStatistics.QuerySegment.SegmentId = i;
+                        ULONG64 commitLimit;
+                        ULONG aperture;
 
-                        if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+                        if (WindowsVersion >= WINDOWS_8)
                         {
-                            ULONG64 commitLimit;
-                            ULONG aperture;
-
-                            if (WindowsVersion >= WINDOWS_8)
-                            {
-                                commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
-                                aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
-                            }
-                            else
-                            {
-                                commitLimit = queryStatistics.QueryResult.SegmentInformationV1.CommitLimit;
-                                aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
-                            }
-
-                            if (aperture)
-                                EtGpuSharedLimit += commitLimit;
-                            else
-                                EtGpuDedicatedLimit += commitLimit;
-
-                            if (aperture)
-                                RtlSetBits(&gpuAdapter->ApertureBitMap, i, 1);
+                            commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
+                            aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
                         }
+                        else
+                        {
+                            commitLimit = queryStatistics.QueryResult.SegmentInformationV1.CommitLimit;
+                            aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
+                        }
+
+                        if (aperture)
+                            EtGpuSharedLimit += commitLimit;
+                        else
+                            EtGpuDedicatedLimit += commitLimit;
+
+                        if (aperture)
+                            RtlSetBits(&gpuAdapter->ApertureBitMap, i, 1);
                     }
                 }
             }
         }
-
-        PhFree(detailData);
-
-        memberIndex++;
     }
 
-    SetupDiDestroyDeviceInfoList(deviceInfoSet);
+    PhFree(deviceInterfaceList);
 
     EtGpuNodeBitMapBuffer = PhAllocate(BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount));
     RtlInitializeBitMap(&EtGpuNodeBitMap, EtGpuNodeBitMapBuffer, EtGpuTotalNodeCount);
@@ -313,42 +303,64 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
 }
 
 PPH_STRING EtpQueryDeviceDescription(
-    _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData
+    _In_ PWSTR DeviceInterface
     )
 {
-    LOGICAL result;
+    CONFIGRET result;
     PPH_STRING string;
     ULONG bufferSize;
+    DEVPROPTYPE devicePropertyType;
+    DEVINST deviceInstanceHandle;
+    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
+
+    if (CM_Get_Device_Interface_Property(
+        DeviceInterface,
+        &DEVPKEY_Device_InstanceId,
+        &devicePropertyType,
+        (PBYTE)deviceInstanceId,
+        &deviceInstanceIdLength,
+        0
+        ) != CR_SUCCESS)
+    {
+        return NULL;
+    }
+
+    if (CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        deviceInstanceId,
+        CM_LOCATE_DEVNODE_NORMAL
+        ) != CR_SUCCESS)
+    {
+        return NULL;
+    }
 
     bufferSize = 0x40;
     string = PhCreateStringEx(NULL, bufferSize);
 
-    if (!(result = SetupDiGetDeviceRegistryProperty(
-        DeviceInfoSet,
-        DeviceInfoData,
-        SPDRP_DEVICEDESC,
-        NULL,
+    if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
+        deviceInstanceHandle,
+        &DEVPKEY_Device_DeviceDesc,
+        &devicePropertyType,
         (PBYTE)string->Buffer,
-        bufferSize,
-        &bufferSize
-        )) && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        &bufferSize,
+        0
+        )) != CR_SUCCESS)
     {
         PhDereferenceObject(string);
         string = PhCreateStringEx(NULL, bufferSize);
 
-        result = SetupDiGetDeviceRegistryProperty(
-            DeviceInfoSet,
-            DeviceInfoData,
-            SPDRP_DEVICEDESC,
-            NULL,
+        result = CM_Get_DevNode_Property(
+            deviceInstanceHandle,
+            &DEVPKEY_Device_DeviceDesc,
+            &devicePropertyType,
             (PBYTE)string->Buffer,
-            bufferSize,
-            NULL
+            &bufferSize,
+            0
             );
     }
 
-    if (!result)
+    if (result != CR_SUCCESS)
     {
         PhDereferenceObject(string);
         return NULL;
