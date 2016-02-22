@@ -139,6 +139,9 @@ VOID EtGpuMonitorInitialization(
         // Fix up the node bitmap if the current node count differs from what we've seen.
         if (EtGpuTotalNodeCount != PhGetIntegerSetting(SETTING_NAME_GPU_LAST_NODE_COUNT))
         {
+            ULONG maxContextSwitch = 0;
+            ULONG maxContextSwitchNodeIndex = 0;
+
             RtlClearAllBits(&EtGpuNodeBitMap);
             EtGpuNodeBitMapBitsSet = 0;
 
@@ -162,6 +165,12 @@ VOID EtGpuMonitorInitialization(
                             RtlSetBits(&EtGpuNodeBitMap, gpuAdapter->FirstNodeIndex + j, 1);
                             EtGpuNodeBitMapBitsSet++;
                         }
+
+                        if (maxContextSwitch < queryStatistics.QueryResult.NodeInformation.GlobalInformation.ContextSwitch)
+                        {
+                            maxContextSwitch = queryStatistics.QueryResult.NodeInformation.GlobalInformation.ContextSwitch;
+                            maxContextSwitchNodeIndex = gpuAdapter->FirstNodeIndex + j;
+                        }
                     }
                 }
             }
@@ -169,7 +178,7 @@ VOID EtGpuMonitorInitialization(
             // Just in case
             if (EtGpuNodeBitMapBitsSet == 0)
             {
-                RtlSetBits(&EtGpuNodeBitMap, 0, 1);
+                RtlSetBits(&EtGpuNodeBitMap, maxContextSwitchNodeIndex, 1);
                 EtGpuNodeBitMapBitsSet = 1;
             }
 
