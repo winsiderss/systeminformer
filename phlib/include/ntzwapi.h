@@ -2181,15 +2181,6 @@ ZwOpenJobObject(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwOpenJobObjectToken(
-    _In_ HANDLE JobHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _Out_ PHANDLE TokenHandle
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
 ZwOpenKey(
     _Out_ PHANDLE KeyHandle,
     _In_ ACCESS_MASK DesiredAccess,

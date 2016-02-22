@@ -230,17 +230,6 @@ NtOpenThreadTokenEx(
     _Out_ PHANDLE TokenHandle
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtOpenJobObjectToken(
-    _In_ HANDLE JobHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _Out_ PHANDLE TokenHandle
-    );
-#endif
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
