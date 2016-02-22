@@ -3,6 +3,7 @@
  *   GPU monitoring
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -185,10 +186,11 @@ BOOLEAN EtpInitializeD3DStatistics(
     ULONG deviceInterfaceListLength = 0;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
+    D3DKMT_CLOSEADAPTER closeAdapter;
 
     if (CM_Get_Device_Interface_List_Size(
         &deviceInterfaceListLength,
-        (LPGUID)&GUID_DISPLAY_DEVICE_ARRIVAL_I,
+        &GUID_DISPLAY_DEVICE_ARRIVAL_I,
         NULL,
         CM_GET_DEVICE_INTERFACE_LIST_PRESENT
         ) != CR_SUCCESS)
@@ -200,7 +202,7 @@ BOOLEAN EtpInitializeD3DStatistics(
     memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
 
     if (CM_Get_Device_Interface_List(
-        (LPGUID)&GUID_DISPLAY_DEVICE_ARRIVAL_I,
+        &GUID_DISPLAY_DEVICE_ARRIVAL_I,
         NULL,
         deviceInterfaceList,
         deviceInterfaceListLength,
@@ -217,9 +219,11 @@ BOOLEAN EtpInitializeD3DStatistics(
 
         if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName_I(&openAdapterFromDeviceName)))
         {
+            memset(&closeAdapter, 0, sizeof(D3DKMT_CLOSEADAPTER));
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
             queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
+            closeAdapter.hAdapter = openAdapterFromDeviceName.hAdapter;
 
             if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
             {
@@ -273,6 +277,8 @@ BOOLEAN EtpInitializeD3DStatistics(
                     }
                 }
             }
+
+            D3DKMTCloseAdapter_I(&closeAdapter);
         }
     }
 
