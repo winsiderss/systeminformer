@@ -22,6 +22,7 @@
 
 #include "exttools.h"
 #include <setupapi.h>
+#include <delayimp.h>
 #include "d3dkmt.h"
 #include "gpumon.h"
 
@@ -69,6 +70,10 @@ VOID EtGpuMonitorInitialization(
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) && WindowsVersion >= WINDOWS_7)
     {
         PVOID gdi32Handle;
+
+        // GPU monitoring is enabled and we will be using 6 SetupAPI functions at startup.
+        // Snap-load all delay-loaded imports for better performance.
+        __HrLoadAllImportsForDll("SETUPAPI.dll");
 
         if (gdi32Handle = PhGetDllHandle(L"gdi32.dll"))
         {
