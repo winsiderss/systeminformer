@@ -21,6 +21,7 @@
  */
 
 #include "devices.h"
+#include <ntdddisk.h>
 
 NTSTATUS DiskDriveCreateHandle(
     _Out_ PHANDLE DeviceHandle,

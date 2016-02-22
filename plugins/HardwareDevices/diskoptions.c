@@ -22,7 +22,6 @@
 
 #include "devices.h"
 #include <Setupapi.h>
-#include <ntdddisk.h>
 
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
@@ -32,6 +31,7 @@ static _EnableThemeDialogTexture EnableThemeDialogTexture_I = NULL;
 typedef struct _DISK_ENUM_ENTRY
 {
     ULONG DeviceIndex;
+    BOOLEAN DevicePresent;
     PPH_STRING DevicePath;
     PPH_STRING DeviceName;
     PPH_STRING DeviceMountPoints;
@@ -160,8 +160,52 @@ BOOLEAN FindDiskEntry(
     return found;
 }
 
+static INT AddListViewItemGroupId(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_TEXT | LVIF_GROUPID | LVIF_PARAM;
+    item.iGroupId = GroupId;
+    item.iItem = Index;
+    item.iSubItem = 0;
+    item.pszText = Text;
+    item.lParam = (LPARAM)Param;
+
+    return ListView_InsertItem(ListViewHandle, &item);
+}
+
+static VOID AddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PWSTR Text
+    )
+{
+    LVGROUP group = { LVGROUP_V5_SIZE };
+    group.mask = LVGF_HEADER | LVGF_GROUPID;
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        group.cbSize = sizeof(LVGROUP);
+        group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
+        group.uAlign = LVGA_HEADER_LEFT;
+        group.state = LVGS_COLLAPSIBLE;
+    }
+
+    group.iGroupId = Index;
+    group.pszHeader = Text;
+
+    ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
+}
+
 VOID AddDiskDriveToListView(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context,
+    _In_ BOOLEAN DiskPresent,
     _In_ PPH_STRING DiskPath,
     _In_ PPH_STRING DiskName
     )
@@ -202,8 +246,9 @@ VOID AddDiskDriveToListView(
         PhMoveReference(&newId->DevicePath, DiskPath);
     }
 
-    lvItemIndex = PhAddListViewItem(
+    lvItemIndex = AddListViewItemGroupId(
         Context->ListViewHandle,
+        DiskPresent ? 0 : 1,
         MAXINT,
         DiskName->Buffer,
         newId
@@ -230,7 +275,7 @@ VOID FindDiskDrives(
         &GUID_DEVINTERFACE_DISK,
         NULL,
         NULL,
-        DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
+        DIGCF_DEVICEINTERFACE
         )) == INVALID_HANDLE_VALUE)
     {
         return;
@@ -304,6 +349,7 @@ VOID FindDiskDrives(
                     PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
                     
                     diskEntry->DeviceIndex = diskIndex;
+                    diskEntry->DevicePresent = TRUE;
 
                     if (!PhIsNullOrEmptyString(diskMountPoints))
                     {
@@ -346,6 +392,7 @@ VOID FindDiskDrives(
 
         AddDiskDriveToListView(
             Context,
+            entry->DevicePresent,
             entry->DevicePath,
             entry->DeviceMountPoints ? entry->DeviceMountPoints : entry->DeviceName
             );
@@ -357,46 +404,6 @@ VOID FindDiskDrives(
         // Note: DevicePath is disposed by WM_DESTROY.
 
         PhFree(entry);
-    }
-
-    PhReleaseQueuedLockShared(&DiskDrivesListLock);
-
-    // HACK: Remove all disconnected devices.
-    PhAcquireQueuedLockShared(&DiskDrivesListLock);
-
-    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
-    {
-        ULONG index = -1;
-        BOOLEAN found = FALSE;
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
-
-        if (!entry)
-            continue;
-
-        while ((index = PhFindListViewItemByFlags(
-            Context->ListViewHandle,
-            index,
-            LVNI_ALL
-            )) != -1)
-        {
-            PDV_DISK_ID param;
-
-            if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
-            {
-                if (EquivalentDiskId(param, &entry->Id))
-                {
-                    found = TRUE;
-                }
-            }
-        }
-
-        if (!found)
-        {
-            Context->OptionsChanged = TRUE;
-            FindDiskEntry(&entry->Id, TRUE);
-        }
-
-        PhDereferenceObjectDeferDelete(entry);
     }
 
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
@@ -488,6 +495,10 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
+
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            AddListViewGroup(context->ListViewHandle, 0, L"Connected");
+            AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             FindDiskDrives(context);
 
