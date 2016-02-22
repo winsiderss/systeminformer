@@ -184,6 +184,7 @@ BOOLEAN EtpInitializeD3DStatistics(
 {
     PWSTR deviceInterfaceList = NULL;
     ULONG deviceInterfaceListLength = 0;
+    PWSTR deviceInterface;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_CLOSEADAPTER closeAdapter;
@@ -213,17 +214,15 @@ BOOLEAN EtpInitializeD3DStatistics(
         return FALSE;
     }
 
-    for (PWSTR deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
     {
         openAdapterFromDeviceName.pDeviceName = deviceInterface;
 
         if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName_I(&openAdapterFromDeviceName)))
         {
-            memset(&closeAdapter, 0, sizeof(D3DKMT_CLOSEADAPTER));
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
             queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
-            closeAdapter.hAdapter = openAdapterFromDeviceName.hAdapter;
 
             if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
             {
@@ -278,6 +277,8 @@ BOOLEAN EtpInitializeD3DStatistics(
                 }
             }
 
+            memset(&closeAdapter, 0, sizeof(D3DKMT_CLOSEADAPTER));
+            closeAdapter.hAdapter = openAdapterFromDeviceName.hAdapter;
             D3DKMTCloseAdapter_I(&closeAdapter);
         }
     }
