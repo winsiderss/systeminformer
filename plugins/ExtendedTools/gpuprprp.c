@@ -263,9 +263,9 @@ static VOID GpuPropLayoutGraphs(
     HDWP deferHandle;
     RECT clientRect;
     RECT panelRect;
-    RECT margin = { 13, 13, 13, 13 };
-    RECT innerMargin = { 10, 20, 10, 10 };
-    LONG between = 3;
+    RECT margin = { ET_SCALE_DPI(13), ET_SCALE_DPI(13), ET_SCALE_DPI(13), ET_SCALE_DPI(13) };
+    RECT innerMargin = { ET_SCALE_DPI(10), ET_SCALE_DPI(20), ET_SCALE_DPI(10), ET_SCALE_DPI(10) };
+    LONG between = ET_SCALE_DPI(3);
     ULONG graphWidth;
     ULONG graphHeight;
 

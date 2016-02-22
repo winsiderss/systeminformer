@@ -1876,9 +1876,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             HWND privateBytesGroupBox = GetDlgItem(hwndDlg, IDC_GROUPPRIVATEBYTES);
             HWND ioGroupBox = GetDlgItem(hwndDlg, IDC_GROUPIO);
             RECT clientRect;
-            RECT margin = { 13, 13, 13, 13 };
-            RECT innerMargin = { 10, 20, 10, 10 };
-            LONG between = 3;
+            RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
+            RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
+            LONG between = PH_SCALE_DPI(3);
             LONG width;
             LONG height;
 
