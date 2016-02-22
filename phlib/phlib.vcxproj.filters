@@ -193,9 +193,6 @@
     <ClInclude Include="include\ntbasic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\ntcm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\ntdbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>

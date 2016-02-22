@@ -66,7 +66,7 @@ extern "C" {
 #include <ntpsapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-#include <ntcm.h>
+#include <cfg.h>
 #include <ntdbg.h>
 #include <ntioapi.h>
 #include <ntlpcapi.h>

@@ -216,7 +216,6 @@
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\md5.h" />
     <ClInclude Include="include\ntbasic.h" />
-    <ClInclude Include="include\ntcm.h" />
     <ClInclude Include="include\ntdbg.h" />
     <ClInclude Include="include\ntexapi.h" />
     <ClInclude Include="include\ntgdi.h" />
