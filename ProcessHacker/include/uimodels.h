@@ -295,8 +295,9 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
 #define PHPRTLC_APPID 73
 #define PHPRTLC_DPIAWARENESS 74
 #define PHPRTLC_CFGUARD 75
+#define PHPRTLC_TIMESTAMP 76
 
-#define PHPRTLC_MAXIMUM 76
+#define PHPRTLC_MAXIMUM 77
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -359,6 +360,7 @@ typedef struct _PH_PROCESS_NODE
     SIZE_T MinimumWorkingSetSize;
     SIZE_T MaximumWorkingSetSize;
     // Image
+    ULONG ImageTimeDateStamp;
     USHORT ImageCharacteristics;
     USHORT ImageReserved;
     USHORT ImageSubsystem;
@@ -413,6 +415,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING MinimumWorkingSetText;
     PPH_STRING MaximumWorkingSetText;
     PPH_STRING PrivateBytesDeltaText;
+    PPH_STRING TimeStampText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

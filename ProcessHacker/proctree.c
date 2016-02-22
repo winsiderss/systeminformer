@@ -207,6 +207,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_APPID, FALSE, L"App ID", 160, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DPIAWARENESS, FALSE, L"DPI Awareness", 110, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -557,6 +558,7 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->MinimumWorkingSetText) PhDereferenceObject(ProcessNode->MinimumWorkingSetText);
     if (ProcessNode->MaximumWorkingSetText) PhDereferenceObject(ProcessNode->MaximumWorkingSetText);
     if (ProcessNode->PrivateBytesDeltaText) PhDereferenceObject(ProcessNode->PrivateBytesDeltaText);
+    if (ProcessNode->TimeStampText) PhDereferenceObject(ProcessNode->TimeStampText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1048,6 +1050,7 @@ static VOID PhpUpdateProcessNodeImage(
                 {
                     if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
                     {
+                        ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
                         ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
                         if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
@@ -1835,6 +1838,14 @@ BEGIN_SORT_FUNCTION(CfGuard)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(TimeStamp)
+{
+    PhpUpdateProcessNodeImage(node1);
+    PhpUpdateProcessNodeImage(node2);
+    sortResult = uintcmp(node1->ImageTimeDateStamp, node2->ImageTimeDateStamp);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1950,7 +1961,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(PackageName),
                         SORT_FUNCTION(AppId),
                         SORT_FUNCTION(DpiAwareness),
-                        SORT_FUNCTION(CfGuard)
+                        SORT_FUNCTION(CfGuard),
+                        SORT_FUNCTION(TimeStamp)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2261,15 +2273,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 break;
             case PHPRTLC_STARTTIME:
+                if (processItem->CreateTime.QuadPart != 0)
                 {
                     SYSTEMTIME systemTime;
 
-                    if (processItem->CreateTime.QuadPart != 0)
-                    {
-                        PhLargeIntegerToLocalSystemTime(&systemTime, &processItem->CreateTime);
-                        PhMoveReference(&node->StartTimeText, PhFormatDateTime(&systemTime));
-                        getCellText->Text = node->StartTimeText->sr;
-                    }
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &processItem->CreateTime);
+                    PhMoveReference(&node->StartTimeText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->StartTimeText->sr;
                 }
                 break;
             case PHPRTLC_TOTALCPUTIME:
@@ -2658,6 +2668,21 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 else
                 {
                     PhInitializeStringRef(&getCellText->Text, L"N/A");
+                }
+                break;
+            case PHPRTLC_TIMESTAMP:
+                PhpUpdateProcessNodeImage(node);
+
+                if (node->ImageTimeDateStamp != 0)
+                {
+                    LARGE_INTEGER time;
+                    SYSTEMTIME systemTime;
+
+                    RtlSecondsSince1970ToTime(node->ImageTimeDateStamp, &time);
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+
+                    PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->TimeStampText->sr;
                 }
                 break;
             default:
