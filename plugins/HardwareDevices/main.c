@@ -180,7 +180,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Hardware Devices";
             info->Author = L"dmex, wj32";
-            info->Description = L"Plugin for monitoring hardware devices like Disk drives and Network adpaters via the System Information window.";
+            info->Description = L"Plugin for monitoring hardware devices like Disk drives and Network adapters via the System Information window.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1820";
             info->HasOptions = TRUE;
 
