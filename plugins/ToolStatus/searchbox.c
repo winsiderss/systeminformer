@@ -50,37 +50,11 @@ static VOID NcAreaInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    LOGFONT logFont;
-    HDC hdc;
+    // Cleanup existing font handle.
+    if (Context->WindowFont)
+        DeleteObject(Context->WindowFont);
 
-    SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0);
-
-    if (hdc = GetDC(Context->WindowHandle))
-    {
-        // Cleanup existing Font handle.
-        if (Context->WindowFont)
-            DeleteObject(Context->WindowFont);
-
-        // Create the font handle 
-        Context->WindowFont = CreateFont(
-            -(LONG)PhMultiplyDivide(12, PhGlobalDpi, 96),
-            0,
-            0,
-            0,
-            FW_MEDIUM,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            logFont.lfFaceName
-            );
-
-        ReleaseDC(Context->WindowHandle, hdc);
-    }
+    Context->WindowFont = PhDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
 
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }
