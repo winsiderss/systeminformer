@@ -133,6 +133,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_DESCRIPTION, FALSE, L"Description", 200, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"Key Modified Time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -288,11 +289,13 @@ VOID PhpRemoveServiceNode(
     if ((index = PhFindItemList(ServiceNodeList, ServiceNode)) != -1)
         PhRemoveItemList(ServiceNodeList, index);
 
-    if (ServiceNode->BinaryPath) PhDereferenceObject(ServiceNode->BinaryPath);
-    if (ServiceNode->LoadOrderGroup) PhDereferenceObject(ServiceNode->LoadOrderGroup);
-    if (ServiceNode->Description) PhDereferenceObject(ServiceNode->Description);
+    PhClearReference(&ServiceNode->BinaryPath);
+    PhClearReference(&ServiceNode->LoadOrderGroup);
+    PhClearReference(&ServiceNode->Description);
 
-    if (ServiceNode->TooltipText) PhDereferenceObject(ServiceNode->TooltipText);
+    PhClearReference(&ServiceNode->TooltipText);
+
+    PhClearReference(&ServiceNode->KeyModifiedTimeText);
 
     PhDereferenceObject(ServiceNode->ServiceItem);
 
@@ -371,6 +374,44 @@ static VOID PhpUpdateServiceNodeDescription(
         }
 
         ServiceNode->ValidMask |= PHSN_DESCRIPTION;
+    }
+}
+
+static VOID PhpUpdateServiceNodeKey(
+    _Inout_ PPH_SERVICE_NODE ServiceNode
+    )
+{
+    if (!(ServiceNode->ValidMask & PHSN_KEY))
+    {
+        static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+
+        HANDLE keyHandle;
+        PPH_STRING keyName;
+
+        keyName = PhConcatStringRef2(&servicesKeyName, &ServiceNode->ServiceItem->Name->sr);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_LOCAL_MACHINE,
+            &keyName->sr,
+            0
+            )))
+        {
+            PKEY_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhQueryKey(keyHandle, KeyBasicInformation, &basicInfo)))
+            {
+                ServiceNode->KeyLastWriteTime = basicInfo->LastWriteTime;
+                PhFree(basicInfo);
+            }
+
+            NtClose(keyHandle);
+        }
+
+        PhDereferenceObject(keyName);
+
+        ServiceNode->ValidMask |= PHSN_KEY;
     }
 }
 
@@ -475,6 +516,14 @@ BEGIN_SORT_FUNCTION(Description)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(KeyModifiedTime)
+{
+    PhpUpdateServiceNodeKey(node1);
+    PhpUpdateServiceNodeKey(node2);
+    sortResult = int64cmp(node1->KeyLastWriteTime.QuadPart, node2->KeyLastWriteTime.QuadPart);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -507,7 +556,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(BinaryPath),
                     SORT_FUNCTION(ErrorControl),
                     SORT_FUNCTION(Group),
-                    SORT_FUNCTION(Description)
+                    SORT_FUNCTION(Description),
+                    SORT_FUNCTION(KeyModifiedTime)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -607,6 +657,18 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             case PHSVTLC_DESCRIPTION:
                 PhpUpdateServiceNodeDescription(node);
                 getCellText->Text = PhGetStringRef(node->Description);
+                break;
+            case PHSVTLC_KEYMODIFIEDTIME:
+                PhpUpdateServiceNodeKey(node);
+
+                if (node->KeyLastWriteTime.QuadPart != 0)
+                {
+                    SYSTEMTIME systemTime;
+
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &node->KeyLastWriteTime);
+                    PhMoveReference(&node->KeyModifiedTimeText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->KeyModifiedTimeText->sr;
+                }
                 break;
             default:
                 return FALSE;

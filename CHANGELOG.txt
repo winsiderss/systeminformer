@@ -6,6 +6,7 @@ Process Hacker
    * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
    * Added File Modified Time and File Size columns for processes and modules
+   * Added Key Modified Time column for services
    * Added Time Stamp column for processes
    * Added right-click menu and double-click action for environment variables
    * Clicking a tray icon now shows the pop-up UI (useful for touch-enabled devices)

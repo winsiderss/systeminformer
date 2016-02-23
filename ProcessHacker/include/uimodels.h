@@ -583,11 +583,13 @@ PhDuplicateProcessNodeList(
 #define PHSVTLC_ERRORCONTROL 7
 #define PHSVTLC_GROUP 8
 #define PHSVTLC_DESCRIPTION 9
+#define PHSVTLC_KEYMODIFIEDTIME 10
 
-#define PHSVTLC_MAXIMUM 10
+#define PHSVTLC_MAXIMUM 11
 
 #define PHSN_CONFIG 0x1
 #define PHSN_DESCRIPTION 0x2
+#define PHSN_KEY 0x4
 
 // begin_phapppub
 typedef struct _PH_SERVICE_NODE
@@ -609,8 +611,12 @@ typedef struct _PH_SERVICE_NODE
     PPH_STRING LoadOrderGroup;
     // Description
     PPH_STRING Description;
+    // Key
+    LARGE_INTEGER KeyLastWriteTime;
 
     PPH_STRING TooltipText;
+
+    PPH_STRING KeyModifiedTimeText;
 // begin_phapppub
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 // end_phapppub
