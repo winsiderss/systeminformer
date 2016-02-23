@@ -225,6 +225,7 @@ BOOLEAN EtpInitializeD3DStatistics(
 
     for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
     {
+        memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
         openAdapterFromDeviceName.pDeviceName = deviceInterface;
 
         if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName_I(&openAdapterFromDeviceName)))
