@@ -234,7 +234,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
 
             PhSetExtendedListView(lvHandle);
 

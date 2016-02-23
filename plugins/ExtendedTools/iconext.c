@@ -85,7 +85,7 @@ VOID EtRegisterNotifyIcons(
         PluginInstance,
         GPU_ICON_ID,
         NULL,
-        L"GPU History",
+        L"GPU history",
         PH_NF_ICON_SHOW_MINIINFO | (EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
         &data
         );
@@ -96,7 +96,7 @@ VOID EtRegisterNotifyIcons(
         PluginInstance,
         DISK_ICON_ID,
         NULL,
-        L"Disk History",
+        L"Disk history",
         PH_NF_ICON_SHOW_MINIINFO | (EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
         &data
         );
@@ -107,7 +107,7 @@ VOID EtRegisterNotifyIcons(
         PluginInstance,
         NETWORK_ICON_ID,
         NULL,
-        L"Network History",
+        L"Network history",
         PH_NF_ICON_SHOW_MINIINFO | (EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE),
         &data
         );
