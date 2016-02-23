@@ -156,7 +156,7 @@ static VOID NetAdapterLookupConfig(
         PhInitializeStringBuilder(&subnetAddressBuffer, 64);
         PhInitializeStringBuilder(&gatewayAddressBuffer, 64);
 
-        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_HIDDEN_ADAPTERS) && WindowsVersion >= WINDOWS_VISTA)
+        if (WindowsVersion >= WINDOWS_VISTA)
         {
             flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
         }

@@ -264,7 +264,7 @@ VOID FindDiskDrives(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
-    PPH_LIST diskList;
+    PPH_LIST deviceList;
     HDEVINFO deviceInfoHandle;
     SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
     SP_DEVINFO_DATA deviceInfoData;
@@ -280,8 +280,9 @@ VOID FindDiskDrives(
     {
         return;
     }
-    
-    diskList = PH_AUTO(PhCreateList(1));
+
+    deviceList = PH_AUTO(PhCreateList(1));
+    Context->EnumeratingDisks = TRUE;
 
     for (ULONG i = 0; i < 1000; i++)
     {
@@ -379,7 +380,7 @@ VOID FindDiskDrives(
                 NtClose(deviceHandle);
             }
 
-            PhAddItemList(diskList, diskEntry);
+            PhAddItemList(deviceList, diskEntry);
         }
 
         PhFree(deviceInterfaceDetail);
@@ -388,13 +389,13 @@ VOID FindDiskDrives(
     SetupDiDestroyDeviceInfoList(deviceInfoHandle);
 
     // Sort the entries
-    qsort(diskList->Items, diskList->Count, sizeof(PVOID), DiskEntryCompareFunction);
+    qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), DiskEntryCompareFunction);
 
     PhAcquireQueuedLockShared(&DiskDrivesListLock);
 
-    for (ULONG i = 0; i < diskList->Count; i++)
+    for (ULONG i = 0; i < deviceList->Count; i++)
     {
-        PDISK_ENUM_ENTRY entry = diskList->Items[i];
+        PDISK_ENUM_ENTRY entry = deviceList->Items[i];
 
         AddDiskDriveToListView(
             Context,
@@ -413,6 +414,8 @@ VOID FindDiskDrives(
     }
 
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
+
+    Context->EnumeratingDisks = FALSE;
 }
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
@@ -437,45 +440,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
-            ULONG index = -1;
-
-            while ((index = PhFindListViewItemByFlags(
-                context->ListViewHandle,
-                index,
-                LVNI_ALL
-                )) != -1)
-            {
-                PDV_DISK_ID param;
-
-                if (PhGetListViewItemParam(context->ListViewHandle, index, &param))
-                {
-                    if (context->OptionsChanged)
-                    {
-                        BOOLEAN checked;
-
-                        checked = ListView_GetItemState(context->ListViewHandle, index, LVIS_STATEIMAGEMASK) == ITEM_CHECKED;
-
-                        if (checked)
-                        {
-                            if (!FindDiskEntry(param, FALSE))
-                            {
-                                PDV_DISK_ENTRY entry;
-
-                                entry = CreateDiskEntry(param);
-                                entry->UserReference = TRUE;
-                            }
-                        }
-                        else
-                        {
-                            FindDiskEntry(param, TRUE);
-                        }
-                    }
-
-                    DeleteDiskId(param);
-                    PhFree(param);
-                }
-            }
-
             if (context->OptionsChanged)
                 DiskDrivesSaveList();
 
@@ -525,13 +489,36 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             {
                 LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
 
+                if (context->EnumeratingDisks)
+                    break;
+
                 if (listView->uChanged & LVIF_STATE)
                 {
                     switch (listView->uNewState & 0x3000)
                     {
                     case 0x2000: // checked
+                        {
+                            PDV_DISK_ID param = (PDV_DISK_ID)listView->lParam;
+
+                            if (!FindDiskEntry(param, FALSE))
+                            {
+                                PDV_DISK_ENTRY entry;
+
+                                entry = CreateDiskEntry(param);
+                                entry->UserReference = TRUE;
+                            }
+
+                            context->OptionsChanged = TRUE;
+                        }
+                        break;
                     case 0x1000: // unchecked
-                        context->OptionsChanged = TRUE;
+                        {
+                            PDV_DISK_ID param = (PDV_DISK_ID)listView->lParam;
+
+                            FindDiskEntry(param, TRUE);
+
+                            context->OptionsChanged = TRUE;
+                        }
                         break;
                     }
                 }

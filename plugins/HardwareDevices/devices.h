@@ -26,7 +26,6 @@
 
 #define PLUGIN_NAME L"ProcessHacker.HardwareDevices"
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
-#define SETTING_NAME_ENABLE_HIDDEN_ADAPTERS (PLUGIN_NAME L".EnableHiddenAdapters")
 #define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".NetworkList")
 #define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
 
@@ -147,6 +146,8 @@ typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
     BOOLEAN OptionsChanged;
+    BOOLEAN EnumeratingAdapters;
+    BOOLEAN UseAlternateMethod;
 } DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
 VOID NetAdaptersLoadList(
@@ -415,6 +416,7 @@ typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
     BOOLEAN OptionsChanged;
+    BOOLEAN EnumeratingDisks;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
 
 
