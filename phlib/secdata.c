@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object security data
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -220,6 +220,13 @@ ACCESS_ENTRIES(Mutant)
 {
     { L"Full control", MUTANT_ALL_ACCESS, TRUE, TRUE },
     { L"Query", MUTANT_QUERY_STATE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(Partition)
+{
+    { L"Full control", MEMORY_PARTITION_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", MEMORY_PARTITION_QUERY_ACCESS, TRUE, TRUE },
+    { L"Modify", MEMORY_PARTITION_MODIFY_ACCESS, TRUE, TRUE }
 };
 
 ACCESS_ENTRIES(Process)
@@ -571,6 +578,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(LsaSecret, FALSE),
     ACCESS_ENTRY(LsaTrusted, FALSE),
     ACCESS_ENTRY(Mutant, TRUE),
+    ACCESS_ENTRY(Partition, TRUE),
     ACCESS_ENTRY(Process, TRUE),
     ACCESS_ENTRY(Process60, TRUE),
     ACCESS_ENTRY(Profile, FALSE),
