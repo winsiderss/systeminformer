@@ -6037,13 +6037,13 @@ NTSTATUS PhOpenKey(
  *
  * \param KeyHandle A handle to the key.
  * \param KeyInformationClass The information class to query.
- *
- * \return A buffer containing information about the registry key, or NULL if the function failed.
- * You must free the buffer with PhFree() when you no longer need it.
+ * \param Buffer A variable which receives a pointer to a buffer containing information about the
+ * registry key. You must free the buffer with PhFree() when you no longer need it.
  */
-PVOID PhQueryKey(
+NTSTATUS PhQueryKey(
     _In_ HANDLE KeyHandle,
-    _In_ KEY_INFORMATION_CLASS KeyInformationClass
+    _In_ KEY_INFORMATION_CLASS KeyInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -6075,11 +6075,13 @@ PVOID PhQueryKey(
         else
         {
             PhFree(buffer);
-            return NULL;
+            return status;
         }
     } while (--attempts);
 
-    return buffer;
+    *Buffer = buffer;
+
+    return status;
 }
 
 /**
@@ -6088,14 +6090,14 @@ PVOID PhQueryKey(
  * \param KeyHandle A handle to the key.
  * \param ValueName The name of the value.
  * \param KeyValueInformationClass The information class to query.
- *
- * \return A buffer containing information about the registry value, or NULL if the function failed.
- * You must free the buffer with PhFree() when you no longer need it.
+ * \param Buffer A variable which receives a pointer to a buffer containing information about the
+ * registry value. You must free the buffer with PhFree() when you no longer need it.
  */
-PVOID PhQueryValueKey(
+NTSTATUS PhQueryValueKey(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName,
-    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_ PVOID *Buffer
     )
 {
     NTSTATUS status;
@@ -6134,9 +6136,11 @@ PVOID PhQueryValueKey(
         else
         {
             PhFree(buffer);
-            return NULL;
+            return status;
         }
     } while (--attempts);
 
-    return buffer;
+    *Buffer = buffer;
+
+    return status;
 }

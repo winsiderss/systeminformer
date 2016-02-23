@@ -3443,9 +3443,7 @@ PPH_STRING PhQueryRegistryString(
     else
         PhInitializeEmptyStringRef(&valueName);
 
-    buffer = PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation);
-
-    if (buffer)
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
     {
         if (buffer->Type == REG_SZ ||
             buffer->Type == REG_MULTI_SZ ||

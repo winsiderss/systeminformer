@@ -1014,20 +1014,22 @@ PhOpenKey(
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhQueryKey(
     _In_ HANDLE KeyHandle,
-    _In_ KEY_INFORMATION_CLASS KeyInformationClass
+    _In_ KEY_INFORMATION_CLASS KeyInformationClass,
+    _Out_ PVOID *Buffer
     );
 
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhQueryValueKey(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName,
-    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_ PVOID *Buffer
     );
 
 // lsa
