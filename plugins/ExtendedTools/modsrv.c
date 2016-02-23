@@ -21,7 +21,7 @@
  */
 
 #include "exttools.h"
-#include <winmisc.h>
+#include <subprocesstag.h>
 
 typedef struct _MODULE_SERVICES_CONTEXT
 {
