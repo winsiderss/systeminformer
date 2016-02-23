@@ -579,10 +579,10 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             {
             case IDC_SHOW_HIDDEN_ADAPTERS:
                 {
-                    context->UseAlternateMethod = !context->UseAlternateMethod;
-                   
                     if (WindowsVersion >= WINDOWS_VISTA)
                     {
+                        context->UseAlternateMethod = !context->UseAlternateMethod;
+
                         if (context->UseAlternateMethod)
                         {
                             ListView_EnableGroupView(context->ListViewHandle, FALSE);
