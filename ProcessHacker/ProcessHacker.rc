@@ -53,10 +53,15 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
+
 IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
+
 IDI_COG                 ICON                    "resources\\cog.ico"
+
 IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
+
 IDI_COGGO               ICON                    "resources\\cog_go.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -508,14 +513,13 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "General"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Permissions",IDC_PERMISSIONS,143,216,50,14
     GROUPBOX        "File",IDC_FILE,7,7,246,79
     ICON            "",IDC_FILEICON,14,18,20,20
     EDITTEXT        IDC_NAME,44,17,182,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     EDITTEXT        IDC_COMPANYNAME,44,29,183,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     CONTROL         "<a>Company name link</a>",IDC_COMPANYNAME_LINK,"SysLink",LWS_NOPREFIX | NOT WS_VISIBLE | WS_TABSTOP,46,29,183,9
     LTEXT           "Version:",IDC_STATIC,15,41,27,8
-    EDITTEXT        IDC_VERSION,44,41,183,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    EDITTEXT        IDC_VERSION,44,41,113,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Image file name:",IDC_STATIC,15,55,56,8
     EDITTEXT        IDC_FILENAME,15,65,191,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "Inspect",IDC_INSPECT,210,64,17,15,BS_BITMAP
@@ -526,22 +530,21 @@ BEGIN
     LTEXT           "Current directory:",IDC_STATIC,13,119,60,8
     EDITTEXT        IDC_CURDIR,79,117,168,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Started:",IDC_STATIC,13,135,28,8
-    EDITTEXT        IDC_STARTED,65,133,182,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_STARTED,79,133,168,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "PEB address:",IDC_STATIC,13,151,44,8
-    EDITTEXT        IDC_PEBADDRESS,65,149,182,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_PEBADDRESS,79,149,101,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Image type:",IDC_PROCESSTYPELABEL,185,151,41,8,NOT WS_VISIBLE
+    LTEXT           "32-bit",IDC_PROCESSTYPETEXT,228,151,20,8,NOT WS_VISIBLE
     LTEXT           "Parent:",IDC_STATIC,13,167,25,8
-    EDITTEXT        IDC_PARENTPROCESS,65,165,161,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_PARENTPROCESS,79,165,147,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "View",IDC_VIEWPARENTPROCESS,230,163,17,15,BS_BITMAP
-    LTEXT           "DEP:",IDC_STATIC,13,183,16,8
-    EDITTEXT        IDC_DEP,65,181,161,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Edit",IDC_EDITDEP,230,179,17,15,BS_BITMAP | WS_DISABLED
+    LTEXT           "Mitigation policies:",IDC_STATIC,13,183,59,8
+    EDITTEXT        IDC_MITIGATION,79,181,132,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Details",IDC_VIEWMITIGATION,215,179,32,15
     LTEXT           "Protection:",IDC_STATIC,13,200,36,8
-    EDITTEXT        IDC_PROTECTION,51,200,69,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "ASLR:",IDC_ASLRLABEL,125,200,20,8
-    EDITTEXT        IDC_ASLR,147,200,99,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Process type:",IDC_PROCESSTYPELABEL,13,216,46,8,NOT WS_VISIBLE
-    LTEXT           "32-bit",IDC_PROCESSTYPETEXT,67,216,20,8,NOT WS_VISIBLE
-    PUSHBUTTON      "Terminate",IDC_TERMINATE,197,216,50,14
+    EDITTEXT        IDC_PROTECTION,51,200,80,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    PUSHBUTTON      "Permissions",IDC_PERMISSIONS,143,197,50,14
+    PUSHBUTTON      "Terminate",IDC_TERMINATE,197,197,50,14
 END
 
 IDD_PROCMODULES DIALOGEX 0, 0, 260, 260
@@ -1892,6 +1895,17 @@ BEGIN
     CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0x82,0,0,217,140,WS_EX_CLIENTEDGE
 END
 
+IDD_MITIGATION DIALOGEX 0, 0, 277, 217
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Mitigation Policies"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,263,108
+    LTEXT           "Description:",IDC_DESCRIPTIONLABEL,7,118,38,8
+    EDITTEXT        IDC_DESCRIPTION,7,129,263,62,ES_MULTILINE | ES_READONLY | WS_VSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,220,196,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2420,6 +2434,14 @@ BEGIN
     IDD_MINIINFO_LIST, DIALOG
     BEGIN
     END
+
+    IDD_MITIGATION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 270
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 210
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2471,12 +2493,19 @@ END
 //
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
+
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
+
 IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
+
 IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
+
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
+
 IDB_PIN                 BITMAP                  "resources\\pin.bmp"
+
 IDB_COG                 BITMAP                  "resources\\cog.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2484,6 +2513,7 @@ IDB_COG                 BITMAP                  "resources\\cog.bmp"
 //
 
 IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2511,6 +2541,11 @@ BEGIN
 END
 
 IDD_PROCGENERAL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_MITIGATION AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

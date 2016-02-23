@@ -29,6 +29,7 @@
 #include <phplug.h>
 #include <extmgri.h>
 #include <verify.h>
+#include <procmtgn.h>
 #include <procprpp.h>
 #include <windowsx.h>
 #include <uxtheme.h>
@@ -599,61 +600,53 @@ FORCEINLINE PWSTR PhpGetStringOrNa(
         return L"N/A";
 }
 
-VOID PhpUpdateProcessDep(
+VOID PhpUpdateProcessMitigationPolicies(
     _In_ HWND hwndDlg,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     HANDLE processHandle;
-    ULONG depStatus;
+    PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
 
-#ifdef _WIN64
-    if (ProcessItem->IsWow64)
-#else
-    if (TRUE)
-#endif
+    SetDlgItemText(hwndDlg, IDC_MITIGATION, L"N/A");
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION,
+        ProcessItem->ProcessId
+        )))
     {
-        SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
-
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION,
-            ProcessItem->ProcessId
-            )))
+        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
         {
-            if (NT_SUCCESS(PhGetProcessDepStatus(processHandle, &depStatus)))
+            PH_STRING_BUILDER sb;
+            PROCESS_MITIGATION_POLICY policy;
+            PPH_STRING shortDescription;
+
+            PhInitializeStringBuilder(&sb, 100);
+
+            for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
             {
-                PPH_STRING depString;
-
-                if (depStatus & PH_PROCESS_DEP_ENABLED)
-                    depString = PhaCreateString(L"Enabled");
-                else
-                    depString = PhaCreateString(L"Disabled");
-
-                if ((depStatus & PH_PROCESS_DEP_ENABLED) &&
-                    (depStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED))
+                if (information.Pointers[policy] && PhDescribeProcessMitigationPolicy(
+                    policy,
+                    information.Pointers[policy],
+                    &shortDescription,
+                    NULL
+                    ))
                 {
-                    depString = PhaConcatStrings2(depString->Buffer, L", DEP-ATL thunk emulation disabled");
+                    PhAppendStringBuilder(&sb, &shortDescription->sr);
+                    PhAppendStringBuilder2(&sb, L"; ");
+                    PhDereferenceObject(shortDescription);
                 }
-
-                if (depStatus & PH_PROCESS_DEP_PERMANENT)
-                {
-                    depString = PhaConcatStrings2(depString->Buffer, L", Permanent");
-                }
-
-                SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_EDITDEP), !(depStatus & PH_PROCESS_DEP_PERMANENT));
             }
 
-            NtClose(processHandle);
+            if (sb.String->Length != 0)
+                PhRemoveEndStringBuilder(&sb, 2);
+
+            SetDlgItemText(hwndDlg, IDC_MITIGATION, sb.String->Buffer);
+            PhDeleteStringBuilder(&sb);
         }
-    }
-    else
-    {
-        if (ProcessItem->QueryHandle)
-            SetDlgItemText(hwndDlg, IDC_DEP, L"Enabled, Permanent");
-        else
-            SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
+
+        NtClose(processHandle);
     }
 }
 
@@ -688,16 +681,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 HBITMAP folder;
                 HBITMAP magnifier;
-                HBITMAP pencil;
 
                 folder = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP);
                 magnifier = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MAGNIFIER), IMAGE_BITMAP);
-                pencil = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PENCIL), IMAGE_BITMAP);
 
                 SET_BUTTON_BITMAP(IDC_INSPECT, magnifier);
                 SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
                 SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
-                SET_BUTTON_BITMAP(IDC_EDITDEP, pencil);
             }
 
             // File
@@ -847,9 +837,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), FALSE);
             }
 
-            // DEP
+            // Mitigation policies
 
-            PhpUpdateProcessDep(hwndDlg, processItem);
+            PhpUpdateProcessMitigationPolicies(hwndDlg, processItem);
 
             // PEB address
 
@@ -940,7 +930,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         )))
                     {
                         SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Yes" : L"None");
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
                 else
@@ -959,60 +948,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (processHandle)
                 NtClose(processHandle);
-
-            if (WindowsVersion >= WINDOWS_8)
-            {
-                PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-
-                SetDlgItemText(hwndDlg, IDC_ASLR, L"N/A");
-
-                policyInfo.Policy = ProcessASLRPolicy;
-
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_INFORMATION,
-                    processItem->ProcessId
-                    )))
-                {
-                    if (NT_SUCCESS(NtQueryInformationProcess(
-                        processHandle,
-                        ProcessMitigationPolicy,
-                        &policyInfo,
-                        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
-                        NULL
-                        )))
-                    {
-                        PH_STRING_BUILDER sb;
-
-                        PhInitializeStringBuilder(&sb, 40);
-
-                        if (policyInfo.ASLRPolicy.EnableBottomUpRandomization)
-                            PhAppendStringBuilder2(&sb, L"Bottom up randomization, ");
-                        if (policyInfo.ASLRPolicy.EnableForceRelocateImages)
-                            PhAppendStringBuilder2(&sb, L"Force relocate images, ");
-                        if (policyInfo.ASLRPolicy.EnableHighEntropy)
-                            PhAppendStringBuilder2(&sb, L"High entropy, ");
-                        if (policyInfo.ASLRPolicy.DisallowStrippedImages)
-                            PhAppendStringBuilder2(&sb, L"Disallow stripped images, ");
-                        if (sb.String->Length != 0)
-                            PhRemoveEndStringBuilder(&sb, 2);
-
-                        if (sb.String->Length == 0)
-                            SetDlgItemText(hwndDlg, IDC_ASLR, L"Disabled");
-                        else
-                            SetDlgItemText(hwndDlg, IDC_ASLR, sb.String->Buffer);
-
-                        PhDeleteStringBuilder(&sb);
-                    }
-
-                    NtClose(processHandle);
-                }
-            }
-            else
-            {
-                ShowWindow(GetDlgItem(hwndDlg, IDC_ASLRLABEL), SW_HIDE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_ASLR), SW_HIDE);
-            }
 
 #ifdef _WIN64
             if (processItem->IsWow64Valid)
@@ -1055,6 +990,10 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VERSION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECT),
@@ -1073,12 +1012,10 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MITIGATION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITDEP),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWMITIGATION),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ASLR),
-                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
@@ -1133,10 +1070,29 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                 }
                 break;
-            case IDC_EDITDEP:
+            case IDC_VIEWMITIGATION:
                 {
-                    if (PhUiSetDepStatusProcess(hwndDlg, processItem))
-                        PhpUpdateProcessDep(hwndDlg, processItem);
+                    NTSTATUS status;
+                    HANDLE processHandle;
+                    PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
+
+                    if (NT_SUCCESS(status = PhOpenProcess(
+                        &processHandle,
+                        PROCESS_QUERY_INFORMATION,
+                        processItem->ProcessId
+                        )))
+                    {
+                        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
+                        {
+                            PhShowProcessMitigationPolicyDialog(hwndDlg, &information);
+                        }
+
+                        NtClose(processHandle);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                    }
                 }
                 break;
             case IDC_TERMINATE:

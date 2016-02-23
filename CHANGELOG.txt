@@ -2,9 +2,10 @@ Process Hacker
 
 2.38
  * HIGHLIGHTS:
-   * Improved high DPI scaling
    * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
+   * Improved high DPI scaling
+   * Added exploit mitigation policy information to process properties (Windows 8 and above)
    * Added File modified time and File size columns for processes and modules
    * Added Key modified time column for services
    * Added Time stamp column for processes

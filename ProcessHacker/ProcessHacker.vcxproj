@@ -287,6 +287,7 @@
     <ClCompile Include="miniinfo.c" />
     <ClCompile Include="modlist.c" />
     <ClCompile Include="modprv.c" />
+    <ClCompile Include="mtgndlg.c" />
     <ClCompile Include="netlist.c" />
     <ClCompile Include="netprv.c" />
     <ClCompile Include="netstk.c" />
@@ -327,6 +328,7 @@
     <ClCompile Include="plugin.c" />
     <ClCompile Include="plugman.c" />
     <ClCompile Include="procgrp.c" />
+    <ClCompile Include="procmtgn.c" />
     <ClCompile Include="procprp.c" />
     <ClCompile Include="procprv.c" />
     <ClCompile Include="procrec.c" />
@@ -369,6 +371,7 @@
     <ClInclude Include="include\notifico.h" />
     <ClInclude Include="include\notificop.h" />
     <ClInclude Include="include\phsvccl.h" />
+    <ClInclude Include="include\procmtgn.h" />
     <ClInclude Include="include\sysinfo.h" />
     <ClInclude Include="include\uimodels.h" />
     <ClInclude Include="include\miniinfo.h" />

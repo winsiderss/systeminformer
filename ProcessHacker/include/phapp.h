@@ -1371,14 +1371,6 @@ PhUiSetPriorityProcesses(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiSetDepStatusProcess(
-    _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
 PhUiStartService(
     _In_ HWND hWnd,
     _In_ PPH_SERVICE_ITEM Service
@@ -1747,6 +1739,13 @@ VOID PhShowMemoryResultsDialog(
 VOID PhShowMemoryStringDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+// mtgndlg
+
+VOID PhShowProcessMitigationPolicyDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION *Information
     );
 
 // netstk

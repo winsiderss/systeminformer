@@ -338,31 +338,6 @@ PhSetProcessIoPriority(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhSetProcessExecuteFlags(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG ExecuteFlags
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhSetProcessDepStatus(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG DepStatus
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhSetProcessDepStatusInvasive(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG DepStatus,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhInjectDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PWSTR FileName,

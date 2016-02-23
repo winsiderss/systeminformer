@@ -163,6 +163,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
                 entry->Count++;
             }
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");

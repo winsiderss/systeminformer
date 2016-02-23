@@ -176,7 +176,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx2(hwnd, PHPRTLC_CPUHISTORY, FALSE, L"CPU history", 100, PH_ALIGN_LEFT, -1, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumnEx2(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private bytes history", 100, PH_ALIGN_LEFT, -1, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumnEx2(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O history", 100, PH_ALIGN_LEFT, -1, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP status", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_DEP, FALSE, L"DEP", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_VIRTUALIZED, FALSE, L"Virtualized", 80, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CONTEXTSWITCHES, FALSE, L"Context switches", 100, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CONTEXTSWITCHESDELTA, FALSE, L"Context switches delta", 80, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
@@ -1687,7 +1687,7 @@ BEGIN_SORT_FUNCTION(CyclesDeltaWin7)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(DepStatus)
+BEGIN_SORT_FUNCTION(Dep)
 {
     PhpUpdateProcessNodeDepStatus(node1);
     PhpUpdateProcessNodeDepStatus(node2);
@@ -1983,7 +1983,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Cpu), // CPU History
                         SORT_FUNCTION(PrivateBytes), // Private Bytes History
                         SORT_FUNCTION(IoTotalRate), // I/O History
-                        SORT_FUNCTION(DepStatus),
+                        SORT_FUNCTION(Dep),
                         SORT_FUNCTION(Virtualized),
                         SORT_FUNCTION(ContextSwitches),
                         SORT_FUNCTION(ContextSwitchesDelta),
@@ -2472,7 +2472,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     getCellText->Text = PhGetStringRef(node->CyclesDeltaText);
                 }
                 break;
-            case PHPRTLC_DEPSTATUS:
+            case PHPRTLC_DEP:
                 PhpUpdateProcessNodeDepStatus(node);
 
                 if (node->DepStatus & PH_PROCESS_DEP_ENABLED)

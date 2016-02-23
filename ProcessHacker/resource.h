@@ -122,6 +122,7 @@
 #define IDR_MINIINFO_PROCESS            212
 #define IDR_MENU1                       214
 #define IDR_ENVIRONMENT                 214
+#define IDD_MITIGATION                  215
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -142,11 +143,10 @@
 #define IDC_PEBADDRESS                  1024
 #define IDC_TERMINATED                  1024
 #define IDC_PARENTPROCESS               1025
-#define IDC_DEP                         1026
+#define IDC_MITIGATION                  1026
 #define IDC_PAUSE                       1027
 #define IDC_PROTECTION                  1027
 #define IDC_START                       1028
-#define IDC_ASLR                        1028
 #define IDC_DESCRIPTION                 1029
 #define IDC_TYPE                        1032
 #define IDC_STARTTYPE                   1033
@@ -206,7 +206,6 @@
 #define IDC_PROGRESS                    1076
 #define IDC_PROGRESSTEXT                1077
 #define IDC_LINKEDTOKEN                 1079
-#define IDC_EDITPROTECTION              1079
 #define IDC_DISABLEALL                  1079
 #define IDC_MOVEUP                      1079
 #define IDC_CHANGE                      1079
@@ -218,7 +217,7 @@
 #define IDC_FONT                        1079
 #define IDC_INTEGRITY                   1079
 #define IDC_MORE                        1079
-#define IDC_EDITDEP                     1080
+#define IDC_VIEWMITIGATION              1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
 #define IDC_LIMITS                      1083
@@ -511,7 +510,6 @@
 #define IDC_EMPTY                       1360
 #define IDC_SAMPLECOUNTAUTOMATIC        1361
 #define IDC_SHOWCOMMITINSUMMARY         1361
-#define IDC_ASLRLABEL                   1363
 #define IDC_ZLISTSTANDBY4_V             1364
 #define IDC_ZLISTSTANDBY5_V             1365
 #define IDC_SELECTALL                   1365
@@ -529,6 +527,8 @@
 #define IDC_ZLISTMODIFIEDPAGEFILE_V     1373
 #define IDC_SECTION                     1375
 #define IDC_REGEX                       1377
+#define IDC_DESCRIPTIONLABEL            1378
+#define IDC_EDIT1                       1379
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -739,9 +739,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        215
+#define _APS_NEXT_RESOURCE_VALUE        217
 #define _APS_NEXT_COMMAND_VALUE         40292
-#define _APS_NEXT_CONTROL_VALUE         1378
+#define _APS_NEXT_CONTROL_VALUE         1380
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif

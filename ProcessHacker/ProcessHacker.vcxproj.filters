@@ -480,6 +480,12 @@
     <ClCompile Include="pcre\pcre2_find_bracket.c">
       <Filter>PCRE</Filter>
     </ClCompile>
+    <ClCompile Include="procmtgn.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="mtgndlg.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -594,6 +600,9 @@
       <Filter>Mini-XML\Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\notificop.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procmtgn.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
