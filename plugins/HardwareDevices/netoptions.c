@@ -110,7 +110,7 @@ VOID NetAdaptersLoadList(
     }
 }
 
-static VOID SaveAdaptersList(
+static VOID NetAdaptersSaveList(
     VOID
     )
 {
@@ -352,7 +352,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             }
 
             if (context->OptionsChanged)
-                SaveAdaptersList();
+                NetAdaptersSaveList();
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);

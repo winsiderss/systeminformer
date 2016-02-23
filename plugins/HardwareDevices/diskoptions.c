@@ -266,8 +266,8 @@ VOID FindDiskDrives(
 {
     PPH_LIST diskList;
     HDEVINFO deviceInfoHandle;
-    SP_DEVICE_INTERFACE_DATA deviceInterfaceData = { sizeof(SP_DEVICE_INTERFACE_DATA) };
-    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
+    SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
+    SP_DEVINFO_DATA deviceInfoData;
     PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
     ULONG deviceInfoLength = 0;
 
@@ -285,8 +285,14 @@ VOID FindDiskDrives(
 
     for (ULONG i = 0; i < 1000; i++)
     {
+        memset(&deviceInterfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
+        deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
         if (!SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData))
             break;
+
+        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
+        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
         if (SetupDiGetDeviceInterfaceDetail(
             deviceInfoHandle,
