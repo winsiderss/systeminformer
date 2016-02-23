@@ -1224,6 +1224,20 @@ PPH_STRING PhFormatDateTime(
     return string;
 }
 
+PPH_STRING PhFormatTimeSpan(
+    _In_ ULONG64 Ticks,
+    _In_opt_ ULONG Mode
+    )
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, PH_TIMESPAN_STR_LEN);
+    PhPrintTimeSpan(string->Buffer, Ticks, Mode);
+    PhTrimToNullTerminatorString(string);
+
+    return string;
+}
+
 /**
  * Formats a relative time span.
  *

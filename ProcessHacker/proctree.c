@@ -542,6 +542,9 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->IoRoRateText);
     PhClearReference(&ProcessNode->IoWRateText);
     PhClearReference(&ProcessNode->StartTimeText);
+    PhClearReference(&ProcessNode->TotalCpuTimeText);
+    PhClearReference(&ProcessNode->KernelCpuTimeText);
+    PhClearReference(&ProcessNode->UserCpuTimeText);
     PhClearReference(&ProcessNode->RelativeStartTimeText);
     PhClearReference(&ProcessNode->WindowTitleText);
     PhClearReference(&ProcessNode->CyclesText);
@@ -2330,18 +2333,25 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_TOTALCPUTIME:
-                PhPrintTimeSpan(node->TotalCpuTimeText,
+                PhMoveReference(&node->TotalCpuTimeText, PhFormatTimeSpan(
                     processItem->KernelTime.QuadPart + processItem->UserTime.QuadPart,
-                    PH_TIMESPAN_HMSM);
-                PhInitializeStringRefLongHint(&getCellText->Text, node->TotalCpuTimeText);
+                    PH_TIMESPAN_HMSM
+                    ));
+                getCellText->Text = node->TotalCpuTimeText->sr;
                 break;
             case PHPRTLC_KERNELCPUTIME:
-                PhPrintTimeSpan(node->KernelCpuTimeText, processItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
-                PhInitializeStringRefLongHint(&getCellText->Text, node->KernelCpuTimeText);
+                PhMoveReference(&node->KernelCpuTimeText, PhFormatTimeSpan(
+                    processItem->KernelTime.QuadPart,
+                    PH_TIMESPAN_HMSM
+                    ));
+                getCellText->Text = node->KernelCpuTimeText->sr;
                 break;
             case PHPRTLC_USERCPUTIME:
-                PhPrintTimeSpan(node->UserCpuTimeText, processItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
-                PhInitializeStringRefLongHint(&getCellText->Text, node->UserCpuTimeText);
+                PhMoveReference(&node->UserCpuTimeText, PhFormatTimeSpan(
+                    processItem->UserTime.QuadPart,
+                    PH_TIMESPAN_HMSM
+                    ));
+                getCellText->Text = node->UserCpuTimeText->sr;
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
                 if (processItem->VerifyResult == VrTrusted)

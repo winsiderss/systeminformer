@@ -2592,6 +2592,14 @@ PhFormatDateTime(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhFormatTimeSpan(
+    _In_ ULONG64 Ticks,
+    _In_opt_ ULONG Mode
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhFormatTimeSpanRelative(
     _In_ ULONG64 TimeSpan
     );
