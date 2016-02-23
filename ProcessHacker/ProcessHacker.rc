@@ -383,7 +383,7 @@ IDR_ICON MENU
 BEGIN
     POPUP "Icon"
     BEGIN
-        MENUITEM "&Show/hide Process Hacker",   ID_ICON_SHOWHIDEPROCESSHACKER
+        MENUITEM "&Show/Hide Process Hacker",   ID_ICON_SHOWHIDEPROCESSHACKER
         MENUITEM "System &information",         ID_ICON_SYSTEMINFORMATION
         POPUP "N&otifications"
         BEGIN
