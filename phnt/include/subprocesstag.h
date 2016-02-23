@@ -1,5 +1,5 @@
-#ifndef _WINMISC_H
-#define _WINMISC_H
+#ifndef _SUBPROCESSTAG_H
+#define _SUBPROCESSTAG_H
 
 // Subprocess tag information
 

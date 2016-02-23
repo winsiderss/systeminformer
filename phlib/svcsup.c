@@ -21,7 +21,7 @@
  */
 
 #include <ph.h>
-#include <winmisc.h>
+#include <subprocesstag.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 

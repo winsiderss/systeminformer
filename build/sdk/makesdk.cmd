@@ -45,7 +45,7 @@ for %%a in (
     phnt.h
     phnt_ntdef.h
     phnt_windows.h
-    winmisc.h
+    subprocesstag.h
     winsta.h
     ) do copy ..\..\phnt\include\%%a ..\..\sdk\include\%%a
 
