@@ -161,9 +161,9 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             ExtendedListView_AddFallbackColumn(lvHandle, 1);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpHiddenProcessesColorFunction);
 
-            ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute Force");
-            ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles");
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles", FALSE);
+            ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute force");
+            ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR handles");
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR handles", FALSE);
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
         }
@@ -220,7 +220,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     ProcessesList = PhCreateList(40);
 
                     ProcessesMethod =
-                        PhEqualString2(method, L"Brute Force", TRUE) ?
+                        PhEqualString2(method, L"Brute force", TRUE) ?
                         BruteForceScanMethod :
                         CsrHandlesScanMethod;
                     NumberOfHiddenProcesses = 0;

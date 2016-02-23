@@ -96,7 +96,7 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 40, L"Ordinal/Hint");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 40, L"Type");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 60, L"Name Type");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 60, L"Name type");
             PhSetExtendedListView(lvHandle);
             ExtendedListView_AddFallbackColumns(lvHandle, 4, fallbackColumns);
 
@@ -150,10 +150,10 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
                         type = L"Name";
                         break;
                     case IMPORT_OBJECT_NAME_NO_PREFIX:
-                        type = L"Name, No Prefix";
+                        type = L"Name, no prefix";
                         break;
                     case IMPORT_OBJECT_NAME_UNDECORATE:
-                        type = L"Name, Undecorate";
+                        type = L"Name, undecorate";
                         break;
                     default:
                         type = L"Unknown";

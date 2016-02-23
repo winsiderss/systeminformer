@@ -822,10 +822,10 @@ static BOOLEAN NTAPI EnumModulesCallback(
         switch (Module->Type)
         {
         case PH_MODULE_TYPE_MAPPED_FILE:
-            typeName = L"Mapped File";
+            typeName = L"Mapped file";
             break;
         case PH_MODULE_TYPE_MAPPED_IMAGE:
-            typeName = L"Mapped Image";
+            typeName = L"Mapped image";
             break;
         default:
             typeName = L"DLL";

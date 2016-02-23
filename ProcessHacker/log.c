@@ -214,7 +214,7 @@ PPH_STRING PhFormatLogEntry(
             L"Process created: %s (%u) started by %s (%u)",
             Entry->Process.Name->Buffer,
             HandleToUlong(Entry->Process.ProcessId),
-            PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown Process"),
+            PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown process"),
             HandleToUlong(Entry->Process.ParentProcessId)
             );
     case PH_LOG_ENTRY_PROCESS_DELETE:

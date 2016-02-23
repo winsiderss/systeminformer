@@ -237,7 +237,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"PID");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 160, L"User Name");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 160, L"User name");
             PhSetExtendedListView(lvHandle);
 
             ListView_SetImageList(lvHandle, context->ImageList, LVSIL_SMALL);

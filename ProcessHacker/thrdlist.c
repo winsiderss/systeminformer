@@ -91,8 +91,8 @@ VOID PhInitializeThreadList(
     // Default columns
     PhAddTreeNewColumn(hwnd, PHTHTLC_TID, TRUE, L"TID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHTHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHTHTLC_CYCLESDELTA, TRUE, L"Cycles Delta", 80, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
-    PhAddTreeNewColumn(hwnd, PHTHTLC_STARTADDRESS, TRUE, L"Start Address", 180, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumnEx(hwnd, PHTHTLC_CYCLESDELTA, TRUE, L"Cycles delta", 80, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(hwnd, PHTHTLC_STARTADDRESS, TRUE, L"Start address", 180, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumnEx(hwnd, PHTHTLC_PRIORITY, TRUE, L"Priority", 80, PH_ALIGN_LEFT, 4, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHTHTLC_SERVICE, FALSE, L"Service", 100, PH_ALIGN_LEFT, -1, 0);
 
@@ -149,7 +149,7 @@ VOID PhLoadSettingsThreadList(
     if (!Context->UseCycleTime)
     {
         column.Id = PHTHTLC_CYCLESDELTA;
-        column.Text = L"Context Switches Delta";
+        column.Text = L"Context switches delta";
         TreeNew_SetColumn(Context->TreeNewHandle, TN_COLUMN_TEXT, &column);
     }
 

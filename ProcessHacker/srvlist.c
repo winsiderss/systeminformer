@@ -123,17 +123,17 @@ VOID PhInitializeServiceTreeList(
 
     // Default columns
     PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display Name", 220, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display name", 220, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 130, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start type", 130, PH_ALIGN_LEFT, 4, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
 
-    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary path", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error control", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_DESCRIPTION, FALSE, L"Description", 200, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"Key Modified Time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"Key modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -623,11 +623,11 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     PhInitFormatS(&format[0], PhGetServiceStartTypeString(serviceItem->StartType));
 
                     if (serviceItem->DelayedStart && serviceItem->HasTriggers)
-                        additional = L" (Delayed, Trigger)";
+                        additional = L" (delayed, trigger)";
                     else if (serviceItem->DelayedStart)
-                        additional = L" (Delayed)";
+                        additional = L" (delayed)";
                     else if (serviceItem->HasTriggers)
-                        additional = L" (Trigger)";
+                        additional = L" (trigger)";
 
                     if (additional)
                         PhInitFormatS(&format[1], additional);

@@ -917,23 +917,23 @@ typedef struct _COLOR_ITEM
 
 static COLOR_ITEM ColorItems[] =
 {
-    COLOR_ITEM(L"ColorOwnProcesses", L"Own Processes", L"Processes running under the same user account as Process Hacker."),
-    COLOR_ITEM(L"ColorSystemProcesses", L"System Processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
-    COLOR_ITEM(L"ColorServiceProcesses", L"Service Processes", L"Processes which host one or more services."),
-    COLOR_ITEM(L"ColorJobProcesses", L"Job Processes", L"Processes associated with a job."),
+    COLOR_ITEM(L"ColorOwnProcesses", L"Own processes", L"Processes running under the same user account as Process Hacker."),
+    COLOR_ITEM(L"ColorSystemProcesses", L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
+    COLOR_ITEM(L"ColorServiceProcesses", L"Service processes", L"Processes which host one or more services."),
+    COLOR_ITEM(L"ColorJobProcesses", L"Job processes", L"Processes associated with a job."),
 #ifdef _WIN64
-    COLOR_ITEM(L"ColorWow64Processes", L"32-bit Processes", L"Processes running under WOW64, i.e. 32-bit."),
+    COLOR_ITEM(L"ColorWow64Processes", L"32-bit processes", L"Processes running under WOW64, i.e. 32-bit."),
 #endif
-    COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged Processes", L"Processes that are currently being debugged."),
-    COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated Processes", L"Processes with full privileges on a system with UAC enabled."),
-    COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive Processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
-    COLOR_ITEM(L"ColorSuspended", L"Suspended Processes and Threads", L"Processes and threads that are suspended from execution."),
-    COLOR_ITEM(L"ColorDotNet", L".NET Processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
-    COLOR_ITEM(L"ColorPacked", L"Packed Processes", L"Executables are sometimes \"packed\" to reduce their size."),
-    COLOR_ITEM(L"ColorGuiThreads", L"GUI Threads", L"Threads that have made at least one GUI-related system call."),
+    COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged processes", L"Processes that are currently being debugged."),
+    COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated processes", L"Processes with full privileges on a system with UAC enabled."),
+    COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
+    COLOR_ITEM(L"ColorSuspended", L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),
+    COLOR_ITEM(L"ColorDotNet", L".NET processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
+    COLOR_ITEM(L"ColorPacked", L"Packed processes", L"Executables are sometimes \"packed\" to reduce their size."),
+    COLOR_ITEM(L"ColorGuiThreads", L"GUI threads", L"Threads that have made at least one GUI-related system call."),
     COLOR_ITEM(L"ColorRelocatedModules", L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
-    COLOR_ITEM(L"ColorProtectedHandles", L"Protected Handles", L"Handles that are protected from being closed."),
-    COLOR_ITEM(L"ColorInheritHandles", L"Inheritable Handles", L"Handles that can be inherited by child processes.")
+    COLOR_ITEM(L"ColorProtectedHandles", L"Protected handles", L"Handles that are protected from being closed."),
+    COLOR_ITEM(L"ColorInheritHandles", L"Inheritable handles", L"Handles that can be inherited by child processes.")
 };
 
 COLORREF NTAPI PhpColorItemColorFunction(

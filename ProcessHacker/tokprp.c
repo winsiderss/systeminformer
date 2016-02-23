@@ -207,7 +207,7 @@ PPH_STRING PhGetGroupAttributesString(
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
             return PhCreateString(L"Integrity");
         else
-            return PhCreateString(L"Integrity (Disabled)");
+            return PhCreateString(L"Integrity (disabled)");
     }
 
     if (Attributes & SE_GROUP_LOGON_ID)
@@ -219,14 +219,14 @@ PPH_STRING PhGetGroupAttributesString(
     else if (Attributes & SE_GROUP_RESOURCE)
         baseString = L"Resource";
     else if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
-        baseString = L"Use for Deny Only";
+        baseString = L"Use for deny only";
     else
         baseString = NULL;
 
     if (!baseString)
     {
         if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-            return PhCreateString(L"Default Enabled");
+            return PhCreateString(L"Default enabled");
         else if (Attributes & SE_GROUP_ENABLED)
             return PhReferenceEmptyString();
         else
@@ -234,11 +234,11 @@ PPH_STRING PhGetGroupAttributesString(
     }
 
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-        string = PhConcatStrings2(baseString, L" (Default Enabled)");
+        string = PhConcatStrings2(baseString, L" (default enabled)");
     else if (Attributes & SE_GROUP_ENABLED)
         string = PhCreateString(baseString);
     else
-        string = PhConcatStrings2(baseString, L" (Disabled)");
+        string = PhConcatStrings2(baseString, L" (disabled)");
 
     return string;
 }
@@ -496,7 +496,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
                         else
                         {
-                            SetDlgItemText(hwndDlg, IDC_VIRTUALIZED, L"Not Allowed");
+                            SetDlgItemText(hwndDlg, IDC_VIRTUALIZED, L"Not allowed");
                         }
                     }
                 }
@@ -1561,7 +1561,7 @@ PWSTR PhGetSecurityAttributeTypeString(
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
         return L"Boolean";
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
-        return L"Octet String";
+        return L"Octet string";
     default:
         return L"(Unknown)";
     }
@@ -1582,9 +1582,9 @@ PPH_STRING PhGetSecurityAttributeFlagsString(
     if (Flags & TOKEN_SECURITY_ATTRIBUTE_DISABLED)
         PhAppendStringBuilder2(&sb, L"Disabled, ");
     if (Flags & TOKEN_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT)
-        PhAppendStringBuilder2(&sb, L"Default Disabled, ");
+        PhAppendStringBuilder2(&sb, L"Default disabled, ");
     if (Flags & TOKEN_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY)
-        PhAppendStringBuilder2(&sb, L"Use for Deny Only, ");
+        PhAppendStringBuilder2(&sb, L"Use for deny only, ");
     if (Flags & TOKEN_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE)
         PhAppendStringBuilder2(&sb, L"Case-sensitive, ");
     if (Flags & TOKEN_SECURITY_ATTRIBUTE_NON_INHERITABLE)

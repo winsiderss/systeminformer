@@ -343,7 +343,7 @@ int __cdecl PhMipCpuListSectionNodeCompareFunction(
     _In_ const void *elem2
     );
 
-// Commit Charge section
+// Commit charge section
 
 BOOLEAN PhMipCommitListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
@@ -362,7 +362,7 @@ int __cdecl PhMipCommitListSectionNodeCompareFunction(
     _In_ const void *elem2
     );
 
-// Physical Memory section
+// Physical memory section
 
 BOOLEAN PhMipPhysicalListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,

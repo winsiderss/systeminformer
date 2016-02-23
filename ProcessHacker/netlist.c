@@ -122,14 +122,14 @@ VOID PhInitializeNetworkTreeList(
 
     // Default columns
     PhAddTreeNewColumn(hwnd, PHNETLC_PROCESS, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALADDRESS, TRUE, L"Local Address", 120, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALPORT, TRUE, L"Local Port", 50, PH_ALIGN_RIGHT, 2, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEADDRESS, TRUE, L"Remote Address", 120, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEPORT, TRUE, L"Remote Port", 50, PH_ALIGN_RIGHT, 4, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALADDRESS, TRUE, L"Local address", 120, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_RIGHT, 2, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEADDRESS, TRUE, L"Remote address", 120, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_RIGHT, 4, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 6, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_OWNER, WINDOWS_HAS_SERVICE_TAGS, L"Owner", 80, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeNewColumnEx(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -660,7 +660,7 @@ PPH_STRING PhpGetNetworkItemProcessName(
     PH_FORMAT format[4];
 
     if (!NetworkItem->ProcessId)
-        return PhCreateString(L"Waiting Connections");
+        return PhCreateString(L"Waiting connections");
 
     PhInitFormatS(&format[1], L" (");
     PhInitFormatU(&format[2], HandleToUlong(NetworkItem->ProcessId));
@@ -669,7 +669,7 @@ PPH_STRING PhpGetNetworkItemProcessName(
     if (NetworkItem->ProcessName)
         PhInitFormatSR(&format[0], NetworkItem->ProcessName->sr);
     else
-        PhInitFormatS(&format[0], L"Unknown Process");
+        PhInitFormatS(&format[0], L"Unknown process");
 
     return PhFormat(format, 4, 96);
 }
