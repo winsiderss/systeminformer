@@ -347,7 +347,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             PhSetListViewStyle(privilegesLv, FALSE, TRUE);
             PhSetControlTheme(privilegesLv, L"explorer");
             PhAddListViewColumn(privilegesLv, 0, 0, 0, LVCFMT_LEFT, 140, L"Name");
-            PhAddListViewColumn(privilegesLv, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name");
+            PhAddListViewColumn(privilegesLv, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
             PhSetExtendedListView(privilegesLv);
 
             context->PrivilegeList = PhCreateList(32);

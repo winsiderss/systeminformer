@@ -3541,11 +3541,11 @@ VOID PhAddMiniProcessMenuItems(
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below normal", NULL, ProcessId), -1);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"Idle", NULL, ProcessId), -1);
 
-    // I/O Priority
+    // I/O priority
 
     if (WindowsVersion >= WINDOWS_VISTA)
     {
-        ioPriorityMenu = PhCreateEMenuItem(0, 0, L"I/O Priority", NULL, ProcessId);
+        ioPriorityMenu = PhCreateEMenuItem(0, 0, L"I/O priority", NULL, ProcessId);
 
         PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_3, L"High", NULL, ProcessId), -1);
         PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_2, L"Normal", NULL, ProcessId), -1);
