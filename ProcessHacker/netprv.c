@@ -816,23 +816,23 @@ PWSTR PhGetTcpStateName(
     case MIB_TCP_STATE_LISTEN:
         return L"Listen";
     case MIB_TCP_STATE_SYN_SENT:
-        return L"SYN Sent";
+        return L"SYN sent";
     case MIB_TCP_STATE_SYN_RCVD:
-        return L"SYN Received";
+        return L"SYN received";
     case MIB_TCP_STATE_ESTAB:
         return L"Established";
     case MIB_TCP_STATE_FIN_WAIT1:
-        return L"FIN Wait 1";
+        return L"FIN wait 1";
     case MIB_TCP_STATE_FIN_WAIT2:
-        return L"FIN Wait 2";
+        return L"FIN wait 2";
     case MIB_TCP_STATE_CLOSE_WAIT:
-        return L"Close Wait";
+        return L"Close wait";
     case MIB_TCP_STATE_CLOSING:
         return L"Closing";
     case MIB_TCP_STATE_LAST_ACK:
         return L"Last ACK";
     case MIB_TCP_STATE_TIME_WAIT:
-        return L"Time Wait";
+        return L"Time wait";
     case MIB_TCP_STATE_DELETE_TCB:
         return L"Delete TCB";
     default:

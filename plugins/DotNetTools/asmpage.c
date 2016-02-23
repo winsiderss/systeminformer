@@ -994,7 +994,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhAddTreeNewColumn(tnHandle, DNATNC_ID, TRUE, L"ID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
             PhAddTreeNewColumn(tnHandle, DNATNC_FLAGS, TRUE, L"Flags", 120, PH_ALIGN_LEFT, 1, 0);
             PhAddTreeNewColumn(tnHandle, DNATNC_PATH, TRUE, L"Path", 600, PH_ALIGN_LEFT, 2, 0); // don't use path ellipsis - the user already has the base file name
-            PhAddTreeNewColumn(tnHandle, DNATNC_NATIVEPATH, TRUE, L"Native Image Path", 600, PH_ALIGN_LEFT, 3, 0);
+            PhAddTreeNewColumn(tnHandle, DNATNC_NATIVEPATH, TRUE, L"Native image path", 600, PH_ALIGN_LEFT, 3, 0);
 
             settings = PhGetStringSetting(SETTING_NAME_ASM_TREE_LIST_COLUMNS);
             PhCmLoadSettings(tnHandle, &settings->sr);

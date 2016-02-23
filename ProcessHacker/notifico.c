@@ -1112,7 +1112,7 @@ VOID PhNfpUpdateIconPhysicalHistory(
     physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
     physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
 
-    PhInitFormatS(&format[0], L"Physical Memory: ");
+    PhInitFormatS(&format[0], L"Physical memory: ");
     PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
     PhInitFormatF(&format[3], physicalFraction * 100, 2);
@@ -1242,7 +1242,7 @@ VOID PhNfpUpdateIconCpuUsage(
         }
     }
 
-    text = PhFormatString(L"CPU Usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 
     PhNfpModifyNotifyIcon(PH_ICON_CPU_USAGE, NIF_TIP | NIF_ICON, text, icon);
@@ -1290,10 +1290,10 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
             Data->SectionName = L"I/O";
             break;
         case PH_ICON_COMMIT_HISTORY:
-            Data->SectionName = L"Commit Charge";
+            Data->SectionName = L"Commit charge";
             break;
         case PH_ICON_PHYSICAL_HISTORY:
-            Data->SectionName = L"Physical Memory";
+            Data->SectionName = L"Physical memory";
             break;
         }
 

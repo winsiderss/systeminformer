@@ -670,15 +670,15 @@ PPH_STRING PhGetThreadPriorityWin32String(
     switch (PriorityWin32)
     {
     case THREAD_PRIORITY_TIME_CRITICAL:
-        return PhCreateString(L"Time Critical");
+        return PhCreateString(L"Time critical");
     case THREAD_PRIORITY_HIGHEST:
         return PhCreateString(L"Highest");
     case THREAD_PRIORITY_ABOVE_NORMAL:
-        return PhCreateString(L"Above Normal");
+        return PhCreateString(L"Above normal");
     case THREAD_PRIORITY_NORMAL:
         return PhCreateString(L"Normal");
     case THREAD_PRIORITY_BELOW_NORMAL:
-        return PhCreateString(L"Below Normal");
+        return PhCreateString(L"Below normal");
     case THREAD_PRIORITY_LOWEST:
         return PhCreateString(L"Lowest");
     case THREAD_PRIORITY_IDLE:

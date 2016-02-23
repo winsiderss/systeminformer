@@ -90,25 +90,25 @@ VOID PhInitializeModuleList(
 
     // Default columns
     PhAddTreeNewColumn(hwnd, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_BASEADDRESS, TRUE, L"Base Address", 80, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_BASEADDRESS, TRUE, L"Base address", 80, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
 
-    PhAddTreeNewColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company name", 180, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
 
     PhAddTreeNewColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load count", 40, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_ASLR, FALSE, L"ASLR", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADTIME, FALSE, L"Load Time", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumn(hwnd, PHMOTLC_LOADREASON, FALSE, L"Load Reason", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File Modified Time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILESIZE, FALSE, L"File Size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADTIME, FALSE, L"Load time", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_LOADREASON, FALSE, L"Load reason", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -627,16 +627,16 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         typeString = L"DLL";
                         break;
                     case PH_MODULE_TYPE_MAPPED_FILE:
-                        typeString = L"Mapped File";
+                        typeString = L"Mapped file";
                         break;
                     case PH_MODULE_TYPE_MAPPED_IMAGE:
-                        typeString = L"Mapped Image";
+                        typeString = L"Mapped image";
                         break;
                     case PH_MODULE_TYPE_WOW64_MODULE:
                         typeString = L"WOW64 DLL";
                         break;
                     case PH_MODULE_TYPE_KERNEL_MODULE:
-                        typeString = L"Kernel Module";
+                        typeString = L"Kernel module";
                         break;
                     default:
                         typeString = L"Unknown";
@@ -670,7 +670,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE || moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
                 {
                     PhInitializeStringRef(&getCellText->Text,
-                        moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not Trusted");
+                        moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
                 }
                 else
                 {
@@ -745,25 +745,25 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         switch (moduleItem->LoadReason)
                         {
                         case LoadReasonStaticDependency:
-                            string = L"Static Dependency";
+                            string = L"Static dependency";
                             break;
                         case LoadReasonStaticForwarderDependency:
-                            string = L"Static Forwarder Dependency";
+                            string = L"Static forwarder dependency";
                             break;
                         case LoadReasonDynamicForwarderDependency:
-                            string = L"Dynamic Forwarder Dependency";
+                            string = L"Dynamic forwarder dependency";
                             break;
                         case LoadReasonDelayloadDependency:
-                            string = L"Delay Load Dependency";
+                            string = L"Delay load dependency";
                             break;
                         case LoadReasonDynamicLoad:
                             string = L"Dynamic";
                             break;
                         case LoadReasonAsImageLoad:
-                            string = L"As Image";
+                            string = L"As image";
                             break;
                         case LoadReasonAsDataLoad:
-                            string = L"As Data";
+                            string = L"As data";
                             break;
                         default:
                             if (WindowsVersion >= WINDOWS_8)

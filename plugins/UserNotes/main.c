@@ -805,7 +805,7 @@ static VOID ProcessMenuInitializingCallback(
         highlightPresent = TRUE;
     UnlockDb();
 
-    PhInsertEMenuItem(miscMenuItem, collapseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_COLLAPSE_ID, L"Collapse by Default", NULL), 0);
+    PhInsertEMenuItem(miscMenuItem, collapseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_COLLAPSE_ID, L"Collapse by default", NULL), 0);
     PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_HIGHLIGHT_ID, L"Highlight", UlongToPtr(highlightPresent)), 1);
     PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), 2);
 

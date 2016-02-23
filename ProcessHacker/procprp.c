@@ -1704,7 +1704,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhMoveReference(&performanceContext->PrivateGraphState.Text,
                                 PhConcatStrings2(
-                                L"Private Bytes: ",
+                                L"Private bytes: ",
                                 PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
                                 ));
 
@@ -1830,7 +1830,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             privateBytes = PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
 
                             PhMoveReference(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
-                                L"Private Bytes: %s\n%s",
+                                L"Private bytes: %s\n%s",
                                 PhaFormatSize(privateBytes, -1)->Buffer,
                                 PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->Buffer
                                 ));
@@ -4501,28 +4501,28 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
         return;
 
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
-        PhEqualString2(Info->TypeName, L"Mapped File", TRUE) || PhEqualString2(Info->TypeName, L"Mapped Image", TRUE))
+        PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
         if (PhEqualString2(Info->TypeName, L"File", TRUE))
-            PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES2, L"File Properties", NULL, NULL), indexInParent);
+            PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES2, L"File properties", NULL, NULL), indexInParent);
 
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &File Location", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open &file location", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Key", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open Key", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Open key", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Process", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Process Properties", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Process properties", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Read/Write Memory", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Read/Write memory", EnableShortcut), NULL, NULL), indexInParent);
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
     {
-        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to Thread", EnableShortcut), NULL, NULL), indexInParent);
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to thread", EnableShortcut), NULL, NULL), indexInParent);
     }
 }
 
@@ -4532,7 +4532,7 @@ VOID PhShowHandleObjectProperties1(
     )
 {
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
-        PhEqualString2(Info->TypeName, L"Mapped File", TRUE) || PhEqualString2(Info->TypeName, L"Mapped Image", TRUE))
+        PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
         if (Info->BestObjectName)
             PhShellExploreFile(hWnd, Info->BestObjectName->Buffer);
@@ -4788,7 +4788,7 @@ VOID PhShowHandleObjectProperties2(
     )
 {
     if (PhEqualString2(Info->TypeName, L"File", TRUE) || PhEqualString2(Info->TypeName, L"DLL", TRUE) ||
-        PhEqualString2(Info->TypeName, L"Mapped File", TRUE) || PhEqualString2(Info->TypeName, L"Mapped Image", TRUE))
+        PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
         if (Info->BestObjectName)
             PhShellProperties(hWnd, Info->BestObjectName->Buffer);

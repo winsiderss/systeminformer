@@ -235,11 +235,11 @@ VOID EtInitializeDiskTreeList(
     // Default columns
     PhAddTreeNewColumn(hwnd, ETDSTNC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, ETDSTNC_FILE, TRUE, L"File", 400, PH_ALIGN_LEFT, 1, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_READRATEAVERAGE, TRUE, L"Read Rate Average", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_WRITERATEAVERAGE, TRUE, L"Write Rate Average", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total Rate Average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O Priority", 70, PH_ALIGN_LEFT, 5, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"Response Time (ms)", 70, PH_ALIGN_RIGHT, 6, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_READRATEAVERAGE, TRUE, L"Read rate average", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_WRITERATEAVERAGE, TRUE, L"Write rate average", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total rate average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O priority", 70, PH_ALIGN_LEFT, 5, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"Response time (ms)", 70, PH_ALIGN_RIGHT, 6, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -695,7 +695,7 @@ PPH_STRING EtpGetDiskItemProcessName(
     PH_FORMAT format[4];
 
     if (!DiskItem->ProcessId)
-        return PhCreateString(L"No Process");
+        return PhCreateString(L"No process");
 
     PhInitFormatS(&format[1], L" (");
     PhInitFormatU(&format[2], HandleToUlong(DiskItem->ProcessId));
@@ -704,7 +704,7 @@ PPH_STRING EtpGetDiskItemProcessName(
     if (DiskItem->ProcessName)
         PhInitFormatSR(&format[0], DiskItem->ProcessName->sr);
     else
-        PhInitFormatS(&format[0], L"Unknown Process");
+        PhInitFormatS(&format[0], L"Unknown process");
 
     return PhFormat(format, 4, 96);
 }

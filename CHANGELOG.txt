@@ -5,9 +5,9 @@ Process Hacker
    * Improved high DPI scaling
    * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
-   * Added File Modified Time and File Size columns for processes and modules
-   * Added Key Modified Time column for services
-   * Added Time Stamp column for processes
+   * Added File modified time and File size columns for processes and modules
+   * Added Key modified time column for services
+   * Added Time stamp column for processes
    * Added right-click menu and double-click action for environment variables
    * Clicking a tray icon now shows the pop-up UI (useful for touch-enabled devices)
    * The pop-up UI no longer displays when double-clicking the tray icon
@@ -15,7 +15,7 @@ Process Hacker
      * This plugin shows network adapter and disk drive graphs
      * If you are manually upgrading, please delete NetAdapters.dll from the plugins folder
    * Updated UserNotes plugin:
-     * Added "Collapse by Default" option for processes
+     * Added "Collapse by default" option for processes
  * OTHER CHANGES:
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
    * Improved performance when handling a large number of threads, modules or handles

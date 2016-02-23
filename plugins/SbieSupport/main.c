@@ -309,7 +309,7 @@ VOID NTAPI MainMenuInitializingCallback(
         return;
 
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, 1, L"Terminate Sandboxed Processes", NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, 1, L"Terminate sandboxed processes", NULL), -1);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(

@@ -185,33 +185,33 @@ PWSTR StatusBarGetText(
     switch (CommandID)
     {
     case ID_STATUS_CPUUSAGE:
-        return L"CPU Usage";
+        return L"CPU usage";
     case ID_STATUS_PHYSICALMEMORY:
-        return L"Physical Memory";
+        return L"Physical memory";
     case ID_STATUS_NUMBEROFPROCESSES:
-        return L"Number of Processes";
+        return L"Number of processes";
     case ID_STATUS_COMMITCHARGE:
-        return L"Commit Charge";
+        return L"Commit charge";
     case ID_STATUS_FREEMEMORY:
-        return L"Free Physical Memory";
+        return L"Free physical memory";
     case ID_STATUS_NUMBEROFTHREADS:
-        return L"Number of Threads";
+        return L"Number of threads";
     case ID_STATUS_NUMBEROFHANDLES:
-        return L"Number of Handles";
+        return L"Number of handles";
     case ID_STATUS_NUMBEROFVISIBLEITEMS:
-        return L"Number of Visible Items";
+        return L"Number of visible items";
     case ID_STATUS_NUMBEROFSELECTEDITEMS:
-        return L"Number of Selected Items";
+        return L"Number of selected items";
     case ID_STATUS_INTERVALSTATUS:
-        return L"Interval Status";
+        return L"Interval status";
     case ID_STATUS_IO_RO:
-        return L"I/O Read+Other";
+        return L"I/O read+other";
     case ID_STATUS_IO_W:
-        return L"I/O Write";
+        return L"I/O write";
     case ID_STATUS_MAX_CPU_PROCESS:
-        return L"Max. CPU Process";
+        return L"Max. CPU process";
     case ID_STATUS_MAX_IO_PROCESS:
-        return L"Max. I/O Process";
+        return L"Max. I/O process";
     }
 
     return L"ERROR";
@@ -316,7 +316,7 @@ VOID StatusBarUpdate(
                 FLOAT commitFraction = (FLOAT)commitUsage / SystemStatistics.Performance->CommitLimit * 100;
 
                 text[count] = PhFormatString(
-                    L"Commit Charge: %s (%.2f%%)",
+                    L"Commit charge: %s (%.2f%%)",
                     PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
                     commitFraction
                     );
@@ -328,7 +328,7 @@ VOID StatusBarUpdate(
                 FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
-                    L"Physical Memory: %s (%.2f%%)",
+                    L"Physical memory: %s (%.2f%%)",
                     PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
                     physicalFraction
                     );
@@ -340,7 +340,7 @@ VOID StatusBarUpdate(
                 FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
-                    L"Free Memory: %s (%.2f%%)",
+                    L"Free memory: %s (%.2f%%)",
                     PhaFormatSize(UInt32x32To64(physicalFree, PAGE_SIZE), -1)->Buffer,
                     physicalFreeFraction
                     );
@@ -524,13 +524,13 @@ VOID StatusBarUpdate(
                         text[count] = PhCreateString(L"Interval: Normal");
                         break;
                     case 2000:
-                        text[count] = PhCreateString(L"Interval: Below Normal");
+                        text[count] = PhCreateString(L"Interval: Below normal");
                         break;
                     case 5000:
                         text[count] = PhCreateString(L"Interval: Slow");
                         break;
                     case 10000:
-                        text[count] = PhCreateString(L"Interval: Very Slow");
+                        text[count] = PhCreateString(L"Interval: Very slow");
                         break;
                     }
                 }

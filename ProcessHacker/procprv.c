@@ -406,15 +406,15 @@ PWSTR PhGetProcessPriorityClassString(
     switch (PriorityClass)
     {
     case PROCESS_PRIORITY_CLASS_REALTIME:
-        return L"Real Time";
+        return L"Real time";
     case PROCESS_PRIORITY_CLASS_HIGH:
         return L"High";
     case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
-        return L"Above Normal";
+        return L"Above normal";
     case PROCESS_PRIORITY_CLASS_NORMAL:
         return L"Normal";
     case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
-        return L"Below Normal";
+        return L"Below normal";
     case PROCESS_PRIORITY_CLASS_IDLE:
         return L"Idle";
     default:

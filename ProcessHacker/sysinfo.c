@@ -3149,7 +3149,7 @@ BOOLEAN PhSipMemorySectionCallback(
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
                 PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
-                    L"Commit Charge: %s\n%s",
+                    L"Commit charge: %s\n%s",
                     PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                     PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                     ));
@@ -3160,7 +3160,7 @@ BOOLEAN PhSipMemorySectionCallback(
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
                 PhMoveReference(&Section->GraphState.TooltipText, PhFormatString(
-                    L"Physical Memory: %s\n%s",
+                    L"Physical memory: %s\n%s",
                     PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                     PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                     ));
@@ -3531,7 +3531,7 @@ VOID PhSipNotifyCommitGraph(
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
                     PhMoveReference(&CommitGraphState.TooltipText, PhFormatString(
-                        L"Commit Charge: %s\n%s",
+                        L"Commit charge: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                         PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
@@ -3599,7 +3599,7 @@ VOID PhSipNotifyPhysicalGraph(
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
                     PhMoveReference(&PhysicalGraphState.TooltipText, PhFormatString(
-                        L"Physical Memory: %s\n%s",
+                        L"Physical memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
                         PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
@@ -3639,7 +3639,7 @@ VOID PhSipUpdateMemoryPanel(
     PWSTR nonPagedLimit;
     SYSTEM_MEMORY_LIST_INFORMATION memoryListInfo;
 
-    // Commit Charge
+    // Commit charge
 
     SetDlgItemText(MemoryPanel, IDC_ZCOMMITCURRENT_V,
         PhaFormatSize(UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE), -1)->Buffer);
@@ -3648,7 +3648,7 @@ VOID PhSipUpdateMemoryPanel(
     SetDlgItemText(MemoryPanel, IDC_ZCOMMITLIMIT_V,
         PhaFormatSize(UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE), -1)->Buffer);
 
-    // Physical Memory
+    // Physical memory
 
     SetDlgItemText(MemoryPanel, IDC_ZPHYSICALCURRENT_V,
         PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages, PAGE_SIZE), -1)->Buffer);
@@ -3672,7 +3672,7 @@ VOID PhSipUpdateMemoryPanel(
     SetDlgItemText(MemoryPanel, IDC_ZPHYSICALDRIVERWS_V,
         PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentSystemDriverPage, PAGE_SIZE), -1)->Buffer);
 
-    // Paged Pool
+    // Paged pool
 
     SetDlgItemText(MemoryPanel, IDC_ZPAGEDWORKINGSET_V,
         PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentPagedPoolPage, PAGE_SIZE), -1)->Buffer);
@@ -3689,7 +3689,7 @@ VOID PhSipUpdateMemoryPanel(
     else
         SetDlgItemText(MemoryPanel, IDC_ZPAGEDFREESDELTA_V, L"-");
 
-    // Non-Paged Pool
+    // Non-paged pool
 
     SetDlgItemText(MemoryPanel, IDC_ZNONPAGEDUSAGE_V,
         PhaFormatSize(UInt32x32To64(PhPerfInformation.NonPagedPoolPages, PAGE_SIZE), -1)->Buffer);
@@ -3752,7 +3752,7 @@ VOID PhSipUpdateMemoryPanel(
     else
         SetDlgItemText(MemoryPanel, IDC_ZPAGINGMAPPEDWRITESDELTA_V, L"-");
 
-    // Memory Lists
+    // Memory lists
 
     if (WindowsVersion >= WINDOWS_VISTA)
     {

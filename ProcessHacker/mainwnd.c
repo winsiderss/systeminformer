@@ -3211,10 +3211,10 @@ VOID PhMwpInitializeSectionMenuItems(
 
     if (selectedIndex == ProcessesTabIndex)
     {
-        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide Processes From Other Users", NULL, NULL), StartIndex);
-        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide Signed Processes", NULL, NULL), StartIndex + 1);
-        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scroll to New Processes", NULL, NULL), StartIndex + 2);
-        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU Below 0.01", NULL, NULL), StartIndex + 3);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide processes from other users", NULL, NULL), StartIndex);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide signed processes", NULL, NULL), StartIndex + 1);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scroll to new processes", NULL, NULL), StartIndex + 2);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU below 0.01", NULL, NULL), StartIndex + 3);
 
         if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
             menuItem->Flags |= PH_EMENU_CHECKED;
@@ -3238,7 +3238,7 @@ VOID PhMwpInitializeSectionMenuItems(
     }
     else if (selectedIndex == ServicesTabIndex)
     {
-        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"Hide Driver Services", NULL, NULL), StartIndex);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEDRIVERSERVICES, L"Hide driver services", NULL, NULL), StartIndex);
 
         if (DriverFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEDRIVERSERVICES)))
             menuItem->Flags |= PH_EMENU_CHECKED;
@@ -3247,16 +3247,6 @@ VOID PhMwpInitializeSectionMenuItems(
     {
         // Remove the extra separator.
         PhRemoveEMenuItem(Menu, NULL, StartIndex);
-
-        // Disabled for now - may cause user confusion.
-
-        //PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide Processes From Other Users", NULL, NULL), StartIndex);
-        //PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide Signed Processes", NULL, NULL), StartIndex + 1);
-
-        //if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
-        //    menuItem->Flags |= PH_EMENU_CHECKED;
-        //if (SignedFilterEntry && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
-        //    menuItem->Flags |= PH_EMENU_CHECKED;
     }
     else if (AdditionalTabPageList)
     {
@@ -3544,11 +3534,11 @@ VOID PhAddMiniProcessMenuItems(
 
     priorityMenu = PhCreateEMenuItem(0, 0, L"Priority", NULL, ProcessId);
 
-    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"Real Time", NULL, ProcessId), -1);
+    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"Real time", NULL, ProcessId), -1);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"High", NULL, ProcessId), -1);
-    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"Above Normal", NULL, ProcessId), -1);
+    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"Above normal", NULL, ProcessId), -1);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_NORMAL, L"Normal", NULL, ProcessId), -1);
-    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below Normal", NULL, ProcessId), -1);
+    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below normal", NULL, ProcessId), -1);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"Idle", NULL, ProcessId), -1);
 
     // I/O Priority
@@ -3560,7 +3550,7 @@ VOID PhAddMiniProcessMenuItems(
         PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_3, L"High", NULL, ProcessId), -1);
         PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_2, L"Normal", NULL, ProcessId), -1);
         PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_1, L"Low", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_0, L"Very Low", NULL, ProcessId), -1);
+        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_0, L"Very low", NULL, ProcessId), -1);
     }
 
     // Menu
@@ -4553,7 +4543,7 @@ VOID PhMwpOnProcessAdded(
                     L"The process %s (%u) was created by %s (%u)",
                     ProcessItem->ProcessName->Buffer,
                     HandleToUlong(ProcessItem->ProcessId),
-                    PhGetStringOrDefault(parentName, L"Unknown Process"),
+                    PhGetStringOrDefault(parentName, L"Unknown process"),
                     HandleToUlong(ProcessItem->ParentProcessId)
                     )->Buffer, NIIF_INFO);
             }

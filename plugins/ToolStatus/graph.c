@@ -555,7 +555,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     physicalUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.PhysicalHistory, getTooltipText->Index);
 
                     PhMoveReference(&MemGraphState.TooltipText, PhFormatString(
-                        L"Physical Memory: %s\n%s",
+                        L"Physical memory: %s\n%s",
                         PhaFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1)->Buffer,
                         PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));
@@ -568,7 +568,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
                     commitUsage = PhGetItemCircularBuffer_ULONG(SystemStatistics.CommitHistory, getTooltipText->Index);
 
                     PhMoveReference(&CommitGraphState.TooltipText, PhFormatString(
-                        L"Commit: %s\n%s",
+                        L"Commit charge: %s\n%s",
                         PhaFormatSize(UInt32x32To64(commitUsage, PAGE_SIZE), -1)->Buffer,
                         PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer
                         ));

@@ -606,9 +606,9 @@ VOID PhpFillRunningTasks(
                                 IRunningTask_get_Path(runningTask, &path);
 
                                 PhAppendStringBuilder(Tasks, &StandardIndent);
-                                PhAppendStringBuilder2(Tasks, action ? action : L"Unknown Action");
+                                PhAppendStringBuilder2(Tasks, action ? action : L"Unknown action");
                                 PhAppendStringBuilder2(Tasks, L" (");
-                                PhAppendStringBuilder2(Tasks, path ? path : L"Unknown Path");
+                                PhAppendStringBuilder2(Tasks, path ? path : L"Unknown path");
                                 PhAppendStringBuilder2(Tasks, L")\n");
 
                                 if (action)

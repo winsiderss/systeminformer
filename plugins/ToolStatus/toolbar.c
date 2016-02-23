@@ -420,21 +420,21 @@ PWSTR ToolbarGetText(
     case PHAPP_ID_HACKER_OPTIONS:
         return L"Options";
     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-        return L"Find Handles or DLLs";
+        return L"Find handles or DLLs";
     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-        return L"System Information";
+        return L"System information";
     case TIDC_FINDWINDOW:
-        return L"Find Window";
+        return L"Find window";
     case TIDC_FINDWINDOWTHREAD:
-        return L"Find Window and Thread";
+        return L"Find window and thread";
     case TIDC_FINDWINDOWKILL:
-        return L"Find Window and Kill";
+        return L"Find window and kill";
     case PHAPP_ID_VIEW_ALWAYSONTOP:
-        return L"Always on Top";
+        return L"Always on top";
     case TIDC_POWERMENUDROPDOWN:
         return L"Computer";
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
-        return L"Show Details for All Processes";
+        return L"Show details for all processes";
     }
 
     return L"ERROR";

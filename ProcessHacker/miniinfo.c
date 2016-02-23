@@ -478,8 +478,8 @@ VOID PhMipOnShowWindow(
     SendMessage(GetDlgItem(PhMipWindow, IDC_SECTION), WM_SETFONT, (WPARAM)CurrentParameters.MediumFont, FALSE);
 
     PhMipCreateInternalListSection(L"CPU", 0, PhMipCpuListSectionCallback);
-    PhMipCreateInternalListSection(L"Commit Charge", 0, PhMipCommitListSectionCallback);
-    PhMipCreateInternalListSection(L"Physical Memory", 0, PhMipPhysicalListSectionCallback);
+    PhMipCreateInternalListSection(L"Commit charge", 0, PhMipCommitListSectionCallback);
+    PhMipCreateInternalListSection(L"Physical memory", 0, PhMipPhysicalListSectionCallback);
     PhMipCreateInternalListSection(L"I/O", 0, PhMipIoListSectionCallback);
 
     if (PhPluginsEnabled)
@@ -1787,7 +1787,7 @@ VOID PhMipShowListSectionContextMenu(
     if (selectedNode->ProcessGroup->Processes->Count != 1)
     {
         if (item = PhFindEMenuItem(menu, 0, NULL, ID_PROCESS_GOTOPROCESS))
-            PhModifyEMenuItem(item, PH_EMENU_MODIFY_TEXT, 0, L"&Go to Processes", NULL);
+            PhModifyEMenuItem(item, PH_EMENU_MODIFY_TEXT, 0, L"&Go to processes", NULL);
     }
 
     memset(&menuInfo, 0, sizeof(PH_MINIINFO_LIST_SECTION_MENU_INFORMATION));
@@ -2026,7 +2026,7 @@ BOOLEAN PhMipCommitListSectionCallback(
             ULONG64 privateBytes = *(PULONG64)getUsageText->SortData->UserData;
 
             PhMoveReference(&getUsageText->Line1, PhFormatSize(privateBytes, -1));
-            PhMoveReference(&getUsageText->Line2, PhCreateString(L"Private Bytes"));
+            PhMoveReference(&getUsageText->Line2, PhCreateString(L"Private bytes"));
             getUsageText->Line2Color = GetSysColor(COLOR_GRAYTEXT);
         }
         return TRUE;
@@ -2117,7 +2117,7 @@ BOOLEAN PhMipPhysicalListSectionCallback(
             ULONG64 privateBytes = *(PULONG64)getUsageText->SortData->UserData;
 
             PhMoveReference(&getUsageText->Line1, PhFormatSize(privateBytes, -1));
-            PhMoveReference(&getUsageText->Line2, PhCreateString(L"Working Set"));
+            PhMoveReference(&getUsageText->Line2, PhCreateString(L"Working set"));
             getUsageText->Line2Color = GetSysColor(COLOR_GRAYTEXT);
         }
         return TRUE;

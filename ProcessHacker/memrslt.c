@@ -403,7 +403,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
 
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-                    PhSetFileDialogFileName(fileDialog, L"Search Results.txt");
+                    PhSetFileDialogFileName(fileDialog, L"Search results.txt");
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
