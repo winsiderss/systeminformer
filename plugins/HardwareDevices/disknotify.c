@@ -61,7 +61,9 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
                             if (!entry)
                                 continue;
 
-                            // Reset the DiskIndexName so we can re-query the device letter on the next interval update.
+                            // Reset the DiskIndex so we can re-query the index on the next interval update.
+                            entry->DiskIndex = ULONG_MAX;
+                            // Reset the DiskIndexName so we can re-query the name on the next interval update.
                             PhClearReference(&entry->DiskIndexName);
 
                             PhDereferenceObjectDeferDelete(entry);

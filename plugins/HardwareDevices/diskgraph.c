@@ -59,9 +59,13 @@ VOID UpdateDiskDriveDialog(
 {
     if (Context->AdapterEntry->DiskName)
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->AdapterEntry->DiskName->Buffer);
+    else
+        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown Disk");
 
     if (Context->AdapterEntry->DiskIndexName)
         SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->DiskIndexName->Buffer);
+    else
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown Disk");
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
