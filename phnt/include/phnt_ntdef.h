@@ -4,8 +4,8 @@
 #ifndef _NTDEF_
 #define _NTDEF_
 
-// This header file provides basic NT types not included in Win32. If you have included windows.h,
-// you must use this file instead of ntdef.h.
+// This header file provides basic NT types not included in Win32. If you have included winnt.h
+// (perhaps indirectly), you must use this file instead of ntdef.h.
 
 #ifndef NOTHING
 #define NOTHING
@@ -94,7 +94,8 @@ typedef enum _TIMER_TYPE
 typedef enum _WAIT_TYPE
 {
     WaitAll,
-    WaitAny
+    WaitAny,
+    WaitNotification
 } WAIT_TYPE;
 
 // Strings
@@ -144,7 +145,8 @@ typedef struct _RTL_BALANCED_NODE
     };
 } RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
 
-#define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
+#define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) \
+    ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
 
 // Portability
 
@@ -183,7 +185,9 @@ typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
 #define OBJ_OPENLINK 0x00000100
 #define OBJ_KERNEL_HANDLE 0x00000200
 #define OBJ_FORCE_ACCESS_CHECK 0x00000400
-#define OBJ_VALID_ATTRIBUTES 0x000007f2
+#define OBJ_IGNORE_IMPERSONATED_DEVICEMAP 0x00000800
+#define OBJ_DONT_REPARSE 0x00001000
+#define OBJ_VALID_ATTRIBUTES 0x00001ff2
 
 typedef struct _OBJECT_ATTRIBUTES
 {
