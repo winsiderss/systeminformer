@@ -60,12 +60,12 @@ VOID UpdateDiskDriveDialog(
     if (Context->AdapterEntry->DiskName)
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->AdapterEntry->DiskName->Buffer);
     else
-        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown Disk");
+        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown disk");
 
     if (Context->AdapterEntry->DiskIndexName)
         SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->DiskIndexName->Buffer);
     else
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown Disk");
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown disk");
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
@@ -167,12 +167,12 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             if (context->AdapterEntry->DiskIndexName)
                 SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->DiskIndexName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown Disk");
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown disk");
 
             if (context->AdapterEntry->DiskName)
                 SetDlgItemText(hwndDlg, IDC_DISKNAME, context->AdapterEntry->DiskName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_DISKNAME, L"Unknown Disk");
+                SetDlgItemText(hwndDlg, IDC_DISKNAME, L"Unknown disk");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_DISKDRIVE_PANEL), hwndDlg, DiskDrivePanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -433,7 +433,7 @@ static BOOLEAN DiskDriveSectionCallback(
                 );
 
             if (!drawPanel->Title)
-                drawPanel->Title = PhCreateString(L"Unknown Disk");
+                drawPanel->Title = PhCreateString(L"Unknown disk");
         }
         return TRUE;
     }
