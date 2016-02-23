@@ -190,81 +190,6 @@
     <ClInclude Include="include\md5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\ntbasic.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntdbg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntexapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntgdi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntioapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntkeapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntldr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntlpcapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntmisc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntmmapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntnls.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntobapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntpebteb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntpnpapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntpoapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntpsapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntregapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntrtl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntsam.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntseapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\nttmapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\nttp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntwin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntwow64.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntxcapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\ph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -275,9 +200,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phnet.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\phnt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phsup.h">
@@ -307,13 +229,7 @@
     <ClInclude Include="include\verifyp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\winsta.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\phintrnl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntzwapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phnatinl.h">
@@ -323,9 +239,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphuser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ntpfapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cpysave.h">
@@ -341,9 +254,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\treenewp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\winmisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\verify.h">

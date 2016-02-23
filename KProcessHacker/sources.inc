@@ -8,7 +8,7 @@ TARGETNAME=kprocesshacker
 TARGETPATH=..\bin
 !ENDIF
 
-INCLUDES=$(DDK_INC_PATH);..\include;..\..\phlib\include
+INCLUDES=$(DDK_INC_PATH);..\include;..\..\phnt\include;..\..\phlib\include
 LIBS=%BUILD%\lib
 
 SOURCES= \

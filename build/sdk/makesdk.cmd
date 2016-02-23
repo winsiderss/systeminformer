@@ -17,28 +17,13 @@ copy ..\..\ProcessHacker\sdk\readme.txt ..\..\sdk\
 rem Header files
 
 for %%a in (
-    circbuf.h
-    circbuf_h.h
-    cpysave.h
-    dltmgr.h
-    dspick.h
-    emenu.h
-    fastlock.h
-    graph.h
-    hexedit.h
-    kphapi.h
-    kphuser.h
-    ntbasic.h
-    ntcm.h
     ntdbg.h
     ntexapi.h
     ntgdi.h
-    ntimport.h
     ntioapi.h
     ntkeapi.h
     ntldr.h
     ntlpcapi.h
-    ntlsa.h
     ntmisc.h
     ntmmapi.h
     ntnls.h
@@ -54,18 +39,34 @@ for %%a in (
     ntseapi.h
     nttmapi.h
     nttp.h
-    ntwin.h
     ntwow64.h
     ntxcapi.h
     ntzwapi.h
+    phnt.h
+    phnt_ntdef.h
+    phnt_windows.h
+    winmisc.h
+    winsta.h
+    ) do copy ..\..\phnt\include\%%a ..\..\sdk\include\%%a
+
+for %%a in (
+    circbuf.h
+    circbuf_h.h
+    cpysave.h
+    dltmgr.h
+    dspick.h
+    emenu.h
+    fastlock.h
+    graph.h
+    hexedit.h
+    kphapi.h
+    kphuser.h
     ph.h
     phbase.h
     phgui.h
     phnatinl.h
     phnet.h
-    phnt.h
     phsup.h
-    phsync.h
     queuedlock.h
     ref.h
     secedit.h
@@ -73,8 +74,6 @@ for %%a in (
     templ.h
     treenew.h
     verify.h
-    winmisc.h
-    winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
 
 call phapppub_gen.cmd

@@ -76,7 +76,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -91,7 +91,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -107,7 +107,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -125,7 +125,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -189,8 +189,6 @@
     <ClInclude Include="include\filepool.h" />
     <ClInclude Include="include\filepoolp.h" />
     <ClInclude Include="include\kphapi.h" />
-    <ClInclude Include="include\ntpfapi.h" />
-    <ClInclude Include="include\ntzwapi.h" />
     <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phnatinl.h" />
     <ClInclude Include="include\circbuf.h" />
@@ -215,47 +213,19 @@
     <ClInclude Include="include\iosupp.h" />
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\md5.h" />
-    <ClInclude Include="include\ntbasic.h" />
-    <ClInclude Include="include\ntdbg.h" />
-    <ClInclude Include="include\ntexapi.h" />
-    <ClInclude Include="include\ntgdi.h" />
-    <ClInclude Include="include\ntioapi.h" />
-    <ClInclude Include="include\ntkeapi.h" />
-    <ClInclude Include="include\ntldr.h" />
-    <ClInclude Include="include\ntlpcapi.h" />
-    <ClInclude Include="include\ntmisc.h" />
-    <ClInclude Include="include\ntmmapi.h" />
-    <ClInclude Include="include\ntnls.h" />
-    <ClInclude Include="include\ntobapi.h" />
-    <ClInclude Include="include\ntpebteb.h" />
-    <ClInclude Include="include\ntpnpapi.h" />
-    <ClInclude Include="include\ntpoapi.h" />
-    <ClInclude Include="include\ntpsapi.h" />
-    <ClInclude Include="include\ntregapi.h" />
-    <ClInclude Include="include\ntrtl.h" />
-    <ClInclude Include="include\ntsam.h" />
-    <ClInclude Include="include\ntseapi.h" />
-    <ClInclude Include="include\nttmapi.h" />
-    <ClInclude Include="include\nttp.h" />
-    <ClInclude Include="include\ntwin.h" />
-    <ClInclude Include="include\ntwow64.h" />
-    <ClInclude Include="include\ntxcapi.h" />
     <ClInclude Include="include\ph.h" />
     <ClInclude Include="include\phbase.h" />
     <ClInclude Include="include\phgui.h" />
     <ClInclude Include="include\phnet.h" />
-    <ClInclude Include="include\phnt.h" />
     <ClInclude Include="include\phsup.h" />
     <ClInclude Include="include\queuedlock.h" />
     <ClInclude Include="include\ref.h" />
     <ClInclude Include="include\refp.h" />
-    <ClInclude Include="include\winmisc.h" />
     <ClInclude Include="include\seceditp.h" />
     <ClInclude Include="include\sha.h" />
     <ClInclude Include="include\symprv.h" />
     <ClInclude Include="include\templ.h" />
     <ClInclude Include="include\verifyp.h" />
-    <ClInclude Include="include\winsta.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

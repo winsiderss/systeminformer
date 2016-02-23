@@ -33,9 +33,12 @@
 #define PHLIBAPI
 #endif
 
-#include <ntwin.h>
-#include <ntbasic.h>
+#include <phnt_windows.h>
 #include <phnt.h>
+#include <shellapi.h>
+#include <ole2.h>
+#include <commdlg.h>
+#include <wmistr.h>
 #include <phsup.h>
 #include <ref.h>
 #include <fastlock.h>
