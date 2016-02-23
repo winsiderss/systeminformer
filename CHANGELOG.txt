@@ -5,8 +5,9 @@ Process Hacker
    * Improved high DPI scaling
    * Added labels to indicate the maximum data point in each I/O graph
    * Graph grids now scale correctly when resized
-   * Added right-click menu and double-click action for environment variables
+   * Added File Modified Time and File Size columns for processes and modules
    * Added Time Stamp column for processes
+   * Added right-click menu and double-click action for environment variables
    * Clicking a tray icon now shows the pop-up UI (useful for touch-enabled devices)
    * The pop-up UI no longer displays when double-clicking the tray icon
    * The NetAdapters plugin has been renamed to HardwareDevices

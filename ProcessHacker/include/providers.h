@@ -617,6 +617,9 @@ typedef struct _PH_MODULE_ITEM
     USHORT ImageDllCharacteristics;
 
     LARGE_INTEGER LoadTime;
+
+    LARGE_INTEGER FileLastWriteTime;
+    LARGE_INTEGER FileEndOfFile;
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER

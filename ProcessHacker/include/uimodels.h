@@ -296,8 +296,10 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
 #define PHPRTLC_DPIAWARENESS 74
 #define PHPRTLC_CFGUARD 75
 #define PHPRTLC_TIMESTAMP 76
+#define PHPRTLC_FILEMODIFIEDTIME 77
+#define PHPRTLC_FILESIZE 78
 
-#define PHPRTLC_MAXIMUM 77
+#define PHPRTLC_MAXIMUM 79
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -311,6 +313,7 @@ FORCEINLINE PPH_PROVIDER_EVENT PhFlushProviderEventQueue(
 #define PHPN_IMAGE 0x100
 #define PHPN_APPID 0x200
 #define PHPN_DPIAWARENESS 0x400
+#define PHPN_FILEATTRIBUTES 0x800
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -332,8 +335,8 @@ typedef struct _PH_PROCESS_NODE
 
     PH_STRINGREF DescriptionText;
 
-    // If the user has selected certain columns we need extra information
-    // that isn't retrieved by the process provider.
+    // If the user has selected certain columns we need extra information that isn't retrieved by
+    // the process provider.
     ULONG ValidMask;
 
     // WS counters
@@ -341,7 +344,7 @@ typedef struct _PH_PROCESS_NODE
     // GDI, USER handles
     ULONG GdiHandles;
     ULONG UserHandles;
-    // I/O, Page priority
+    // I/O, page priority
     ULONG IoPriority;
     ULONG PagePriority;
     // Window
@@ -356,7 +359,7 @@ typedef struct _PH_PROCESS_NODE
     // OS Context
     GUID OsContextGuid;
     ULONG OsContextVersion;
-    // Quota Limits
+    // Quota limits
     SIZE_T MinimumWorkingSetSize;
     SIZE_T MaximumWorkingSetSize;
     // Image
@@ -369,8 +372,11 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING AppIdText;
     // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
-    // DPI Awareness
+    // DPI awareness
     ULONG DpiAwareness;
+    // File attributes
+    LARGE_INTEGER FileLastWriteTime;
+    LARGE_INTEGER FileEndOfFile;
 
     PPH_STRING TooltipText;
     ULONG TooltipTextValidToTickCount;
@@ -416,6 +422,8 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING MaximumWorkingSetText;
     PPH_STRING PrivateBytesDeltaText;
     PPH_STRING TimeStampText;
+    PPH_STRING FileModifiedTimeText;
+    PPH_STRING FileSizeText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
@@ -950,8 +958,10 @@ VOID PhDeselectAllThreadNodes(
 #define PHMOTLC_CFGUARD 13
 #define PHMOTLC_LOADTIME 14
 #define PHMOTLC_LOADREASON 15
+#define PHMOTLC_FILEMODIFIEDTIME 16
+#define PHMOTLC_FILESIZE 17
 
-#define PHMOTLC_MAXIMUM 16
+#define PHMOTLC_MAXIMUM 18
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -973,6 +983,8 @@ typedef struct _PH_MODULE_NODE
     WCHAR LoadCountText[PH_INT32_STR_LEN_1];
     PPH_STRING TimeStampText;
     PPH_STRING LoadTimeText;
+    PPH_STRING FileModifiedTimeText;
+    PPH_STRING FileSizeText;
 // begin_phapppub
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 // end_phapppub

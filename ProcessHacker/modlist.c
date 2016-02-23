@@ -2,7 +2,7 @@
  * Process Hacker -
  *   module list
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -107,6 +107,8 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_LOADTIME, FALSE, L"Load Time", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHMOTLC_LOADREASON, FALSE, L"Load Reason", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File Modified Time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILESIZE, FALSE, L"File Size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -274,11 +276,13 @@ VOID PhpDestroyModuleNode(
 {
     PhEmCallObjectOperation(EmModuleNodeType, ModuleNode, EmObjectDelete);
 
-    if (ModuleNode->TooltipText) PhDereferenceObject(ModuleNode->TooltipText);
+    PhClearReference(&ModuleNode->TooltipText);
 
-    if (ModuleNode->SizeText) PhDereferenceObject(ModuleNode->SizeText);
-    if (ModuleNode->TimeStampText) PhDereferenceObject(ModuleNode->TimeStampText);
-    if (ModuleNode->LoadTimeText) PhDereferenceObject(ModuleNode->LoadTimeText);
+    PhClearReference(&ModuleNode->SizeText);
+    PhClearReference(&ModuleNode->TimeStampText);
+    PhClearReference(&ModuleNode->LoadTimeText);
+    PhClearReference(&ModuleNode->FileModifiedTimeText);
+    PhClearReference(&ModuleNode->FileSizeText);
 
     PhDereferenceObject(ModuleNode->ModuleItem);
 
@@ -479,6 +483,18 @@ BEGIN_SORT_FUNCTION(LoadReason)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(FileModifiedTime)
+{
+    sortResult = int64cmp(moduleItem1->FileLastWriteTime.QuadPart, moduleItem2->FileLastWriteTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FileSize)
+{
+    sortResult = int64cmp(moduleItem1->FileEndOfFile.QuadPart, moduleItem2->FileEndOfFile.QuadPart);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -520,7 +536,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(TimeStamp),
                     SORT_FUNCTION(CfGuard),
                     SORT_FUNCTION(LoadTime),
-                    SORT_FUNCTION(LoadReason)
+                    SORT_FUNCTION(LoadReason),
+                    SORT_FUNCTION(FileModifiedTime),
+                    SORT_FUNCTION(FileSize)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -757,6 +775,23 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     }
 
                     PhInitializeStringRefLongHint(&getCellText->Text, string);
+                }
+                break;
+            case PHMOTLC_FILEMODIFIEDTIME:
+                if (moduleItem->FileLastWriteTime.QuadPart != 0)
+                {
+                    SYSTEMTIME systemTime;
+
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->FileLastWriteTime);
+                    PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->FileModifiedTimeText->sr;
+                }
+                break;
+            case PHMOTLC_FILESIZE:
+                if (moduleItem->FileEndOfFile.QuadPart != -1)
+                {
+                    PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, -1));
+                    getCellText->Text = node->FileSizeText->sr;
                 }
                 break;
             default:

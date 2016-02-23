@@ -207,7 +207,9 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_APPID, FALSE, L"App ID", 160, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DPIAWARENESS, FALSE, L"DPI Awareness", 110, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CFGUARD, FALSE, L"CF Guard", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, PHPRTLC_TIMESTAMP, FALSE, L"Time Stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_TIMESTAMP, FALSE, L"Time Stamp", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILEMODIFIEDTIME, FALSE, L"File Modified Time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILESIZE, FALSE, L"File Size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -521,44 +523,46 @@ VOID PhpRemoveProcessNode(
 
     PhDereferenceObject(ProcessNode->Children);
 
-    if (ProcessNode->WindowText) PhDereferenceObject(ProcessNode->WindowText);
-    if (ProcessNode->AppIdText) PhDereferenceObject(ProcessNode->AppIdText);
+    PhClearReference(&ProcessNode->WindowText);
+    PhClearReference(&ProcessNode->AppIdText);
 
-    if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
+    PhClearReference(&ProcessNode->TooltipText);
 
-    if (ProcessNode->IoTotalRateText) PhDereferenceObject(ProcessNode->IoTotalRateText);
-    if (ProcessNode->PrivateBytesText) PhDereferenceObject(ProcessNode->PrivateBytesText);
-    if (ProcessNode->PeakPrivateBytesText) PhDereferenceObject(ProcessNode->PeakPrivateBytesText);
-    if (ProcessNode->WorkingSetText) PhDereferenceObject(ProcessNode->WorkingSetText);
-    if (ProcessNode->PeakWorkingSetText) PhDereferenceObject(ProcessNode->PeakWorkingSetText);
-    if (ProcessNode->PrivateWsText) PhDereferenceObject(ProcessNode->PrivateWsText);
-    if (ProcessNode->SharedWsText) PhDereferenceObject(ProcessNode->SharedWsText);
-    if (ProcessNode->ShareableWsText) PhDereferenceObject(ProcessNode->ShareableWsText);
-    if (ProcessNode->VirtualSizeText) PhDereferenceObject(ProcessNode->VirtualSizeText);
-    if (ProcessNode->PeakVirtualSizeText) PhDereferenceObject(ProcessNode->PeakVirtualSizeText);
-    if (ProcessNode->PageFaultsText) PhDereferenceObject(ProcessNode->PageFaultsText);
-    if (ProcessNode->IoRoRateText) PhDereferenceObject(ProcessNode->IoRoRateText);
-    if (ProcessNode->IoWRateText) PhDereferenceObject(ProcessNode->IoWRateText);
-    if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
-    if (ProcessNode->RelativeStartTimeText) PhDereferenceObject(ProcessNode->RelativeStartTimeText);
-    if (ProcessNode->WindowTitleText) PhDereferenceObject(ProcessNode->WindowTitleText);
-    if (ProcessNode->CyclesText) PhDereferenceObject(ProcessNode->CyclesText);
-    if (ProcessNode->CyclesDeltaText) PhDereferenceObject(ProcessNode->CyclesDeltaText);
-    if (ProcessNode->ContextSwitchesText) PhDereferenceObject(ProcessNode->ContextSwitchesText);
-    if (ProcessNode->ContextSwitchesDeltaText) PhDereferenceObject(ProcessNode->ContextSwitchesDeltaText);
-    if (ProcessNode->PageFaultsDeltaText) PhDereferenceObject(ProcessNode->PageFaultsDeltaText);
+    PhClearReference(&ProcessNode->IoTotalRateText);
+    PhClearReference(&ProcessNode->PrivateBytesText);
+    PhClearReference(&ProcessNode->PeakPrivateBytesText);
+    PhClearReference(&ProcessNode->WorkingSetText);
+    PhClearReference(&ProcessNode->PeakWorkingSetText);
+    PhClearReference(&ProcessNode->PrivateWsText);
+    PhClearReference(&ProcessNode->SharedWsText);
+    PhClearReference(&ProcessNode->ShareableWsText);
+    PhClearReference(&ProcessNode->VirtualSizeText);
+    PhClearReference(&ProcessNode->PeakVirtualSizeText);
+    PhClearReference(&ProcessNode->PageFaultsText);
+    PhClearReference(&ProcessNode->IoRoRateText);
+    PhClearReference(&ProcessNode->IoWRateText);
+    PhClearReference(&ProcessNode->StartTimeText);
+    PhClearReference(&ProcessNode->RelativeStartTimeText);
+    PhClearReference(&ProcessNode->WindowTitleText);
+    PhClearReference(&ProcessNode->CyclesText);
+    PhClearReference(&ProcessNode->CyclesDeltaText);
+    PhClearReference(&ProcessNode->ContextSwitchesText);
+    PhClearReference(&ProcessNode->ContextSwitchesDeltaText);
+    PhClearReference(&ProcessNode->PageFaultsDeltaText);
 
     for (i = 0; i < PHPRTLC_IOGROUP_COUNT; i++)
-        if (ProcessNode->IoGroupText[i]) PhDereferenceObject(ProcessNode->IoGroupText[i]);
+        PhClearReference(&ProcessNode->IoGroupText[i]);
 
-    if (ProcessNode->PagedPoolText) PhDereferenceObject(ProcessNode->PagedPoolText);
-    if (ProcessNode->PeakPagedPoolText) PhDereferenceObject(ProcessNode->PeakPagedPoolText);
-    if (ProcessNode->NonPagedPoolText) PhDereferenceObject(ProcessNode->NonPagedPoolText);
-    if (ProcessNode->PeakNonPagedPoolText) PhDereferenceObject(ProcessNode->PeakNonPagedPoolText);
-    if (ProcessNode->MinimumWorkingSetText) PhDereferenceObject(ProcessNode->MinimumWorkingSetText);
-    if (ProcessNode->MaximumWorkingSetText) PhDereferenceObject(ProcessNode->MaximumWorkingSetText);
-    if (ProcessNode->PrivateBytesDeltaText) PhDereferenceObject(ProcessNode->PrivateBytesDeltaText);
-    if (ProcessNode->TimeStampText) PhDereferenceObject(ProcessNode->TimeStampText);
+    PhClearReference(&ProcessNode->PagedPoolText);
+    PhClearReference(&ProcessNode->PeakPagedPoolText);
+    PhClearReference(&ProcessNode->NonPagedPoolText);
+    PhClearReference(&ProcessNode->PeakNonPagedPoolText);
+    PhClearReference(&ProcessNode->MinimumWorkingSetText);
+    PhClearReference(&ProcessNode->MaximumWorkingSetText);
+    PhClearReference(&ProcessNode->PrivateBytesDeltaText);
+    PhClearReference(&ProcessNode->TimeStampText);
+    PhClearReference(&ProcessNode->FileModifiedTimeText);
+    PhClearReference(&ProcessNode->FileSizeText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1150,6 +1154,31 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
         }
 
         ProcessNode->ValidMask |= PHPN_DPIAWARENESS;
+    }
+}
+
+static VOID PhpUpdateProcessNodeFileAttributes(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_FILEATTRIBUTES))
+    {
+        FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
+
+        if (ProcessNode->ProcessItem->FileName && NT_SUCCESS(PhQueryFullAttributesFileWin32(
+            ProcessNode->ProcessItem->FileName->Buffer,
+            &networkOpenInfo
+            )))
+        {
+            ProcessNode->FileLastWriteTime = networkOpenInfo.LastWriteTime;
+            ProcessNode->FileEndOfFile = networkOpenInfo.EndOfFile;
+        }
+        else
+        {
+            ProcessNode->FileEndOfFile.QuadPart = -1;
+        }
+
+        ProcessNode->ValidMask |= PHPN_FILEATTRIBUTES;
     }
 }
 
@@ -1846,6 +1875,22 @@ BEGIN_SORT_FUNCTION(TimeStamp)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(FileModifiedTime)
+{
+    PhpUpdateProcessNodeFileAttributes(node1);
+    PhpUpdateProcessNodeFileAttributes(node2);
+    sortResult = int64cmp(node1->FileLastWriteTime.QuadPart, node2->FileLastWriteTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FileSize)
+{
+    PhpUpdateProcessNodeFileAttributes(node1);
+    PhpUpdateProcessNodeFileAttributes(node2);
+    sortResult = int64cmp(node1->FileEndOfFile.QuadPart, node2->FileEndOfFile.QuadPart);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1962,7 +2007,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(AppId),
                         SORT_FUNCTION(DpiAwareness),
                         SORT_FUNCTION(CfGuard),
-                        SORT_FUNCTION(TimeStamp)
+                        SORT_FUNCTION(TimeStamp),
+                        SORT_FUNCTION(FileModifiedTime),
+                        SORT_FUNCTION(FileSize)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -2683,6 +2730,27 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
                     getCellText->Text = node->TimeStampText->sr;
+                }
+                break;
+            case PHPRTLC_FILEMODIFIEDTIME:
+                PhpUpdateProcessNodeFileAttributes(node);
+
+                if (node->FileLastWriteTime.QuadPart != 0)
+                {
+                    SYSTEMTIME systemTime;
+
+                    PhLargeIntegerToLocalSystemTime(&systemTime, &node->FileLastWriteTime);
+                    PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
+                    getCellText->Text = node->FileModifiedTimeText->sr;
+                }
+                break;
+            case PHPRTLC_FILESIZE:
+                PhpUpdateProcessNodeFileAttributes(node);
+
+                if (node->FileEndOfFile.QuadPart != -1)
+                {
+                    PhMoveReference(&node->FileSizeText, PhFormatSize(node->FileEndOfFile.QuadPart, -1));
+                    getCellText->Text = node->FileSizeText->sr;
                 }
                 break;
             default:
