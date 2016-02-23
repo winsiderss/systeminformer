@@ -1013,6 +1013,23 @@ PhOpenKey(
     _In_ ULONG Attributes
     );
 
+PHLIBAPI
+PVOID
+NTAPI
+PhQueryKey(
+    _In_ HANDLE KeyHandle,
+    _In_ KEY_INFORMATION_CLASS KeyInformationClass
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhQueryValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass
+    );
+
 // lsa
 
 PHLIBAPI
@@ -2953,13 +2970,6 @@ NTAPI
 PhShellOpenKey(
     _In_ HWND hWnd,
     _In_ PPH_STRING KeyName
-    );
-
-PKEY_VALUE_PARTIAL_INFORMATION
-NTAPI
-PhQueryRegistryValue(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
     );
 
 PHLIBAPI

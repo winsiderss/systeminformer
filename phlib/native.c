@@ -6031,3 +6031,112 @@ NTSTATUS PhOpenKey(
 
     return status;
 }
+
+/**
+ * Gets information about a registry key.
+ *
+ * \param KeyHandle A handle to the key.
+ * \param KeyInformationClass The information class to query.
+ *
+ * \return A buffer containing information about the registry key, or NULL if the function failed.
+ * You must free the buffer with PhFree() when you no longer need it.
+ */
+PVOID PhQueryKey(
+    _In_ HANDLE KeyHandle,
+    _In_ KEY_INFORMATION_CLASS KeyInformationClass
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts = 16;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    do
+    {
+        status = NtQueryKey(
+            KeyHandle,
+            KeyInformationClass,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (NT_SUCCESS(status))
+            break;
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            PhFree(buffer);
+            return NULL;
+        }
+    } while (--attempts);
+
+    return buffer;
+}
+
+/**
+ * Gets a registry value of any type.
+ *
+ * \param KeyHandle A handle to the key.
+ * \param ValueName The name of the value.
+ * \param KeyValueInformationClass The information class to query.
+ *
+ * \return A buffer containing information about the registry value, or NULL if the function failed.
+ * You must free the buffer with PhFree() when you no longer need it.
+ */
+PVOID PhQueryValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING valueName;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts = 16;
+
+    if (ValueName)
+        PhStringRefToUnicodeString(ValueName, &valueName);
+    else
+        RtlInitUnicodeString(&valueName, NULL);
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    do
+    {
+        status = NtQueryValueKey(
+            KeyHandle,
+            &valueName,
+            KeyValueInformationClass,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (NT_SUCCESS(status))
+            break;
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            PhFree(buffer);
+            return NULL;
+        }
+    } while (--attempts);
+
+    return buffer;
+}

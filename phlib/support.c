@@ -3421,60 +3421,6 @@ VOID PhShellOpenKey(
 }
 
 /**
- * Gets a registry value of any type.
- *
- * \param KeyHandle A handle to the key.
- * \param ValueName The name of the value.
- *
- * \return A buffer containing information about the registry value, or NULL if the function failed.
- * You must free the buffer with PhFree() when you no longer need it.
- */
-PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
-    )
-{
-    NTSTATUS status;
-    UNICODE_STRING valueName;
-    PKEY_VALUE_PARTIAL_INFORMATION buffer;
-    ULONG bufferSize;
-    ULONG attempts = 16;
-
-    RtlInitUnicodeString(&valueName, ValueName);
-
-    bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
-
-    do
-    {
-        status = NtQueryValueKey(
-            KeyHandle,
-            &valueName,
-            KeyValuePartialInformation,
-            buffer,
-            bufferSize,
-            &bufferSize
-            );
-
-        if (NT_SUCCESS(status))
-            break;
-
-        if (status == STATUS_BUFFER_OVERFLOW)
-        {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
-        }
-        else
-        {
-            PhFree(buffer);
-            return NULL;
-        }
-    } while (--attempts);
-
-    return buffer;
-}
-
-/**
  * Gets a registry string value.
  *
  * \param KeyHandle A handle to the key.
@@ -3489,17 +3435,21 @@ PPH_STRING PhQueryRegistryString(
     )
 {
     PPH_STRING string = NULL;
+    PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-    buffer = PhQueryRegistryValue(KeyHandle, ValueName);
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    buffer = PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation);
 
     if (buffer)
     {
-        if (
-            buffer->Type == REG_SZ ||
+        if (buffer->Type == REG_SZ ||
             buffer->Type == REG_MULTI_SZ ||
-            buffer->Type == REG_EXPAND_SZ
-            )
+            buffer->Type == REG_EXPAND_SZ)
         {
             if (buffer->DataLength >= sizeof(WCHAR))
                 string = PhCreateStringEx((PWCHAR)buffer->Data, buffer->DataLength - sizeof(WCHAR));
