@@ -268,6 +268,9 @@ VOID PhNfForwardMessage(
         {
             POINT location;
 
+            if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled)
+                KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
             PhShowIconContextMenu(location);
