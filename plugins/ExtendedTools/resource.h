@@ -16,7 +16,6 @@
 #define IDD_SYSINFO_DISKPANEL           113
 #define IDD_OPTIONS                     114
 #define IDD_WSWATCH                     115
-#define IDR_EMPTYMEMLISTS               116
 #define IDD_SYSINFO_GPU                 117
 #define IDR_DISK                        118
 #define ID_VIEW_GPUINFORMATION          119
@@ -97,10 +96,6 @@
 #define IDC_GROUPDISK                   1088
 #define IDC_GROUPNETWORK                1089
 #define IDC_GPUDETAILS                  1090
-#define ID_EMPTY_EMPTYWORKINGSETS       40001
-#define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
-#define ID_EMPTY_EMPTYSTANDBYLIST       40003
-#define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40004
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007

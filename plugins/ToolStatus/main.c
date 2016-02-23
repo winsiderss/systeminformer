@@ -206,13 +206,13 @@ VOID ShowCustomizeMenu(
     GetCursorPos(&cursorPos);
 
     menu = PhCreateEMenu();
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search Box", NULL, NULL), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU History", NULL, NULL), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O History", NULL, NULL), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Physical Memory History", NULL, NULL), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_COMMIT_GRAPH, L"Commit Charge History", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU history", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O history", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MEMORY_GRAPH, L"Physical memory history", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_COMMIT_GRAPH, L"Commit charge history", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the Toolbar", NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
 
     if (ToolStatusConfig.SearchBoxEnabled)
@@ -424,7 +424,7 @@ static VOID NTAPI TabPageUpdatedCallback(
             else
             {
                 // Disable the textbox if we're on an unsupported tab.
-                Edit_SetCueBannerText(SearchboxHandle, L"Search Disabled");
+                Edit_SetCueBannerText(SearchboxHandle, L"Search disabled");
             }
         }
         break;
@@ -847,15 +847,15 @@ static LRESULT CALLBACK MainWndSubclassProc(
                                     {
                                         // Create the sub-menu...
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
-                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Logo&ff", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
-                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Restart to Boot &Options", NULL, NULL), -1);
-                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
-                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Restart to boot &options", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&t down", NULL, NULL), -1);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid shut down", NULL, NULL), -1);
                                     }
                                     break;
                                 }
@@ -965,15 +965,15 @@ static LRESULT CALLBACK MainWndSubclassProc(
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Logo&ff", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Restart to Boot &Options", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&tdown", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid Shutdown", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Restart to boot &options", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"Shu&t down", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"H&ybrid shut down", NULL, NULL), -1);
 
                         MapWindowPoints(ToolBarHandle, NULL, (LPPOINT)&toolbar->rcButton, 2);
 

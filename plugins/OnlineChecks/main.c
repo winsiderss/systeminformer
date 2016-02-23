@@ -82,7 +82,7 @@ static PPH_EMENU_ITEM CreateSendToMenu(
     ULONG insertIndex;
 
     // Create the Send To menu.
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE3, L"camas.comodo.com", FileName), -1);
@@ -113,7 +113,7 @@ static VOID NTAPI ProcessMenuInitializingCallback(
     else
         processItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", processItem ? processItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search online", processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
 
@@ -137,7 +137,7 @@ static VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", moduleItem ? moduleItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search online", moduleItem ? moduleItem->FileName : NULL);
 
     if (!moduleItem)
     {

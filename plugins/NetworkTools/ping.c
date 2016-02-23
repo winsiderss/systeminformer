@@ -607,16 +607,16 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                 L"Maximum: %lums", context->PingMaxMs)->Buffer);
 
             SetDlgItemText(hwndDlg, IDC_PINGS_SENT, PhaFormatString(
-                L"Pings Sent: %lu", context->PingSentCount)->Buffer);
+                L"Pings sent: %lu", context->PingSentCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
-                L"Pings Lost: %lu (%.0f%%)", context->PingLossCount,
+                L"Pings lost: %lu (%.0f%%)", context->PingLossCount,
                 ((FLOAT)context->PingLossCount / context->PingSentCount * 100)
                 )->Buffer);
 
             SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
-                L"Bad Hashes: %lu", context->HashFailCount)->Buffer);
+                L"Bad hashes: %lu", context->HashFailCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
-                L"Anon Replies: %lu", context->UnknownAddrCount)->Buffer);
+                L"Anon replies: %lu", context->UnknownAddrCount)->Buffer);
         }
         break;
     case WM_NOTIFY:

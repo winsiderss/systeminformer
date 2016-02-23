@@ -94,8 +94,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure processes for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Move Up",IDC_MOVEUP,198,30,50,14
-    PUSHBUTTON      "Move Down",IDC_MOVEDOWN,198,47,50,14
+    PUSHBUTTON      "Move up",IDC_MOVEUP,198,30,50,14
+    PUSHBUTTON      "Move down",IDC_MOVEDOWN,198,47,50,14
     EDITTEXT        IDC_TEXT,7,152,147,12,ES_AUTOHSCROLL
     CONTROL         "Include",IDC_INCLUDE,"Button",BS_AUTORADIOBUTTON,163,153,39,10
     CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
@@ -111,8 +111,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure services for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Move Up",IDC_MOVEUP,198,30,50,14
-    PUSHBUTTON      "Move Down",IDC_MOVEDOWN,198,47,50,14
+    PUSHBUTTON      "Move up",IDC_MOVEUP,198,30,50,14
+    PUSHBUTTON      "Move down",IDC_MOVEDOWN,198,47,50,14
     EDITTEXT        IDC_TEXT,7,152,147,12,ES_AUTOHSCROLL
     CONTROL         "Include",IDC_INCLUDE,"Button",BS_AUTORADIOBUTTON,163,153,39,10
     CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10

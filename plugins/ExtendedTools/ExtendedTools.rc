@@ -102,8 +102,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "ALPC Port"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Sequence Number: Unknown",IDC_SEQUENCENUMBER,7,7,146,8
-    LTEXT           "Port Context: Unknown",IDC_PORTCONTEXT,7,19,146,8
+    LTEXT           "Sequence number: Unknown",IDC_SEQUENCENUMBER,7,7,146,8
+    LTEXT           "Port context: Unknown",IDC_PORTCONTEXT,7,19,146,8
 END
 
 IDD_OBJTPWORKERFACTORY DIALOGEX 0, 0, 186, 101
@@ -111,8 +111,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Worker Factory"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Worker Thread Start: Unknown",IDC_WORKERTHREADSTART,7,7,172,8,SS_ENDELLIPSIS
-    LTEXT           "Worker Thread Context: Unknown",IDC_WORKERTHREADCONTEXT,7,18,172,8,SS_ENDELLIPSIS
+    LTEXT           "Worker thread start: Unknown",IDC_WORKERTHREADSTART,7,7,172,8,SS_ENDELLIPSIS
+    LTEXT           "Worker thread context: Unknown",IDC_WORKERTHREADCONTEXT,7,18,172,8,SS_ENDELLIPSIS
 END
 
 IDD_MODSERVICES DIALOGEX 0, 0, 276, 209
@@ -139,10 +139,10 @@ STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Disk I/O",IDC_STATIC,0,0,145,58
-    LTEXT           "Reads Delta",IDC_STATIC,8,11,40,8
-    LTEXT           "Read Bytes Delta",IDC_STATIC,8,22,56,8
-    LTEXT           "Writes Delta",IDC_STATIC,8,33,40,8
-    LTEXT           "Write Bytes Delta",IDC_STATIC,8,44,57,8
+    LTEXT           "Reads delta",IDC_STATIC,8,11,40,8
+    LTEXT           "Read bytes delta",IDC_STATIC,8,22,56,8
+    LTEXT           "Writes delta",IDC_STATIC,8,33,40,8
+    LTEXT           "Write bytes delta",IDC_STATIC,8,44,57,8
     RTEXT           "Static",IDC_ZREADSDELTA_V,84,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZREADBYTESDELTA_V,78,22,60,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZWRITESDELTA_V,84,33,54,8,SS_ENDELLIPSIS
@@ -181,24 +181,24 @@ CAPTION "GPU"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "GPU",IDC_TITLE,0,0,72,21
-    RTEXT           "GPU Name",IDC_GPUNAME,83,4,232,16,SS_WORDELLIPSIS
+    RTEXT           "GPU name",IDC_GPUNAME,83,4,232,16,SS_WORDELLIPSIS
     LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,130,315,55,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,102,NOT WS_VISIBLE
     LTEXT           "GPU:",IDC_GPU_L,73,0,17,8
-    LTEXT           "Dedicated Memory:",IDC_DEDICATED_L,73,5,63,8
-    LTEXT           "Shared Memory:",IDC_SHARED_L,74,11,54,8
+    LTEXT           "Dedicated memory:",IDC_DEDICATED_L,73,5,63,8
+    LTEXT           "Shared memory:",IDC_SHARED_L,74,11,54,8
 END
 
 IDD_SYSINFO_GPUPANEL DIALOGEX 0, 0, 246, 54
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Dedicated Memory",IDC_STATIC,0,0,118,36
+    GROUPBOX        "Dedicated memory",IDC_STATIC,0,0,118,36
     LTEXT           "Current",IDC_STATIC,8,11,26,8
     LTEXT           "Limit",IDC_STATIC,8,22,15,8
     RTEXT           "Static",IDC_ZDEDICATEDCURRENT_V,55,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZDEDICATEDLIMIT_V,55,22,54,8,SS_ENDELLIPSIS
-    GROUPBOX        "Shared Memory",IDC_STATIC,122,0,124,36
+    GROUPBOX        "Shared memory",IDC_STATIC,122,0,124,36
     LTEXT           "Current",IDC_STATIC,130,11,26,8
     LTEXT           "Limit",IDC_STATIC,130,23,15,8
     RTEXT           "Static",IDC_ZSHAREDCURRENT_V,182,11,54,8,SS_ENDELLIPSIS
@@ -213,8 +213,8 @@ CAPTION "GPU"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "GPU",IDC_GROUPGPU,7,7,355,69
-    GROUPBOX        "Dedicated Memory",IDC_GROUPMEM,7,81,355,69
-    GROUPBOX        "Shared Memory",IDC_GROUPSHARED,7,160,355,69
+    GROUPBOX        "Dedicated memory",IDC_GROUPMEM,7,81,355,69
+    GROUPBOX        "Shared memory",IDC_GROUPSHARED,7,160,355,69
 END
 
 IDD_SYSINFO_DISK DIALOGEX 0, 0, 315, 186
@@ -232,10 +232,10 @@ STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Network I/O",IDC_STATIC,0,0,145,58
-    LTEXT           "Receives Delta",IDC_STATIC,8,11,48,8
-    LTEXT           "Receive Bytes Delta",IDC_STATIC,8,22,65,8
-    LTEXT           "Sends Delta",IDC_STATIC,8,33,39,8
-    LTEXT           "Send Bytes Delta",IDC_STATIC,8,44,56,8
+    LTEXT           "Receives delta",IDC_STATIC,8,11,48,8
+    LTEXT           "Receive bytes delta",IDC_STATIC,8,22,65,8
+    LTEXT           "Sends delta",IDC_STATIC,8,33,39,8
+    LTEXT           "Send bytes delta",IDC_STATIC,8,44,56,8
     RTEXT           "Static",IDC_ZRECEIVESDELTA_V,84,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZRECEIVEBYTESDELTA_V,78,22,60,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSENDSDELTA_V,84,33,54,8,SS_ENDELLIPSIS
@@ -269,13 +269,13 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Memory",IDC_STATIC,2,0,118,46
     GROUPBOX        "Nodes",IDC_STATIC,124,0,124,46
-    LTEXT           "Running Time",IDC_STATIC,132,11,44,8
-    LTEXT           "Context Switches",IDC_STATIC,132,22,57,8
+    LTEXT           "Running time",IDC_STATIC,132,11,44,8
+    LTEXT           "Context switches",IDC_STATIC,132,22,57,8
     RTEXT           "Static",IDC_ZRUNNINGTIME_V,184,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZCONTEXTSWITCHES_V,200,22,38,8,SS_ENDELLIPSIS
-    LTEXT           "Total Segments",IDC_STATIC,10,11,50,8
+    LTEXT           "Total segments",IDC_STATIC,10,11,50,8
     RTEXT           "Static",IDC_ZTOTALSEGMENTS_V,73,11,38,8,SS_ENDELLIPSIS
-    LTEXT           "Total Nodes",IDC_STATIC,132,33,39,8
+    LTEXT           "Total nodes",IDC_STATIC,132,33,39,8
     RTEXT           "Static",IDC_ZTOTALNODES_V,200,33,38,8,SS_ENDELLIPSIS
     PUSHBUTTON      "More",IDC_GPUDETAILS,7,27,50,14
 END
@@ -295,11 +295,11 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Disk I/O",IDC_STATIC,2,0,118,82
     LTEXT           "Reads",IDC_STATIC,10,11,21,8
-    LTEXT           "Read Bytes",IDC_STATIC,10,22,38,8
-    LTEXT           "Read Bytes Delta",IDC_STATIC,10,33,56,8
+    LTEXT           "Read bytes",IDC_STATIC,10,22,38,8
+    LTEXT           "Read bytes delta",IDC_STATIC,10,33,56,8
     LTEXT           "Writes",IDC_STATIC,10,44,22,8
-    LTEXT           "Write Bytes",IDC_STATIC,10,55,38,8
-    LTEXT           "Write Bytes Delta",IDC_STATIC,10,66,57,8
+    LTEXT           "Write bytes",IDC_STATIC,10,55,38,8
+    LTEXT           "Write bytes delta",IDC_STATIC,10,66,57,8
     RTEXT           "Static",IDC_ZREADS_V,57,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZREADBYTES_V,73,22,38,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZREADBYTESDELTA_V,73,33,38,8,SS_ENDELLIPSIS
@@ -308,11 +308,11 @@ BEGIN
     RTEXT           "Static",IDC_ZWRITEBYTESDELTA_V,73,66,38,8,SS_ENDELLIPSIS
     GROUPBOX        "Network I/O",IDC_STATIC,123,0,124,82
     LTEXT           "Receives",IDC_STATIC,132,11,30,8
-    LTEXT           "Receive Bytes",IDC_STATIC,132,23,46,8
-    LTEXT           "Receive Bytes Delta",IDC_STATIC,132,34,65,8
+    LTEXT           "Receive bytes",IDC_STATIC,132,23,46,8
+    LTEXT           "Receive bytes delta",IDC_STATIC,132,34,65,8
     LTEXT           "Sends",IDC_STATIC,132,46,20,8
-    LTEXT           "Send Bytes",IDC_STATIC,132,56,37,8
-    LTEXT           "Send Bytes Delta",IDC_STATIC,132,67,56,8
+    LTEXT           "Send bytes",IDC_STATIC,132,56,37,8
+    LTEXT           "Send bytes delta",IDC_STATIC,132,67,56,8
     RTEXT           "Static",IDC_ZRECEIVES_V,184,11,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZRECEIVEBYTES_V,200,23,38,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZRECEIVEBYTESDELTA_V,200,34,38,8,SS_ENDELLIPSIS
@@ -327,23 +327,23 @@ CAPTION "GPU Details"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "Close",IDCANCEL,124,134,50,14
-    GROUPBOX        "System Memory",IDC_STATIC,7,7,167,125
+    GROUPBOX        "System memory",IDC_STATIC,7,7,167,125
     LTEXT           "Dedicated",IDC_STATIC,15,19,33,8
     LTEXT           "Shared",IDC_STATIC,15,30,24,8
     RTEXT           "Static",IDC_ZDEDICATEDCOMMITTED_V,111,19,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSHAREDCOMMITTED_V,127,30,38,8,SS_ENDELLIPSIS
-    LTEXT           "Total Allocated",IDC_STATIC,15,41,48,8
-    LTEXT           "Total Reserved",IDC_STATIC,15,51,50,8
-    LTEXT           "Write Combined Allocated",IDC_STATIC,15,62,83,8
-    LTEXT           "Write Combined Reserved",IDC_STATIC,15,73,84,8
+    LTEXT           "Total allocated",IDC_STATIC,15,41,48,8
+    LTEXT           "Total reserved",IDC_STATIC,15,51,50,8
+    LTEXT           "Write combined allocated",IDC_STATIC,15,62,83,8
+    LTEXT           "Write combined reserved",IDC_STATIC,15,73,84,8
     RTEXT           "Static",IDC_ZTOTALALLOCATED_V,111,41,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZTOTALRESERVED_V,111,51,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZWRITECOMBINEDALLOCATED_V,111,62,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZWRITECOMBINEDRESERVED_V,111,73,54,8,SS_ENDELLIPSIS
-    LTEXT           "Cached Allocated",IDC_STATIC,15,84,56,8
-    LTEXT           "Cached Reserved",IDC_STATIC,15,95,58,8
-    LTEXT           "Section Allocated",IDC_STATIC,15,106,56,8
-    LTEXT           "Section Reserved",IDC_STATIC,15,117,57,8
+    LTEXT           "Cached allocated",IDC_STATIC,15,84,56,8
+    LTEXT           "Cached reserved",IDC_STATIC,15,95,58,8
+    LTEXT           "Section allocated",IDC_STATIC,15,106,56,8
+    LTEXT           "Section reserved",IDC_STATIC,15,117,57,8
     RTEXT           "Static",IDC_ZCACHEDALLOCATED_V,111,84,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZCACHEDRESERVED_V,111,95,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZSECTIONALLOCATED_V,111,106,54,8,SS_ENDELLIPSIS
@@ -487,24 +487,13 @@ END
 // Menu
 //
 
-IDR_EMPTYMEMLISTS MENU
-BEGIN
-    POPUP "Empty"
-    BEGIN
-        MENUITEM "Empty Working Sets",          ID_EMPTY_EMPTYWORKINGSETS
-        MENUITEM "Empty Modified Page List",    ID_EMPTY_EMPTYMODIFIEDPAGELIST
-        MENUITEM "Empty Standby List",          ID_EMPTY_EMPTYSTANDBYLIST
-        MENUITEM "Empty Priority 0 Standby List", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
-    END
-END
-
 IDR_DISK MENU
 BEGIN
     POPUP "Disk"
     BEGIN
-        MENUITEM "&Go to Process",              ID_DISK_GOTOPROCESS
+        MENUITEM "&Go to process",              ID_DISK_GOTOPROCESS
         MENUITEM SEPARATOR
-        MENUITEM "Open &File Location\aEnter",  ID_DISK_OPENFILELOCATION
+        MENUITEM "Open &file location\aEnter",  ID_DISK_OPENFILELOCATION
         MENUITEM "P&roperties",                 ID_DISK_PROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_DISK_COPY
     END

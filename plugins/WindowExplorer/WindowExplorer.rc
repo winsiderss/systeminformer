@@ -117,21 +117,21 @@ BEGIN
     LTEXT           "Static",IDC_THREAD,77,22,149,8,SS_ENDELLIPSIS
     LTEXT           "Rectangle:",IDC_STATIC,7,33,36,8
     LTEXT           "Static",IDC_RECTANGLE,77,33,149,8,SS_ENDELLIPSIS
-    LTEXT           "Normal Rectangle:",IDC_STATIC,7,44,60,8
+    LTEXT           "Normal rectangle:",IDC_STATIC,7,44,60,8
     LTEXT           "Static",IDC_NORMALRECTANGLE,77,44,149,8,SS_ENDELLIPSIS
-    LTEXT           "Client Rectangle:",IDC_STATIC,7,55,56,8
+    LTEXT           "Client rectangle:",IDC_STATIC,7,55,56,8
     LTEXT           "Static",IDC_CLIENTRECTANGLE,77,55,149,8,SS_ENDELLIPSIS
-    LTEXT           "Instance Handle:",IDC_STATIC,7,66,56,8
+    LTEXT           "Instance handle:",IDC_STATIC,7,66,56,8
     LTEXT           "Static",IDC_INSTANCEHANDLE,77,66,149,8,SS_ENDELLIPSIS
-    LTEXT           "Menu Handle:",IDC_STATIC,7,77,45,8
+    LTEXT           "Menu handle:",IDC_STATIC,7,77,45,8
     LTEXT           "Static",IDC_MENUHANDLE,77,77,149,8,SS_ENDELLIPSIS
-    LTEXT           "User Data:",IDC_STATIC,7,88,36,8
+    LTEXT           "User data:",IDC_STATIC,7,88,36,8
     LTEXT           "Static",IDC_USERDATA,77,88,149,8,SS_ENDELLIPSIS
     LTEXT           "Unicode:",IDC_STATIC,7,99,29,8
     LTEXT           "Static",IDC_UNICODE,77,99,149,8
-    LTEXT           "Window Proc:",IDC_STATIC,7,110,45,8
+    LTEXT           "Window proc:",IDC_STATIC,7,110,45,8
     EDITTEXT        IDC_WINDOWPROC,75,110,151,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Dialog Proc:",IDC_STATIC,7,121,39,8
+    LTEXT           "Dialog proc:",IDC_STATIC,7,121,39,8
     EDITTEXT        IDC_DIALOGPROC,75,121,151,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Dialog control ID:",IDC_STATIC,7,132,61,8
     LTEXT           "Static",IDC_CTRLID,77,132,149,8
@@ -145,7 +145,7 @@ BEGIN
     LTEXT           "Styles:",IDC_STATIC,7,7,23,8
     LTEXT           "Static",IDC_STYLES,67,7,159,8
     LISTBOX         IDC_STYLESLIST,7,19,219,46,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Extended Styles:",IDC_STATIC,7,69,56,8
+    LTEXT           "Extended styles:",IDC_STATIC,7,69,56,8
     LTEXT           "Static",IDC_EXTENDEDSTYLES,67,69,159,8
     LISTBOX         IDC_EXTENDEDSTYLESLIST,7,81,219,46,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
 END
@@ -161,19 +161,19 @@ BEGIN
     LTEXT           "Static",IDC_ATOM,77,22,149,8,SS_ENDELLIPSIS
     LTEXT           "Styles:",IDC_STATIC,7,33,23,8
     EDITTEXT        IDC_STYLES,75,33,150,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Instance Handle:",IDC_STATIC,7,44,56,8
+    LTEXT           "Instance handle:",IDC_STATIC,7,44,56,8
     LTEXT           "Static",IDC_INSTANCEHANDLE,77,44,149,8,SS_ENDELLIPSIS
-    LTEXT           "Icon Handle:",IDC_STATIC,7,55,42,8
+    LTEXT           "Icon handle:",IDC_STATIC,7,55,42,8
     LTEXT           "Static",IDC_ICONHANDLE,77,55,149,8,SS_ENDELLIPSIS
-    LTEXT           "Small Icon Handle:",IDC_STATIC,7,66,60,8
+    LTEXT           "Small icon handle:",IDC_STATIC,7,66,60,8
     LTEXT           "Static",IDC_SMALLICONHANDLE,77,66,149,8,SS_ENDELLIPSIS
-    LTEXT           "Cursor Handle:",IDC_STATIC,7,77,49,8
+    LTEXT           "Cursor handle:",IDC_STATIC,7,77,49,8
     LTEXT           "Static",IDC_CURSORHANDLE,77,77,149,8,SS_ENDELLIPSIS
-    LTEXT           "Background Brush:",IDC_STATIC,7,88,61,8
+    LTEXT           "Background brush:",IDC_STATIC,7,88,61,8
     LTEXT           "Static",IDC_BACKGROUNDBRUSH,77,88,149,8,SS_ENDELLIPSIS
-    LTEXT           "Menu Name:",IDC_STATIC,7,99,41,8
+    LTEXT           "Menu name:",IDC_STATIC,7,99,41,8
     LTEXT           "Static",IDC_MENUNAME,77,99,149,8,SS_ENDELLIPSIS
-    LTEXT           "Window Proc:",IDC_STATIC,7,110,45,8
+    LTEXT           "Window proc:",IDC_STATIC,7,110,45,8
     EDITTEXT        IDC_WINDOWPROC,75,110,151,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
@@ -238,7 +238,7 @@ IDR_WINDOW MENU
 BEGIN
     POPUP "Window"
     BEGIN
-        MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
+        MENUITEM "Bring to front",              ID_WINDOW_BRINGTOFRONT
         MENUITEM "Restore",                     ID_WINDOW_RESTORE
         MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
         MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
@@ -246,7 +246,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Visible",                     ID_WINDOW_VISIBLE
         MENUITEM "Enabled",                     ID_WINDOW_ENABLED
-        MENUITEM "Always on Top",               ID_WINDOW_ALWAYSONTOP
+        MENUITEM "Always on top",               ID_WINDOW_ALWAYSONTOP
         POPUP "Opacity"
         BEGIN
             MENUITEM "10%",                         ID_OPACITY_10
@@ -262,7 +262,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "Highlight",                   ID_WINDOW_HIGHLIGHT
-        MENUITEM "Go to Thread",                ID_WINDOW_GOTOTHREAD
+        MENUITEM "Go to thread",                ID_WINDOW_GOTOTHREAD
         MENUITEM "Properties",                  ID_WINDOW_PROPERTIES
         MENUITEM SEPARATOR
         MENUITEM "Copy\aCtrl+C",                ID_WINDOW_COPY

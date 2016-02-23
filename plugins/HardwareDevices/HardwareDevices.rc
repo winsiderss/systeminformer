@@ -110,17 +110,17 @@ IDD_NETADAPTER_PANEL DIALOGEX 0, 0, 254, 50
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Link Speed",IDC_STATIC,7,11,35,8
+    LTEXT           "Link speed",IDC_STATIC,7,11,35,8
     RTEXT           "Static",IDC_LINK_SPEED,50,11,54,8,SS_ENDELLIPSIS
     GROUPBOX        "Adapter",IDC_STATIC,0,0,111,34
-    LTEXT           "Link State",IDC_STATIC,7,23,32,8
+    LTEXT           "Link state",IDC_STATIC,7,23,32,8
     RTEXT           "Static",IDC_LINK_STATE,50,23,54,8,SS_ENDELLIPSIS
     GROUPBOX        "Statistics",IDC_STATIC,116,0,136,45
-    LTEXT           "Bytes Sent",IDC_STATIC,125,11,36,8
-    LTEXT           "Bytes Recieved",IDC_STATIC,125,22,50,8
+    LTEXT           "Bytes sent",IDC_STATIC,125,11,36,8
+    LTEXT           "Bytes recieved",IDC_STATIC,125,22,50,8
     RTEXT           "Static",IDC_STAT_BSENT,182,11,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_BRECIEVED,182,22,62,8,SS_ENDELLIPSIS
-    LTEXT           "Bytes Total",IDC_STATIC,125,33,37,8
+    LTEXT           "Bytes total",IDC_STATIC,125,33,37,8
     RTEXT           "Static",IDC_STAT_BTOTAL,182,33,62,8,SS_ENDELLIPSIS
     PUSHBUTTON      "Details",IDC_DETAILS,0,35,50,14
 END
@@ -151,7 +151,7 @@ BEGIN
     LTEXT           "",IDC_GRAPH_LAYOUT,0,21,314,60,NOT WS_VISIBLE | WS_BORDER
     LTEXT           "Disk",IDC_ADAPTERNAME,0,0,105,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,98,268,36,NOT WS_VISIBLE
-    RTEXT           "Disk Name",IDC_DISKNAME,107,4,207,16,SS_WORDELLIPSIS
+    RTEXT           "Disk name",IDC_DISKNAME,107,4,207,16,SS_WORDELLIPSIS
 END
 
 IDD_DISKDRIVE_PANEL DIALOGEX 0, 0, 330, 50
@@ -159,15 +159,15 @@ STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_SYSMENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Statistics",IDC_STATIC,139,0,136,44
-    LTEXT           "Bytes Read",IDC_STATIC,148,11,38,8
-    LTEXT           "Bytes Write",IDC_STATIC,148,22,38,8
+    LTEXT           "Bytes read",IDC_STATIC,148,11,38,8
+    LTEXT           "Bytes write",IDC_STATIC,148,22,38,8
     RTEXT           "Static",IDC_STAT_BREAD,205,11,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_BWRITE,205,22,62,8,SS_ENDELLIPSIS
-    LTEXT           "Bytes Total",IDC_STATIC,148,33,37,8
+    LTEXT           "Bytes total",IDC_STATIC,148,33,37,8
     RTEXT           "Static",IDC_STAT_BTOTAL,205,33,62,8,SS_ENDELLIPSIS
-    LTEXT           "Active Time",IDC_STATIC,8,11,53,8,SS_ENDELLIPSIS
-    LTEXT           "Response Time",IDC_STATIC,8,22,64,8,SS_ENDELLIPSIS
-    LTEXT           "Queue Length",IDC_STATIC,8,33,57,8,SS_ENDELLIPSIS
+    LTEXT           "Active time",IDC_STATIC,8,11,53,8,SS_ENDELLIPSIS
+    LTEXT           "Response time",IDC_STATIC,8,22,64,8,SS_ENDELLIPSIS
+    LTEXT           "Queue length",IDC_STATIC,8,33,57,8,SS_ENDELLIPSIS
     GROUPBOX        "Disk",IDC_STATIC,0,0,135,44
     PUSHBUTTON      "Details",IDC_DETAILS,278,30,50,14,NOT WS_VISIBLE
     RTEXT           "Static",IDC_STAT_ACTIVE,65,11,62,8,SS_ENDELLIPSIS

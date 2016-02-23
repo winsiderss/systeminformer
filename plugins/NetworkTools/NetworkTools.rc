@@ -94,7 +94,7 @@ CAPTION "Network Tools"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     EDITTEXT        IDC_NETOUTPUTEDIT,7,7,305,152,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER | WS_VSCROLL,WS_EX_CLIENTEDGE
-    CONTROL         "<a>More Information</a>",IDC_MORE_INFO,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,7,163,77,12
+    CONTROL         "<a>More information</a>",IDC_MORE_INFO,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,7,163,77,12
     PUSHBUTTON      "Close",IDOK,263,162,50,14
 END
 
@@ -119,11 +119,11 @@ BEGIN
     LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,255,27,NOT WS_VISIBLE | WS_BORDER
     GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,56,254,52,0,WS_EX_TRANSPARENT
     LTEXT           "Average: 0ms",IDC_ICMP_AVG,13,69,73,8
-    LTEXT           "Pings Sent: 0",IDC_PINGS_SENT,92,69,88,8
-    LTEXT           "Bad Hashes: 0",IDC_BAD_HASH,186,69,72,8
+    LTEXT           "Pings sent: 0",IDC_PINGS_SENT,92,69,88,8
+    LTEXT           "Bad hashes: 0",IDC_BAD_HASH,186,69,72,8
     LTEXT           "Minimum: 0ms",IDC_ICMP_MIN,13,81,73,8
-    LTEXT           "Pings Lost: 0 (0%)",IDC_PINGS_LOST,92,81,88,8
-    LTEXT           "Anon Replies: 0",IDC_ANON_ADDR,186,81,72,8
+    LTEXT           "Pings lost: 0 (0%)",IDC_PINGS_LOST,92,81,88,8
+    LTEXT           "Anon replies: 0",IDC_ANON_ADDR,186,81,72,8
     LTEXT           "Maximum: 0ms",IDC_ICMP_MAX,13,93,73,8
     DEFPUSHBUTTON   "Close",IDOK,212,110,50,14
 END

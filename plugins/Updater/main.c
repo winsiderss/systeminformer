@@ -52,7 +52,7 @@ static VOID NTAPI MainMenuInitializingCallback(
     if (!menuInfo || menuInfo->u.MainMenu.SubMenuIndex != 4)
         return;
 
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for Updates", NULL), 0);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for updates", NULL), 0);
 }
 
 static VOID NTAPI MenuItemCallback(
