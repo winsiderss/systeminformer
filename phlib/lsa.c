@@ -146,7 +146,7 @@ BOOLEAN PhLookupPrivilegeDisplayName(
     SHORT language;
 
     if (!PhStringRefToUnicodeString(PrivilegeName, &privilegeName))
-        return STATUS_NAME_TOO_LONG;
+        return FALSE;
 
     status = LsaLookupPrivilegeDisplayName(
         PhGetLookupPolicyHandle(),
@@ -178,7 +178,7 @@ BOOLEAN PhLookupPrivilegeValue(
     UNICODE_STRING privilegeName;
 
     if (!PhStringRefToUnicodeString(PrivilegeName, &privilegeName))
-        return STATUS_NAME_TOO_LONG;
+        return FALSE;
 
     return NT_SUCCESS(LsaLookupPrivilegeValue(
         PhGetLookupPolicyHandle(),
