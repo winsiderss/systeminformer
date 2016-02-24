@@ -2622,12 +2622,17 @@ BOOLEAN PhUiResumeThreads(
 BOOLEAN PhUiSetPriorityThread(
     _In_ HWND hWnd,
     _In_ PPH_THREAD_ITEM Thread,
-    _In_ ULONG ThreadPriorityWin32
+    _In_ LONG Increment
     )
 {
     NTSTATUS status;
-    ULONG win32Result = 0;
     HANDLE threadHandle;
+
+    // Special saturation values
+    if (Increment == THREAD_PRIORITY_TIME_CRITICAL)
+        Increment = THREAD_BASE_PRIORITY_LOWRT + 1;
+    else if (Increment == THREAD_PRIORITY_IDLE)
+        Increment = THREAD_BASE_PRIORITY_IDLE - 1;
 
     if (NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -2635,13 +2640,11 @@ BOOLEAN PhUiSetPriorityThread(
         Thread->ThreadId
         )))
     {
-        if (!SetThreadPriority(threadHandle, ThreadPriorityWin32))
-            win32Result = GetLastError();
-
+        status = NtSetInformationThread(threadHandle, ThreadBasePriority, &Increment, sizeof(LONG));
         NtClose(threadHandle);
     }
 
-    if (!NT_SUCCESS(status) || win32Result)
+    if (!NT_SUCCESS(status))
     {
         PhpShowErrorThread(hWnd, L"set the priority of", Thread, status, 0);
         return FALSE;
@@ -2667,7 +2670,6 @@ BOOLEAN PhUiSetIoPriorityThread(
         )))
     {
         status = PhSetThreadIoPriority(threadHandle, IoPriority);
-
         NtClose(threadHandle);
     }
 
@@ -2725,7 +2727,6 @@ BOOLEAN PhUiSetPagePriorityThread(
             &PagePriority,
             sizeof(ULONG)
             );
-
         NtClose(threadHandle);
     }
 

@@ -27,7 +27,7 @@ typedef struct _PH_THREAD_ITEM
     enum _PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
-    LONG PriorityWin32;
+    LONG BasePriorityIncrement;
     PPH_STRING ServiceName;
 
     HANDLE ThreadHandle;
@@ -104,14 +104,9 @@ VOID PhDereferenceAllThreadItems(
     _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
-// begin_phapppub
-PHAPPAPI
-PPH_STRING
-NTAPI
-PhGetThreadPriorityWin32String(
-    _In_ LONG PriorityWin32
+PPH_STRING PhGetBasePriorityIncrementString(
+    _In_ LONG Increment
     );
-// end_phapppub
 
 VOID PhThreadProviderInitialUpdate(
     _In_ PPH_THREAD_PROVIDER ThreadProvider

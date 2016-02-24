@@ -313,7 +313,7 @@ NTAPI
 PhUiSetPriorityThread(
     _In_ HWND hWnd,
     _In_ PPH_THREAD_ITEM Thread,
-    _In_ ULONG ThreadPriorityWin32
+    _In_ LONG Increment
     );
 
 PHAPPAPI

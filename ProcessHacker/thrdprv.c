@@ -664,13 +664,14 @@ static NTSTATUS PhpGetThreadCycleTime(
     return STATUS_INVALID_PARAMETER;
 }
 
-PPH_STRING PhGetThreadPriorityWin32String(
-    _In_ LONG PriorityWin32
+PPH_STRING PhGetBasePriorityIncrementString(
+    _In_ LONG Increment
     )
 {
-    switch (PriorityWin32)
+    switch (Increment)
     {
-    case THREAD_PRIORITY_TIME_CRITICAL:
+    case THREAD_BASE_PRIORITY_LOWRT + 1:
+    case THREAD_BASE_PRIORITY_LOWRT:
         return PhCreateString(L"Time critical");
     case THREAD_PRIORITY_HIGHEST:
         return PhCreateString(L"Highest");
@@ -682,12 +683,13 @@ PPH_STRING PhGetThreadPriorityWin32String(
         return PhCreateString(L"Below normal");
     case THREAD_PRIORITY_LOWEST:
         return PhCreateString(L"Lowest");
-    case THREAD_PRIORITY_IDLE:
+    case THREAD_BASE_PRIORITY_IDLE:
+    case THREAD_BASE_PRIORITY_IDLE - 1:
         return PhCreateString(L"Idle");
     case THREAD_PRIORITY_ERROR_RETURN:
         return NULL;
     default:
-        return PhFormatString(L"%d", PriorityWin32);
+        return PhFormatString(L"%d", Increment);
     }
 }
 
@@ -835,6 +837,7 @@ VOID PhpThreadProviderUpdate(
     {
         PSYSTEM_THREAD_INFORMATION thread = &threads[i];
         PPH_THREAD_ITEM threadItem;
+        THREAD_BASIC_INFORMATION basicInfo;
 
         threadItem = PhReferenceThreadItem(threadProvider, thread->ClientId.UniqueThread);
 
@@ -905,8 +908,21 @@ VOID PhpThreadProviderUpdate(
 
             threadItem->StartAddress = (ULONG64)startAddress;
 
-            // Get the Win32 priority.
-            threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
+            // Get the base priority increment (relative to the process priority).
+            if (threadItem->ThreadHandle && NT_SUCCESS(NtQueryInformationThread(
+                threadItem->ThreadHandle,
+                ThreadBasicInformation,
+                &basicInfo,
+                sizeof(THREAD_BASIC_INFORMATION),
+                NULL
+                )))
+            {
+                threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+            }
+            else
+            {
+                threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+            }
 
             if (threadProvider->SymbolsLoadedRunId != 0)
             {
@@ -1075,13 +1091,26 @@ VOID PhpThreadProviderUpdate(
                     (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta);
             }
 
-            // Update the Win32 priority.
+            // Update the base priority increment.
             {
-                LONG oldPriorityWin32 = threadItem->PriorityWin32;
+                LONG oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
 
-                threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
+                if (threadItem->ThreadHandle && NT_SUCCESS(NtQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    ThreadBasicInformation,
+                    &basicInfo,
+                    sizeof(THREAD_BASIC_INFORMATION),
+                    NULL
+                    )))
+                {
+                    threadItem->BasePriorityIncrement = basicInfo.BasePriority;
+                }
+                else
+                {
+                    threadItem->BasePriorityIncrement = THREAD_PRIORITY_ERROR_RETURN;
+                }
 
-                if (threadItem->PriorityWin32 != oldPriorityWin32)
+                if (threadItem->BasePriorityIncrement != oldBasePriorityIncrement)
                 {
                     modified = TRUE;
                 }

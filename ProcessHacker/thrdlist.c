@@ -403,7 +403,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Priority)
 {
-    sortResult = intcmp(threadItem1->PriorityWin32, threadItem2->PriorityWin32);
+    sortResult = intcmp(threadItem1->BasePriorityIncrement, threadItem2->BasePriorityIncrement);
 }
 END_SORT_FUNCTION
 
@@ -554,7 +554,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->StartAddressText);
                 break;
             case PHTHTLC_PRIORITY:
-                PhMoveReference(&node->PriorityText, PhGetThreadPriorityWin32String(threadItem->PriorityWin32));
+                PhMoveReference(&node->PriorityText, PhGetBasePriorityIncrementString(threadItem->BasePriorityIncrement));
                 getCellText->Text = PhGetStringRef(node->PriorityText);
                 break;
             case PHTHTLC_SERVICE:

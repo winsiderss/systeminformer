@@ -2065,9 +2065,9 @@ VOID PhpInitializeThreadMenu(
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
+        ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = -1;
         ULONG pagePriority = -1;
-        ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -2076,25 +2076,23 @@ VOID PhpInitializeThreadMenu(
             Threads[0]->ThreadId
             )))
         {
-            threadPriority = GetThreadPriority(threadHandle);
+            THREAD_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(NtQueryInformationThread(
+                threadHandle,
+                ThreadBasicInformation,
+                &basicInfo,
+                sizeof(THREAD_BASIC_INFORMATION),
+                NULL
+                )))
+            {
+                threadPriority = basicInfo.BasePriority;
+            }
 
             if (WindowsVersion >= WINDOWS_VISTA)
             {
-                if (!NT_SUCCESS(PhGetThreadIoPriority(
-                    threadHandle,
-                    &ioPriority
-                    )))
-                {
-                    ioPriority = -1;
-                }
-
-                if (!NT_SUCCESS(PhGetThreadPagePriority(
-                    threadHandle,
-                    &pagePriority
-                    )))
-                {
-                    pagePriority = -1;
-                }
+                PhGetThreadIoPriority(threadHandle, &ioPriority);
+                PhGetThreadPagePriority(threadHandle, &pagePriority);
             }
 
             // Token
@@ -2118,6 +2116,7 @@ VOID PhpInitializeThreadMenu(
 
         switch (threadPriority)
         {
+        case THREAD_PRIORITY_TIME_CRITICAL + 1:
         case THREAD_PRIORITY_TIME_CRITICAL:
             id = ID_PRIORITY_TIMECRITICAL;
             break;
@@ -2137,6 +2136,7 @@ VOID PhpInitializeThreadMenu(
             id = ID_PRIORITY_LOWEST;
             break;
         case THREAD_PRIORITY_IDLE:
+        case THREAD_PRIORITY_IDLE - 1:
             id = ID_PRIORITY_IDLE;
             break;
         }
