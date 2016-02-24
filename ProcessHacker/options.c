@@ -1101,8 +1101,6 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                 ColorItems[i].CurrentUse = !!PhGetIntegerSetting(ColorItems[i].UseSettingName);
                 ListView_SetCheckState(HighlightingListViewHandle, lvItemIndex, ColorItems[i].CurrentUse);
             }
-
-            EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
         }
         break;
     case WM_COMMAND:

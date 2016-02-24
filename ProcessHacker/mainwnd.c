@@ -1354,11 +1354,11 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_PAGEPRIORITY_1:
-    case ID_PAGEPRIORITY_2:
-    case ID_PAGEPRIORITY_3:
-    case ID_PAGEPRIORITY_4:
-    case ID_PAGEPRIORITY_5:
+    case ID_PAGEPRIORITY_VERYLOW:
+    case ID_PAGEPRIORITY_LOW:
+    case ID_PAGEPRIORITY_MEDIUM:
+    case ID_PAGEPRIORITY_BELOWNORMAL:
+    case ID_PAGEPRIORITY_NORMAL:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
@@ -1368,20 +1368,20 @@ VOID PhMwpOnCommand(
 
                 switch (Id)
                 {
-                    case ID_PAGEPRIORITY_1:
-                        pagePriority = 1;
+                    case ID_PAGEPRIORITY_VERYLOW:
+                        pagePriority = MEMORY_PRIORITY_VERY_LOW;
                         break;
-                    case ID_PAGEPRIORITY_2:
-                        pagePriority = 2;
+                    case ID_PAGEPRIORITY_LOW:
+                        pagePriority = MEMORY_PRIORITY_LOW;
                         break;
-                    case ID_PAGEPRIORITY_3:
-                        pagePriority = 3;
+                    case ID_PAGEPRIORITY_MEDIUM:
+                        pagePriority = MEMORY_PRIORITY_MEDIUM;
                         break;
-                    case ID_PAGEPRIORITY_4:
-                        pagePriority = 4;
+                    case ID_PAGEPRIORITY_BELOWNORMAL:
+                        pagePriority = MEMORY_PRIORITY_BELOW_NORMAL;
                         break;
-                    case ID_PAGEPRIORITY_5:
-                        pagePriority = 5;
+                    case ID_PAGEPRIORITY_NORMAL:
+                        pagePriority = MEMORY_PRIORITY_NORMAL;
                         break;
                 }
 
@@ -4244,20 +4244,20 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
         switch (pagePriority)
         {
-        case 1:
-            id = ID_PAGEPRIORITY_1;
+        case MEMORY_PRIORITY_VERY_LOW:
+            id = ID_PAGEPRIORITY_VERYLOW;
             break;
-        case 2:
-            id = ID_PAGEPRIORITY_2;
+        case MEMORY_PRIORITY_LOW:
+            id = ID_PAGEPRIORITY_LOW;
             break;
-        case 3:
-            id = ID_PAGEPRIORITY_3;
+        case MEMORY_PRIORITY_MEDIUM:
+            id = ID_PAGEPRIORITY_MEDIUM;
             break;
-        case 4:
-            id = ID_PAGEPRIORITY_4;
+        case MEMORY_PRIORITY_BELOW_NORMAL:
+            id = ID_PAGEPRIORITY_BELOWNORMAL;
             break;
-        case 5:
-            id = ID_PAGEPRIORITY_5;
+        case MEMORY_PRIORITY_NORMAL:
+            id = ID_PAGEPRIORITY_NORMAL;
             break;
         }
 

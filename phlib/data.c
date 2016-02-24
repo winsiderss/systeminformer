@@ -148,6 +148,17 @@ WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
 };
 
 DECLSPEC_SELECTANY
+WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
+{
+    L"Lowest",
+    L"Very low",
+    L"Low",
+    L"Medium",
+    L"Below normal",
+    L"Normal"
+};
+
+DECLSPEC_SELECTANY
 WCHAR *PhKThreadStateNames[MaximumThreadState] =
 {
     L"Initialized",

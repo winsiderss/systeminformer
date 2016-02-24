@@ -407,7 +407,6 @@
 #define IDC_STRINGS                     1242
 #define IDC_SHOWTEXT                    1245
 #define IDC_ICONPROCESSES               1248
-#define IDC_ENABLE                      1251
 #define IDC_CLEANUP                     1251
 #define IDC_ENABLESTAGE2                1253
 #define IDC_TOGGLEELEVATION             1254
@@ -691,11 +690,11 @@
 #define ID_VIEW_UPDATEAUTOMATICALLY     40235
 #define ID_HACKER_RUNASLIMITEDUSER      40236
 #define ID_USER_REMOTECONTROL           40237
-#define ID_PAGEPRIORITY_5               40239
-#define ID_PAGEPRIORITY_4               40240
-#define ID_PAGEPRIORITY_3               40241
-#define ID_PAGEPRIORITY_2               40242
-#define ID_PAGEPRIORITY_1               40243
+#define ID_PAGEPRIORITY_NORMAL          40239
+#define ID_PAGEPRIORITY_BELOWNORMAL     40240
+#define ID_PAGEPRIORITY_MEDIUM          40241
+#define ID_PAGEPRIORITY_LOW             40242
+#define ID_PAGEPRIORITY_VERYLOW         40243
 #define ID_VIEW_SHOWCPUBELOW001         40246
 #define ID_MODULE_OPENFILELOCATION      40247
 #define ID_PROCESS_OPENFILELOCATION     40248

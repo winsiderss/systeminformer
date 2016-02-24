@@ -3898,6 +3898,7 @@ extern ULONG PhCrc32Table[256];
 // Enums
 
 extern WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes];
+extern WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1];
 extern WCHAR *PhKThreadStateNames[MaximumThreadState];
 extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 

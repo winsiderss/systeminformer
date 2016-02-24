@@ -195,11 +195,11 @@ BEGIN
         END
         POPUP "Page priority"
         BEGIN
-            MENUITEM "5",                           ID_PAGEPRIORITY_5
-            MENUITEM "4",                           ID_PAGEPRIORITY_4
-            MENUITEM "3",                           ID_PAGEPRIORITY_3
-            MENUITEM "2",                           ID_PAGEPRIORITY_2
-            MENUITEM "1",                           ID_PAGEPRIORITY_1
+            MENUITEM "Normal",                      ID_PAGEPRIORITY_NORMAL
+            MENUITEM "Below normal",                ID_PAGEPRIORITY_BELOWNORMAL
+            MENUITEM "Medium",                      ID_PAGEPRIORITY_MEDIUM
+            MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
+            MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
         END
         MENUITEM SEPARATOR
         MENUITEM "&Copy\aCtrl+C",               ID_THREAD_COPY
@@ -288,11 +288,11 @@ BEGIN
             MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
             POPUP "Page priority"
             BEGIN
-                MENUITEM "5",                           ID_PAGEPRIORITY_5
-                MENUITEM "4",                           ID_PAGEPRIORITY_4
-                MENUITEM "3",                           ID_PAGEPRIORITY_3
-                MENUITEM "2",                           ID_PAGEPRIORITY_2
-                MENUITEM "1",                           ID_PAGEPRIORITY_1
+                MENUITEM "Normal",                      ID_PAGEPRIORITY_NORMAL
+                MENUITEM "Below normal",                ID_PAGEPRIORITY_BELOWNORMAL
+                MENUITEM "Medium",                      ID_PAGEPRIORITY_MEDIUM
+                MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
+                MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
             END
             MENUITEM "Reduce working set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
             MENUITEM "Run as...",                   ID_MISCELLANEOUS_RUNAS

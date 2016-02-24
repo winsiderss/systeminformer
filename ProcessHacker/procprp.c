@@ -1322,8 +1322,8 @@ VOID PhpUpdateProcessStatistics(
 
         if (WindowsVersion >= WINDOWS_VISTA)
         {
-            if (pagePriority != -1)
-                SetDlgItemInt(hwndDlg, IDC_ZPAGEPRIORITY_V, pagePriority, FALSE);
+            if (pagePriority != -1 && pagePriority <= MEMORY_PRIORITY_NORMAL)
+                SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, PhPagePriorityNames[pagePriority]);
             else
                 SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"Unknown");
 
@@ -2182,20 +2182,20 @@ VOID PhpInitializeThreadMenu(
 
             switch (pagePriority)
             {
-            case 1:
-                id = ID_PAGEPRIORITY_1;
+            case MEMORY_PRIORITY_VERY_LOW:
+                id = ID_PAGEPRIORITY_VERYLOW;
                 break;
-            case 2:
-                id = ID_PAGEPRIORITY_2;
+            case MEMORY_PRIORITY_LOW:
+                id = ID_PAGEPRIORITY_LOW;
                 break;
-            case 3:
-                id = ID_PAGEPRIORITY_3;
+            case MEMORY_PRIORITY_MEDIUM:
+                id = ID_PAGEPRIORITY_MEDIUM;
                 break;
-            case 4:
-                id = ID_PAGEPRIORITY_4;
+            case MEMORY_PRIORITY_BELOW_NORMAL:
+                id = ID_PAGEPRIORITY_BELOWNORMAL;
                 break;
-            case 5:
-                id = ID_PAGEPRIORITY_5;
+            case MEMORY_PRIORITY_NORMAL:
+                id = ID_PAGEPRIORITY_NORMAL;
                 break;
             }
 
@@ -2251,7 +2251,7 @@ VOID PhpUpdateThreadDetails(
     WCHAR priority[PH_INT32_STR_LEN_1] = L"N/A";
     WCHAR basePriority[PH_INT32_STR_LEN_1] = L"N/A";
     PWSTR ioPriority = L"N/A";
-    WCHAR pagePriority[PH_INT32_STR_LEN_1] = L"N/A";
+    PWSTR pagePriority = L"N/A";
     WCHAR idealProcessor[PH_INT32_STR_LEN + 1 + PH_INT32_STR_LEN + 1] = L"N/A";
     HANDLE threadHandle;
     SYSTEMTIME time;
@@ -2313,9 +2313,10 @@ VOID PhpUpdateThreadDetails(
                 ioPriority = PhIoPriorityHintNames[ioPriorityInteger];
             }
 
-            if (NT_SUCCESS(PhGetThreadPagePriority(threadHandle, &pagePriorityInteger)))
+            if (NT_SUCCESS(PhGetThreadPagePriority(threadHandle, &pagePriorityInteger)) &&
+                pagePriorityInteger <= MEMORY_PRIORITY_NORMAL)
             {
-                PhPrintUInt32(pagePriority, pagePriorityInteger);
+                pagePriority = PhPagePriorityNames[pagePriorityInteger];
             }
 
             if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadIdealProcessorEx, &idealProcessorNumber, sizeof(PROCESSOR_NUMBER), NULL)))
@@ -2915,11 +2916,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     }
                 }
                 break;
-            case ID_PAGEPRIORITY_1:
-            case ID_PAGEPRIORITY_2:
-            case ID_PAGEPRIORITY_3:
-            case ID_PAGEPRIORITY_4:
-            case ID_PAGEPRIORITY_5:
+            case ID_PAGEPRIORITY_VERYLOW:
+            case ID_PAGEPRIORITY_LOW:
+            case ID_PAGEPRIORITY_MEDIUM:
+            case ID_PAGEPRIORITY_BELOWNORMAL:
+            case ID_PAGEPRIORITY_NORMAL:
                 {
                     PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
 
@@ -2929,20 +2930,20 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                         switch (id)
                         {
-                            case ID_PAGEPRIORITY_1:
-                                pagePriority = 1;
+                            case ID_PAGEPRIORITY_VERYLOW:
+                                pagePriority = MEMORY_PRIORITY_VERY_LOW;
                                 break;
-                            case ID_PAGEPRIORITY_2:
-                                pagePriority = 2;
+                            case ID_PAGEPRIORITY_LOW:
+                                pagePriority = MEMORY_PRIORITY_LOW;
                                 break;
-                            case ID_PAGEPRIORITY_3:
-                                pagePriority = 3;
+                            case ID_PAGEPRIORITY_MEDIUM:
+                                pagePriority = MEMORY_PRIORITY_MEDIUM;
                                 break;
-                            case ID_PAGEPRIORITY_4:
-                                pagePriority = 4;
+                            case ID_PAGEPRIORITY_BELOWNORMAL:
+                                pagePriority = MEMORY_PRIORITY_BELOW_NORMAL;
                                 break;
-                            case ID_PAGEPRIORITY_5:
-                                pagePriority = 5;
+                            case ID_PAGEPRIORITY_NORMAL:
+                                pagePriority = MEMORY_PRIORITY_NORMAL;
                                 break;
                         }
 

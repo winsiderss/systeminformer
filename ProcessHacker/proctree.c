@@ -2308,20 +2308,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
-
                 if (node->IoPriority != -1 && node->IoPriority < MaxIoPriorityTypes)
                     PhInitializeStringRefLongHint(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
-
                 break;
             case PHPRTLC_PAGEPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
-
-                if (node->PagePriority != -1)
-                {
-                    PhPrintUInt32(node->PagePriorityText, node->PagePriority);
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->PagePriorityText);
-                }
-
+                if (node->PagePriority != -1 && node->PagePriority <= MEMORY_PRIORITY_NORMAL)
+                    PhInitializeStringRefLongHint(&getCellText->Text, PhPagePriorityNames[node->PagePriority]);
                 break;
             case PHPRTLC_STARTTIME:
                 if (processItem->CreateTime.QuadPart != 0)
