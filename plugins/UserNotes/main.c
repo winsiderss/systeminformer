@@ -169,12 +169,12 @@ static PPH_STRING SaveCustomColors(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-static ULONG GetProcessIoPriority(
+static IO_PRIORITY_HINT GetProcessIoPriority(
     _In_ HANDLE ProcessId
     )
 {
     HANDLE processHandle;
-    ULONG ioPriority = -1;
+    IO_PRIORITY_HINT ioPriority = -1;
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
@@ -225,13 +225,13 @@ static ULONG GetIoPriorityFromId(
 {
     switch (Id)
     {
-    case PHAPP_ID_I_0:
+    case PHAPP_ID_IOPRIORITY_VERYLOW:
         return 0;
-    case PHAPP_ID_I_1:
+    case PHAPP_ID_IOPRIORITY_LOW:
         return 1;
-    case PHAPP_ID_I_2:
+    case PHAPP_ID_IOPRIORITY_NORMAL:
         return 2;
-    case PHAPP_ID_I_3:
+    case PHAPP_ID_IOPRIORITY_HIGH:
         return 3;
     }
 
@@ -500,10 +500,10 @@ static VOID NTAPI MenuHookCallback(
                 SaveDb();
         }
         break;
-    case PHAPP_ID_I_0:
-    case PHAPP_ID_I_1:
-    case PHAPP_ID_I_2:
-    case PHAPP_ID_I_3:
+    case PHAPP_ID_IOPRIORITY_VERYLOW:
+    case PHAPP_ID_IOPRIORITY_LOW:
+    case PHAPP_ID_IOPRIORITY_NORMAL:
+    case PHAPP_ID_IOPRIORITY_HIGH:
         {
             BOOLEAN changed = FALSE;
             PPH_PROCESS_ITEM *processes;
