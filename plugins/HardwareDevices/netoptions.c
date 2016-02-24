@@ -310,8 +310,6 @@ VOID FindNetworkAdapters(
         PPH_LIST deviceList;
         HDEVINFO deviceInfoHandle;
         SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
-        PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
-        ULONG deviceInfoLength = 0;
 
         if ((deviceInfoHandle = SetupDiGetClassDevs(
             &GUID_DEVINTERFACE_NET,
@@ -432,11 +430,9 @@ PPH_STRING FindNetworkDeviceInstance(
     )
 {
     PPH_STRING deviceIdString = NULL;
+    HANDLE keyHandle;
     HDEVINFO deviceInfoHandle;
     SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
-    PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
-    ULONG deviceInfoLength = 0;
-    HANDLE keyHandle = NULL;
 
     if ((deviceInfoHandle = SetupDiGetClassDevs(
         &GUID_DEVINTERFACE_NET,
@@ -459,21 +455,26 @@ PPH_STRING FindNetworkDeviceInstance(
             KEY_QUERY_VALUE
             ))
         {
-            PPH_STRING deviceGuid = PH_AUTO(PhQueryRegistryString(keyHandle, L"NetCfgInstanceId"));
+            PPH_STRING deviceGuid;
 
-            if (PhEqualString(deviceGuid, DevicePath, TRUE))
+            if (deviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId"))
             {
-                deviceIdString = PhCreateStringEx(NULL, 0x100);
+                if (PhEqualString(deviceGuid, DevicePath, TRUE))
+                {
+                    deviceIdString = PhCreateStringEx(NULL, 0x100);
 
-                SetupDiGetDeviceInstanceId(
-                    deviceInfoHandle,
-                    &deviceInfoData,
-                    deviceIdString->Buffer,
-                    (ULONG)deviceIdString->Length,
-                    NULL
-                    );
+                    SetupDiGetDeviceInstanceId(
+                        deviceInfoHandle,
+                        &deviceInfoData,
+                        deviceIdString->Buffer,
+                        (ULONG)deviceIdString->Length,
+                        NULL
+                        );
 
-                PhTrimToNullTerminatorString(deviceIdString);
+                    PhTrimToNullTerminatorString(deviceIdString);
+                }
+
+                PhDereferenceObject(deviceGuid);
             }
 
             NtClose(keyHandle);
