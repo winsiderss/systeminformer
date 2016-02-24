@@ -277,5 +277,8 @@
     <ClInclude Include="include\mapimg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\workqueuep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

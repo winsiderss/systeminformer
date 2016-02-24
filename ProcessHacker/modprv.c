@@ -310,6 +310,7 @@ VOID PhpQueueModuleQuery(
     )
 {
     PPH_MODULE_QUERY_DATA data;
+    PH_WORK_QUEUE_ENVIRONMENT environment;
 
     if (!PhEnableProcessQueryStage2)
         return;
@@ -321,7 +322,13 @@ VOID PhpQueueModuleQuery(
 
     PhReferenceObject(ModuleProvider);
     PhReferenceObject(ModuleItem);
-    PhQueueItemGlobalWorkQueue(PhpModuleQueryWorker, data);
+
+    PhInitializeWorkQueueEnvironment(&environment);
+    environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+    environment.IoPriority = IoPriorityLow;
+    environment.PagePriority = MEMORY_PRIORITY_LOW;
+
+    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpModuleQueryWorker, data, NULL, &environment);
 }
 
 static BOOLEAN NTAPI EnumModulesCallback(

@@ -532,7 +532,7 @@ VOID PhpDeferDeleteObject(
     // Was the to-free list empty before? If so, we need to queue a work item.
     if (!oldFirstEntry)
     {
-        PhQueueItemGlobalWorkQueue(PhpDeferDeleteObjectRoutine, NULL);
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpDeferDeleteObjectRoutine, NULL);
     }
 }
 

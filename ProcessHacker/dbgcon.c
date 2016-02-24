@@ -29,11 +29,12 @@
 #include <phapp.h>
 #include <phintrnl.h>
 #include <workqueue.h>
+#include <workqueuep.h>
+#include <refp.h>
 #include <procprv.h>
 #include <srvprv.h>
 #include <thrdprv.h>
 #include <symprv.h>
-#include <refp.h>
 
 typedef struct _STRING_TABLE_ENTRY
 {

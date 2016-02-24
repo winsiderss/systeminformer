@@ -909,12 +909,9 @@ VOID PhpThreadProviderUpdate(
             threadItem->StartAddress = (ULONG64)startAddress;
 
             // Get the base priority increment (relative to the process priority).
-            if (threadItem->ThreadHandle && NT_SUCCESS(NtQueryInformationThread(
+            if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                 threadItem->ThreadHandle,
-                ThreadBasicInformation,
-                &basicInfo,
-                sizeof(THREAD_BASIC_INFORMATION),
-                NULL
+                &basicInfo
                 )))
             {
                 threadItem->BasePriorityIncrement = basicInfo.BasePriority;
@@ -1095,12 +1092,9 @@ VOID PhpThreadProviderUpdate(
             {
                 LONG oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
 
-                if (threadItem->ThreadHandle && NT_SUCCESS(NtQueryInformationThread(
+                if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                     threadItem->ThreadHandle,
-                    ThreadBasicInformation,
-                    &basicInfo,
-                    sizeof(THREAD_BASIC_INFORMATION),
-                    NULL
+                    &basicInfo
                     )))
                 {
                     threadItem->BasePriorityIncrement = basicInfo.BasePriority;

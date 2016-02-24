@@ -30,13 +30,14 @@ typedef VOID (NTAPI *PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION)(
     _In_ PVOID Context
     );
 
-typedef struct _PH_WORK_QUEUE_ITEM
+typedef struct _PH_WORK_QUEUE_ENVIRONMENT
 {
-    LIST_ENTRY ListEntry;
-    PUSER_THREAD_START_ROUTINE Function;
-    PVOID Context;
-    PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction;
-} PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
+    LONG BasePriority : 6; // Base priority increment
+    ULONG IoPriority : 3; // I/O priority hint
+    ULONG PagePriority : 3; // Page/memory priority
+    ULONG ForceUpdate : 1; // Always set priorities regardless of cached values
+    ULONG SpareBits : 19;
+} PH_WORK_QUEUE_ENVIRONMENT, *PPH_WORK_QUEUE_ENVIRONMENT;
 
 PHLIBAPI
 VOID
@@ -76,15 +77,23 @@ PhQueueItemWorkQueueEx(
     _Inout_ PPH_WORK_QUEUE WorkQueue,
     _In_ PUSER_THREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context,
-    _In_opt_ PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction
+    _In_opt_ PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction,
+    _In_opt_ PPH_WORK_QUEUE_ENVIRONMENT Environment
+    );
+
+VOID
+PhInitializeWorkQueueEnvironment(
+    _Out_ PPH_WORK_QUEUE_ENVIRONMENT Environment
     );
 
 PHLIBAPI
-VOID
+PPH_WORK_QUEUE
 NTAPI
-PhQueueItemGlobalWorkQueue(
-    _In_ PUSER_THREAD_START_ROUTINE Function,
-    _In_opt_ PVOID Context
+PhGetGlobalWorkQueue(
+    VOID
     );
+
+/** Deprecated. Use PhGetGlobalWorkQueue instead. */
+PHLIBAPI VOID NTAPI PhQueueItemGlobalWorkQueue(PUSER_THREAD_START_ROUTINE Function, PVOID Context);
 
 #endif

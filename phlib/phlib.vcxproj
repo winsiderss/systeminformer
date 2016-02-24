@@ -229,6 +229,7 @@
     <ClInclude Include="include\templ.h" />
     <ClInclude Include="include\verifyp.h" />
     <ClInclude Include="include\workqueue.h" />
+    <ClInclude Include="include\workqueuep.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

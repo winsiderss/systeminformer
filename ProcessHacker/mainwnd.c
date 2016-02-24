@@ -219,7 +219,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhMwpLoadSettings();
     PhLogInitialization();
-    PhQueueItemGlobalWorkQueue(PhMwpDelayedLoadFunction, NULL);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpDelayedLoadFunction, NULL);
 
     PhMwpSelectionChangedTabControl(-1);
 

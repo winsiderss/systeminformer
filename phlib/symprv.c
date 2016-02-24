@@ -290,7 +290,7 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
                 data->FileName = PhCreateString(callbackData->FileName);
             }
 
-            PhQueueItemGlobalWorkQueue(PhpSymbolCallbackWorker, data);
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpSymbolCallbackWorker, data);
 
             break;
         }

@@ -335,7 +335,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                 PhDereferenceObject(string);
                 SetDlgItemText(hwndDlg, IDC_VERSION, PvpGetStringOrNa(PvImageVersionInfo.FileVersion));
 
-                PhQueueItemGlobalWorkQueue(VerifyImageThreadStart, hwndDlg);
+                PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), VerifyImageThreadStart, hwndDlg);
             }
 
             // PE properties
@@ -389,7 +389,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
             PhDereferenceObject(string);
 
-            PhQueueItemGlobalWorkQueue(CheckSumImageThreadStart, hwndDlg);
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), CheckSumImageThreadStart, hwndDlg);
 
             switch (PvMappedImage.NtHeaders->OptionalHeader.Subsystem)
             {

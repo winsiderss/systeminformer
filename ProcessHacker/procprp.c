@@ -2078,13 +2078,7 @@ VOID PhpInitializeThreadMenu(
         {
             THREAD_BASIC_INFORMATION basicInfo;
 
-            if (NT_SUCCESS(NtQueryInformationThread(
-                threadHandle,
-                ThreadBasicInformation,
-                &basicInfo,
-                sizeof(THREAD_BASIC_INFORMATION),
-                NULL
-                )))
+            if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
             {
                 threadPriority = basicInfo.BasePriority;
             }

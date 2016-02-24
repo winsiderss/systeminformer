@@ -3226,7 +3226,7 @@ VOID PhSipInitializeMemoryDialog(
 
     if (!MmAddressesInitialized && KphIsConnected())
     {
-        PhQueueItemGlobalWorkQueue(PhSipLoadMmAddresses, NULL);
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhSipLoadMmAddresses, NULL);
         MmAddressesInitialized = TRUE;
     }
 }

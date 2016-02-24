@@ -1239,20 +1239,36 @@ VOID PhpQueueProcessQueryStage1(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PH_WORK_QUEUE_ENVIRONMENT environment;
+
     // Ref: dereferenced when the provider update function removes the item from the queue.
     PhReferenceObject(ProcessItem);
-    PhQueueItemGlobalWorkQueue(PhpProcessQueryStage1Worker, ProcessItem);
+
+    PhInitializeWorkQueueEnvironment(&environment);
+    environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+
+    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpProcessQueryStage1Worker, ProcessItem,
+        NULL, &environment);
 }
 
 VOID PhpQueueProcessQueryStage2(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    if (PhEnableProcessQueryStage2)
-    {
-        PhReferenceObject(ProcessItem);
-        PhQueueItemGlobalWorkQueue(PhpProcessQueryStage2Worker, ProcessItem);
-    }
+    PH_WORK_QUEUE_ENVIRONMENT environment;
+
+    if (!PhEnableProcessQueryStage2)
+        return;
+
+    PhReferenceObject(ProcessItem);
+
+    PhInitializeWorkQueueEnvironment(&environment);
+    environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+    environment.IoPriority = IoPriorityVeryLow;
+    environment.PagePriority = MEMORY_PRIORITY_VERY_LOW;
+
+    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpProcessQueryStage2Worker, ProcessItem,
+        NULL, &environment);
 }
 
 VOID PhpFillProcessItemStage1(
