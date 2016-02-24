@@ -351,7 +351,7 @@ NTSTATUS
 NTAPI
 PhSetProcessIoPriority(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG IoPriority
+    _In_ IO_PRIORITY_HINT IoPriority
     );
 
 PHLIBAPI
@@ -377,7 +377,7 @@ NTSTATUS
 NTAPI
 PhSetThreadIoPriority(
     _In_ HANDLE ThreadHandle,
-    _In_ ULONG IoPriority
+    _In_ IO_PRIORITY_HINT IoPriority
     );
 
 PHLIBAPI

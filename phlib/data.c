@@ -140,7 +140,7 @@ ULONG PhCrc32Table[256] =
 DECLSPEC_SELECTANY
 WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
 {
-    L"Very Low",
+    L"Very low",
     L"Low",
     L"Normal",
     L"High",

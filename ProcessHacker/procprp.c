@@ -1245,7 +1245,7 @@ VOID PhpUpdateProcessStatistics(
         PPH_STRING userHandles = NULL;
         PPH_STRING cycles = NULL;
         ULONG pagePriority = -1;
-        ULONG ioPriority = -1;
+        IO_PRIORITY_HINT ioPriority = -1;
         PPH_STRING privateWs = NULL;
         PPH_STRING shareableWs = NULL;
         PPH_STRING sharedWs = NULL;
@@ -2065,7 +2065,7 @@ VOID PhpInitializeThreadMenu(
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
-        ULONG ioPriority = -1;
+        IO_PRIORITY_HINT ioPriority = -1;
         ULONG pagePriority = -1;
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         ULONG id = 0;
@@ -2154,17 +2154,17 @@ VOID PhpInitializeThreadMenu(
 
             switch (ioPriority)
             {
-            case 0:
-                id = ID_I_0;
+            case IoPriorityVeryLow:
+                id = ID_IOPRIORITY_VERYLOW;
                 break;
-            case 1:
-                id = ID_I_1;
+            case IoPriorityLow:
+                id = ID_IOPRIORITY_LOW;
                 break;
-            case 2:
-                id = ID_I_2;
+            case IoPriorityNormal:
+                id = ID_IOPRIORITY_NORMAL;
                 break;
-            case 3:
-                id = ID_I_3;
+            case IoPriorityHigh:
+                id = ID_IOPRIORITY_HIGH;
                 break;
             }
 
@@ -2255,7 +2255,7 @@ VOID PhpUpdateThreadDetails(
     WCHAR idealProcessor[PH_INT32_STR_LEN + 1 + PH_INT32_STR_LEN + 1] = L"N/A";
     HANDLE threadHandle;
     SYSTEMTIME time;
-    ULONG ioPriorityInteger;
+    IO_PRIORITY_HINT ioPriorityInteger;
     ULONG pagePriorityInteger;
     PROCESSOR_NUMBER idealProcessorNumber;
     ULONG suspendCount;
@@ -2882,30 +2882,30 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     }
                 }
                 break;
-            case ID_I_0:
-            case ID_I_1:
-            case ID_I_2:
-            case ID_I_3:
+            case ID_IOPRIORITY_VERYLOW:
+            case ID_IOPRIORITY_LOW:
+            case ID_IOPRIORITY_NORMAL:
+            case ID_IOPRIORITY_HIGH:
                 {
                     PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
 
                     if (threadItem)
                     {
-                        ULONG ioPriority;
+                        IO_PRIORITY_HINT ioPriority;
 
                         switch (id)
                         {
-                        case ID_I_0:
-                            ioPriority = 0;
+                        case ID_IOPRIORITY_VERYLOW:
+                            ioPriority = IoPriorityVeryLow;
                             break;
-                        case ID_I_1:
-                            ioPriority = 1;
+                        case ID_IOPRIORITY_LOW:
+                            ioPriority = IoPriorityLow;
                             break;
-                        case ID_I_2:
-                            ioPriority = 2;
+                        case ID_IOPRIORITY_NORMAL:
+                            ioPriority = IoPriorityNormal;
                             break;
-                        case ID_I_3:
-                            ioPriority = 3;
+                        case ID_IOPRIORITY_HIGH:
+                            ioPriority = IoPriorityHigh;
                             break;
                         }
 

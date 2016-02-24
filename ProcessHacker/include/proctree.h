@@ -136,7 +136,7 @@ typedef struct _PH_PROCESS_NODE
     ULONG GdiHandles;
     ULONG UserHandles;
     // I/O, page priority
-    ULONG IoPriority;
+    IO_PRIORITY_HINT IoPriority;
     ULONG PagePriority;
     // Window
     HWND WindowHandle;

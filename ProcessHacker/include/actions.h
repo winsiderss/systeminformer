@@ -199,7 +199,7 @@ PhUiSetIoPriorityProcesses(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,
-    _In_ ULONG IoPriority
+    _In_ IO_PRIORITY_HINT IoPriority
     );
 
 PHAPPAPI
@@ -322,7 +322,7 @@ NTAPI
 PhUiSetIoPriorityThread(
     _In_ HWND hWnd,
     _In_ PPH_THREAD_ITEM Thread,
-    _In_ ULONG IoPriority
+    _In_ IO_PRIORITY_HINT IoPriority
     );
 
 PHAPPAPI

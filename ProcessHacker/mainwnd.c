@@ -1455,10 +1455,10 @@ VOID PhMwpOnCommand(
             PhFree(processes);
         }
         break;
-    case ID_I_0:
-    case ID_I_1:
-    case ID_I_2:
-    case ID_I_3:
+    case ID_IOPRIORITY_VERYLOW:
+    case ID_IOPRIORITY_LOW:
+    case ID_IOPRIORITY_NORMAL:
+    case ID_IOPRIORITY_HIGH:
         {
             PPH_PROCESS_ITEM *processes;
             ULONG numberOfProcesses;
@@ -3554,10 +3554,10 @@ VOID PhAddMiniProcessMenuItems(
     {
         ioPriorityMenu = PhCreateEMenuItem(0, 0, L"I/O priority", NULL, ProcessId);
 
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_3, L"High", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_2, L"Normal", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_1, L"Low", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_I_0, L"Very low", NULL, ProcessId), -1);
+        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_HIGH, L"High", NULL, ProcessId), -1);
+        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_NORMAL, L"Normal", NULL, ProcessId), -1);
+        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_LOW, L"Low", NULL, ProcessId), -1);
+        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_VERYLOW, L"Very low", NULL, ProcessId), -1);
     }
 
     // Menu
@@ -3647,10 +3647,10 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
         }
         break;
-    case ID_I_3:
-    case ID_I_2:
-    case ID_I_1:
-    case ID_I_0:
+    case ID_IOPRIORITY_HIGH:
+    case ID_IOPRIORITY_NORMAL:
+    case ID_IOPRIORITY_LOW:
+    case ID_IOPRIORITY_VERYLOW:
         {
             HANDLE processId = MenuItem->Context;
             PPH_PROCESS_ITEM processItem;
@@ -4103,21 +4103,21 @@ BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
     _In_ ULONG NumberOfProcesses
     )
 {
-    ULONG ioPriority;
+    IO_PRIORITY_HINT ioPriority;
 
     switch (Id)
     {
-    case ID_I_0:
-        ioPriority = 0;
+    case ID_IOPRIORITY_VERYLOW:
+        ioPriority = IoPriorityVeryLow;
         break;
-    case ID_I_1:
-        ioPriority = 1;
+    case ID_IOPRIORITY_LOW:
+        ioPriority = IoPriorityLow;
         break;
-    case ID_I_2:
-        ioPriority = 2;
+    case ID_IOPRIORITY_NORMAL:
+        ioPriority = IoPriorityNormal;
         break;
-    case ID_I_3:
-        ioPriority = 3;
+    case ID_IOPRIORITY_HIGH:
+        ioPriority = IoPriorityHigh;
         break;
     default:
         return FALSE;
@@ -4138,7 +4138,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 {
     HANDLE processHandle;
     PROCESS_PRIORITY_CLASS priorityClass = { 0 };
-    ULONG ioPriority = -1;
+    IO_PRIORITY_HINT ioPriority = -1;
     ULONG pagePriority = -1;
     ULONG id = 0;
 
@@ -4216,17 +4216,17 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
         switch (ioPriority)
         {
-        case 0:
-            id = ID_I_0;
+        case IoPriorityVeryLow:
+            id = ID_IOPRIORITY_VERYLOW;
             break;
-        case 1:
-            id = ID_I_1;
+        case IoPriorityLow:
+            id = ID_IOPRIORITY_LOW;
             break;
-        case 2:
-            id = ID_I_2;
+        case IoPriorityNormal:
+            id = ID_IOPRIORITY_NORMAL;
             break;
-        case 3:
-            id = ID_I_3;
+        case IoPriorityHigh:
+            id = ID_IOPRIORITY_HIGH;
             break;
         }
 

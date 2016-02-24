@@ -120,7 +120,6 @@
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
 #define IDR_MINIINFO_PROCESS            212
-#define IDR_MENU1                       214
 #define IDR_ENVIRONMENT                 214
 #define IDD_MITIGATION                  215
 #define IDC_TERMINATE                   1003
@@ -553,10 +552,10 @@
 #define ID_PRIORITY_BELOWNORMAL         40024
 #define ID_PRIORITY_LOWEST              40025
 #define ID_PRIORITY_IDLE                40026
-#define ID_I_0                          40028
-#define ID_I_1                          40029
-#define ID_I_2                          40030
-#define ID_I_3                          40031
+#define ID_IOPRIORITY_VERYLOW           40028
+#define ID_IOPRIORITY_LOW               40029
+#define ID_IOPRIORITY_NORMAL            40030
+#define ID_IOPRIORITY_HIGH              40031
 #define ID_PROCESS_RESTART              40032
 #define ID_PROCESS_VIRTUALIZATION       40034
 #define ID_PROCESS_AFFINITY             40035

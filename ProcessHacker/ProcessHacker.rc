@@ -188,10 +188,10 @@ BEGIN
         END
         POPUP "I/O priority"
         BEGIN
-            MENUITEM "High",                        ID_I_3
-            MENUITEM "Normal",                      ID_I_2
-            MENUITEM "Low",                         ID_I_1
-            MENUITEM "Very low",                    ID_I_0
+            MENUITEM "High",                        ID_IOPRIORITY_HIGH
+            MENUITEM "Normal",                      ID_IOPRIORITY_NORMAL
+            MENUITEM "Low",                         ID_IOPRIORITY_LOW
+            MENUITEM "Very low",                    ID_IOPRIORITY_VERYLOW
         END
         POPUP "Page priority"
         BEGIN
@@ -276,10 +276,10 @@ BEGIN
         END
         POPUP "&I/O priority"
         BEGIN
-            MENUITEM "High",                        ID_I_3
-            MENUITEM "Normal",                      ID_I_2
-            MENUITEM "Low",                         ID_I_1
-            MENUITEM "Very low",                    ID_I_0
+            MENUITEM "High",                        ID_IOPRIORITY_HIGH
+            MENUITEM "Normal",                      ID_IOPRIORITY_NORMAL
+            MENUITEM "Low",                         ID_IOPRIORITY_LOW
+            MENUITEM "Very low",                    ID_IOPRIORITY_VERYLOW
         END
         POPUP "&Miscellaneous"
         BEGIN

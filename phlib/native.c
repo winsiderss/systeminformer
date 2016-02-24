@@ -1416,7 +1416,7 @@ NTSTATUS PhGetProcessWsCounters(
  */
 NTSTATUS PhSetProcessIoPriority(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG IoPriority
+    _In_ IO_PRIORITY_HINT IoPriority
     )
 {
     if (KphIsConnected())
@@ -1425,7 +1425,7 @@ NTSTATUS PhSetProcessIoPriority(
             ProcessHandle,
             KphProcessIoPriority,
             &IoPriority,
-            sizeof(ULONG)
+            sizeof(IO_PRIORITY_HINT)
             );
     }
     else
@@ -1434,7 +1434,7 @@ NTSTATUS PhSetProcessIoPriority(
             ProcessHandle,
             ProcessIoPriority,
             &IoPriority,
-            sizeof(ULONG)
+            sizeof(IO_PRIORITY_HINT)
             );
     }
 }
@@ -1744,7 +1744,7 @@ NTSTATUS PhUnloadDllProcess(
  */
 NTSTATUS PhSetThreadIoPriority(
     _In_ HANDLE ThreadHandle,
-    _In_ ULONG IoPriority
+    _In_ IO_PRIORITY_HINT IoPriority
     )
 {
     if (KphIsConnected())
@@ -1753,7 +1753,7 @@ NTSTATUS PhSetThreadIoPriority(
             ThreadHandle,
             KphThreadIoPriority,
             &IoPriority,
-            sizeof(ULONG)
+            sizeof(IO_PRIORITY_HINT)
             );
     }
     else
@@ -1762,7 +1762,7 @@ NTSTATUS PhSetThreadIoPriority(
             ThreadHandle,
             ThreadIoPriority,
             &IoPriority,
-            sizeof(ULONG)
+            sizeof(IO_PRIORITY_HINT)
             );
     }
 }

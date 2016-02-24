@@ -2309,11 +2309,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
 
-                if (node->IoPriority != -1)
-                {
-                    if (node->IoPriority < MaxIoPriorityTypes)
-                        PhInitializeStringRefLongHint(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
-                }
+                if (node->IoPriority != -1 && node->IoPriority < MaxIoPriorityTypes)
+                    PhInitializeStringRefLongHint(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
 
                 break;
             case PHPRTLC_PAGEPRIORITY:

@@ -249,14 +249,14 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessIoPriority(
     _In_ HANDLE ProcessHandle,
-    _Out_ PULONG IoPriority
+    _Out_ IO_PRIORITY_HINT *IoPriority
     )
 {
     return NtQueryInformationProcess(
         ProcessHandle,
         ProcessIoPriority,
         IoPriority,
-        sizeof(ULONG),
+        sizeof(IO_PRIORITY_HINT),
         NULL
         );
 }
@@ -408,14 +408,14 @@ FORCEINLINE
 NTSTATUS
 PhGetThreadIoPriority(
     _In_ HANDLE ThreadHandle,
-    _Out_ PULONG IoPriority
+    _Out_ IO_PRIORITY_HINT *IoPriority
     )
 {
     return NtQueryInformationThread(
         ThreadHandle,
         ThreadIoPriority,
         IoPriority,
-        sizeof(ULONG),
+        sizeof(IO_PRIORITY_HINT),
         NULL
         );
 }
