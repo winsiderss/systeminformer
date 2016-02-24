@@ -62,6 +62,10 @@ extern PH_QUEUED_LOCK DiskDrivesListLock;
 
 // main.c
 
+PPH_STRING TrimString(
+    _In_ PPH_STRING String
+    );
+
 VOID AddListViewGroup(
     _In_ HWND ListViewHandle,
     _In_ INT Index,

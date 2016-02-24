@@ -154,6 +154,15 @@ VOID NTAPI SystemInformationInitializingCallback(
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 }
 
+PPH_STRING TrimString(
+    _In_ PPH_STRING String
+    )
+{
+    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t\r\n");
+    PH_STRINGREF sr = String->sr;
+    PhTrimStringRef(&sr, &whitespace, 0);
+    return PhCreateString2(&sr);
+}
 
 VOID AddListViewGroup(
     _In_ HWND ListViewHandle,
