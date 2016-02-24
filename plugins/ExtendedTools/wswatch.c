@@ -182,7 +182,7 @@ static VOID EtpQueueSymbolLookup(
     result->Address = Address;
     EtpReferenceWsWatchContext(Context);
 
-    PhQueueItemGlobalWorkQueue(EtpSymbolLookupFunction, result);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), EtpSymbolLookupFunction, result);
 }
 
 static PPH_STRING EtpGetBasicSymbol(

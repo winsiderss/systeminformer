@@ -329,7 +329,7 @@ VOID NTAPI LoadCallback(
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
     {
-        PhQueueItemGlobalWorkQueue(RegisterGrowlCallback, NULL);
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), RegisterGrowlCallback, NULL);
     }
 }
 

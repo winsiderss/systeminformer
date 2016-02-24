@@ -719,7 +719,7 @@ static VOID WepQueueResolveSymbol(
     WepReferenceWindowPropertiesContext(Context);
     resolveContext->Id = Id;
 
-    PhQueueItemGlobalWorkQueue(WepResolveSymbolFunction, resolveContext);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), WepResolveSymbolFunction, resolveContext);
 }
 
 static PPH_STRING WepFormatRect(
