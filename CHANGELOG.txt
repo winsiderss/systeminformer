@@ -8,19 +8,20 @@ Process Hacker
    * Added exploit mitigation policy information to process properties (Windows 8 and above)
    * Added File modified time and File size columns for processes and modules
    * Added Key modified time column for services
-   * Added Time stamp column for processes
-   * Added right-click menu and double-click action for environment variables
    * Clicking a tray icon now shows the pop-up UI (useful for touch-enabled devices)
-   * The pop-up UI no longer displays when double-clicking the tray icon
    * The NetAdapters plugin has been renamed to HardwareDevices
      * This plugin shows network adapter and disk drive graphs
      * If you are manually upgrading, please delete NetAdapters.dll from the plugins folder
    * Updated UserNotes plugin:
      * Added "Collapse by default" option for processes
  * OTHER CHANGES:
+   * Added "Start when I log on" option
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
-   * Improved performance when handling a large number of threads, modules or handles
+   * Added right-click menu and double-click action for environment variables
+   * Added Time stamp column for processes
    * Added -sysinfo command line parameter for opening System Information at startup
+   * The pop-up UI no longer displays when double-clicking the tray icon
+   * Improved performance when handling a large number of threads, modules or handles
    * Fixed ASLR state being shown as N/A in process properties
    * Fixed multi monitor window placement bug
    * Fixed handle enumeration bug affecting processes with PID >= 65536

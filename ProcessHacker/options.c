@@ -2,7 +2,7 @@
  * Process Hacker -
  *   options window
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -85,6 +85,9 @@ static POINT StartLocation;
 static WNDPROC OldWndProc;
 
 // General
+static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+static BOOLEAN CurrentUserRunPresent;
+static BOOLEAN CurrentUserRunStartHidden;
 static HFONT CurrentFontInstance;
 static PPH_STRING NewFontSelection;
 
@@ -377,6 +380,91 @@ static BOOLEAN GetCurrentFont(
     return result;
 }
 
+static VOID ReadCurrentUserRun(
+    VOID
+    )
+{
+    HANDLE keyHandle;
+    PPH_STRING value;
+
+    CurrentUserRunPresent = FALSE;
+    CurrentUserRunStartHidden = FALSE;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        0
+        )))
+    {
+        if (value = PhQueryRegistryString(keyHandle, L"Process Hacker 2"))
+        {
+            PH_STRINGREF fileName;
+            PH_STRINGREF arguments;
+            PPH_STRING fullFileName;
+
+            PH_AUTO(value);
+
+            if (PhParseCommandLineFuzzy(&value->sr, &fileName, &arguments, &fullFileName))
+            {
+                PH_AUTO(fullFileName);
+
+                if (fullFileName && PhEqualString(fullFileName, PhApplicationFileName, TRUE))
+                {
+                    CurrentUserRunPresent = TRUE;
+                    CurrentUserRunStartHidden = PhEqualStringRef2(&arguments, L"-hide", FALSE);
+                }
+            }
+        }
+
+        NtClose(keyHandle);
+    }
+}
+
+static VOID WriteCurrentUserRun(
+    _In_ BOOLEAN Present,
+    _In_ BOOLEAN StartHidden
+    )
+{
+    HANDLE keyHandle;
+
+    if (CurrentUserRunPresent == Present && (!Present || CurrentUserRunStartHidden == StartHidden))
+        return;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        0
+        )))
+    {
+        UNICODE_STRING valueName;
+
+        RtlInitUnicodeString(&valueName, L"Process Hacker 2");
+
+        if (Present)
+        {
+            PPH_STRING value;
+
+            value = PH_AUTO(PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\""));
+
+            if (StartHidden)
+                value = PhaConcatStrings2(value->Buffer, L" -hide");
+
+            NtSetValueKey(keyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
+        }
+        else
+        {
+            NtDeleteValueKey(keyHandle, &valueName);
+        }
+
+        NtClose(keyHandle);
+    }
+}
+
+
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -412,11 +500,24 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             SetDlgItemCheckForSetting(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
             SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
             SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEONMINIMIZE, L"HideOnMinimize");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_STARTHIDDEN, L"StartHidden");
             SetDlgItemCheckForSetting(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ICONTOGGLESVISIBILITY, L"IconTogglesVisibility");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
+
+            ReadCurrentUserRun();
+
+            if (CurrentUserRunPresent)
+            {
+                Button_SetCheck(GetDlgItem(hwndDlg, IDC_STARTATLOGON), BST_CHECKED);
+
+                if (CurrentUserRunStartHidden)
+                    Button_SetCheck(GetDlgItem(hwndDlg, IDC_STARTHIDDEN), BST_CHECKED);
+            }
+            else
+            {
+                EnableWindow(GetDlgItem(hwndDlg, IDC_STARTHIDDEN), FALSE);
+            }
 
             // Set the font of the button for a nice preview.
             if (GetCurrentFont(&font))
@@ -440,6 +541,11 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         {
             switch (LOWORD(wParam))
             {
+            case IDC_STARTATLOGON:
+                {
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_STARTHIDDEN), Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTATLOGON)) == BST_CHECKED);
+                }
+                break;
             case IDC_FONT:
                 {
                     LOGFONT font;
@@ -484,6 +590,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             {
             case PSN_APPLY:
                 {
+                    BOOLEAN startAtLogon;
+                    BOOLEAN startHidden;
+
                     PhSetStringSetting2(L"SearchEngine", &(PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr));
                     PhSetStringSetting2(L"ProgramInspectExecutables", &(PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr));
                     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
@@ -491,11 +600,14 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONMINIMIZE, L"HideOnMinimize");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_STARTHIDDEN, L"StartHidden");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ICONTOGGLESVISIBILITY, L"IconTogglesVisibility");
                     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
+
+                    startAtLogon = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTATLOGON)) == BST_CHECKED;
+                    startHidden = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTHIDDEN)) == BST_CHECKED;
+                    WriteCurrentUserRun(startAtLogon, startHidden);
 
                     if (NewFontSelection)
                     {
@@ -526,9 +638,9 @@ static BOOLEAN PathMatchesPh(
     }
     // Allow for a quoted value.
     else if (
-        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + 4 &&
+        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + sizeof(WCHAR) * 2 &&
         OldTaskMgrDebugger->Buffer[0] == '"' &&
-        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / 2 - 1] == '"'
+        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
         )
     {
         PH_STRINGREF partInside;

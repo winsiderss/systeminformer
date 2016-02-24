@@ -528,7 +528,7 @@
 #define IDC_SECTION                     1375
 #define IDC_REGEX                       1377
 #define IDC_DESCRIPTIONLABEL            1378
-#define IDC_EDIT1                       1379
+#define IDC_STARTATLOGON                1380
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -739,9 +739,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        217
+#define _APS_NEXT_RESOURCE_VALUE        218
 #define _APS_NEXT_COMMAND_VALUE         40292
-#define _APS_NEXT_CONTROL_VALUE         1380
+#define _APS_NEXT_CONTROL_VALUE         1381
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif
