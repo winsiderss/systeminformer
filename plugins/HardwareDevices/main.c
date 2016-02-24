@@ -196,9 +196,10 @@ INT AddListViewItemGroupId(
 {
     LVITEM item;
 
-    item.mask = LVIF_TEXT | LVIF_PARAM;
+    item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
     item.iItem = Index;
     item.iSubItem = 0;
+    item.iImage = 0;
     item.pszText = Text;
     item.lParam = (LPARAM)Param;
 

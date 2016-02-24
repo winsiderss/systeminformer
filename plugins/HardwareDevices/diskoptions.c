@@ -262,7 +262,7 @@ VOID FindDiskDrives(
 
     deviceList = PH_AUTO(PhCreateList(1));
 
-    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
+    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, NULL, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
     {
         if (SetupDiGetDeviceInterfaceDetail(
             deviceInfoHandle,
@@ -292,9 +292,6 @@ VOID FindDiskDrives(
             PDISK_ENUM_ENTRY diskEntry;
             WCHAR diskFriendlyName[MAX_PATH] = L"";
 
-            diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
-            memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
-
             // This crashes on XP with error 0xC06D007F
             //SetupDiGetDeviceProperty(
             //    deviceInfoHandle,
@@ -307,7 +304,7 @@ VOID FindDiskDrives(
             //    0
             //    );
 
-            SetupDiGetDeviceRegistryProperty(
+            if (!SetupDiGetDeviceRegistryProperty(
                 deviceInfoHandle,
                 &deviceInfoData,
                 SPDRP_FRIENDLYNAME,
@@ -315,7 +312,13 @@ VOID FindDiskDrives(
                 (PBYTE)diskFriendlyName,
                 ARRAYSIZE(diskFriendlyName),
                 NULL
-                );
+                ))
+            {
+                continue;
+            }
+
+            diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
+            memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
 
             diskEntry->DeviceIndex = ULONG_MAX; // Note: Do not initialize to zero.
             diskEntry->DeviceName = PhCreateString(diskFriendlyName);
@@ -420,7 +423,7 @@ PPH_STRING FindDiskDeviceInstance(
         return NULL;
     }
 
-    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
+    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, NULL, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
     {
         if (SetupDiGetDeviceInterfaceDetail(
             deviceInfoHandle,
@@ -465,8 +468,49 @@ PPH_STRING FindDiskDeviceInstance(
         PhFree(deviceInterfaceDetail);
     }
 
+    SetupDiDestroyDeviceInfoList(deviceInfoHandle);
+
     return deviceIdString;
 }
+
+//VOID LoadDiskDriveImages(
+//    _In_ PDV_DISK_OPTIONS_CONTEXT Context
+//    )
+//{
+//    HICON smallIcon = NULL;
+//
+//    Context->ImageList = ImageList_Create(
+//        GetSystemMetrics(SM_CXSMICON),
+//        GetSystemMetrics(SM_CYSMICON),
+//        ILC_COLOR32,
+//        1,
+//        1
+//        );
+//
+//    // We could use SetupDiLoadClassIcon but this works.
+//    // Copied from HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e967-e325-11ce-bfc1-08002be10318}\\IconPath
+//    // The index is only valid on Vista and above.
+//    ExtractIconEx(
+//        L"%SystemRoot%\\system32\\imageres.dll",
+//        -32,
+//        NULL,
+//        &smallIcon,
+//        1
+//        );
+//
+//    if (smallIcon)
+//    {
+//        ImageList_AddIcon(Context->ImageList, smallIcon);
+//        DestroyIcon(smallIcon);
+//
+//        // Set the imagelist only if the image was loaded.
+//        ListView_SetImageList(
+//            Context->ListViewHandle,
+//            Context->ImageList,
+//            LVSIL_SMALL
+//            );
+//    }
+//}
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     _In_ HWND hwndDlg,
@@ -520,6 +564,12 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
+
+            //if (WindowsVersion >= WINDOWS_VISTA)
+            //{
+            //    // XP has really bad image rendering, don't load images on XP.
+            //    LoadDiskDriveImages(context);
+            //}
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             AddListViewGroup(context->ListViewHandle, 0, L"Connected");

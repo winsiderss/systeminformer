@@ -486,6 +486,45 @@ PPH_STRING FindNetworkDeviceInstance(
     return deviceIdString;
 }
 
+//VOID LoadNetworkAdapterImages(
+//    _In_ PDV_NETADAPTER_CONTEXT Context
+//    )
+//{
+//    HICON smallIcon = NULL;
+//
+//    Context->ImageList = ImageList_Create(
+//        GetSystemMetrics(SM_CXSMICON),
+//        GetSystemMetrics(SM_CYSMICON),
+//        ILC_COLOR32,
+//        1,
+//        1
+//        );
+//
+//    // We could use SetupDiLoadClassIcon but this works.
+//    // Copied from HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}\\IconPath
+//    // The path and index hasn't changed since Win2k.
+//    ExtractIconEx(
+//        L"%SystemRoot%\\system32\\setupapi.dll",
+//        -5,
+//        NULL,
+//        &smallIcon,
+//        1
+//        );
+//
+//    if (smallIcon)
+//    {
+//        ImageList_AddIcon(Context->ImageList, smallIcon);
+//        DestroyIcon(smallIcon);
+//
+//        // Set the imagelist only if the image was loaded.
+//        ListView_SetImageList(
+//            Context->ListViewHandle,
+//            Context->ImageList,
+//            LVSIL_SMALL
+//            );
+//    }
+//}
+
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -536,6 +575,9 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             if (WindowsVersion >= WINDOWS_VISTA)
             {
                 context->UseAlternateMethod = FALSE;
+
+                // XP has really bad image rendering, don't load images on XP.
+                //LoadNetworkAdapterImages(context);
 
                 ListView_EnableGroupView(context->ListViewHandle, TRUE);
                 AddListViewGroup(context->ListViewHandle, 0, L"Connected");

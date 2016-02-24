@@ -175,6 +175,7 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
+    //HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     BOOLEAN EnumeratingAdapters;
     BOOLEAN UseAlternateMethod;
@@ -437,6 +438,7 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
+    //HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     BOOLEAN EnumeratingDisks;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
