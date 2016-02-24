@@ -365,15 +365,20 @@ VOID FindNetworkAdapters(
                 HANDLE keyHandle = NULL;
                 HANDLE deviceHandle = NULL;
                 DEVPROPTYPE devicePropertyType;
-                WCHAR diskFriendlyName[MAX_PATH] = L"";
+                WCHAR adapterDescription[MAX_PATH] = L"";
 
+                // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
+                // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only 
+                //  supported on Windows 8 and above.
+                // We use our NetworkAdapterQueryName function to query the full adapter name
+                // from the NDIS driver directly, if that fails then we use one of the above properties. 
                 if (!SetupDiGetDeviceProperty(
                     deviceInfoHandle,
                     &deviceInfoData,
-                    WindowsVersion > WINDOWS_7 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+                    WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
                     &devicePropertyType,
-                    (PBYTE)diskFriendlyName,
-                    ARRAYSIZE(diskFriendlyName),
+                    (PBYTE)adapterDescription,
+                    ARRAYSIZE(adapterDescription),
                     NULL,
                     0
                     ))
@@ -400,32 +405,24 @@ VOID FindNetworkAdapters(
                 adapterEntry->DeviceLuid.Info.IfType = RegQueryUlong64(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = RegQueryUlong64(keyHandle, L"NetLuidIndex");
 
-                NetworkAdapterCreateHandle(
+                if (NT_SUCCESS(NetworkAdapterCreateHandle(
                     &deviceHandle,
                     adapterEntry->DeviceGuid
-                    );
-
-                if (deviceHandle)
+                    )))
                 {
                     PPH_STRING adapterName;
 
+                    // Try query the full adapter name
                     if (adapterName = NetworkAdapterQueryName(deviceHandle, adapterEntry->DeviceGuid))
-                    {
                         adapterEntry->DeviceName = adapterName;
-                    }
-                    else
-                    {
-                        adapterEntry->DeviceName = PhCreateString(diskFriendlyName);
-                    }
 
                     adapterEntry->DevicePresent = TRUE;
 
                     NtClose(deviceHandle);
                 }
-                else
-                {
-                    adapterEntry->DeviceName = PhCreateString(diskFriendlyName);
-                }
+
+                if (!adapterEntry->DeviceName)
+                    adapterEntry->DeviceName = PhCreateString(adapterDescription);
 
                 PhAddItemList(deviceList, adapterEntry);
 
@@ -670,7 +667,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
                 if (listView->uChanged & LVIF_STATE)
                 {
-                    switch (listView->uNewState & 0x3000)
+                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
                     case 0x2000: // checked
                         {

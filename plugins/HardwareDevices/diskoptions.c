@@ -555,7 +555,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
                 if (listView->uChanged & LVIF_STATE)
                 {
-                    switch (listView->uNewState & 0x3000)
+                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
                     case 0x2000: // checked
                         {
