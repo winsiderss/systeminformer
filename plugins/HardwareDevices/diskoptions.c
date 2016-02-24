@@ -513,11 +513,14 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            // TODO: Why does this need to use GetParent?
+            // Center the property sheet.
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+            // Hide the OK button.
+            ShowWindow(GetDlgItem(GetParent(hwndDlg), IDOK), SW_HIDE);
+            // Set the Cancel button text.
+            Button_SetText(GetDlgItem(GetParent(hwndDlg), IDCANCEL), L"Close");
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DISKDRIVE_LISTVIEW);
-
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
