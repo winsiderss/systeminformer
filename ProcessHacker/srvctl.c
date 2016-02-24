@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <srvprv.h>
+#include <actions.h>
 
 typedef struct _PH_SERVICES_CONTEXT
 {

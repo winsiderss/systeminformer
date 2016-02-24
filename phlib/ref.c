@@ -20,9 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _PH_REF_PRIVATE
 #include <phbase.h>
 #include <phintrnl.h>
+#include <workqueue.h>
 #include <refp.h>
 
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
@@ -46,7 +46,7 @@ PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 /**
  * Initializes the object manager module.
  */
-NTSTATUS PhInitializeRef(
+NTSTATUS PhRefInitialization(
     VOID
     )
 {

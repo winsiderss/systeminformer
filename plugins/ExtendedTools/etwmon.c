@@ -85,7 +85,7 @@ VOID EtEtwMonitorInitialization(
     VOID
     )
 {
-    if (PhElevated && PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR))
+    if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR))
     {
         EtStartEtwSession();
 

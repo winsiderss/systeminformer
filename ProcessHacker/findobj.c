@@ -21,10 +21,14 @@
  */
 
 #include <phapp.h>
+#include <workqueue.h>
+#include <procprv.h>
+#include <hndlprv.h>
+#include <proctree.h>
 #include <emenu.h>
 #include <kphuser.h>
 #include <settings.h>
-#include <procprpp.h>
+#include <hndlmenu.h>
 #include "pcre/pcre2.h"
 #include <windowsx.h>
 

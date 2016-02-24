@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
+#include <actions.h>
 #include <phsvccl.h>
 #include <emenu.h>
 
@@ -244,7 +246,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
 
                         if (status == STATUS_PRIVILEGE_NOT_HELD)
                         {
-                            if (!PhElevated)
+                            if (!PhGetOwnTokenAttributes().Elevated)
                             {
                                 if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                                 {

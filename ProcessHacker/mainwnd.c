@@ -20,9 +20,15 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define PH_MAINWND_PRIVATE
 #include <phapp.h>
+#include <workqueue.h>
 #include <kphuser.h>
+#include <procprv.h>
+#include <srvprv.h>
+#include <netprv.h>
+#include <proctree.h>
+#include <srvlist.h>
+#include <netlist.h>
 #include <settings.h>
 #include <emenu.h>
 #include <verify.h>
@@ -32,6 +38,7 @@
 #include <notifico.h>
 #include <memsrch.h>
 #include <symprv.h>
+#include <actions.h>
 #include <sysinfo.h>
 #include <miniinfo.h>
 #include <mainwndp.h>
@@ -170,7 +177,7 @@ BOOLEAN PhMainWndInitialization(
         if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
     }
 
-    if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
+    if (WINDOWS_HAS_UAC && PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
         PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
 
     // Create the window.
@@ -1126,7 +1133,7 @@ VOID PhMwpOnCommand(
             systemDirectory = PH_AUTO(PhGetSystemDirectory());
             taskmgrFileName = PH_AUTO(PhConcatStrings2(systemDirectory->Buffer, L"\\taskmgr.exe"));
 
-            if (WindowsVersion >= WINDOWS_8 && !PhElevated)
+            if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
             {
                 if (PhUiConnectToPhSvc(PhMainWndHandle, FALSE))
                 {
@@ -2976,7 +2983,7 @@ VOID PhMwpInitializeSubMenu(
     if (Index == 0) // Hacker
     {
         // Fix some menu items.
-        if (PhElevated)
+        if (PhGetOwnTokenAttributes().Elevated)
         {
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASADMINISTRATOR))
                 PhDestroyEMenuItem(menuItem);
@@ -3124,7 +3131,7 @@ VOID PhMwpInitializeSubMenu(
 #endif
 
         // Windows 8 Task Manager requires elevation.
-        if (WindowsVersion >= WINDOWS_8 && !PhElevated)
+        if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
         {
             HBITMAP shieldBitmap;
 
@@ -4886,7 +4893,7 @@ VOID PhMwpOnServiceAdded(
 }
 
 VOID PhMwpOnServiceModified(
-    _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    _In_ struct _PH_SERVICE_MODIFIED_DATA *ServiceModifiedData
     )
 {
     PH_SERVICE_CHANGE serviceChange;

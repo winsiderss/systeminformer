@@ -21,9 +21,11 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
+#include <procprv.h>
 #include <settings.h>
 #include <emenu.h>
-#include <phplug.h>
+#include <colmgr.h>
 #include <extmgri.h>
 #include <notifico.h>
 #include <phsvccl.h>

@@ -56,6 +56,8 @@
  */
 
 #include <phapp.h>
+#include <workqueue.h>
+#include <procprv.h>
 #include <kphuser.h>
 #include <symprv.h>
 #include <settings.h>

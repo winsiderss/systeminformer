@@ -486,6 +486,9 @@
     <ClCompile Include="mtgndlg.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="hndlmenu.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -512,9 +515,6 @@
     <ClInclude Include="include\procprpp.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="include\providers.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -522,9 +522,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\settingsp.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="include\uimodels.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phsvcapi.h">
@@ -603,6 +600,60 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\procmtgn.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phfwddef.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\srvprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\netprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\modprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thrdprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndlprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phuisup.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\proctree.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\srvlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\netlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thrdlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\modlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndllist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndlmenu.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\actions.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

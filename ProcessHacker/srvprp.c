@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
+#include <srvprv.h>
 #include <secedit.h>
 #include <phplug.h>
+#include <actions.h>
 #include <phsvccl.h>
 #include <windowsx.h>
 
@@ -74,7 +76,7 @@ static _Callback_ NTSTATUS PhpSetServiceSecurity(
 
     status = PhStdSetObjectSecurity(SecurityDescriptor, SecurityInformation, Context);
 
-    if ((status == STATUS_ACCESS_DENIED || status == NTSTATUS_FROM_WIN32(ERROR_ACCESS_DENIED)) && !PhElevated)
+    if ((status == STATUS_ACCESS_DENIED || status == NTSTATUS_FROM_WIN32(ERROR_ACCESS_DENIED)) && !PhGetOwnTokenAttributes().Elevated)
     {
         // Elevate using phsvc.
         if (PhUiConnectToPhSvc(NULL, FALSE))
@@ -486,7 +488,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     }
                     else
                     {
-                        if (GetLastError() == ERROR_ACCESS_DENIED && !PhElevated)
+                        if (GetLastError() == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
                         {
                             // Elevate using phsvc.
                             if (PhUiConnectToPhSvc(hwndDlg, FALSE))

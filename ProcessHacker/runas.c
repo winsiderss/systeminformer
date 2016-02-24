@@ -22,18 +22,18 @@
 
 /*
  * The run-as mechanism has three stages:
- * 1. The user enters the information into the dialog box. Here it is decided
- *    whether the run-as service is needed. If it is not, PhCreateProcessAsUser
- *    is called directly. Otherwise, PhExecuteRunAsCommand2 is called for
- *    stage 2.
- * 2. PhExecuteRunAsCommand2 creates a random service name and tries to create
- *    the service and execute it (using PhExecuteRunAsCommand). If the process
- *    has insufficient permissions, an elevated instance of phsvc is started
- *    and PhSvcCallExecuteRunAsCommand is called.
- * 3. The service is started, and sets up an instance of phsvc with the same
- *    random service name as its port name. Either the original or elevated
- *    Process Hacker instance then calls PhSvcCallInvokeRunAsService to complete
- *    the operation.
+ * 1. The user enters the information into the dialog box. Here it is decided whether the run-as
+ *    service is needed. If it is not, PhCreateProcessAsUser is called directly. Otherwise,
+ *    PhExecuteRunAsCommand2 is called for stage 2.
+ * 2. PhExecuteRunAsCommand2 creates a random service name and tries to create the service and
+ *    execute it (using PhExecuteRunAsCommand). If the process has insufficient permissions, an
+ *    elevated instance of phsvc is started and PhSvcCallExecuteRunAsCommand is called.
+ * 3. The service is started, and sets up an instance of phsvc with the same random service name as
+ *    its port name. Either the original or elevated Process Hacker instance then calls
+ *    PhSvcCallInvokeRunAsService to complete the operation.
+ */
+
+/*
  *
  * ProcessHacker.exe (user, limited privileges)
  *   *                       | ^
@@ -61,6 +61,7 @@
 #include <phapp.h>
 #include <phsvc.h>
 #include <phsvccl.h>
+#include <actions.h>
 #include <settings.h>
 #include <emenu.h>
 #include <shlwapi.h>
@@ -342,7 +343,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_PROGRAM), TRUE);
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
 
-            //if (!PhElevated)
+            //if (!PhGetOwnTokenAttributes().Elevated)
             //    SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
 
             if (!WINDOWS_HAS_UAC)
@@ -972,7 +973,7 @@ NTSTATUS PhExecuteRunAsCommand2(
 
     parameters.ServiceName = serviceName;
 
-    if (PhElevated)
+    if (PhGetOwnTokenAttributes().Elevated)
     {
         status = PhExecuteRunAsCommand(&parameters);
     }

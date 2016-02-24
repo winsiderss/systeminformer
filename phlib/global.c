@@ -24,10 +24,6 @@
 #include <phintrnl.h>
 #include <symprv.h>
 
-VOID PhInitializeSecurity(
-    _In_ ULONG Flags
-    );
-
 BOOLEAN PhInitializeSystem(
     _In_ ULONG Flags
     );
@@ -43,10 +39,6 @@ VOID PhInitializeWindowsVersion(
 PHLIBAPI PVOID PhLibImageBase;
 
 PHLIBAPI PWSTR PhApplicationName = L"Application";
-PHLIBAPI ULONG PhCurrentSessionId;
-PHLIBAPI HANDLE PhCurrentTokenQueryHandle = NULL;
-PHLIBAPI BOOLEAN PhElevated;
-PHLIBAPI TOKEN_ELEVATION_TYPE PhElevationType;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PHLIBAPI PVOID PhHeapHandle;
 PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion;
@@ -101,12 +93,10 @@ NTSTATUS PhInitializePhLibEx(
     if (!PhQueuedLockInitialization())
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(PhInitializeRef()))
+    if (!NT_SUCCESS(PhRefInitialization()))
         return STATUS_UNSUCCESSFUL;
-    if (!PhInitializeBase(Flags))
+    if (!PhBaseInitialization())
         return STATUS_UNSUCCESSFUL;
-
-    PhInitializeSecurity(Flags);
 
     if (!PhInitializeSystem(Flags))
         return STATUS_UNSUCCESSFUL;
@@ -133,35 +123,6 @@ BOOLEAN PhIsExecutingInWow64(
 }
 #endif
 
-static VOID PhInitializeSecurity(
-    _In_ ULONG Flags
-    )
-{
-    HANDLE tokenHandle;
-
-    PhElevated = TRUE;
-    PhElevationType = TokenElevationTypeDefault;
-    PhCurrentSessionId = NtCurrentPeb()->SessionId;
-
-    if (Flags & PHLIB_INIT_TOKEN_INFO)
-    {
-        if (NT_SUCCESS(PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_QUERY,
-            NtCurrentProcess()
-            )))
-        {
-            if (WINDOWS_HAS_UAC)
-            {
-                PhGetTokenIsElevated(tokenHandle, &PhElevated);
-                PhGetTokenElevationType(tokenHandle, &PhElevationType);
-            }
-
-            PhCurrentTokenQueryHandle = tokenHandle;
-        }
-    }
-}
-
 static BOOLEAN PhInitializeSystem(
     _In_ ULONG Flags
     )
@@ -185,20 +146,12 @@ static VOID PhInitializeSystemInformation(
     VOID
     )
 {
-    if (!NT_SUCCESS(NtQuerySystemInformation(
+    NtQuerySystemInformation(
         SystemBasicInformation,
         &PhSystemBasicInformation,
         sizeof(SYSTEM_BASIC_INFORMATION),
         NULL
-        )))
-    {
-        // Disabled message because it's not appropriate at this abstraction layer.
-        //PhShowWarning(
-        //    NULL,
-        //    L"Unable to query basic system information. "
-        //    L"Some functionality may not work as expected."
-        //    );
-    }
+        );
 }
 
 static VOID PhInitializeWindowsVersion(
@@ -213,11 +166,6 @@ static VOID PhInitializeWindowsVersion(
 
     if (!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&versionInfo)))
     {
-        //PhShowWarning(
-        //    NULL,
-        //    L"Unable to determine the Windows version. "
-        //    L"Some functionality may not work as expected."
-        //    );
         WindowsVersion = WINDOWS_NEW;
         return;
     }

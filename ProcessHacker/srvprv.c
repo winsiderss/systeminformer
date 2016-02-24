@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <srvprv.h>
+#include <procprv.h>
 #include <winevt.h>
 #include <extmgri.h>
 

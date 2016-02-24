@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <modlist.h>
+#include <modprv.h>
 #include <settings.h>
 #include <extmgri.h>
 #include <phplug.h>

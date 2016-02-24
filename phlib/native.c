@@ -21,6 +21,7 @@
  */
 
 #include <ph.h>
+#include <mapimg.h>
 #include <kphuser.h>
 #include <apiimport.h>
 
@@ -61,6 +62,43 @@ static UNICODE_STRING PhPredefineKeyNames[PH_KEY_MAXIMUM_PREDEFINE] =
     { 0, 0, NULL }
 };
 static HANDLE PhPredefineKeyHandles[PH_KEY_MAXIMUM_PREDEFINE] = { 0 };
+
+/**
+ * Queries information about the token of the current process.
+ */
+PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_TOKEN_ATTRIBUTES attributes;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (NT_SUCCESS(PhOpenProcessToken(
+            &attributes.TokenHandle,
+            TOKEN_QUERY,
+            NtCurrentProcess()
+            )))
+        {
+            if (WINDOWS_HAS_UAC)
+            {
+                BOOLEAN elevated = TRUE;
+                TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
+
+                PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
+                PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
+
+                attributes.Elevated = elevated;
+                attributes.ElevationType = elevationType;
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return attributes;
+}
 
 /**
  * Opens a process.

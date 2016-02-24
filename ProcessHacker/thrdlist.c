@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <thrdlist.h>
+#include <thrdprv.h>
 #include <settings.h>
 #include <extmgri.h>
 #include <phplug.h>

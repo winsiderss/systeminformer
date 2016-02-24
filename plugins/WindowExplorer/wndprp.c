@@ -20,11 +20,12 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Since the main message loop doesn't support property sheets,
-// we need a separate thread to run property sheets on.
+// Since the main message loop doesn't support property sheets, we need a separate thread to run
+// property sheets on.
 
 #include "wndexp.h"
 #include "resource.h"
+#include <workqueue.h>
 #include <symprv.h>
 #include <windowsx.h>
 

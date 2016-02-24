@@ -41,6 +41,7 @@
 
 #include <phapp.h>
 #include <kphuser.h>
+#include <procprv.h>
 #include <settings.h>
 #include <hidnproc.h>
 #include <windowsx.h>

@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
+#include <actions.h>
 
 #pragma warning(push)
 #pragma warning(disable: 4091) // Ignore 'no variable declared on typedef'

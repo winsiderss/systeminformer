@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <hndlprv.h>
+#include <workqueue.h>
 #include <kphuser.h>
 #include <extmgri.h>
 

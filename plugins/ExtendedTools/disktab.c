@@ -1124,7 +1124,7 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
     {
     case WM_INITDIALOG:
         {
-            if (!PhElevated)
+            if (!PhGetOwnTokenAttributes().Elevated)
             {
                 SendMessage(GetDlgItem(hwndDlg, IDC_RESTART), BCM_SETSHIELD, 0, TRUE);
             }

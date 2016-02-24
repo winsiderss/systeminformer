@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <proctree.h>
 #include <settings.h>
 #include <colorbox.h>
 #include <sysinfo.h>
@@ -569,7 +570,7 @@ VOID PhpAdvancedPageLoad(
 
     changeButton = GetDlgItem(hwndDlg, IDC_CHANGE);
 
-    if (PhElevated)
+    if (PhGetOwnTokenAttributes().Elevated)
     {
         ShowWindow(changeButton, SW_HIDE);
     }

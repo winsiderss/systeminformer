@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
+#include <memprv.h>
 #include <windowsx.h>
 
 typedef struct _MEMORY_PROTECT_CONTEXT

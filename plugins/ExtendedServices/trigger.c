@@ -826,7 +826,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
         result = FALSE;
         *Win32Result = GetLastError();
 
-        if (*Win32Result == ERROR_ACCESS_DENIED && !PhElevated)
+        if (*Win32Result == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
         {
             // Elevate using phsvc.
             if (PhUiConnectToPhSvc(Context->WindowHandle, FALSE))

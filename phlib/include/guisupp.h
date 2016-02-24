@@ -35,11 +35,9 @@ typedef HRESULT (WINAPI *_SHParseDisplayName)(
     _Out_ SFGAOF *psfgaoOut
     );
 
-#ifndef _PH_GUISUP_PRIVATE
 extern _SetWindowTheme SetWindowTheme_I;
 extern _SHCreateShellItem SHCreateShellItem_I;
 extern _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 extern _SHParseDisplayName SHParseDisplayName_I;
-#endif
 
 #endif

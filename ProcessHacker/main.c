@@ -21,8 +21,16 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
+#include <srvprv.h>
+#include <netprv.h>
+#include <modprv.h>
+#include <thrdprv.h>
+#include <hndlprv.h>
+#include <memprv.h>
 #include <kphuser.h>
 #include <phsvc.h>
+#include <procprv.h>
 #include <settings.h>
 #include <extmgri.h>
 #include <hexedit.h>
@@ -91,6 +99,7 @@ INT WINAPI wWinMain(
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
 #endif
+    HANDLE currentTokenHandle;
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 #ifndef DEBUG
@@ -106,11 +115,13 @@ INT WINAPI wWinMain(
 
     PhInitializeCommonControls();
 
-    if (PhCurrentTokenQueryHandle)
+    currentTokenHandle = PhGetOwnTokenAttributes().TokenHandle;
+
+    if (currentTokenHandle)
     {
         PTOKEN_USER tokenUser;
 
-        if (NT_SUCCESS(PhGetTokenUser(PhCurrentTokenQueryHandle, &tokenUser)))
+        if (NT_SUCCESS(PhGetTokenUser(currentTokenHandle, &tokenUser)))
         {
             PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
             PhFree(tokenUser);
@@ -952,7 +963,7 @@ VOID PhpProcessStartupParameters(
         RtlExitUserProcess(status);
     }
 
-    if (PhStartupParameters.Elevate && !PhElevated)
+    if (PhStartupParameters.Elevate && !PhGetOwnTokenAttributes().Elevated)
     {
         PhShellProcessHacker(
             NULL,

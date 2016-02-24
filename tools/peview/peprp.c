@@ -21,6 +21,8 @@
  */
 
 #include <peview.h>
+#include <workqueue.h>
+#include <mapimg.h>
 #include <cpysave.h>
 #include <verify.h>
 #include <shlobj.h>

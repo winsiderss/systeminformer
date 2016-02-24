@@ -21,6 +21,7 @@
  */
 
 #include <phgui.h>
+#include <mapimg.h>
 #include <guisupp.h>
 #include <winsta.h>
 #include <md5.h>
@@ -3408,7 +3409,7 @@ VOID PhShellOpenKey(
     if (!regeditFileName)
         regeditFileName = PhCreateString(L"regedit.exe");
 
-    if (!PhElevated)
+    if (!PhGetOwnTokenAttributes().Elevated)
     {
         PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
     }

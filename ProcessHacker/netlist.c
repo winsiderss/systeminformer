@@ -21,8 +21,12 @@
  */
 
 #include <phapp.h>
+#include <netlist.h>
+#include <procprv.h>
+#include <netprv.h>
 #include <settings.h>
 #include <extmgri.h>
+#include <colmgr.h>
 #include <phplug.h>
 #include <cpysave.h>
 #include <emenu.h>

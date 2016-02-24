@@ -28,6 +28,7 @@
  */
 
 #include <ph.h>
+#include <mapimg.h>
 
 VOID PhpMappedArchiveProbe(
     _In_ PPH_MAPPED_ARCHIVE MappedArchive,

@@ -21,6 +21,10 @@
  */
 
 #include <phapp.h>
+#include <modprv.h>
+#include <procprv.h>
+#include <workqueue.h>
+#include <mapimg.h>
 #include <verify.h>
 #include <extmgri.h>
 

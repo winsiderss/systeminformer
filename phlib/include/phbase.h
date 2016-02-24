@@ -62,10 +62,6 @@ typedef struct _PH_STARTUP_PARAMETERS PH_STARTUP_PARAMETERS;
 PHLIBAPI extern _User_set_ PVOID PhLibImageBase;
 
 PHLIBAPI extern _User_set_ PWSTR PhApplicationName;
-PHLIBAPI extern ULONG PhCurrentSessionId;
-PHLIBAPI extern HANDLE PhCurrentTokenQueryHandle;
-PHLIBAPI extern BOOLEAN PhElevated;
-PHLIBAPI extern TOKEN_ELEVATION_TYPE PhElevationType;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 PHLIBAPI extern PVOID PhHeapHandle;
 PHLIBAPI extern RTL_OSVERSIONINFOEXW PhOsVersion;
@@ -117,18 +113,13 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define PHLIB_INIT_MODULE_RESERVED1 0x1
 #define PHLIB_INIT_MODULE_RESERVED2 0x2
 /** Needed to use work queues. */
-#define PHLIB_INIT_MODULE_WORK_QUEUE 0x4
-/** Needed to use handle tables. */
-#define PHLIB_INIT_MODULE_HANDLE_TABLE 0x8
+#define PHLIB_INIT_MODULE_RESERVED3 0x4
+#define PHLIB_INIT_MODULE_RESERVED4 0x8
 /** Needed to use file streams. Basic I/O functions do not require this in order to work. */
 #define PHLIB_INIT_MODULE_IO_SUPPORT 0x10
 /** Needed to use symbol providers. */
 #define PHLIB_INIT_MODULE_SYMBOL_PROVIDER 0x20
-#define PHLIB_INIT_MODULE_RESERVED3 0x40
-
-// Misc.
-/** Retrieves token information (e.g. elevation status). */
-#define PHLIB_INIT_TOKEN_INFO 0x100000
+#define PHLIB_INIT_MODULE_RESERVED5 0x40
 
 NTSTATUS
 PhInitializePhLib(
@@ -164,8 +155,8 @@ struct _PH_OBJECT_TYPE;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
 BOOLEAN
-PhInitializeBase(
-    _In_ ULONG Flags
+PhBaseInitialization(
+    VOID
     );
 
 // Threads
@@ -3858,250 +3849,6 @@ PhEnumAvlTree(
     _In_ PPH_AVL_TREE Tree,
     _In_ PH_TREE_ENUMERATION_ORDER Order,
     _In_ PPH_ENUM_AVL_TREE_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    );
-
-// handle
-
-struct _PH_HANDLE_TABLE;
-typedef struct _PH_HANDLE_TABLE *PPH_HANDLE_TABLE;
-
-typedef struct _PH_HANDLE_TABLE_ENTRY
-{
-    union
-    {
-        PVOID Object;
-        ULONG_PTR Value;
-        struct
-        {
-            /** The type of the entry; 1 if the entry is free, otherwise 0 if the entry is in use. */
-            ULONG_PTR Type : 1;
-            /**
-             * Whether the entry is not locked; 1 if the entry is not locked, otherwise 0 if the
-             * entry is locked.
-             */
-            ULONG_PTR Locked : 1;
-            ULONG_PTR Value : sizeof(ULONG_PTR) * 8 - 2;
-        } TypeAndValue;
-    };
-    union
-    {
-        ACCESS_MASK GrantedAccess;
-        ULONG NextFreeValue;
-        ULONG_PTR Value2;
-    };
-} PH_HANDLE_TABLE_ENTRY, *PPH_HANDLE_TABLE_ENTRY;
-
-#define PH_HANDLE_TABLE_SAFE
-#define PH_HANDLE_TABLE_FREE_COUNT 64
-
-#define PH_HANDLE_TABLE_STRICT_FIFO 0x1
-#define PH_HANDLE_TABLE_VALID_FLAGS 0x1
-
-VOID
-PhHandleTableInitialization(
-    VOID
-    );
-
-PPH_HANDLE_TABLE
-NTAPI
-PhCreateHandleTable(
-    VOID
-    );
-
-VOID
-NTAPI
-PhDestroyHandleTable(
-    _In_ _Post_invalid_ PPH_HANDLE_TABLE HandleTable
-    );
-
-BOOLEAN
-NTAPI
-PhLockHandleTableEntry(
-    _Inout_ PPH_HANDLE_TABLE HandleTable,
-    _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
-    );
-
-VOID
-NTAPI
-PhUnlockHandleTableEntry(
-    _Inout_ PPH_HANDLE_TABLE HandleTable,
-    _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
-    );
-
-HANDLE
-NTAPI
-PhCreateHandle(
-    _Inout_ PPH_HANDLE_TABLE HandleTable,
-    _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
-    );
-
-BOOLEAN
-NTAPI
-PhDestroyHandle(
-    _Inout_ PPH_HANDLE_TABLE HandleTable,
-    _In_ HANDLE Handle,
-    _In_opt_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
-    );
-
-PPH_HANDLE_TABLE_ENTRY
-NTAPI
-PhLookupHandleTableEntry(
-    _In_ PPH_HANDLE_TABLE HandleTable,
-    _In_ HANDLE Handle
-    );
-
-typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
-    _In_ PPH_HANDLE_TABLE HandleTable,
-    _In_ HANDLE Handle,
-    _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry,
-    _In_opt_ PVOID Context
-    );
-
-VOID
-NTAPI
-PhEnumHandleTable(
-    _In_ PPH_HANDLE_TABLE HandleTable,
-    _In_ PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    );
-
-VOID
-NTAPI
-PhSweepHandleTable(
-    _In_ PPH_HANDLE_TABLE HandleTable,
-    _In_ PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    );
-
-typedef enum _PH_HANDLE_TABLE_INFORMATION_CLASS
-{
-    HandleTableBasicInformation,
-    HandleTableFlagsInformation,
-    MaxHandleTableInfoClass
-} PH_HANDLE_TABLE_INFORMATION_CLASS;
-
-typedef struct _PH_HANDLE_TABLE_BASIC_INFORMATION
-{
-    ULONG Count;
-    ULONG Flags;
-    ULONG TableLevel;
-} PH_HANDLE_TABLE_BASIC_INFORMATION, *PPH_HANDLE_TABLE_BASIC_INFORMATION;
-
-typedef struct _PH_HANDLE_TABLE_FLAGS_INFORMATION
-{
-    ULONG Flags;
-} PH_HANDLE_TABLE_FLAGS_INFORMATION, *PPH_HANDLE_TABLE_FLAGS_INFORMATION;
-
-NTSTATUS
-NTAPI
-PhQueryInformationHandleTable(
-    _In_ PPH_HANDLE_TABLE HandleTable,
-    _In_ PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength,
-    _Out_opt_ PULONG ReturnLength
-    );
-
-NTSTATUS
-NTAPI
-PhSetInformationHandleTable(
-    _Inout_ PPH_HANDLE_TABLE HandleTable,
-    _In_ PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
-    _In_reads_bytes_(BufferLength) PVOID Buffer,
-    _In_ ULONG BufferLength
-    );
-
-// workqueue
-
-#if !defined(_PH_WORKQUEUE_PRIVATE) && defined(DEBUG)
-extern PPH_LIST PhDbgWorkQueueList;
-extern PH_QUEUED_LOCK PhDbgWorkQueueListLock;
-#endif
-
-typedef struct _PH_WORK_QUEUE
-{
-    PH_RUNDOWN_PROTECT RundownProtect;
-    BOOLEAN Terminating;
-
-    LIST_ENTRY QueueListHead;
-    PH_QUEUED_LOCK QueueLock;
-    PH_CONDITION QueueEmptyCondition;
-
-    ULONG MaximumThreads;
-    ULONG MinimumThreads;
-    ULONG NoWorkTimeout;
-
-    PH_QUEUED_LOCK StateLock;
-    HANDLE SemaphoreHandle;
-    ULONG CurrentThreads;
-    ULONG BusyCount;
-} PH_WORK_QUEUE, *PPH_WORK_QUEUE;
-
-typedef VOID (NTAPI *PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION)(
-    _In_ PUSER_THREAD_START_ROUTINE Function,
-    _In_ PVOID Context
-    );
-
-typedef struct _PH_WORK_QUEUE_ITEM
-{
-    LIST_ENTRY ListEntry;
-    PUSER_THREAD_START_ROUTINE Function;
-    PVOID Context;
-    PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction;
-} PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
-
-VOID
-PhWorkQueueInitialization(
-    VOID
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeWorkQueue(
-    _Out_ PPH_WORK_QUEUE WorkQueue,
-    _In_ ULONG MinimumThreads,
-    _In_ ULONG MaximumThreads,
-    _In_ ULONG NoWorkTimeout
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhDeleteWorkQueue(
-    _Inout_ PPH_WORK_QUEUE WorkQueue
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhWaitForWorkQueue(
-    _Inout_ PPH_WORK_QUEUE WorkQueue
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhQueueItemWorkQueue(
-    _Inout_ PPH_WORK_QUEUE WorkQueue,
-    _In_ PUSER_THREAD_START_ROUTINE Function,
-    _In_opt_ PVOID Context
-    );
-
-VOID
-PhQueueItemWorkQueueEx(
-    _Inout_ PPH_WORK_QUEUE WorkQueue,
-    _In_ PUSER_THREAD_START_ROUTINE Function,
-    _In_opt_ PVOID Context,
-    _In_opt_ PPH_WORK_QUEUE_ITEM_DELETE_FUNCTION DeleteFunction
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhQueueItemGlobalWorkQueue(
-    _In_ PUSER_THREAD_START_ROUTINE Function,
     _In_opt_ PVOID Context
     );
 

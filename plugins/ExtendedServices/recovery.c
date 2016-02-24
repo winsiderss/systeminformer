@@ -509,7 +509,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     }
                     else
                     {
-                        if (GetLastError() == ERROR_ACCESS_DENIED && !PhElevated)
+                        if (GetLastError() == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
                         {
                             // Elevate using phsvc.
                             if (PhUiConnectToPhSvc(hwndDlg, FALSE))

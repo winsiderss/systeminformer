@@ -61,6 +61,7 @@ for %%a in (
     hexedit.h
     kphapi.h
     kphuser.h
+    mapimg.h
     ph.h
     phbase.h
     phgui.h
@@ -74,6 +75,7 @@ for %%a in (
     templ.h
     treenew.h
     verify.h
+    workqueue.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
 
 call phapppub_gen.cmd

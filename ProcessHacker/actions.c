@@ -21,13 +21,20 @@
  */
 
 /*
- * These are a set of consistent functions which will perform actions
- * on objects such as processes, threads and services, while displaying
- * any necessary prompts and error messages. Automatic elevation can also
- * easily be added if necessary.
+ * These are a set of consistent functions which will perform actions on objects such as processes,
+ * threads and services, while displaying any necessary prompts and error messages. Automatic
+ * elevation can also easily be added if necessary.
  */
 
 #include <phapp.h>
+#include <actions.h>
+#include <procprv.h>
+#include <srvprv.h>
+#include <netprv.h>
+#include <modprv.h>
+#include <thrdprv.h>
+#include <hndlprv.h>
+#include <memprv.h>
 #include <settings.h>
 #include <kphuser.h>
 #include <phsvccl.h>
@@ -150,7 +157,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
         ))
         return FALSE;
 
-    if (!WINDOWS_HAS_UAC || PhElevated)
+    if (!WINDOWS_HAS_UAC || PhGetOwnTokenAttributes().Elevated)
         return FALSE;
 
     elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
@@ -243,7 +250,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
         ))
         return FALSE;
 
-    if (!WINDOWS_HAS_UAC || PhElevated)
+    if (!WINDOWS_HAS_UAC || PhGetOwnTokenAttributes().Elevated)
         return FALSE;
 
     elevationLevel = PhGetIntegerSetting(L"ElevationLevel");

@@ -1,6 +1,6 @@
 /*
  * Process Hacker -
- *   thread pool
+ *   thread pool / work queue
  *
  * Copyright (C) 2009-2016 wj32
  *
@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _PH_WORKQUEUE_PRIVATE
 #include <phbase.h>
+#include <workqueue.h>
 #include <phintrnl.h>
 
 HANDLE PhpGetSemaphoreWorkQueue(
@@ -36,24 +36,14 @@ NTSTATUS PhpWorkQueueThreadStart(
     _In_ PVOID Parameter
     );
 
+static PH_INITONCE PhWorkQueueInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST PhWorkQueueItemFreeList;
-static PH_WORK_QUEUE PhGlobalWorkQueue;
 static PH_INITONCE PhGlobalWorkQueueInitOnce = PH_INITONCE_INIT;
+static PH_WORK_QUEUE PhGlobalWorkQueue;
 #ifdef DEBUG
 PPH_LIST PhDbgWorkQueueList;
 PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
 #endif
-
-VOID PhWorkQueueInitialization(
-    VOID
-    )
-{
-    PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
-
-#ifdef DEBUG
-    PhDbgWorkQueueList = PhCreateList(4);
-#endif
-}
 
 FORCEINLINE PPH_WORK_QUEUE_ITEM PhpCreateWorkQueueItem(
     _In_ PUSER_THREAD_START_ROUTINE Function,
@@ -104,6 +94,16 @@ VOID PhInitializeWorkQueue(
     _In_ ULONG NoWorkTimeout
     )
 {
+    if (PhBeginInitOnce(&PhWorkQueueInitOnce))
+    {
+        PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
+#ifdef DEBUG
+        PhDbgWorkQueueList = PhCreateList(4);
+#endif
+
+        PhEndInitOnce(&PhWorkQueueInitOnce);
+    }
+
     PhInitializeRundownProtection(&WorkQueue->RundownProtect);
     WorkQueue->Terminating = FALSE;
 

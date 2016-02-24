@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
 #include <memsrch.h>
 #include <windowsx.h>
 

@@ -1,4 +1,3 @@
-#define _PH_DATA_PRIVATE
 #include <ph.h>
 
 // SIDs

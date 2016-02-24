@@ -28,6 +28,7 @@
  */
 
 #include <ph.h>
+#include <mapimg.h>
 #include <delayimp.h>
 
 VOID PhpMappedImageProbe(

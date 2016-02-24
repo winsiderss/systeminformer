@@ -28,6 +28,10 @@
 
 #include <phapp.h>
 #include <phintrnl.h>
+#include <workqueue.h>
+#include <procprv.h>
+#include <srvprv.h>
+#include <thrdprv.h>
 #include <symprv.h>
 #include <refp.h>
 

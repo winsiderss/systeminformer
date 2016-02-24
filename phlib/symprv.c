@@ -21,6 +21,7 @@
  */
 
 #include <ph.h>
+#include <workqueue.h>
 #include <kphuser.h>
 
 #pragma warning(push)

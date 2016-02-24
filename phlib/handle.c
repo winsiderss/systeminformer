@@ -21,26 +21,12 @@
  */
 
 #include <phbase.h>
+#include <handle.h>
 #include <handlep.h>
 
+static PH_INITONCE PhHandleTableInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST PhHandleTableLevel0FreeList;
 static PH_FREE_LIST PhHandleTableLevel1FreeList;
-
-VOID PhHandleTableInitialization(
-    VOID
-    )
-{
-    PhInitializeFreeList(
-        &PhHandleTableLevel0FreeList,
-        sizeof(PH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES,
-        64
-        );
-    PhInitializeFreeList(
-        &PhHandleTableLevel1FreeList,
-        sizeof(PPH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES,
-        64
-        );
-}
 
 PPH_HANDLE_TABLE PhCreateHandleTable(
     VOID
@@ -48,6 +34,21 @@ PPH_HANDLE_TABLE PhCreateHandleTable(
 {
     PPH_HANDLE_TABLE handleTable;
     ULONG i;
+
+    if (PhBeginInitOnce(&PhHandleTableInitOnce))
+    {
+        PhInitializeFreeList(
+            &PhHandleTableLevel0FreeList,
+            sizeof(PH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES,
+            64
+            );
+        PhInitializeFreeList(
+            &PhHandleTableLevel1FreeList,
+            sizeof(PPH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES,
+            64
+            );
+        PhEndInitOnce(&PhHandleTableInitOnce);
+    }
 
 #ifdef PH_HANDLE_TABLE_SAFE
     handleTable = PhAllocateSafe(sizeof(PH_HANDLE_TABLE));

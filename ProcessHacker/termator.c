@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
 #include <kphuser.h>
 
 typedef NTSTATUS (NTAPI *_NtGetNextProcess)(

@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
 #include <secedit.h>
 #include <settings.h>
 

@@ -21,6 +21,8 @@
  */
 
 #include <phapp.h>
+#include <hndllist.h>
+#include <hndlprv.h>
 #include <secedit.h>
 #include <settings.h>
 #include <extmgri.h>

@@ -813,7 +813,7 @@ static LRESULT CALLBACK MainWndSubclassProc(
                             {
                                 PPH_EMENU_ITEM menuItem;
 
-                                if (PhElevated && buttonInfo.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
+                                if (PhGetOwnTokenAttributes().Elevated && buttonInfo.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
                                 {
                                     // Don't show the 'Show Details for All Processes' button in the
                                     //  dropdown menu when we're elevated.

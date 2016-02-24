@@ -21,9 +21,12 @@
  */
 
 #include <phapp.h>
+#include <miniinfo.h>
+#include <procprv.h>
+#include <proctree.h>
 #include <settings.h>
 #include <emenu.h>
-#include <miniinfo.h>
+#include <actions.h>
 #include <phplug.h>
 #include <notifico.h>
 #include <windowsx.h>

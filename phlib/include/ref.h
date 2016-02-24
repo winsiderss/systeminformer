@@ -64,17 +64,6 @@ typedef VOID (NTAPI *PPH_CREATE_OBJECT_HOOK)(
     );
 #endif
 
-#ifndef _PH_REF_PRIVATE
-extern PPH_OBJECT_TYPE PhObjectTypeObject;
-extern PPH_OBJECT_TYPE PhAllocType;
-
-#ifdef DEBUG
-extern LIST_ENTRY PhDbgObjectListHead;
-extern PH_QUEUED_LOCK PhDbgObjectListLock;
-extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
-#endif
-#endif
-
 typedef struct _PH_OBJECT_TYPE_PARAMETERS
 {
     SIZE_T FreeListSize;
@@ -90,7 +79,16 @@ typedef struct _PH_OBJECT_TYPE_INFORMATION
     UCHAR Reserved;
 } PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
 
-NTSTATUS PhInitializeRef(
+extern PPH_OBJECT_TYPE PhObjectTypeObject;
+extern PPH_OBJECT_TYPE PhAllocType;
+
+#ifdef DEBUG
+extern LIST_ENTRY PhDbgObjectListHead;
+extern PH_QUEUED_LOCK PhDbgObjectListLock;
+extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
+#endif
+
+NTSTATUS PhRefInitialization(
     VOID
     );
 

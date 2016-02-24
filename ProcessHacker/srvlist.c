@@ -21,8 +21,11 @@
  */
 
 #include <phapp.h>
+#include <srvlist.h>
+#include <srvprv.h>
 #include <settings.h>
 #include <extmgri.h>
+#include <colmgr.h>
 #include <phplug.h>
 #include <cpysave.h>
 #include <emenu.h>

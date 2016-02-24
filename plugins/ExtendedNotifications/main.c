@@ -21,6 +21,7 @@
  */
 
 #include <phdk.h>
+#include <workqueue.h>
 #include <windowsx.h>
 #include "extnoti.h"
 #include "resource.h"

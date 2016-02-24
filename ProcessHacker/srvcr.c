@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <actions.h>
 #include <phsvccl.h>
 #include <windowsx.h>
 
@@ -67,7 +68,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), L"Demand Start", FALSE);
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), L"Ignore", FALSE);
 
-            if (!PhElevated)
+            if (!PhGetOwnTokenAttributes().Elevated)
             {
                 SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
             }
@@ -113,7 +114,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
 
                     serviceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
 
-                    if (PhElevated)
+                    if (PhGetOwnTokenAttributes().Elevated)
                     {
                         if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
                         {

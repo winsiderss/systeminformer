@@ -1,6 +1,6 @@
 base=..\..\ProcessHacker\include
 modes=phapppub
-in=phapp.h;providers.h;uimodels.h;colmgr.h;extmgr.h;notifico.h;settings.h;phplug.h;procprpp.h;phsvccl.h;sysinfo.h;procgrp.h;miniinfo.h
+in=phapp.h;phfwddef.h;procprv.h;srvprv.h;netprv.h;modprv.h;thrdprv.h;hndlprv.h;memprv.h;phuisup.h;colmgr.h;proctree.h;srvlist.h;netlist.h;thrdlist.h;modlist.h;hndllist.h;memlist.h;extmgr.h;notifico.h;settings.h;phplug.h;actions.h;procprpp.h;phsvccl.h;sysinfo.h;procgrp.h;miniinfo.h
 out=..\sdk\phapppub.h
 header=#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern "C" {\r\n#endif\r\n
 footer=\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n

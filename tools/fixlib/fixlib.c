@@ -1,4 +1,5 @@
 #include <ph.h>
+#include <mapimg.h>
 
 #define ARG_OUTFILE 1
 

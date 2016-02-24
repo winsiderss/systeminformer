@@ -5,9 +5,7 @@
 #include <prsht.h>
 #include "resource.h"
 
-#ifndef MAIN_PRIVATE
 extern PPH_STRING PvFileName;
-#endif
 
 // peprp
 

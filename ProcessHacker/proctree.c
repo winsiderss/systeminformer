@@ -29,8 +29,12 @@
  */
 
 #include <phapp.h>
+#include <proctree.h>
+#include <procprv.h>
+#include <mapimg.h>
 #include <settings.h>
 #include <extmgri.h>
+#include <colmgr.h>
 #include <phplug.h>
 #include <cpysave.h>
 #include <emenu.h>

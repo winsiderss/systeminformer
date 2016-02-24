@@ -21,14 +21,15 @@
  */
 
 /*
- * The thread provider is tied to the process provider, and runs by registering
- * a callback for the processes-updated event. This is because calculating CPU
- * usage depends on deltas calculated by the process provider. However, this
- * does increase the complexity of the thread provider system.
+ * The thread provider is tied to the process provider, and runs by registering a callback for the
+ * processes-updated event. This is because calculating CPU usage depends on deltas calculated by
+ * the process provider. However, this does increase the complexity of the thread provider system.
  */
 
-#define PH_THRDPRV_PRIVATE
 #include <phapp.h>
+#include <thrdprv.h>
+#include <procprv.h>
+#include <workqueue.h>
 #include <kphuser.h>
 #include <symprv.h>
 #include <extmgri.h>

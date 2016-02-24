@@ -610,7 +610,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                         {
                             win32Result = GetLastError();
 
-                            if (win32Result == ERROR_ACCESS_DENIED && !PhElevated)
+                            if (win32Result == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
                             {
                                 // Elevate using phsvc.
                                 if (PhUiConnectToPhSvc(hwndDlg, FALSE))

@@ -1174,7 +1174,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
                                 break;
 
                             info.lpFile = context->SetupFilePath->Buffer;
-                            info.lpVerb = PhElevated ? NULL : L"runas";
+                            info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
                             info.nShow = SW_SHOW;
                             info.hwnd = hwndDlg;
 
@@ -1273,7 +1273,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
             context->UpdaterState = PhUpdateInstall;
 
             // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
-            if (!PhElevated)
+            if (!PhGetOwnTokenAttributes().Elevated)
                 SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
 
             // Set the download result, don't include hash status since it succeeded.

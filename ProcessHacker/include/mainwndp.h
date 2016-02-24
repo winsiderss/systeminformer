@@ -391,7 +391,7 @@ VOID PhMwpOnServiceAdded(
     );
 
 VOID PhMwpOnServiceModified(
-    _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    _In_ struct _PH_SERVICE_MODIFIED_DATA *ServiceModifiedData
     );
 
 VOID PhMwpOnServiceRemoved(

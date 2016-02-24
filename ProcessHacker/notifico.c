@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
 #include <settings.h>
 #include <extmgri.h>
 #include <miniinfo.h>

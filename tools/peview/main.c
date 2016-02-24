@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define MAIN_PRIVATE
 #include <peview.h>
 
 PPH_STRING PvFileName = NULL;
@@ -63,7 +62,7 @@ INT WINAPI wWinMain(
     };
     PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(PHLIB_INIT_MODULE_WORK_QUEUE, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
         return 1;
 
     PhGuiSupportInitialization();

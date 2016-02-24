@@ -27,6 +27,8 @@
  */
 
 #include <phapp.h>
+#include <procprv.h>
+#include <thrdprv.h>
 #include <windowsx.h>
 
 typedef struct _AFFINITY_DIALOG_CONTEXT

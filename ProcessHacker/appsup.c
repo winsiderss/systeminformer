@@ -26,6 +26,7 @@
 #include <cpysave.h>
 #include <phappres.h>
 #include <emenu.h>
+#include <actions.h>
 #include <phsvccl.h>
 #include "mxml/mxml.h"
 #include "pcre/pcre2.h"
@@ -2132,7 +2133,7 @@ BOOLEAN PhShellOpenKey2(
         return TRUE;
     }
 
-    if (!PhElevated)
+    if (!PhGetOwnTokenAttributes().Elevated)
     {
         if (!PhUiConnectToPhSvc(hWnd, FALSE))
             return FALSE;
@@ -2161,13 +2162,13 @@ BOOLEAN PhShellOpenKey2(
     PhDereferenceObject(expandedKeyName);
 
     // Select our entry in regedit.
-    result = PhpSelectFavoriteInRegedit(regeditWindow, &valueNameSr, !PhElevated);
+    result = PhpSelectFavoriteInRegedit(regeditWindow, &valueNameSr, !PhGetOwnTokenAttributes().Elevated);
 
     NtDeleteValueKey(favoritesKeyHandle, &valueName);
     NtClose(favoritesKeyHandle);
 
 CleanupExit:
-    if (!PhElevated)
+    if (!PhGetOwnTokenAttributes().Elevated)
         PhUiDisconnectFromPhSvc();
 
     return result;

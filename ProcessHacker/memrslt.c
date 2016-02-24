@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <emenu.h>
+#include <procprv.h>
 #include <settings.h>
 #include <memsrch.h>
 #include "pcre/pcre2.h"

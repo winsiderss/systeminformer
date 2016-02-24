@@ -268,5 +268,14 @@
     <ClInclude Include="include\apiimport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\workqueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mapimg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

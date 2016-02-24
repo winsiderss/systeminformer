@@ -134,8 +134,8 @@ static ULONG PhpPrimeNumbers[] =
 /**
  * Initializes the base support module.
  */
-BOOLEAN PhInitializeBase(
-    _In_ ULONG Flags
+BOOLEAN PhBaseInitialization(
+    VOID
     )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
@@ -167,11 +167,6 @@ BOOLEAN PhInitializeBase(
     PhDbgThreadDbgTlsIndex = TlsAlloc();
     InitializeListHead(&PhDbgThreadListHead);
 #endif
-
-    if (Flags & PHLIB_INIT_MODULE_WORK_QUEUE)
-        PhWorkQueueInitialization();
-    if (Flags & PHLIB_INIT_MODULE_HANDLE_TABLE)
-        PhHandleTableInitialization();
 
     return TRUE;
 }
