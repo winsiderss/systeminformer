@@ -168,6 +168,16 @@ ZwAddAtom(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAddAtomEx(
+    _In_reads_bytes_opt_(Length) PWSTR AtomName,
+    _In_ ULONG Length,
+    _Out_opt_ PRTL_ATOM Atom,
+    _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwAddBootEntry(
     _In_ PBOOT_ENTRY BootEntry,
     _Out_opt_ PULONG Id
@@ -240,6 +250,13 @@ NTSTATUS
 NTAPI
 ZwAlertThread(
     _In_ HANDLE ThreadHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAlertThreadByThreadId(
+    _In_ HANDLE ThreadId
     );
 
 NTSYSCALLAPI
@@ -1373,7 +1390,7 @@ NTSTATUS
 NTAPI
 ZwDeleteWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_opt_ const PVOID ExplicitScope
+    _In_opt_ const VOID *ExplicitScope
     );
 
 NTSYSCALLAPI
@@ -2056,7 +2073,7 @@ ZwNotifyChangeDirectoryFile(
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcContext,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_(Length) PVOID Buffer, // FILE_NOTIFY_INFORMATION
     _In_ ULONG Length,
     _In_ ULONG CompletionFilter,
     _In_ BOOLEAN WatchTree
@@ -3080,7 +3097,7 @@ NTAPI
 ZwQueryWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ const VOID* ExplicitScope,
+    _In_opt_ const VOID *ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
     _Out_writes_bytes_to_opt_(*BufferSize, *BufferSize) PVOID Buffer,
     _Inout_ PULONG BufferSize
@@ -3092,7 +3109,7 @@ NTAPI
 ZwQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
-    _In_opt_ const PVOID ExplicitScope,
+    _In_opt_ const VOID *ExplicitScope,
     _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
     _In_ ULONG InfoBufferSize
     );
@@ -4258,10 +4275,10 @@ NTSTATUS
 NTAPI
 ZwUpdateWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_reads_bytes_opt_(Length) const VOID* Buffer,
+    _In_reads_bytes_opt_(Length) const VOID *Buffer,
     _In_opt_ ULONG Length,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ const PVOID ExplicitScope,
+    _In_opt_ const VOID *ExplicitScope,
     _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
     _In_ LOGICAL CheckStamp
     );
@@ -4272,6 +4289,14 @@ NTAPI
 ZwVdmControl(
     _In_ VDMSERVICECLASS Service,
     _Inout_ PVOID ServiceData
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWaitForAlertByThreadId(
+    _In_ PVOID Address,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI

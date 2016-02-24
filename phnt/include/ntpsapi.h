@@ -1055,6 +1055,27 @@ NtQueueApcThreadEx(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertThreadByThreadId(
+    _In_ HANDLE ThreadId
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForAlertByThreadId(
+    _In_ PVOID Address,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+#endif
+
 #endif
 
 // User processes and threads
