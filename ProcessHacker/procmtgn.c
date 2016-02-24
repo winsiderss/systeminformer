@@ -220,7 +220,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     *ShortDescription = PhCreateString(L"Strict handle checks");
 
                 if (LongDescription)
-                    *LongDescription = PhCreateString(L"An exception is raised when an invalid handle is used by the program.\r\n");
+                    *LongDescription = PhCreateString(L"An exception is raised when an invalid handle is used by the process.\r\n");
 
                 result = TRUE;
             }
