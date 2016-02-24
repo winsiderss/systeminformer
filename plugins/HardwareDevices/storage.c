@@ -195,40 +195,40 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     {
         PPH_STRING diskVendor;
 
-        diskVendor = PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->VendorIdOffset);
+        diskVendor = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->VendorIdOffset));
         PhTrimStringRef(&diskVendor->sr, &whitespace, 0);
 
-        *DiskVendor = diskVendor;
+        *DiskVendor = PhCreateString2(&diskVendor->sr);
     }
 
     if (DiskModel && storageDescriptor->ProductIdOffset != 0)
     {
         PPH_STRING diskModel;
 
-        diskModel = PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->ProductIdOffset);
+        diskModel = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->ProductIdOffset));
         PhTrimStringRef(&diskModel->sr, &whitespace, 0);
 
-        *DiskModel = diskModel;
+        *DiskModel = PhCreateString2(&diskModel->sr);
     }
 
     if (DiskRevision && storageDescriptor->ProductRevisionOffset != 0)
     {
         PPH_STRING diskRevision;
 
-        diskRevision = PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->ProductRevisionOffset);
+        diskRevision = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->ProductRevisionOffset));
         PhTrimStringRef(&diskRevision->sr, &whitespace, 0);
 
-        *DiskRevision = diskRevision;
+        *DiskRevision = PhCreateString2(&diskRevision->sr);
     }
 
     if (DiskSerial && storageDescriptor->SerialNumberOffset != 0)
     {
         PPH_STRING diskSerial;
 
-        diskSerial = PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->SerialNumberOffset);
+        diskSerial = PH_AUTO(PhConvertMultiByteToUtf16((PBYTE)storageDescriptor + storageDescriptor->SerialNumberOffset));
         PhTrimStringRef(&diskSerial->sr, &whitespace, 0);
 
-        *DiskSerial = diskSerial;
+        *DiskSerial = PhCreateString2(&diskSerial->sr);
     }
 
     if (buffer)
