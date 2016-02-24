@@ -32,7 +32,7 @@ static _CloseThemeData CloseThemeData_I = NULL;
 static _IsThemePartDefined IsThemePartDefined_I = NULL;
 static _GetThemeInt GetThemeInt_I = NULL;
 
-static VOID NcAreaFreeTheme(
+VOID NcAreaFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
@@ -46,7 +46,7 @@ static VOID NcAreaFreeTheme(
         DeleteObject(Context->BrushPushed);
 }
 
-static VOID NcAreaInitializeFont(
+VOID NcAreaInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
@@ -59,7 +59,7 @@ static VOID NcAreaInitializeFont(
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }
 
-static VOID NcAreaInitializeTheme(
+VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
@@ -109,7 +109,7 @@ static VOID NcAreaInitializeTheme(
     }
 }
 
-static VOID NcAreaInitializeImageList(
+VOID NcAreaInitializeImageList(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
@@ -143,7 +143,7 @@ static VOID NcAreaInitializeImageList(
     }
 }
 
-static VOID NcAreaGetButtonRect(
+VOID NcAreaGetButtonRect(
     _Inout_ PEDIT_CONTEXT Context,
     _Inout_ PRECT ButtonRect
     )
@@ -154,7 +154,7 @@ static VOID NcAreaGetButtonRect(
     ButtonRect->top += Context->CXBorder;
 }
 
-static VOID NcAreaDrawButton(
+VOID NcAreaDrawButton(
     _Inout_ PEDIT_CONTEXT Context,
     _In_ RECT ButtonRect
     )
@@ -224,7 +224,7 @@ static VOID NcAreaDrawButton(
     ReleaseDC(Context->WindowHandle, hdc);
 }
 
-static LRESULT CALLBACK NcAreaWndSubclassProc(
+LRESULT CALLBACK NcAreaWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

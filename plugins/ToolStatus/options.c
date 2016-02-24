@@ -23,7 +23,7 @@
 
 #include "toolstatus.h"
 
-static INT_PTR CALLBACK OptionsDlgProc(
+INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

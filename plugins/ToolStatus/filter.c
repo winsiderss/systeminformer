@@ -47,7 +47,7 @@ BOOLEAN WordMatchStringRef(
     return FALSE;
 }
 
-static BOOLEAN WordMatchStringZ(
+BOOLEAN WordMatchStringZ(
     _In_ PWSTR Text
     )
 {

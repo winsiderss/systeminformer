@@ -108,7 +108,7 @@ static VOID RebarLoadSettings(
         ToolBarImageList = ImageList_Create(
             GetSystemMetrics(SM_CXSMICON),
             GetSystemMetrics(SM_CYSMICON),
-            ILC_COLOR32 | ILC_MASK,
+            ILC_COLOR32,
             0,
             0
             );

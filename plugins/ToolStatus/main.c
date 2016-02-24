@@ -85,14 +85,14 @@ static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 
-static PPH_STRING GetSearchboxText(
+PPH_STRING GetSearchboxText(
     VOID
     )
 {
     return SearchboxText;
 }
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -119,7 +119,7 @@ VOID NTAPI TreeNewInitializingCallback(
     *(HWND *)Context = ((PPH_PLUGIN_TREENEW_INFORMATION)Parameter)->TreeNewHandle;
 }
 
-static VOID RegisterTabSearch(
+VOID RegisterTabSearch(
     _In_ INT TabIndex,
     _In_ PWSTR BannerText
     )
@@ -390,7 +390,7 @@ HFONT PhDuplicateFont(
     }
 }
 
-static VOID NTAPI TabPageUpdatedCallback(
+VOID NTAPI TabPageUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -431,7 +431,7 @@ static VOID NTAPI TabPageUpdatedCallback(
     }
 }
 
-static VOID NTAPI LayoutPaddingCallback(
+VOID NTAPI LayoutPaddingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -544,7 +544,7 @@ static VOID NTAPI LayoutPaddingCallback(
     }
 }
 
-static BOOLEAN NTAPI MessageLoopFilter(
+BOOLEAN NTAPI MessageLoopFilter(
     _In_ PMSG Message,
     _In_ PVOID Context
     )
@@ -574,7 +574,7 @@ static BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-static VOID DrawWindowBorderForTargeting(
+VOID DrawWindowBorderForTargeting(
     _In_ HWND hWnd
     )
 {
@@ -614,7 +614,7 @@ static VOID DrawWindowBorderForTargeting(
     }
 }
 
-static LRESULT CALLBACK MainWndSubclassProc(
+LRESULT CALLBACK MainWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1297,7 +1297,7 @@ DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-static VOID NTAPI MainWindowShowingCallback(
+VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -1322,7 +1322,7 @@ static VOID NTAPI MainWindowShowingCallback(
     }
 }
 
-static VOID NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -1334,7 +1334,7 @@ static VOID NTAPI LoadCallback(
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
 }
 
-static VOID NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
