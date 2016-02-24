@@ -86,7 +86,7 @@ VOID ShowDeviceMenu(
     _In_ PPH_STRING DeviceInstance
     );
 
-// Network Adapters
+// adapter.c
 
 typedef struct _DV_NETADAPTER_ID
 {
@@ -182,11 +182,6 @@ VOID NetAdaptersLoadList(
 
 VOID ShowOptionsDialog(
     _In_ HWND ParentHandle
-    );
-
-VOID NetAdapterSysInfoInitializing(
-    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterInfo
     );
 
 // adapter.c
@@ -359,7 +354,7 @@ MIB_IFROW QueryInterfaceRowXP(
     _In_ PDV_NETADAPTER_ID Id
     );
 
-// options.c
+// netoptions.c
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     _In_ HWND hwndDlg,
@@ -368,6 +363,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+// diskoptions.c
+
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -375,7 +372,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
-// Disk Drives
+// disk.c
 
 typedef struct _DV_DISK_ID
 {
@@ -463,12 +460,6 @@ PDV_DISK_ENTRY CreateDiskEntry(
     _In_ PDV_DISK_ID Id
     );
 
-
-VOID DiskDriveSysInfoInitializing(
-    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ PDV_DISK_ENTRY DiskEntry
-    );
-
 // storage.c
 
 NTSTATUS DiskDriveCreateHandle(
@@ -507,6 +498,20 @@ NTSTATUS DiskDriveQueryStatistics(
 
 VOID SetupDeviceChangeCallback(
     VOID
+    );
+
+// diskgraph.c
+
+VOID DiskDriveSysInfoInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
+    _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
+    );
+
+// netgraph.c
+
+VOID NetAdapterSysInfoInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
+    _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     );
 
 #endif _DEVICES_H_

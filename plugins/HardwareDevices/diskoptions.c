@@ -245,8 +245,8 @@ VOID FindDiskDrives(
 {
     PPH_LIST deviceList;
     HDEVINFO deviceInfoHandle;
-    SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
-    SP_DEVINFO_DATA deviceInfoData;
+    SP_DEVICE_INTERFACE_DATA deviceInterfaceData = { sizeof(SP_DEVICE_INTERFACE_DATA) };
+    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
     PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
     ULONG deviceInfoLength = 0;
 
@@ -262,17 +262,8 @@ VOID FindDiskDrives(
 
     deviceList = PH_AUTO(PhCreateList(1));
 
-    for (ULONG i = 0; i < 1000; i++)
+    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
     {
-        memset(&deviceInterfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
-        deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-
-        if (!SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData))
-            break;
-
-        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
-        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
         if (SetupDiGetDeviceInterfaceDetail(
             deviceInfoHandle,
             &deviceInterfaceData,
@@ -298,67 +289,71 @@ VOID FindDiskDrives(
             ))
         {
             HANDLE deviceHandle;
-            PDISK_ENUM_ENTRY diskEntry;
+            DEVPROPTYPE devicePropertyType;
             WCHAR diskFriendlyName[MAX_PATH] = L""; 
-            
-            diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
-            memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
 
-            SetupDiGetDeviceRegistryProperty(
+            if (SetupDiGetDeviceProperty(
                 deviceInfoHandle,
                 &deviceInfoData,
-                SPDRP_FRIENDLYNAME,
-                NULL,
+                &DEVPKEY_Device_FriendlyName,
+                &devicePropertyType,
                 (PBYTE)diskFriendlyName,
                 ARRAYSIZE(diskFriendlyName),
-                NULL
-                );
-
-            diskEntry->DeviceIndex = ULONG_MAX; // Note: Do not initialize to zero.
-            diskEntry->DeviceName = PhCreateString(diskFriendlyName);
-            diskEntry->DevicePath = PhCreateString(deviceInterfaceDetail->DevicePath);
-
-            if (NT_SUCCESS(DiskDriveCreateHandle(
-                &deviceHandle,
-                diskEntry->DevicePath
-                )))
+                NULL,
+                0
+                ))
             {
-                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero
+                PDISK_ENUM_ENTRY diskEntry;
 
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
-                    deviceHandle, 
-                    &diskIndex,
-                    NULL
+                diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
+                memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
+
+                diskEntry->DeviceIndex = ULONG_MAX; // Note: Do not initialize to zero.
+                diskEntry->DeviceName = PhCreateString(diskFriendlyName);
+                diskEntry->DevicePath = PhCreateString(deviceInterfaceDetail->DevicePath);
+
+                if (NT_SUCCESS(DiskDriveCreateHandle(
+                    &deviceHandle,
+                    diskEntry->DevicePath
                     )))
                 {
-                    PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
-                    
-                    diskEntry->DeviceIndex = diskIndex;
-                    diskEntry->DevicePresent = TRUE;
+                    ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero
 
-                    if (!PhIsNullOrEmptyString(diskMountPoints))
+                    if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
+                        deviceHandle,
+                        &diskIndex,
+                        NULL
+                        )))
                     {
-                        diskEntry->DeviceMountPoints = PhFormatString(
-                            L"Disk %lu (%s) [%s]",
-                            diskIndex,
-                            diskMountPoints->Buffer,
-                            diskFriendlyName
-                            );
+                        PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
+
+                        diskEntry->DeviceIndex = diskIndex;
+                        diskEntry->DevicePresent = TRUE;
+
+                        if (!PhIsNullOrEmptyString(diskMountPoints))
+                        {
+                            diskEntry->DeviceMountPoints = PhFormatString(
+                                L"Disk %lu (%s) [%s]",
+                                diskIndex,
+                                diskMountPoints->Buffer,
+                                diskFriendlyName
+                                );
+                        }
+                        else
+                        {
+                            diskEntry->DeviceMountPoints = PhFormatString(
+                                L"Disk %lu [%s]",
+                                diskIndex,
+                                diskFriendlyName
+                                );
+                        }
                     }
-                    else
-                    {
-                        diskEntry->DeviceMountPoints = PhFormatString(
-                            L"Disk %lu [%s]",
-                            diskIndex,
-                            diskFriendlyName
-                            );
-                    }
+
+                    NtClose(deviceHandle);
                 }
 
-                NtClose(deviceHandle);
+                PhAddItemList(deviceList, diskEntry);
             }
-
-            PhAddItemList(deviceList, diskEntry);
         }
 
         PhFree(deviceInterfaceDetail);

@@ -443,7 +443,7 @@ static BOOLEAN DiskDriveSectionCallback(
 
 VOID DiskDriveSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
-    _In_ PDV_DISK_ENTRY DiskEntry
+    _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
     )
 {
     PH_SYSINFO_SECTION section;

@@ -309,8 +309,7 @@ VOID FindNetworkAdapters(
     {
         PPH_LIST deviceList;
         HDEVINFO deviceInfoHandle;
-        SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
-        SP_DEVINFO_DATA deviceInfoData;
+        SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
         PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
         ULONG deviceInfoLength = 0;
 
@@ -326,77 +325,42 @@ VOID FindNetworkAdapters(
 
         deviceList = PH_AUTO(PhCreateList(1));
 
-        for (ULONG i = 0; i < 1000; i++)
+        for (ULONG i = 0; SetupDiEnumDeviceInfo(deviceInfoHandle, i, &deviceInfoData); i++)
         {
-            memset(&deviceInterfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
-            deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+            HANDLE keyHandle;
+            DEVPROPTYPE devicePropertyType;
+            WCHAR adapterDescription[MAX_PATH] = L"";
 
-            if (!SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_NET, i, &deviceInterfaceData))
-                break;
-
-            memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
-            deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
-            if (SetupDiGetDeviceInterfaceDetail(
+            // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
+            // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only 
+            //  supported on Windows 8 and above.
+            // We use our NetworkAdapterQueryName function to query the full adapter name
+            // from the NDIS driver directly, if that fails then we use one of the above properties. 
+            if (!SetupDiGetDeviceProperty(
                 deviceInfoHandle,
-                &deviceInterfaceData,
-                0,
-                0,
-                &deviceInfoLength,
-                &deviceInfoData
-                ) || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+                &deviceInfoData,
+                WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+                &devicePropertyType,
+                (PBYTE)adapterDescription,
+                ARRAYSIZE(adapterDescription),
+                NULL,
+                0
+                ))
             {
                 continue;
             }
 
-            deviceInterfaceDetail = PhAllocate(deviceInfoLength);
-            deviceInterfaceDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-
-            if (SetupDiGetDeviceInterfaceDetail(
+            if (keyHandle = SetupDiOpenDevRegKey(
                 deviceInfoHandle,
-                &deviceInterfaceData,
-                deviceInterfaceDetail,
-                deviceInfoLength,
-                &deviceInfoLength,
-                &deviceInfoData
+                &deviceInfoData,
+                DICS_FLAG_GLOBAL,
+                0,
+                DIREG_DRV,
+                KEY_QUERY_VALUE
                 ))
             {
                 PNET_ENUM_ENTRY adapterEntry;
-                HANDLE keyHandle = NULL;
-                HANDLE deviceHandle = NULL;
-                DEVPROPTYPE devicePropertyType;
-                WCHAR adapterDescription[MAX_PATH] = L"";
-
-                // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
-                // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only 
-                //  supported on Windows 8 and above.
-                // We use our NetworkAdapterQueryName function to query the full adapter name
-                // from the NDIS driver directly, if that fails then we use one of the above properties. 
-                if (!SetupDiGetDeviceProperty(
-                    deviceInfoHandle,
-                    &deviceInfoData,
-                    WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
-                    &devicePropertyType,
-                    (PBYTE)adapterDescription,
-                    ARRAYSIZE(adapterDescription),
-                    NULL,
-                    0
-                    ))
-                {
-                    continue;
-                }
-
-                if (!(keyHandle = SetupDiOpenDevRegKey(
-                    deviceInfoHandle,
-                    &deviceInfoData,
-                    DICS_FLAG_GLOBAL,
-                    0,
-                    DIREG_DRV,
-                    KEY_QUERY_VALUE
-                    )))
-                {
-                    continue;
-                }
+                HANDLE deviceHandle;
 
                 adapterEntry = PhAllocate(sizeof(NET_ENUM_ENTRY));
                 memset(adapterEntry, 0, sizeof(NET_ENUM_ENTRY));
@@ -428,8 +392,6 @@ VOID FindNetworkAdapters(
 
                 NtClose(keyHandle);
             }
-
-            PhFree(deviceInterfaceDetail);
         }
 
         SetupDiDestroyDeviceInfoList(deviceInfoHandle);
@@ -471,8 +433,7 @@ PPH_STRING FindNetworkDeviceInstance(
 {
     PPH_STRING deviceIdString = NULL;
     HDEVINFO deviceInfoHandle;
-    SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
-    SP_DEVINFO_DATA deviceInfoData;
+    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
     PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
     ULONG deviceInfoLength = 0;
     HANDLE keyHandle = NULL;
@@ -487,44 +448,8 @@ PPH_STRING FindNetworkDeviceInstance(
         return NULL;
     }
 
-    for (ULONG i = 0; i < 1000; i++)
+    for (ULONG i = 0; SetupDiEnumDeviceInfo(deviceInfoHandle, i, &deviceInfoData); i++)
     {
-        memset(&deviceInterfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
-        deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-
-        if (!SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_NET, i, &deviceInterfaceData))
-            break;
-
-        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
-        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
-        if (SetupDiGetDeviceInterfaceDetail(
-            deviceInfoHandle,
-            &deviceInterfaceData,
-            0,
-            0,
-            &deviceInfoLength,
-            &deviceInfoData
-            ) || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-        {
-            continue;
-        }
-
-        deviceInterfaceDetail = PhAllocate(deviceInfoLength);
-        deviceInterfaceDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-
-        if (!SetupDiGetDeviceInterfaceDetail(
-            deviceInfoHandle,
-            &deviceInterfaceData,
-            deviceInterfaceDetail,
-            deviceInfoLength,
-            &deviceInfoLength,
-            &deviceInfoData
-            ))
-        {
-            continue;
-        }
-
         if (keyHandle = SetupDiOpenDevRegKey(
             deviceInfoHandle,
             &deviceInfoData,
@@ -554,6 +479,8 @@ PPH_STRING FindNetworkDeviceInstance(
             NtClose(keyHandle);
         }
     }
+
+    SetupDiDestroyDeviceInfoList(deviceInfoHandle);
 
     return deviceIdString;
 }
