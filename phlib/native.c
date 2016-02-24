@@ -5998,9 +5998,14 @@ NTSTATUS PhQueryValueKey(
     ULONG attempts = 16;
 
     if (ValueName)
-        PhStringRefToUnicodeString(ValueName, &valueName);
+    {
+        if (!PhStringRefToUnicodeString(ValueName, &valueName))
+            return STATUS_NAME_TOO_LONG;
+    }
     else
+    {
         RtlInitUnicodeString(&valueName, NULL);
+    }
 
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);

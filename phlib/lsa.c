@@ -145,7 +145,8 @@ BOOLEAN PhLookupPrivilegeDisplayName(
     PUNICODE_STRING displayName;
     SHORT language;
 
-    PhStringRefToUnicodeString(PrivilegeName, &privilegeName);
+    if (!PhStringRefToUnicodeString(PrivilegeName, &privilegeName))
+        return STATUS_NAME_TOO_LONG;
 
     status = LsaLookupPrivilegeDisplayName(
         PhGetLookupPolicyHandle(),
@@ -176,7 +177,8 @@ BOOLEAN PhLookupPrivilegeValue(
 {
     UNICODE_STRING privilegeName;
 
-    PhStringRefToUnicodeString(PrivilegeName, &privilegeName);
+    if (!PhStringRefToUnicodeString(PrivilegeName, &privilegeName))
+        return STATUS_NAME_TOO_LONG;
 
     return NT_SUCCESS(LsaLookupPrivilegeValue(
         PhGetLookupPolicyHandle(),
@@ -285,10 +287,10 @@ NTSTATUS PhLookupName(
     PLSA_REFERENCED_DOMAIN_LIST referencedDomains;
     PLSA_TRANSLATED_SID2 sids;
 
+    if (!PhStringRefToUnicodeString(Name, &name))
+        return STATUS_NAME_TOO_LONG;
+
     policyHandle = PhGetLookupPolicyHandle();
-
-    PhStringRefToUnicodeString(Name, &name);
-
     referencedDomains = NULL;
     sids = NULL;
 
