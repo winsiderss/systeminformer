@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <!-- General -->
-    <PropertyGroup>
+    <PropertyGroup Label="Globals">
         <OutDir>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\plugins\</OutDir>
         <IntDir>$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
         <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
@@ -12,10 +12,7 @@
         <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Debug'">false</WholeProgramOptimization>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
-    </PropertyGroup>
-
-    <!-- Debugging -->
-    <PropertyGroup>
+        <!-- Debugging -->
         <LocalDebuggerCommand>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\ProcessHacker.exe</LocalDebuggerCommand>
         <LocalDebuggerWorkingDirectory>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
         <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
