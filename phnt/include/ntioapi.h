@@ -582,10 +582,29 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
 
     // Specific information
 
+#if (PHNT_VERSION < PHNT_WIN8)
     struct
     {
         ULONG Reserved[16];
     } ProtocolSpecificReserved;
+#else
+    union
+    {
+        struct
+        {
+            struct
+            {
+                ULONG Capabilities;
+            } Server;
+            struct
+            {
+                ULONG Capabilities;
+                ULONG CachingFlags;
+            } Share;
+        } Smb2;
+        ULONG Reserved[16];
+    } ProtocolSpecific;
+#endif
 } FILE_REMOTE_PROTOCOL_INFORMATION, *PFILE_REMOTE_PROTOCOL_INFORMATION;
 
 #define CHECKSUM_ENFORCEMENT_OFF 0x00000001
@@ -883,18 +902,6 @@ typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
     ULONG SectorsPerAllocationUnit;
     ULONG BytesPerSector;
 } FILE_FS_METADATA_SIZE_INFORMATION, *PFILE_FS_METADATA_SIZE_INFORMATION;
-
-// NtNotifyChangeDirectoryFile
-
-/*
-typedef struct _FILE_NOTIFY_INFORMATION
-{
-    ULONG NextEntryOffset;
-    ULONG Action;
-    ULONG FileNameLength;
-    WCHAR FileName[1];
-} FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
-*/
 
 // System calls
 
@@ -1277,7 +1284,7 @@ NtNotifyChangeDirectoryFile(
     _In_opt_ PIO_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcContext,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_(Length) PVOID Buffer, // FILE_NOTIFY_INFORMATION
     _In_ ULONG Length,
     _In_ ULONG CompletionFilter,
     _In_ BOOLEAN WatchTree

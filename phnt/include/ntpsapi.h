@@ -130,7 +130,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessDebugObjectHandle, // q: HANDLE // 30
     ProcessDebugFlags, // qs: ULONG
     ProcessHandleTracing, // q: PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
-    ProcessIoPriority, // qs: ULONG
+    ProcessIoPriority, // qs: IO_PRIORITY_HINT
     ProcessExecuteFlags, // qs: ULONG
     ProcessResourceManagement,
     ProcessCookie, // q: ULONG
@@ -200,7 +200,7 @@ typedef enum _THREADINFOCLASS
     ThreadSwitchLegacyState,
     ThreadIsTerminated, // q: ULONG // 20
     ThreadLastSystemCall, // q: THREAD_LAST_SYSCALL_INFORMATION
-    ThreadIoPriority, // qs: ULONG
+    ThreadIoPriority, // qs: IO_PRIORITY_HINT
     ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION
     ThreadPagePriority, // q: ULONG
     ThreadActualBasePriority,
