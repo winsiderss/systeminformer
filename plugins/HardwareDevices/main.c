@@ -154,6 +154,143 @@ VOID NTAPI SystemInformationInitializingCallback(
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
 }
 
+
+VOID AddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PWSTR Text
+    )
+{
+    LVGROUP group = { LVGROUP_V5_SIZE };
+    group.mask = LVGF_HEADER | LVGF_GROUPID;
+    group.iGroupId = Index;
+    group.pszHeader = Text;
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        group.cbSize = sizeof(LVGROUP);
+        group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
+        group.uAlign = LVGA_HEADER_LEFT;
+        group.state = LVGS_COLLAPSIBLE;
+    }
+
+    ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
+}
+
+INT AddListViewItemGroupId(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_TEXT | LVIF_PARAM;
+    item.iItem = Index;
+    item.iSubItem = 0;
+    item.pszText = Text;
+    item.lParam = (LPARAM)Param;
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        item.mask = item.mask | LVIF_GROUPID;
+        item.iGroupId = GroupId;
+    }
+
+    return ListView_InsertItem(ListViewHandle, &item);
+}
+
+ULONG64 RegQueryUlong64(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
+    )
+{
+    ULONG64 value = 0;
+    PH_STRINGREF valueName;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    {
+        if (buffer->Type == REG_DWORD || buffer->Type == REG_QWORD)
+        {
+            value = *(ULONG64*)buffer->Data;
+        }
+
+        PhFree(buffer);
+    }
+
+    return value;
+}
+
+VOID ShowDeviceMenu(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    )
+{
+    POINT cursorPos;
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM selectedItem;
+
+    GetCursorPos(&cursorPos);
+
+    menu = PhCreateEMenu();
+    //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), -1);
+    //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), -1);
+    //PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Properties", NULL, NULL), -1);
+
+    selectedItem = PhShowEMenu(
+        menu,
+        PhMainWndHandle,
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        cursorPos.x,
+        cursorPos.y
+        );
+
+    if (selectedItem && selectedItem->Id != -1)
+    {
+        switch (selectedItem->Id)
+        {
+        case 1:
+            {
+                HMODULE devMgrHandle;
+
+                // https://msdn.microsoft.com/en-us/library/ff548181.aspx
+                VOID (WINAPI *DeviceProperties_RunDLL_I)(
+                    _In_ HWND hwndStub,
+                    _In_ HINSTANCE hAppInstance,
+                    _In_ PWSTR lpCmdLine,
+                    _In_ INT nCmdShow
+                    );
+
+                if (devMgrHandle = LoadLibrary(L"devmgr.dll"))
+                {
+                    if (DeviceProperties_RunDLL_I = (PVOID)GetProcAddress(devMgrHandle, "DeviceProperties_RunDLLW"))
+                    {
+                        // This will sometimes re-throw an RPC error during debugging and can be safely ignored.
+                        DeviceProperties_RunDLL_I(
+                            GetParent(ParentWindow),
+                            NULL,
+                            PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
+                            0
+                            );
+                    }
+
+                    FreeLibrary(devMgrHandle);
+                }
+            }
+            break;
+        }
+    }
+
+    PhDestroyEMenu(menu);
+}
+
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,

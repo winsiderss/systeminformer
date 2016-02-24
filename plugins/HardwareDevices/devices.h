@@ -60,6 +60,32 @@ extern PPH_OBJECT_TYPE DiskDriveEntryType;
 extern PPH_LIST DiskDrivesList;
 extern PH_QUEUED_LOCK DiskDrivesListLock;
 
+// main.c
+
+VOID AddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT Index,
+    _In_ PWSTR Text
+    );
+
+INT AddListViewItemGroupId(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+ULONG64 RegQueryUlong64(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
+    );
+
+VOID ShowDeviceMenu(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
 // Network Adapters
 
 typedef struct _DV_NETADAPTER_ID
@@ -333,9 +359,6 @@ MIB_IFROW QueryInterfaceRowXP(
     _In_ PDV_NETADAPTER_ID Id
     );
 
-
-
-
 // options.c
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
@@ -351,8 +374,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
-
-
 
 // Disk Drives
 
@@ -419,13 +440,9 @@ typedef struct _DV_DISK_OPTIONS_CONTEXT
     BOOLEAN EnumeratingDisks;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
 
-
-
 VOID DiskDrivesInitialize(VOID);
 VOID DiskDrivesLoadList(VOID);
 VOID DiskDrivesUpdate(VOID);
-
-
 
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
@@ -447,12 +464,10 @@ PDV_DISK_ENTRY CreateDiskEntry(
     );
 
 
-
 VOID DiskDriveSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ PDV_DISK_ENTRY DiskEntry
     );
-
 
 // storage.c
 

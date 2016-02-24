@@ -173,45 +173,6 @@ BOOLEAN FindAdapterEntry(
     return found;
 }
 
-static INT AddListViewItemGroupId(
-    _In_ HWND ListViewHandle,
-    _In_ INT GroupId,
-    _In_ INT Index,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Param
-    )
-{
-    LVITEM item;
-
-    item.mask = LVIF_TEXT | LVIF_PARAM | (WindowsVersion >= WINDOWS_VISTA ? LVIF_GROUPID : 0);
-    item.iGroupId = GroupId;
-    item.iItem = Index;
-    item.iSubItem = 0;
-    item.pszText = Text;
-    item.lParam = (LPARAM)Param;
-
-    return ListView_InsertItem(ListViewHandle, &item);
-}
-
-static VOID AddListViewGroup(
-    _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ PWSTR Text
-    )
-{
-    LVGROUP group;
-
-    group.cbSize = sizeof(LVGROUP);
-    group.mask = LVGF_HEADER | LVGF_GROUPID | LVGF_ALIGN | LVGF_STATE;
-    group.mask = group.mask;
-    group.uAlign = LVGA_HEADER_LEFT;
-    group.state = LVGS_COLLAPSIBLE;
-    group.iGroupId = Index;
-    group.pszHeader = Text;
-
-    ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
-}
-
 VOID AddNetworkAdapterToListView(
     _In_ PDV_NETADAPTER_CONTEXT Context,
     _In_ BOOLEAN AdapterPresent,
@@ -271,28 +232,26 @@ VOID AddNetworkAdapterToListView(
     DeleteNetAdapterId(&adapterId);
 }
 
-ULONG64 RegQueryQword(
-    _In_ HANDLE KeyHandle,
-    _In_ PWSTR ValueName
+VOID FreeListViewAdapterEntries(
+    _In_ PDV_NETADAPTER_CONTEXT Context
     )
 {
-    ULONG64 value = 0;
-    PH_STRINGREF valueName;
-    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+    ULONG index = -1;
 
-    PhInitializeStringRef(&valueName, ValueName);
-
-    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    while ((index = PhFindListViewItemByFlags(
+        Context->ListViewHandle,
+        index,
+        LVNI_ALL
+        )) != -1)
     {
-        if (buffer->Type == REG_DWORD || buffer->Type == REG_QWORD)
+        PDV_NETADAPTER_ID param;
+
+        if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
         {
-            value = *(ULONG64*)buffer->Data;
+            DeleteNetAdapterId(param);
+            PhFree(param);
         }
-
-        PhFree(buffer);
     }
-
-    return value;
 }
 
 VOID FindNetworkAdapters(
@@ -316,32 +275,33 @@ VOID FindNetworkAdapters(
         buffer = PhAllocate(bufferLength);
         memset(buffer, 0, bufferLength);
 
-        Context->EnumeratingAdapters = TRUE;
-
         if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
         {
+            Context->EnumeratingAdapters = TRUE;
             PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
             for (PIP_ADAPTER_ADDRESSES i = buffer; i; i = i->Next)
             {
                 PPH_STRING description;
                 
-                description = PH_AUTO(PhCreateString(i->Description));
+                if (description = PhCreateString(i->Description))
+                {
+                    AddNetworkAdapterToListView(
+                        Context,
+                        TRUE,
+                        i->IfIndex,
+                        i->Luid,
+                        PhConvertMultiByteToUtf16(i->AdapterName),
+                        description
+                        );
 
-                AddNetworkAdapterToListView(
-                    Context,
-                    TRUE,
-                    i->IfIndex,
-                    i->Luid,
-                    PhConvertMultiByteToUtf16(i->AdapterName),
-                    description
-                    );
+                    PhDereferenceObject(description);
+                }
             }
 
             PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+            Context->EnumeratingAdapters = FALSE;
         }
-
-        Context->EnumeratingAdapters = FALSE;
 
         PhFree(buffer);
     }
@@ -437,8 +397,8 @@ VOID FindNetworkAdapters(
                 memset(adapterEntry, 0, sizeof(NET_ENUM_ENTRY));
 
                 adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DeviceLuid.Info.IfType = RegQueryQword(keyHandle, L"*IfType");
-                adapterEntry->DeviceLuid.Info.NetLuidIndex = RegQueryQword(keyHandle, L"NetLuidIndex");
+                adapterEntry->DeviceLuid.Info.IfType = RegQueryUlong64(keyHandle, L"*IfType");
+                adapterEntry->DeviceLuid.Info.NetLuidIndex = RegQueryUlong64(keyHandle, L"NetLuidIndex");
 
                 NetworkAdapterCreateHandle(
                     &deviceHandle,
@@ -449,8 +409,6 @@ VOID FindNetworkAdapters(
                 {
                     PPH_STRING adapterName;
 
-                    adapterEntry->DevicePresent = TRUE;
-
                     if (adapterName = NetworkAdapterQueryName(deviceHandle, adapterEntry->DeviceGuid))
                     {
                         adapterEntry->DeviceName = adapterName;
@@ -459,6 +417,8 @@ VOID FindNetworkAdapters(
                     {
                         adapterEntry->DeviceName = PhCreateString(diskFriendlyName);
                     }
+
+                    adapterEntry->DevicePresent = TRUE;
 
                     NtClose(deviceHandle);
                 }
@@ -508,6 +468,99 @@ VOID FindNetworkAdapters(
     }
 }
 
+PPH_STRING FindNetworkDeviceInstance(
+    _In_ PPH_STRING DevicePath
+    )
+{
+    PPH_STRING deviceIdString = NULL;
+    HDEVINFO deviceInfoHandle;
+    SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
+    SP_DEVINFO_DATA deviceInfoData;
+    PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = NULL;
+    ULONG deviceInfoLength = 0;
+    HANDLE keyHandle = NULL;
+
+    if ((deviceInfoHandle = SetupDiGetClassDevs(
+        &GUID_DEVINTERFACE_NET,
+        NULL,
+        NULL,
+        DIGCF_DEVICEINTERFACE
+        )) == INVALID_HANDLE_VALUE)
+    {
+        return NULL;
+    }
+
+    for (ULONG i = 0; i < 1000; i++)
+    {
+        memset(&deviceInterfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
+        deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
+        if (!SetupDiEnumDeviceInterfaces(deviceInfoHandle, 0, &GUID_DEVINTERFACE_NET, i, &deviceInterfaceData))
+            break;
+
+        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
+        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+        if (SetupDiGetDeviceInterfaceDetail(
+            deviceInfoHandle,
+            &deviceInterfaceData,
+            0,
+            0,
+            &deviceInfoLength,
+            &deviceInfoData
+            ) || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        {
+            continue;
+        }
+
+        deviceInterfaceDetail = PhAllocate(deviceInfoLength);
+        deviceInterfaceDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+
+        if (!SetupDiGetDeviceInterfaceDetail(
+            deviceInfoHandle,
+            &deviceInterfaceData,
+            deviceInterfaceDetail,
+            deviceInfoLength,
+            &deviceInfoLength,
+            &deviceInfoData
+            ))
+        {
+            continue;
+        }
+
+        if (keyHandle = SetupDiOpenDevRegKey(
+            deviceInfoHandle,
+            &deviceInfoData,
+            DICS_FLAG_GLOBAL,
+            0,
+            DIREG_DRV,
+            KEY_QUERY_VALUE
+            ))
+        {
+            PPH_STRING deviceGuid = PH_AUTO(PhQueryRegistryString(keyHandle, L"NetCfgInstanceId"));
+
+            if (PhEqualString(deviceGuid, DevicePath, TRUE))
+            {
+                deviceIdString = PhCreateStringEx(NULL, 0x100);
+
+                SetupDiGetDeviceInstanceId(
+                    deviceInfoHandle,
+                    &deviceInfoData,
+                    deviceIdString->Buffer,
+                    (ULONG)deviceIdString->Length,
+                    NULL
+                    );
+
+                PhTrimToNullTerminatorString(deviceIdString);
+            }
+
+            NtClose(keyHandle);
+        }
+    }
+
+    return deviceIdString;
+}
+
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -532,6 +585,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
         {
             if (context->OptionsChanged)
                 NetAdaptersSaveList();
+
+            FreeListViewAdapterEntries(context);
 
             RemoveProp(hwndDlg, L"Context");
             PhFree(context);
@@ -575,7 +630,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_SHOW_HIDDEN_ADAPTERS:
                 {
@@ -593,6 +648,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                         }
                     }
 
+                    FreeListViewAdapterEntries(context);
                     ListView_DeleteAllItems(context->ListViewHandle);
 
                     FindNetworkAdapters(context);
@@ -640,6 +696,20 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                             context->OptionsChanged = TRUE;
                         }
                         break;
+                    }
+                }
+            }
+            else if (header->code == NM_RCLICK)
+            {
+                PDV_NETADAPTER_ENTRY param;
+                PPH_STRING deviceInstance;
+
+                if (param = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                {
+                    if (deviceInstance = FindNetworkDeviceInstance(param->Id.InterfaceGuid))
+                    {
+                        ShowDeviceMenu(hwndDlg, deviceInstance);
+                        PhDereferenceObject(deviceInstance);
                     }
                 }
             }
