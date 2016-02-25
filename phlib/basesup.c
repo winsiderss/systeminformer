@@ -64,6 +64,7 @@
 #include <phbase.h>
 #include <phintrnl.h>
 #include <math.h>
+#include <objbase.h>
 
 #define PH_VECTOR_LEVEL_NONE 0
 #define PH_VECTOR_LEVEL_SSE2 1
@@ -2821,9 +2822,9 @@ BOOLEAN PhEncodeUnicode(
  * \param Output A buffer which will contain the converted string.
  */
 VOID PhZeroExtendToUtf16Buffer(
-    _In_reads_bytes_(InputLength) PSTR Input,
+    _In_reads_bytes_(InputLength) PCH Input,
     _In_ SIZE_T InputLength,
-    _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWSTR Output
+    _Out_writes_bytes_(InputLength * sizeof(WCHAR)) PWCH Output
     )
 {
     SIZE_T inputLength;

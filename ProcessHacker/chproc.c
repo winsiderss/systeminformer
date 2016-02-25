@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <lsasup.h>
 
 typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
 {

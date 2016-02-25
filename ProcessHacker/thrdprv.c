@@ -32,6 +32,7 @@
 #include <workqueue.h>
 #include <kphuser.h>
 #include <symprv.h>
+#include <svcsup.h>
 #include <extmgri.h>
 
 typedef struct _PH_THREAD_QUERY_DATA

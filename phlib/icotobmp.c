@@ -1,4 +1,5 @@
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
 #include <uxtheme.h>
 
 // code from http://msdn.microsoft.com/en-us/library/bb757020.aspx

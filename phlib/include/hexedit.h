@@ -12,6 +12,7 @@ extern "C" {
 #define EDIT_HIGH 2
 #define EDIT_LOW 3
 
+PHLIBAPI
 BOOLEAN PhHexEditInitialization(
     VOID
     );

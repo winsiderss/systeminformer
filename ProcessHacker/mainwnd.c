@@ -38,12 +38,14 @@
 #include <notifico.h>
 #include <memsrch.h>
 #include <symprv.h>
+#include <svcsup.h>
 #include <actions.h>
 #include <sysinfo.h>
 #include <miniinfo.h>
 #include <mainwndp.h>
 #include <windowsx.h>
 #include <shlobj.h>
+#include <shellapi.h>
 #include <winsta.h>
 #include <iphlpapi.h>
 

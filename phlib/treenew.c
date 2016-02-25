@@ -40,7 +40,8 @@
  * * Virtual mode
  */
 
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
 #include <windowsx.h>
 #include <vssym32.h>
 #include <treenew.h>

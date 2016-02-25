@@ -23,6 +23,8 @@
 #include <phapp.h>
 #include <secedit.h>
 #include <phsvc.h>
+#include <lsasup.h>
+#include <svcsup.h>
 #include <phplug.h>
 #include <extmgri.h>
 #include <symprv.h>

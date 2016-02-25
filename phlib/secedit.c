@@ -20,9 +20,11 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
 #include <secedit.h>
 #include <seceditp.h>
+#include <hndlinfo.h>
 
 static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {

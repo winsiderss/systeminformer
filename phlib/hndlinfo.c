@@ -21,7 +21,9 @@
  */
 
 #include <ph.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
+#include <lsasup.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20
 

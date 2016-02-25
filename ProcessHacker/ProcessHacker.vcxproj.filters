@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="phlib">
-      <UniqueIdentifier>{e7aa1e43-4773-4453-a20c-473c48e66901}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headers">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
@@ -31,119 +28,11 @@
     <Filter Include="Mini-XML\Headers">
       <UniqueIdentifier>{c4b014d0-6bd0-4848-a23f-e639563d998e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Module">
+      <UniqueIdentifier>{67c40321-0b28-4c16-8c48-dc0b64c148d7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\phlib\basesup.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\basesupa.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\circbuf.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\colorbox.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\data.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\dspick.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\emenu.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\error.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\extlv.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\fastlock.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\format.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\global.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\graph.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\guisup.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\handle.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\hexedit.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\hndlinfo.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\icotobmp.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\iosup.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\kph.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\lsa.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\mapimg.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\maplib.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\md5.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\native.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\provider.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\queuedlock.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\ref.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\secdata.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\secedit.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\sha.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\support.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\svcsup.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\symprv.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\sync.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\verify.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\workqueue.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="about.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -360,15 +249,6 @@
     <ClCompile Include="sessshad.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\cpysave.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\filepool.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\treenew.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="colmgr.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -387,17 +267,11 @@
     <ClCompile Include="memlists.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\kphdata.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="memlist.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
     <ClCompile Include="miniinfo.c">
       <Filter>Process Hacker</Filter>
-    </ClCompile>
-    <ClCompile Include="..\phlib\apiimport.c">
-      <Filter>phlib</Filter>
     </ClCompile>
     <ClCompile Include="procgrp.c">
       <Filter>Process Hacker</Filter>
@@ -474,9 +348,6 @@
     <ClCompile Include="pcre\pcre2posix.c">
       <Filter>PCRE</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\avltree.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="pcre\pcre2_find_bracket.c">
       <Filter>PCRE</Filter>
     </ClCompile>
@@ -491,12 +362,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\phlib\circbuf_i.h">
-      <Filter>phlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\phlib\format_i.h">
-      <Filter>phlib</Filter>
-    </ClInclude>
     <ClInclude Include="include\hidnproc.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -702,6 +567,9 @@
     </None>
     <None Include="resources\cog_go.ico">
       <Filter>Resources</Filter>
+    </None>
+    <None Include="ProcessHacker.def">
+      <Filter>Module</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

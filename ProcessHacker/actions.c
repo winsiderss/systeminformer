@@ -38,6 +38,7 @@
 #include <settings.h>
 #include <kphuser.h>
 #include <phsvccl.h>
+#include <svcsup.h>
 #include <winsta.h>
 #include <iphlpapi.h>
 

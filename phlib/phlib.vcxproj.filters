@@ -65,13 +65,7 @@
     <ClCompile Include="icotobmp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="iosup.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="kph.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="lsa.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mapimg.c">
@@ -102,9 +96,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sha.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="support.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="svcsup.c">
@@ -138,6 +129,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="avltree.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="filestream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lsasup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -184,19 +184,10 @@
     <ClInclude Include="include\hexeditp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\iosupp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\md5.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\ph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phbase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\phgui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phnet.h">
@@ -217,9 +208,6 @@
     <ClInclude Include="include\seceditp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\sha.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\symprv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -230,9 +218,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phintrnl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\phnatinl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphapi.h">
@@ -278,6 +263,51 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\workqueuep.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\filestreamp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\filestream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndlinfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\provider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phdata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phbasesup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\lsasup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phnativeinl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phnative.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\svcsup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phutil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="md5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sha.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\guisup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -25,6 +25,8 @@
 #include <procprv.h>
 #include <winevt.h>
 #include <extmgri.h>
+#include <svcsup.h>
+#include <lsasup.h>
 
 typedef DWORD (WINAPI *_NotifyServiceStatusChangeW)(
     _In_ SC_HANDLE hService,

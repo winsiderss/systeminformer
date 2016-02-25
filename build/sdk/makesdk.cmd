@@ -57,20 +57,30 @@ for %%a in (
     dspick.h
     emenu.h
     fastlock.h
+    filestream.h
     graph.h
+    guisup.h
     hexedit.h
+    hndlinfo.h
     kphapi.h
     kphuser.h
+    lsasup.h
     mapimg.h
     ph.h
     phbase.h
-    phgui.h
-    phnatinl.h
+    phbasesup.h
+    phconfig.h
+    phdata.h
+    phnative.h
+    phnativeinl.h
     phnet.h
     phsup.h
+    phutil.h
+    provider.h
     queuedlock.h
     ref.h
     secedit.h
+    svcsup.h
     symprv.h
     templ.h
     treenew.h

@@ -76,7 +76,9 @@ PhQueueItemWorkQueue(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
 VOID
+NTAPI
 PhQueueItemWorkQueueEx(
     _Inout_ PPH_WORK_QUEUE WorkQueue,
     _In_ PUSER_THREAD_START_ROUTINE Function,
@@ -85,7 +87,9 @@ PhQueueItemWorkQueueEx(
     _In_opt_ PPH_WORK_QUEUE_ENVIRONMENT Environment
     );
 
+PHLIBAPI
 VOID
+NTAPI
 PhInitializeWorkQueueEnvironment(
     _Out_ PPH_WORK_QUEUE_ENVIRONMENT Environment
     );

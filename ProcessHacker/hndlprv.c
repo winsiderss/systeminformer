@@ -24,6 +24,7 @@
 #include <hndlprv.h>
 #include <workqueue.h>
 #include <kphuser.h>
+#include <hndlinfo.h>
 #include <extmgri.h>
 
 typedef struct _PHP_CREATE_HANDLE_ITEM_CONTEXT

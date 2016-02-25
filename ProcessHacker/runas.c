@@ -64,6 +64,7 @@
 #include <actions.h>
 #include <settings.h>
 #include <emenu.h>
+#include <lsasup.h>
 #include <shlwapi.h>
 #include <winsta.h>
 #include <windowsx.h>

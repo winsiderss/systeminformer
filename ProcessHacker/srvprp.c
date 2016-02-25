@@ -25,6 +25,7 @@
 #include <secedit.h>
 #include <phplug.h>
 #include <actions.h>
+#include <svcsup.h>
 #include <phsvccl.h>
 #include <windowsx.h>
 

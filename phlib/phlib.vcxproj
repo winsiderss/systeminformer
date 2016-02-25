@@ -77,7 +77,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_PHLIB_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -92,7 +92,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_PHLIB_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -108,7 +108,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_PHLIB_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -126,7 +126,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\phnt\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_PHLIB_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -161,10 +161,10 @@
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
     <ClCompile Include="icotobmp.c" />
-    <ClCompile Include="iosup.c" />
+    <ClCompile Include="filestream.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphdata.c" />
-    <ClCompile Include="lsa.c" />
+    <ClCompile Include="lsasup.c" />
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="md5.c" />
@@ -175,7 +175,7 @@
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
     <ClCompile Include="sha.c" />
-    <ClCompile Include="support.c" />
+    <ClCompile Include="util.c" />
     <ClCompile Include="svcsup.c" />
     <ClCompile Include="symprv.c" />
     <ClCompile Include="sync.c" />
@@ -188,16 +188,26 @@
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\filepool.h" />
     <ClInclude Include="include\filepoolp.h" />
+    <ClInclude Include="include\filestream.h" />
     <ClInclude Include="include\handle.h" />
+    <ClInclude Include="include\hndlinfo.h" />
     <ClInclude Include="include\kphapi.h" />
+    <ClInclude Include="include\lsasup.h" />
     <ClInclude Include="include\mapimg.h" />
+    <ClInclude Include="include\phbasesup.h" />
+    <ClInclude Include="include\phconfig.h" />
+    <ClInclude Include="include\phdata.h" />
     <ClInclude Include="include\phintrnl.h" />
-    <ClInclude Include="include\phnatinl.h" />
+    <ClInclude Include="include\phnative.h" />
+    <ClInclude Include="include\phnativeinl.h" />
     <ClInclude Include="include\circbuf.h" />
     <ClInclude Include="include\circbuf_h.h" />
     <ClInclude Include="circbuf_i.h" />
     <ClInclude Include="include\colorbox.h" />
+    <ClInclude Include="include\phutil.h" />
+    <ClInclude Include="include\provider.h" />
     <ClInclude Include="include\secedit.h" />
+    <ClInclude Include="include\svcsup.h" />
     <ClInclude Include="include\symprvp.h" />
     <ClInclude Include="include\treenew.h" />
     <ClInclude Include="include\treenewp.h" />
@@ -212,19 +222,19 @@
     <ClInclude Include="include\handlep.h" />
     <ClInclude Include="include\hexedit.h" />
     <ClInclude Include="include\hexeditp.h" />
-    <ClInclude Include="include\iosupp.h" />
+    <ClInclude Include="include\filestreamp.h" />
     <ClInclude Include="include\kphuser.h" />
-    <ClInclude Include="include\md5.h" />
+    <ClInclude Include="md5.h" />
     <ClInclude Include="include\ph.h" />
     <ClInclude Include="include\phbase.h" />
-    <ClInclude Include="include\phgui.h" />
+    <ClInclude Include="include\guisup.h" />
     <ClInclude Include="include\phnet.h" />
     <ClInclude Include="include\phsup.h" />
     <ClInclude Include="include\queuedlock.h" />
     <ClInclude Include="include\ref.h" />
     <ClInclude Include="include\refp.h" />
     <ClInclude Include="include\seceditp.h" />
-    <ClInclude Include="include\sha.h" />
+    <ClInclude Include="sha.h" />
     <ClInclude Include="include\symprv.h" />
     <ClInclude Include="include\templ.h" />
     <ClInclude Include="include\verifyp.h" />

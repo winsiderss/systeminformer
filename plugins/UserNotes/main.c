@@ -23,6 +23,7 @@
 
 #include "usernotes.h"
 #include <toolstatusintf.h>
+#include <commdlg.h>
 
 VOID SearchChangedHandler(
     _In_opt_ PVOID Parameter,

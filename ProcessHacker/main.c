@@ -29,6 +29,8 @@
 #include <hndlprv.h>
 #include <memprv.h>
 #include <kphuser.h>
+#include <lsasup.h>
+#include <hndlinfo.h>
 #include <phsvc.h>
 #include <procprv.h>
 #include <settings.h>

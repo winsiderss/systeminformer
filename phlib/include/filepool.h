@@ -105,6 +105,7 @@ typedef struct _PH_FILE_POOL
     ULONG SegmentHeaderBlockSpan; // The number of blocks needed to store a segment header
 } PH_FILE_POOL, *PPH_FILE_POOL;
 
+PHLIBAPI
 NTSTATUS PhCreateFilePool(
     _Out_ PPH_FILE_POOL *Pool,
     _In_ HANDLE FileHandle,
@@ -112,6 +113,7 @@ NTSTATUS PhCreateFilePool(
     _In_opt_ PPH_FILE_POOL_PARAMETERS Parameters
     );
 
+PHLIBAPI
 NTSTATUS PhCreateFilePool2(
     _Out_ PPH_FILE_POOL *Pool,
     _In_ PWSTR FileName,
@@ -121,56 +123,67 @@ NTSTATUS PhCreateFilePool2(
     _In_opt_ PPH_FILE_POOL_PARAMETERS Parameters
     );
 
+PHLIBAPI
 VOID PhDestroyFilePool(
     _In_ _Post_invalid_ PPH_FILE_POOL Pool
     );
 
+PHLIBAPI
 PVOID PhAllocateFilePool(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ ULONG Size,
     _Out_opt_ PULONG Rva
     );
 
+PHLIBAPI
 VOID PhFreeFilePool(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ PVOID Block
     );
 
+PHLIBAPI
 BOOLEAN PhFreeFilePoolByRva(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ ULONG Rva
     );
 
+PHLIBAPI
 VOID PhReferenceFilePool(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ PVOID Address
     );
 
+PHLIBAPI
 VOID PhDereferenceFilePool(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ PVOID Address
     );
 
+PHLIBAPI
 PVOID PhReferenceFilePoolByRva(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ ULONG Rva
     );
 
+PHLIBAPI
 BOOLEAN PhDereferenceFilePoolByRva(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ ULONG Rva
     );
 
+PHLIBAPI
 ULONG PhEncodeRvaFilePool(
     _In_ PPH_FILE_POOL Pool,
     _In_ PVOID Address
     );
 
+PHLIBAPI
 VOID PhGetUserContextFilePool(
     _In_ PPH_FILE_POOL Pool,
     _Out_ PULONGLONG Context
     );
 
+PHLIBAPI
 VOID PhSetUserContextFilePool(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ PULONGLONG Context

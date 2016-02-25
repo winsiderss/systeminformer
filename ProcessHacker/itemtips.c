@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <procprv.h>
 #include <srvprv.h>
+#include <svcsup.h>
 #include <phplug.h>
 #include <verify.h>
 #define CINTERFACE

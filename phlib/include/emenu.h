@@ -70,6 +70,7 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     _In_opt_ ULONG Id
     );
 
+PHLIBAPI
 PPH_EMENU_ITEM PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
@@ -121,20 +122,24 @@ typedef struct _PH_EMENU_DATA
     PPH_LIST IdToItem;
 } PH_EMENU_DATA, *PPH_EMENU_DATA;
 
+PHLIBAPI
 VOID PhInitializeEMenuData(
     _Out_ PPH_EMENU_DATA Data
     );
 
+PHLIBAPI
 VOID PhDeleteEMenuData(
     _Inout_ PPH_EMENU_DATA Data
     );
 
+PHLIBAPI
 HMENU PhEMenuToHMenu(
     _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG Flags,
     _Inout_opt_ PPH_EMENU_DATA Data
     );
 
+PHLIBAPI
 VOID PhEMenuToHMenu2(
     _In_ HMENU MenuHandle,
     _In_ PPH_EMENU_ITEM Menu,
@@ -142,6 +147,7 @@ VOID PhEMenuToHMenu2(
     _Inout_opt_ PPH_EMENU_DATA Data
     );
 
+PHLIBAPI
 VOID PhHMenuToEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HMENU MenuHandle

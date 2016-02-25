@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <srvprv.h>
+#include <svcsup.h>
 #include <actions.h>
 
 typedef struct _PH_SERVICES_CONTEXT

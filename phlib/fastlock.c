@@ -21,6 +21,7 @@
  */
 
 #include <phbase.h>
+#include <fastlock.h>
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 //

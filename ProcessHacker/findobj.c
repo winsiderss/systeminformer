@@ -27,6 +27,7 @@
 #include <proctree.h>
 #include <emenu.h>
 #include <kphuser.h>
+#include <hndlinfo.h>
 #include <settings.h>
 #include <hndlmenu.h>
 #include "pcre/pcre2.h"

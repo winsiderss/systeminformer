@@ -39,6 +39,7 @@
  */
 
 #include <ph.h>
+#include <provider.h>
 
 #ifdef DEBUG
 PPH_LIST PhDbgProviderList;

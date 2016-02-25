@@ -65,12 +65,14 @@ typedef struct _PH_SYMBOL_EVENT_DATA
     PPH_STRING FileName;
 } PH_SYMBOL_EVENT_DATA, *PPH_SYMBOL_EVENT_DATA;
 
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhSymbolProviderInitialization(
     VOID
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSymbolProviderCompleteInitialization(
@@ -152,6 +154,7 @@ PhSetSearchPathSymbolProvider(
     );
 
 #ifdef _WIN64
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhAccessOutOfProcessFunctionEntry(
@@ -161,6 +164,7 @@ PhAccessOutOfProcessFunctionEntry(
     );
 #endif
 
+PHLIBAPI
 ULONG64
 __stdcall
 PhGetModuleBase64(
@@ -168,6 +172,7 @@ PhGetModuleBase64(
     _In_ DWORD64 dwAddr
     );
 
+PHLIBAPI
 PVOID
 __stdcall
 PhFunctionTableAccess64(

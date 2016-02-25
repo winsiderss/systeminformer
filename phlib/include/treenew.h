@@ -541,6 +541,7 @@ typedef struct _PH_TREENEW_VIEW_PARTS
     LONG NormalWidth;
 } PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
 
+PHLIBAPI
 BOOLEAN PhTreeNewInitialization(
     VOID
     );

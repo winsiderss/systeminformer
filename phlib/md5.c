@@ -10,7 +10,7 @@
 /* This code was modified for Process Hacker. */
 
 #include <phbase.h>
-#include <md5.h>
+#include "md5.h"
 
 void MD5Transform(ULONG buf[4], ULONG in[16]);
 

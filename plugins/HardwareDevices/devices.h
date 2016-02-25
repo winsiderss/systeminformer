@@ -33,7 +33,6 @@
 #define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
-#include <phgui.h>
 
 #include <windowsx.h>
 #include <Uxtheme.h>

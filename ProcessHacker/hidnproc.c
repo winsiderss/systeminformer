@@ -44,6 +44,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <hidnproc.h>
+#include <shellapi.h>
 #include <windowsx.h>
 
 INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
@@ -686,8 +687,8 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
             }
 
             PhGetStockApplicationIcon(&processItem->SmallIcon, &processItem->LargeIcon);
-            processItem->SmallIcon = DuplicateIcon(NULL, processItem->SmallIcon);
-            processItem->LargeIcon = DuplicateIcon(NULL, processItem->LargeIcon);
+            processItem->SmallIcon = CopyIcon(processItem->SmallIcon);
+            processItem->LargeIcon = CopyIcon(processItem->LargeIcon);
         }
     }
 

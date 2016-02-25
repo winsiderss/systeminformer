@@ -67,7 +67,7 @@ NTSTATUS PhSvcCallCreateService(
     );
 
 // begin_phapppub
-PHLIBAPI
+PHAPPAPI
 NTSTATUS PhSvcCallChangeServiceConfig(
     _In_ PWSTR ServiceName,
     _In_ ULONG ServiceType,
@@ -82,7 +82,7 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     _In_opt_ PWSTR DisplayName
     );
 
-PHLIBAPI
+PHAPPAPI
 NTSTATUS PhSvcCallChangeServiceConfig2(
     _In_ PWSTR ServiceName,
     _In_ ULONG InfoLevel,
@@ -114,7 +114,7 @@ NTSTATUS PhSvcCallIssueMemoryListCommand(
     );
 
 // begin_phapppub
-PHLIBAPI
+PHAPPAPI
 NTSTATUS PhSvcCallPostMessage(
     _In_opt_ HWND hWnd,
     _In_ UINT Msg,
@@ -122,7 +122,7 @@ NTSTATUS PhSvcCallPostMessage(
     _In_ LPARAM lParam
     );
 
-PHLIBAPI
+PHAPPAPI
 NTSTATUS PhSvcCallSendMessage(
     _In_opt_ HWND hWnd,
     _In_ UINT Msg,

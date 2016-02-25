@@ -3,13 +3,18 @@
 
 #pragma once
 
-#define PHLIB_IMPORT
 #define PHAPPAPI __declspec(dllimport)
 
-#include "phgui.h"
+#include "ph.h"
 #include "phnet.h"
+#include "provider.h"
+#include "filestream.h"
+#include "fastlock.h"
+#include "lsasup.h"
+#include "svcsup.h"
 #include "circbuf.h"
 #include "dltmgr.h"
+#include "guisup.h"
 #include "treenew.h"
 #include "graph.h"
 #include "emenu.h"

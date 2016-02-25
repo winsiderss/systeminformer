@@ -70,6 +70,7 @@ typedef struct _PH_GRAPH_DRAW_INFO
 
 #define PH_GRAPH_CLASSNAME L"PhGraph"
 
+PHLIBAPI
 BOOLEAN PhGraphControlInitialization(
     VOID
     );
@@ -188,10 +189,12 @@ typedef struct _PH_GRAPH_BUFFERS
     BOOLEAN Valid; // indicates the data is valid
 } PH_GRAPH_BUFFERS, *PPH_GRAPH_BUFFERS;
 
+PHLIBAPI
 VOID PhInitializeGraphBuffers(
     _Out_ PPH_GRAPH_BUFFERS Buffers
     );
 
+PHLIBAPI
 VOID PhDeleteGraphBuffers(
     _Inout_ PPH_GRAPH_BUFFERS Buffers
     );

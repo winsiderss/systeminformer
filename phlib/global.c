@@ -22,6 +22,7 @@
 
 #include <ph.h>
 #include <phintrnl.h>
+#include <filestream.h>
 #include <symprv.h>
 
 BOOLEAN PhInitializeSystem(
@@ -127,9 +128,9 @@ static BOOLEAN PhInitializeSystem(
     _In_ ULONG Flags
     )
 {
-    if (Flags & PHLIB_INIT_MODULE_IO_SUPPORT)
+    if (Flags & PHLIB_INIT_MODULE_FILE_STREAM)
     {
-        if (!PhIoSupportInitialization())
+        if (!PhFileStreamInitialization())
             return FALSE;
     }
 

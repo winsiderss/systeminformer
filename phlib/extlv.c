@@ -26,7 +26,8 @@
  * currently implemented by hooking the window procedure.
  */
 
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
 #include <windowsx.h>
 
 #define PH_MAX_COMPARE_FUNCTIONS 16

@@ -26,6 +26,7 @@
 #include <cpysave.h>
 #include <phappres.h>
 #include <emenu.h>
+#include <svcsup.h>
 #include <actions.h>
 #include <phsvccl.h>
 #include "mxml/mxml.h"

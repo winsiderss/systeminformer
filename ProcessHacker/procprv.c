@@ -55,10 +55,13 @@
 #include <srvprv.h>
 #include <workqueue.h>
 #include <kphuser.h>
+#include <hndlinfo.h>
+#include <lsasup.h>
 #include <extmgri.h>
 #include <phplug.h>
 #include <verify.h>
 #include <winsta.h>
+#include <shellapi.h>
 
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
@@ -971,8 +974,8 @@ VOID PhpProcessQueryStage1(
             }
 
             PhGetStockApplicationIcon(&Data->SmallIcon, &Data->LargeIcon);
-            Data->SmallIcon = DuplicateIcon(NULL, Data->SmallIcon);
-            Data->LargeIcon = DuplicateIcon(NULL, Data->LargeIcon);
+            Data->SmallIcon = CopyIcon(Data->SmallIcon);
+            Data->LargeIcon = CopyIcon(Data->LargeIcon);
         }
     }
 

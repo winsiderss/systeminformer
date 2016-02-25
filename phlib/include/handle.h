@@ -40,18 +40,21 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
 #define PH_HANDLE_TABLE_STRICT_FIFO 0x1
 #define PH_HANDLE_TABLE_VALID_FLAGS 0x1
 
+PHLIBAPI
 PPH_HANDLE_TABLE
 NTAPI
 PhCreateHandleTable(
     VOID
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhDestroyHandleTable(
     _In_ _Post_invalid_ PPH_HANDLE_TABLE HandleTable
     );
 
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhLockHandleTableEntry(
@@ -59,6 +62,7 @@ PhLockHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhUnlockHandleTableEntry(
@@ -66,6 +70,7 @@ PhUnlockHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
+PHLIBAPI
 HANDLE
 NTAPI
 PhCreateHandle(
@@ -73,6 +78,7 @@ PhCreateHandle(
     _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhDestroyHandle(
@@ -81,6 +87,7 @@ PhDestroyHandle(
     _In_opt_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
+PHLIBAPI
 PPH_HANDLE_TABLE_ENTRY
 NTAPI
 PhLookupHandleTableEntry(
@@ -95,6 +102,7 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhEnumHandleTable(
@@ -103,6 +111,7 @@ PhEnumHandleTable(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSweepHandleTable(
@@ -130,6 +139,7 @@ typedef struct _PH_HANDLE_TABLE_FLAGS_INFORMATION
     ULONG Flags;
 } PH_HANDLE_TABLE_FLAGS_INFORMATION, *PPH_HANDLE_TABLE_FLAGS_INFORMATION;
 
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryInformationHandleTable(
@@ -140,6 +150,7 @@ PhQueryInformationHandleTable(
     _Out_opt_ PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhSetInformationHandleTable(

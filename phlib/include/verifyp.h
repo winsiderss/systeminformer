@@ -1,6 +1,8 @@
 #ifndef _PH_VERIFYP_H
 #define _PH_VERIFYP_H
 
+#include <commdlg.h>
+
 typedef struct _CATALOG_INFO
 {
     DWORD cbStruct;

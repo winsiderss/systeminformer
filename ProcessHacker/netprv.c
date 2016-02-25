@@ -25,6 +25,7 @@
 #include <netprv.h>
 #include <procprv.h>
 #include <workqueue.h>
+#include <svcsup.h>
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
 #include <iphlpapi.h>

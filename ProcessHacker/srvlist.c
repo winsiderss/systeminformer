@@ -29,6 +29,7 @@
 #include <phplug.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <svcsup.h>
 
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

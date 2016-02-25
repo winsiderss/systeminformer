@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <svcsup.h>
 
 NTSTATUS PhpGetDllBaseRemote(
     _In_ HANDLE ProcessHandle,

@@ -20,7 +20,7 @@
 /* This code was modified for Process Hacker. */
 
 #include <phbase.h>
-#include <sha.h>
+#include "sha.h"
 
 /* SHA1 Helper Macros */
 

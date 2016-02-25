@@ -21,6 +21,7 @@
  */
 
 #include "devices.h"
+#include <objbase.h>
 
 PVOID IphlpHandle = NULL;
 _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I = NULL;

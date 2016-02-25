@@ -21,6 +21,7 @@
  */
 
 #include <peview.h>
+#include <objbase.h>
 
 PPH_STRING PvFileName = NULL;
 

@@ -27,6 +27,7 @@
 #include <verify.h>
 #include <shlobj.h>
 #include <uxtheme.h>
+#include <shellapi.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)

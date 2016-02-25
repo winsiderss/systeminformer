@@ -10,6 +10,7 @@
 #include <ntstatus.h>
 #include <winioctl.h>
 
+typedef double DOUBLE;
 typedef GUID *PGUID;
 
 // Desktop access rights

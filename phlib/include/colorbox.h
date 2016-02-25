@@ -7,7 +7,10 @@ extern "C" {
 
 #define PH_COLORBOX_CLASSNAME L"PhColorBox"
 
-BOOLEAN PhColorBoxInitialization(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhColorBoxInitialization(
     VOID
     );
 

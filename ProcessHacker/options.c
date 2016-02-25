@@ -25,6 +25,7 @@
 #include <settings.h>
 #include <colorbox.h>
 #include <sysinfo.h>
+#include <commdlg.h>
 #include <windowsx.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)

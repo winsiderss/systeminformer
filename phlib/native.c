@@ -23,6 +23,7 @@
 #include <ph.h>
 #include <mapimg.h>
 #include <kphuser.h>
+#include <lsasup.h>
 #include <apiimport.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64
@@ -4836,7 +4837,7 @@ NTSTATUS PhEnumFileStreams(
 /**
  * Initializes the device prefixes module.
  */
-VOID PhInitializeDevicePrefixes(
+VOID PhpInitializeDevicePrefixes(
     VOID
     )
 {
@@ -5026,7 +5027,7 @@ PPH_STRING PhResolveDevicePrefix(
 
     if (PhBeginInitOnce(&PhDevicePrefixesInitOnce))
     {
-        PhInitializeDevicePrefixes();
+        PhpInitializeDevicePrefixes();
         PhUpdateDosDevicePrefixes();
         PhUpdateMupDevicePrefixes();
 
@@ -6075,6 +6076,465 @@ NTSTATUS PhQueryValueKey(
     } while (--attempts);
 
     *Buffer = buffer;
+
+    return status;
+}
+
+/**
+ * Creates or opens a file.
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the file.
+ * \param FileAttributes File attributes applied if the file is created or overwritten.
+ * \param ShareAccess The file access granted to other threads.
+ * \li \c FILE_SHARE_READ Allows other threads to read from the file.
+ * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
+ * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
+ * \param CreateDisposition The action to perform if the file does or does not exist.
+ * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
+ * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
+ * \li \c FILE_OPEN If the file exists, open it. Otherwise, fail.
+ * \li \c FILE_OPEN_IF If the file exists, open it. Otherwise, create the file.
+ * \li \c FILE_OVERWRITE If the file exists, open and overwrite it. Otherwise, fail.
+ * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
+ * \param CreateOptions The options to apply when the file is opened or created.
+ */
+NTSTATUS PhCreateFileWin32(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions
+    )
+{
+    return PhCreateFileWin32Ex(
+        FileHandle,
+        FileName,
+        DesiredAccess,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        NULL
+        );
+}
+
+/**
+ * Creates or opens a file.
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the file.
+ * \param FileAttributes File attributes applied if the file is created or overwritten.
+ * \param ShareAccess The file access granted to other threads.
+ * \li \c FILE_SHARE_READ Allows other threads to read from the file.
+ * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
+ * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
+ * \param CreateDisposition The action to perform if the file does or does not exist.
+ * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
+ * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
+ * \li \c FILE_OPEN If the file exists, open it. Otherwise, fail.
+ * \li \c FILE_OPEN_IF If the file exists, open it. Otherwise, create the file.
+ * \li \c FILE_OVERWRITE If the file exists, open and overwrite it. Otherwise, fail.
+ * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
+ * \param CreateOptions The options to apply when the file is opened or created.
+ * \param CreateStatus A variable that receives creation information.
+ * \li \c FILE_SUPERSEDED The file was replaced because \c FILE_SUPERSEDE was specified in
+ * \a CreateDisposition.
+ * \li \c FILE_OPENED The file was opened because \c FILE_OPEN or \c FILE_OPEN_IF was specified in
+ * \a CreateDisposition.
+ * \li \c FILE_CREATED The file was created because \c FILE_CREATE or \c FILE_OPEN_IF was specified
+ * in \a CreateDisposition.
+ * \li \c FILE_OVERWRITTEN The file was overwritten because \c FILE_OVERWRITE or
+ * \c FILE_OVERWRITE_IF was specified in \a CreateDisposition.
+ * \li \c FILE_EXISTS The file was not opened because it already existed and \c FILE_CREATE was
+ * specified in \a CreateDisposition.
+ * \li \c FILE_DOES_NOT_EXIST The file was not opened because it did not exist and \c FILE_OPEN or
+ * \c FILE_OVERWRITE was specified in \a CreateDisposition.
+ */
+NTSTATUS PhCreateFileWin32Ex(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG CreateStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES oa;
+    IO_STATUS_BLOCK isb;
+
+    if (!FileAttributes)
+        FileAttributes = FILE_ATTRIBUTE_NORMAL;
+
+    if (!RtlDosPathNameToNtPathName_U(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        ))
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+
+    InitializeObjectAttributes(
+        &oa,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &oa,
+        &isb,
+        NULL,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        NULL,
+        0
+        );
+
+    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (CreateStatus)
+        *CreateStatus = (ULONG)isb.Information;
+
+    return status;
+}
+
+/**
+ * Queries file attributes.
+ *
+ * \param FileName The Win32 file name.
+ * \param FileInformation A variable that receives the file information.
+ */
+NTSTATUS PhQueryFullAttributesFileWin32(
+    _In_ PWSTR FileName,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES oa;
+
+    if (!RtlDosPathNameToNtPathName_U(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        ))
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+
+    InitializeObjectAttributes(
+        &oa,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtQueryFullAttributesFile(&oa, FileInformation);
+    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+
+    return status;
+}
+
+/**
+ * Deletes a file.
+ *
+ * \param FileName The Win32 file name.
+ */
+NTSTATUS PhDeleteFileWin32(
+    _In_ PWSTR FileName
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        DELETE,
+        0,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DELETE_ON_CLOSE
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    NtClose(fileHandle);
+
+    return status;
+}
+
+NTSTATUS PhListenNamedPipe(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    return NtFsControlFile(
+        FileHandle,
+        Event,
+        ApcRoutine,
+        ApcContext,
+        IoStatusBlock,
+        FSCTL_PIPE_LISTEN,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+}
+
+NTSTATUS PhDisconnectNamedPipe(
+    _In_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_DISCONNECT,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    return status;
+}
+
+NTSTATUS PhPeekNamedPipe(
+    _In_ HANDLE FileHandle,
+    _Out_writes_bytes_opt_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_opt_ PULONG NumberOfBytesRead,
+    _Out_opt_ PULONG NumberOfBytesAvailable,
+    _Out_opt_ PULONG NumberOfBytesLeftInMessage
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    PFILE_PIPE_PEEK_BUFFER peekBuffer;
+    ULONG peekBufferLength;
+
+    peekBufferLength = FIELD_OFFSET(FILE_PIPE_PEEK_BUFFER, Data) + Length;
+    peekBuffer = PhAllocate(peekBufferLength);
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_PEEK,
+        NULL,
+        0,
+        peekBuffer,
+        peekBufferLength
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    // STATUS_BUFFER_OVERFLOW means that there is data remaining; this is normal.
+    if (status == STATUS_BUFFER_OVERFLOW)
+        status = STATUS_SUCCESS;
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG numberOfBytesRead;
+
+        if (Buffer || NumberOfBytesRead || NumberOfBytesLeftInMessage)
+            numberOfBytesRead = (ULONG)(isb.Information - FIELD_OFFSET(FILE_PIPE_PEEK_BUFFER, Data));
+
+        if (Buffer)
+            memcpy(Buffer, peekBuffer->Data, numberOfBytesRead);
+
+        if (NumberOfBytesRead)
+            *NumberOfBytesRead = numberOfBytesRead;
+
+        if (NumberOfBytesAvailable)
+            *NumberOfBytesAvailable = peekBuffer->ReadDataAvailable;
+
+        if (NumberOfBytesLeftInMessage)
+            *NumberOfBytesLeftInMessage = peekBuffer->MessageLength - numberOfBytesRead;
+    }
+
+    PhFree(peekBuffer);
+
+    return status;
+}
+
+NTSTATUS PhTransceiveNamedPipe(
+    _In_ HANDLE FileHandle,
+    _In_opt_ HANDLE Event,
+    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcContext,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength
+    )
+{
+    return NtFsControlFile(
+        FileHandle,
+        Event,
+        ApcRoutine,
+        ApcContext,
+        IoStatusBlock,
+        FSCTL_PIPE_TRANSCEIVE,
+        InputBuffer,
+        InputBufferLength,
+        OutputBuffer,
+        OutputBufferLength
+        );
+}
+
+NTSTATUS PhWaitForNamedPipe(
+    _In_opt_ PUNICODE_STRING FileSystemName,
+    _In_ PUNICODE_STRING Name,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ BOOLEAN UseDefaultTimeout
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    UNICODE_STRING localNpfsName;
+    HANDLE fileSystemHandle;
+    OBJECT_ATTRIBUTES oa;
+    PFILE_PIPE_WAIT_FOR_BUFFER waitForBuffer;
+    ULONG waitForBufferLength;
+
+    if (!FileSystemName)
+    {
+        RtlInitUnicodeString(&localNpfsName, L"\\Device\\NamedPipe");
+        FileSystemName = &localNpfsName;
+    }
+
+    InitializeObjectAttributes(
+        &oa,
+        FileSystemName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileSystemHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &oa,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    waitForBufferLength = FIELD_OFFSET(FILE_PIPE_WAIT_FOR_BUFFER, Name) + Name->Length;
+    waitForBuffer = PhAllocate(waitForBufferLength);
+
+    if (UseDefaultTimeout)
+    {
+        waitForBuffer->TimeoutSpecified = FALSE;
+    }
+    else
+    {
+        if (Timeout)
+        {
+            waitForBuffer->Timeout = *Timeout;
+        }
+        else
+        {
+            waitForBuffer->Timeout.LowPart = 0;
+            waitForBuffer->Timeout.HighPart = MINLONG; // a very long time
+        }
+
+        waitForBuffer->TimeoutSpecified = TRUE;
+    }
+
+    waitForBuffer->NameLength = (ULONG)Name->Length;
+    memcpy(waitForBuffer->Name, Name->Buffer, Name->Length);
+
+    status = NtFsControlFile(
+        fileSystemHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_WAIT,
+        waitForBuffer,
+        waitForBufferLength,
+        NULL,
+        0
+        );
+
+    PhFree(waitForBuffer);
+    NtClose(fileSystemHandle);
+
+    return status;
+}
+
+NTSTATUS PhImpersonateClientOfNamedPipe(
+    _In_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_IMPERSONATE,
+        NULL,
+        0,
+        NULL,
+        0
+        );
 
     return status;
 }

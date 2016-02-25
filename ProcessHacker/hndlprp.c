@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <kphuser.h>
 #include <hndlprv.h>
+#include <hndlinfo.h>
 #include <secedit.h>
 #include <phplug.h>
 

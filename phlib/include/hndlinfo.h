@@ -1,0 +1,151 @@
+#ifndef _PH_HNDLINFO_H
+#define _PH_HNDLINFO_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define MAX_OBJECT_TYPE_NUMBER 257
+
+typedef PPH_STRING (NTAPI *PPH_GET_CLIENT_ID_NAME)(
+    _In_ PCLIENT_ID ClientId
+    );
+
+PHLIBAPI
+PPH_GET_CLIENT_ID_NAME
+NTAPI
+PhSetHandleClientIdFunction(
+    _In_ PPH_GET_CLIENT_ID_NAME GetClientIdName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatNativeKeyName(
+    _In_ PPH_STRING Name
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSectionFileName(
+    _In_ HANDLE SectionHandle,
+    _Out_ PPH_STRING *FileName
+    );
+
+PHLIBAPI
+_Callback_ PPH_STRING
+NTAPI
+PhStdGetClientIdName(
+    _In_ PCLIENT_ID ClientId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetHandleInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectTypeNumber,
+    _Out_opt_ POBJECT_BASIC_INFORMATION BasicInformation,
+    _Out_opt_ PPH_STRING *TypeName,
+    _Out_opt_ PPH_STRING *ObjectName,
+    _Out_opt_ PPH_STRING *BestObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetHandleInformationEx(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ ULONG ObjectTypeNumber,
+    _Reserved_ ULONG Flags,
+    _Out_opt_ PNTSTATUS SubStatus,
+    _Out_opt_ POBJECT_BASIC_INFORMATION BasicInformation,
+    _Out_opt_ PPH_STRING *TypeName,
+    _Out_opt_ PPH_STRING *ObjectName,
+    _Out_opt_ PPH_STRING *BestObjectName,
+    _Reserved_ PVOID *ExtraInformation
+    );
+
+#define PH_FIRST_OBJECT_TYPE(ObjectTypes) \
+    (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectTypes) + ALIGN_UP(sizeof(OBJECT_TYPES_INFORMATION), ULONG_PTR))
+
+#define PH_NEXT_OBJECT_TYPE(ObjectType) \
+    (POBJECT_TYPE_INFORMATION)((PCHAR)(ObjectType) + sizeof(OBJECT_TYPE_INFORMATION) + \
+    ALIGN_UP(ObjectType->TypeName.MaximumLength, ULONG_PTR))
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumObjectTypes(
+    _Out_ POBJECT_TYPES_INFORMATION *ObjectTypes
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetObjectTypeNumber(
+    _In_ PUNICODE_STRING TypeName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallWithTimeout(
+    _In_ PUSER_THREAD_START_ROUTINE Routine,
+    _In_opt_ PVOID Context,
+    _In_opt_ PLARGE_INTEGER AcquireTimeout,
+    _In_ PLARGE_INTEGER CallTimeout
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallNtQueryObjectWithTimeout(
+    _In_ HANDLE Handle,
+    _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallNtQuerySecurityObjectWithTimeout(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_writes_bytes_opt_(Length) PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG Length,
+    _Out_ PULONG LengthNeeded
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallNtSetSecurityObjectWithTimeout(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallKphDuplicateObjectWithTimeout(
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ HANDLE TargetProcessHandle,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options
+    );
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

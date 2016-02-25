@@ -24,6 +24,7 @@
 #include <secedit.h>
 #include <emenu.h>
 #include <cpysave.h>
+#include <lsasup.h>
 
 typedef struct _ATTRIBUTE_NODE
 {

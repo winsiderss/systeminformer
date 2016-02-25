@@ -25,6 +25,7 @@
 #include <procprv.h>
 #include <kphuser.h>
 #include <emenu.h>
+#include <hndlinfo.h>
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
     _In_ struct _PH_EMENU_ITEM *Menu,

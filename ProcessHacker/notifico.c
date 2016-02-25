@@ -29,6 +29,7 @@
 #include <notifico.h>
 #include <notificop.h>
 #include <mainwndp.h>
+#include <shellapi.h>
 #include <windowsx.h>
 
 BOOLEAN PhNfTerminating = FALSE;

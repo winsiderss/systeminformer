@@ -85,7 +85,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;DEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN32;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -95,11 +95,13 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>phlib.lib;ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <AdditionalLibraryDirectories>..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
       <Command>update_rev.bat</Command>
@@ -112,7 +114,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;DEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN64;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -122,11 +124,13 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>phlib.lib;ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <AdditionalLibraryDirectories>..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
       <Command>update_rev.bat</Command>
@@ -140,7 +144,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -153,7 +157,7 @@
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>phlib.lib;ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -161,6 +165,8 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <AdditionalLibraryDirectories>..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
       <Command>update_rev.bat</Command>
@@ -174,7 +180,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -186,7 +192,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>phlib.lib;ntdll.lib;winsta.lib;comctl32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -194,6 +200,8 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <AdditionalLibraryDirectories>..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
       <Command>update_rev.bat</Command>
@@ -203,49 +211,6 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\phlib\apiimport.c" />
-    <ClCompile Include="..\phlib\basesup.c" />
-    <ClCompile Include="..\phlib\basesupa.c" />
-    <ClCompile Include="..\phlib\circbuf.c" />
-    <ClCompile Include="..\phlib\avltree.c" />
-    <ClCompile Include="..\phlib\colorbox.c" />
-    <ClCompile Include="..\phlib\cpysave.c" />
-    <ClCompile Include="..\phlib\data.c" />
-    <ClCompile Include="..\phlib\dspick.c" />
-    <ClCompile Include="..\phlib\emenu.c" />
-    <ClCompile Include="..\phlib\error.c" />
-    <ClCompile Include="..\phlib\extlv.c" />
-    <ClCompile Include="..\phlib\fastlock.c" />
-    <ClCompile Include="..\phlib\filepool.c" />
-    <ClCompile Include="..\phlib\format.c" />
-    <ClCompile Include="..\phlib\global.c" />
-    <ClCompile Include="..\phlib\graph.c" />
-    <ClCompile Include="..\phlib\guisup.c" />
-    <ClCompile Include="..\phlib\handle.c" />
-    <ClCompile Include="..\phlib\hexedit.c" />
-    <ClCompile Include="..\phlib\hndlinfo.c" />
-    <ClCompile Include="..\phlib\icotobmp.c" />
-    <ClCompile Include="..\phlib\iosup.c" />
-    <ClCompile Include="..\phlib\kph.c" />
-    <ClCompile Include="..\phlib\kphdata.c" />
-    <ClCompile Include="..\phlib\lsa.c" />
-    <ClCompile Include="..\phlib\mapimg.c" />
-    <ClCompile Include="..\phlib\maplib.c" />
-    <ClCompile Include="..\phlib\md5.c" />
-    <ClCompile Include="..\phlib\native.c" />
-    <ClCompile Include="..\phlib\provider.c" />
-    <ClCompile Include="..\phlib\queuedlock.c" />
-    <ClCompile Include="..\phlib\ref.c" />
-    <ClCompile Include="..\phlib\secdata.c" />
-    <ClCompile Include="..\phlib\secedit.c" />
-    <ClCompile Include="..\phlib\sha.c" />
-    <ClCompile Include="..\phlib\support.c" />
-    <ClCompile Include="..\phlib\svcsup.c" />
-    <ClCompile Include="..\phlib\symprv.c" />
-    <ClCompile Include="..\phlib\sync.c" />
-    <ClCompile Include="..\phlib\treenew.c" />
-    <ClCompile Include="..\phlib\verify.c" />
-    <ClCompile Include="..\phlib\workqueue.c" />
     <ClCompile Include="about.c" />
     <ClCompile Include="actions.c" />
     <ClCompile Include="affinity.c" />
@@ -357,8 +322,6 @@
     <ClCompile Include="mxml\mxml-string.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\phlib\circbuf_i.h" />
-    <ClInclude Include="..\phlib\format_i.h" />
     <ClInclude Include="include\actions.h" />
     <ClInclude Include="include\colmgr.h" />
     <ClInclude Include="include\extmgr.h" />
@@ -414,6 +377,7 @@
     <ClInclude Include="include\sysinfop.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ProcessHacker.def" />
     <None Include="resources\application.bmp" />
     <None Include="resources\application.ico" />
     <None Include="resources\application_go.ico" />

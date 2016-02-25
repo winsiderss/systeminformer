@@ -1,13 +1,17 @@
 #ifndef PHAPP_H
 #define PHAPP_H
 
-#ifdef PHAPP_EXPORT
-#define PHAPPAPI __declspec(dllexport)
+#if !defined(_PHAPP_)
+#define PHAPPAPI __declspec(dllimport)
 #else
-#define PHAPPAPI
+#define PHAPPAPI __declspec(dllexport)
 #endif
 
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
+#include <provider.h>
+#include <filestream.h>
+#include <fastlock.h>
 #include <treenew.h>
 #include <graph.h>
 #include <circbuf.h>
@@ -313,7 +317,9 @@ PhCopyListView(
     );
 
 PHAPPAPI
-VOID PhHandleListViewNotifyForCopy(
+VOID
+NTAPI
+PhHandleListViewNotifyForCopy(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle
     );

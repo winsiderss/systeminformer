@@ -30,7 +30,7 @@ PET_PROCESS_ICON EtProcIconCreateProcessIcon(
 
     processIcon = PhAllocate(sizeof(ET_PROCESS_ICON));
     processIcon->RefCount = 1;
-    processIcon->Icon = DuplicateIcon(NULL, Icon);
+    processIcon->Icon = CopyIcon(Icon);
 
     return processIcon;
 }

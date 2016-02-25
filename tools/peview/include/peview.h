@@ -1,7 +1,8 @@
 #ifndef PEVIEW_H
 #define PEVIEW_H
 
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
 #include <prsht.h>
 #include "resource.h"
 

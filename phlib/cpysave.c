@@ -20,7 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
+#include <ph.h>
+#include <guisup.h>
 #include <treenew.h>
 #include <cpysave.h>
 

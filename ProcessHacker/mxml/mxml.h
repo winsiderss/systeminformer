@@ -32,7 +32,7 @@
 #  include <errno.h>
 #  include <windows.h>
 
-#ifdef PHAPP_EXPORT
+#ifdef _PHAPP_
 #define PHMXMLAPI __declspec(dllexport)
 #else
 #define PHMXMLAPI
