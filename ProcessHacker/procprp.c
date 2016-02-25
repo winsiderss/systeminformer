@@ -647,9 +647,15 @@ VOID PhpUpdateProcessMitigationPolicies(
             }
 
             if (sb.String->Length != 0)
+            {
                 PhRemoveEndStringBuilder(&sb, 2);
+                SetDlgItemText(hwndDlg, IDC_MITIGATION, sb.String->Buffer);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_MITIGATION, L"None");
+            }
 
-            SetDlgItemText(hwndDlg, IDC_MITIGATION, sb.String->Buffer);
             PhDeleteStringBuilder(&sb);
         }
 
