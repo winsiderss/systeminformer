@@ -99,7 +99,7 @@ VOID PhNfLoadStage2(
 {
     ULONG i;
 
-    PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
+    PhNfMiniInfoEnabled = WindowsVersion >= WINDOWS_VISTA && !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
 
     for (i = PH_ICON_MINIMUM; i != PhNfMaximumIconId; i <<= 1)
     {
