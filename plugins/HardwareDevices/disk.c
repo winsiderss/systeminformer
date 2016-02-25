@@ -23,7 +23,7 @@
 
 #include "devices.h"
 
-static VOID DiskEntryDeleteProcedure(
+VOID DiskEntryDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
@@ -68,7 +68,7 @@ VOID DiskDrivesUpdate(
             continue;
 
         if (NT_SUCCESS(DiskDriveCreateHandle(
-            &deviceHandle, 
+            &deviceHandle,
             entry->Id.DevicePath
             )))
         {

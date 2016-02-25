@@ -23,7 +23,7 @@
 
 #include "devices.h"
 
-static VOID AdapterEntryDeleteProcedure(
+VOID AdapterEntryDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
@@ -164,7 +164,7 @@ VOID NetAdaptersUpdate(
             networkOutOctets = interfaceRow.dwOutOctets;
             mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
             networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue; 
+            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
 
             // HACK: Pull the Adapter name from the current query.
             if (!entry->AdapterName)
@@ -172,7 +172,7 @@ VOID NetAdaptersUpdate(
                 entry->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr);
             }
         }
-       
+
         if (mediaState == MediaConnectStateUnknown)
         {
             // We don't want incorrect data when the adapter is disabled.

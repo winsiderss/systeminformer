@@ -356,9 +356,9 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent, 
-                ProcessesUpdatedCallback, 
-                NULL, 
+                &PhProcessesUpdatedEvent,
+                ProcessesUpdatedCallback,
+                NULL,
                 &ProcessesUpdatedCallbackRegistration
                 );
 

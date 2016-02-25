@@ -23,7 +23,7 @@
 
 #include "devices.h"
 
-static VOID NetAdapterUpdateGraphs(
+VOID NetAdapterUpdateGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
@@ -35,7 +35,7 @@ static VOID NetAdapterUpdateGraphs(
     InvalidateRect(Context->GraphHandle, NULL, FALSE);
 }
 
-static VOID NetAdapterUpdatePanel(
+VOID NetAdapterUpdatePanel(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
@@ -148,7 +148,7 @@ static VOID NetAdapterUpdatePanel(
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
 }
 
-static INT_PTR CALLBACK NetAdapterPanelDialogProc(
+INT_PTR CALLBACK NetAdapterPanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -193,7 +193,7 @@ static INT_PTR CALLBACK NetAdapterPanelDialogProc(
     return FALSE;
 }
 
-static VOID UpdateNetAdapterDialog(
+VOID UpdateNetAdapterDialog(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
@@ -204,7 +204,7 @@ static VOID UpdateNetAdapterDialog(
     NetAdapterUpdatePanel(Context);
 }
 
-static INT_PTR CALLBACK NetAdapterDialogProc(
+INT_PTR CALLBACK NetAdapterDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -398,7 +398,7 @@ static INT_PTR CALLBACK NetAdapterDialogProc(
     return FALSE;
 }
 
-static BOOLEAN NetAdapterSectionCallback(
+BOOLEAN NetAdapterSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,

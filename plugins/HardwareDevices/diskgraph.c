@@ -308,7 +308,7 @@ INT_PTR CALLBACK DiskDriveDialogProc(
     return FALSE;
 }
 
-static BOOLEAN DiskDriveSectionCallback(
+BOOLEAN DiskDriveSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,

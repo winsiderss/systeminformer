@@ -93,7 +93,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
             HANDLE deviceHandle;
 
             devicePath[4] = 'A' + i;
-            
+
             if (NT_SUCCESS(PhCreateFileWin32(
                 &deviceHandle,
                 devicePath,
@@ -107,8 +107,8 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
 
                 if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
-                    deviceHandle, 
-                    &deviceNumber, 
+                    deviceHandle,
+                    &deviceNumber,
                     NULL
                     )));
                 {
@@ -137,8 +137,6 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     _Out_opt_ PPH_STRING* DiskSerial
     )
 {
-    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
-
     ULONG bufferLength;
     IO_STATUS_BLOCK isb;
     STORAGE_PROPERTY_QUERY query;

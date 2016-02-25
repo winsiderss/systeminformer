@@ -23,7 +23,7 @@
 
 #include "devices.h"
 
-static VOID NTAPI ProcessesUpdatedHandler(
+VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -36,30 +36,7 @@ static VOID NTAPI ProcessesUpdatedHandler(
     }
 }
 
-static VOID AddListViewGroup(
-    _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ PWSTR Text
-    )
-{
-    LVGROUP group = { LVGROUP_V5_SIZE };
-    group.mask = LVGF_HEADER | LVGF_GROUPID;
-
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        group.cbSize = sizeof(LVGROUP);
-        group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
-        group.uAlign = LVGA_HEADER_LEFT;
-        group.state = LVGS_COLLAPSIBLE;
-    }
-
-    group.iGroupId = Index;
-    group.pszHeader = Text;
-
-    ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
-}
-
-static VOID AddListViewItemGroups(
+VOID AddListViewItemGroups(
     _In_ HWND ListViewHandle
     )
 {
@@ -117,8 +94,7 @@ static VOID AddListViewItemGroups(
     AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, NETADAPTER_DETAILS_INDEX_ERRORS_TOTAL, L"Total discards", NULL);
 }
 
-
-static VOID NetAdapterLookupConfig(
+VOID NetAdapterLookupConfig(
     _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
@@ -336,7 +312,7 @@ static VOID NetAdapterLookupConfig(
     }
 }
 
-static VOID NETIOAPI_API_ NetAdapterChangeCallback(
+VOID NETIOAPI_API_ NetAdapterChangeCallback(
     _In_ PVOID CallerContext,
     _In_opt_ PMIB_IPINTERFACE_ROW Row,
     _In_ MIB_NOTIFICATION_TYPE NotificationType
@@ -357,7 +333,7 @@ static VOID NETIOAPI_API_ NetAdapterChangeCallback(
     }
 }
 
-static VOID NetAdapterUpdateDetails(
+VOID NetAdapterUpdateDetails(
     _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
@@ -541,8 +517,7 @@ static VOID NetAdapterUpdateDetails(
     //Context->LastDetailsIOutboundUnicastValue = interfaceStats.ifHCOutUcastOctets;
 }
 
-
-static INT_PTR CALLBACK AdapterDetailsDlgProc(
+INT_PTR CALLBACK AdapterDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -664,7 +639,7 @@ static INT_PTR CALLBACK AdapterDetailsDlgProc(
     return FALSE;
 }
 
-static VOID FreeDetailsContext(
+VOID FreeDetailsContext(
     _In_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
@@ -673,7 +648,7 @@ static VOID FreeDetailsContext(
     PhFree(Context);
 }
 
-static NTSTATUS ShowDetailsDialogThread(
+NTSTATUS ShowDetailsDialogThread(
     _In_ PVOID Parameter
     )
 {

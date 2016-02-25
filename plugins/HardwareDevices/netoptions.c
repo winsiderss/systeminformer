@@ -283,7 +283,7 @@ VOID FindNetworkAdapters(
             for (PIP_ADAPTER_ADDRESSES i = buffer; i; i = i->Next)
             {
                 PPH_STRING description;
-                
+
                 if (description = PhCreateString(i->Description))
                 {
                     AddNetworkAdapterToListView(
