@@ -3,6 +3,10 @@
 
 #include <kphapi.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _KPH_PARAMETERS
 {
     KPH_SECURITY_LEVEL SecurityLevel;
@@ -315,5 +319,9 @@ NTAPI
 KphInitializeDynamicPackage(
     _Out_ PKPH_DYN_PACKAGE Package
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

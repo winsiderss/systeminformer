@@ -1,6 +1,10 @@
 #ifndef _PH_HEXEDIT_H
 #define _PH_HEXEDIT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PH_HEXEDIT_CLASSNAME L"PhHexEdit"
 
 #define EDIT_NONE 0
@@ -36,5 +40,9 @@ BOOLEAN PhHexEditInitialization(
 
 #define HexEdit_SetBytesPerRow(hWnd, BytesPerRow) \
     SendMessage((hWnd), HEM_SETBYTESPERROW, (WPARAM)(BytesPerRow), 0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

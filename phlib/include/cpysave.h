@@ -1,6 +1,10 @@
 #ifndef _PH_CPYSAVE_H
 #define _PH_CPYSAVE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PH_EXPORT_MODE_TABS 0
 #define PH_EXPORT_MODE_SPACES 1
 #define PH_EXPORT_MODE_CSV 2
@@ -59,5 +63,9 @@ PPH_LIST PhGetListViewLines(
     _In_ HWND ListViewHandle,
     _In_ ULONG Mode
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

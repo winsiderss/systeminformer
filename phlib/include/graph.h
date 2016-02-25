@@ -1,6 +1,10 @@
 #ifndef _PH_GRAPH_H
 #define _PH_GRAPH_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Graph drawing
 
 extern RECT PhNormalGraphTextMargin;
@@ -240,5 +244,9 @@ VOID PhGraphStateGetDrawInfo(
     _In_ PPH_GRAPH_GETDRAWINFO GetDrawInfo,
     _In_ ULONG DataCount
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

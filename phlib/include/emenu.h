@@ -1,6 +1,10 @@
 #ifndef _PH_EMENU_H
 #define _PH_EMENU_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PH_EMENU_DISABLED 0x1
 #define PH_EMENU_CHECKED 0x2
 #define PH_EMENU_HIGHLIGHT 0x4
@@ -201,5 +205,9 @@ VOID PhModifyEMenuItem(
     _In_opt_ PWSTR Text,
     _In_opt_ HBITMAP Bitmap
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

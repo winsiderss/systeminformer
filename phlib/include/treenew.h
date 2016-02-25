@@ -1,6 +1,10 @@
 #ifndef _PH_TREENEW_H
 #define _PH_TREENEW_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PH_TREENEW_CLASSNAME L"PhTreeNew"
 
 #define PH_TREENEW_SEARCH_TIMEOUT 1000
@@ -659,5 +663,9 @@ FORCEINLINE BOOLEAN PhAddTreeNewColumnEx2(
 
     return !!TreeNew_AddColumn(hwnd, &column);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,6 +1,10 @@
 #ifndef _PH_DSPICK_H
 #define _PH_DSPICK_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PH_DSPICK_MULTISELECT 0x1
 
 typedef struct _PH_DSPICK_OBJECT
@@ -36,5 +40,9 @@ PHLIBAPI
 VOID PhFreeDsObjectPickerObjects(
     _In_ PPH_DSPICK_OBJECTS Objects
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

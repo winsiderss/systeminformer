@@ -1,6 +1,10 @@
 #ifndef _PH_WORKQUEUE_H
 #define _PH_WORKQUEUE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(DEBUG)
 extern PPH_LIST PhDbgWorkQueueList;
 extern PH_QUEUED_LOCK PhDbgWorkQueueListLock;
@@ -95,5 +99,9 @@ PhGetGlobalWorkQueue(
 
 /** Deprecated. Use PhGetGlobalWorkQueue instead. */
 PHLIBAPI VOID NTAPI PhQueueItemGlobalWorkQueue(PUSER_THREAD_START_ROUTINE Function, PVOID Context);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

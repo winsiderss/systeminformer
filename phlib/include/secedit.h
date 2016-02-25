@@ -1,6 +1,10 @@
 #ifndef _PH_SECEDIT_H
 #define _PH_SECEDIT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // secedit
 
 typedef struct _PH_ACCESS_ENTRY
@@ -151,5 +155,9 @@ PhGetAccessString(
     _In_ PPH_ACCESS_ENTRY AccessEntries,
     _In_ ULONG NumberOfAccessEntries
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

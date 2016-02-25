@@ -2,6 +2,10 @@
 
 #include <templ.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct T___(_PH_CIRCULAR_BUFFER, T)
 {
     ULONG Size;
@@ -128,5 +132,9 @@ FORCEINLINE T T___(PhAddItemCircularBuffer2, T)(
 
     return oldValue;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

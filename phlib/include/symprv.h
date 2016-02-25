@@ -1,6 +1,10 @@
 #ifndef _PH_SYMPRV_H
 #define _PH_SYMPRV_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 extern PH_CALLBACK PhSymInitCallback;
 
@@ -286,5 +290,9 @@ PhWalkThreadStack(
     _In_ PPH_WALK_THREAD_STACK_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

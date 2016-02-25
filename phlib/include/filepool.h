@@ -1,6 +1,10 @@
 #ifndef _PH_FILEPOOL_H
 #define _PH_FILEPOOL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // On-disk structures
 
 // Each file has at least one segment. Each segment has a number of blocks, which are allocated from
@@ -171,5 +175,9 @@ VOID PhSetUserContextFilePool(
     _Inout_ PPH_FILE_POOL Pool,
     _In_ PULONGLONG Context
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

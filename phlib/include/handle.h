@@ -1,6 +1,10 @@
 #ifndef _PH_HANDLE_H
 #define _PH_HANDLE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct _PH_HANDLE_TABLE;
 typedef struct _PH_HANDLE_TABLE *PPH_HANDLE_TABLE;
 
@@ -144,5 +148,9 @@ PhSetInformationHandleTable(
     _In_reads_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

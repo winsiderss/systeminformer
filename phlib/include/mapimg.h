@@ -1,6 +1,10 @@
 #ifndef _PH_MAPIMG_H
 #define _PH_MAPIMG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _PH_MAPPED_IMAGE
 {
     PVOID ViewBase;
@@ -376,5 +380,9 @@ PhGetMappedArchiveImportEntry(
     _In_ PPH_MAPPED_ARCHIVE_MEMBER Member,
     _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
