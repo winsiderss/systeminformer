@@ -82,17 +82,17 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
             NtCurrentProcess()
             )))
         {
+            BOOLEAN elevated = TRUE;
+            TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
+
             if (WINDOWS_HAS_UAC)
             {
-                BOOLEAN elevated = TRUE;
-                TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
-
                 PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
                 PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
-
-                attributes.Elevated = elevated;
-                attributes.ElevationType = elevationType;
             }
+
+            attributes.Elevated = elevated;
+            attributes.ElevationType = elevationType;
         }
 
         PhEndInitOnce(&initOnce);
