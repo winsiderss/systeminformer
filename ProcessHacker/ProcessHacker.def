@@ -498,6 +498,7 @@ EXPORTS
 	PhIconToBitmap
 	PhInitializeLayoutManager
 	PhLayoutManagerLayout
+	PhLoadIcon
 	PhLoadListViewColumnSettings
 	PhModalPropertySheet
 	PhRemoveListViewItem
