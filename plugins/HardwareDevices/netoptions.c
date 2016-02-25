@@ -423,6 +423,62 @@ VOID FindNetworkAdapters(
         PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
         Context->EnumeratingAdapters = FALSE;
     }
+
+
+    // HACK: Show all unknown devices.
+    Context->EnumeratingAdapters = TRUE;
+    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+
+    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    {
+        ULONG index = -1;
+        BOOLEAN found = FALSE;
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+
+        if (!entry)
+            continue;
+
+        while ((index = PhFindListViewItemByFlags(
+            Context->ListViewHandle,
+            index,
+            LVNI_ALL
+            )) != -1)
+        {
+            PDV_NETADAPTER_ID param;
+
+            if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+            {
+                if (EquivalentNetAdapterId(param, &entry->Id))
+                {
+                    found = TRUE;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            PPH_STRING description;
+
+            if (description = PhCreateString(L"Unknown network adapter"))
+            {
+                AddNetworkAdapterToListView(
+                    Context,
+                    FALSE,
+                    entry->Id.InterfaceIndex,
+                    entry->Id.InterfaceLuid,
+                    entry->Id.InterfaceGuid,
+                    description
+                    );
+
+                PhDereferenceObject(description);
+            }
+        }
+
+        PhDereferenceObjectDeferDelete(entry);
+    }
+
+    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+    Context->EnumeratingAdapters = FALSE;
 }
 
 PPH_STRING FindNetworkDeviceInstance(

@@ -407,10 +407,12 @@ ULONG64 NetworkAdapterQueryValue(
     return 0;
 }
 
-MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PDV_NETADAPTER_ID Id
+BOOLEAN QueryInterfaceRowVista(
+    _In_ PDV_NETADAPTER_ID Id,
+    _Out_ PMIB_IF_ROW2 InterfaceRow
     )
 {
+    BOOLEAN result = FALSE;
     MIB_IF_ROW2 interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IF_ROW2));
@@ -420,7 +422,11 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
 
     if (GetIfEntry2)
     {
-        GetIfEntry2(&interfaceRow);
+        if (GetIfEntry2(&interfaceRow) == NO_ERROR)
+        {
+            result = TRUE;
+            *InterfaceRow = interfaceRow;
+        }
     }
 
     //MIB_IPINTERFACE_ROW interfaceTable;
@@ -430,20 +436,26 @@ MIB_IF_ROW2 QueryInterfaceRowVista(
     //interfaceTable.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
     //GetIpInterfaceEntry(&interfaceTable);
 
-    return interfaceRow;
+    return result;
 }
 
-MIB_IFROW QueryInterfaceRowXP(
-    _In_ PDV_NETADAPTER_ID Id
+BOOLEAN QueryInterfaceRowXP(
+    _In_ PDV_NETADAPTER_ID Id,
+    _Out_ PMIB_IFROW InterfaceRow
     )
 {
+    BOOLEAN result = FALSE;
     MIB_IFROW interfaceRow;
 
     memset(&interfaceRow, 0, sizeof(MIB_IFROW));
 
     interfaceRow.dwIndex = Id->InterfaceIndex;
 
-    GetIfEntry(&interfaceRow);
+    if (GetIfEntry(&interfaceRow) == NO_ERROR)
+    {
+        result = TRUE;
+        *InterfaceRow = interfaceRow;
+    }
 
     //MIB_IPINTERFACE_ROW interfaceTable;
     //memset(&interfaceTable, 0, sizeof(MIB_IPINTERFACE_ROW));
@@ -451,7 +463,7 @@ MIB_IFROW QueryInterfaceRowXP(
     //interfaceTable.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
     //GetIpInterfaceEntry(&interfaceTable);
 
-    return interfaceRow;
+    return result;
 }
 
 

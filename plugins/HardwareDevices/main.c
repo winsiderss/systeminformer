@@ -132,8 +132,10 @@ VOID NTAPI SystemInformationInitializingCallback(
         if (!entry)
             continue;
 
-        //if (entry->DevicePresent)
-        DiskDriveSysInfoInitializing(pluginEntry, entry);
+        if (entry->DevicePresent)
+        {
+            DiskDriveSysInfoInitializing(pluginEntry, entry);
+        }
     }
 
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
@@ -149,7 +151,10 @@ VOID NTAPI SystemInformationInitializingCallback(
         if (!entry)
             continue;
 
-        NetAdapterSysInfoInitializing(pluginEntry, entry);
+        if (entry->DevicePresent)
+        {
+            NetAdapterSysInfoInitializing(pluginEntry, entry);
+        }
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);

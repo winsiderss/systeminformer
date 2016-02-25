@@ -132,42 +132,58 @@ VOID NetAdaptersUpdate(
                 entry->AdapterName = NetworkAdapterQueryName(deviceHandle, entry->Id.InterfaceGuid);
             }
 
+            entry->DevicePresent = TRUE;
+
             NtClose(deviceHandle);
         }
         else if (WindowsVersion >= WINDOWS_VISTA && GetIfEntry2)
         {
             MIB_IF_ROW2 interfaceRow;
 
-            interfaceRow = QueryInterfaceRowVista(&entry->Id);
-
-            networkInOctets = interfaceRow.InOctets;
-            networkOutOctets = interfaceRow.OutOctets;
-            mediaState = interfaceRow.MediaConnectState;
-            networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-
-            // HACK: Pull the Adapter name from the current query.
-            if (!entry->AdapterName)
+            if (QueryInterfaceRowVista(&entry->Id, &interfaceRow))
             {
-                entry->AdapterName = PhCreateString(interfaceRow.Description);
+                networkInOctets = interfaceRow.InOctets;
+                networkOutOctets = interfaceRow.OutOctets;
+                mediaState = interfaceRow.MediaConnectState;
+                networkRcvSpeed = networkInOctets - entry->LastInboundValue;
+                networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
+
+                // HACK: Pull the Adapter name from the current query.
+                if (!entry->AdapterName && interfaceRow.Description[0] != L'\0')
+                {
+                    entry->AdapterName = PhCreateString(interfaceRow.Description);
+                }
+
+                entry->DevicePresent = TRUE;
+            }
+            else
+            {
+                entry->DevicePresent = FALSE;
             }
         }
         else
         {
             MIB_IFROW interfaceRow;
 
-            interfaceRow = QueryInterfaceRowXP(&entry->Id);
-
-            networkInOctets = interfaceRow.dwInOctets;
-            networkOutOctets = interfaceRow.dwOutOctets;
-            mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
-            networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-            networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-
-            // HACK: Pull the Adapter name from the current query.
-            if (!entry->AdapterName)
+            if (QueryInterfaceRowXP(&entry->Id, &interfaceRow))
             {
-                entry->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr);
+                networkInOctets = interfaceRow.dwInOctets;
+                networkOutOctets = interfaceRow.dwOutOctets;
+                mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
+                networkRcvSpeed = networkInOctets - entry->LastInboundValue;
+                networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
+
+                // HACK: Pull the Adapter name from the current query.
+                if (!entry->AdapterName && strlen(interfaceRow.bDescr) > 0)
+                {
+                    entry->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr);
+                }
+
+                entry->DevicePresent = TRUE;
+            }
+            else
+            {
+                entry->DevicePresent = FALSE;
             }
         }
 

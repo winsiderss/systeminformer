@@ -119,7 +119,7 @@ VOID DiskDrivesUpdate(
 
                 entry->QueueDepth = diskPerformance.QueueDepth;
                 entry->SplitCount = diskPerformance.SplitCount;
-                //entry->DevicePresent = TRUE;
+                entry->DevicePresent = TRUE;
             }
             else
             {
@@ -137,7 +137,7 @@ VOID DiskDrivesUpdate(
                 entry->ActiveTime = 0.0f;
                 entry->QueueDepth = 0;
                 entry->SplitCount = 0;
-                //entry->DevicePresent = FALSE;
+                entry->DevicePresent = FALSE;
             }
 
             // HACK: Pull the Disk name from the current query.
@@ -175,7 +175,7 @@ VOID DiskDrivesUpdate(
             entry->ActiveTime = 0.0f;
             entry->QueueDepth = 0;
             entry->SplitCount = 0;
-            //entry->DevicePresent = FALSE;
+            entry->DevicePresent = FALSE;
         }
 
         if (!entry->HaveFirstSample)

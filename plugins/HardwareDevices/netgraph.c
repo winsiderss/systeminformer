@@ -118,23 +118,25 @@ VOID NetAdapterUpdatePanel(
     {
         MIB_IF_ROW2 interfaceRow;
 
-        interfaceRow = QueryInterfaceRowVista(&Context->AdapterEntry->Id);
-
-        inOctets = interfaceRow.InOctets;
-        outOctets = interfaceRow.OutOctets;
-        mediaState = interfaceRow.MediaConnectState;
-        linkSpeed = interfaceRow.TransmitLinkSpeed;
+        if (QueryInterfaceRowVista(&Context->AdapterEntry->Id, &interfaceRow))
+        {
+            inOctets = interfaceRow.InOctets;
+            outOctets = interfaceRow.OutOctets;
+            mediaState = interfaceRow.MediaConnectState;
+            linkSpeed = interfaceRow.TransmitLinkSpeed;
+        }
     }
     else
     {
         MIB_IFROW interfaceRow;
 
-        interfaceRow = QueryInterfaceRowXP(&Context->AdapterEntry->Id);
-
-        inOctets = interfaceRow.dwInOctets;
-        outOctets = interfaceRow.dwOutOctets;
-        mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateUnknown;
-        linkSpeed = interfaceRow.dwSpeed;
+        if (QueryInterfaceRowXP(&Context->AdapterEntry->Id, &interfaceRow))
+        {
+            inOctets = interfaceRow.dwInOctets;
+            outOctets = interfaceRow.dwOutOctets;
+            mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateUnknown;
+            linkSpeed = interfaceRow.dwSpeed;
+        }
     }
 
     if (mediaState == MediaConnectStateConnected)
@@ -146,6 +148,19 @@ VOID NetAdapterUpdatePanel(
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECIEVED, PhaFormatSize(inOctets, -1)->Buffer);
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
+}
+
+VOID UpdateNetAdapterDialog(
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    if (Context->AdapterEntry->AdapterName)
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
+    else
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown network adapter");
+
+    NetAdapterUpdateGraphs(Context);
+    NetAdapterUpdatePanel(Context);
 }
 
 INT_PTR CALLBACK NetAdapterPanelDialogProc(
@@ -191,17 +206,6 @@ INT_PTR CALLBACK NetAdapterPanelDialogProc(
     }
 
     return FALSE;
-}
-
-VOID UpdateNetAdapterDialog(
-    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
-    )
-{
-    if (Context->AdapterEntry->AdapterName)
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->AdapterName->Buffer);
-
-    NetAdapterUpdateGraphs(Context);
-    NetAdapterUpdatePanel(Context);
 }
 
 INT_PTR CALLBACK NetAdapterDialogProc(
@@ -262,7 +266,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             if (context->AdapterEntry->AdapterName)
                 SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->AdapterName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Network adapter");
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown network adapter");
 
             context->PanelWindowHandle = CreateDialogParam(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, (LPARAM)context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
@@ -517,7 +521,7 @@ BOOLEAN NetAdapterSectionCallback(
                 );
 
             if (!drawPanel->Title)
-                drawPanel->Title = PhCreateString(L"Network adapter");
+                drawPanel->Title = PhCreateString(L"Unknown network adapter");
         }
         return TRUE;
     }

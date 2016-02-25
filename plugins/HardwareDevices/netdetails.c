@@ -396,65 +396,67 @@ VOID NetAdapterUpdateDetails(
         {
             MIB_IF_ROW2 interfaceRow;
 
-            interfaceRow = QueryInterfaceRowVista(&Context->AdapterId);
+            if (QueryInterfaceRowVista(&Context->AdapterId, &interfaceRow))
+            {
+                interfaceStats.ifInDiscards = interfaceRow.InDiscards;
+                interfaceStats.ifInErrors = interfaceRow.InErrors;
+                interfaceStats.ifHCInOctets = interfaceRow.InOctets;
+                interfaceStats.ifHCInUcastPkts = interfaceRow.InUcastPkts;
+                //interfaceStats.ifHCInMulticastPkts;
+                //interfaceStats.ifHCInBroadcastPkts;
+                interfaceStats.ifHCOutOctets = interfaceRow.OutOctets;
+                interfaceStats.ifHCOutUcastPkts = interfaceRow.OutUcastPkts;
+                //interfaceStats.ifHCOutMulticastPkts;
+                //interfaceStats.ifHCOutBroadcastPkts;
+                interfaceStats.ifOutErrors = interfaceRow.OutErrors;
+                interfaceStats.ifOutDiscards = interfaceRow.OutDiscards;
+                interfaceStats.ifHCInUcastOctets = interfaceRow.InUcastOctets;
+                interfaceStats.ifHCInMulticastOctets = interfaceRow.InMulticastOctets;
+                interfaceStats.ifHCInBroadcastOctets = interfaceRow.InBroadcastOctets;
+                interfaceStats.ifHCOutUcastOctets = interfaceRow.OutUcastOctets;
+                interfaceStats.ifHCOutMulticastOctets = interfaceRow.OutMulticastOctets;
+                interfaceStats.ifHCOutBroadcastOctets = interfaceRow.OutBroadcastOctets;
+                //interfaceRow.InNUcastPkts;
+                //interfaceRow.InUnknownProtos;
+                //interfaceRow.OutNUcastPkts;
+                //interfaceRow.OutQLen;
 
-            interfaceStats.ifInDiscards = interfaceRow.InDiscards;
-            interfaceStats.ifInErrors = interfaceRow.InErrors;
-            interfaceStats.ifHCInOctets = interfaceRow.InOctets;
-            interfaceStats.ifHCInUcastPkts = interfaceRow.InUcastPkts;
-            //interfaceStats.ifHCInMulticastPkts;
-            //interfaceStats.ifHCInBroadcastPkts;
-            interfaceStats.ifHCOutOctets = interfaceRow.OutOctets;
-            interfaceStats.ifHCOutUcastPkts = interfaceRow.OutUcastPkts;
-            //interfaceStats.ifHCOutMulticastPkts;
-            //interfaceStats.ifHCOutBroadcastPkts;
-            interfaceStats.ifOutErrors = interfaceRow.OutErrors;
-            interfaceStats.ifOutDiscards = interfaceRow.OutDiscards;
-            interfaceStats.ifHCInUcastOctets = interfaceRow.InUcastOctets;
-            interfaceStats.ifHCInMulticastOctets = interfaceRow.InMulticastOctets;
-            interfaceStats.ifHCInBroadcastOctets = interfaceRow.InBroadcastOctets;
-            interfaceStats.ifHCOutUcastOctets = interfaceRow.OutUcastOctets;
-            interfaceStats.ifHCOutMulticastOctets = interfaceRow.OutMulticastOctets;
-            interfaceStats.ifHCOutBroadcastOctets = interfaceRow.OutBroadcastOctets;
-            //interfaceRow.InNUcastPkts;
-            //interfaceRow.InUnknownProtos;
-            //interfaceRow.OutNUcastPkts;
-            //interfaceRow.OutQLen;
-
-            mediaState = interfaceRow.MediaConnectState;
-            interfaceLinkSpeed = interfaceRow.TransmitLinkSpeed;
+                mediaState = interfaceRow.MediaConnectState;
+                interfaceLinkSpeed = interfaceRow.TransmitLinkSpeed;
+            }
         }
         else
         {
             MIB_IFROW interfaceRow;
 
-            interfaceRow = QueryInterfaceRowXP(&Context->AdapterId);
+            if (QueryInterfaceRowXP(&Context->AdapterId, &interfaceRow))
+            {
+                interfaceStats.ifInDiscards = interfaceRow.dwInDiscards;
+                interfaceStats.ifInErrors = interfaceRow.dwInErrors;
+                interfaceStats.ifHCInOctets = interfaceRow.dwInOctets;
+                interfaceStats.ifHCInUcastPkts = interfaceRow.dwInUcastPkts;
+                //interfaceStats.ifHCInMulticastPkts;
+                //interfaceStats.ifHCInBroadcastPkts;
+                interfaceStats.ifHCOutOctets = interfaceRow.dwOutOctets;
+                interfaceStats.ifHCOutUcastPkts = interfaceRow.dwOutUcastPkts;
+                //interfaceStats.ifHCOutMulticastPkts;
+                //interfaceStats.ifHCOutBroadcastPkts;
+                interfaceStats.ifOutErrors = interfaceRow.dwOutErrors;
+                interfaceStats.ifOutDiscards = interfaceRow.dwOutDiscards;
+                //interfaceStats.ifHCInUcastOctets;
+                //interfaceStats.ifHCInMulticastOctets;
+                //interfaceStats.ifHCInBroadcastOctets;
+                //interfaceStats.ifHCOutUcastOctets;
+                //interfaceStats.ifHCOutMulticastOctets;
+                //interfaceStats.ifHCOutBroadcastOctets;
+                //interfaceRow.InNUcastPkts;
+                //interfaceRow.InUnknownProtos;
+                //interfaceRow.OutNUcastPkts;
+                //interfaceRow.OutQLen;
 
-            interfaceStats.ifInDiscards = interfaceRow.dwInDiscards;
-            interfaceStats.ifInErrors = interfaceRow.dwInErrors;
-            interfaceStats.ifHCInOctets = interfaceRow.dwInOctets;
-            interfaceStats.ifHCInUcastPkts = interfaceRow.dwInUcastPkts;
-            //interfaceStats.ifHCInMulticastPkts;
-            //interfaceStats.ifHCInBroadcastPkts;
-            interfaceStats.ifHCOutOctets = interfaceRow.dwOutOctets;
-            interfaceStats.ifHCOutUcastPkts = interfaceRow.dwOutUcastPkts;
-            //interfaceStats.ifHCOutMulticastPkts;
-            //interfaceStats.ifHCOutBroadcastPkts;
-            interfaceStats.ifOutErrors = interfaceRow.dwOutErrors;
-            interfaceStats.ifOutDiscards = interfaceRow.dwOutDiscards;
-            //interfaceStats.ifHCInUcastOctets;
-            //interfaceStats.ifHCInMulticastOctets;
-            //interfaceStats.ifHCInBroadcastOctets;
-            //interfaceStats.ifHCOutUcastOctets;
-            //interfaceStats.ifHCOutMulticastOctets;
-            //interfaceStats.ifHCOutBroadcastOctets;
-            //interfaceRow.InNUcastPkts;
-            //interfaceRow.InUnknownProtos;
-            //interfaceRow.OutNUcastPkts;
-            //interfaceRow.OutQLen;
-
-            mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
-            interfaceLinkSpeed = interfaceRow.dwSpeed;
+                mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
+                interfaceLinkSpeed = interfaceRow.dwSpeed;
+            }
         }
     }
 
@@ -471,7 +473,6 @@ VOID NetAdapterUpdateDetails(
     }
 
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_STATE, 1, mediaState == MediaConnectStateConnected ? L"Connected" : L"Disconnected");
-
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_LINKSPEED, 1, PhaFormatString(L"%s/s", PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENT, 1, PhaFormatSize(interfaceStats.ifHCOutOctets, -1)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVED, 1, PhaFormatSize(interfaceStats.ifHCInOctets, -1)->Buffer);

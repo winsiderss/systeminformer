@@ -113,7 +113,8 @@ typedef struct _DV_NETADAPTER_ENTRY
             BOOLEAN HaveFirstSample : 1;
             BOOLEAN CheckedDeviceSupport : 1;
             BOOLEAN DeviceSupported : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN DevicePresent : 1;
+            BOOLEAN Spare : 3;
         };
     };
 
@@ -351,12 +352,14 @@ ULONG64 NetworkAdapterQueryValue(
     _In_ NDIS_OID OpCode
     );
 
-MIB_IF_ROW2 QueryInterfaceRowVista(
-    _In_ PDV_NETADAPTER_ID Id
+BOOLEAN QueryInterfaceRowVista(
+    _In_ PDV_NETADAPTER_ID Id,
+    _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
-MIB_IFROW QueryInterfaceRowXP(
-    _In_ PDV_NETADAPTER_ID Id
+BOOLEAN QueryInterfaceRowXP(
+    _In_ PDV_NETADAPTER_ID Id,
+    _Out_ PMIB_IFROW InterfaceRow
     );
 
 // netoptions.c
@@ -399,8 +402,8 @@ typedef struct _DV_DISK_ENTRY
         {
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
-            //BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 6;
+            BOOLEAN DevicePresent : 1;
+            BOOLEAN Spare : 5;
         };
     };
 

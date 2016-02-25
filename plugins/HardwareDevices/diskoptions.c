@@ -400,6 +400,60 @@ VOID FindDiskDrives(
 
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
     Context->EnumeratingDisks = FALSE;
+
+
+    // HACK: Show all unknown devices.
+    Context->EnumeratingDisks = TRUE;
+    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+
+    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+    {
+        ULONG index = -1;
+        BOOLEAN found = FALSE;
+        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+
+        if (!entry)
+            continue;
+
+        while ((index = PhFindListViewItemByFlags(
+            Context->ListViewHandle,
+            index,
+            LVNI_ALL
+            )) != -1)
+        {
+            PDV_DISK_ID param;
+
+            if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+            {
+                if (EquivalentDiskId(param, &entry->Id))
+                {
+                    found = TRUE;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            PPH_STRING description;
+
+            if (description = PhCreateString(L"Unknown disk"))
+            {
+                AddDiskDriveToListView(
+                    Context,
+                    FALSE,
+                    entry->Id.DevicePath,
+                    description
+                    );
+
+                PhDereferenceObject(description);
+            }
+        }
+
+        PhDereferenceObjectDeferDelete(entry);
+    }
+
+    PhReleaseQueuedLockShared(&DiskDrivesListLock);
+    Context->EnumeratingDisks = FALSE;
 }
 
 PPH_STRING FindDiskDeviceInstance(
