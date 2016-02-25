@@ -142,7 +142,6 @@
     <ClCompile Include="apiimport.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
-    <ClCompile Include="basesupa.c" />
     <ClCompile Include="circbuf.c" />
     <ClCompile Include="colorbox.c" />
     <ClCompile Include="cpysave.c" />

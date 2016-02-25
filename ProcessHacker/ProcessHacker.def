@@ -5,7 +5,6 @@ EXPORTS
 ;
 
 ; ref
-	PhaDereferenceObject
 	PhAutoDereferenceObject
 	PhCreateAlloc
 	PhCreateObject
@@ -52,10 +51,6 @@ EXPORTS
 	WindowsVersion DATA
 
 ; phbasesup
-	PhaConcatStrings
-	PhaConcatStrings2
-	PhaCreateString
-	PhaCreateStringEx
 	PhAddElementAvlTree
 	PhAddEntryHashtable
 	PhAddEntryHashtableEx
@@ -65,14 +60,11 @@ EXPORTS
 	PhAddItemsArray
 	PhAddItemSimpleHashtable
 	PhAddItemsList
-	PhaDuplicateString
-	PhaFormatString
 	PhAllocate
 	PhAllocateExSafe
 	PhAllocateFromFreeList
 	PhAllocatePage
 	PhAllocateSafe
-	PhaLowerString
 	PhAppendBytesBuilder
 	PhAppendBytesBuilder2
 	PhAppendBytesBuilderEx
@@ -83,8 +75,6 @@ EXPORTS
 	PhAppendStringBuilder
 	PhAppendStringBuilder2
 	PhAppendStringBuilderEx
-	PhaSubstring
-	PhaUpperString
 	PhBufferToHexString
 	PhBufferToHexStringEx
 	PhClearArray
@@ -232,8 +222,6 @@ EXPORTS
 	PhUpperBoundElementAvlTree
 	PhUpperDualBoundElementAvlTree
 	PhWriteUnicodeDecoder
-	PhxfDivideSingle2U
-	PhxfFillMemoryUlong
 	PhZeroExtendToUtf16Buffer
 	PhZeroExtendToUtf16Ex
 
@@ -590,7 +578,6 @@ EXPORTS
 	PhGetGlobalWorkQueue
 	PhInitializeWorkQueue
 	PhInitializeWorkQueueEnvironment
-	PhQueueItemGlobalWorkQueue
 	PhQueueItemWorkQueue
 	PhQueueItemWorkQueueEx
 	PhWaitForWorkQueue

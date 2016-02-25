@@ -5898,11 +5898,6 @@ VOID PhFillMemoryUlong(
     }
 }
 
-VOID FASTCALL PhxfFillMemoryUlong(PULONG Memory, ULONG Value, ULONG Count)
-{
-    PhFillMemoryUlong(Memory, Value, Count);
-}
-
 /**
  * Divides an array of numbers by a number.
  *
@@ -5985,9 +5980,4 @@ VOID PhDivideSinglesBySingle(
         *A++ /= B;
         break;
     }
-}
-
-VOID FASTCALL PhxfDivideSingle2U(PFLOAT A, FLOAT B, ULONG Count)
-{
-    PhDivideSinglesBySingle(A, B, Count);
 }

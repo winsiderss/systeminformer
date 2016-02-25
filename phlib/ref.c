@@ -751,11 +751,3 @@ _May_raise_ PVOID PhAutoDereferenceObject(
 
     return Object;
 }
-
-VOID PhaDereferenceObject(PVOID Object)
-{
-    if (!Object)
-        PhRaiseStatus(STATUS_INVALID_PARAMETER);
-
-    PhAutoDereferenceObject(Object);
-}

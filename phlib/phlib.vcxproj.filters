@@ -14,9 +14,6 @@
     <ClCompile Include="basesup.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="basesupa.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="circbuf.c">
       <Filter>Source Files</Filter>
     </ClCompile>

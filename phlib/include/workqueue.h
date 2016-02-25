@@ -101,9 +101,6 @@ PhGetGlobalWorkQueue(
     VOID
     );
 
-/** Deprecated. Use PhGetGlobalWorkQueue instead. */
-PHLIBAPI VOID NTAPI PhQueueItemGlobalWorkQueue(PUSER_THREAD_START_ROUTINE Function, PVOID Context);
-
 #ifdef __cplusplus
 }
 #endif

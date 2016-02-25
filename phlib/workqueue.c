@@ -236,11 +236,6 @@ PPH_WORK_QUEUE PhGetGlobalWorkQueue(
     return &PhGlobalWorkQueue;
 }
 
-VOID PhQueueItemGlobalWorkQueue(PUSER_THREAD_START_ROUTINE Function, PVOID Context)
-{
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), Function, Context);
-}
-
 VOID PhpGetDefaultWorkQueueEnvironment(
     _Out_ PPH_WORK_QUEUE_ENVIRONMENT Environment
     )

@@ -27,6 +27,8 @@ Process Hacker
    * Fixed multi monitor window placement bug
    * Fixed handle enumeration bug affecting processes with PID >= 65536
    * Fixed Interrupts being missing from the max CPU usage history
+ * NOTE:
+   * This release has significant internal code changes. Please make sure all plugins are up-to-date.
 
 2.37
  * HIGHLIGHTS:

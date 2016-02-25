@@ -3311,9 +3311,6 @@ PhFillMemoryUlong(
     _In_ SIZE_T Count
     );
 
-/** Deprecated. Use PhFillMemoryUlong instead. */
-PHLIBAPI VOID FASTCALL PhxfFillMemoryUlong(PULONG Memory, ULONG Value, ULONG Count);
-
 PHLIBAPI
 VOID
 NTAPI
@@ -3323,8 +3320,112 @@ PhDivideSinglesBySingle(
     _In_ SIZE_T Count
     );
 
-/** Deprecated. Use PhDivideSinglesBySingle instead. */
-PHLIBAPI VOID FASTCALL PhxfDivideSingle2U(PFLOAT A, FLOAT B, ULONG Count);
+// Auto-dereference convenience functions
+
+FORCEINLINE
+PPH_STRING
+PhaCreateString(
+    _In_ PWSTR Buffer
+    )
+{
+    return PH_AUTO(PhCreateString(Buffer));
+}
+
+FORCEINLINE
+PPH_STRING
+PhaCreateStringEx(
+    _In_opt_ PWSTR Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    return PH_AUTO(PhCreateStringEx(Buffer, Length));
+}
+
+FORCEINLINE
+PPH_STRING
+PhaDuplicateString(
+    _In_ PPH_STRING String
+    )
+{
+    return PH_AUTO(PhDuplicateString(String));
+}
+
+FORCEINLINE
+PPH_STRING
+PhaConcatStrings(
+    _In_ ULONG Count,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Count);
+
+    return PH_AUTO(PhConcatStrings_V(Count, argptr));
+}
+
+FORCEINLINE
+PPH_STRING
+PhaConcatStrings2(
+    _In_ PWSTR String1,
+    _In_ PWSTR String2
+    )
+{
+    return PH_AUTO(PhConcatStrings2(String1, String2));
+}
+
+FORCEINLINE
+PPH_STRING
+PhaFormatString(
+    _In_ _Printf_format_string_ PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+
+    return PH_AUTO(PhFormatString_V(Format, argptr));
+}
+
+FORCEINLINE
+PPH_STRING
+PhaLowerString(
+    _In_ PPH_STRING String
+    )
+{
+    PPH_STRING newString;
+
+    newString = PhaDuplicateString(String);
+    _wcslwr(newString->Buffer);
+
+    return newString;
+}
+
+FORCEINLINE
+PPH_STRING
+PhaUpperString(
+    _In_ PPH_STRING String
+    )
+{
+    PPH_STRING newString;
+
+    newString = PhaDuplicateString(String);
+    _wcsupr(newString->Buffer);
+
+    return newString;
+}
+
+FORCEINLINE
+PPH_STRING
+PhaSubstring(
+    _In_ PPH_STRING String,
+    _In_ SIZE_T StartIndex,
+    _In_ SIZE_T Count
+    )
+{
+    return PH_AUTO(PhSubstring(String, StartIndex, Count));
+}
 
 // Format
 
@@ -3468,77 +3569,6 @@ PhFormatToBuffer(
     _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
     _In_opt_ SIZE_T BufferLength,
     _Out_opt_ PSIZE_T ReturnLength
-    );
-
-// basesupa
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaCreateString(
-    _In_ PWSTR Buffer
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaCreateStringEx(
-    _In_opt_ PWSTR Buffer,
-    _In_ SIZE_T Length
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaDuplicateString(
-    _In_ PPH_STRING String
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaConcatStrings(
-    _In_ ULONG Count,
-    ...
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaConcatStrings2(
-    _In_ PWSTR String1,
-    _In_ PWSTR String2
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaFormatString(
-    _In_ _Printf_format_string_ PWSTR Format,
-    ...
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaLowerString(
-    _In_ PPH_STRING String
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaUpperString(
-    _In_ PPH_STRING String
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhaSubstring(
-    _In_ PPH_STRING String,
-    _In_ SIZE_T StartIndex,
-    _In_ SIZE_T Count
     );
 
 // error
