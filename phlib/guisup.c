@@ -26,6 +26,8 @@
 #include <shellapi.h>
 #include <windowsx.h>
 
+#define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
+
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _IsImmersiveProcess IsImmersiveProcess_I;
 _RunFileDlg RunFileDlg;
@@ -44,7 +46,9 @@ _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 _SHParseDisplayName SHParseDisplayName_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
-#define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
+static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
+static PPH_HASHTABLE SharedIconCacheHashtable;
+static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 
 VOID PhGuiSupportInitialization(
     VOID
@@ -657,6 +661,153 @@ VOID PhSetImageListBitmap(
         ImageList_Replace(ImageList, Index, bitmap, NULL);
         DeleteObject(bitmap);
     }
+}
+
+static BOOLEAN SharedIconCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPHP_ICON_ENTRY entry1 = Entry1;
+    PPHP_ICON_ENTRY entry2 = Entry2;
+
+    if (entry1->InstanceHandle != entry2->InstanceHandle ||
+        entry1->Width != entry2->Width ||
+        entry1->Height != entry2->Height)
+    {
+        return FALSE;
+    }
+
+    if (IS_INTRESOURCE(entry1->Name))
+    {
+        if (IS_INTRESOURCE(entry2->Name))
+            return entry1->Name == entry2->Name;
+        else
+            return FALSE;
+    }
+    else
+    {
+        if (!IS_INTRESOURCE(entry2->Name))
+            return PhEqualStringZ(entry1->Name, entry2->Name, FALSE);
+        else
+            return FALSE;
+    }
+}
+
+static ULONG SharedIconCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPHP_ICON_ENTRY entry = Entry;
+    ULONG nameHash;
+
+    if (IS_INTRESOURCE(entry->Name))
+        nameHash = PtrToUlong(entry->Name);
+    else
+        nameHash = PhHashBytes((PUCHAR)entry->Name, PhCountStringZ(entry->Name));
+
+    return nameHash ^ (PtrToUlong(entry->InstanceHandle) >> 5) ^ (entry->Width << 3) ^ entry->Height;
+}
+
+HICON PhLoadIcon(
+    _In_opt_ HINSTANCE InstanceHandle,
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_opt_ ULONG Width,
+    _In_opt_ ULONG Height
+    )
+{
+    static _LoadIconMetric loadIconMetric;
+    static _LoadIconWithScaleDown loadIconWithScaleDown;
+
+    PHP_ICON_ENTRY entry;
+    PPHP_ICON_ENTRY actualEntry;
+    HICON icon = NULL;
+
+    if (PhBeginInitOnce(&SharedIconCacheInitOnce))
+    {
+        loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
+        loadIconWithScaleDown = (_LoadIconWithScaleDown)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconWithScaleDown");
+        SharedIconCacheHashtable = PhCreateHashtable(sizeof(PHP_ICON_ENTRY),
+            SharedIconCacheHashtableEqualFunction, SharedIconCacheHashtableHashFunction, 10);
+        PhEndInitOnce(&SharedIconCacheInitOnce);
+    }
+
+    if (Flags & PH_LOAD_ICON_SHARED)
+    {
+        PhAcquireQueuedLockExclusive(&SharedIconCacheLock);
+
+        entry.InstanceHandle = InstanceHandle;
+        entry.Name = Name;
+        entry.Width = PhpGetIconEntrySize(Width, Flags);
+        entry.Height = PhpGetIconEntrySize(Height, Flags);
+        actualEntry = PhFindEntryHashtable(SharedIconCacheHashtable, &entry);
+
+        if (actualEntry)
+        {
+            icon = actualEntry->Icon;
+            PhReleaseQueuedLockExclusive(&SharedIconCacheLock);
+            return icon;
+        }
+    }
+
+    if (Flags & (PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_SIZE_LARGE))
+    {
+        if (loadIconMetric)
+            loadIconMetric(InstanceHandle, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
+    }
+    else
+    {
+        if (loadIconWithScaleDown)
+            loadIconWithScaleDown(InstanceHandle, Name, Width, Height, &icon);
+    }
+
+    if (!icon && !(Flags & PH_LOAD_ICON_STRICT))
+    {
+        if (Flags & PH_LOAD_ICON_SIZE_SMALL)
+        {
+            static ULONG smallWidth = 0;
+            static ULONG smallHeight = 0;
+
+            if (!smallWidth)
+                smallWidth = GetSystemMetrics(SM_CXSMICON);
+            if (!smallHeight)
+                smallHeight = GetSystemMetrics(SM_CYSMICON);
+
+            Width = smallWidth;
+            Height = smallHeight;
+        }
+        else if (Flags & PH_LOAD_ICON_SIZE_LARGE)
+        {
+            static ULONG largeWidth = 0;
+            static ULONG largeHeight = 0;
+
+            if (!largeWidth)
+                largeWidth = GetSystemMetrics(SM_CXICON);
+            if (!largeHeight)
+                largeHeight = GetSystemMetrics(SM_CYICON);
+
+            Width = largeWidth;
+            Height = largeHeight;
+        }
+
+        icon = LoadImage(InstanceHandle, Name, IMAGE_ICON, Width, Height, 0);
+    }
+
+    if (Flags & PH_LOAD_ICON_SHARED)
+    {
+        if (icon)
+        {
+            if (!IS_INTRESOURCE(Name))
+                entry.Name = PhDuplicateStringZ(Name);
+            entry.Icon = icon;
+            PhAddEntryHashtable(SharedIconCacheHashtable, &entry);
+        }
+
+        PhReleaseQueuedLockExclusive(&SharedIconCacheLock);
+    }
+
+    return icon;
 }
 
 /**

@@ -22,8 +22,8 @@
 
 // Misc.
 
-#define SET_BUTTON_BITMAP(hwndDlg, Id, Bitmap) \
-    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
+#define SET_BUTTON_ICON(hwndDlg, Id, Icon) \
+    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_ICON, (LPARAM)(Icon))
 
 // Dialog procedure
 

@@ -378,18 +378,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ProcessHacker.def" />
-    <None Include="resources\application.bmp" />
     <None Include="resources\application.ico" />
     <None Include="resources\application_go.ico" />
-    <None Include="resources\bricks.bmp" />
     <None Include="resources\cog.ico" />
-    <None Include="resources\cog_edit.bmp" />
-    <None Include="resources\cog_edit.png" />
     <None Include="resources\cog_go.ico" />
     <None Include="resources\cross.bmp" />
-    <None Include="resources\folder.bmp" />
-    <None Include="resources\magnifier.bmp" />
-    <None Include="resources\pencil.bmp" />
     <None Include="ProcessHacker.ico" />
     <None Include="resources\ProcessHacker.png" />
     <None Include="resources\tick.bmp" />
@@ -404,8 +397,10 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\cog.bmp" />
-    <Image Include="resources\pin.bmp" />
+    <Image Include="resources\folder.ico" />
+    <Image Include="resources\magnifier.ico" />
+    <Image Include="resources\pencil.ico" />
+    <Image Include="resources\pin.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -594,7 +594,8 @@ PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
     );
 
-#define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
+#define PH_LOAD_SHARED_ICON_SMALL(Name) PhLoadIcon(PhInstanceHandle, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0)
+#define PH_LOAD_SHARED_ICON_LARGE(Name) PhLoadIcon(PhInstanceHandle, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
     _In_ HWND hwndDlg,

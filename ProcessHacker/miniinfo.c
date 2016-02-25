@@ -442,14 +442,14 @@ VOID PhMipOnInitDialog(
     VOID
     )
 {
-    HBITMAP cog;
-    HBITMAP pin;
+    HICON cog;
+    HICON pin;
 
-    cog = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_COG), IMAGE_BITMAP);
-    SET_BUTTON_BITMAP(PhMipWindow, IDC_OPTIONS, cog);
+    cog = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_COG));
+    SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
 
-    pin = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PIN), IMAGE_BITMAP);
-    SET_BUTTON_BITMAP(PhMipWindow, IDC_PIN, pin);
+    pin = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PIN));
+    SET_BUTTON_ICON(PhMipWindow, IDC_PIN, pin);
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL,

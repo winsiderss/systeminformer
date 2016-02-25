@@ -69,6 +69,7 @@ static PPH_LIST ServiceNodeList; // list of all nodes
 
 static PH_TN_FILTER_SUPPORT FilterSupport;
 
+static BOOLEAN ServiceIconsLoaded = FALSE;
 static HICON ServiceApplicationIcon;
 static HICON ServiceApplicationGoIcon;
 static HICON ServiceCogIcon;
@@ -112,11 +113,6 @@ VOID PhInitializeServiceTreeList(
     _In_ HWND hwnd
     )
 {
-    ServiceApplicationIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATION), IMAGE_ICON);
-    ServiceApplicationGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATIONGO), IMAGE_ICON);
-    ServiceCogIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COG), IMAGE_ICON);
-    ServiceCogGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COGGO), IMAGE_ICON);
-
     ServiceTreeListHandle = hwnd;
     PhSetControlTheme(ServiceTreeListHandle, L"explorer");
     SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
@@ -686,6 +682,16 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
             node = (PPH_SERVICE_NODE)getNodeIcon->Node;
+
+            if (!ServiceIconsLoaded)
+            {
+                ServiceApplicationIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PHAPPLICATION));
+                ServiceApplicationGoIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PHAPPLICATIONGO));
+                ServiceCogIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_COG));
+                ServiceCogGoIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_COGGO));
+
+                ServiceIconsLoaded = TRUE;
+            }
 
             if (node->ServiceItem->Type == SERVICE_KERNEL_DRIVER || node->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
             {

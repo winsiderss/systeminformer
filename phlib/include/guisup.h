@@ -409,6 +409,20 @@ VOID PhSetImageListBitmap(
     _In_ LPCWSTR BitmapName
     );
 
+#define PH_LOAD_ICON_SHARED 0x1
+#define PH_LOAD_ICON_SIZE_SMALL 0x2
+#define PH_LOAD_ICON_SIZE_LARGE 0x4
+#define PH_LOAD_ICON_STRICT 0x8
+
+PHLIBAPI
+HICON PhLoadIcon(
+    _In_opt_ HINSTANCE InstanceHandle,
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_opt_ ULONG Width,
+    _In_opt_ ULONG Height
+    );
+
 PHLIBAPI
 VOID PhGetStockApplicationIcon(
     _Out_opt_ HICON *SmallIcon,

@@ -68,9 +68,6 @@
 #define IDD_SESSION                     153
 #define IDD_PROCMEMORY                  154
 #define IDD_CHOOSE                      155
-#define IDB_PENCIL                      157
-#define IDB_FOLDER                      158
-#define IDB_MAGNIFIER                   159
 #define IDD_OPTGENERAL                  162
 #define IDD_OPTHIGHLIGHTING             163
 #define IDR_NETWORK                     164
@@ -115,13 +112,15 @@
 #define IDD_CONTAINER                   205
 #define IDD_SYSINFO_MEMPANELXP          206
 #define IDD_MINIINFO                    207
-#define IDB_PIN                         208
-#define IDB_COG                         209
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
 #define IDR_MINIINFO_PROCESS            212
 #define IDR_ENVIRONMENT                 214
 #define IDD_MITIGATION                  215
+#define IDI_PIN                         216
+#define IDI_FOLDER                      217
+#define IDI_PENCIL                      218
+#define IDI_MAGNIFIER                   219
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -738,7 +737,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        218
+#define _APS_NEXT_RESOURCE_VALUE        220
 #define _APS_NEXT_COMMAND_VALUE         40292
 #define _APS_NEXT_CONTROL_VALUE         1382
 #define _APS_NEXT_SYMED_VALUE           169

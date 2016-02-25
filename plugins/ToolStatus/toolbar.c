@@ -697,13 +697,8 @@ HBITMAP ToolbarGetImage(
         {
             HBITMAP toolbarBitmap = NULL;
             HICON shieldIcon = NULL;
-            _LoadIconMetric loadIconMetric = NULL;
 
-            // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
-            // resolution and look very bad when scaled down to the small icon size.
-            loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
-
-            if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+            if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
             {
                 toolbarBitmap = PhIconToBitmap(
                     shieldIcon,

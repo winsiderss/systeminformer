@@ -41,8 +41,8 @@
 #include <windowsx.h>
 #include <uxtheme.h>
 
-#define SET_BUTTON_BITMAP(Id, Bitmap) \
-    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
+#define SET_BUTTON_ICON(Id, Icon) \
+    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_ICON, (LPARAM)(Icon))
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
@@ -694,19 +694,16 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 #endif
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
+            HICON folder;
+            HICON magnifier;
 
-            {
-                HBITMAP folder;
-                HBITMAP magnifier;
+            folder = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_FOLDER));
+            magnifier = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_MAGNIFIER));
 
-                folder = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP);
-                magnifier = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MAGNIFIER), IMAGE_BITMAP);
-
-                SET_BUTTON_BITMAP(IDC_INSPECT, magnifier);
-                SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
-                SET_BUTTON_BITMAP(IDC_VIEWCOMMANDLINE, magnifier);
-                SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
-            }
+            SET_BUTTON_ICON(IDC_INSPECT, magnifier);
+            SET_BUTTON_ICON(IDC_OPENFILENAME, folder);
+            SET_BUTTON_ICON(IDC_VIEWCOMMANDLINE, magnifier);
+            SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
 
             // File
 
@@ -2576,8 +2573,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhThreadProviderInitialUpdate(threadsContext->Provider);
             PhRegisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
 
-            SET_BUTTON_BITMAP(IDC_OPENSTARTMODULE,
-                PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP));
+            SET_BUTTON_ICON(IDC_OPENSTARTMODULE, PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_FOLDER)));
         }
         break;
     case WM_DESTROY:

@@ -62,6 +62,14 @@ IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
 
 IDI_COGGO               ICON                    "resources\\cog_go.ico"
 
+IDI_PIN                 ICON                    "resources\\pin.ico"
+
+IDI_FOLDER              ICON                    "resources\\folder.ico"
+
+IDI_PENCIL              ICON                    "resources\\pencil.ico"
+
+IDI_MAGNIFIER           ICON                    "resources\\magnifier.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -524,8 +532,8 @@ BEGIN
     EDITTEXT        IDC_VERSION,44,41,113,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Image file name:",IDC_STATIC,15,55,56,8
     EDITTEXT        IDC_FILENAME,15,65,191,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Inspect",IDC_INSPECT,210,64,17,15,BS_BITMAP
-    PUSHBUTTON      "Open",IDC_OPENFILENAME,230,64,17,15,BS_BITMAP
+    PUSHBUTTON      "Inspect",IDC_INSPECT,210,64,17,15,BS_ICON
+    PUSHBUTTON      "Open",IDC_OPENFILENAME,230,64,17,15,BS_ICON
     GROUPBOX        "Process",IDC_PROCESS,7,92,246,161
     LTEXT           "Command line:",IDC_STATIC,13,103,50,8
     EDITTEXT        IDC_CMDLINE,79,101,147,12,ES_AUTOHSCROLL | ES_READONLY
@@ -539,13 +547,13 @@ BEGIN
     LTEXT           "32-bit",IDC_PROCESSTYPETEXT,228,151,20,8,NOT WS_VISIBLE
     LTEXT           "Parent:",IDC_STATIC,13,167,25,8
     EDITTEXT        IDC_PARENTPROCESS,79,165,147,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "View",IDC_VIEWPARENTPROCESS,230,163,17,15,BS_BITMAP
+    PUSHBUTTON      "View",IDC_VIEWPARENTPROCESS,230,163,17,15,BS_ICON
     LTEXT           "Mitigation policies:",IDC_STATIC,13,183,59,8
     EDITTEXT        IDC_MITIGATION,79,181,126,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "Details",IDC_VIEWMITIGATION,209,180,38,14
     LTEXT           "Protection:",IDC_STATIC,13,200,36,8
     EDITTEXT        IDC_PROTECTION,51,200,80,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    PUSHBUTTON      "View",IDC_VIEWCOMMANDLINE,230,100,17,15,BS_BITMAP
+    PUSHBUTTON      "View",IDC_VIEWCOMMANDLINE,230,100,17,15,BS_ICON
 END
 
 IDD_PROCMODULES DIALOGEX 0, 0, 260, 260
@@ -563,7 +571,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Start module:",IDC_STATICBL1,7,170,44,8
     EDITTEXT        IDC_STARTMODULE,55,168,177,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Open",IDC_OPENSTARTMODULE,236,166,17,15,BS_BITMAP | WS_DISABLED
+    PUSHBUTTON      "Open",IDC_OPENSTARTMODULE,236,166,17,15,BS_ICON | WS_DISABLED
     LTEXT           "Started:",IDC_STATICBL2,7,184,28,8
     LTEXT           "N/A",IDC_STARTED,75,184,178,8
     LTEXT           "Kernel time:",IDC_STATICBL3,7,207,40,8
@@ -1521,7 +1529,7 @@ BEGIN
     EDITTEXT        IDC_VERSION,44,72,183,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Image file name:",IDC_STATIC,15,86,56,8
     EDITTEXT        IDC_FILENAME,15,96,211,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Open",IDC_OPENFILENAME,230,95,17,15,BS_BITMAP
+    PUSHBUTTON      "Open",IDC_OPENFILENAME,230,95,17,15,BS_ICON
     LTEXT           "Command line:",IDC_STATIC,7,123,50,8
     EDITTEXT        IDC_CMDLINE,65,121,188,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Started:",IDC_STATIC,7,139,28,8
@@ -1885,8 +1893,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Content layout",IDC_LAYOUT,4,3,210,128,NOT WS_VISIBLE
     CONTROL         "Section",IDC_SECTION,"Static",SS_LEFTNOWORDWRAP | SS_NOTIFY | SS_ENDELLIPSIS | WS_GROUP,4,134,177,13
-    PUSHBUTTON      "Options",IDC_OPTIONS,183,133,15,14,BS_BITMAP
-    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_BITMAP | BS_PUSHLIKE | WS_TABSTOP,199,133,15,14
+    PUSHBUTTON      "Options",IDC_OPTIONS,183,133,15,14,BS_ICON
+    CONTROL         "Pin",IDC_PIN,"Button",BS_AUTOCHECKBOX | BS_ICON | BS_PUSHLIKE | WS_TABSTOP,199,133,15,14
 END
 
 IDD_MINIINFO_LIST DIALOGEX 0, 0, 217, 141
@@ -2498,16 +2506,6 @@ IDB_CROSS               BITMAP                  "resources\\cross.bmp"
 
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
 
-IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
-
-IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
-
-IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
-
-IDB_PIN                 BITMAP                  "resources\\pin.bmp"
-
-IDB_COG                 BITMAP                  "resources\\cog.bmp"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2558,6 +2556,21 @@ BEGIN
 END
 
 IDD_OPTGENERAL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_MINIINFO AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PROCTHREADS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PROCRECORD AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

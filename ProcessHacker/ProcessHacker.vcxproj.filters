@@ -523,28 +523,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\application.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\bricks.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\cog_edit.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\cog_edit.png">
-      <Filter>Resources</Filter>
-    </None>
     <None Include="resources\cross.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\folder.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\magnifier.bmp">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\pencil.bmp">
       <Filter>Resources</Filter>
     </None>
     <None Include="ProcessHacker.ico">
@@ -586,10 +565,16 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\pin.bmp">
+    <Image Include="resources\pin.ico">
       <Filter>Resources</Filter>
     </Image>
-    <Image Include="resources\cog.bmp">
+    <Image Include="resources\pencil.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\folder.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\magnifier.ico">
       <Filter>Resources</Filter>
     </Image>
   </ItemGroup>

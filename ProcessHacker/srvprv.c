@@ -196,6 +196,7 @@ PPH_SERVICE_ITEM PhpLookupServiceItem(
     PPH_SERVICE_ITEM lookupServiceItemPtr = &lookupServiceItem;
     PPH_SERVICE_ITEM *serviceItem;
 
+    // Construct a temporary service item for the lookup.
     lookupServiceItem.Key = *Name;
 
     serviceItem = (PPH_SERVICE_ITEM *)PhFindEntryHashtable(
@@ -216,7 +217,6 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     PPH_SERVICE_ITEM serviceItem;
     PH_STRINGREF key;
 
-    // Construct a temporary service item for the lookup.
     PhInitializeStringRef(&key, Name);
 
     PhAcquireQueuedLockShared(&PhServiceHashtableLock);

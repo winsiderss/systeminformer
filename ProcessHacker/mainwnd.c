@@ -52,13 +52,6 @@
 #define RUNAS_MODE_ADMIN 1
 #define RUNAS_MODE_LIMITED 2
 
-typedef HRESULT (WINAPI *_LoadIconMetric)(
-    _In_ HINSTANCE hinst,
-    _In_ PCWSTR pszName,
-    _In_ int lims,
-    _Out_ HICON *phico
-    );
-
 PHAPPAPI HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
 HMENU PhMainWndMenuHandle;
@@ -2954,21 +2947,12 @@ HBITMAP PhMwpGetShieldBitmap(
 
     if (!shieldBitmap)
     {
-        _LoadIconMetric loadIconMetric;
-        HICON shieldIcon = NULL;
+        HICON shieldIcon;
 
-        // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong
-        // resolution and look very bad when scaled down to the small icon size.
-
-        loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
-
-        if (loadIconMetric)
+        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
         {
-            if (SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
-            {
-                shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-                DestroyIcon(shieldIcon);
-            }
+            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            DestroyIcon(shieldIcon);
         }
     }
 
