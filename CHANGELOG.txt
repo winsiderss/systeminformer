@@ -18,6 +18,7 @@ Process Hacker
    * Added "Start when I log on" option
    * Added "Not responding" text to tray icon rich pop-up for programs that are hung
    * Added right-click menu and double-click action for environment variables
+   * Added dialog box to show long command line strings
    * Added Time stamp column for processes
    * Added -sysinfo command line parameter for opening System Information at startup
    * Digital signature verification is now performed with very low I/O priority

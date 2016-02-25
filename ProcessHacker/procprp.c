@@ -612,18 +612,19 @@ VOID PhpUpdateProcessMitigationPolicies(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    NTSTATUS status;
     HANDLE processHandle;
     PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
 
     SetDlgItemText(hwndDlg, IDC_MITIGATION, L"N/A");
 
-    if (NT_SUCCESS(PhOpenProcess(
+    if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION,
         ProcessItem->ProcessId
         )))
     {
-        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
+        if (NT_SUCCESS(status = PhGetProcessMitigationPolicy(processHandle, &information)))
         {
             PH_STRING_BUILDER sb;
             PROCESS_MITIGATION_POLICY policy;
@@ -661,6 +662,9 @@ VOID PhpUpdateProcessMitigationPolicies(
 
         NtClose(processHandle);
     }
+
+    if (!NT_SUCCESS(status))
+        EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWMITIGATION), FALSE);
 }
 
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
@@ -700,6 +704,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                 SET_BUTTON_BITMAP(IDC_INSPECT, magnifier);
                 SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
+                SET_BUTTON_BITMAP(IDC_VIEWCOMMANDLINE, magnifier);
                 SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
             }
 
@@ -770,6 +775,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_CMDLINE, PhpGetStringOrNa(processItem->CommandLine));
 
+            if (!processItem->CommandLine)
+                EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE), FALSE);
+
             // Current Directory
 
             if (NT_SUCCESS(PhOpenProcess(
@@ -783,8 +791,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 pebOffset = PhpoCurrentDirectory;
 
 #ifdef _WIN64
-                // Tell the function to get the WOW64 current directory, because that's
-                // the one that actually gets updated.
+                // Tell the function to get the WOW64 current directory, because that's the one that
+                // actually gets updated.
                 if (processItem->IsWow64)
                     pebOffset |= PhpoWow64;
 #endif
@@ -1015,6 +1023,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTED),
@@ -1066,6 +1076,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (processItem->FileName)
                         PhShellExploreFile(hwndDlg, processItem->FileName->Buffer);
+                }
+                break;
+            case IDC_VIEWCOMMANDLINE:
+                {
+                    if (processItem->CommandLine)
+                        PhShowInformationDialog(hwndDlg, processItem->CommandLine->Buffer, 0);
                 }
                 break;
             case IDC_VIEWPARENTPROCESS:
