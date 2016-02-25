@@ -673,7 +673,7 @@ static INT_PTR CALLBACK NetworkPingWndProc(
                                 max = (FLOAT)context->MaxPingTimeout;
 
                             // Scale the data.
-                            PhxfDivideSingle2U(
+                            PhDivideSinglesBySingle(
                                 context->PingGraphState.Data1,
                                 max,
                                 drawInfo->LineDataCount
