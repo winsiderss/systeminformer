@@ -3328,7 +3328,7 @@ PhaCreateString(
     _In_ PWSTR Buffer
     )
 {
-    return PH_AUTO(PhCreateString(Buffer));
+    return PH_AUTO_T(PH_STRING, PhCreateString(Buffer));
 }
 
 FORCEINLINE
@@ -3338,7 +3338,7 @@ PhaCreateStringEx(
     _In_ SIZE_T Length
     )
 {
-    return PH_AUTO(PhCreateStringEx(Buffer, Length));
+    return PH_AUTO_T(PH_STRING, PhCreateStringEx(Buffer, Length));
 }
 
 FORCEINLINE
@@ -3347,7 +3347,7 @@ PhaDuplicateString(
     _In_ PPH_STRING String
     )
 {
-    return PH_AUTO(PhDuplicateString(String));
+    return PH_AUTO_T(PH_STRING, PhDuplicateString(String));
 }
 
 FORCEINLINE
@@ -3361,7 +3361,7 @@ PhaConcatStrings(
 
     va_start(argptr, Count);
 
-    return PH_AUTO(PhConcatStrings_V(Count, argptr));
+    return PH_AUTO_T(PH_STRING, PhConcatStrings_V(Count, argptr));
 }
 
 FORCEINLINE
@@ -3371,7 +3371,7 @@ PhaConcatStrings2(
     _In_ PWSTR String2
     )
 {
-    return PH_AUTO(PhConcatStrings2(String1, String2));
+    return PH_AUTO_T(PH_STRING, PhConcatStrings2(String1, String2));
 }
 
 FORCEINLINE
@@ -3385,7 +3385,7 @@ PhaFormatString(
 
     va_start(argptr, Format);
 
-    return PH_AUTO(PhFormatString_V(Format, argptr));
+    return PH_AUTO_T(PH_STRING, PhFormatString_V(Format, argptr));
 }
 
 FORCEINLINE
@@ -3424,7 +3424,7 @@ PhaSubstring(
     _In_ SIZE_T Count
     )
 {
-    return PH_AUTO(PhSubstring(String, StartIndex, Count));
+    return PH_AUTO_T(PH_STRING, PhSubstring(String, StartIndex, Count));
 }
 
 // Format
