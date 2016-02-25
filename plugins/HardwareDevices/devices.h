@@ -399,6 +399,7 @@ typedef struct _DV_DISK_ENTRY
         {
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
+            //BOOLEAN DevicePresent : 1;
             BOOLEAN Spare : 6;
         };
     };

@@ -132,6 +132,7 @@ VOID NTAPI SystemInformationInitializingCallback(
         if (!entry)
             continue;
 
+        //if (entry->DevicePresent)
         DiskDriveSysInfoInitializing(pluginEntry, entry);
     }
 
