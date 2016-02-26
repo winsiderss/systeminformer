@@ -56,9 +56,6 @@
     <ClCompile Include="diskgraph.c">
       <Filter>Source Files\Disk</Filter>
     </ClCompile>
-    <ClCompile Include="disknotify.c">
-      <Filter>Source Files\Disk</Filter>
-    </ClCompile>
     <ClCompile Include="diskdetails.c">
       <Filter>Source Files\Disk</Filter>
     </ClCompile>

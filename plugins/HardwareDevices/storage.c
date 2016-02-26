@@ -345,7 +345,7 @@ BOOLEAN DiskDriveQueryImminentFailure(
     STORAGE_PREDICT_FAILURE storagePredictFailure;
 
     memset(&storagePredictFailure, 0, sizeof(STORAGE_PREDICT_FAILURE));
-    
+
     // * IOCTL_STORAGE_PREDICT_FAILURE returns an opaque 512-byte vendor-specific information block, which
     //      in all cases contains SMART attribute information (2 bytes header + 12 bytes each attribute).
     // * This works without admin rights but doesn't support other features like logs and self-tests.
@@ -372,13 +372,38 @@ BOOLEAN DiskDriveQueryImminentFailure(
 
         diskAttributeList = PhCreateList(30);
 
+#define SMART_HEADER_SIZE 2
+
+        //An attribute is a one-byte value ranging from 1 to 253 (FDh).
+        //The initial default value is 100 (64h).
+        //The value and the intertretation of the value are vendor-specific.
+        //Attribute values are read-only to the host.
+        //A device may report up to 30 attributes to the host.
+        //Values of 00h, FEh and FFh are invalid.
+        //When attribute values are updated by the device depends on the specific attribute. Some are updated as
+        //the disk operates, some are only updated during SMART self-tests, or at special events like power-on or
+        //unloading the heads of a disk drive, etc
+
+        //Each attribute may have an associated threshhold. When the value exceeds the threshhold, the attribute
+        //triggers a SMART ‘threshhold exceeded’ event. This event indicates that either the disk is expected to fail
+        //in less than 24 hours or it has exceeded its design or usage lifetime.
+        //When an attribute value is greater than or equal to the threshhold, the threshhold is considered to be
+        //exceeded. A flag is set indicating that failure is likely.
+        //There is no standard way for a host to read or change attribute threshholds.
+        //See the SMART(RETURN STATUS) command for information about how a device reports that a
+        //threshhold has been exceeded.
+
         for (UCHAR i = 0; i < 30; ++i)
         {
             // This could be better?
-            PSMART_ATTRIBUTE attribute = (PSMART_ATTRIBUTE)&storagePredictFailure.VendorSpecific[i * sizeof(SMART_ATTRIBUTE) + 2]; //TODO: Parse +2 attribute header
+            // TODO: Parse +2 attribute header
+            PSMART_ATTRIBUTE attribute = (PSMART_ATTRIBUTE)&storagePredictFailure.VendorSpecific[i * sizeof(SMART_ATTRIBUTE) + SMART_HEADER_SIZE];
 
+            // Attribute values 0x00, 0xFE, 0xFF are invalid.
+            // If any individual table entry is not valid, the attribute id for that entry shall be 00h.
+            // There is no requirement that attributes be in any particular order.
             if (
-                attribute->Id != 0x00 && // Attribute values 0x00, 0xFE, 0xFF are invalid (TODO: Are invalid values vendor specific?)
+                attribute->Id != 0x00 && // 1-255 are valid?
                 attribute->Id != 0xFE &&
                 attribute->Id != 0xFF
                 )
@@ -393,19 +418,10 @@ BOOLEAN DiskDriveQueryImminentFailure(
                 info->FailureImminent = (attribute->Flags & 0x1) == 0x1;
                 info->OnlineDataCollection = (attribute->Flags & 0x2) == 0x2;
 
-                switch (attribute->Id)
-                {
-                case SMART_ATTRIBUTE_ID_POWER_ON_HOURS:
-                    {
-                        info->RawValue = MAKELONG(
-                            MAKEWORD(attribute->RawValue[0], attribute->RawValue[1]),
-                            MAKEWORD(attribute->RawValue[2], attribute->RawValue[3])
-                            );
-                    }
-                    break;
-                default:
-                    break;
-                }
+                info->RawValue = MAKELONG(
+                    MAKEWORD(attribute->RawValue[0], attribute->RawValue[1]),
+                    MAKEWORD(attribute->RawValue[2], attribute->RawValue[3])
+                    );
 
                 PhAddItemList(diskAttributeList, info);
             }
@@ -582,9 +598,9 @@ PWSTR SmartAttributeGetDescription(
         return L"This attribute indicates the count of full hard disk power on/off cycles.";
     case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
         return L"Uncorrected read errors reported to the operating system.";
+    }
 
     //TODO: Include more descriptions..
-    }
 
     return L"";
 }

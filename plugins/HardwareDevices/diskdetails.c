@@ -56,7 +56,7 @@ VOID DiskDriveUpdateDetails(
                     Context->ListViewHandle,
                     MAXINT,
                     SmartAttributeGetText(attribute->AttributeId),
-                    (PVOID)attribute->AttributeId
+                    attribute
                     );
 
                 PhSetListViewSubItem(
@@ -82,7 +82,7 @@ VOID DiskDriveUpdateDetails(
                         );
                 }
 
-                PhFree(attribute);
+                //PhFree(attribute);
             }
 
             PhDereferenceObject(attributes);
@@ -90,6 +90,20 @@ VOID DiskDriveUpdateDetails(
 
         NtClose(deviceHandle);
     }
+}
+
+COLORREF NTAPI PhpColorItemColorFunction(
+    _In_ INT Index,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    )
+{
+    PSMART_ATTRIBUTES item = Param;
+
+    if (item->FailureImminent)
+        return RGB(255, 119, 0);// RGB(255, 60, 40);
+
+    return RGB(0xFF, 0xFF, 0xFF);
 }
 
 INT_PTR CALLBACK DiskDriveDetailsDlgProc(
@@ -137,6 +151,8 @@ INT_PTR CALLBACK DiskDriveDetailsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Value");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Best");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 70, L"Raw");
+            PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetItemColorFunction(context->ListViewHandle, PhpColorItemColorFunction);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -206,7 +222,7 @@ INT_PTR CALLBACK DiskDriveDetailsDlgProc(
                 PWSTR description;
 
                 if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
-                    description = SmartAttributeGetDescription((SMART_ATTRIBUTE_ID)PhGetSelectedListViewItemParam(context->ListViewHandle));
+                    description = SmartAttributeGetDescription(((PSMART_ATTRIBUTES)PhGetSelectedListViewItemParam(context->ListViewHandle))->AttributeId);
                 else
                     description = L"";
 
@@ -214,6 +230,11 @@ INT_PTR CALLBACK DiskDriveDetailsDlgProc(
             }
         }
         break;
+    }
+
+    if (context->ListViewHandle)
+    {
+        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
     }
 
     return FALSE;

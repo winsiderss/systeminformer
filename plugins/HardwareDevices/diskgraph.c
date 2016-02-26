@@ -75,6 +75,37 @@ VOID UpdateDiskIndexText(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
+    // If our delayed lookup of the disk name, index and type hasn't fired then query the information now.
+    // TODO: This might cause a slight delay opening the Sysinfo window?
+    if (
+        !Context->DiskEntry->DiskName || 
+        Context->DiskEntry->DiskIndex == ULONG_MAX || 
+        Context->DiskEntry->DiskType == 0
+        )
+    {
+        HANDLE deviceHandle;
+
+        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, Context->DiskEntry->Id.DevicePath)))
+        {
+            if (!Context->DiskEntry->DiskName)
+            {
+                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &Context->DiskEntry->DiskName, NULL, NULL);
+            }
+
+            if (Context->DiskEntry->DiskIndex == ULONG_MAX || Context->DiskEntry->DiskType == 0)
+            {
+                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+                DEVICE_TYPE diskType = 0;
+
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, &diskType)))
+                {
+                    Context->DiskEntry->DiskIndex = diskIndex;
+                    Context->DiskEntry->DiskType = diskType;
+                }
+            }
+        }
+    }
+
     if (Context->DiskEntry->DiskIndex != ULONG_MAX && !Context->DiskEntry->DiskIndexName)
     {
         PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->DiskEntry->DiskIndex));

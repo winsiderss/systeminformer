@@ -102,7 +102,7 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
-    SetupDeviceChangeCallback();
+    NOTHING;
 }
 
 VOID NTAPI ProcessesUpdatedCallback(

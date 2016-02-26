@@ -134,20 +134,33 @@ VOID DiskDrivesUpdate(
                 entry->DevicePresent = FALSE;
             }
 
-            // HACK: Pull the Disk name from the current query.
-            if (!entry->DiskName)
+            // Delay the query for the disk name, index and type from startup to later at runtime.
+            // Note: If the user opens the Sysinfo window before this has fired, 
+            //   we have a second check in the UpdateDiskIndexText function that queries this information. 
+            if (runCount > 1)
             {
-                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
-            }
-
-            // HACK: Pull the Disk index from the current query.
-            if (entry->DiskIndex == ULONG_MAX)
-            {
-                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
-
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
+                if (
+                    !entry->DiskName ||
+                    entry->DiskIndex == ULONG_MAX ||
+                    entry->DiskType == 0
+                    )
                 {
-                    entry->DiskIndex = diskIndex;
+                    if (!entry->DiskName)
+                    {
+                        DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
+                    }
+
+                    if (entry->DiskIndex == ULONG_MAX || entry->DiskType == 0)
+                    {
+                        ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+                        DEVICE_TYPE diskType = 0;
+
+                        if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, &diskType)))
+                        {
+                            entry->DiskIndex = diskIndex;
+                            entry->DiskType = diskType;
+                        }
+                    }
                 }
             }
 
@@ -169,6 +182,12 @@ VOID DiskDrivesUpdate(
             entry->ActiveTime = 0.0f;
             entry->QueueDepth = 0;
             entry->SplitCount = 0;
+
+            // Reset the DiskIndex so we can re-query the index on the next interval update.
+            entry->DiskIndex = ULONG_MAX;
+            // Reset the DiskIndexName so we can re-query the name on the next interval update.
+            PhClearReference(&entry->DiskIndexName);
+
             entry->DevicePresent = FALSE;
         }
 

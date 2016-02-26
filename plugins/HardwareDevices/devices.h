@@ -392,6 +392,7 @@ typedef struct _DV_DISK_ENTRY
     PPH_STRING DiskName;
     PPH_STRING DiskIndexName;
     ULONG DiskIndex;
+    DEVICE_TYPE DiskType;
 
     union
     {
@@ -611,8 +612,17 @@ typedef struct _SMART_ATTRIBUTES
     UINT CurrentValue;
     UINT WorstValue;
     UINT RawValue;
+
+    // Pre-fail/Advisory bit
+    // This bit is applicable only when the value of this attribute is less than or equal to its threshhold.
+    // 0 : Advisory: The device has exceeded its intended design life period.
+    // 1 : Pre-failure notification : Failure is predicted within 24 hours.
     BOOLEAN Advisory;
     BOOLEAN FailureImminent;
+
+    // Online data collection bit
+    // 0 : This value of this attribute is only updated during offline activities.
+    // 1 : The value of this attribute is updated during both normal operation and offline activities.
     BOOLEAN OnlineDataCollection;
 } SMART_ATTRIBUTES, *PSMART_ATTRIBUTES;
 
@@ -622,12 +632,6 @@ PWSTR SmartAttributeGetText(
 
 PWSTR SmartAttributeGetDescription(
     _In_ SMART_ATTRIBUTE_ID AttributeId
-    );
-
-// disknotify.c
-
-VOID SetupDeviceChangeCallback(
-    VOID
     );
 
 // diskgraph.c
