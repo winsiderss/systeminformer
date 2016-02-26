@@ -227,7 +227,7 @@ static BOOLEAN PerformSubRequest(
             __leave;
         }
 
-        // Wait for the send request to complete and recieve the response.
+        // Wait for the send request to complete and receive the response.
         if (WinHttpReceiveResponse(requestHandle, NULL))
         {
             BYTE buffer[PAGE_SIZE];
@@ -671,7 +671,7 @@ static NTSTATUS UploadFileThreadStart(
             __leave;
         }
 
-        // Wait for the send request to complete and recieve the response.
+        // Wait for the send request to complete and receive the response.
         if (!WinHttpReceiveResponse(requestHandle, NULL))
         {
             RaiseUploadError(context, L"Unable to receive the response", GetLastError());
@@ -1058,10 +1058,10 @@ static NTSTATUS UploadCheckThreadStart(
                     __leave;
                 }
 
-                // Wait for the send request to complete and recieve the response.
+                // Wait for the send request to complete and receive the response.
                 if (!WinHttpReceiveResponse(requestHandle, NULL))
                 {
-                    RaiseUploadError(context, L"Unable to recieve the CIMA response", GetLastError());
+                    RaiseUploadError(context, L"Unable to receive the CIMA response", GetLastError());
                     __leave;
                 }
 
