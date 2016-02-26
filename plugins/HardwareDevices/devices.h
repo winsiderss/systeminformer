@@ -151,11 +151,10 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
         BOOLEAN BitField;
         struct
         {
-            BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
             BOOLEAN CheckedDeviceSupport : 1;
             BOOLEAN DeviceSupported : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN Spare : 5;
         };
     };
 
@@ -442,16 +441,6 @@ typedef struct _DV_DISK_DETAILS_CONTEXT
 {
     PPH_STRING DiskName;
     DV_DISK_ID DiskId;
-
-    union
-    {
-        BOOLEAN BitField;
-        struct
-        {
-            BOOLEAN UserReference : 1;
-            BOOLEAN Spare : 7;
-        };
-    };
 
     HWND WindowHandle;
     HWND ParentHandle;

@@ -393,6 +393,20 @@ BOOLEAN DiskDriveQueryImminentFailure(
                 info->FailureImminent = (attribute->Flags & 0x1) == 0x1;
                 info->OnlineDataCollection = (attribute->Flags & 0x2) == 0x2;
 
+                switch (attribute->Id)
+                {
+                case SMART_ATTRIBUTE_ID_POWER_ON_HOURS:
+                    {
+                        info->RawValue = MAKELONG(
+                            MAKEWORD(attribute->RawValue[0], attribute->RawValue[1]),
+                            MAKEWORD(attribute->RawValue[2], attribute->RawValue[3])
+                            );
+                    }
+                    break;
+                default:
+                    break;
+                }
+
                 PhAddItemList(diskAttributeList, info);
             }
         }

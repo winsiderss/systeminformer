@@ -149,7 +149,7 @@ VOID NetAdaptersUpdate(
                 networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
 
                 // HACK: Pull the Adapter name from the current query.
-                if (!entry->AdapterName && interfaceRow.Description[0] != L'\0')
+                if (!entry->AdapterName && PhCountStringZ(interfaceRow.Description) > 0)
                 {
                     entry->AdapterName = PhCreateString(interfaceRow.Description);
                 }

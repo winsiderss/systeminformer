@@ -42,10 +42,7 @@ VOID DiskDriveUpdateDetails(
 {
     HANDLE deviceHandle;
 
-    if (NT_SUCCESS(DiskDriveCreateHandle(
-        &deviceHandle,
-        Context->DiskId.DevicePath
-        )))
+    if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, Context->DiskId.DevicePath)))
     {
         PPH_LIST attributes;
 
@@ -56,10 +53,23 @@ VOID DiskDriveUpdateDetails(
                 PSMART_ATTRIBUTES attribute = attributes->Items[i];
 
                 INT lvItemIndex = PhAddListViewItem(
-                    Context->ListViewHandle, 
-                    MAXINT, 
+                    Context->ListViewHandle,
+                    MAXINT,
                     SmartAttributeGetText(attribute->AttributeId),
                     (PVOID)attribute->AttributeId
+                    );
+
+                PhSetListViewSubItem(
+                    Context->ListViewHandle,
+                    lvItemIndex,
+                    1,
+                    PhaFormatString(L"%u", attribute->CurrentValue)->Buffer
+                    );
+                PhSetListViewSubItem(
+                    Context->ListViewHandle,
+                    lvItemIndex,
+                    2,
+                    PhaFormatString(L"%u", attribute->WorstValue)->Buffer
                     );
 
                 if (attribute->RawValue)
@@ -67,26 +77,10 @@ VOID DiskDriveUpdateDetails(
                     PhSetListViewSubItem(
                         Context->ListViewHandle,
                         lvItemIndex,
-                        1,
+                        3,
                         PhaFormatString(L"%u", attribute->RawValue)->Buffer
                         );
                 }
-                else
-                {
-                    PhSetListViewSubItem(
-                        Context->ListViewHandle,
-                        lvItemIndex,
-                        1,
-                        PhaFormatString(L"%u", attribute->CurrentValue)->Buffer
-                        );
-                }
-
-                PhSetListViewSubItem(
-                    Context->ListViewHandle,
-                    lvItemIndex,
-                    2,
-                    PhaFormatString(L"%u", attribute->WorstValue)->Buffer
-                    );
 
                 PhFree(attribute);
             }
@@ -132,7 +126,8 @@ INT_PTR CALLBACK DiskDriveDetailsDlgProc(
 
             if (context->DiskName)
                 SetWindowText(hwndDlg, context->DiskName->Buffer);
-            // BUG
+            else
+                SetWindowText(hwndDlg, L"Unknown disk");
 
             PhCenterWindow(hwndDlg, context->ParentHandle);
 
@@ -208,18 +203,14 @@ INT_PTR CALLBACK DiskDriveDetailsDlgProc(
 
             if (header->code == LVN_ITEMCHANGED)
             {
-                LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
-                //if (listView->uChanged & LVIF_STATE && listView->uNewState & LVIS_SELECTED)
-
                 PWSTR description;
 
                 if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
-                    description = SmartAttributeGetDescription((SMART_ATTRIBUTE_ID)listView->lParam); // PhGetSelectedListViewItemParam(context->ListViewHandle)
+                    description = SmartAttributeGetDescription((SMART_ATTRIBUTE_ID)PhGetSelectedListViewItemParam(context->ListViewHandle));
                 else
                     description = L"";
 
                 SetDlgItemText(hwndDlg, IDC_EDIT1, description);
-
             }
         }
         break;

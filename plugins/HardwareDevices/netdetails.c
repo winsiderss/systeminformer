@@ -552,7 +552,8 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             if (context->AdapterName)
                 SetWindowText(hwndDlg, context->AdapterName->Buffer);
-            // BUG
+            else
+                SetWindowText(hwndDlg, L"Unknown network adapter");
 
             PhCenterWindow(hwndDlg, context->ParentHandle);
 
