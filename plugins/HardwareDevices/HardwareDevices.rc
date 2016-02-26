@@ -117,9 +117,9 @@ BEGIN
     RTEXT           "Static",IDC_LINK_STATE,50,23,54,8,SS_ENDELLIPSIS
     GROUPBOX        "Statistics",IDC_STATIC,116,0,136,45
     LTEXT           "Bytes sent",IDC_STATIC,125,11,36,8
-    LTEXT           "Bytes recieved",IDC_STATIC,125,22,50,8
+    LTEXT           "Bytes received",IDC_STATIC,125,22,50,8
     RTEXT           "Static",IDC_STAT_BSENT,182,11,62,8,SS_ENDELLIPSIS
-    RTEXT           "Static",IDC_STAT_BRECIEVED,182,22,62,8,SS_ENDELLIPSIS
+    RTEXT           "Static",IDC_STAT_BRECEIVED,182,22,62,8,SS_ENDELLIPSIS
     LTEXT           "Bytes total",IDC_STATIC,125,33,37,8
     RTEXT           "Static",IDC_STAT_BTOTAL,182,33,62,8,SS_ENDELLIPSIS
     PUSHBUTTON      "Details",IDC_DETAILS,0,35,50,14
@@ -160,7 +160,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Statistics",IDC_STATIC,139,0,136,44
     LTEXT           "Bytes read",IDC_STATIC,148,11,38,8
-    LTEXT           "Bytes write",IDC_STATIC,148,22,38,8
+    LTEXT           "Bytes written",IDC_STATIC,148,22,45,8
     RTEXT           "Static",IDC_STAT_BREAD,205,11,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_BWRITE,205,22,62,8,SS_ENDELLIPSIS
     LTEXT           "Bytes total",IDC_STATIC,148,33,37,8

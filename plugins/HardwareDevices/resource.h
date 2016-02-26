@@ -13,7 +13,7 @@
 #define IDC_LAYOUT                      1004
 #define IDC_LINK_STATE                  1005
 #define IDC_STAT_BSENT                  1006
-#define IDC_STAT_BRECIEVED              1007
+#define IDC_STAT_BRECEIVED              1007
 #define IDC_STAT_BTOTAL                 1008
 #define IDC_DETAILS                     1010
 #define IDC_DETAILS_LIST                1011
