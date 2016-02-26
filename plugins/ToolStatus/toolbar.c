@@ -440,6 +440,18 @@ PWSTR ToolbarGetText(
     return L"ERROR";
 }
 
+HBITMAP ToolbarLoadImageFromIcon(
+    _In_ ULONG Width,
+    _In_ ULONG Height,
+    _In_ PWSTR Name
+    )
+{
+    HICON icon = PhLoadIcon(PluginInstance->DllBase, Name, 0, Width, Height);
+    HBITMAP bitmap = PhIconToBitmap(icon, Width, Height);
+    DestroyIcon(icon);
+    return bitmap;
+}
+
 HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     )
@@ -469,17 +481,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_ARROW_REFRESH_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH));
             }
 
             return toolbarBitmap;
@@ -495,17 +497,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_COG_EDIT_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_COG_EDIT));
             }
 
             return toolbarBitmap;
@@ -521,17 +513,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_FIND_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_FIND));
             }
 
             return toolbarBitmap;
@@ -547,17 +529,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_CHART_LINE_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_CHART_LINE));
             }
 
             return toolbarBitmap;
@@ -573,17 +545,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_APPLICATION_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_TBAPPLICATION));
             }
 
             return toolbarBitmap;
@@ -599,17 +561,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_APPLICATION_GO_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_APPLICATION_GO));
             }
 
             return toolbarBitmap;
@@ -625,17 +577,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_CROSS_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_CROSS));
             }
 
             return toolbarBitmap;
@@ -651,17 +593,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_APPLICATION_GET_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_APPLICATION_GET));
             }
 
             return toolbarBitmap;
@@ -677,17 +609,7 @@ HBITMAP ToolbarGetImage(
             }
             else
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER));
-            }
-
-            if (!toolbarBitmap)
-            {
-                toolbarBitmap = LoadImage(
-                    PluginInstance->DllBase,
-                    MAKEINTRESOURCE(IDB_POWER_BMP),
-                    IMAGE_BITMAP,
-                    0, 0, 0
-                    );
+                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF));
             }
 
             return toolbarBitmap;
