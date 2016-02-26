@@ -140,7 +140,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     ULONG bufferLength;
     IO_STATUS_BLOCK isb;
     STORAGE_PROPERTY_QUERY query;
-    PSTORAGE_DESCRIPTOR_HEADER buffer = NULL;
+    PSTORAGE_DESCRIPTOR_HEADER buffer;
 
     query.QueryType = PropertyStandardQuery;
     query.PropertyId = StorageDeviceProperty;
@@ -258,14 +258,17 @@ NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
         sizeof(result)
         );
 
-    if (DeviceType)
+    if (NT_SUCCESS(status))
     {
-        *DeviceType = result.DeviceType;
-    }
+        if (DeviceType)
+        {
+            *DeviceType = result.DeviceType;
+        }
 
-    if (DeviceNumber)
-    {
-        *DeviceNumber = result.DeviceNumber;
+        if (DeviceNumber)
+        {
+            *DeviceNumber = result.DeviceNumber;
+        }
     }
 
     return status;
@@ -282,6 +285,7 @@ NTSTATUS DiskDriveQueryStatistics(
 
     memset(&result, 0, sizeof(DISK_PERFORMANCE));
 
+    // TODO: IOCTL_DISK_GET_PERFORMANCE_INFO from ntdddisk.h
     status = NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
@@ -295,7 +299,10 @@ NTSTATUS DiskDriveQueryStatistics(
         sizeof(result)
         );
 
-    *Info = result;
+    if (NT_SUCCESS(status))
+    {
+        *Info = result;
+    }
 
     return status;
 }
@@ -330,14 +337,19 @@ PPH_STRING DiskDriveQueryGeometry(
 }
 
 BOOLEAN DiskDriveQueryImminentFailure(
-    _In_ HANDLE DeviceHandle
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_LIST* DiskSmartAttributes
     )
 {
     IO_STATUS_BLOCK isb;
-    BOOLEAN deviceQuerySupported = FALSE;
-    STORAGE_PREDICT_FAILURE storPredictFailure;
+    STORAGE_PREDICT_FAILURE storagePredictFailure;
 
-    memset(&storPredictFailure, 0, sizeof(STORAGE_PREDICT_FAILURE));
+    memset(&storagePredictFailure, 0, sizeof(STORAGE_PREDICT_FAILURE));
+    
+    // * IOCTL_STORAGE_PREDICT_FAILURE returns an opaque 512-byte vendor-specific information block, which
+    //      in all cases contains SMART attribute information (2 bytes header + 12 bytes each attribute).
+    // * This works without admin rights but doesn't support other features like logs and self-tests.
+    // * It works for (S)ATA devices but not for USB.
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -348,20 +360,217 @@ BOOLEAN DiskDriveQueryImminentFailure(
         IOCTL_STORAGE_PREDICT_FAILURE, // https://msdn.microsoft.com/en-us/library/ff560587.aspx
         NULL,
         0,
-        &storPredictFailure,
-        sizeof(storPredictFailure)
+        &storagePredictFailure,
+        sizeof(storagePredictFailure)
         )))
     {
-        deviceQuerySupported = TRUE;
+        PPH_LIST diskAttributeList;
+        //USHORT structureVersion = (USHORT)(storagePredictFailure.VendorSpecific[0] * 256 + storagePredictFailure.VendorSpecific[1]);
+        //USHORT majorVersion = HIBYTE(structureVersion);
+        //USHORT minorVersion = LOBYTE(structureVersion);
+        //TODO: include storagePredictFailure.PredictFailure;
+
+        diskAttributeList = PhCreateList(30);
+
+        for (UCHAR i = 0; i < 30; ++i)
+        {
+            // This could be better?
+            PSMART_ATTRIBUTE attribute = (PSMART_ATTRIBUTE)&storagePredictFailure.VendorSpecific[i * sizeof(SMART_ATTRIBUTE) + 2]; //TODO: Parse +2 attribute header
+
+            if (
+                attribute->Id != 0x00 && // Attribute values 0x00, 0xFE, 0xFF are invalid (TODO: Are invalid values vendor specific?)
+                attribute->Id != 0xFE &&
+                attribute->Id != 0xFF
+                )
+            {
+                PSMART_ATTRIBUTES info = PhAllocate(sizeof(SMART_ATTRIBUTES));
+                memset(info, 0, sizeof(SMART_ATTRIBUTES));
+
+                info->AttributeId = attribute->Id;
+                info->CurrentValue = attribute->CurrentValue;
+                info->WorstValue = attribute->WorstValue;
+                info->Advisory = (attribute->Flags & 0x1) == 0x0;
+                info->FailureImminent = (attribute->Flags & 0x1) == 0x1;
+                info->OnlineDataCollection = (attribute->Flags & 0x2) == 0x2;
+
+                PhAddItemList(diskAttributeList, info);
+            }
+        }
+
+        *DiskSmartAttributes = diskAttributeList;
+
+        return TRUE;
     }
 
-    // IOCTL_STORAGE_PREDICT_FAILURE returns a ULONG+ opaque 512-byte vendor-specific information, which
-    // in all cases contains SMART attribute information (2 bytes header + 12 bytes each attribute).
+    return FALSE;
+}
 
-    // If ATA pass-through or SMART I/O-controls are unavailable,
-    //  IOCTL_STORAGE_QUERY_PROPERTY to read part of the IDENTIFY data and
-    //  IOCTL_STORAGE_PREDICT_FAILURE to read SMART status and attributes (without thresholds).
-    // This works without admin rights but doesn't support other features like logs and self-tests. It works for (S)ATA devices but not for USB.
 
-    return deviceQuerySupported;
+PWSTR SmartAttributeGetText(
+    _In_ SMART_ATTRIBUTE_ID AttributeId
+    )
+{
+    // from https://en.wikipedia.org/wiki/S.M.A.R.T
+
+    switch (AttributeId)
+    {
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RATE: // Critical
+        return L"Raw Read Error Rate";
+    case SMART_ATTRIBUTE_ID_THROUGHPUT_PERFORMANCE:
+        return L"Throughput Performance";
+    case SMART_ATTRIBUTE_ID_SPIN_UP_TIME:
+        return L"Spin Up Time";
+    case SMART_ATTRIBUTE_ID_START_STOP_COUNT:
+        return L"Start/Stop Count";
+    case SMART_ATTRIBUTE_ID_REALLOCATED_SECTORS_COUNT: // Critical
+        return L"Reallocated Sectors Count";
+    case SMART_ATTRIBUTE_ID_READ_CHANNEL_MARGIN:
+        return L"Read Channel Margin";
+    case SMART_ATTRIBUTE_ID_SEEK_ERROR_RATE:
+        return L"Seek Error Rate";
+    case SMART_ATTRIBUTE_ID_SEEK_TIME_PERFORMANCE:
+        return L"Seek Time Performance";
+    case SMART_ATTRIBUTE_ID_POWER_ON_HOURS:
+        return L"Power-On Hours";
+    case SMART_ATTRIBUTE_ID_SPIN_RETRY_COUNT:
+        return L"Spin Retry Count";
+    case SMART_ATTRIBUTE_ID_CALIBRATION_RETRY_COUNT:
+        return L"Recalibration Retries";
+    case SMART_ATTRIBUTE_ID_POWER_CYCLE_COUNT:
+        return L"Device Power Cycle Count";
+    case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
+        return L"Soft Read Error Rate";
+    case SMART_ATTRIBUTE_ID_SATA_DOWNSHIFT_ERROR_COUNT:
+        return L"Sata Downshift Error Count";
+    case SMART_ATTRIBUTE_ID_END_TO_END_ERROR:
+        return L"End To End Error";
+    case SMART_ATTRIBUTE_ID_HEAD_STABILITY:
+        return L"Head Stability";
+    case SMART_ATTRIBUTE_ID_INDUCED_OP_VIBRATION_DETECTION:
+        return L"Induced Op Vibration Detection";
+    case SMART_ATTRIBUTE_ID_REPORTED_UNCORRECTABLE_ERRORS:
+        return L"Reported Uncorrectable Errors";
+    case SMART_ATTRIBUTE_ID_COMMAND_TIMEOUT:
+        return L"Command Timeout";
+    case SMART_ATTRIBUTE_ID_HIGH_FLY_WRITES:
+        return L"High Fly Writes";
+    case SMART_ATTRIBUTE_ID_TEMPERATURE_DIFFERENCE_FROM_100:
+        return L"Airflow Temperature";
+    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE:
+        return L"GSense Error Rate";
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_COUNT:
+        return L"Power-off Retract Count";
+    case SMART_ATTRIBUTE_ID_LOAD_CYCLE_COUNT:
+        return L"Load/Unload Cycle Count";
+    case SMART_ATTRIBUTE_ID_TEMPERATURE:
+        return L"Temperature";
+    case SMART_ATTRIBUTE_ID_HARDWARE_ECC_RECOVERED:
+        return L"Hardware ECC Recovered";
+    case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT: // Critical
+        return L"Reallocation Event Count";
+    case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT: // Critical
+        return L"Current Pending Sector Count";
+    case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT: // Critical
+        return L"Uncorrectable Sector Count";
+    case SMART_ATTRIBUTE_ID_ULTRADMA_CRC_ERROR_COUNT:
+        return L"UltraDMA CRC Error Count";
+    case SMART_ATTRIBUTE_ID_MULTI_ZONE_ERROR_RATE:
+        return L"Write Error Rate";
+    case SMART_ATTRIBUTE_ID_OFFTRACK_SOFT_READ_ERROR_RATE:
+        return L"Soft read error rate";
+    case SMART_ATTRIBUTE_ID_DATA_ADDRESS_MARK_ERRORS:
+        return L"Data Address Mark errors";
+    case SMART_ATTRIBUTE_ID_RUN_OUT_CANCEL:
+        return L"Run out cancel";
+    case SMART_ATTRIBUTE_ID_SOFT_ECC_CORRECTION:
+        return L"Soft ECC correction";
+    case SMART_ATTRIBUTE_ID_THERMAL_ASPERITY_RATE_TAR:
+        return L"Thermal asperity rate (TAR)";
+    case SMART_ATTRIBUTE_ID_FLYING_HEIGHT:
+        return L"Flying height";
+    case SMART_ATTRIBUTE_ID_SPIN_HIGH_CURRENT:
+        return L"Spin high current";
+    case SMART_ATTRIBUTE_ID_SPIN_BUZZ:
+        return L"Spin buzz";
+    case SMART_ATTRIBUTE_ID_OFFLINE_SEEK_PERFORMANCE:
+        return L"Offline seek performance";
+    case SMART_ATTRIBUTE_ID_VIBRATION_DURING_WRITE:
+        return L"Vibration During Write";
+    case SMART_ATTRIBUTE_ID_SHOCK_DURING_WRITE:
+        return L"Shock During Write";
+    case SMART_ATTRIBUTE_ID_DISK_SHIFT: // Critical
+        return L"Disk Shift";
+    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE_ALT:
+        return L"G-Sense Error Rate (Alt)";
+    case SMART_ATTRIBUTE_ID_LOADED_HOURS:
+        return L"Loaded Hours";
+    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_RETRY_COUNT:
+        return L"Load/Unload Retry Count";
+    case SMART_ATTRIBUTE_ID_LOAD_FRICTION:
+        return L"Load Friction";
+    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_CYCLE_COUNT:
+        return L"Load Unload Cycle Count";
+    case SMART_ATTRIBUTE_ID_LOAD_IN_TIME:
+        return L"Load-in Time";
+    case SMART_ATTRIBUTE_ID_TORQUE_AMPLIFICATION_COUNT:
+        return L"Torque Amplification Count";
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETTRACT_CYCLE:
+        return L"Power-Off Retract Count";
+    case SMART_ATTRIBUTE_ID_GMR_HEAD_AMPLITUDE:
+        return L"GMR Head Amplitude";
+    case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE:
+        return L"Temperature";
+    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS: // Transfer Error Rate (Fujitsu)
+        return L"Head Flying Hours";
+    case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN:
+        return L"Total LBAs Written";
+    case SMART_ATTRIBUTE_ID_TOTAL_LBA_READ:
+        return L"Total LBAs Read";
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE:
+        return L"Read Error Retry Rate";
+    case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION:
+        return L"Free Fall Protection";
+    }
+
+    return L"BUG BUG BUG";
+}
+
+PWSTR SmartAttributeGetDescription(
+    _In_ SMART_ATTRIBUTE_ID AttributeId
+    )
+{
+    // from https://en.wikipedia.org/wiki/S.M.A.R.T
+    switch (AttributeId)
+    {
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RATE:
+        return L"Lower raw value is better.\r\nVendor specific raw value. Stores data related to the rate of hardware read errors that occurred when reading data from a disk surface. The raw value has different structure for different vendors and is often not meaningful as a decimal number.";
+    case SMART_ATTRIBUTE_ID_THROUGHPUT_PERFORMANCE:
+        return L"Higher raw value is better.\r\nOverall (general) throughput performance of a hard disk drive. If the value of this attribute is decreasing there is a high probability that there is a problem with the disk.";
+    case SMART_ATTRIBUTE_ID_SPIN_UP_TIME:
+        return L"Lower raw value is better.\r\nAverage time of spindle spin up (from zero RPM to fully operational [milliseconds]).";
+    case SMART_ATTRIBUTE_ID_START_STOP_COUNT:
+        return L"A tally of spindle start/stop cycles.\r\nThe spindle turns on, and hence the count is increased, both when the hard disk is turned on after having before been turned entirely off (disconnected from power source) and when the hard disk returns from having previously been put to sleep mode.";
+    case SMART_ATTRIBUTE_ID_REALLOCATED_SECTORS_COUNT:
+        return L"Lower raw value is better.\r\nCount of reallocated sectors. When the hard drive finds a read/write/verification error, it marks that sector as \"reallocated\" and transfers data to a special reserved area (spare area). This process is also known as remapping, and reallocated sectors are called \"remaps\". The raw value normally represents a count of the bad sectors that have been found and remapped. Thus, the higher the attribute value, the more sectors the drive has had to reallocate. This allows a drive with bad sectors to continue operation; however, a drive which has had any reallocations at all is significantly more likely to fail in the near future. While primarily used as a metric of the life expectancy of the drive, this number also affects performance. As the count of reallocated sectors increases, the read/write speed tends to become worse because the drive head is forced to seek to the reserved area whenever a remap is accessed. If sequential access speed is critical, the remapped sectors can be manually marked as bad blocks in the file system in order to prevent their use.";
+    case SMART_ATTRIBUTE_ID_READ_CHANNEL_MARGIN:
+        return L"Margin of a channel while reading data.\r\nThe function of this attribute is not specified.";
+    case SMART_ATTRIBUTE_ID_SEEK_ERROR_RATE:
+        return L"Vendor specific raw value.\r\nRate of seek errors of the magnetic heads. If there is a partial failure in the mechanical positioning system, then seek errors will arise. Such a failure may be due to numerous factors, such as damage to a servo, or thermal widening of the hard disk. The raw value has different structure for different vendors and is often not meaningful as a decimal number.";
+    case SMART_ATTRIBUTE_ID_SEEK_TIME_PERFORMANCE:
+        return L"Average performance of seek operations of the magnetic heads.\r\nIf this attribute is decreasing, it is a sign of problems in the mechanical subsystem.";
+    case SMART_ATTRIBUTE_ID_POWER_ON_HOURS:
+        return L"Count of hours in power-on state.\r\nThe raw value of this attribute shows total count of hours (or minutes, or seconds, depending on manufacturer) in power-on state.\r\nBy default, the total expected lifetime of a hard disk in perfect condition is defined as 5 years(running every day and night on all days).This is equal to 1825 days in 24 / 7 mode or 43800 hours.\r\nOn some pre-2005 drives, this raw value may advance erratically and/or \"wrap around\" (reset to zero periodically).";
+    case SMART_ATTRIBUTE_ID_SPIN_RETRY_COUNT:
+        return L"Count of retry of spin start attempts.\r\nThis attribute stores a total count of the spin start attempts to reach the fully operational speed (under the condition that the first attempt was unsuccessful). An increase of this attribute value is a sign of problems in the hard disk mechanical subsystem.";
+    case SMART_ATTRIBUTE_ID_CALIBRATION_RETRY_COUNT:
+        return L"This attribute indicates the count that recalibration was requested (under the condition that the first attempt was unsuccessful). An increase of this attribute value is a sign of problems in the hard disk mechanical subsystem.";
+    case SMART_ATTRIBUTE_ID_POWER_CYCLE_COUNT:
+        return L"This attribute indicates the count of full hard disk power on/off cycles.";
+    case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
+        return L"Uncorrected read errors reported to the operating system.";
+
+    //TODO: Include more descriptions..
+    }
+
+    return L"";
 }

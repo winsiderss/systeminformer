@@ -77,6 +77,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="adapter.c" />
+    <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />
     <ClCompile Include="netdetails.c" />
     <ClCompile Include="diskgraph.c" />

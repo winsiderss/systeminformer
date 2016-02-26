@@ -38,18 +38,18 @@ VOID DiskDriveUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->AdapterEntry->BytesReadDelta.Value, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->AdapterEntry->BytesWrittenDelta.Value, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->AdapterEntry->BytesReadDelta.Value + Context->AdapterEntry->BytesWrittenDelta.Value, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BREAD, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BWRITE, PhaFormatSize(Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(Context->DiskEntry->BytesReadDelta.Value + Context->DiskEntry->BytesWrittenDelta.Value, -1)->Buffer);
 
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_ACTIVE,
-        PhaFormatString(L"%.0f%%", Context->AdapterEntry->ActiveTime)->Buffer
+        PhaFormatString(L"%.0f%%", Context->DiskEntry->ActiveTime)->Buffer
         );
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_RESPONSETIME,
-        PhaFormatString(L"%.1f ms", Context->AdapterEntry->ResponseTime / PH_TICKS_PER_MS)->Buffer
+        PhaFormatString(L"%.1f ms", Context->DiskEntry->ResponseTime / PH_TICKS_PER_MS)->Buffer
         );
     SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH,
-        PhaFormatString(L"%lu", Context->AdapterEntry->QueueDepth)->Buffer
+        PhaFormatString(L"%lu", Context->DiskEntry->QueueDepth)->Buffer
         );
 }
 
@@ -57,13 +57,13 @@ VOID UpdateDiskDriveDialog(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    if (Context->AdapterEntry->DiskName)
-        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->AdapterEntry->DiskName->Buffer);
+    if (Context->DiskEntry->DiskName)
+        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->DiskEntry->DiskName->Buffer);
     else
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown disk");
 
-    if (Context->AdapterEntry->DiskIndexName)
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->AdapterEntry->DiskIndexName->Buffer);
+    if (Context->DiskEntry->DiskIndexName)
+        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->DiskEntry->DiskIndexName->Buffer);
     else
         SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown disk");
 
@@ -75,23 +75,23 @@ VOID UpdateDiskIndexText(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    if (Context->AdapterEntry->DiskIndex != ULONG_MAX && !Context->AdapterEntry->DiskIndexName)
+    if (Context->DiskEntry->DiskIndex != ULONG_MAX && !Context->DiskEntry->DiskIndexName)
     {
-        PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->AdapterEntry->DiskIndex));
+        PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->DiskEntry->DiskIndex));
 
         if (!PhIsNullOrEmptyString(diskMountPoints))
         {
-            PhMoveReference(&Context->AdapterEntry->DiskIndexName, PhFormatString(
+            PhMoveReference(&Context->DiskEntry->DiskIndexName, PhFormatString(
                 L"Disk %lu (%s)",
-                Context->AdapterEntry->DiskIndex,
+                Context->DiskEntry->DiskIndex,
                 diskMountPoints->Buffer
                 ));
         }
         else
         {
-            PhMoveReference(&Context->AdapterEntry->DiskIndexName, PhFormatString(
+            PhMoveReference(&Context->DiskEntry->DiskIndexName, PhFormatString(
                 L"Disk %lu",
-                Context->AdapterEntry->DiskIndex
+                Context->DiskEntry->DiskIndex
                 ));
         }
     }
@@ -104,6 +104,41 @@ INT_PTR CALLBACK DiskDrivePanelDialogProc(
     _In_ LPARAM lParam
     )
 {
+    PDV_DISK_SYSINFO_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PDV_DISK_SYSINFO_CONTEXT)lParam;
+
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PDV_DISK_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_NCDESTROY)
+        {
+            RemoveProp(hwndDlg, L"Context");
+        }
+    }
+
+    if (context == NULL)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_DETAILS:
+                ShowDiskDriveDetailsDialog(context);
+                break;
+            }
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -164,13 +199,13 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
 
-            if (context->AdapterEntry->DiskIndexName)
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->AdapterEntry->DiskIndexName->Buffer);
+            if (context->DiskEntry->DiskIndexName)
+                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->DiskEntry->DiskIndexName->Buffer);
             else
                 SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown disk");
 
-            if (context->AdapterEntry->DiskName)
-                SetDlgItemText(hwndDlg, IDC_DISKNAME, context->AdapterEntry->DiskName->Buffer);
+            if (context->DiskEntry->DiskName)
+                SetDlgItemText(hwndDlg, IDC_DISKNAME, context->DiskEntry->DiskName->Buffer);
             else
                 SetDlgItemText(hwndDlg, IDC_DISKNAME, L"Unknown disk");
 
@@ -221,7 +256,7 @@ INT_PTR CALLBACK DiskDriveDialogProc(
                         PhGraphStateGetDrawInfo(
                             &context->GraphState,
                             getDrawInfo,
-                            context->AdapterEntry->ReadBuffer.Count
+                            context->DiskEntry->ReadBuffer.Count
                             );
 
                         if (!context->GraphState.Valid)
@@ -233,8 +268,8 @@ INT_PTR CALLBACK DiskDriveDialogProc(
                                 FLOAT data1;
                                 FLOAT data2;
 
-                                context->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->ReadBuffer, i);
-                                context->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->WriteBuffer, i);
+                                context->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->DiskEntry->ReadBuffer, i);
+                                context->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->DiskEntry->WriteBuffer, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
@@ -273,12 +308,12 @@ INT_PTR CALLBACK DiskDriveDialogProc(
                             if (context->GraphState.TooltipIndex != getTooltipText->Index)
                             {
                                 ULONG64 diskReadValue = PhGetItemCircularBuffer_ULONG64(
-                                    &context->AdapterEntry->ReadBuffer,
+                                    &context->DiskEntry->ReadBuffer,
                                     getTooltipText->Index
                                     );
 
                                 ULONG64 diskWriteValue = PhGetItemCircularBuffer_ULONG64(
-                                    &context->AdapterEntry->WriteBuffer,
+                                    &context->DiskEntry->WriteBuffer,
                                     getTooltipText->Index
                                     );
 
@@ -326,7 +361,7 @@ BOOLEAN DiskDriveSectionCallback(
         return TRUE;
     case SysInfoDestroy:
         {
-            PhDereferenceObject(context->AdapterEntry);
+            PhDereferenceObject(context->DiskEntry);
             PhDereferenceObject(context->SectionName);
             PhFree(context);
         }
@@ -355,7 +390,7 @@ BOOLEAN DiskDriveSectionCallback(
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
-            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->AdapterEntry->ReadBuffer.Count);
+            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DiskEntry->ReadBuffer.Count);
 
             if (!Section->GraphState.Valid)
             {
@@ -366,8 +401,8 @@ BOOLEAN DiskDriveSectionCallback(
                     FLOAT data1;
                     FLOAT data2;
 
-                    Section->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->ReadBuffer, i);
-                    Section->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->WriteBuffer, i);
+                    Section->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->DiskEntry->ReadBuffer, i);
+                    Section->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->DiskEntry->WriteBuffer, i);
 
                     if (max < data1 + data2)
                         max = data1 + data2;
@@ -402,12 +437,12 @@ BOOLEAN DiskDriveSectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = (PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT)Parameter1;
 
             ULONG64 diskReadValue = PhGetItemCircularBuffer_ULONG64(
-                &context->AdapterEntry->ReadBuffer,
+                &context->DiskEntry->ReadBuffer,
                 getTooltipText->Index
                 );
 
             ULONG64 diskWriteValue = PhGetItemCircularBuffer_ULONG64(
-                &context->AdapterEntry->WriteBuffer,
+                &context->DiskEntry->WriteBuffer,
                 getTooltipText->Index
                 );
 
@@ -425,11 +460,11 @@ BOOLEAN DiskDriveSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
 
-            PhSetReference(&drawPanel->Title, context->AdapterEntry->DiskIndexName);
+            PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
             drawPanel->SubTitle = PhFormatString(
                 L"R: %s\nW: %s",
-                PhaFormatSize(context->AdapterEntry->BytesReadDelta.Delta, -1)->Buffer,
-                PhaFormatSize(context->AdapterEntry->BytesWrittenDelta.Delta, -1)->Buffer
+                PhaFormatSize(context->DiskEntry->BytesReadDelta.Delta, -1)->Buffer,
+                PhaFormatSize(context->DiskEntry->BytesWrittenDelta.Delta, -1)->Buffer
                 );
 
             if (!drawPanel->Title)
@@ -453,7 +488,7 @@ VOID DiskDriveSysInfoInitializing(
     memset(context, 0, sizeof(DV_DISK_SYSINFO_CONTEXT));
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
 
-    context->AdapterEntry = DiskEntry;
+    context->DiskEntry = DiskEntry;
     context->SectionName = PhFormatString(L"Disk %s", DiskEntry->Id.DevicePath);
 
     section.Context = context;

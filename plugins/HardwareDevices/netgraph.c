@@ -198,7 +198,7 @@ INT_PTR CALLBACK NetAdapterPanelDialogProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_DETAILS:
-                ShowDetailsDialog(context);
+                ShowNetAdapterDetailsDialog(context);
                 break;
             }
         }

@@ -20,8 +20,12 @@
 #define IDC_SHOW_HIDDEN_ADAPTERS        1012
 #define IDD_DISKDRIVE_OPTIONS           1013
 #define IDD_DISKDRIVE_DIALOG            1014
+#define IDC_EDIT1                       1015
 #define IDD_DISKDRIVE_PANEL             1016
+#define IDC_WARN                        1016
 #define IDC_DISKDRIVE_LISTVIEW          1017
+#define IDD_DISKDRIVE_DETAILS           1017
+#define IDC_DESCRIPTION                 1017
 #define IDC_STAT_BREAD                  1020
 #define IDC_STAT_BWRITE                 1021
 #define IDC_STAT_ACTIVE                 1023
@@ -35,7 +39,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1015
+#define _APS_NEXT_CONTROL_VALUE         1018
 #define _APS_NEXT_SYMED_VALUE           106
 #endif
 #endif

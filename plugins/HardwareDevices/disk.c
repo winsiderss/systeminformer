@@ -59,7 +59,7 @@ VOID DiskDrivesUpdate(
 
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
     {
-        HANDLE deviceHandle = NULL;
+        HANDLE deviceHandle;
         PDV_DISK_ENTRY entry;
 
         entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
@@ -67,17 +67,11 @@ VOID DiskDrivesUpdate(
         if (!entry)
             continue;
 
-        if (NT_SUCCESS(DiskDriveCreateHandle(
-            &deviceHandle,
-            entry->Id.DevicePath
-            )))
+        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, entry->Id.DevicePath)))
         {
             DISK_PERFORMANCE diskPerformance;
 
-            if (NT_SUCCESS(DiskDriveQueryStatistics(
-                deviceHandle,
-                &diskPerformance
-                )))
+            if (NT_SUCCESS(DiskDriveQueryStatistics(deviceHandle, &diskPerformance)))
             {
                 ULONG64 readTime;
                 ULONG64 writeTime;

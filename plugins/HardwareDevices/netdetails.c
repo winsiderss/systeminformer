@@ -23,7 +23,7 @@
 
 #include "devices.h"
 
-VOID NTAPI ProcessesUpdatedHandler(
+VOID NTAPI NetAdapterProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -518,7 +518,7 @@ VOID NetAdapterUpdateDetails(
     //Context->LastDetailsIOutboundUnicastValue = interfaceStats.ifHCOutUcastOctets;
 }
 
-INT_PTR CALLBACK AdapterDetailsDlgProc(
+INT_PTR CALLBACK NetAdapterDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -552,6 +552,7 @@ INT_PTR CALLBACK AdapterDetailsDlgProc(
 
             if (context->AdapterName)
                 SetWindowText(hwndDlg, context->AdapterName->Buffer);
+            // BUG
 
             PhCenterWindow(hwndDlg, context->ParentHandle);
 
@@ -568,7 +569,7 @@ INT_PTR CALLBACK AdapterDetailsDlgProc(
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
-                ProcessesUpdatedHandler,
+                NetAdapterProcessesUpdatedHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
@@ -640,7 +641,7 @@ INT_PTR CALLBACK AdapterDetailsDlgProc(
     return FALSE;
 }
 
-VOID FreeDetailsContext(
+VOID FreeNetAdapterDetailsContext(
     _In_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
@@ -649,7 +650,7 @@ VOID FreeDetailsContext(
     PhFree(Context);
 }
 
-NTSTATUS ShowDetailsDialogThread(
+NTSTATUS ShowNetAdapterDetailsDialogThread(
     _In_ PVOID Parameter
     )
 {
@@ -665,7 +666,7 @@ NTSTATUS ShowDetailsDialogThread(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_NETADAPTER_DETAILS),
         NULL,
-        AdapterDetailsDlgProc,
+        NetAdapterDetailsDlgProc,
         (LPARAM)context
         );
 
@@ -687,12 +688,12 @@ NTSTATUS ShowDetailsDialogThread(
 
     PhDeleteAutoPool(&autoPool);
 
-    FreeDetailsContext(context);
+    FreeNetAdapterDetailsContext(context);
 
     return STATUS_SUCCESS;
 }
 
-VOID ShowDetailsDialog(
+VOID ShowNetAdapterDetailsDialog(
     _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
@@ -706,8 +707,8 @@ VOID ShowDetailsDialog(
     PhSetReference(&context->AdapterName, Context->AdapterEntry->AdapterName);
     CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->Id);
 
-    if (dialogThread = PhCreateThread(0, ShowDetailsDialogThread, context))
+    if (dialogThread = PhCreateThread(0, ShowNetAdapterDetailsDialogThread, context))
         NtClose(dialogThread);
     else
-        FreeDetailsContext(context);
+        FreeNetAdapterDetailsContext(context);
 }
