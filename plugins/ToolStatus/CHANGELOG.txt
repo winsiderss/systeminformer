@@ -1,6 +1,6 @@
 2.4
  * Added 32x32 icons for high DPI displays
- * Fixed Statusbar crash
+ * Fixed status bar crash
 
 2.3
  * Added Auto-hide main menu
