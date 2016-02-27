@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2015 dmex
+ * Copyright (C) 2011-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,7 @@
 
 #include "updater.h"
 #include <shellapi.h>
+#include <shlobj.h>
 
 static HANDLE UpdateDialogThreadHandle = NULL;
 static HWND UpdateDialogHandle = NULL;
@@ -668,6 +669,10 @@ NTSTATUS UpdateDownloadThread(
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PPH_STRING userAgentString = NULL;
+    PPH_STRING fullSetupPath = NULL;
+    PPH_STRING randomGuidString = NULL;
+    ULONG indexOfFileName = -1;
+    GUID randomGuid;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
@@ -696,16 +701,45 @@ NTSTATUS UpdateDownloadThread(
         if (PhIsNullOrEmptyString(setupTempPath))
             __leave;
 
-        // Append the tempath to our string: %TEMP%processhacker-%lu.%lu-setup.exe
-        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-2.90-setup.exe
+        // Generate random guid for our directory path.
+        PhGenerateGuid(&randomGuid);
+        
+        if (randomGuidString = PhFormatGuid(&randomGuid))
+        {
+            PPH_STRING guidSubString;
+
+            // Strip the left and right curly brackets.
+            guidSubString = PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2);
+
+            PhSwapReference(&randomGuidString, guidSubString);
+        }
+
+        // Append the tempath to our string: %TEMP%RandomString\\processhacker-%lu.%lu-setup.exe
+        // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\processhacker-2.90-setup.exe
         context->SetupFilePath = PhFormatString(
-            L"%sprocesshacker-%lu.%lu-setup.exe",
+            L"%s%s\\processhacker-%lu.%lu-setup.exe",
             setupTempPath->Buffer,
+            randomGuidString->Buffer,
             context->MajorVersion,
             context->MinorVersion
             );
         if (PhIsNullOrEmptyString(context->SetupFilePath))
             __leave;
+
+        // Create the directory if it does not exist.
+        if (fullSetupPath = PhGetFullPath(context->SetupFilePath->Buffer, &indexOfFileName))
+        {
+            PPH_STRING directoryPath;
+
+            if (indexOfFileName == -1)
+                __leave;
+            
+            if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
+            {
+                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
+                PhDereferenceObject(directoryPath);
+            }
+        }
 
         // Create output file
         if (!NT_SUCCESS(PhCreateFileWin32(
@@ -945,6 +979,8 @@ NTSTATUS UpdateDownloadThread(
         if (httpSessionHandle)
             WinHttpCloseHandle(httpSessionHandle);
 
+        PhClearReference(&randomGuidString);
+        PhClearReference(&fullSetupPath);
         PhClearReference(&setupTempPath);
         PhClearReference(&downloadHostPath);
         PhClearReference(&downloadUrlPath);
