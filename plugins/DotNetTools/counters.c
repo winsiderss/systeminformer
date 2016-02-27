@@ -21,7 +21,6 @@
  */
 
 #include "dn.h"
-
 #include "clr/dbgappdomain.h"
 #include "clr/ipcheader.h"
 #include "clr/ipcshared.h"
@@ -40,40 +39,36 @@ typedef VOID (NTAPI* _RtlDeleteBoundaryDescriptor)(
     _In_ PVOID BoundaryDescriptor
     );
 
-typedef HANDLE (WINAPI* _OpenPrivateNamespaceW)(
-    _In_ PVOID BoundaryDescriptor,
-    _In_ PCWSTR AliasPrefix
+typedef NTSTATUS (WINAPI* _NtOpenPrivateNamespace)(
+     _Out_ PHANDLE NamespaceHandle,
+     _In_ ACCESS_MASK DesiredAccess,
+     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+     _In_ PVOID BoundaryDescriptor
     );
 
-typedef BOOLEAN (WINAPI* _ClosePrivateNamespace)(
-    _In_ HANDLE Handle,
-    _In_ ULONG Flags
-    );
-
-static _OpenPrivateNamespaceW OpenPrivateNamespace_I = NULL;
-static _ClosePrivateNamespace ClosePrivateNamespace_I = NULL;
+static _NtOpenPrivateNamespace NtOpenPrivateNamespace_I = NULL;
 static _RtlCreateBoundaryDescriptor RtlCreateBoundaryDescriptor_I = NULL;
 static _RtlDeleteBoundaryDescriptor RtlDeleteBoundaryDescriptor_I = NULL;
 static _RtlAddSIDToBoundaryDescriptor RtlAddSIDToBoundaryDescriptor_I = NULL;
 
 PPH_STRING GeneratePrivateName(_In_ HANDLE ProcessId)
 {
-    return PhaFormatString(L"Global\\" CorLegacyPrivateIPCBlock, HandleToUlong(ProcessId));
+    return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlock, HandleToUlong(ProcessId));
 }
 
 PPH_STRING GeneratePrivateNameV4(_In_ HANDLE ProcessId)
 {
-    return PhaFormatString(L"Global\\" CorLegacyPrivateIPCBlockTempV4, HandleToUlong(ProcessId));
+    return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlockTempV4, HandleToUlong(ProcessId));
 }
 
 PPH_STRING GenerateLegacyPublicName(_In_ HANDLE ProcessId)
 {
-    return PhaFormatString(L"Global\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId));
+    return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId));
 }
 
 PPH_STRING GenerateSxSPublicNameV4(_In_ HANDLE ProcessId)
 {
-    return PhaFormatString(L"Global\\" CorSxSPublicIPCBlock, HandleToUlong(ProcessId));
+    return PhaFormatString(L"\\BaseNamedObjects\\" CorSxSPublicIPCBlock, HandleToUlong(ProcessId));
 }
 
 PBYTE GetEntryBlockOffset(
@@ -171,11 +166,30 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     PVOID blockTableAddress = NULL;
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING sectionNameUs;
 
     __try
     {
-        if (!(blockTableHandle = OpenFileMapping(FILE_MAP_READ, FALSE, GenerateLegacyPublicName(ProcessId)->Buffer)))
+        if (!PhStringRefToUnicodeString(&GenerateLegacyPublicName(ProcessId)->sr, &sectionNameUs))
             __leave;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &sectionNameUs,
+            0,
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(NtOpenSection(
+            &blockTableHandle,
+            SECTION_MAP_READ, // SECTION_ALL_ACCESS
+            &objectAttributes
+            )))
+        {
+            __leave;
+        }
 
         if (!NT_SUCCESS(NtMapViewOfSection(
             blockTableHandle,
@@ -244,32 +258,52 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     {
         if (WindowsVersion < WINDOWS_VISTA)
         {
-            if (!(blockTableHandle = OpenFileMapping(FILE_MAP_READ, FALSE, GenerateSxSPublicNameV4(ProcessId)->Buffer)))
+            OBJECT_ATTRIBUTES objectAttributes;
+            UNICODE_STRING sectionNameUs;
+
+            if (!PhStringRefToUnicodeString(&GenerateSxSPublicNameV4(ProcessId)->sr, &sectionNameUs))
                 __leave;
+
+            InitializeObjectAttributes(
+                &objectAttributes,
+                &sectionNameUs,
+                0,
+                NULL,
+                NULL
+                );
+
+            if (!NT_SUCCESS(NtOpenSection(
+                &blockTableHandle,
+                SECTION_MAP_READ, // SECTION_ALL_ACCESS
+                &objectAttributes
+                )))
+            {
+                __leave;
+            }
         }
         else
         {
             static PH_INITONCE initOnce = PH_INITONCE_INIT;
             PPH_STRING boundaryDescriptorName;
+            UNICODE_STRING prefixNameUs;
+            UNICODE_STRING sectionNameUs;
             UNICODE_STRING boundaryNameUs;
+            OBJECT_ATTRIBUTES namespaceObjectAttributes;
+            OBJECT_ATTRIBUTES sectionObjectAttributes;
+
+            RtlInitUnicodeString(&prefixNameUs, CorSxSReaderPrivateNamespacePrefix);
+            RtlInitUnicodeString(&sectionNameUs, CorSxSVistaPublicIPCBlock);
 
             if (PhBeginInitOnce(&initOnce))
             {
                 PVOID ntdll;
-                PVOID kernel32;
 
                 if (ntdll = PhGetDllHandle(L"ntdll.dll"))
                 {
+                    NtOpenPrivateNamespace_I = PhGetProcedureAddress(ntdll, "NtOpenPrivateNamespace", 0);
                     RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
                     RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
                     RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
-                }
-
-                if (kernel32 = PhGetDllHandle(L"kernel32.dll"))
-                {
-                    // TODO: Figure out why NtOpenPrivateNamespace doesn't work.
-                    OpenPrivateNamespace_I = PhGetProcedureAddress(kernel32, "OpenPrivateNamespaceW", 0);
-                    ClosePrivateNamespace_I = PhGetProcedureAddress(kernel32, "ClosePrivateNamespace", 0);
                 }
 
                 PhEndInitOnce(&initOnce);
@@ -334,12 +368,40 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
                 }
             }
 
-            // TODO: Why doesn't NtOpenPrivateNamespace work?
-            if (!(privateNamespaceHandle = OpenPrivateNamespace_I(boundaryDescriptorHandle, CorSxSReaderPrivateNamespacePrefix)))
-                __leave;
+            InitializeObjectAttributes(
+                &namespaceObjectAttributes,
+                &prefixNameUs,
+                OBJ_CASE_INSENSITIVE,
+                boundaryDescriptorHandle,
+                NULL
+                );
 
-            if (!(blockTableHandle = OpenFileMapping(FILE_MAP_READ, FALSE, CorSxSReaderPrivateNamespacePrefix L"\\" CorSxSVistaPublicIPCBlock)))
+            if (!NT_SUCCESS(NtOpenPrivateNamespace_I(
+                &privateNamespaceHandle,
+                MAXIMUM_ALLOWED,
+                &namespaceObjectAttributes,
+                boundaryDescriptorHandle
+                )))
+            {
                 __leave;
+            }
+
+            InitializeObjectAttributes(
+                &sectionObjectAttributes,
+                &sectionNameUs,
+                OBJ_CASE_INSENSITIVE,
+                privateNamespaceHandle,
+                NULL
+                );
+
+            if (!NT_SUCCESS(NtOpenSection(
+                &blockTableHandle,
+                SECTION_MAP_READ,
+                &sectionObjectAttributes
+                )))
+            {
+                __leave;
+            }
         }
 
         if (!NT_SUCCESS(NtMapViewOfSection(
@@ -393,8 +455,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
         if (privateNamespaceHandle)
         {
-            if (ClosePrivateNamespace_I)
-                ClosePrivateNamespace_I(privateNamespaceHandle, 0);
+            NtClose(privateNamespaceHandle);
         }
 
         if (everyoneSIDHandle)
@@ -423,12 +484,31 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
     PVOID ipcControlBlockTable = NULL;
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING sectionNameUs;
     PPH_LIST appDomainsList = PhCreateList(1);
 
     __try
     {
-        if (!(legacyPrivateBlockHandle = OpenFileMapping(FILE_MAP_ALL_ACCESS, TRUE, GeneratePrivateName(ProcessId)->Buffer)))
+        if (!PhStringRefToUnicodeString(&GeneratePrivateName(ProcessId)->sr, &sectionNameUs))
             __leave;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &sectionNameUs,
+            0,
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(NtOpenSection(
+            &legacyPrivateBlockHandle,
+            SECTION_MAP_READ, // SECTION_ALL_ACCESS
+            &objectAttributes
+            )))
+        {
+            __leave;
+        }
 
         if (!NT_SUCCESS(NtMapViewOfSection(
             legacyPrivateBlockHandle,
@@ -791,12 +871,31 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     PVOID ipcControlBlockTable = NULL;
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING sectionNameUs;
     PPH_LIST appDomainsList = PhCreateList(1);
 
     __try
     {
-        if (!(legacyPrivateBlockHandle = OpenFileMapping(FILE_MAP_ALL_ACCESS, TRUE, GeneratePrivateNameV4(ProcessId)->Buffer)))
+        if (!PhStringRefToUnicodeString(&GeneratePrivateNameV4(ProcessId)->sr, &sectionNameUs))
             __leave;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &sectionNameUs,
+            0,
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(NtOpenSection(
+            &legacyPrivateBlockHandle,
+            SECTION_MAP_READ, // SECTION_ALL_ACCESS
+            &objectAttributes
+            )))
+        {
+            __leave;
+        }
 
         if (!NT_SUCCESS(NtMapViewOfSection(
             legacyPrivateBlockHandle,
