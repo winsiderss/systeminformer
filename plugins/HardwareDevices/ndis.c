@@ -186,7 +186,7 @@ PPH_STRING NetworkAdapterQueryName(
 
     if (!GetInterfaceDescriptionFromGuid_I)
     {
-        if (IphlpHandle = LoadLibraryEx(L"iphlpapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32))
+        if (IphlpHandle = LoadLibrary(L"iphlpapi.dll"))
         {
             GetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(IphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
         }
