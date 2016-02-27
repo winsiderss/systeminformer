@@ -22,6 +22,7 @@
  */
 
 #include "toolstatus.h"
+#include "commonutil.h"
 #include <Uxtheme.h>
 #include <vssym32.h>
 

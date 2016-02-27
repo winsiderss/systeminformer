@@ -21,6 +21,7 @@
  */
 
 #include "toolstatus.h"
+#include "commonutil.h"
 
 BOOLEAN CustomizeStatusBarItemExists(
     _In_ PCUSTOMIZE_CONTEXT Context,

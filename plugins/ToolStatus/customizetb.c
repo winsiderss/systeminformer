@@ -21,6 +21,7 @@
  */
 
 #include "toolstatus.h"
+#include "commonutil.h"
 
 static PWSTR CustomizeTextOptionsStrings[] =
 {
