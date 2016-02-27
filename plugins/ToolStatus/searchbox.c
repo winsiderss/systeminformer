@@ -55,7 +55,7 @@ VOID NcAreaInitializeFont(
     if (Context->WindowFont)
         DeleteObject(Context->WindowFont);
 
-    Context->WindowFont = PhDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+    Context->WindowFont = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
 
     SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }

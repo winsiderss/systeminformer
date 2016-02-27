@@ -549,7 +549,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->BitmapWidth = GetSystemMetrics(SM_CYSMICON) + 4;
-            context->FontHandle = PhDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+            context->FontHandle = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
             context->ImageListHandle = ImageList_Create(
                 GetSystemMetrics(SM_CXSMICON),
                 GetSystemMetrics(SM_CYSMICON),

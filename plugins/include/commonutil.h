@@ -3,7 +3,7 @@
 
 FORCEINLINE
 HFONT 
-PhDuplicateFont(
+CommonDuplicateFont(
     _In_ HFONT Font
     )
 {
