@@ -35,7 +35,7 @@ PPH_STRING EtpQueryDeviceDescription(
     _In_ PWSTR DeviceInterface
     );
 
-VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI EtGpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );

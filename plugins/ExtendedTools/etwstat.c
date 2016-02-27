@@ -23,12 +23,12 @@
 #include "exttools.h"
 #include "etwmon.h"
 
-VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
-VOID NTAPI NetworkItemsUpdatedCallback(
+VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
@@ -90,13 +90,13 @@ VOID EtEtwStatisticsInitialization(
 
         PhRegisterCallback(
             &PhProcessesUpdatedEvent,
-            ProcessesUpdatedCallback,
+            EtEtwProcessesUpdatedCallback,
             NULL,
             &EtpProcessesUpdatedCallbackRegistration
             );
         PhRegisterCallback(
             &PhNetworkItemsUpdatedEvent,
-            NetworkItemsUpdatedCallback,
+            EtEtwNetworkItemsUpdatedCallback,
             NULL,
             &EtpNetworkItemsUpdatedCallbackRegistration
             );
@@ -212,7 +212,7 @@ VOID EtProcessNetworkEvent(
     }
 }
 
-VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -328,7 +328,7 @@ static VOID NTAPI EtpInvalidateNetworkNode(
     PhDereferenceObject(networkItem);
 }
 
-VOID NTAPI NetworkItemsUpdatedCallback(
+VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )

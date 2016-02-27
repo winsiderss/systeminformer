@@ -98,7 +98,7 @@ BOOLEAN RebarBandExists(
     return FALSE;
 }
 
-static VOID RebarLoadSettings(
+VOID RebarLoadSettings(
     VOID
     )
 {

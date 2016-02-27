@@ -56,27 +56,27 @@ static _RtlCreateBoundaryDescriptor RtlCreateBoundaryDescriptor_I = NULL;
 static _RtlDeleteBoundaryDescriptor RtlDeleteBoundaryDescriptor_I = NULL;
 static _RtlAddSIDToBoundaryDescriptor RtlAddSIDToBoundaryDescriptor_I = NULL;
 
-static PPH_STRING GeneratePrivateName(_In_ HANDLE ProcessId)
+PPH_STRING GeneratePrivateName(_In_ HANDLE ProcessId)
 {
     return PhaFormatString(L"Global\\" CorLegacyPrivateIPCBlock, HandleToUlong(ProcessId));
 }
 
-static PPH_STRING GeneratePrivateNameV4(_In_ HANDLE ProcessId)
+PPH_STRING GeneratePrivateNameV4(_In_ HANDLE ProcessId)
 {
     return PhaFormatString(L"Global\\" CorLegacyPrivateIPCBlockTempV4, HandleToUlong(ProcessId));
 }
 
-static PPH_STRING GenerateLegacyPublicName(_In_ HANDLE ProcessId)
+PPH_STRING GenerateLegacyPublicName(_In_ HANDLE ProcessId)
 {
     return PhaFormatString(L"Global\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId));
 }
 
-static PPH_STRING GenerateSxSPublicNameV4(_In_ HANDLE ProcessId)
+PPH_STRING GenerateSxSPublicNameV4(_In_ HANDLE ProcessId)
 {
     return PhaFormatString(L"Global\\" CorSxSPublicIPCBlock, HandleToUlong(ProcessId));
 }
 
-static PBYTE GetEntryBlockOffset(
+PBYTE GetEntryBlockOffset(
     _In_ LegacyPrivateIPCControlBlock* IpcBlock,
     _In_ ULONG EntryId
     )
@@ -89,7 +89,7 @@ static PBYTE GetEntryBlockOffset(
     return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
 }
 
-static PBYTE GetEntryBlockOffset_Wow64(
+PBYTE GetEntryBlockOffset_Wow64(
     _In_ LegacyPrivateIPCControlBlock_Wow64* IpcBlock,
     _In_ ULONG EntryId
     )

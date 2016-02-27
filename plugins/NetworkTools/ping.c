@@ -27,7 +27,7 @@
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
-static HFONT InitializeFont(
+HFONT InitializeFont(
     _In_ HWND hwnd
     )
 {
@@ -68,7 +68,7 @@ static HFONT InitializeFont(
     return NULL;
 }
 
-static VOID NetworkPingUpdateGraph(
+VOID NetworkPingUpdateGraph(
     _In_ PNETWORK_OUTPUT_CONTEXT Context
     )
 {
@@ -86,7 +86,7 @@ static VOID NetworkPingUpdateGraph(
  * \param Format The format-control string.
  * \param ArgPtr A pointer to the list of arguments.
  */
-static PPH_BYTES FormatAnsiString_V(
+PPH_BYTES FormatAnsiString_V(
     _In_ _Printf_format_string_ PSTR Format,
     _In_ va_list ArgPtr
     )
@@ -115,7 +115,7 @@ static PPH_BYTES FormatAnsiString_V(
  *
  * \param Format The format-control string.
  */
-static PPH_BYTES FormatAnsiString(
+PPH_BYTES FormatAnsiString(
     _In_ _Printf_format_string_ PSTR Format,
     ...
     )
@@ -127,7 +127,7 @@ static PPH_BYTES FormatAnsiString(
     return FormatAnsiString_V(Format, argptr);
 }
 
-static NTSTATUS NetworkPingThreadStart(
+NTSTATUS NetworkPingThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -376,7 +376,7 @@ static NTSTATUS NetworkPingThreadStart(
     return STATUS_SUCCESS;
 }
 
-static VOID NTAPI NetworkPingUpdateHandler(
+VOID NTAPI NetworkPingUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -391,7 +391,7 @@ static VOID NTAPI NetworkPingUpdateHandler(
         );
 }
 
-static INT_PTR CALLBACK NetworkPingWndProc(
+INT_PTR CALLBACK NetworkPingWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

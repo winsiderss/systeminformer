@@ -62,7 +62,7 @@ PH_QUEUED_LOCK ServiceListLock = PH_QUEUED_LOCK_INIT;
 
 static COLORREF ProcessCustomColors[16] = { 0 };
 
-static BOOLEAN MatchDbObjectIntent(
+BOOLEAN MatchDbObjectIntent(
     _In_ PDB_OBJECT Object,
     _In_ ULONG Intent
     )
@@ -74,7 +74,7 @@ static BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse);
 }
 
-static PDB_OBJECT FindDbObjectForProcess(
+PDB_OBJECT FindDbObjectForProcess(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG Intent
     )
@@ -101,7 +101,7 @@ static PDB_OBJECT FindDbObjectForProcess(
     return NULL;
 }
 
-static VOID DeleteDbObjectForProcessIfUnused(
+VOID DeleteDbObjectForProcessIfUnused(
     _In_ PDB_OBJECT Object
     )
 {
@@ -117,7 +117,7 @@ static VOID DeleteDbObjectForProcessIfUnused(
     }
 }
 
-static VOID LoadCustomColors(
+VOID LoadCustomColors(
     VOID
     )
 {
@@ -147,7 +147,7 @@ static VOID LoadCustomColors(
     }
 }
 
-static PPH_STRING SaveCustomColors(
+PPH_STRING SaveCustomColors(
     VOID
     )
 {
@@ -170,7 +170,7 @@ static PPH_STRING SaveCustomColors(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-static IO_PRIORITY_HINT GetProcessIoPriority(
+IO_PRIORITY_HINT GetProcessIoPriority(
     _In_ HANDLE ProcessId
     )
 {
@@ -197,7 +197,7 @@ static IO_PRIORITY_HINT GetProcessIoPriority(
     return ioPriority;
 }
 
-static ULONG GetPriorityClassFromId(
+ULONG GetPriorityClassFromId(
     _In_ ULONG Id
     )
 {
@@ -220,7 +220,7 @@ static ULONG GetPriorityClassFromId(
     return 0;
 }
 
-static ULONG GetIoPriorityFromId(
+ULONG GetIoPriorityFromId(
     _In_ ULONG Id
     )
 {
@@ -239,7 +239,7 @@ static ULONG GetIoPriorityFromId(
     return -1;
 }
 
-static VOID NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -272,7 +272,7 @@ static VOID NTAPI LoadCallback(
     LoadDb();
 }
 
-static VOID NTAPI UnloadCallback(
+VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -280,7 +280,7 @@ static VOID NTAPI UnloadCallback(
     SaveDb();
 }
 
-static VOID NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -293,7 +293,7 @@ static VOID NTAPI ShowOptionsCallback(
         );
 }
 
-static VOID NTAPI MenuItemCallback(
+VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -453,7 +453,7 @@ static VOID NTAPI MenuItemCallback(
     }
 }
 
-static VOID NTAPI MenuHookCallback(
+VOID NTAPI MenuHookCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -540,7 +540,7 @@ static VOID NTAPI MenuHookCallback(
     }
 }
 
-static VOID InvalidateProcessComments(
+VOID InvalidateProcessComments(
     VOID
     )
 {
@@ -564,7 +564,7 @@ static VOID InvalidateProcessComments(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-static VOID UpdateProcessComment(
+VOID UpdateProcessComment(
     _In_ PPH_PROCESS_NODE Node,
     _In_ PPROCESS_EXTENSION Extension
     )
@@ -590,7 +590,7 @@ static VOID UpdateProcessComment(
     }
 }
 
-static VOID InvalidateServiceComments(
+VOID InvalidateServiceComments(
     VOID
     )
 {
@@ -614,7 +614,7 @@ static VOID InvalidateServiceComments(
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
-static VOID UpdateServiceComment(
+VOID UpdateServiceComment(
     _In_ PPH_SERVICE_NODE Node,
     _In_ PSERVICE_EXTENSION Extension
     )
@@ -640,7 +640,7 @@ static VOID UpdateServiceComment(
     }
 }
 
-static VOID TreeNewMessageCallback(
+VOID TreeNewMessageCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -696,7 +696,7 @@ static VOID TreeNewMessageCallback(
     }
 }
 
-static VOID MainWindowShowingCallback(
+VOID MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -707,7 +707,7 @@ static VOID MainWindowShowingCallback(
     }
 }
 
-static VOID ProcessPropertiesInitializingCallback(
+VOID ProcessPropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -720,7 +720,7 @@ static VOID ProcessPropertiesInitializingCallback(
         );
 }
 
-static VOID AddSavePriorityMenuItemsAndHook(
+VOID AddSavePriorityMenuItemsAndHook(
     _In_ PPH_PLUGIN_MENU_INFORMATION MenuInfo,
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN UseSelectionForHook
@@ -775,7 +775,7 @@ static VOID AddSavePriorityMenuItemsAndHook(
     PhPluginAddMenuHook(MenuInfo, PluginInstance, UseSelectionForHook ? NULL : ProcessItem->ProcessId);
 }
 
-static VOID ProcessMenuInitializingCallback(
+VOID ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -838,7 +838,7 @@ static LONG NTAPI ProcessCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
-static VOID ProcessTreeNewInitializingCallback(
+VOID ProcessTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -856,7 +856,7 @@ static VOID ProcessTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
 }
 
-static VOID GetProcessHighlightingColorCallback(
+VOID GetProcessHighlightingColorCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -880,7 +880,7 @@ static VOID GetProcessHighlightingColorCallback(
     UnlockDb();
 }
 
-static VOID ServicePropertiesInitializingCallback(
+VOID ServicePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -902,7 +902,7 @@ static VOID ServicePropertiesInitializingCallback(
     }
 }
 
-static LONG NTAPI ServiceCommentSortFunction(
+LONG NTAPI ServiceCommentSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
@@ -920,7 +920,7 @@ static LONG NTAPI ServiceCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
-static VOID ServiceTreeNewInitializingCallback(
+VOID ServiceTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -938,7 +938,7 @@ static VOID ServiceTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ServiceCommentSortFunction);
 }
 
-static VOID MiListSectionMenuInitializingCallback(
+VOID MiListSectionMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -952,7 +952,7 @@ static VOID MiListSectionMenuInitializingCallback(
     AddSavePriorityMenuItemsAndHook(menuInfo, processItem, FALSE);
 }
 
-static VOID ProcessModifiedCallback(
+VOID ProcessModifiedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -963,7 +963,7 @@ static VOID ProcessModifiedCallback(
     extension->Valid = FALSE;
 }
 
-static VOID ProcessesUpdatedCallback(
+VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -1034,7 +1034,7 @@ static VOID ProcessesUpdatedCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-static VOID SearchChangedHandler(
+VOID SearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -1071,7 +1071,7 @@ static VOID SearchChangedHandler(
     }
 }
 
-static VOID ProcessItemCreateCallback(
+VOID ProcessItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1088,7 +1088,7 @@ static VOID ProcessItemCreateCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-static VOID ProcessItemDeleteCallback(
+VOID ProcessItemDeleteCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1103,7 +1103,7 @@ static VOID ProcessItemDeleteCallback(
     PhReleaseQueuedLockExclusive(&ProcessListLock);
 }
 
-static VOID ProcessNodeCreateCallback(
+VOID ProcessNodeCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1120,7 +1120,7 @@ static VOID ProcessNodeCreateCallback(
     UnlockDb();
 }
 
-static VOID ServiceItemCreateCallback(
+VOID ServiceItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -1135,7 +1135,7 @@ static VOID ServiceItemCreateCallback(
     PhReleaseQueuedLockExclusive(&ServiceListLock);
 }
 
-static VOID ServiceItemDeleteCallback(
+VOID ServiceItemDeleteCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension

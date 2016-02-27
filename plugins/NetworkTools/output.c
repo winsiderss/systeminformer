@@ -25,7 +25,7 @@
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
-static INT_PTR CALLBACK NetworkOutputDlgProc(
+INT_PTR CALLBACK NetworkOutputDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -353,7 +353,7 @@ static INT_PTR CALLBACK NetworkOutputDlgProc(
     return FALSE;
 }
 
-static NTSTATUS PhNetworkOutputDialogThreadStart(
+NTSTATUS PhNetworkOutputDialogThreadStart(
     _In_ PVOID Parameter
     )
 {

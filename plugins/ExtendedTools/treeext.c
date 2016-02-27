@@ -137,7 +137,7 @@ VOID EtProcessTreeNewInitializing(
     PhPluginEnableTreeNewNotify(PluginInstance, treeNewInfo->CmData);
 }
 
-static FLOAT EtpCalculateInclusiveGpuUsage(
+FLOAT EtpCalculateInclusiveGpuUsage(
     _In_ PPH_PROCESS_NODE ProcessNode
     )
 {

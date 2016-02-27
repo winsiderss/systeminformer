@@ -30,23 +30,23 @@ static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 
-static VOID NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    // Nothing
+    NOTHING;
 }
 
-static VOID NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    // Nothing
+    NOTHING;
 }
 
-static VOID NTAPI MenuItemCallback(
+VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -71,7 +71,7 @@ static VOID NTAPI MenuItemCallback(
     }
 }
 
-static PPH_EMENU_ITEM CreateSendToMenu(
+PPH_EMENU_ITEM CreateSendToMenu(
     _In_ PPH_EMENU_ITEM Parent,
     _In_ PWSTR InsertAfter,
     _In_ PPH_STRING FileName
@@ -99,7 +99,7 @@ static PPH_EMENU_ITEM CreateSendToMenu(
     return sendToMenu;
 }
 
-static VOID NTAPI ProcessMenuInitializingCallback(
+VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -123,7 +123,7 @@ static VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
-static VOID NTAPI ModuleMenuInitializingCallback(
+VOID NTAPI ModuleMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )

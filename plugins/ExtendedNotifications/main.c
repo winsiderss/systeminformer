@@ -622,7 +622,7 @@ VOID AddEntriesToListBox(
 PPH_LIST EditingProcessFilterList;
 PPH_LIST EditingServiceFilterList;
 
-static LRESULT CALLBACK TextBoxSubclassProc(
+LRESULT CALLBACK TextBoxSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -901,7 +901,7 @@ INT_PTR CALLBACK ProcessesDlgProc(
         {
             switch (LOWORD(wParam))
             {
-                // Nothing
+                NOTHING;
             }
         }
         break;
@@ -965,7 +965,7 @@ INT_PTR CALLBACK ServicesDlgProc(
         {
             switch (LOWORD(wParam))
             {
-                // Nothing
+                NOTHING;
             }
         }
         break;

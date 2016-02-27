@@ -22,115 +22,6 @@
 
 #include "exttools.h"
 
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI TreeNewMessageCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MainWindowShowingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessPropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI HandlePropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ModuleMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI NetworkTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI SystemInformationInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MiniInformationInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessesUpdatedCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI NetworkItemsUpdatedCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessItemCreateCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    );
-
-VOID NTAPI ProcessItemDeleteCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    );
-
-VOID NTAPI NetworkItemCreateCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    );
-
-VOID NTAPI NetworkItemDeleteCallback(
-    _In_ PVOID Object,
-    _In_ PH_EM_OBJECT_TYPE ObjectType,
-    _In_ PVOID Extension
-    );
-
 PPH_PLUGIN PluginInstance;
 LIST_ENTRY EtProcessBlockListHead;
 LIST_ENTRY EtNetworkBlockListHead;
@@ -155,172 +46,6 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
 static HANDLE ModuleProcessId;
-
-LOGICAL DllMain(
-    _In_ HINSTANCE Instance,
-    _In_ ULONG Reason,
-    _Reserved_ PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-
-            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"Extended Tools";
-            info->Author = L"wj32";
-            info->Description = L"Extended functionality for Windows Vista and above, including ETW monitoring, GPU monitoring and a Disk tab.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1114";
-            info->HasOptions = TRUE;
-
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
-                TreeNewMessageCallback,
-                NULL,
-                &PluginTreeNewMessageCallbackRegistration
-                );
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-                MainWindowShowingCallback,
-                NULL,
-                &MainWindowShowingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
-                ProcessPropertiesInitializingCallback,
-                NULL,
-                &ProcessPropertiesInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing),
-                HandlePropertiesInitializingCallback,
-                NULL,
-                &HandlePropertiesInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-                ProcessMenuInitializingCallback,
-                NULL,
-                &ProcessMenuInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing),
-                ThreadMenuInitializingCallback,
-                NULL,
-                &ThreadMenuInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
-                ModuleMenuInitializingCallback,
-                NULL,
-                &ModuleMenuInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
-                ProcessTreeNewInitializingCallback,
-                NULL,
-                &ProcessTreeNewInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing),
-                NetworkTreeNewInitializingCallback,
-                NULL,
-                &NetworkTreeNewInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing),
-                SystemInformationInitializingCallback,
-                NULL,
-                &SystemInformationInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMiniInformationInitializing),
-                MiniInformationInitializingCallback,
-                NULL,
-                &MiniInformationInitializingCallbackRegistration
-                );
-
-            PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
-                ProcessesUpdatedCallback,
-                NULL,
-                &ProcessesUpdatedCallbackRegistration
-                );
-            PhRegisterCallback(
-                &PhNetworkItemsUpdatedEvent,
-                NetworkItemsUpdatedCallback,
-                NULL,
-                &NetworkItemsUpdatedCallbackRegistration
-                );
-
-            InitializeListHead(&EtProcessBlockListHead);
-            InitializeListHead(&EtNetworkBlockListHead);
-
-            PhPluginSetObjectExtension(
-                PluginInstance,
-                EmProcessItemType,
-                sizeof(ET_PROCESS_BLOCK),
-                ProcessItemCreateCallback,
-                ProcessItemDeleteCallback
-                );
-            PhPluginSetObjectExtension(
-                PluginInstance,
-                EmNetworkItemType,
-                sizeof(ET_NETWORK_BLOCK),
-                NetworkItemCreateCallback,
-                NetworkItemDeleteCallback
-                );
-
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
-                    { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
-                    { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
-                    { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
-                    { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
-                    { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" }
-                };
-
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            }
-        }
-        break;
-    }
-
-    return TRUE;
-}
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -566,7 +291,7 @@ VOID NTAPI MiniInformationInitializingCallback(
         EtEtwMiniInformationInitializing(Parameter);
 }
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -595,7 +320,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
     }
 }
 
-static VOID NTAPI NetworkItemsUpdatedCallback(
+VOID NTAPI NetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -722,4 +447,170 @@ VOID NTAPI NetworkItemDeleteCallback(
     )
 {
     EtDeleteNetworkBlock(Extension);
+}
+
+LOGICAL DllMain(
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            PPH_PLUGIN_INFORMATION info;
+
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"Extended Tools";
+            info->Author = L"wj32";
+            info->Description = L"Extended functionality for Windows Vista and above, including ETW monitoring, GPU monitoring and a Disk tab.";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1114";
+            info->HasOptions = TRUE;
+
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
+                TreeNewMessageCallback,
+                NULL,
+                &PluginTreeNewMessageCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
+                ProcessPropertiesInitializingCallback,
+                NULL,
+                &ProcessPropertiesInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing),
+                HandlePropertiesInitializingCallback,
+                NULL,
+                &HandlePropertiesInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
+                ProcessMenuInitializingCallback,
+                NULL,
+                &ProcessMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing),
+                ThreadMenuInitializingCallback,
+                NULL,
+                &ThreadMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
+                ModuleMenuInitializingCallback,
+                NULL,
+                &ModuleMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
+                ProcessTreeNewInitializingCallback,
+                NULL,
+                &ProcessTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing),
+                NetworkTreeNewInitializingCallback,
+                NULL,
+                &NetworkTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing),
+                SystemInformationInitializingCallback,
+                NULL,
+                &SystemInformationInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMiniInformationInitializing),
+                MiniInformationInitializingCallback,
+                NULL,
+                &MiniInformationInitializingCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
+            PhRegisterCallback(
+                &PhNetworkItemsUpdatedEvent,
+                NetworkItemsUpdatedCallback,
+                NULL,
+                &NetworkItemsUpdatedCallbackRegistration
+                );
+
+            InitializeListHead(&EtProcessBlockListHead);
+            InitializeListHead(&EtNetworkBlockListHead);
+
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmProcessItemType,
+                sizeof(ET_PROCESS_BLOCK),
+                ProcessItemCreateCallback,
+                ProcessItemDeleteCallback
+                );
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmNetworkItemType,
+                sizeof(ET_NETWORK_BLOCK),
+                NetworkItemCreateCallback,
+                NetworkItemDeleteCallback
+                );
+
+            {
+                static PH_SETTING_CREATE settings[] =
+                {
+                    { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
+                    { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
+                    { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
+                    { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
+                    { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
+                    { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" }
+                };
+
+                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+            }
+        }
+        break;
+    }
+
+    return TRUE;
 }

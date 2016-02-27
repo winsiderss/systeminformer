@@ -31,7 +31,7 @@ static SERVICE_INFO UploadServiceInfo[] =
     { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
 
-static json_object_ptr json_get_object(json_object_ptr rootObj, const char* key)
+json_object_ptr json_get_object(json_object_ptr rootObj, const char* key)
 {
     json_object_ptr returnObj;
 
@@ -43,7 +43,7 @@ static json_object_ptr json_get_object(json_object_ptr rootObj, const char* key)
     return NULL;
 }
 
-static HFONT InitializeFont(
+HFONT InitializeFont(
     _In_ HWND hwnd
     )
 {
@@ -84,7 +84,7 @@ static HFONT InitializeFont(
     return NULL;
 }
 
-static BOOL ReadRequestString(
+BOOL ReadRequestString(
     _In_ HINTERNET Handle,
     _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
     _Out_ ULONG *DataLength
@@ -137,7 +137,7 @@ static BOOL ReadRequestString(
     return TRUE;
 }
 
-static VOID RaiseUploadError(
+VOID RaiseUploadError(
     _In_ PUPLOAD_CONTEXT Context,
     _In_ PWSTR Error,
     _In_ ULONG ErrorCode
@@ -154,7 +154,7 @@ static VOID RaiseUploadError(
     }
 }
 
-static PSERVICE_INFO GetUploadServiceInfo(
+PSERVICE_INFO GetUploadServiceInfo(
     _In_ ULONG Id
     )
 {
@@ -169,7 +169,7 @@ static PSERVICE_INFO GetUploadServiceInfo(
     return NULL;
 }
 
-static BOOLEAN PerformSubRequest(
+BOOLEAN PerformSubRequest(
     _In_ PUPLOAD_CONTEXT Context,
     _In_ PWSTR HostName,
     _In_ INTERNET_PORT HostPort,
@@ -290,7 +290,7 @@ static BOOLEAN PerformSubRequest(
     return result;
 }
 
-static NTSTATUS HashFileAndResetPosition(
+NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,
     _In_ ULONG Algorithm,
@@ -375,7 +375,7 @@ static NTSTATUS HashFileAndResetPosition(
     return status;
 }
 
-static NTSTATUS UploadFileThreadStart(
+NTSTATUS UploadFileThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -833,7 +833,7 @@ static NTSTATUS UploadFileThreadStart(
     return status;
 }
 
-static NTSTATUS UploadCheckThreadStart(
+NTSTATUS UploadCheckThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -1123,7 +1123,7 @@ static NTSTATUS UploadCheckThreadStart(
     return status;
 }
 
-static INT_PTR CALLBACK UploadDlgProc(
+INT_PTR CALLBACK UploadDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1320,7 +1320,7 @@ static INT_PTR CALLBACK UploadDlgProc(
     return FALSE;
 }
 
-static NTSTATUS PhUploadToDialogThreadStart(
+NTSTATUS PhUploadToDialogThreadStart(
     _In_ PVOID Parameter
     )
 {

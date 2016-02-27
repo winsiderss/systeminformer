@@ -27,14 +27,14 @@ static HANDLE UpdateDialogThreadHandle = NULL;
 static HWND UpdateDialogHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
-static mxml_type_t QueryXmlDataCallback(
+mxml_type_t QueryXmlDataCallback(
     _In_ mxml_node_t *node
     )
 {
     return MXML_OPAQUE;
 }
 
-static BOOLEAN LastUpdateCheckExpired(
+BOOLEAN LastUpdateCheckExpired(
     VOID
     )
 {
@@ -68,7 +68,7 @@ static BOOLEAN LastUpdateCheckExpired(
     return FALSE;
 }
 
-static PPH_STRING UpdateVersionString(
+PPH_STRING UpdateVersionString(
     VOID
     )
 {
@@ -101,7 +101,7 @@ static PPH_STRING UpdateVersionString(
     return versionHeader;
 }
 
-static PPH_STRING UpdateWindowsString(
+PPH_STRING UpdateWindowsString(
     VOID
     )
 {
@@ -137,7 +137,7 @@ static PPH_STRING UpdateWindowsString(
     return buildLabHeader;
 }
 
-static BOOLEAN ParseVersionString(
+BOOLEAN ParseVersionString(
     _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
@@ -163,7 +163,7 @@ static BOOLEAN ParseVersionString(
     return FALSE;
 }
 
-static BOOLEAN ReadRequestString(
+BOOLEAN ReadRequestString(
     _In_ HINTERNET Handle,
     _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
     _Out_ ULONG *DataLength
@@ -216,7 +216,7 @@ static BOOLEAN ReadRequestString(
     return TRUE;
 }
 
-static PPH_UPDATER_CONTEXT CreateUpdateContext(
+PPH_UPDATER_CONTEXT CreateUpdateContext(
     VOID
     )
 {
@@ -228,7 +228,7 @@ static PPH_UPDATER_CONTEXT CreateUpdateContext(
     return context;
 }
 
-static VOID FreeUpdateContext(
+VOID FreeUpdateContext(
     _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
@@ -275,7 +275,7 @@ static VOID FreeUpdateContext(
     PhFree(Context);
 }
 
-static BOOLEAN QueryUpdateData(
+BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN UseFailServer
     )
@@ -507,7 +507,7 @@ static BOOLEAN QueryUpdateData(
     return isSuccess;
 }
 
-static NTSTATUS UpdateCheckSilentThread(
+NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
     )
 {
@@ -583,7 +583,7 @@ static NTSTATUS UpdateCheckSilentThread(
     return STATUS_SUCCESS;
 }
 
-static NTSTATUS UpdateCheckThread(
+NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     )
 {
@@ -653,7 +653,7 @@ static NTSTATUS UpdateCheckThread(
     return STATUS_SUCCESS;
 }
 
-static NTSTATUS UpdateDownloadThread(
+NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     )
 {
@@ -981,7 +981,7 @@ static NTSTATUS UpdateDownloadThread(
     return STATUS_SUCCESS;
 }
 
-static INT_PTR CALLBACK UpdaterWndProc(
+INT_PTR CALLBACK UpdaterWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1339,7 +1339,7 @@ static INT_PTR CALLBACK UpdaterWndProc(
     return FALSE;
 }
 
-static NTSTATUS ShowUpdateDialogThread(
+NTSTATUS ShowUpdateDialogThread(
     _In_ PVOID Parameter
     )
 {

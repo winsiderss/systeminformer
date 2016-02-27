@@ -41,7 +41,7 @@ static PH_CALLBACK_REGISTRATION ThreadTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ThreadTreeNewUninitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ThreadStackControlCallbackRegistration;
 
-static VOID NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -49,7 +49,7 @@ static VOID NTAPI LoadCallback(
     NOTHING;
 }
 
-static VOID NTAPI UnloadCallback(
+VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -57,7 +57,7 @@ static VOID NTAPI UnloadCallback(
     NOTHING;
 }
 
-static VOID NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -65,7 +65,7 @@ static VOID NTAPI ShowOptionsCallback(
     NOTHING;
 }
 
-static VOID NTAPI MenuItemCallback(
+VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -80,7 +80,7 @@ static VOID NTAPI MenuItemCallback(
     }
 }
 
-static VOID NTAPI TreeNewMessageCallback(
+VOID NTAPI TreeNewMessageCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -88,7 +88,7 @@ static VOID NTAPI TreeNewMessageCallback(
     DispatchTreeNewMessage(Parameter);
 }
 
-static VOID NTAPI PhSvcRequestCallback(
+VOID NTAPI PhSvcRequestCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -96,7 +96,7 @@ static VOID NTAPI PhSvcRequestCallback(
     DispatchPhSvcRequest(Parameter);
 }
 
-static VOID NTAPI ThreadTreeNewInitializingCallback(
+VOID NTAPI ThreadTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -104,7 +104,7 @@ static VOID NTAPI ThreadTreeNewInitializingCallback(
     ThreadTreeNewInitializing(Parameter);
 }
 
-static VOID NTAPI ThreadTreeNewUninitializingCallback(
+VOID NTAPI ThreadTreeNewUninitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -112,7 +112,7 @@ static VOID NTAPI ThreadTreeNewUninitializingCallback(
     ThreadTreeNewUninitializing(Parameter);
 }
 
-static VOID NTAPI ProcessPropertiesInitializingCallback(
+VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -134,7 +134,7 @@ static VOID NTAPI ProcessPropertiesInitializingCallback(
     }
 }
 
-static VOID NTAPI ProcessMenuInitializingCallback(
+VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -142,7 +142,7 @@ static VOID NTAPI ProcessMenuInitializingCallback(
     NOTHING;
 }
 
-static VOID NTAPI ThreadMenuInitializingCallback(
+VOID NTAPI ThreadMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -150,7 +150,7 @@ static VOID NTAPI ThreadMenuInitializingCallback(
     NOTHING;
 }
 
-static VOID NTAPI ModuleMenuInitializingCallback(
+VOID NTAPI ModuleMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -158,7 +158,7 @@ static VOID NTAPI ModuleMenuInitializingCallback(
     NOTHING;
 }
 
-static VOID NTAPI ProcessTreeNewInitializingCallback(
+VOID NTAPI ProcessTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -166,7 +166,7 @@ static VOID NTAPI ProcessTreeNewInitializingCallback(
     NOTHING;
 }
 
-static VOID NTAPI ThreadStackControlCallback(
+VOID NTAPI ThreadStackControlCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -174,7 +174,7 @@ static VOID NTAPI ThreadStackControlCallback(
     ProcessThreadStackControl(Parameter);
 }
 
-static VOID NTAPI ThreadItemCreateCallback(
+VOID NTAPI ThreadItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
@@ -186,7 +186,7 @@ static VOID NTAPI ThreadItemCreateCallback(
     dnThread->ThreadItem = Object;
 }
 
-static VOID NTAPI ThreadItemDeleteCallback(
+VOID NTAPI ThreadItemDeleteCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension

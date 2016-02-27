@@ -85,7 +85,7 @@ static PWSTR DotNetCategoryStrings[] =
     L".NET CLR Security"
 };
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -98,7 +98,7 @@ static VOID NTAPI ProcessesUpdatedCallback(
     }
 }
 
-static VOID UpdateCategoryValues(
+VOID UpdateCategoryValues(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context
     )
@@ -381,7 +381,7 @@ static VOID UpdateCategoryValues(
     }
 }
 
-static VOID AddProcessAppDomains(
+VOID AddProcessAppDomains(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context
     )
@@ -425,7 +425,7 @@ static VOID AddProcessAppDomains(
     SendMessage(Context->AppDomainsLv, WM_SETREDRAW, TRUE, 0);
 }
 
-static VOID UpdateCounterData(
+VOID UpdateCounterData(
     _In_ HWND hwndDlg,
     _In_ PPERFPAGE_CONTEXT Context
     )
@@ -681,7 +681,7 @@ static VOID UpdateCounterData(
     }
 }
 
-static INT_PTR CALLBACK DotNetPerfPageDlgProc(
+INT_PTR CALLBACK DotNetPerfPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

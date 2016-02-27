@@ -119,7 +119,7 @@ VOID EtGpuMonitorInitialization(
 
         PhRegisterCallback(
             &PhProcessesUpdatedEvent,
-            ProcessesUpdatedCallback,
+            EtGpuProcessesUpdatedCallback,
             NULL,
             &ProcessesUpdatedCallbackRegistration
             );
@@ -388,7 +388,7 @@ PPH_STRING EtpQueryDeviceDescription(
     return string;
 }
 
-static VOID EtpUpdateSegmentInformation(
+VOID EtpUpdateSegmentInformation(
     _In_opt_ PET_PROCESS_BLOCK Block
     )
 {
@@ -484,7 +484,7 @@ static VOID EtpUpdateSegmentInformation(
     }
 }
 
-static VOID EtpUpdateNodeInformation(
+VOID EtpUpdateNodeInformation(
     _In_opt_ PET_PROCESS_BLOCK Block
     )
 {
@@ -568,7 +568,7 @@ static VOID EtpUpdateNodeInformation(
     }
 }
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI EtGpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )

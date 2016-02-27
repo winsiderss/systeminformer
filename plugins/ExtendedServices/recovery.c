@@ -86,7 +86,7 @@ PWSTR EspServiceActionToString(
         return NULL;
 }
 
-static SC_ACTION_TYPE ComboBoxToServiceAction(
+SC_ACTION_TYPE ComboBoxToServiceAction(
     _In_ HWND ComboBoxHandle
     )
 {
@@ -100,7 +100,7 @@ static SC_ACTION_TYPE ComboBoxToServiceAction(
     return EspStringToServiceAction(string->Buffer);
 }
 
-static VOID ServiceActionToComboBox(
+VOID ServiceActionToComboBox(
     _In_ HWND ComboBoxHandle,
     _In_ SC_ACTION_TYPE ActionType
     )

@@ -22,7 +22,7 @@
 
 #include "nettools.h"
 
-static NTSTATUS StdOutNetworkTracertThreadStart(
+NTSTATUS StdOutNetworkTracertThreadStart(
     _In_ PVOID Parameter
     )
 {

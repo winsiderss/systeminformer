@@ -24,7 +24,7 @@
 #include <mxml.h>
 #include <winhttp.h>
 
-static BOOLEAN ReadRequestString(
+BOOLEAN ReadRequestString(
     _In_ HINTERNET Handle,
     _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
     _Out_ ULONG *DataLength

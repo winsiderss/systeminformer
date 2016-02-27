@@ -44,7 +44,7 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI EtpDiskProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
@@ -96,7 +96,7 @@ VOID EtInitializeDiskInformation(
 
     PhRegisterCallback(
         &PhProcessesUpdatedEvent,
-        ProcessesUpdatedCallback,
+        EtpDiskProcessesUpdatedCallback,
         NULL,
         &ProcessesUpdatedCallbackRegistration
         );
@@ -396,7 +396,7 @@ ULONG64 EtpCalculateAverage(
     return sum / NumberToConsider;
 }
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI EtpDiskProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
