@@ -25,7 +25,7 @@
 #include <Uxtheme.h>
 #include <vssym32.h>
 
-static HMODULE UxThemeHandle = NULL;
+static PVOID UxThemeHandle = NULL;
 static _IsThemeActive IsThemeActive_I = NULL;
 static _OpenThemeData OpenThemeData_I = NULL;
 static _CloseThemeData CloseThemeData_I = NULL;
@@ -71,7 +71,7 @@ VOID NcAreaInitializeTheme(
 
     if (!UxThemeHandle)
     {
-        if (UxThemeHandle = LoadLibrary(L"uxtheme.dll"))
+        if (UxThemeHandle = LoadLibraryEx(L"uxtheme.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32))
         {
             IsThemeActive_I = PhGetProcedureAddress(UxThemeHandle, "IsThemeActive", 0);
             OpenThemeData_I = PhGetProcedureAddress(UxThemeHandle, "OpenThemeData", 0);

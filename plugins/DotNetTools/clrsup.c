@@ -188,7 +188,7 @@ PVOID LoadMscordacwks(
     PH_STRINGREF mscordacwksPathString;
     PPH_STRING mscordacwksFileName;
 
-    LoadLibrary(L"mscoree.dll");
+    LoadLibraryEx(L"mscoree.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
     PhGetSystemRoot(&systemRootString);
 

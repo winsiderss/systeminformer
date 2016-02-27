@@ -274,7 +274,7 @@ VOID ShowDeviceMenu(
         {
         case 1:
             {
-                HMODULE devMgrHandle;
+                PVOID devMgrHandle;
 
                 // https://msdn.microsoft.com/en-us/library/ff548181.aspx
                 VOID (WINAPI *DeviceProperties_RunDLL_I)(
@@ -284,9 +284,9 @@ VOID ShowDeviceMenu(
                     _In_ INT nCmdShow
                     );
 
-                if (devMgrHandle = LoadLibrary(L"devmgr.dll"))
+                if (devMgrHandle = LoadLibraryEx(L"devmgr.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32))
                 {
-                    if (DeviceProperties_RunDLL_I = (PVOID)GetProcAddress(devMgrHandle, "DeviceProperties_RunDLLW"))
+                    if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
                     {
                         // This will sometimes re-throw an RPC error during debugging and can be safely ignored.
                         DeviceProperties_RunDLL_I(
