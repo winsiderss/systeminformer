@@ -959,7 +959,7 @@ VOID EtShowDiskContextMenu(
     PhFree(diskItems);
 }
 
-static VOID NTAPI EtpDiskItemAddedHandler(
+VOID NTAPI EtpDiskItemAddedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -970,7 +970,7 @@ static VOID NTAPI EtpDiskItemAddedHandler(
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemAdded, diskItem);
 }
 
-static VOID NTAPI EtpDiskItemModifiedHandler(
+VOID NTAPI EtpDiskItemModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -978,7 +978,7 @@ static VOID NTAPI EtpDiskItemModifiedHandler(
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemModified, (PET_DISK_ITEM)Parameter);
 }
 
-static VOID NTAPI EtpDiskItemRemovedHandler(
+VOID NTAPI EtpDiskItemRemovedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -986,7 +986,7 @@ static VOID NTAPI EtpDiskItemRemovedHandler(
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemRemoved, (PET_DISK_ITEM)Parameter);
 }
 
-static VOID NTAPI EtpDiskItemsUpdatedHandler(
+VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -994,7 +994,7 @@ static VOID NTAPI EtpDiskItemsUpdatedHandler(
     ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, NULL);
 }
 
-static VOID NTAPI EtpOnDiskItemAdded(
+VOID NTAPI EtpOnDiskItemAdded(
     _In_ PVOID Parameter
     )
 {
@@ -1011,7 +1011,7 @@ static VOID NTAPI EtpOnDiskItemAdded(
     PhDereferenceObject(diskItem);
 }
 
-static VOID NTAPI EtpOnDiskItemModified(
+VOID NTAPI EtpOnDiskItemModified(
     _In_ PVOID Parameter
     )
 {
@@ -1020,7 +1020,7 @@ static VOID NTAPI EtpOnDiskItemModified(
     EtUpdateDiskNode(EtFindDiskNode(diskItem));
 }
 
-static VOID NTAPI EtpOnDiskItemRemoved(
+VOID NTAPI EtpOnDiskItemRemoved(
     _In_ PVOID Parameter
     )
 {
@@ -1035,7 +1035,7 @@ static VOID NTAPI EtpOnDiskItemRemoved(
     EtRemoveDiskNode(EtFindDiskNode(diskItem));
 }
 
-static VOID NTAPI EtpOnDiskItemsUpdated(
+VOID NTAPI EtpOnDiskItemsUpdated(
     _In_ PVOID Parameter
     )
 {

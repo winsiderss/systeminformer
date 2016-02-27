@@ -1666,7 +1666,7 @@ DoNotClose:
     return FALSE;
 }
 
-static INT_PTR CALLBACK ValueDlgProc(
+INT_PTR CALLBACK ValueDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

@@ -212,7 +212,7 @@ VOID EtProcessNetworkEvent(
     }
 }
 
-static VOID NTAPI ProcessesUpdatedCallback(
+VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -328,7 +328,7 @@ static VOID NTAPI EtpInvalidateNetworkNode(
     PhDereferenceObject(networkItem);
 }
 
-static VOID NTAPI NetworkItemsUpdatedCallback(
+VOID NTAPI NetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )

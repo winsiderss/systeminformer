@@ -56,7 +56,7 @@ typedef struct _ET_DISKNET_CONTEXT
     PH_CIRCULAR_BUFFER_ULONG64 NetworkReceiveHistory;
 } ET_DISKNET_CONTEXT, *PET_DISKNET_CONTEXT;
 
-static INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
+INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -66,7 +66,7 @@ static INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
     return FALSE;
 }
 
-static VOID EtwDiskNetworkCreateGraphs(
+VOID EtwDiskNetworkCreateGraphs(
     _In_ PET_DISKNET_CONTEXT Context
     )
 {
@@ -101,7 +101,7 @@ static VOID EtwDiskNetworkCreateGraphs(
     Graph_SetTooltip(Context->NetworkGraphHandle, TRUE);
 }
 
-static VOID EtwDiskNetworkCreatePanel(
+VOID EtwDiskNetworkCreatePanel(
     _In_ PET_DISKNET_CONTEXT Context
     )
 {
@@ -141,7 +141,7 @@ static VOID EtwDiskNetworkCreatePanel(
     SendMessage(Context->WindowHandle, WM_SIZE, 0, 0);
 }
 
-static VOID EtwDiskNetworkLayoutGraphs(
+VOID EtwDiskNetworkLayoutGraphs(
     _In_ PET_DISKNET_CONTEXT Context
     )
 {
@@ -198,7 +198,7 @@ static VOID EtwDiskNetworkLayoutGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-static VOID EtwDiskNetworkUpdateGraphs(
+VOID EtwDiskNetworkUpdateGraphs(
     _In_ PET_DISKNET_CONTEXT Context
     )
 {
@@ -217,7 +217,7 @@ static VOID EtwDiskNetworkUpdateGraphs(
     InvalidateRect(Context->NetworkGraphHandle, NULL, FALSE);
 }
 
-static VOID EtwDiskNetworkUpdatePanel(
+VOID EtwDiskNetworkUpdatePanel(
     _Inout_ PET_DISKNET_CONTEXT Context
     )
 {
@@ -238,7 +238,7 @@ static VOID EtwDiskNetworkUpdatePanel(
     SetDlgItemText(Context->PanelHandle, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendRawDelta.Delta, -1)->Buffer);
 }
 
-static VOID EtwDiskNetworkUpdateInfo(
+VOID EtwDiskNetworkUpdateInfo(
     _In_ PET_DISKNET_CONTEXT Context
     )
 {
@@ -255,7 +255,7 @@ static VOID EtwDiskNetworkUpdateInfo(
     PhAddItemCircularBuffer_ULONG64(&Context->NetworkReceiveHistory, Context->CurrentNetworkReceive);
 }
 
-static VOID NTAPI EtwDiskNetworkUpdateHandler(
+VOID NTAPI EtwDiskNetworkUpdateHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -271,7 +271,7 @@ static VOID NTAPI EtwDiskNetworkUpdateHandler(
     }
 }
 
-static INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
+INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

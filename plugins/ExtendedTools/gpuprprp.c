@@ -61,7 +61,7 @@ VOID GpuPropUpdatePanel(
     _Inout_ PET_GPU_CONTEXT Context
     );
 
-static INT_PTR CALLBACK GpuDetailsDialogProc(
+INT_PTR CALLBACK GpuDetailsDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -114,7 +114,7 @@ static INT_PTR CALLBACK GpuDetailsDialogProc(
     return FALSE;
 }
 
-static INT_PTR CALLBACK GpuPanelDialogProc(
+INT_PTR CALLBACK GpuPanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -166,7 +166,7 @@ static INT_PTR CALLBACK GpuPanelDialogProc(
     return FALSE;
 }
 
-static VOID GpuPropCreateGraphs(
+VOID GpuPropCreateGraphs(
     _In_ PET_GPU_CONTEXT Context
     )
 {
@@ -216,7 +216,7 @@ static VOID GpuPropCreateGraphs(
     Graph_SetTooltip(Context->SharedGraphHandle, TRUE);
 }
 
-static VOID GpuPropCreatePanel(
+VOID GpuPropCreatePanel(
     _In_ PET_GPU_CONTEXT Context
     )
 {
@@ -256,7 +256,7 @@ static VOID GpuPropCreatePanel(
     SendMessage(Context->WindowHandle, WM_SIZE, 0, 0);
 }
 
-static VOID GpuPropLayoutGraphs(
+VOID GpuPropLayoutGraphs(
     _In_ PET_GPU_CONTEXT Context
     )
 {
@@ -326,7 +326,7 @@ static VOID GpuPropLayoutGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-static VOID GpuPropUpdateGraphs(
+VOID GpuPropUpdateGraphs(
     _In_ PET_GPU_CONTEXT Context
     )
 {
@@ -387,7 +387,7 @@ VOID GpuPropUpdatePanel(
     }
 }
 
-static VOID GpuPropUpdateInfo(
+VOID GpuPropUpdateInfo(
     _In_ PET_GPU_CONTEXT Context
     )
 {
@@ -402,7 +402,7 @@ static VOID GpuPropUpdateInfo(
     PhAddItemCircularBuffer_ULONG(&Context->MemorySharedHistory, Context->CurrentMemSharedUsage);
 }
 
-static VOID NTAPI ProcessesUpdatedHandler(
+VOID NTAPI ProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )

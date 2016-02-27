@@ -30,7 +30,7 @@ static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 
-static VOID NTAPI LoadCallback(
+VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -38,7 +38,7 @@ static VOID NTAPI LoadCallback(
     // Nothing
 }
 
-static VOID NTAPI ShowOptionsCallback(
+VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -46,7 +46,7 @@ static VOID NTAPI ShowOptionsCallback(
     EsShowOptionsDialog((HWND)Parameter);
 }
 
-static VOID NTAPI MenuItemCallback(
+VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -122,7 +122,7 @@ static int __cdecl ServiceForServicesMenuCompare(
     return PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE);
 }
 
-static VOID NTAPI ProcessMenuInitializingCallback(
+VOID NTAPI ProcessMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -284,7 +284,7 @@ static VOID NTAPI ProcessMenuInitializingCallback(
     }
 }
 
-static  NTAPI ServicePropertiesInitializingCallback(
+NTAPI ServicePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -376,7 +376,7 @@ static  NTAPI ServicePropertiesInitializingCallback(
     }
 }
 
-static VOID NTAPI ServiceMenuInitializingCallback(
+VOID NTAPI ServiceMenuInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
