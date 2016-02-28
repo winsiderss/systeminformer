@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,5,0,0
- PRODUCTVERSION 1,5,0,0
+ FILEVERSION 1,6,0,0
+ PRODUCTVERSION 1,6,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", ".NET tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.5"
+            VALUE "FileVersion", "1.6"
             VALUE "InternalName", "DotNetTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "DotNetTools.dll"
             VALUE "ProductName", ".NET tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.5"
+            VALUE "ProductVersion", "1.6"
         END
     END
     BLOCK "VarFileInfo"
@@ -95,7 +95,8 @@ BEGIN
     CONTROL         "",IDC_APPDOMAINS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SORTASCENDING | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,59
     LTEXT           "Categories:",IDC_STATIC,7,72,38,8
     COMBOBOX        IDC_CATEGORIES,49,70,204,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_COUNTERS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,88,246,165
+    CONTROL         "",IDC_COUNTERS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,88,246,154
+    CONTROL         "Show sizes in bytes",IDC_DOTNET_PERF_SHOWBYTES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,244,78,10
 END
 
 IDD_PROCDOTNETASM DIALOGEX 0, 0, 260, 260
@@ -141,6 +142,11 @@ END
 //
 
 IDD_PROCDOTNETASM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PROCDOTNETPERF AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

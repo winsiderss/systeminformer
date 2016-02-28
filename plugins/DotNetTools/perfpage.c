@@ -65,6 +65,7 @@ typedef struct _PERFPAGE_CONTEXT
     BOOLEAN ControlBlockValid;
     BOOLEAN ClrV4;
     BOOLEAN IsWow64;
+    BOOLEAN ShowByteSize;
     DOTNET_CATEGORY CategoryIndex;
     HANDLE ProcessHandle;
     HANDLE BlockTableHandle;
@@ -84,6 +85,17 @@ static PWSTR DotNetCategoryStrings[] =
     L".NET CLR Remoting",
     L".NET CLR Security"
 };
+
+PPH_STRING FormatByteValue(
+    _In_ PPERFPAGE_CONTEXT Context,
+    _In_ ULONG64 Value
+    )
+{
+    if (Context->ShowByteSize)
+        return PhaFormatUInt64(Value, TRUE);
+
+    return PhaFormatSize(Value, -1);
+}
 
 VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -316,10 +328,10 @@ VOID UpdateCategoryValues(
             PhAddListViewItem(Context->CountersLv, MAXINT, L"# of Sink Blocks in use", NULL);
 
             // Reserved for future use.
-            //PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Bytes Allocated", NULL);
+            PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Bytes Allocated (since start)", NULL);
 
             // Reserved for future use.
-            //PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Bytes Allocated for Large Objects", NULL);
+            PhAddListViewItem(Context->CountersLv, MAXINT, L"Total Bytes Allocated for Large Objects (since start)", NULL);
 
             // Gen 0 Promoted Bytes / Sec
             // This counter displays the bytes per second that are promoted from generation 0 (youngest)to generation 1; objects that are promoted just because they are waiting to be finalized are not included in this counter.Memory is promoted when it survives a garbage collection.This counter was designed as an indicator of relatively long - lived objects being created per sec.This counter displays the difference between the values observed in the last two samples divided by the duration of the sample interval.
@@ -552,15 +564,15 @@ VOID UpdateCounterData(
     case DOTNET_CATEGORY_JIT:
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfJit.cMethodsJitted, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfJit.cbILJitted.Current, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 2, 1, PhaFormatUInt64(dotNetPerfJit.cbILJitted.Total, TRUE)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 1, 1, FormatByteValue(Context, dotNetPerfJit.cbILJitted.Current)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 2, 1, FormatByteValue(Context, dotNetPerfJit.cbILJitted.Total)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 3, 1, PhaFormatUInt64(dotNetPerfJit.cJitFailures, TRUE)->Buffer);
-
-            PH_FORMAT format;
-            WCHAR formatBuffer[10];
 
             if (dotNetPerfJit.timeInJitBase != 0)
             {
+                PH_FORMAT format;
+                WCHAR formatBuffer[10];
+
                 // TODO: TimeInJit is always above 100% for some processes ??
                 // SeeAlso: https://github.com/dotnet/coreclr/blob/master/src/gc/gcee.cpp#L324
                 PhInitFormatF(&format, (dotNetPerfJit.timeInJit << 8) * 100 / (FLOAT)(dotNetPerfJit.timeInJitBase << 8), 2);
@@ -584,9 +596,8 @@ VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 5, 1, PhaFormatUInt64(dotNetPerfLoading.cAssemblies.Total, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 6, 1, PhaFormatUInt64(dotNetPerfLoading.cAsmSearchLen, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 7, 1, PhaFormatUInt64(dotNetPerfLoading.cLoadFailures.Total, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 8, 1, PhaFormatUInt64(dotNetPerfLoading.cbLoaderHeapSize, TRUE)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 8, 1, FormatByteValue(Context, dotNetPerfLoading.cbLoaderHeapSize)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 9, 1, PhaFormatUInt64(dotNetPerfLoading.cAppDomainsUnloaded.Total, TRUE)->Buffer);
-
             //PhSetListViewSubItem(Context->CountersLv, 10, 1, PhaFormatUInt64(dotNetPerfLoading.timeLoading, TRUE)->Buffer);
         }
         break;
@@ -606,23 +617,23 @@ VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfGC.cGenCollections[0], TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfGC.cGenCollections[1], TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 2, 1, PhaFormatUInt64(dotNetPerfGC.cGenCollections[2], TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 3, 1, PhaFormatUInt64(dotNetPerfGC.cbPromotedMem[0], TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 4, 1, PhaFormatUInt64(dotNetPerfGC.cbPromotedMem[1], TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 5, 1, PhaFormatUInt64(dotNetPerfGC.cbPromotedFinalizationMem, TRUE)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 3, 1, FormatByteValue(Context, dotNetPerfGC.cbPromotedMem[0])->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 4, 1, FormatByteValue(Context, dotNetPerfGC.cbPromotedMem[1])->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 5, 1, FormatByteValue(Context, dotNetPerfGC.cbPromotedFinalizationMem)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 6, 1, PhaFormatUInt64(dotNetPerfGC.cProcessID, FALSE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 7, 1, PhaFormatUInt64(dotNetPerfGC.cGenHeapSize[0], TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 8, 1, PhaFormatUInt64(dotNetPerfGC.cGenHeapSize[1], TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 9, 1, PhaFormatUInt64(dotNetPerfGC.cGenHeapSize[2], TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 10, 1, PhaFormatUInt64(dotNetPerfGC.cLrgObjSize, TRUE)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 7, 1, FormatByteValue(Context, dotNetPerfGC.cGenHeapSize[0])->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 8, 1, FormatByteValue(Context, dotNetPerfGC.cGenHeapSize[1])->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 9, 1, FormatByteValue(Context, dotNetPerfGC.cGenHeapSize[2])->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 10, 1, FormatByteValue(Context, dotNetPerfGC.cLrgObjSize)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 11, 1, PhaFormatUInt64(dotNetPerfGC.cSurviveFinalize, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 12, 1, PhaFormatUInt64(dotNetPerfGC.cHandles, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 13, 1, PhaFormatUInt64(dotNetPerfGC.cInducedGCs, TRUE)->Buffer);
 
-            PH_FORMAT format;
-            WCHAR formatBuffer[10];
-
             if (dotNetPerfGC.timeInGCBase != 0)
             {
+                PH_FORMAT format;
+                WCHAR formatBuffer[10];
+
                 PhInitFormatF(&format, (FLOAT)dotNetPerfGC.timeInGC * 100 / (FLOAT)dotNetPerfGC.timeInGCBase, 2);
 
                 if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
@@ -633,16 +644,15 @@ VOID UpdateCounterData(
                 PhSetListViewSubItem(Context->CountersLv, 14, 1, L"0.00");
             }
 
-            // TODO: Perflib doesn't correctly count the 'Bytes in all Heaps' value...
-            //  The source-code says this value should be "Gen 0 Heap Size; Gen 1 Heap Size; Gen 2 Heap Size and the Large Object Heap Size"
-            PhSetListViewSubItem(Context->CountersLv, 15, 1, PhaFormatUInt64(dotNetPerfGC.cGenHeapSize[1] + dotNetPerfGC.cGenHeapSize[2] + dotNetPerfGC.cLrgObjSize, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 16, 1, PhaFormatUInt64(dotNetPerfGC.cTotalCommittedBytes, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 17, 1, PhaFormatUInt64(dotNetPerfGC.cTotalReservedBytes, TRUE)->Buffer);
+            //  The CLR source says this value should be "Gen 0 Heap Size; Gen 1 Heap Size; Gen 2 Heap Size and the Large Object Heap Size",
+            //    but Perflib only counts Gen 1, Gen 2 and cLrgObjSize... For now, just do what perflib does.
+            PhSetListViewSubItem(Context->CountersLv, 15, 1, FormatByteValue(Context, dotNetPerfGC.cGenHeapSize[1] + dotNetPerfGC.cGenHeapSize[2] + dotNetPerfGC.cLrgObjSize)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 16, 1, FormatByteValue(Context, dotNetPerfGC.cTotalCommittedBytes)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 17, 1, FormatByteValue(Context, dotNetPerfGC.cTotalReservedBytes)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 18, 1, PhaFormatUInt64(dotNetPerfGC.cPinnedObj, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 19, 1, PhaFormatUInt64(dotNetPerfGC.cSinkBlocks, TRUE)->Buffer);
-                                                                          
-            //PhSetListViewSubItem(Context->CountersLv, 20, 1, PhaFormatSize(dotNetPerfGC.cbAlloc, -1)->Buffer);
-            //PhSetListViewSubItem(Context->CountersLv, 21, 1, PhaFormatSize(dotNetPerfGC.cbLargeAlloc, -1)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 19, 1, PhaFormatUInt64(dotNetPerfGC.cSinkBlocks, TRUE)->Buffer);                                                                     
+            PhSetListViewSubItem(Context->CountersLv, 20, 1, FormatByteValue(Context, dotNetPerfGC.cbAlloc)->Buffer);
+            PhSetListViewSubItem(Context->CountersLv, 21, 1, FormatByteValue(Context, dotNetPerfGC.cbLargeAlloc)->Buffer);
         }
         break;
     case DOTNET_CATEGORY_REMOTING:
@@ -659,12 +669,12 @@ VOID UpdateCounterData(
         {
             PhSetListViewSubItem(Context->CountersLv, 0, 1, PhaFormatUInt64(dotNetPerfSecurity.cTotalRTChecks, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 1, 1, PhaFormatUInt64(dotNetPerfSecurity.cLinkChecks, TRUE)->Buffer);
-            
-            PH_FORMAT format;
-            WCHAR formatBuffer[10];
 
             if (dotNetPerfSecurity.timeRTchecksBase != 0)
             {
+                PH_FORMAT format;
+                WCHAR formatBuffer[10];
+
                 PhInitFormatF(&format, (FLOAT)dotNetPerfSecurity.timeRTchecks * 100 / (FLOAT)dotNetPerfSecurity.timeRTchecksBase, 2);
 
                 if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
@@ -728,12 +738,18 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhAddListViewColumn(context->CountersLv, 1, 1, 1, LVCFMT_RIGHT, 140, L"Value");
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersLv);
            
+            if (PhGetIntegerSetting(SETTING_NAME_DOT_NET_SHOW_BYTE_SIZE))
+            {
+                context->ShowByteSize = TRUE;
+                Button_SetCheck(GetDlgItem(hwndDlg, IDC_DOTNET_PERF_SHOWBYTES), TRUE);
+            }
+
             PhAddComboBoxStrings(context->CategoriesCb, DotNetCategoryStrings, ARRAYSIZE(DotNetCategoryStrings));
             context->CategoryIndex = PhGetIntegerSetting(SETTING_NAME_DOT_NET_CATEGORY_INDEX);
             ComboBox_SetCurSel(context->CategoriesCb, context->CategoryIndex);
 
 #ifdef _WIN64
-            context->IsWow64 = context->ProcessItem->IsWow64 == 1 ? TRUE : FALSE;
+            context->IsWow64 = !!context->ProcessItem->IsWow64;
 #else
             // HACK: Work-around for Appdomain enumeration on 32bit.
             context->IsWow64 = TRUE;
@@ -771,7 +787,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             if (context->ClrV4)
             {
                 if (OpenDotNetPublicControlBlock_V4(
-                    context->ProcessItem->IsImmersive == 1 ? TRUE : FALSE,
+                    !!context->ProcessItem->IsImmersive,
                     context->ProcessHandle,
                     context->ProcessItem->ProcessId,
                     &context->BlockTableHandle,
@@ -832,7 +848,6 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersLv);
 
             PhFree(context);
-
             PhPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -845,6 +860,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, context->AppDomainsLv, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, context->CategoriesCb, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, context->CountersLv, dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DOTNET_PERF_SHOWBYTES), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
@@ -859,6 +875,21 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                     {
                         context->CategoryIndex = ComboBox_GetCurSel(context->CategoriesCb);
                         PhSetIntegerSetting(SETTING_NAME_DOT_NET_CATEGORY_INDEX, context->CategoryIndex);
+
+                        if (context->ControlBlockValid)
+                        {
+                            UpdateCategoryValues(hwndDlg, context);
+                            UpdateCounterData(hwndDlg, context);
+                        }
+                    }
+                }
+                break;
+            case IDC_DOTNET_PERF_SHOWBYTES:
+                {
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == BN_CLICKED)
+                    {
+                        context->ShowByteSize = !context->ShowByteSize;
+                        PhSetIntegerSetting(SETTING_NAME_DOT_NET_SHOW_BYTE_SIZE, context->ShowByteSize);
 
                         if (context->ControlBlockValid)
                         {
