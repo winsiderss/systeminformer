@@ -1,5 +1,10 @@
 Process Hacker
 
+2.39
+ * HIGHLIGHTS:
+ * OTHER CHANGES:
+   * Improved tooltip information for dllhost.exe
+
 2.38
  * HIGHLIGHTS:
    * Added labels to indicate the maximum data point in each I/O graph

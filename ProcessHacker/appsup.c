@@ -590,7 +590,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             PPH_STRING guidString;
             UNICODE_STRING guidStringUs;
             GUID guid;
-            HANDLE clsidKeyHandle;
+            HANDLE rootKeyHandle;
             HANDLE inprocServer32KeyHandle;
             PPH_STRING fileName;
 
@@ -645,7 +645,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // Lookup the GUID in the registry to determine the name and file name.
 
             if (NT_SUCCESS(PhOpenKey(
-                &clsidKeyHandle,
+                &rootKeyHandle,
                 KEY_READ,
                 PH_KEY_CLASSES_ROOT,
                 &PhaConcatStrings2(L"CLSID\\", guidString->Buffer)->sr,
@@ -653,12 +653,12 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 )))
             {
                 KnownCommandLine->ComSurrogate.Name =
-                    PH_AUTO(PhQueryRegistryString(clsidKeyHandle, NULL));
+                    PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
 
                 if (NT_SUCCESS(PhOpenKey(
                     &inprocServer32KeyHandle,
                     KEY_READ,
-                    clsidKeyHandle,
+                    rootKeyHandle,
                     &inprocServer32Name,
                     0
                     )))
@@ -676,7 +676,19 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                     NtClose(inprocServer32KeyHandle);
                 }
 
-                NtClose(clsidKeyHandle);
+                NtClose(rootKeyHandle);
+            }
+            else if (NT_SUCCESS(PhOpenKey(
+                &rootKeyHandle,
+                KEY_READ,
+                PH_KEY_CLASSES_ROOT,
+                &PhaConcatStrings2(L"AppID\\", guidString->Buffer)->sr,
+                0
+                )))
+            {
+                KnownCommandLine->ComSurrogate.Name =
+                    PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
+                NtClose(rootKeyHandle);
             }
         }
         break;
