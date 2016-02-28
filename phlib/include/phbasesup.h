@@ -5,15 +5,6 @@
 extern "C" {
 #endif
 
-struct _PH_STRING;
-typedef struct _PH_STRING *PPH_STRING;
-
-struct _PH_PROVIDER_THREAD;
-typedef struct _PH_PROVIDER_THREAD PH_PROVIDER_THREAD;
-
-struct _PH_STARTUP_PARAMETERS;
-typedef struct _PH_STARTUP_PARAMETERS PH_STARTUP_PARAMETERS;
-
 BOOLEAN
 PhBaseInitialization(
     VOID
