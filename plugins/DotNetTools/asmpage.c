@@ -37,6 +37,8 @@
 #define DNA_TYPE_APPDOMAIN 2
 #define DNA_TYPE_ASSEMBLY 3
 
+#define UPDATE_MSG (WM_APP + 1)
+
 typedef struct _DNA_NODE
 {
     PH_TREENEW_NODE Node;
@@ -82,15 +84,29 @@ typedef struct _ASMPAGE_CONTEXT
     ULONG ClrVersions;
     PDNA_NODE ClrV2Node;
 
+    HWND TnHandle;
+    PPH_STRING TnErrorMessage;
+    PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
+} ASMPAGE_CONTEXT, *PASMPAGE_CONTEXT;
+
+typedef struct _ASMPAGE_QUERY_CONTEXT
+{
+    HANDLE WindowHandle;
+
+    HANDLE ProcessId;
+    ULONG ClrVersions;
+    PDNA_NODE ClrV2Node;
+
     BOOLEAN TraceClrV2;
     ULONG TraceResult;
     LONG TraceHandleActive;
     TRACEHANDLE TraceHandle;
 
-    HWND TnHandle;
+    PPH_STRING TnErrorMessage;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
-} ASMPAGE_CONTEXT, *PASMPAGE_CONTEXT;
+} ASMPAGE_QUERY_CONTEXT, *PASMPAGE_QUERY_CONTEXT;
 
 typedef struct _FLAG_DEFINITION
 {
@@ -108,6 +124,10 @@ typedef ULONG (__stdcall *_EnableTraceEx)(
     _In_ ULONGLONG MatchAllKeyword,
     _In_ ULONG EnableProperty,
     _In_opt_ PEVENT_FILTER_DESCRIPTOR EnableFilterDesc
+    );
+
+VOID DestroyDotNetTraceQuery(
+    _In_ PASMPAGE_QUERY_CONTEXT Context
     );
 
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
@@ -209,7 +229,7 @@ PPH_STRING FlagsToString(
 }
 
 PDNA_NODE AddNode(
-    _Inout_ PASMPAGE_CONTEXT Context
+    _Inout_ PASMPAGE_QUERY_CONTEXT Context
     )
 {
     PDNA_NODE node;
@@ -257,7 +277,7 @@ VOID DestroyNode(
 }
 
 PDNA_NODE AddFakeClrNode(
-    _In_ PASMPAGE_CONTEXT Context,
+    _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ PWSTR DisplayName
     )
 {
@@ -276,7 +296,7 @@ PDNA_NODE AddFakeClrNode(
 }
 
 PDNA_NODE FindClrNode(
-    _In_ PASMPAGE_CONTEXT Context,
+    _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ USHORT ClrInstanceID
     )
 {
@@ -546,11 +566,11 @@ VOID NTAPI DotNetEventCallback(
     _In_ PEVENT_RECORD EventRecord
     )
 {
-    PASMPAGE_CONTEXT context = EventRecord->UserContext;
+    PASMPAGE_QUERY_CONTEXT context = EventRecord->UserContext;
     PEVENT_HEADER eventHeader = &EventRecord->EventHeader;
     PEVENT_DESCRIPTOR eventDescriptor = &eventHeader->EventDescriptor;
 
-    if (UlongToHandle(eventHeader->ProcessId) == context->ProcessItem->ProcessId)
+    if (UlongToHandle(eventHeader->ProcessId) == context->ProcessId)
     {
         // .NET 4.0+
 
@@ -789,7 +809,7 @@ VOID NTAPI DotNetEventCallback(
 }
 
 ULONG ProcessDotNetTrace(
-    _In_ PASMPAGE_CONTEXT Context
+    _In_ PASMPAGE_QUERY_CONTEXT Context
     )
 {
     ULONG result;
@@ -821,7 +841,7 @@ ULONG ProcessDotNetTrace(
 }
 
 ULONG UpdateDotNetTraceInfo(
-    _In_ PASMPAGE_CONTEXT Context,
+    _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ BOOLEAN ClrV2
     )
 {
@@ -871,15 +891,15 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     _In_ PVOID Parameter
     )
 {
-    PASMPAGE_CONTEXT context = Parameter;
+    PASMPAGE_QUERY_CONTEXT context = Parameter;
 
     context->TraceResult = UpdateDotNetTraceInfo(context, context->TraceClrV2);
-
+   
     return STATUS_SUCCESS;
 }
 
 ULONG UpdateDotNetTraceInfoWithTimeout(
-    _In_ PASMPAGE_CONTEXT Context,
+    _In_ PASMPAGE_QUERY_CONTEXT Context,
     _In_ BOOLEAN ClrV2,
     _In_opt_ PLARGE_INTEGER Timeout
     )
@@ -919,6 +939,129 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
         return ERROR_TIMEOUT;
 
     return Context->TraceResult;
+}
+
+NTSTATUS UpdateTraceQueryThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    LARGE_INTEGER timeout;
+    PASMPAGE_QUERY_CONTEXT context = Parameter;
+    BOOLEAN timeoutReached = FALSE;
+    BOOLEAN nonClrNode = FALSE;
+    ULONG i;
+    ULONG result = 0;
+
+    if (context->ClrVersions & PH_CLR_VERSION_1_0)
+    {
+        AddFakeClrNode(context, L"CLR v1.0.3705"); // what PE displays
+    }
+
+    if (context->ClrVersions & PH_CLR_VERSION_1_1)
+    {
+        AddFakeClrNode(context, L"CLR v1.1.4322");
+    }
+
+    timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+
+    if (context->ClrVersions & PH_CLR_VERSION_2_0)
+    {
+        context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
+        result = UpdateDotNetTraceInfoWithTimeout(context, TRUE, &timeout);
+
+        if (result == ERROR_TIMEOUT)
+        {
+            timeoutReached = TRUE;
+            result = ERROR_SUCCESS;
+        }
+    }
+
+    if (context->ClrVersions & PH_CLR_VERSION_4_ABOVE)
+    {
+        result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
+
+        if (result == ERROR_TIMEOUT)
+        {
+            timeoutReached = TRUE;
+            result = ERROR_SUCCESS;
+        }
+    }
+    // If we reached the timeout, check whether we got any data back.
+    if (timeoutReached)
+    {
+        for (i = 0; i < context->NodeList->Count; i++)
+        {
+            PDNA_NODE node = context->NodeList->Items[i];
+
+            if (node->Type != DNA_TYPE_CLR)
+            {
+                nonClrNode = TRUE;
+                break;
+            }
+        }
+
+        if (!nonClrNode)
+            result = ERROR_TIMEOUT;
+    }
+
+    // If the process properties window has been closed, bail and cleanup.
+    if (IsWindowVisible(context->WindowHandle))
+    {
+        PostMessage(context->WindowHandle, UPDATE_MSG, result, (LPARAM)context);
+    }
+    else
+    {
+        DestroyDotNetTraceQuery(context);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+VOID CreateDotNetTraceQueryThread(
+    _In_ HWND WindowHandle,
+    _In_ ULONG ClrVersions,
+    _In_ HANDLE ProcessId
+    )
+{
+    HANDLE threadHandle;
+    PASMPAGE_QUERY_CONTEXT context;
+    
+    context = PhAllocate(sizeof(ASMPAGE_QUERY_CONTEXT));
+    memset(context, 0, sizeof(ASMPAGE_QUERY_CONTEXT));
+
+    context->WindowHandle = WindowHandle;
+    context->ClrVersions = ClrVersions;
+    context->ProcessId = ProcessId;
+    context->NodeList = PhCreateList(64);
+    context->NodeRootList = PhCreateList(2);
+    
+    if (threadHandle = PhCreateThread(0, UpdateTraceQueryThreadStart, context))
+    {
+        NtClose(threadHandle);
+    }
+    else
+    {
+        DestroyDotNetTraceQuery(context);
+    }
+}
+
+VOID DestroyDotNetTraceQuery(
+    _In_ PASMPAGE_QUERY_CONTEXT Context
+    )
+{
+    if (Context->NodeList)
+    {
+        PhDereferenceObject(Context->NodeList);
+        Context->NodeList = NULL;
+    }
+
+    if (Context->NodeRootList)
+    {
+        PhDereferenceObject(Context->NodeRootList);
+        Context->NodeRootList = NULL;
+    }
+
+    PhFree(Context);
 }
 
 BOOLEAN IsProcessSuspended(
@@ -964,9 +1107,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG result = 0;
             PPH_STRING settings;
-            LARGE_INTEGER timeout;
             HWND tnHandle;
 
             context = PhAllocate(sizeof(ASMPAGE_CONTEXT));
@@ -978,13 +1119,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             context->ClrVersions = 0;
             PhGetProcessIsDotNetEx(processItem->ProcessId, NULL, 0, NULL, &context->ClrVersions);
 
-            context->NodeList = PhCreateList(64);
-            context->NodeRootList = PhCreateList(2);
-
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->TnHandle = tnHandle;
-
-            TreeNew_SetRedraw(tnHandle, FALSE);
 
             TreeNew_SetCallback(tnHandle, DotNetAsmTreeNewCallback, context);
             TreeNew_SetExtendedFlags(tnHandle, TN_FLAG_ITEM_DRAG_SELECT, TN_FLAG_ITEM_DRAG_SELECT);
@@ -1000,102 +1136,27 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhCmLoadSettings(tnHandle, &settings->sr);
             PhDereferenceObject(settings);
 
-            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            PhSwapReference(&context->TnErrorMessage, PhCreateString(L"Loading .NET assemblies..."));
+            TreeNew_SetEmptyText(tnHandle, &context->TnErrorMessage->sr, 0);
 
             if (
                 !IsProcessSuspended(processItem->ProcessId) ||
                 PhShowMessage(hwndDlg, MB_ICONWARNING | MB_YESNO, L".NET assembly enumeration may not work properly because the process is currently suspended. Do you want to continue?") == IDYES
                 )
             {
-                BOOLEAN timeoutReached = FALSE;
-                BOOLEAN nonClrNode = FALSE;
-                ULONG i;
-
-                if (context->ClrVersions & PH_CLR_VERSION_1_0)
-                {
-                    AddFakeClrNode(context, L"CLR v1.0.3705"); // what PE displays
-                }
-
-                if (context->ClrVersions & PH_CLR_VERSION_1_1)
-                {
-                    AddFakeClrNode(context, L"CLR v1.1.4322");
-                }
-
-                timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
-
-                if (context->ClrVersions & PH_CLR_VERSION_2_0)
-                {
-                    context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
-                    result = UpdateDotNetTraceInfoWithTimeout(context, TRUE, &timeout);
-
-                    if (result == ERROR_TIMEOUT)
-                    {
-                        timeoutReached = TRUE;
-                        result = ERROR_SUCCESS;
-                    }
-                }
-
-                if (context->ClrVersions & PH_CLR_VERSION_4_ABOVE)
-                {
-                    result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
-
-                    if (result == ERROR_TIMEOUT)
-                    {
-                        timeoutReached = TRUE;
-                        result = ERROR_SUCCESS;
-                    }
-                }
-
-                TreeNew_NodesStructured(tnHandle);
-
-                // If we reached the timeout, check whether we got any data back.
-                if (timeoutReached)
-                {
-                    for (i = 0; i < context->NodeList->Count; i++)
-                    {
-                        PDNA_NODE node = context->NodeList->Items[i];
-
-                        if (node->Type != DNA_TYPE_CLR)
-                        {
-                            nonClrNode = TRUE;
-                            break;
-                        }
-                    }
-
-                    if (!nonClrNode)
-                        result = ERROR_TIMEOUT;
-                }
+                CreateDotNetTraceQueryThread(
+                    hwndDlg, 
+                    context->ClrVersions, 
+                    processItem->ProcessId
+                    );
             }
             else
             {
-                result = ERROR_INSTALL_SUSPEND;
-            }
-
-            TreeNew_SetRedraw(tnHandle, TRUE);
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-            if (result != 0)
-            {
-                ShowWindow(tnHandle, SW_HIDE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_ERROR), SW_SHOW);
-
-                if (result == ERROR_ACCESS_DENIED)
-                {
-                    SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the event tracing session. Make sure Process Hacker is running with administrative privileges.");
-                }
-                else if (result == ERROR_INSTALL_SUSPEND)
-                {
-                    SetDlgItemText(hwndDlg, IDC_ERROR, L"Unable to start the event tracing session because the process is suspended.");
-                }
-                else if (result == ERROR_TIMEOUT)
-                {
-                    SetDlgItemText(hwndDlg, IDC_ERROR, L"The event tracing session timed out.");
-                }
-                else
-                {
-                    SetDlgItemText(hwndDlg, IDC_ERROR,
-                        PhaConcatStrings2(L"Unable to start the event tracing session: %s", PhGetStringOrDefault(PhGetWin32Message(result), L"Unknown error"))->Buffer);
-                }
+                PhSwapReference(&context->TnErrorMessage, 
+                    PhCreateString(L"Unable to start the event tracing session because the process is suspended.")
+                    );
+                TreeNew_SetEmptyText(tnHandle, &context->TnErrorMessage->sr, 0);
+                InvalidateRect(tnHandle, NULL, FALSE);
             }
         }
         break;
@@ -1108,11 +1169,18 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhSetStringSetting2(SETTING_NAME_ASM_TREE_LIST_COLUMNS, &settings->sr);
             PhDereferenceObject(settings);
 
-            for (i = 0; i < context->NodeList->Count; i++)
-                DestroyNode(context->NodeList->Items[i]);
+            if (context->NodeList)
+            {
+                for (i = 0; i < context->NodeList->Count; i++)
+                    DestroyNode(context->NodeList->Items[i]);
 
-            PhDereferenceObject(context->NodeList);
-            PhDereferenceObject(context->NodeRootList);
+                PhDereferenceObject(context->NodeList);
+            }
+
+            if (context->NodeRootList)
+                PhDereferenceObject(context->NodeRootList);
+
+            PhClearReference(&context->TnErrorMessage);
             PhFree(context);
 
             PhPropPageDlgProcDestroy(hwndDlg);
@@ -1125,7 +1193,6 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ERROR), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
         }
@@ -1143,6 +1210,30 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
+            }
+        }
+        break;
+    case UPDATE_MSG:
+        {
+            ULONG result = (ULONG)wParam;
+            PASMPAGE_QUERY_CONTEXT queryContext = (PASMPAGE_QUERY_CONTEXT)lParam;
+
+            if (result == 0)
+            {
+                PhSwapReference(&context->NodeList, queryContext->NodeList);
+                PhSwapReference(&context->NodeRootList, queryContext->NodeRootList);
+                
+                DestroyDotNetTraceQuery(queryContext);
+
+                TreeNew_NodesStructured(context->TnHandle);
+            }
+            else
+            {
+                PhSwapReference(&context->TnErrorMessage,
+                    PhConcatStrings2(L"Unable to start the event tracing session: ", PhGetStringOrDefault(PhGetWin32Message(result), L"Unknown error"))
+                    );
+                TreeNew_SetEmptyText(context->TnHandle, &context->TnErrorMessage->sr, 0);
+                InvalidateRect(context->TnHandle, NULL, FALSE);
             }
         }
         break;

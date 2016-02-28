@@ -1,7 +1,8 @@
 1.6
- * Added more .NET memory statistics
+ * Fixed .NET assembly tab performance issues
+ * Added extra .NET memory counters to the .NET performance tab
  * Added 'Show sizes in bytes' checkbox to the .NET performance tab
- * Removed all Win32 functions for querying .NET performance statistics
+ * Removed all Win32 functions for querying .NET process performance
 
 1.5
  * Rewrite of .NET Performance statistics and AppDomain enumeration

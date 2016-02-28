@@ -8,7 +8,6 @@
 #define IDC_APPDOMAINS                  1001
 #define IDC_CATEGORIES                  1002
 #define IDC_COUNTERS                    1003
-#define IDC_ERROR                       1004
 #define IDC_LIST                        1005
 #define IDC_DOTNET_PERF_SHOWBYTES       1006
 
