@@ -3,6 +3,7 @@
  *   .NET Assemblies property page
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,8 +22,6 @@
  */
 
 #include "dn.h"
-#include "resource.h"
-#include <windowsx.h>
 #include <evntcons.h>
 #include "clretw.h"
 

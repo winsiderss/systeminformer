@@ -22,7 +22,6 @@
  */
 
 #include "dn.h"
-#include "resource.h"
 
 PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
