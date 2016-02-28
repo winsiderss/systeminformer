@@ -938,43 +938,31 @@ VOID PhShellExecuteUserString(
     PH_STRINGREF stringBefore;
     PH_STRINGREF stringMiddle;
     PH_STRINGREF stringAfter;
-    PPH_STRING newString;
     PPH_STRING ntMessage;
 
     executeString = PhGetStringSetting(Setting);
 
-    // Make sure the user executable string is absolute.
-    // We can't use RtlDetermineDosPathNameType_U here because the string
-    // may be a URL.
+    // Make sure the user executable string is absolute. We can't use RtlDetermineDosPathNameType_U
+    // here because the string may be a URL.
     if (PhFindCharInString(executeString, 0, ':') == -1)
-    {
-        newString = PhConcatStringRef2(&PhApplicationDirectory->sr, &executeString->sr);
-        PhDereferenceObject(executeString);
-        executeString = newString;
-    }
+        PhMoveReference(&executeString, PhConcatStringRef2(&PhApplicationDirectory->sr, &executeString->sr));
 
-    // Replace "%s" with the string, or use the original string if "%s" is not present.
+    // Replace the token with the string, or use the original string if the token is not present.
     if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
         PhInitializeStringRef(&stringMiddle, String);
-        newString = PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter);
+        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter));
     }
-    else
-    {
-        PhSetReference(&newString, executeString);
-    }
-
-    PhDereferenceObject(executeString);
 
     if (UseShellExecute)
     {
-        PhShellExecute(hWnd, newString->Buffer, NULL);
+        PhShellExecute(hWnd, executeString->Buffer, NULL);
     }
     else
     {
         NTSTATUS status;
 
-        status = PhCreateProcessWin32(NULL, newString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
+        status = PhCreateProcessWin32(NULL, executeString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
 
         if (!NT_SUCCESS(status))
         {
@@ -991,7 +979,7 @@ VOID PhShellExecuteUserString(
         }
     }
 
-    PhDereferenceObject(newString);
+    PhDereferenceObject(executeString);
 }
 
 VOID PhLoadSymbolProviderOptions(
