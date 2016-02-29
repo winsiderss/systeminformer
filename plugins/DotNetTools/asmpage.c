@@ -382,6 +382,82 @@ static int __cdecl AssemblyNodeNameCompareFunction(
     return PhCompareStringRef(&node1->StructureText, &node2->StructureText, TRUE);
 }
 
+PDNA_NODE DotNetAsmGetSelectedEntry(
+    _In_ PASMPAGE_CONTEXT Context
+    )
+{
+    if (Context->NodeList)
+    {
+        for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        {
+            PDNA_NODE node = Context->NodeList->Items[i];
+
+            if (node->Node.Selected)
+            {
+                return node;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+VOID DotNetAsmShowContextMenu(
+    _In_ PASMPAGE_CONTEXT Context,
+    _In_ POINT Location
+    )
+{
+    PDNA_NODE node;
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM selectedItem;
+
+    if (!(node = DotNetAsmGetSelectedEntry(Context)))
+        return;
+
+    menu = PhCreateEMenu();
+    PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_ASSEMBLY_MENU), 0);
+
+    if (PhIsNullOrEmptyString(node->PathText) || !RtlDoesFileExists_U(node->PathText->Buffer))
+    {
+        PhSetFlagsEMenuItem(menu, ID_CLR_OPENFILELOCATION, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+    }
+
+    selectedItem = PhShowEMenu(
+        menu,
+        Context->WindowHandle,
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        Location.x,
+        Location.y
+        );
+
+    if (selectedItem && selectedItem->Id != -1)
+    {
+        switch (selectedItem->Id)
+        {
+        case ID_CLR_OPENFILELOCATION:
+            {
+                if (!PhIsNullOrEmptyString(node->PathText))
+                {
+                    PhShellExploreFile(PhMainWndHandle, node->PathText->Buffer);
+                }
+            }
+            break;
+        case ID_CLR_COPY:
+            {
+                PPH_STRING text;
+
+                text = PhGetTreeNewText(Context->TnHandle, 0);
+                PhSetClipboardString(Context->TnHandle, &text->sr);
+                PhDereferenceObject(text);
+            }
+            break;
+        }
+    }
+
+    PhDestroyEMenu(menu);
+}
+
 BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -491,6 +567,13 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
                     SendMessage(context->WindowHandle, WM_COMMAND, ID_COPY, 0);
                 break;
             }
+        }
+        return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+
+            DotNetAsmShowContextMenu(context, mouseEvent->Location);
         }
         return TRUE;
     }
