@@ -887,6 +887,7 @@ BOOLEAN DiskDriveQueryNtfsVolumeInfo(
         sizeof(result)
         )))
     {
+        *VolumeInfo = result;
         return TRUE;
     }
 
@@ -979,6 +980,35 @@ BOOLEAN DiskDriveQueryTxfsVolumeInfo(
 
     return FALSE;
 }
+
+
+#pragma pack(push, 1)
+typedef struct _BOOT_BLOCK
+{
+    UCHAR Jump[3];
+    UCHAR Format[8];
+    USHORT BytesPerSector;
+    UCHAR SectorsPerCluster;
+    USHORT BootSectors;
+    UCHAR Mbz1;
+    USHORT Mbz2;
+    USHORT Reserved1;
+    UCHAR MediaType;
+    USHORT Mbz3;
+    USHORT SectorsPerTrack;
+    USHORT NumberOfHeads;
+    ULONG PartitionOffset;
+    ULONG Reserved2[2];
+    ULONGLONG TotalSectors;
+    ULONGLONG MftStartLcn;
+    ULONGLONG Mft2StartLcn;
+    ULONG ClustersPerFileRecord;
+    ULONG ClustersPerIndexBlock;
+    ULONGLONG VolumeSerialNumber;
+    UCHAR Code[0x1AE];
+    USHORT BootSignature;
+} BOOT_BLOCK, *PBOOT_BLOCK;
+#pragma pack(pop)
 
 BOOLEAN DiskDriveQueryBootSectorFsCount(
     _In_ HANDLE DosDeviceHandle

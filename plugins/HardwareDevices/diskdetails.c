@@ -64,6 +64,7 @@ VOID DiskDriveQueryFileSystem(
             case FILESYSTEM_STATISTICS_TYPE_NTFS:
             case FILESYSTEM_STATISTICS_TYPE_REFS:
                 {
+                    NTFS_VOLUME_INFO ntfsVolumeInfo;
                     PNTFS_FILESYSTEM_STATISTICS buffer = fsInfoBuffer;
 
 #define LV_SHOW_VALUE(ListViewHandle, Name, Struct, Value) \
@@ -73,6 +74,108 @@ PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatString(L"%lu", buf
 #define LV_SHOW_BYTE_VALUE(ListViewHandle, Name, Struct, Value) \
 { INT lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, ##Name, NULL); \
 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatSize(buffer->Struct##.Value##, -1)->Buffer); }
+
+
+                    if (DiskDriveQueryNtfsVolumeInfo(diskEntry->DeviceHandle, &ntfsVolumeInfo))
+                    {
+                        // Swap the endianness.
+                        // This produces the same output as the "fsutil fsinfo ntfsinfo C:" command.
+                        ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart = _byteswap_uint64(ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart);
+
+                        PPH_STRING ntfsVolumeSerialNumberHex = PH_AUTO(PhBufferToHexString(
+                            (PUCHAR)&ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart,
+                            sizeof(ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart)
+                            ));
+
+                        INT lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Volume Serial Number", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatString(L"0x%s", ntfsVolumeSerialNumberHex->Buffer)->Buffer);
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Total Size", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatSize(ntfsVolumeInfo.VolumeData.NumberSectors.QuadPart * ntfsVolumeInfo.VolumeData.BytesPerSector, -1)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Total Free", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%s (%.2f%%)", 
+                            PhaFormatSize(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * ntfsVolumeInfo.VolumeData.BytesPerCluster, -1)->Buffer,
+                            (FLOAT)(ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart * 100) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart
+                            )->Buffer);
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Total Sectors", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.NumberSectors.QuadPart)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Total Clusters", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Free Clusters", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.FreeClusters.QuadPart)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Reserved Clusters", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.TotalReserved.QuadPart)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Bytes Per Sector", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%lu", ntfsVolumeInfo.VolumeData.BytesPerSector)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Bytes Per Cluster", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%lu", ntfsVolumeInfo.VolumeData.BytesPerCluster)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Bytes Per File Record Segment", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%lu", ntfsVolumeInfo.VolumeData.BytesPerFileRecordSegment)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Clusters Per File Record Segment", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%lu", ntfsVolumeInfo.VolumeData.ClustersPerFileRecordSegment)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"MFT Records", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart / ntfsVolumeInfo.VolumeData.BytesPerFileRecordSegment)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"MFT Size", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatString(
+                            L"%s (%.2f%%)",
+                            PhaFormatSize(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart, -1)->Buffer,
+                            (FLOAT)(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart * 100 / ntfsVolumeInfo.VolumeData.BytesPerCluster) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart
+                            )->Buffer);
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"MFT Start", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.MftStartLcn.QuadPart)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"MFT Zone Clusters", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u - %I64u", ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart, ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart)->Buffer
+                            );
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"MFT Zone Size", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatString(
+                            L"%s (%.2f%%)",
+                            PhaFormatSize((ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * ntfsVolumeInfo.VolumeData.BytesPerCluster, -1)->Buffer,
+                            (FLOAT)(ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * 100 / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart
+                            )->Buffer);
+
+                        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"MFT Mirror Start", NULL);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
+                            PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.Mft2StartLcn.QuadPart)->Buffer
+                            );
+                    }
 
 
                     LV_SHOW_VALUE(Context->ListViewHandle, L"File reads", FileSystemStatistics, UserFileReads);
@@ -397,8 +500,8 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 300, L"Property");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 290, L"Property");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 130, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
