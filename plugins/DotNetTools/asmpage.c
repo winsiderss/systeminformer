@@ -102,7 +102,6 @@ typedef struct _ASMPAGE_QUERY_CONTEXT
     LONG TraceHandleActive;
     TRACEHANDLE TraceHandle;
 
-    PPH_STRING TnErrorMessage;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
 } ASMPAGE_QUERY_CONTEXT, *PASMPAGE_QUERY_CONTEXT;
@@ -940,7 +939,7 @@ ULONG UpdateDotNetTraceInfoWithTimeout(
     return Context->TraceResult;
 }
 
-NTSTATUS UpdateTraceQueryThreadStart(
+NTSTATUS DotNetTraceQueryThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -1034,7 +1033,7 @@ VOID CreateDotNetTraceQueryThread(
     context->NodeList = PhCreateList(64);
     context->NodeRootList = PhCreateList(2);
     
-    if (threadHandle = PhCreateThread(0, UpdateTraceQueryThreadStart, context))
+    if (threadHandle = PhCreateThread(0, DotNetTraceQueryThreadStart, context))
     {
         NtClose(threadHandle);
     }
@@ -1050,14 +1049,12 @@ VOID DestroyDotNetTraceQuery(
 {
     if (Context->NodeList)
     {
-        PhDereferenceObject(Context->NodeList);
-        Context->NodeList = NULL;
+        PhClearReference(&Context->NodeList);
     }
 
     if (Context->NodeRootList)
     {
-        PhDereferenceObject(Context->NodeRootList);
-        Context->NodeRootList = NULL;
+        PhClearReference(&Context->NodeRootList);
     }
 
     PhFree(Context);
