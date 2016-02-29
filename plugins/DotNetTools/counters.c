@@ -95,7 +95,7 @@ PVOID GetLegacyBlockTableEntry(
     }
     else
     {
-        LegacyPrivateIPCControlBlock_Wow64* IpcBlock = IpcBlockAddress;
+        LegacyPrivateIPCControlBlock* IpcBlock = IpcBlockAddress;
 
         // skip over directory (variable size)
         ULONG offsetBase = IPC_ENTRY_OFFSET_BASE_X64 + IpcBlock->FullIPCHeader.Header.NumEntries * sizeof(IPCEntry);

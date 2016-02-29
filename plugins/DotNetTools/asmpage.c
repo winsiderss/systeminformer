@@ -437,9 +437,9 @@ VOID DotNetAsmShowContextMenu(
         {
         case ID_CLR_OPENFILELOCATION:
             {
-                if (!PhIsNullOrEmptyString(node->PathText))
+                if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
                 {
-                    PhShellExploreFile(PhMainWndHandle, node->PathText->Buffer);
+                    PhShellExploreFile(Context->WindowHandle, node->PathText->Buffer);
                 }
             }
             break;
