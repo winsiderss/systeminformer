@@ -87,7 +87,7 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 191, 81
+IDD_OPTIONS DIALOGEX 0, 0, 191, 103
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -98,8 +98,9 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,32,152,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,44,157,10
-    DEFPUSHBUTTON   "OK",IDOK,79,60,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,133,60,50,14
+    DEFPUSHBUTTON   "OK",IDOK,79,82,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,133,82,50,14
+    LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,59,157,18
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 191
@@ -159,7 +160,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 184
         TOPMARGIN, 7
-        BOTTOMMARGIN, 74
+        BOTTOMMARGIN, 96
     END
 
     IDD_CUSTOMIZE_TB, DIALOG

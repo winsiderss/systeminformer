@@ -34,6 +34,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
                 ToolStatusConfig.ToolBarEnabled ? BST_CHECKED : BST_UNCHECKED);
 
