@@ -347,10 +347,7 @@ VOID NetAdapterUpdateDetails(
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
         // Create the handle to the network device
-        if (NT_SUCCESS(NetworkAdapterCreateHandle(
-            &deviceHandle,
-            Context->AdapterId.InterfaceGuid
-            )))
+        if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, Context->AdapterId.InterfaceGuid)))
         {
             if (!Context->CheckedDeviceSupport)
             {

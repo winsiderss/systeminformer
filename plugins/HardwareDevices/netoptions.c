@@ -367,10 +367,7 @@ VOID FindNetworkAdapters(
                 adapterEntry->DeviceLuid.Info.IfType = RegQueryUlong64(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = RegQueryUlong64(keyHandle, L"NetLuidIndex");
 
-                if (NT_SUCCESS(NetworkAdapterCreateHandle(
-                    &deviceHandle,
-                    adapterEntry->DeviceGuid
-                    )))
+                if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceGuid)))
                 {
                     PPH_STRING adapterName;
 

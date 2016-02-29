@@ -74,10 +74,7 @@ VOID NetAdaptersUpdate(
 
         if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
         {
-            if (NT_SUCCESS(NetworkAdapterCreateHandle(
-                &deviceHandle,
-                entry->Id.InterfaceGuid
-                )))
+            if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, entry->Id.InterfaceGuid)))
             {
                 if (!entry->CheckedDeviceSupport)
                 {

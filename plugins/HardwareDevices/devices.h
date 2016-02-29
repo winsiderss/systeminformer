@@ -438,19 +438,6 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_DISK_SYSINFO_CONTEXT, *PDV_DISK_SYSINFO_CONTEXT;
 
-typedef struct _DV_DISK_DETAILS_CONTEXT
-{
-    PPH_STRING DiskName;
-    DV_DISK_ID DiskId;
-
-    HWND WindowHandle;
-    HWND ParentHandle;
-    HWND ListViewHandle;
-
-    PH_LAYOUT_MANAGER LayoutManager;
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-} DV_DISK_DETAILS_CONTEXT, *PDV_DISK_DETAILS_CONTEXT;
-
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
@@ -462,6 +449,11 @@ typedef struct _DV_DISK_OPTIONS_CONTEXT
 VOID DiskDrivesInitialize(VOID);
 VOID DiskDrivesLoadList(VOID);
 VOID DiskDrivesUpdate(VOID);
+
+VOID DiskDriveUpdateDeviceInfo(
+    _In_opt_ HANDLE DeviceHandle,
+    _In_ PDV_DISK_ENTRY DiskEntry
+    );
 
 VOID InitializeDiskId(
     _Out_ PDV_DISK_ID Id,
@@ -525,6 +517,52 @@ PPH_STRING DiskDriveQueryGeometry(
 BOOLEAN DiskDriveQueryImminentFailure(
     _In_ HANDLE DeviceHandle,
     _Out_ PPH_LIST* DiskSmartAttributes
+    );
+
+typedef struct _DISK_HANDLE_ENTRY
+{
+    WCHAR DeviceLetter;
+    HANDLE DeviceHandle;
+} DISK_HANDLE_ENTRY, *PDISK_HANDLE_ENTRY;
+
+PPH_LIST DiskDriveQueryMountPointHandles(
+    _In_ ULONG DeviceNumber
+    );
+
+typedef struct _NTFS_FILESYSTEM_STATISTICS
+{
+    FILESYSTEM_STATISTICS FileSystemStatistics;
+    NTFS_STATISTICS NtfsStatistics;
+} NTFS_FILESYSTEM_STATISTICS, *PNTFS_FILESYSTEM_STATISTICS;
+
+typedef struct _FAT_FILESYSTEM_STATISTICS
+{
+    FILESYSTEM_STATISTICS FileSystemStatistics;
+    NTFS_STATISTICS FatStatistics;
+} FAT_FILESYSTEM_STATISTICS, *PFAT_FILESYSTEM_STATISTICS;
+
+typedef struct _EXFAT_FILESYSTEM_STATISTICS
+{
+    FILESYSTEM_STATISTICS FileSystemStatistics;
+    EXFAT_STATISTICS ExFatStatistics;
+} EXFAT_FILESYSTEM_STATISTICS, *PEXFAT_FILESYSTEM_STATISTICS;
+
+BOOLEAN DiskDriveQueryFileSystemInfo(
+    _In_ HANDLE DeviceHandle,
+    _Out_ USHORT* FileSystemType,
+    _Out_ PVOID* FileSystemStatistics
+    );
+
+
+typedef struct _NTFS_VOLUME_INFO
+{
+    NTFS_VOLUME_DATA_BUFFER VolumeData;
+    NTFS_EXTENDED_VOLUME_DATA ExtendedVolumeData;
+} NTFS_VOLUME_INFO, *PNTFS_VOLUME_INFO;
+
+BOOLEAN DiskDriveQueryNtfsVolumeInfo(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PNTFS_VOLUME_INFO VolumeInfo
     );
 
 typedef enum _SMART_ATTRIBUTE_ID

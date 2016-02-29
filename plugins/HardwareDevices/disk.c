@@ -113,6 +113,7 @@ VOID DiskDrivesUpdate(
 
                 entry->QueueDepth = diskPerformance.QueueDepth;
                 entry->SplitCount = diskPerformance.SplitCount;
+                entry->DiskIndex = diskPerformance.StorageDeviceNumber;
                 entry->DevicePresent = TRUE;
             }
             else
@@ -131,37 +132,20 @@ VOID DiskDrivesUpdate(
                 entry->ActiveTime = 0.0f;
                 entry->QueueDepth = 0;
                 entry->SplitCount = 0;
+                entry->DiskIndex = ULONG_MAX;
                 entry->DevicePresent = FALSE;
             }
 
-            // Delay the query for the disk name, index and type from startup to later at runtime.
-            // Note: If the user opens the Sysinfo window before this has fired, 
-            //   we have a second check in the UpdateDiskIndexText function that queries this information. 
             if (runCount > 1)
             {
-                if (
-                    !entry->DiskName ||
-                    entry->DiskIndex == ULONG_MAX ||
-                    entry->DiskType == 0
-                    )
-                {
-                    if (!entry->DiskName)
-                    {
-                        DiskDriveQueryDeviceInformation(deviceHandle, NULL, &entry->DiskName, NULL, NULL);
-                    }
-
-                    if (entry->DiskIndex == ULONG_MAX || entry->DiskType == 0)
-                    {
-                        ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
-                        DEVICE_TYPE diskType = 0;
-
-                        if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, &diskType)))
-                        {
-                            entry->DiskIndex = diskIndex;
-                            entry->DiskType = diskType;
-                        }
-                    }
-                }
+                // Delay the first query for the disk name, index and type.
+                //   1) This information is not needed until the user opens the sysinfo window.
+                //   2) Try not to query this information while opening the sysinfo window (e.g. delay).
+                //   3) Try not to query this information during startup (e.g. delay).
+                //
+                // Note: If the user opens the Sysinfo window before we query the disk info, 
+                // we have a second check in diskgraph.c that queries the information on demand. 
+                DiskDriveUpdateDeviceInfo(deviceHandle, entry);
             }
 
             NtClose(deviceHandle);
@@ -211,6 +195,55 @@ VOID DiskDrivesUpdate(
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
 
     runCount++;
+}
+
+VOID DiskDriveUpdateDeviceInfo(
+    _In_opt_ HANDLE DeviceHandle,
+    _In_ PDV_DISK_ENTRY DiskEntry
+    )
+{
+    if (
+        !DiskEntry->DiskName ||
+        DiskEntry->DiskIndex == ULONG_MAX ||
+        DiskEntry->DiskType == 0
+        )
+    {
+        HANDLE deviceHandle = NULL;
+
+        if (!DeviceHandle)
+        {
+            DiskDriveCreateHandle(&deviceHandle, DiskEntry->Id.DevicePath);        
+        }
+        else
+        {
+            deviceHandle = DeviceHandle;
+        }
+
+        if (deviceHandle)
+        {
+            if (!DiskEntry->DiskName)
+            {
+                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &DiskEntry->DiskName, NULL, NULL);
+            }
+
+            if (DiskEntry->DiskIndex == ULONG_MAX || DiskEntry->DiskType == 0)
+            {
+                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
+                DEVICE_TYPE diskType = 0;
+
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, &diskType)))
+                {
+                    DiskEntry->DiskIndex = diskIndex;
+                    DiskEntry->DiskType = diskType;
+                }
+            }
+
+            if (!DeviceHandle)
+            {
+                NtClose(deviceHandle);
+            }
+        }
+    }
 }
 
 VOID InitializeDiskId(

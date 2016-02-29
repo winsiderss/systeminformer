@@ -63,9 +63,9 @@ VOID UpdateDiskDriveDialog(
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown disk");
 
     if (Context->DiskEntry->DiskIndexName)
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, Context->DiskEntry->DiskIndexName->Buffer);
+        SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, Context->DiskEntry->DiskIndexName->Buffer);
     else
-        SetDlgItemText(Context->WindowHandle, IDC_ADAPTERNAME, L"Unknown disk");
+        SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, L"Unknown disk");
 
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
@@ -76,38 +76,12 @@ VOID UpdateDiskIndexText(
     )
 {
     // If our delayed lookup of the disk name, index and type hasn't fired then query the information now.
-    // TODO: This might cause a slight delay opening the Sysinfo window?
-    if (
-        !Context->DiskEntry->DiskName || 
-        Context->DiskEntry->DiskIndex == ULONG_MAX || 
-        Context->DiskEntry->DiskType == 0
-        )
-    {
-        HANDLE deviceHandle;
+    DiskDriveUpdateDeviceInfo(NULL, Context->DiskEntry);
 
-        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, Context->DiskEntry->Id.DevicePath)))
-        {
-            if (!Context->DiskEntry->DiskName)
-            {
-                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &Context->DiskEntry->DiskName, NULL, NULL);
-            }
-
-            if (Context->DiskEntry->DiskIndex == ULONG_MAX || Context->DiskEntry->DiskType == 0)
-            {
-                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
-                DEVICE_TYPE diskType = 0;
-
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, &diskType)))
-                {
-                    Context->DiskEntry->DiskIndex = diskIndex;
-                    Context->DiskEntry->DiskType = diskType;
-                }
-            }
-        }
-    }
-
+    // TODO: Move into DiskDriveUpdateDeviceInfo.
     if (Context->DiskEntry->DiskIndex != ULONG_MAX && !Context->DiskEntry->DiskIndexName)
     {
+        // Query the disk DosDevices mount points.
         PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->DiskEntry->DiskIndex));
 
         if (!PhIsNullOrEmptyString(diskMountPoints))
@@ -222,18 +196,18 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             PhInitializeGraphState(&context->GraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ADAPTERNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DISKMOUNTPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DISKNAME), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_ADAPTERNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_DISKMOUNTPATH), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->LargeFont, FALSE);
             SendMessage(GetDlgItem(hwndDlg, IDC_DISKNAME), WM_SETFONT, (WPARAM)context->SysinfoSection->Parameters->MediumFont, FALSE);
 
             if (context->DiskEntry->DiskIndexName)
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, context->DiskEntry->DiskIndexName->Buffer);
+                SetDlgItemText(hwndDlg, IDC_DISKMOUNTPATH, context->DiskEntry->DiskIndexName->Buffer);
             else
-                SetDlgItemText(hwndDlg, IDC_ADAPTERNAME, L"Unknown disk");
+                SetDlgItemText(hwndDlg, IDC_DISKMOUNTPATH, L"Unknown disk");
 
             if (context->DiskEntry->DiskName)
                 SetDlgItemText(hwndDlg, IDC_DISKNAME, context->DiskEntry->DiskName->Buffer);
