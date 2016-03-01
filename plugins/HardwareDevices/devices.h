@@ -65,7 +65,7 @@ PPH_STRING TrimString(
     _In_ PPH_STRING String
     );
 
-VOID AddListViewGroup(
+INT AddListViewGroup(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _In_ PWSTR Text
@@ -560,10 +560,26 @@ typedef struct _NTFS_VOLUME_INFO
     NTFS_EXTENDED_VOLUME_DATA ExtendedVolumeData;
 } NTFS_VOLUME_INFO, *PNTFS_VOLUME_INFO;
 
-BOOLEAN DiskDriveQueryNtfsVolumeInfo(
-    _In_ HANDLE DeviceHandle,
+NTSTATUS DiskDriveQueryNtfsVolumeInfo(
+    _In_ HANDLE DosDeviceHandle,
     _Out_ PNTFS_VOLUME_INFO VolumeInfo
     );
+
+NTSTATUS DiskDriveQueryRefsVolumeInfo(
+    _In_ HANDLE DosDeviceHandle,
+    _Out_ PREFS_VOLUME_DATA_BUFFER VolumeInfo
+    );
+
+NTSTATUS DiskDriveQueryVolumeInformation(
+    _In_ HANDLE DosDeviceHandle,
+    _Out_ PFILE_FS_VOLUME_INFORMATION* VolumeInfo
+    );
+
+NTSTATUS DiskDriveQueryVolumeAttributes(
+    _In_ HANDLE DosDeviceHandle,
+    _Out_ PFILE_FS_ATTRIBUTE_INFORMATION* AttributeInfo
+    );
+
 
 typedef enum _SMART_ATTRIBUTE_ID
 {
@@ -662,6 +678,21 @@ typedef struct _SMART_ATTRIBUTES
     // 0 : This value of this attribute is only updated during offline activities.
     // 1 : The value of this attribute is updated during both normal operation and offline activities.
     BOOLEAN OnlineDataCollection;
+
+    // TRUE: This attribute characterizes a performance aspect of the drive, 
+    //   degradation of which may indicate imminent drive failure, such as data throughput, seektimes, spin up time, etc.
+    BOOLEAN Performance;
+
+    // TRUE: This attribute is based on the expected, non-fatal errors that are inherent in disk drives, 
+    //    increases in which may indicate imminent drive failure, such as ECC errors, seek errors, etc.
+    BOOLEAN ErrorRate;
+
+    // TRUE: This attribute counts events, of which an excessive number of which may 
+    //       indicate imminent drive failure, such as number of re-allocated sectors, etc.
+    BOOLEAN EventCount;
+
+    // TRUE: This type is used to specify an attribute that is collected and saved by the drive automatically.
+    BOOLEAN SelfPreserving;
 } SMART_ATTRIBUTES, *PSMART_ATTRIBUTES;
 
 PWSTR SmartAttributeGetText(

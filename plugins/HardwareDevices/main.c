@@ -170,7 +170,7 @@ PPH_STRING TrimString(
     return PhCreateString2(&sr);
 }
 
-VOID AddListViewGroup(
+INT AddListViewGroup(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _In_ PWSTR Text
@@ -189,7 +189,7 @@ VOID AddListViewGroup(
         group.state = LVGS_COLLAPSIBLE;
     }
 
-    ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
+    return (INT)ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
 }
 
 INT AddListViewItemGroupId(
