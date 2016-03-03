@@ -639,7 +639,7 @@ HBITMAP LoadImageFromResources(
 
         HDC hdc = CreateCompatibleDC(NULL);
         bitmapHandle = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, hdc);
+        DeleteDC(hdc);
 
         // Check if it's the same rect as the requested size.
         //if (width != rect.Width || height != rect.Height)
