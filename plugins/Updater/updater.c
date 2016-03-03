@@ -1178,7 +1178,10 @@ INT_PTR CALLBACK UpdaterWndProc(
                         break;
                     case PhUpdateDownload:
                         {
-                            if (PhInstalledUsingSetup())
+                            // We can't download updates below Vista due to SHA2 and the
+                            // WINHTTP_OPTION_SECURITY_FLAGS option doesn't work on XP for some reason.
+                            // Just show the downloads page when there is a new release.
+                            if (WindowsVersion >= WINDOWS_VISTA && PhInstalledUsingSetup())
                             {
                                 HANDLE downloadThreadHandle = NULL;
 
