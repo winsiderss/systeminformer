@@ -39,6 +39,8 @@ VOID DiskEntryDeleteProcedure(
 
     PhDeleteCircularBuffer_ULONG64(&entry->ReadBuffer);
     PhDeleteCircularBuffer_ULONG64(&entry->WriteBuffer);
+
+    AddRemoveDeviceChangeCallback();
 }
 
 VOID DiskDrivesInitialize(
@@ -202,11 +204,7 @@ VOID DiskDriveUpdateDeviceInfo(
     _In_ PDV_DISK_ENTRY DiskEntry
     )
 {
-    if (
-        !DiskEntry->DiskName ||
-        DiskEntry->DiskIndex == ULONG_MAX ||
-        DiskEntry->DiskType == 0
-        )
+    if (!DiskEntry->DiskName || DiskEntry->DiskIndex == ULONG_MAX)
     {
         HANDLE deviceHandle = NULL;
 
@@ -223,18 +221,21 @@ VOID DiskDriveUpdateDeviceInfo(
         {
             if (!DiskEntry->DiskName)
             {
-                DiskDriveQueryDeviceInformation(deviceHandle, NULL, &DiskEntry->DiskName, NULL, NULL);
+                PPH_STRING diskName = NULL;
+
+                if (NT_SUCCESS(DiskDriveQueryDeviceInformation(deviceHandle, NULL, &diskName, NULL, NULL)))
+                {
+                    DiskEntry->DiskName = diskName;
+                }
             }
 
-            if (DiskEntry->DiskIndex == ULONG_MAX || DiskEntry->DiskType == 0)
+            if (DiskEntry->DiskIndex == ULONG_MAX)
             {
                 ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero.
-                DEVICE_TYPE diskType = 0;
 
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, &diskType)))
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(deviceHandle, &diskIndex, NULL)))
                 {
                     DiskEntry->DiskIndex = diskIndex;
-                    DiskEntry->DiskType = diskType;
                 }
             }
 
@@ -298,6 +299,8 @@ PDV_DISK_ENTRY CreateDiskEntry(
     PhAcquireQueuedLockExclusive(&DiskDrivesListLock);
     PhAddItemList(DiskDrivesList, entry);
     PhReleaseQueuedLockExclusive(&DiskDrivesListLock);
+
+    AddRemoveDeviceChangeCallback();
 
     return entry;
 }

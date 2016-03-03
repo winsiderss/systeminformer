@@ -59,6 +59,9 @@
     <ClCompile Include="diskdetails.c">
       <Filter>Source Files\Disk</Filter>
     </ClCompile>
+    <ClCompile Include="disknotify.c">
+      <Filter>Source Files\Disk</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

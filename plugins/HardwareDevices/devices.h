@@ -302,9 +302,6 @@ typedef ULONG (WINAPI* _GetInterfaceDescriptionFromGuid)(
     PVOID Unknown2
     );
 
-extern PVOID IphlpHandle;
-extern _GetInterfaceDescriptionFromGuid GetInterfaceDescriptionFromGuid_I;
-
 NTSTATUS NetworkAdapterCreateHandle(
     _Out_ PHANDLE DeviceHandle,
     _In_ PPH_STRING InterfaceGuid
@@ -392,7 +389,6 @@ typedef struct _DV_DISK_ENTRY
     PPH_STRING DiskName;
     PPH_STRING DiskIndexName;
     ULONG DiskIndex;
-    DEVICE_TYPE DiskType;
 
     union
     {
@@ -480,6 +476,12 @@ VOID ShowDiskDriveDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     );
 
+// disknotify.c
+
+VOID AddRemoveDeviceChangeCallback(
+    VOID
+    );
+
 // storage.c
 
 NTSTATUS DiskDriveCreateHandle(
@@ -553,19 +555,18 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     _Out_ PVOID* FileSystemStatistics
     );
 
-
 typedef struct _NTFS_VOLUME_INFO
 {
     NTFS_VOLUME_DATA_BUFFER VolumeData;
     NTFS_EXTENDED_VOLUME_DATA ExtendedVolumeData;
 } NTFS_VOLUME_INFO, *PNTFS_VOLUME_INFO;
 
-NTSTATUS DiskDriveQueryNtfsVolumeInfo(
+BOOLEAN DiskDriveQueryNtfsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PNTFS_VOLUME_INFO VolumeInfo
     );
 
-NTSTATUS DiskDriveQueryRefsVolumeInfo(
+BOOLEAN DiskDriveQueryRefsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PREFS_VOLUME_DATA_BUFFER VolumeInfo
     );
@@ -579,7 +580,6 @@ NTSTATUS DiskDriveQueryVolumeAttributes(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PFILE_FS_ATTRIBUTE_INFORMATION* AttributeInfo
     );
-
 
 typedef enum _SMART_ATTRIBUTE_ID
 {
@@ -647,6 +647,9 @@ typedef enum _SMART_ATTRIBUTE_ID
     // Unknown values 251-253
     SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION = 0xFE,
 } SMART_ATTRIBUTE_ID;
+
+
+#define SMART_HEADER_SIZE 2
 
 #include <pshpack1.h>
 typedef struct _SMART_ATTRIBUTE

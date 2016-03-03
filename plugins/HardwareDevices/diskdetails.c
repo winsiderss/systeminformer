@@ -24,6 +24,8 @@
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
+    HWND ParentHandle;
+
     PPH_STRING DiskName;
     DV_DISK_ID DiskId;
     ULONG DiskIndex;
@@ -120,145 +122,10 @@ VOID DiskDriveQueryFileSystem(
             lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Volume File System", NULL);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaCreateStringEx(attributeInfo->FileSystemName, attributeInfo->FileSystemNameLength)->Buffer);
 
-            //if (attributeInfo->FileSystemAttributes & FILE_CASE_SENSITIVE_SEARCH)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Case-sensitive filenames", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
+            // TODO: attributeInfo->FileSystemAttributes
 
-            //if (attributeInfo->FileSystemAttributes & FILE_CASE_PRESERVED_NAMES)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Preserves Case of filenames", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_UNICODE_ON_DISK)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Unicode in filenames", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_PERSISTENT_ACLS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Preserves & Enforces ACL's", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_FILE_COMPRESSION)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports file-based Compression", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_VOLUME_QUOTAS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Disk Quotas", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_SPARSE_FILES)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Sparse files", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_REPARSE_POINTS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Reparse Points", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_REMOTE_STORAGE)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Remote Storage", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_VOLUME_IS_COMPRESSED)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Volume Compressed", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_OBJECT_IDS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Object Identifiers", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_ENCRYPTION)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Encrypted File System", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_NAMED_STREAMS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Named Streams", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_READ_ONLY_VOLUME)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Named Streams", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SEQUENTIAL_WRITE_ONCE)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Write Once", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_TRANSACTIONS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Transactions", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_HARD_LINKS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Hard Links", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_EXTENDED_ATTRIBUTES)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Extended Attributes", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_OPEN_BY_FILE_ID)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Open By FileID", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_USN_JOURNAL)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports USN Journal", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_INTEGRITY_STREAMS)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Integrity Streams", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_BLOCK_REFCOUNTING)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Block Reference Counting", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
-
-            //if (attributeInfo->FileSystemAttributes & FILE_SUPPORTS_SPARSE_VDL)
-            //{
-            //    lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Supports Sparse VDL", NULL);
-            //    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"YES");
-            //}
+            PhFree(attributeInfo);
         }
-
 
         if (DiskDriveQueryFileSystemInfo(diskEntry->DeviceHandle, &fsInfoType, &fsInfoBuffer))
         {
@@ -284,7 +151,7 @@ PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatSize(buffer->Struc
                     {
                         NTFS_VOLUME_INFO ntfsVolumeInfo;
 
-                        if (NT_SUCCESS(DiskDriveQueryNtfsVolumeInfo(diskEntry->DeviceHandle, &ntfsVolumeInfo)))
+                        if (DiskDriveQueryNtfsVolumeInfo(diskEntry->DeviceHandle, &ntfsVolumeInfo))
                         {
                             // Swap the endianness.
                             // This produces the same output as the "fsutil fsinfo ntfsinfo C:" command.
@@ -405,7 +272,7 @@ PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatSize(buffer->Struc
                     {
                         REFS_VOLUME_DATA_BUFFER refsVolumeInfo;
 
-                        if (NT_SUCCESS(DiskDriveQueryRefsVolumeInfo(diskEntry->DeviceHandle, &refsVolumeInfo)))
+                        if (DiskDriveQueryRefsVolumeInfo(diskEntry->DeviceHandle, &refsVolumeInfo))
                         {
                             // Swap the endianness.
                             // This produces the same output as the "fsutil fsinfo ntfsinfo C:" command.
@@ -413,22 +280,18 @@ PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatSize(buffer->Struc
 
                             PPH_STRING ntfsVolumeSerialNumberHex = PH_AUTO(PhBufferToHexString(
                                 (PUCHAR)&refsVolumeInfo.VolumeSerialNumber.QuadPart,
-                                sizeof(refsVolumeInfo.VolumeSerialNumber.QuadPart)
+                                sizeof(LONGLONG)
                                 ));
 
                             INT lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Volume Serial Number", NULL);
-                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatString(L"0x%s", ntfsVolumeSerialNumberHex->Buffer)->Buffer);
-
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, 
+                                PhaFormatString(L"0x%s", ntfsVolumeSerialNumberHex->Buffer)->Buffer
+                                );
 
                             lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"REFS Version", NULL);
                             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
                                 PhaFormatString(L"%lu.%lu", refsVolumeInfo.MajorVersion, refsVolumeInfo.MinorVersion)->Buffer
                                 );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"BytesPerPhysicalSector", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatSize(refsVolumeInfo.BytesPerPhysicalSector, -1)->Buffer
-                            //    );
 
                             lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Total Size", NULL);
                             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
@@ -471,50 +334,6 @@ PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatSize(buffer->Struc
                             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
                                 PhaFormatString(L"%lu", refsVolumeInfo.BytesPerCluster)->Buffer
                                 );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Bytes Per File Record Segment", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatString(L"%lu", refsVolumeInfo.BytesPerFileRecordSegment)->Buffer
-                            //    );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"Clusters Per File Record Segment", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatString(L"%lu", refsVolumeInfo.ClustersPerFileRecordSegment)->Buffer
-                            //    );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"MFT Records", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatString(L"%I64u", refsVolumeInfo.MftValidDataLength.QuadPart / refsVolumeInfo.BytesPerFileRecordSegment)->Buffer
-                            //    );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"MFT Size", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatString(
-                            //    L"%s (%.2f%%)",
-                            //    PhaFormatSize(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart, -1)->Buffer,
-                            //    (FLOAT)(ntfsVolumeInfo.VolumeData.MftValidDataLength.QuadPart * 100 / ntfsVolumeInfo.VolumeData.BytesPerCluster) / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart
-                            //    )->Buffer);
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"MFT Start", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.MftStartLcn.QuadPart)->Buffer
-                            //    );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"MFT Zone Clusters", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatString(L"%I64u - %I64u", ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart, ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart)->Buffer
-                            //    );
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"MFT Zone Size", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, PhaFormatString(
-                            //    L"%s (%.2f%%)",
-                            //    PhaFormatSize((ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * ntfsVolumeInfo.VolumeData.BytesPerCluster, -1)->Buffer,
-                            //    (FLOAT)(ntfsVolumeInfo.VolumeData.MftZoneEnd.QuadPart - ntfsVolumeInfo.VolumeData.MftZoneStart.QuadPart) * 100 / ntfsVolumeInfo.VolumeData.TotalClusters.QuadPart
-                            //    )->Buffer);
-
-                            //lvItemIndex = AddListViewItemGroupId(Context->ListViewHandle, diskGroupId, MAXINT, L"MFT Mirror Start", NULL);
-                            //PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1,
-                            //    PhaFormatString(L"%I64u", ntfsVolumeInfo.VolumeData.Mft2StartLcn.QuadPart)->Buffer
-                            //    );
                         }
                     }
 
@@ -618,7 +437,8 @@ PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhaFormatSize(buffer->Struc
                     LV_SHOW_VALUE(Context->ListViewHandle, L"Allocate-CacheMissClusters", NtfsStatistics, Allocate.CacheMissClusters);
 
                     //  Additions for Windows 8.1
-                    LV_SHOW_VALUE(Context->ListViewHandle, L"DiskResourcesExhausted", NtfsStatistics, DiskResourcesExhausted);
+                    // ReFS uses this for a different reason.
+                    //LV_SHOW_VALUE(Context->ListViewHandle, L"DiskResourcesExhausted", NtfsStatistics, DiskResourcesExhausted);
                 }
                 break;
             case FILESYSTEM_STATISTICS_TYPE_FAT:
@@ -744,8 +564,6 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
 
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
-
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 240, L"Property");
@@ -836,7 +654,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
 
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+            PhCenterWindow(GetParent(hwndDlg), context->PageContext->ParentHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -878,34 +696,24 @@ VOID FreeDiskDriveDetailsContext(
     PhFree(Context);
 }
 
-VOID ShowDiskDriveDetailsDialog(
-    _In_ PDV_DISK_SYSINFO_CONTEXT Context
+NTSTATUS ShowDiskDriveDetailsDialogThread(
+    _In_ PVOID Parameter
     )
 {
-    PCOMMON_PAGE_CONTEXT pageContext;
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[2];
-
-    pageContext = PhAllocate(sizeof(COMMON_PAGE_CONTEXT));
-    memset(pageContext, 0, sizeof(COMMON_PAGE_CONTEXT));
-    pageContext->DiskIndex = Context->DiskEntry->DiskIndex;
-    PhSetReference(&pageContext->DiskName, Context->DiskEntry->DiskName);
-    CopyDiskId(&pageContext->DiskId, &Context->DiskEntry->Id);
-
-
+    PCOMMON_PAGE_CONTEXT pageContext = Parameter;
     HANDLE deviceHandle;
-    if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, Context->DiskEntry->Id.DevicePath)))
+
+    if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, pageContext->DiskId.DevicePath)))
     {
         pageContext->DeviceHandle = deviceHandle;
     }
 
-
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
-    //propSheetHeader.hwndParent = (HWND)Context->WindowHandle;
+        PSH_NOCONTEXTHELP;
     propSheetHeader.pszCaption = L"Disk Drive";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
@@ -918,7 +726,7 @@ VOID ShowDiskDriveDetailsDialog(
     //propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DISKDRIVE_DETAILS_GENERAL);
     //propSheetPage.pfnDlgProc = DiskDriveDetailsDlgProc;
     //pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-   
+
     // FileSystem
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -940,4 +748,28 @@ VOID ShowDiskDriveDetailsDialog(
     PhModalPropertySheet(&propSheetHeader);
 
     FreeDiskDriveDetailsContext(pageContext);
+    return STATUS_SUCCESS;
+}
+
+VOID ShowDiskDriveDetailsDialog(
+    _In_ PDV_DISK_SYSINFO_CONTEXT Context
+    )
+{
+    HANDLE dialogThread = NULL;
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    pageContext = PhAllocate(sizeof(COMMON_PAGE_CONTEXT));
+    memset(pageContext, 0, sizeof(COMMON_PAGE_CONTEXT));
+
+    pageContext->ParentHandle = GetParent(GetParent(Context->WindowHandle));
+    pageContext->DiskIndex = Context->DiskEntry->DiskIndex;
+    //pageContext->Length = Context->DiskEntry->DiskLength;
+
+    PhSetReference(&pageContext->DiskName, Context->DiskEntry->DiskName);
+    CopyDiskId(&pageContext->DiskId, &Context->DiskEntry->Id);
+
+    if (dialogThread = PhCreateThread(0, ShowDiskDriveDetailsDialogThread, pageContext))
+        NtClose(dialogThread);
+    else
+        FreeDiskDriveDetailsContext(pageContext);
 }

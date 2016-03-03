@@ -23,6 +23,11 @@
 #include "devices.h"
 #include <ntdddisk.h>
 
+// NOTE: Functions in this file can be used on disks, volumes, and partitions,
+// even if they appear to only support one type, they can be used to query different 
+// information from other types.
+// TODO: Come up with a better naming scheme to identify these multi-purpose functions.
+
 NTSTATUS DiskDriveCreateHandle(
     _Out_ PHANDLE DeviceHandle,
     _In_ PPH_STRING DevicePath
@@ -48,7 +53,7 @@ NTSTATUS DiskDriveCreateHandle(
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT // FILE_RANDOM_ACCESS
-        );   
+        );
 }
 
 ULONG DiskDriveQueryDeviceMap(
@@ -117,7 +122,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                     deviceHandle,
                     &deviceNumber,
                     &deviceType
-                    )));
+                    )))
                 {
                     // BUG: Device numbers are re-used on seperate device controllers and this
                     // causes drive letters to be assigned to disks at those same indexes.
@@ -177,7 +182,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                     deviceHandle,
                     &deviceNumber,
                     &deviceType
-                    )));
+                    )))
                 {
                     // BUG: Device numbers are re-used on seperate device controllers and this
                     // causes drive letters to be assigned to disks at those same indexes.
@@ -257,7 +262,7 @@ BOOLEAN DiskDriveQueryAdapterInformation(
     }
 
     PSTORAGE_ADAPTER_DESCRIPTOR storageDescriptor = (PSTORAGE_ADAPTER_DESCRIPTOR)buffer;
- 
+
     if (buffer)
     {
         PhFree(buffer);
@@ -458,45 +463,6 @@ BOOLEAN DiskDriveQueryTemperature(
     return TRUE;
 }
 
-BOOLEAN DiskDriveQueryBcProperties(
-    _In_ HANDLE DeviceHandle
-    )
-{
-    ULONG bufferLength;
-    IO_STATUS_BLOCK isb;
-    PSTORAGE_GET_BC_PROPERTIES_OUTPUT buffer;
-
-    bufferLength = sizeof(STORAGE_GET_BC_PROPERTIES_OUTPUT);
-    buffer = PhAllocate(bufferLength);
-    memset(buffer, 0, bufferLength);
-
-    if (!NT_SUCCESS(NtDeviceIoControlFile(
-        DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        IOCTL_STORAGE_GET_BC_PROPERTIES,
-        NULL,
-        0,
-        buffer,
-        bufferLength
-        )))
-    {
-        PhFree(buffer);
-        return FALSE;
-    }
-
-    PSTORAGE_GET_BC_PROPERTIES_OUTPUT storageDescriptor = (PSTORAGE_GET_BC_PROPERTIES_OUTPUT)buffer;
-
-    if (buffer)
-    {
-        PhFree(buffer);
-    }
-
-    return TRUE;
-}
-
 BOOLEAN DiskDriveQueryDeviceInformation(
     _In_ HANDLE DeviceHandle,
     _Out_opt_ PPH_STRING* DiskVendor,
@@ -556,7 +522,7 @@ BOOLEAN DiskDriveQueryDeviceInformation(
     }
 
     PSTORAGE_DEVICE_DESCRIPTOR deviceDescriptor = (PSTORAGE_DEVICE_DESCRIPTOR)buffer;
-   
+
     // TODO: Use the following fields:
     // STORAGE_BUS_TYPE BusType;
     // DWORD RawPropertiesLength;
@@ -747,8 +713,6 @@ BOOLEAN DiskDriveQueryImminentFailure(
 
         diskAttributeList = PhCreateList(30);
 
-#define SMART_HEADER_SIZE 2
-
         //An attribute is a one-byte value ranging from 1 to 253 (FDh).
         //The initial default value is 100 (64h).
         //The value and the intertretation of the value are vendor-specific.
@@ -792,7 +756,6 @@ BOOLEAN DiskDriveQueryImminentFailure(
                 info->Advisory = (attribute->Flags & 0x1) == 0x0;
                 info->FailureImminent = (attribute->Flags & 0x1) == 0x1;
                 info->OnlineDataCollection = (attribute->Flags & 0x2) == 0x2;
-                
                 info->Performance = (attribute->Flags & 0x3) == 0x3;
                 info->ErrorRate = (attribute->Flags & 0x4) == 0x4;
                 info->EventCount = (attribute->Flags & 0x5) == 0x5;
@@ -802,6 +765,7 @@ BOOLEAN DiskDriveQueryImminentFailure(
                     MAKEWORD(attribute->RawValue[0], attribute->RawValue[1]),
                     MAKEWORD(attribute->RawValue[2], attribute->RawValue[3])
                     );
+                // Missing 2 raw values.
 
                 PhAddItemList(diskAttributeList, info);
             }
@@ -839,26 +803,19 @@ NTSTATUS DiskDriveQueryCacheInformation(
         sizeof(result)
         );
 
-    if (NT_SUCCESS(status))
-    {
-        
-    }
-
     return status;
 }
 
-
-NTSTATUS DiskDriveQueryAttributes(
+BOOLEAN DiskDriveQueryAttributes(
     _In_ HANDLE DeviceHandle
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     GET_DISK_ATTRIBUTES result;
 
     memset(&result, 0, sizeof(GET_DISK_ATTRIBUTES));
 
-    status = NtDeviceIoControlFile(
+    if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -869,10 +826,84 @@ NTSTATUS DiskDriveQueryAttributes(
         0,
         &result,
         sizeof(result)
-        );
+        )))
+    {
+        return TRUE;
+    }
 
-    return status;
+    return FALSE;
 }
+
+BOOLEAN DiskDriveQueryLength(
+    _In_ HANDLE DeviceHandle,
+    _Out_ ULONG64* Length
+    )
+{
+    IO_STATUS_BLOCK isb;
+    GET_LENGTH_INFORMATION result;
+
+    memset(&result, 0, sizeof(GET_LENGTH_INFORMATION));
+
+    // This gives us the full disk size but requires FILE_GENERIC_READ.
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_DISK_GET_LENGTH_INFO,
+        NULL,
+        0,
+        &result,
+        sizeof(result)
+        )))
+    {
+        *Length = result.Length.QuadPart;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN DiskDriveQueryBcProperties(
+    _In_ HANDLE DeviceHandle
+    )
+{
+    ULONG bufferLength;
+    IO_STATUS_BLOCK isb;
+    PSTORAGE_GET_BC_PROPERTIES_OUTPUT buffer;
+
+    bufferLength = sizeof(STORAGE_GET_BC_PROPERTIES_OUTPUT);
+    buffer = PhAllocate(bufferLength);
+    memset(buffer, 0, bufferLength);
+
+    if (!NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_STORAGE_GET_BC_PROPERTIES,
+        NULL,
+        0,
+        buffer,
+        bufferLength
+        )))
+    {
+        PhFree(buffer);
+        return FALSE;
+    }
+
+    PSTORAGE_GET_BC_PROPERTIES_OUTPUT storageDescriptor = (PSTORAGE_GET_BC_PROPERTIES_OUTPUT)buffer;
+
+    if (buffer)
+    {
+        PhFree(buffer);
+    }
+
+    return TRUE;
+}
+
 
 BOOLEAN DiskDriveQueryFileSystemInfo(
     _In_ HANDLE DosDeviceHandle,
@@ -884,8 +915,6 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     IO_STATUS_BLOCK isb;
     PFILESYSTEM_STATISTICS buffer;
 
-    // TODO: FSCTL_FILESYSTEM_GET_STATISTICS_EX
-
     bufferLength = sizeof(FILESYSTEM_STATISTICS);
     buffer = PhAllocate(bufferLength);
     memset(buffer, 0, bufferLength);
@@ -896,7 +925,7 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
         NULL,
         NULL,
         &isb,
-        FSCTL_FILESYSTEM_GET_STATISTICS,
+        FSCTL_FILESYSTEM_GET_STATISTICS, // FSCTL_FILESYSTEM_GET_STATISTICS_EX
         NULL,
         0,
         buffer,
@@ -910,7 +939,7 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     switch (buffer->FileSystemType)
     {
     case FILESYSTEM_STATISTICS_TYPE_NTFS:
-    case FILESYSTEM_STATISTICS_TYPE_REFS:
+    case FILESYSTEM_STATISTICS_TYPE_REFS: // ReFS uses the same statistics as NTFS.
         {
             bufferLength = sizeof(NTFS_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
             buffer = PhReAllocate(buffer, bufferLength);
@@ -955,18 +984,17 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     return FALSE;
 }
 
-NTSTATUS DiskDriveQueryNtfsVolumeInfo(
+BOOLEAN DiskDriveQueryNtfsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PNTFS_VOLUME_INFO VolumeInfo
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     NTFS_VOLUME_INFO result;
 
     memset(&result, 0, sizeof(NTFS_VOLUME_INFO));
 
-    status = NtFsControlFile(
+    if (NT_SUCCESS(NtFsControlFile(
         DosDeviceHandle,
         NULL,
         NULL,
@@ -977,46 +1005,43 @@ NTSTATUS DiskDriveQueryNtfsVolumeInfo(
         0,
         &result,
         sizeof(result)
-        );
-
-    if (NT_SUCCESS(status))
+        )))
     {
         *VolumeInfo = result;
+        return TRUE;
     }
 
-    return status;
+    return FALSE;
 }
 
-NTSTATUS DiskDriveQueryRefsVolumeInfo(
+BOOLEAN DiskDriveQueryRefsVolumeInfo(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PREFS_VOLUME_DATA_BUFFER VolumeInfo
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     REFS_VOLUME_DATA_BUFFER result;
 
     memset(&result, 0, sizeof(REFS_VOLUME_DATA_BUFFER));
 
-    status = NtFsControlFile(
+    if (NT_SUCCESS(NtFsControlFile(
         DosDeviceHandle,
         NULL,
         NULL,
         NULL,
         &isb,
-        FSCTL_GET_REFS_VOLUME_DATA,
+        FSCTL_GET_REFS_VOLUME_DATA, // FSCTL_QUERY_REFS_VOLUME_COUNTER_INFO
         NULL,
         0,
         &result,
         sizeof(result)
-        );
-
-    if (NT_SUCCESS(status))
+        )))
     {
         *VolumeInfo = result;
+        return TRUE;
     }
 
-    return status;
+    return FALSE;
 }
 
 BOOLEAN DiskDriveQueryTxfsVolumeInfo(
@@ -1088,7 +1113,7 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
 {
     IO_STATUS_BLOCK isb;
     BOOT_AREA_INFO result;
-                                    
+
     memset(&result, 0, sizeof(BOOT_AREA_INFO));
 
     if (!NT_SUCCESS(NtFsControlFile(
@@ -1123,14 +1148,26 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
 
     for (ULONG i = 0; i < result.BootSectorCount; i++)
     {
-        #include <pshpack1.h>
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/dd442654.aspx
+        typedef struct _FILE_SYSTEM_RECOGNITION_STRUCTURE 
+        {
+            UCHAR Jmp[3];
+            UCHAR FsName[8];
+            UCHAR MustBeZero[5];
+            ULONG Identifier;
+            USHORT Length;
+            USHORT Checksum;
+        } FILE_SYSTEM_RECOGNITION_STRUCTURE;
+
+
+#include <pshpack1.h>
         typedef struct _BOOT_SECTOR
         {
-            UCHAR Jump[3];
+            UCHAR Jmp[3];
             UCHAR Format[8];
             USHORT BytesPerSector;
             UCHAR SectorsPerCluster;
-            USHORT BootSectors;
+            USHORT ReservedSectorCount;
             UCHAR Mbz1;
             USHORT Mbz2;
             USHORT Reserved1;
@@ -1149,14 +1186,17 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
             UCHAR Code[0x1AE];  // 430
             USHORT BootSignature;
         } BOOT_SECTOR, *PBOOT_SECTOR;
-        #include <poppack.h>
+#include <poppack.h>
 
 
         BOOT_SECTOR sector;
 
         memset(&sector, 0, sizeof(BOOT_SECTOR));
 
-        // There are 2 boot sectors on NTFS partitions, we can't access the second one for some unknown reason.
+        // There are 2 boot sectors on NTFS partitions, we can't access the second one.
+        // To read or write to the last few sectors of a volume (where the second boot sector is located), 
+        // you must call FSCTL_ALLOW_EXTENDED_DASD_IO, which instructs the file system to not perform any boundary checks,
+        // which doesn't work for some reason.
         if (!NT_SUCCESS(NtReadFile(
             DosDeviceHandle,
             NULL,
@@ -1175,6 +1215,46 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
 
     return FALSE;
 }
+
+BOOLEAN DiskDriveQueryVolumeDirty(
+    _In_ HANDLE DosDeviceHandle,
+    _Out_ PBOOLEAN IsDirty
+    )
+{
+    ULONG result;
+    IO_STATUS_BLOCK isb;
+
+    memset(&result, 0, sizeof(ULONG));
+
+    if (NT_SUCCESS(NtFsControlFile(
+        DosDeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_IS_VOLUME_DIRTY,
+        NULL,
+        0,
+        &result,
+        sizeof(result)
+        )))
+    {
+        if (result & VOLUME_IS_DIRTY)
+        {
+            *IsDirty = TRUE;
+        }
+        else
+        {
+            *IsDirty = FALSE;
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
 
 NTSTATUS DiskDriveQueryVolumeInformation(
     _In_ HANDLE DosDeviceHandle,
@@ -1270,69 +1350,54 @@ NTSTATUS DiskDriveQueryVolumeAttributes(
     return status;
 }
 
-NTSTATUS DiskDriveQueryVolumeFreeSpace(
-    _In_ HANDLE DosDeviceHandle
+BOOLEAN DiskDriveQueryVolumeFreeSpace(
+    _In_ HANDLE DosDeviceHandle,
+    _Out_ ULONG64* TotalLength,
+    _Out_ ULONG64* FreeLength
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     FILE_FS_FULL_SIZE_INFORMATION result;
 
     memset(&result, 0, sizeof(FILE_FS_FULL_SIZE_INFORMATION));
 
-    status = NtQueryVolumeInformationFile(
+    if (NT_SUCCESS(NtQueryVolumeInformationFile(
         DosDeviceHandle,
         &isb,
         &result,
         sizeof(FILE_FS_FULL_SIZE_INFORMATION),
         FileFsFullSizeInformation
-        );
-
-    if (NT_SUCCESS(status))
+        )))
     {
-        return status;
+        *TotalLength = result.TotalAllocationUnits.QuadPart * result.SectorsPerAllocationUnit * result.BytesPerSector;
+        *FreeLength = result.ActualAvailableAllocationUnits.QuadPart * result.SectorsPerAllocationUnit * result.BytesPerSector;
+        return TRUE;
     }
 
-    return status;
+    return FALSE;
 }
 
-NTSTATUS DiskDriveQueryVolumeDirty(
-    _In_ HANDLE DosDeviceHandle,
-    _Out_ PBOOLEAN IsDirty
+BOOLEAN DiskDriveFlushCache(
+    _In_ HANDLE DosDeviceHandle
     )
 {
-    NTSTATUS status;
-    ULONG result;
     IO_STATUS_BLOCK isb;
 
-    memset(&result, 0, sizeof(ULONG));
+    //  NtFlushBuffersFile
+    //
+    //  If a volume handle is specified:
+    //      - Write all modified data for all files on the volume from the Windows
+    //        in-memory cache.
+    //      - Commit all pending metadata changes for all files on the volume from
+    //        the Windows in-memory cache.
+    //      - Send a SYNC command to the underlying storage device to commit all
+    //        written data in the devices cache to persistent storage.
+    //
 
-    status = NtFsControlFile(
-        DosDeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        FSCTL_IS_VOLUME_DIRTY,
-        NULL,
-        0,
-        &result,
-        sizeof(result)
-        );
+    if (NT_SUCCESS(NtFlushBuffersFile(DosDeviceHandle, &isb)))
+        return TRUE;
 
-    if (NT_SUCCESS(status))
-    {
-        if (result & VOLUME_IS_DIRTY)
-        {
-            *IsDirty = TRUE;
-        }
-        else
-        {
-            *IsDirty = FALSE;
-        }
-    }
-
-    return status;
+    return FALSE;
 }
 
 PWSTR SmartAttributeGetText(
