@@ -605,10 +605,28 @@ HBITMAP LoadImageFromResources(
         }
         else
         {
-            // Convert the image to the correct format:
-            if (FAILED(WICConvertBitmapSource(&GUID_WICPixelFormat32bppBGRA, (IWICBitmapSource*)wicFrame, &wicBitmapSource)))
+            IWICFormatConverter* wicFormatConverter = NULL;
+
+            if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
                 __leave;
 
+            if (FAILED(IWICFormatConverter_Initialize(
+                wicFormatConverter,
+                (IWICBitmapSource*)wicFrame,
+                &GUID_WICPixelFormat32bppBGRA,
+                WICBitmapDitherTypeNone,
+                NULL,
+                0.0,
+                WICBitmapPaletteTypeCustom
+                )))
+            {
+                IWICFormatConverter_Release(wicFormatConverter);
+                __leave;
+            }
+
+            // Convert the image to the correct format:
+            IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource);
+            IWICFormatConverter_Release(wicFormatConverter);
             IWICBitmapFrameDecode_Release(wicFrame);
         }
 
