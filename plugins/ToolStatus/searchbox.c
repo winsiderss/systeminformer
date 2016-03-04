@@ -26,13 +26,6 @@
 #include <Uxtheme.h>
 #include <vssym32.h>
 
-static HMODULE UxThemeHandle = NULL;
-static _IsThemeActive IsThemeActive_I = NULL;
-static _OpenThemeData OpenThemeData_I = NULL;
-static _CloseThemeData CloseThemeData_I = NULL;
-static _IsThemePartDefined IsThemePartDefined_I = NULL;
-static _GetThemeInt GetThemeInt_I = NULL;
-
 VOID NcAreaFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
@@ -65,31 +58,19 @@ VOID NcAreaInitializeTheme(
     )
 {
     Context->CXWidth = PhMultiplyDivide(20, PhGlobalDpi, 96);
-    //Context->BackgroundColorRef = GetSysColor(COLOR_WINDOW);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
     Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
 
-    if (!UxThemeHandle)
+    if (IsThemeActive())
     {
-        if (UxThemeHandle = LoadLibrary(L"uxtheme.dll"))
-        {
-            IsThemeActive_I = PhGetProcedureAddress(UxThemeHandle, "IsThemeActive", 0);
-            OpenThemeData_I = PhGetProcedureAddress(UxThemeHandle, "OpenThemeData", 0);
-            CloseThemeData_I = PhGetProcedureAddress(UxThemeHandle, "CloseThemeData", 0);
-            IsThemePartDefined_I = PhGetProcedureAddress(UxThemeHandle, "IsThemePartDefined", 0);
-            GetThemeInt_I = PhGetProcedureAddress(UxThemeHandle, "GetThemeInt", 0);
-        }
-    }
+        HTHEME themeDataHandle;
 
-    if (IsThemeActive_I && OpenThemeData_I && GetThemeInt_I && CloseThemeData_I)
-    {
-        if (IsThemeActive_I())
+        if (themeDataHandle = OpenThemeData(Context->WindowHandle, VSCLASS_EDIT))
         {
-            HTHEME themeDataHandle = OpenThemeData_I(Context->WindowHandle, VSCLASS_EDIT);
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
 
-            GetThemeInt_I(
+            GetThemeInt(
                 themeDataHandle,
                 EP_EDITBORDER_NOSCROLL,
                 EPSHV_NORMAL,
@@ -97,11 +78,7 @@ VOID NcAreaInitializeTheme(
                 &Context->CXBorder
                 );
 
-            CloseThemeData_I(themeDataHandle);
-        }
-        else
-        {
-            Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+            CloseThemeData(themeDataHandle);
         }
     }
     else
@@ -538,6 +515,8 @@ HBITMAP LoadImageFromResources(
     HRSRC resourceHandleSource = NULL;
     WICInProcPointer resourceBuffer = NULL;
 
+    HDC screenHdc = NULL;
+    HDC bufferDc = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     PBYTE bitmapBuffer = NULL;
@@ -626,7 +605,11 @@ HBITMAP LoadImageFromResources(
 
             // Convert the image to the correct format:
             IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource);
+
+            // Cleanup the converter.
             IWICFormatConverter_Release(wicFormatConverter);
+
+            // Dispose the old frame now that the converted frame is in wicBitmapSource.
             IWICBitmapFrameDecode_Release(wicFrame);
         }
 
@@ -637,9 +620,9 @@ HBITMAP LoadImageFromResources(
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        HDC hdc = CreateCompatibleDC(NULL);
-        bitmapHandle = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
-        DeleteDC(hdc);
+        screenHdc = GetDC(NULL);
+        bufferDc = CreateCompatibleDC(screenHdc);
+        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
 
         // Check if it's the same rect as the requested size.
         //if (width != rect.Width || height != rect.Height)
@@ -654,9 +637,21 @@ HBITMAP LoadImageFromResources(
     }
     __finally
     {
+        // Cleanup resources in the same order they were created.
+
         if (wicScaler)
         {
             IWICBitmapScaler_Release(wicScaler);
+        }
+
+        if (bufferDc)
+        {
+            DeleteDC(bufferDc);
+        }
+
+        if (screenHdc)
+        {
+            ReleaseDC(NULL, screenHdc);
         }
 
         if (wicBitmapSource)
@@ -719,7 +714,7 @@ HWND CreateSearchControl(
         ShowWindow(SearchboxHandle, SW_HIDE);
     }
 
-    NcAreaInitializeTheme(context);
+    //NcAreaInitializeTheme(context);
     NcAreaInitializeImageList(context);
 
     // Set initial text
