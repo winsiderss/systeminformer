@@ -1086,7 +1086,9 @@ NTSTATUS DotNetTraceQueryThreadStart(
     }
 
     // If the process properties window has been closed, bail and cleanup.
-    if (IsWindowVisible(context->WindowHandle))
+    // IsWindow should be safe from being called on this thread:
+    // https://blogs.msdn.microsoft.com/oldnewthing/20070717-00/?p=25983
+    if (IsWindow(context->WindowHandle))
     {
         PostMessage(context->WindowHandle, UPDATE_MSG, result, (LPARAM)context);
     }
