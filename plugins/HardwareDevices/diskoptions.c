@@ -618,16 +618,13 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
-
-            //if (WindowsVersion >= WINDOWS_VISTA)
-            //{
-            //    // XP has really bad image rendering, don't load images on XP.
-            //    LoadDiskDriveImages(context);
-            //}
-
-            ListView_EnableGroupView(context->ListViewHandle, TRUE);
-            AddListViewGroup(context->ListViewHandle, 0, L"Connected");
-            AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
+           
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                ListView_EnableGroupView(context->ListViewHandle, TRUE);
+                AddListViewGroup(context->ListViewHandle, 0, L"Connected");
+                AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
+            }
 
             FindDiskDrives(context);
 

@@ -172,24 +172,26 @@ PPH_STRING TrimString(
 
 INT AddListViewGroup(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
+    _In_ INT GroupId,
     _In_ PWSTR Text
     )
 {
-    LVGROUP group = { LVGROUP_V5_SIZE };
-    group.mask = LVGF_HEADER | LVGF_GROUPID;
-    group.iGroupId = Index;
+    LVGROUP group;
+
+    group.cbSize = LVGROUP_V5_SIZE;
+    group.mask = LVGF_HEADER;
     group.pszHeader = Text;
 
     if (WindowsVersion >= WINDOWS_VISTA)
     {
         group.cbSize = sizeof(LVGROUP);
-        group.mask = group.mask | LVGF_ALIGN | LVGF_STATE;
+        group.mask |= LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
         group.uAlign = LVGA_HEADER_LEFT;
         group.state = LVGS_COLLAPSIBLE;
+        group.iGroupId = GroupId;
     }
 
-    return (INT)ListView_InsertGroup(ListViewHandle, INT_MAX, &group);
+    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
 }
 
 INT AddListViewItemGroupId(
@@ -202,17 +204,21 @@ INT AddListViewItemGroupId(
 {
     LVITEM item;
 
-    item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
+    item.mask = LVIF_TEXT;
     item.iItem = Index;
     item.iSubItem = 0;
-    item.iImage = 0;
     item.pszText = Text;
-    item.lParam = (LPARAM)Param;
 
     if (WindowsVersion >= WINDOWS_VISTA)
     {
-        item.mask = item.mask | LVIF_GROUPID;
+        item.mask |= LVIF_GROUPID;
         item.iGroupId = GroupId;
+    }
+
+    if (Param)
+    {
+        item.mask |= LVIF_PARAM;
+        item.lParam = (LPARAM)Param;
     }
 
     return ListView_InsertItem(ListViewHandle, &item);

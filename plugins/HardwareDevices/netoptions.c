@@ -618,7 +618,6 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_NETADAPTERS_LISTVIEW);
-
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -627,25 +626,21 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
             if (WindowsVersion >= WINDOWS_VISTA)
             {
-                context->UseAlternateMethod = FALSE;
-
-                // XP has really bad image rendering, don't load images on XP.
-                //LoadNetworkAdapterImages(context);
-
                 ListView_EnableGroupView(context->ListViewHandle, TRUE);
                 AddListViewGroup(context->ListViewHandle, 0, L"Connected");
                 AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
-                FindNetworkAdapters(context);
+                context->UseAlternateMethod = FALSE;
             }
             else
             {
-                context->UseAlternateMethod = TRUE;
-
                 Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), FALSE);
-
-                FindNetworkAdapters(context);
+                context->UseAlternateMethod = TRUE;
             }
+
+            FindNetworkAdapters(context);
+
+            context->OptionsChanged = FALSE;
         }
         break;
     case WM_COMMAND:
