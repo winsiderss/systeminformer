@@ -541,17 +541,15 @@ BOOLEAN NTAPI MessageLoopFilter(
         if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
             return TRUE;
 
-        if (Message->message == WM_SYSCHAR && ToolStatusConfig.AutoHideMenu && !GetMenu(PhMainWndHandle))
+        if (Message->message == WM_SYSKEYDOWN && ToolStatusConfig.AutoHideMenu && !GetMenu(PhMainWndHandle))
         {
             ULONG key = (ULONG)Message->wParam;
 
-            if (key == 'h' || key == 'v' || key == 't' || key == 'u' || key == 'e')
-            {
-                SetMenu(PhMainWndHandle, MainMenu);
-                DrawMenuBar(PhMainWndHandle);
-                SendMessage(PhMainWndHandle, WM_SYSCHAR, Message->wParam, Message->lParam);
-                return TRUE;
-            }
+            SetMenu(PhMainWndHandle, MainMenu);
+            DrawMenuBar(PhMainWndHandle);
+
+            DefWindowProc(PhMainWndHandle, WM_SYSKEYDOWN, Message->wParam, Message->lParam);
+            return TRUE;
         }
     }
 
@@ -1237,22 +1235,7 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SYSCOMMAND:
         {
-            if ((wParam & 0xFFF0) == SC_KEYMENU && lParam == 0)
-            {
-                if (!ToolStatusConfig.AutoHideMenu)
-                    break;
-
-                if (GetMenu(PhMainWndHandle))
-                {
-                    SetMenu(PhMainWndHandle, NULL);
-                }
-                else
-                {
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
-                }
-            }
-            else if ((wParam & 0xFFF0) == SC_MINIMIZE)
+            if ((wParam & 0xFFF0) == SC_MINIMIZE)
             {
                 UpdateGraphs = FALSE;
             }
