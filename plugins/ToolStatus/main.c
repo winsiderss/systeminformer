@@ -22,7 +22,6 @@
  */
 
 #include "toolstatus.h"
-#include <commonutil.h>
 
 PPH_STRING GetSearchboxText(
     VOID
@@ -544,30 +543,13 @@ BOOLEAN NTAPI MessageLoopFilter(
 
         if (Message->message == WM_SYSKEYDOWN && ToolStatusConfig.AutoHideMenu && !GetMenu(PhMainWndHandle))
         {
-            int scanCode = HIWORD(Message->lParam) & 0x00FF;
-            int updown = (HIWORD(Message->lParam) >> 14) & 1;
+            ULONG key = (ULONG)Message->wParam;
 
-            if (MapVirtualKey(scanCode, MAPVK_VSC_TO_VK) == VK_MENU)//scanCode == 56 || scanCode == 68)
-            {
-                // Ignore multiple messages sent by WM_SYSKEYDOWN if the user is holding down the key.
-                if ((HIWORD(Message->lParam) & KF_REPEAT) == 0)
-                {
-                    DEBUG_MSG(L"Showing the menu: %d\n", updown);
+            SetMenu(PhMainWndHandle, MainMenu);
+            DrawMenuBar(PhMainWndHandle);
 
-                    // Show the menu
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
-
-                    SendMessage(PhMainWndHandle, WM_SYSKEYDOWN, Message->wParam, Message->lParam);
-                    return TRUE;
-                }
-                else
-                {
-                    DEBUG_MSG(L"IGNORE keypress: %d\n", updown);
-                    SendMessage(PhMainWndHandle, WM_SYSKEYDOWN, Message->wParam, Message->lParam);
-                    return TRUE;
-                }
-            }
+            DefWindowProc(PhMainWndHandle, WM_SYSKEYDOWN, Message->wParam, Message->lParam);
+            return TRUE;
         }
     }
 
@@ -1270,7 +1252,6 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             if (GetMenu(PhMainWndHandle))
             {
-                DEBUG_MSG(L"Hiding the menu - WM_EXITMENULOOP\n");
                 SetMenu(PhMainWndHandle, NULL);
             }
         }

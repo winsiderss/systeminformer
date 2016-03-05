@@ -1,20 +1,6 @@
 #ifndef _COMMONUTIL_H
 #define _COMMONUTIL_H
 
-#ifdef _DEBUG
-#define DEBUG_MSG(Format, ...) \
-{ \
-    PPH_STRING debugString = PhFormatString(Format, __VA_ARGS__); \
-    if (debugString) \
-    {                \
-        OutputDebugString(debugString->Buffer); \
-        PhDereferenceObject(debugString); \
-    } \
-}
-#else
-#define DEBUG_MSG(Format, ...)
-#endif
-
 FORCEINLINE
 HFONT 
 CommonDuplicateFont(
