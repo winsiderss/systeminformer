@@ -693,7 +693,7 @@ VOID ToolbarLoadButtonSettings(
         PhStringToInteger64(&commandIdPart, 10, &commandInteger);
 
         buttonArray[index].idCommand = (INT)commandInteger;
-        buttonArray[index].iBitmap = I_IMAGECALLBACK;
+        //buttonArray[index].iBitmap = I_IMAGECALLBACK;
         buttonArray[index].fsState = TBSTATE_ENABLED;
 
         if (commandInteger)
@@ -703,6 +703,27 @@ VOID ToolbarLoadButtonSettings(
         else
         {
             buttonArray[index].fsStyle = BTNS_SEP;
+        }
+
+        // Pre-cache the image in the Toolbar array on startup.
+        for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+        {
+            if (ToolbarButtons[i].idCommand == buttonArray[index].idCommand)
+            {
+                HBITMAP buttonImage;
+
+                buttonImage = ToolbarGetImage(ToolbarButtons[i].idCommand);
+
+                // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
+                buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = ImageList_Add(
+                    ToolBarImageList,
+                    buttonImage,
+                    NULL
+                    );
+
+                DeleteObject(buttonImage);
+                break;
+            }
         }
     }
 
