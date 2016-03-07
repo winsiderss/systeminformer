@@ -70,15 +70,22 @@ VOID NcAreaInitializeTheme(
         {
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
 
-            GetThemeInt(
+            if (!SUCCEEDED(GetThemeInt(
                 themeDataHandle,
                 EP_EDITBORDER_NOSCROLL,
                 EPSHV_NORMAL,
                 TMT_BORDERSIZE,
                 &Context->CXBorder
-                );
+                )))
+            {
+                Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+            }
 
             CloseThemeData(themeDataHandle);
+        }
+        else
+        {
+            Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
         }
     }
     else
@@ -271,11 +278,13 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             RECT windowRect;
 
             // Get the screen coordinates of the mouse.
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
+            if (!GetCursorPos(&windowPoint))
+                break;
+
+            // Get the screen coordinates of the window.
+            GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted button.
-            GetWindowRect(hWnd, &windowRect);
             NcAreaGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
@@ -291,11 +300,13 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             RECT windowRect;
 
             // Get the screen coordinates of the mouse.
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
+            if (!GetCursorPos(&windowPoint))
+                break;
+
+            // Get the screen coordinates of the window.
+            GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted button.
-            GetWindowRect(hWnd, &windowRect);
             NcAreaGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
@@ -315,14 +326,11 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             RECT windowRect;
 
             // Get the screen coordinates of the mouse.
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
+            if (!GetCursorPos(&windowPoint))
+                break;
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
-
-            // Adjust the coordinates (start from 0,0).
-            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
             // Get the position of the inserted button.
             NcAreaGetButtonRect(context, &windowRect);
@@ -432,8 +440,8 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             RECT windowRect;
 
             // Get the screen coordinates of the mouse.
-            windowPoint.x = GET_X_LPARAM(lParam);
-            windowPoint.y = GET_Y_LPARAM(lParam);
+            if (!GetCursorPos(&windowPoint))
+                break;
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
@@ -442,19 +450,20 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             NcAreaGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
-            if (PtInRect(&windowRect, windowPoint))
+            if (PtInRect(&windowRect, windowPoint) && !context->Hot)
             {
-                if (!context->Hot)
-                {
-                    TRACKMOUSEEVENT trackMouseEvent = { sizeof(TRACKMOUSEEVENT) };
-                    trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
-                    trackMouseEvent.hwndTrack = hWnd;
+                TRACKMOUSEEVENT trackMouseEvent;
 
-                    context->Hot = TRUE;
-                    RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+                trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+                trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
+                trackMouseEvent.hwndTrack = hWnd;
+                trackMouseEvent.dwHoverTime = 0;
 
-                    TrackMouseEvent(&trackMouseEvent);
-                }
+                context->Hot = TRUE;
+
+                RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+                TrackMouseEvent(&trackMouseEvent);
             }
         }
         break;
@@ -476,14 +485,11 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
                 RECT windowRect;
 
                 // Get the screen coordinates of the mouse.
-                windowPoint.x = GET_X_LPARAM(lParam);
-                windowPoint.y = GET_Y_LPARAM(lParam);
+                if (!GetCursorPos(&windowPoint))
+                    break;
 
                 // Get the screen coordinates of the window.
                 GetWindowRect(hWnd, &windowRect);
-
-                // Adjust the coordinates (start from 0,0).
-                OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
                 // Get the position of the inserted button.
                 NcAreaGetButtonRect(context, &windowRect);
