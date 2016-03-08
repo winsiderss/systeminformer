@@ -119,7 +119,13 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
     BOOLEAN isDotNet;
 
-    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)))
+    if (NT_SUCCESS(PhGetProcessIsDotNetEx(
+        propContext->ProcessItem->ProcessId,
+        NULL, 
+        PH_CLR_USE_SECTION_CHECK, 
+        &isDotNet,
+        NULL
+        )))
     {
         if (isDotNet)
         {
