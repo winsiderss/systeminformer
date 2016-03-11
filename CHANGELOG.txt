@@ -4,6 +4,7 @@ Process Hacker
  * HIGHLIGHTS:
  * OTHER CHANGES:
    * Improved tooltip information for dllhost.exe
+   * Fixed .NET process detection
 
 2.38
  * HIGHLIGHTS:

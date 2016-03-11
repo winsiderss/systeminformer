@@ -4378,6 +4378,7 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     static UNICODE_STRING mscorsvrString = RTL_CONSTANT_STRING(L"mscorsvr.dll");
     static UNICODE_STRING mscorlibString = RTL_CONSTANT_STRING(L"mscorlib.dll");
     static UNICODE_STRING mscorlibNiString = RTL_CONSTANT_STRING(L"mscorlib.ni.dll");
+    static UNICODE_STRING clrjitString = RTL_CONSTANT_STRING(L"clrjit.dll");
     static UNICODE_STRING frameworkString = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework\\");
     static UNICODE_STRING framework64String = RTL_CONSTANT_STRING(L"\\Microsoft.NET\\Framework64\\");
 
@@ -4446,6 +4447,10 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
         )
     {
         *(PULONG)Context |= PH_CLR_MSCORLIB_PRESENT;
+    }
+    else if (RtlEqualUnicodeString(&Module->BaseDllName, &clrjitString, TRUE))
+    {
+        *(PULONG)Context |= PH_CLR_JIT_PRESENT;
     }
 
     return TRUE;
@@ -4607,7 +4612,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
         NtClose(processHandle);
 
     if (IsDotNet)
-        *IsDotNet = (flags & PH_CLR_VERSION_MASK) && (flags & PH_CLR_MSCORLIB_PRESENT);
+        *IsDotNet = (flags & PH_CLR_VERSION_MASK) && (flags & (PH_CLR_MSCORLIB_PRESENT | PH_CLR_JIT_PRESENT));
 
     if (Flags)
         *Flags = flags;
