@@ -136,6 +136,7 @@ VOID DiskDrivesUpdate(
                 entry->SplitCount = 0;
                 entry->DiskIndex = ULONG_MAX;
                 entry->DevicePresent = FALSE;
+                PhClearReference(&entry->DiskIndexName);
             }
 
             if (runCount > 1)
@@ -168,13 +169,9 @@ VOID DiskDrivesUpdate(
             entry->ActiveTime = 0.0f;
             entry->QueueDepth = 0;
             entry->SplitCount = 0;
-
-            // Reset the DiskIndex so we can re-query the index on the next interval update.
             entry->DiskIndex = ULONG_MAX;
-            // Reset the DiskIndexName so we can re-query the name on the next interval update.
-            PhClearReference(&entry->DiskIndexName);
-
             entry->DevicePresent = FALSE;
+            PhClearReference(&entry->DiskIndexName);
         }
 
         if (!entry->HaveFirstSample)
