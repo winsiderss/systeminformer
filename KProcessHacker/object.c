@@ -681,16 +681,16 @@ NTSTATUS KpiQueryInformationObject(
 
     if (process == PsInitialSystemProcess)
     {
-        // A check was added in Windows 7 - if we're attached to the System process,
-        // the handle must be a kernel handle.
+        // A check was added in Windows 7 - if we're attached to the System process, the handle must
+        // be a kernel handle.
         Handle = MakeKernelHandle(Handle);
         referenceMode = KernelMode;
     }
     else
     {
-        // Make sure the handle isn't a kernel handle if we're not attached to the
-        // System process. This means we can avoid referencing then opening the objects
-        // later when calling ZwQueryObject, etc.
+        // Make sure the handle isn't a kernel handle if we're not attached to the System process.
+        // This means we can avoid referencing then opening the objects later when calling
+        // ZwQueryObject, etc.
         if (IsKernelHandle(Handle))
         {
             ObDereferenceObject(process);
@@ -983,11 +983,9 @@ NTSTATUS KpiQueryInformationObject(
             ETWREG_BASIC_INFORMATION basicInfo;
 
             // Check dynamic data requirements.
-            if (
-                KphDynEgeGuid != -1 &&
+            if (KphDynEgeGuid != -1 &&
                 KphDynEreGuidEntry != -1 &&
-                KphDynOtName != -1
-                )
+                KphDynOtName != -1)
             {
                 // Attach to the process and get a pointer to the object.
                 // We don't have a pointer to the EtwRegistration object type,
@@ -1141,9 +1139,9 @@ NTSTATUS KpiQueryInformationObject(
                             fileObject->DeviceObject->DriverObject,
                             0,
                             NULL,
-                            0,
+                            SYNCHRONIZE,
                             *IoDriverObjectType,
-                            KernelMode,
+                            AccessMode,
                             &driverHandle
                             );
                     }
@@ -1592,71 +1590,21 @@ NTSTATUS KphOpenNamedObject(
     __in KPROCESSOR_MODE AccessMode
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
     HANDLE objectHandle;
-    UNICODE_STRING capturedObjectName;
-    OBJECT_ATTRIBUTES objectAttributes = { 0 };
 
     PAGED_CODE();
 
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeForWrite(ObjectHandle, sizeof(HANDLE), sizeof(HANDLE));
-            ProbeForRead(ObjectAttributes, sizeof(OBJECT_ATTRIBUTES), sizeof(ULONG));
-            memcpy(&objectAttributes, ObjectAttributes, sizeof(OBJECT_ATTRIBUTES));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
-    else
-    {
-        memcpy(&objectAttributes, ObjectAttributes, sizeof(OBJECT_ATTRIBUTES));
-    }
-
-    // We're opening an object, so we need a name.
-    if (!objectAttributes.ObjectName)
-        return STATUS_INVALID_PARAMETER;
-
-    // Make sure we don't create a kernel handle if we're from user-mode.
-    if (AccessMode != KernelMode && (objectAttributes.Attributes & OBJ_KERNEL_HANDLE))
-        return STATUS_INVALID_PARAMETER;
-
-    // Make sure the root directory handle isn't a kernel handle if
-    // we're from user-mode.
-    if (AccessMode != KernelMode && IsKernelHandle(objectAttributes.RootDirectory))
-        return STATUS_INVALID_PARAMETER;
-
-    // Capture the ObjectName string.
-    status = KphCaptureUnicodeString(objectAttributes.ObjectName, &capturedObjectName);
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    // Set the new string in the object attributes.
-    objectAttributes.ObjectName = &capturedObjectName;
-    // Make sure the SecurityDescriptor and SecurityQualityOfService fields are NULL
-    // since we haven't probed them. They don't apply anyway because we're opening an
-    // object here.
-    objectAttributes.SecurityDescriptor = NULL;
-    objectAttributes.SecurityQualityOfService = NULL;
-
     // Open the object.
     status = ObOpenObjectByName(
-        &objectAttributes,
+        ObjectAttributes,
         ObjectType,
-        KernelMode,
+        AccessMode,
         NULL,
         DesiredAccess,
         NULL,
         &objectHandle
         );
-
-    // Free the captured ObjectName.
-    KphFreeCapturedUnicodeString(&capturedObjectName);
 
     // Pass the handle back.
     if (AccessMode != KernelMode)

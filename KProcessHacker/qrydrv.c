@@ -42,7 +42,7 @@ NTSTATUS KpiOpenDriver(
 
     return KphOpenNamedObject(
         DriverHandle,
-        0,
+        SYNCHRONIZE,
         ObjectAttributes,
         *IoDriverObjectType,
         AccessMode
