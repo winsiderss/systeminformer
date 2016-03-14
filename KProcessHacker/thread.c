@@ -197,7 +197,7 @@ NTSTATUS KpiOpenThreadProcess(
         NULL,
         DesiredAccess,
         *PsProcessType,
-        KernelMode,
+        AccessMode,
         &processHandle
         );
 

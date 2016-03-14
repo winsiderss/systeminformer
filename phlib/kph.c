@@ -499,26 +499,6 @@ NTSTATUS KphOpenProcess(
         );
 }
 
-NTSTATUS KphOpenProcessToken(
-    _In_ HANDLE ProcessHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _Out_ PHANDLE TokenHandle
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-        ACCESS_MASK DesiredAccess;
-        PHANDLE TokenHandle;
-    } input = { ProcessHandle, DesiredAccess, TokenHandle };
-
-    return KphpDeviceIoControl(
-        KPH_OPENPROCESSTOKEN,
-        &input,
-        sizeof(input)
-        );
-}
-
 NTSTATUS KphOpenProcessJob(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,

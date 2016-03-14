@@ -102,15 +102,6 @@ KphOpenProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphOpenProcessToken(
-    _In_ HANDLE ProcessHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _Out_ PHANDLE TokenHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 KphOpenProcessJob(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -173,14 +164,6 @@ KphOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphTerminateThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ NTSTATUS ExitStatus
     );
 
 PHLIBAPI

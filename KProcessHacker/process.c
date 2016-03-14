@@ -24,7 +24,6 @@
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KpiOpenProcess)
-#pragma alloc_text(PAGE, KpiOpenProcessToken)
 #pragma alloc_text(PAGE, KpiOpenProcessJob)
 #pragma alloc_text(PAGE, KpiTerminateProcess)
 #pragma alloc_text(PAGE, KpiQueryInformationProcess)
@@ -128,93 +127,10 @@ NTSTATUS KpiOpenProcess(
 }
 
 /**
- * Opens the token of a process.
- *
- * \param ProcessHandle A handle to a process.
- * \param DesiredAccess The desired access to the token.
- * \param TokenHandle A variable which receives the token handle.
- * \param AccessMode The mode in which to perform access checks.
- */
-NTSTATUS KpiOpenProcessToken(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE TokenHandle,
-    __in KPROCESSOR_MODE AccessMode
-    )
-{
-    NTSTATUS status;
-    PEPROCESS process;
-    PACCESS_TOKEN primaryToken;
-    HANDLE tokenHandle;
-
-    PAGED_CODE();
-
-    if (AccessMode != KernelMode)
-    {
-        __try
-        {
-            ProbeForWrite(TokenHandle, sizeof(HANDLE), sizeof(HANDLE));
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            return GetExceptionCode();
-        }
-    }
-
-    status = ObReferenceObjectByHandle(
-        ProcessHandle,
-        0,
-        *PsProcessType,
-        AccessMode,
-        &process,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    primaryToken = PsReferencePrimaryToken(process);
-
-    status = ObOpenObjectByPointer(
-        primaryToken,
-        0,
-        NULL,
-        DesiredAccess,
-        *SeTokenObjectType,
-        KernelMode,
-        &tokenHandle
-        );
-
-    PsDereferencePrimaryToken(primaryToken);
-    ObDereferenceObject(process);
-
-    if (NT_SUCCESS(status))
-    {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *TokenHandle = tokenHandle;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
-        }
-        else
-        {
-            *TokenHandle = tokenHandle;
-        }
-    }
-
-    return status;
-}
-
-/**
  * Opens the job object of a process.
  *
  * \param ProcessHandle A handle to a process.
- * \param DesiredAccess The desired access to the token.
+ * \param DesiredAccess The desired access to the job.
  * \param JobHandle A variable which receives the job object handle.
  * \param AccessMode The mode in which to perform access checks.
  */
@@ -266,7 +182,7 @@ NTSTATUS KpiOpenProcessJob(
             NULL,
             DesiredAccess,
             *PsJobType,
-            KernelMode,
+            AccessMode,
             &jobHandle
             );
     }

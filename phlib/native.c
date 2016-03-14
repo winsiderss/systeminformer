@@ -227,22 +227,12 @@ NTSTATUS PhOpenProcessToken(
     _In_ HANDLE ProcessHandle
     )
 {
-    if (KphIsConnected())
-    {
-        return KphOpenProcessToken(
-            ProcessHandle,
-            DesiredAccess,
-            TokenHandle
-            );
-    }
-    else
-    {
-        return NtOpenProcessToken(
-            ProcessHandle,
-            DesiredAccess,
-            TokenHandle
-            );
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtOpenProcessToken(
+        ProcessHandle,
+        DesiredAccess,
+        TokenHandle
+        );
 }
 
 /**
