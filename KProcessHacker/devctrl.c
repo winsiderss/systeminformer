@@ -407,33 +407,6 @@ NTSTATUS KphDispatchDeviceControl(
                 );
         }
         break;
-    case KPH_DUPLICATEOBJECT:
-        {
-            struct
-            {
-                HANDLE SourceProcessHandle;
-                HANDLE SourceHandle;
-                HANDLE TargetProcessHandle;
-                PHANDLE TargetHandle;
-                ACCESS_MASK DesiredAccess;
-                ULONG HandleAttributes;
-                ULONG Options;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiDuplicateObject(
-                input->SourceProcessHandle,
-                input->SourceHandle,
-                input->TargetProcessHandle,
-                input->TargetHandle,
-                input->DesiredAccess,
-                input->HandleAttributes,
-                input->Options,
-                accessMode
-                );
-        }
-        break;
     case KPH_OPENDRIVER:
         {
             struct

@@ -59,9 +59,8 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  *
  * \param ThreadHandle A variable which receives the thread handle.
  * \param DesiredAccess The desired access to the thread.
- * \param ClientId The identifier of a thread. \a UniqueThread must be
- * present. If \a UniqueProcess is present, the process of the referenced
- * thread will be checked against this identifier.
+ * \param ClientId The identifier of a thread. \a UniqueThread must be present. If \a UniqueProcess
+ * is present, the process of the referenced thread will be checked against this identifier.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenThread(
@@ -501,17 +500,12 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
 /**
  * Captures the stack trace of a thread.
  *
- * \param ThreadHandle A handle to the thread to capture the
- * stack trace of.
- * \param FramesToSkip The number of frames to skip from the
- * bottom of the stack.
+ * \param ThreadHandle A handle to the thread to capture the stack trace of.
+ * \param FramesToSkip The number of frames to skip from the bottom of the stack.
  * \param FramesToCapture The number of frames to capture.
- * \param BackTrace An array in which the stack trace will be
- * stored.
- * \param CapturedFrames A variable which receives the number of
- * frames captured.
- * \param BackTraceHash A variable which receives a hash of
- * the stack trace.
+ * \param BackTrace An array in which the stack trace will be stored.
+ * \param CapturedFrames A variable which receives the number of frames captured.
+ * \param BackTraceHash A variable which receives a hash of the stack trace.
  * \param AccessMode The mode in which to perform access checks.
  *
  * \return The number of frames captured.

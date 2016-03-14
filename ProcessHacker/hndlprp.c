@@ -57,31 +57,15 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
         )))
         return status;
 
-    if (KphIsConnected() && PhEqualString2(context->HandleItem->TypeName, L"File", TRUE))
-    {
-        status = PhCallKphDuplicateObjectWithTimeout(
-            processHandle,
-            context->HandleItem->Handle,
-            NtCurrentProcess(),
-            Handle,
-            DesiredAccess,
-            0,
-            0
-            );
-    }
-    else
-    {
-        status = PhDuplicateObject(
-            processHandle,
-            context->HandleItem->Handle,
-            NtCurrentProcess(),
-            Handle,
-            DesiredAccess,
-            0,
-            0
-            );
-    }
-
+    status = NtDuplicateObject(
+        processHandle,
+        context->HandleItem->Handle,
+        NtCurrentProcess(),
+        Handle,
+        DesiredAccess,
+        0,
+        0
+        );
     NtClose(processHandle);
 
     return status;

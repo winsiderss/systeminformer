@@ -185,7 +185,7 @@ PPH_LIST EnumAppDomainIpcBlock(
         }
 
         // Dup the valid mutex handle into this process.
-        if (!NT_SUCCESS(PhDuplicateObject(
+        if (!NT_SUCCESS(NtDuplicateObject(
             ProcessHandle,
             AppDomainIpcBlock->Mutex,
             NtCurrentProcess(),
@@ -350,7 +350,7 @@ PPH_LIST EnumAppDomainIpcBlockWow64(
         }
 
         // Dup the valid mutex handle into this process.
-        if (!NT_SUCCESS(PhDuplicateObject(
+        if (!NT_SUCCESS(NtDuplicateObject(
             ProcessHandle,
             UlongToHandle(AppDomainIpcBlock->Mutex),
             NtCurrentProcess(),

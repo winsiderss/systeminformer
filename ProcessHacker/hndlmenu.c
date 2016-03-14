@@ -83,7 +83,7 @@ static NTSTATUS PhpDuplicateHandleFromProcessItem(
         )))
         return status;
 
-    status = PhDuplicateObject(
+    status = NtDuplicateObject(
         processHandle,
         Handle,
         NtCurrentProcess(),

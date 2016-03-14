@@ -1183,13 +1183,13 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = PhDuplicateObject(NtCurrentProcess(), ProcessHandle, serverHandle, &remoteProcessHandle,
+    if (!NT_SUCCESS(status = NtDuplicateObject(NtCurrentProcess(), ProcessHandle, serverHandle, &remoteProcessHandle,
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, 0)))
     {
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = PhDuplicateObject(NtCurrentProcess(), FileHandle, serverHandle, &remoteFileHandle,
+    if (!NT_SUCCESS(status = NtDuplicateObject(NtCurrentProcess(), FileHandle, serverHandle, &remoteFileHandle,
         FILE_GENERIC_WRITE, 0, 0)))
     {
         goto CleanupExit;
@@ -1206,9 +1206,9 @@ CleanupExit:
     if (serverHandle)
     {
         if (remoteProcessHandle)
-            PhDuplicateObject(serverHandle, remoteProcessHandle, NULL, NULL, 0, 0, DUPLICATE_CLOSE_SOURCE);
+            NtDuplicateObject(serverHandle, remoteProcessHandle, NULL, NULL, 0, 0, DUPLICATE_CLOSE_SOURCE);
         if (remoteFileHandle)
-            PhDuplicateObject(serverHandle, remoteFileHandle, NULL, NULL, 0, 0, DUPLICATE_CLOSE_SOURCE);
+            NtDuplicateObject(serverHandle, remoteFileHandle, NULL, NULL, 0, 0, DUPLICATE_CLOSE_SOURCE);
 
         NtClose(serverHandle);
     }

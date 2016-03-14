@@ -537,8 +537,7 @@ NTSTATUS KphTerminateProcess(
         sizeof(input)
         );
 
-    // Check if we're trying to terminate the current process,
-    // because kernel-mode can't do it.
+    // Check if we're trying to terminate the current process, because kernel-mode can't do it.
     if (status == STATUS_CANT_TERMINATE_SELF)
     {
         RtlExitUserProcess(ExitStatus);
@@ -841,44 +840,6 @@ NTSTATUS KphSetInformationObject(
         &input,
         sizeof(input)
         );
-}
-
-NTSTATUS KphDuplicateObject(
-    _In_ HANDLE SourceProcessHandle,
-    _In_ HANDLE SourceHandle,
-    _In_opt_ HANDLE TargetProcessHandle,
-    _Out_opt_ PHANDLE TargetHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Options
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE SourceProcessHandle;
-        HANDLE SourceHandle;
-        HANDLE TargetProcessHandle;
-        PHANDLE TargetHandle;
-        ACCESS_MASK DesiredAccess;
-        ULONG HandleAttributes;
-        ULONG Options;
-    } input = { SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes, Options };
-
-    status = KphpDeviceIoControl(
-        KPH_DUPLICATEOBJECT,
-        &input,
-        sizeof(input)
-        );
-
-    if (status == STATUS_CANT_TERMINATE_SELF)
-    {
-        // We tried to close a handle in the current process.
-        if (Options & DUPLICATE_CLOSE_SOURCE)
-            status = NtClose(SourceHandle);
-    }
-
-    return status;
 }
 
 NTSTATUS KphOpenDriver(

@@ -2840,61 +2840,6 @@ NTSTATUS PhUnloadDriver(
     return status;
 }
 
-/**
- * Duplicates a handle.
- *
- * \param SourceProcessHandle A handle to the source process. The handle must have
- * PROCESS_DUP_HANDLE access.
- * \param SourceHandle The handle to duplicate from the source process.
- * \param TargetProcessHandle A handle to the target process. If DUPLICATE_CLOSE_SOURCE is specified
- * in the \a Options parameter, this parameter can be NULL.
- * \param TargetHandle A variable which receives the new handle in the target process. If
- * DUPLICATE_CLOSE_SOURCE is specified in the \a Options parameter, this parameter can be NULL.
- * \param DesiredAccess The desired access to the object referenced by the source handle.
- * \param HandleAttributes The attributes to apply to the new handle.
- * \param Options The options to use when duplicating the handle.
- */
-NTSTATUS PhDuplicateObject(
-    _In_ HANDLE SourceProcessHandle,
-    _In_ HANDLE SourceHandle,
-    _In_opt_ HANDLE TargetProcessHandle,
-    _Out_opt_ PHANDLE TargetHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Options
-    )
-{
-    NTSTATUS status;
-
-    if (KphIsConnected())
-    {
-        status = KphDuplicateObject(
-            SourceProcessHandle,
-            SourceHandle,
-            TargetProcessHandle,
-            TargetHandle,
-            DesiredAccess,
-            HandleAttributes,
-            Options
-            );
-
-        // If KPH couldn't duplicate the handle, pass through to NtDuplicateObject. This is for
-        // special objects like ALPC ports.
-        if (status != STATUS_NOT_SUPPORTED)
-            return status;
-    }
-
-    return NtDuplicateObject(
-        SourceProcessHandle,
-        SourceHandle,
-        TargetProcessHandle,
-        TargetHandle,
-        DesiredAccess,
-        HandleAttributes,
-        Options
-        );
-}
-
 NTSTATUS PhpEnumProcessModules(
     _In_ HANDLE ProcessHandle,
     _In_ PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,

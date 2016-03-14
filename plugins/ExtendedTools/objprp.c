@@ -163,7 +163,7 @@ static NTSTATUS EtpDuplicateHandleFromProcess(
         )))
         return status;
 
-    status = PhDuplicateObject(
+    status = NtDuplicateObject(
         processHandle,
         Context->HandleItem->Handle,
         NtCurrentProcess(),

@@ -1157,7 +1157,7 @@ NTSTATUS PhOpenProcessByCsrHandle(
 
     if (!Handle->IsThreadHandle)
     {
-        status = PhDuplicateObject(
+        status = NtDuplicateObject(
             Handle->CsrProcessHandle,
             Handle->Handle,
             NtCurrentProcess(),
@@ -1171,7 +1171,7 @@ NTSTATUS PhOpenProcessByCsrHandle(
     {
         HANDLE threadHandle;
 
-        if (!NT_SUCCESS(status = PhDuplicateObject(
+        if (!NT_SUCCESS(status = NtDuplicateObject(
             Handle->CsrProcessHandle,
             Handle->Handle,
             NtCurrentProcess(),

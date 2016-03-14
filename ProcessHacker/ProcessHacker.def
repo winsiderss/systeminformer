@@ -231,7 +231,6 @@ EXPORTS
 	PhCreateKey
 	PhDeleteFileWin32
 	PhDisconnectNamedPipe
-	PhDuplicateObject
 	PhEnumDirectoryFile
 	PhEnumDirectoryObjects
 	PhEnumFileStreams

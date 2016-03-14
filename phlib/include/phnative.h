@@ -572,19 +572,6 @@ PhUnloadDriver(
     _In_opt_ PWSTR Name
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhDuplicateObject(
-    _In_ HANDLE SourceProcessHandle,
-    _In_ HANDLE SourceHandle,
-    _In_opt_ HANDLE TargetProcessHandle,
-    _Out_opt_ PHANDLE TargetHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Options
-    );
-
 #define PH_ENUM_PROCESS_MODULES_LIMIT 0x800
 
 /**

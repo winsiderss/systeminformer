@@ -423,7 +423,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                 results[i]->ProcessId
                                 )))
                             {
-                                if (NT_SUCCESS(status = PhDuplicateObject(
+                                if (NT_SUCCESS(status = NtDuplicateObject(
                                     processHandle,
                                     results[i]->Handle,
                                     NULL,

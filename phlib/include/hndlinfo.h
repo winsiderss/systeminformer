@@ -131,19 +131,6 @@ PhCallNtSetSecurityObjectWithTimeout(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhCallKphDuplicateObjectWithTimeout(
-    _In_ HANDLE SourceProcessHandle,
-    _In_ HANDLE SourceHandle,
-    _In_opt_ HANDLE TargetProcessHandle,
-    _Out_opt_ PHANDLE TargetHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Options
-    );
-
 #ifdef __cplusplus
 }
 #endif

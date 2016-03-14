@@ -123,28 +123,6 @@ NTSTATUS KpiSetInformationObject(
     __in KPROCESSOR_MODE AccessMode
     );
 
-NTSTATUS KphDuplicateObject(
-    __in PEPROCESS SourceProcess,
-    __in_opt PEPROCESS TargetProcess,
-    __in HANDLE SourceHandle,
-    __out_opt PHANDLE TargetHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Options,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KpiDuplicateObject(
-    __in HANDLE SourceProcessHandle,
-    __in HANDLE SourceHandle,
-    __in_opt HANDLE TargetProcessHandle,
-    __out_opt PHANDLE TargetHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Options,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
 NTSTATUS KphOpenNamedObject(
     __out PHANDLE ObjectHandle,
     __in ACCESS_MASK DesiredAccess,

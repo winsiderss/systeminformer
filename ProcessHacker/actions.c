@@ -3042,7 +3042,7 @@ BOOLEAN PhUiCloseHandles(
 
         for (i = 0; i < NumberOfHandles; i++)
         {
-            status = PhDuplicateObject(
+            status = NtDuplicateObject(
                 processHandle,
                 Handles[i]->Handle,
                 NULL,
