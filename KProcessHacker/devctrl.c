@@ -166,36 +166,6 @@ NTSTATUS KphDispatchDeviceControl(
                 );
         }
         break;
-    case KPH_SUSPENDPROCESS:
-        {
-            struct
-            {
-                HANDLE ProcessHandle;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiSuspendProcess(
-                input->ProcessHandle,
-                accessMode
-                );
-        }
-        break;
-    case KPH_RESUMEPROCESS:
-        {
-            struct
-            {
-                HANDLE ProcessHandle;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiResumeProcess(
-                input->ProcessHandle,
-                accessMode
-                );
-        }
-        break;
     case KPH_TERMINATEPROCESS:
         {
             struct

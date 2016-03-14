@@ -371,14 +371,8 @@ NTSTATUS PhSuspendProcess(
     _In_ HANDLE ProcessHandle
     )
 {
-    if (KphIsConnected() && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
-    {
-        return KphSuspendProcess(ProcessHandle);
-    }
-    else
-    {
-        return NtSuspendProcess(ProcessHandle);
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtSuspendProcess(ProcessHandle);
 }
 
 /**
@@ -390,14 +384,8 @@ NTSTATUS PhResumeProcess(
     _In_ HANDLE ProcessHandle
     )
 {
-    if (KphIsConnected() && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
-    {
-        return KphResumeProcess(ProcessHandle);
-    }
-    else
-    {
-        return NtResumeProcess(ProcessHandle);
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtResumeProcess(ProcessHandle);
 }
 
 /**

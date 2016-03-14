@@ -26,8 +26,6 @@
 #pragma alloc_text(PAGE, KpiOpenProcess)
 #pragma alloc_text(PAGE, KpiOpenProcessToken)
 #pragma alloc_text(PAGE, KpiOpenProcessJob)
-#pragma alloc_text(PAGE, KpiSuspendProcess)
-#pragma alloc_text(PAGE, KpiResumeProcess)
 #pragma alloc_text(PAGE, KphTerminateProcessInternal)
 #pragma alloc_text(PAGE, KpiTerminateProcess)
 #pragma alloc_text(PAGE, KpiQueryInformationProcess)
@@ -298,80 +296,6 @@ NTSTATUS KpiOpenProcessJob(
             *JobHandle = jobHandle;
         }
     }
-
-    return status;
-}
-
-/**
- * Suspends a process.
- *
- * \param ProcessHandle A handle to a process.
- * \param AccessMode The mode in which to perform access checks.
- */
-NTSTATUS KpiSuspendProcess(
-    __in HANDLE ProcessHandle,
-    __in KPROCESSOR_MODE AccessMode
-    )
-{
-    NTSTATUS status;
-    PEPROCESS process;
-
-    PAGED_CODE();
-
-    if (!PsSuspendProcess_I)
-        return STATUS_NOT_SUPPORTED;
-
-    status = ObReferenceObjectByHandle(
-        ProcessHandle,
-        0,
-        *PsProcessType,
-        AccessMode,
-        &process,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = PsSuspendProcess_I(process);
-    ObDereferenceObject(process);
-
-    return status;
-}
-
-/**
- * Resumes a process.
- *
- * \param ProcessHandle A handle to a process.
- * \param AccessMode The mode in which to perform access checks.
- */
-NTSTATUS KpiResumeProcess(
-    __in HANDLE ProcessHandle,
-    __in KPROCESSOR_MODE AccessMode
-    )
-{
-    NTSTATUS status;
-    PEPROCESS process;
-
-    PAGED_CODE();
-
-    if (!PsResumeProcess_I)
-        return STATUS_NOT_SUPPORTED;
-
-    status = ObReferenceObjectByHandle(
-        ProcessHandle,
-        0,
-        *PsProcessType,
-        AccessMode,
-        &process,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = PsResumeProcess_I(process);
-    ObDereferenceObject(process);
 
     return status;
 }

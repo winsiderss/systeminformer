@@ -539,38 +539,6 @@ NTSTATUS KphOpenProcessJob(
         );
 }
 
-NTSTATUS KphSuspendProcess(
-    _In_ HANDLE ProcessHandle
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-    } input = { ProcessHandle };
-
-    return KphpDeviceIoControl(
-        KPH_SUSPENDPROCESS,
-        &input,
-        sizeof(input)
-        );
-}
-
-NTSTATUS KphResumeProcess(
-    _In_ HANDLE ProcessHandle
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-    } input = { ProcessHandle };
-
-    return KphpDeviceIoControl(
-        KPH_RESUMEPROCESS,
-        &input,
-        sizeof(input)
-        );
-}
-
 NTSTATUS KphTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus

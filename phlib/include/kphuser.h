@@ -120,20 +120,6 @@ KphOpenProcessJob(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphSuspendProcess(
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphResumeProcess(
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 KphTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus

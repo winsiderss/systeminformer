@@ -54,10 +54,7 @@ NTSTATUS KphDispatchDeviceControl(
 extern _ExfUnblockPushLock ExfUnblockPushLock_I;
 extern _ObGetObjectType ObGetObjectType_I;
 extern _PsAcquireProcessExitSynchronization PsAcquireProcessExitSynchronization_I;
-extern _PsIsProtectedProcess PsIsProtectedProcess_I;
 extern _PsReleaseProcessExitSynchronization PsReleaseProcessExitSynchronization_I;
-extern _PsResumeProcess PsResumeProcess_I;
-extern _PsSuspendProcess PsSuspendProcess_I;
 
 VOID KphDynamicImport(
     VOID
@@ -177,16 +174,6 @@ NTSTATUS KpiOpenProcessJob(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __out PHANDLE JobHandle,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KpiSuspendProcess(
-    __in HANDLE ProcessHandle,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KpiResumeProcess(
-    __in HANDLE ProcessHandle,
     __in KPROCESSOR_MODE AccessMode
     );
 
