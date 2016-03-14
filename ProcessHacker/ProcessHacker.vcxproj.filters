@@ -180,9 +180,6 @@
     <ClCompile Include="sysinfo.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="termator.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="thrdprv.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>

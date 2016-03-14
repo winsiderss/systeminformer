@@ -17,7 +17,6 @@
 #define IDR_MODULE                      112
 #define IDC_CPU                         112
 #define IDC_PRIVATEBYTES                113
-#define IDD_TERMINATOR                  114
 #define IDC_IO                          114
 #define IDB_CROSS                       117
 #define IDB_TICK                        118
@@ -133,9 +132,7 @@
 #define IDC_CMDLINE                     1021
 #define IDC_URL                         1021
 #define IDC_RUNSELECTED                 1021
-#define IDC_TERMINATOR_LIST             1022
 #define IDC_CURDIR                      1022
-#define IDC_TERMINATOR_TEXT             1023
 #define IDC_STARTED                     1023
 #define IDC_ABOUT_NAME                  1024
 #define IDC_PEBADDRESS                  1024
@@ -718,7 +715,6 @@
 #define ID_TOOLS_STARTTASKMANAGER       40277
 #define ID_COMPUTER_SHUTDOWNHYBRID      40278
 #define ID_COMPUTER_RESTARTBOOTOPTIONS  40280
-#define ID_MISCELLANEOUS_TERMINATOR     40281
 #define ID_HANDLE_OBJECTPROPERTIES1     40282
 #define ID_HANDLE_OBJECTPROPERTIES2     40283
 #define ID_OBJECT_GOTOOWNINGPROCESS     40284

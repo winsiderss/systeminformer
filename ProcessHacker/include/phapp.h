@@ -1542,13 +1542,6 @@ VOID PhShowServiceProperties(
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
-// termator
-
-VOID PhShowProcessTerminatorDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem
-    );
-
 // thrdstk
 
 VOID PhShowThreadStackDialog(

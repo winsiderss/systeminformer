@@ -5,6 +5,7 @@ Process Hacker
  * OTHER CHANGES:
    * Improved tooltip information for dllhost.exe
    * Fixed .NET process detection
+   * Removed Terminator
 
 2.38
  * HIGHLIGHTS:
