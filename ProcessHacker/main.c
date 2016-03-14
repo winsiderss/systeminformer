@@ -166,7 +166,7 @@ INT WINAPI wWinMain(
         PhActivatePreviousInstance();
     }
 
-    if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph && !PhIsExecutingInWow64())
+    if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph && !PhStartupParameters.CommandMode && !PhIsExecutingInWow64())
         PhInitializeKph();
 
     if (PhStartupParameters.CommandMode && PhStartupParameters.CommandType && PhStartupParameters.CommandAction)
