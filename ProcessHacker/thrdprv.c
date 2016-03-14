@@ -2,7 +2,7 @@
  * Process Hacker -
  *   thread provider
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -945,23 +945,6 @@ VOID PhpThreadProviderUpdate(
             PhpQueueThreadQuery(threadProvider, threadItem);
 
             // Is it a GUI thread?
-
-            if (threadItem->ThreadHandle && KphIsConnected())
-            {
-                PVOID win32Thread;
-
-                if (NT_SUCCESS(KphQueryInformationThread(
-                    threadItem->ThreadHandle,
-                    KphThreadWin32Thread,
-                    &win32Thread,
-                    sizeof(PVOID),
-                    NULL
-                    )))
-                {
-                    threadItem->IsGuiThread = win32Thread != NULL;
-                }
-            }
-            else
             {
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
 
@@ -1112,28 +1095,6 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Update the GUI thread status.
-
-            if (threadItem->ThreadHandle && KphIsConnected())
-            {
-                PVOID win32Thread;
-
-                if (NT_SUCCESS(KphQueryInformationThread(
-                    threadItem->ThreadHandle,
-                    KphThreadWin32Thread,
-                    &win32Thread,
-                    sizeof(PVOID),
-                    NULL
-                    )))
-                {
-                    BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;
-
-                    threadItem->IsGuiThread = win32Thread != NULL;
-
-                    if (threadItem->IsGuiThread != oldIsGuiThread)
-                        modified = TRUE;
-                }
-            }
-            else
             {
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
                 BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;

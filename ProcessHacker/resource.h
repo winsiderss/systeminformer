@@ -540,7 +540,6 @@
 #define ID_THREAD_TERMINATE             40011
 #define ID_THREAD_SUSPEND               40012
 #define ID_THREAD_RESUME                40013
-#define ID_THREAD_FORCETERMINATE        40014
 #define ID_THREAD_PERMISSIONS           40015
 #define ID_THREAD_TOKEN                 40016
 #define ID_ANALYZE_WAIT                 40018

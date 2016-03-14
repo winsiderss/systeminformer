@@ -173,7 +173,6 @@ BEGIN
     BEGIN
         MENUITEM "&Inspect\aEnter",             ID_THREAD_INSPECT
         MENUITEM "T&erminate\aDel",             ID_THREAD_TERMINATE
-        MENUITEM "Force terminate",             ID_THREAD_FORCETERMINATE
         MENUITEM "&Suspend",                    ID_THREAD_SUSPEND
         MENUITEM "Res&ume",                     ID_THREAD_RESUME
         MENUITEM SEPARATOR

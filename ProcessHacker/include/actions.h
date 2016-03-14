@@ -282,16 +282,6 @@ PhUiTerminateThreads(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiForceTerminateThreads(
-    _In_ HWND hWnd,
-    _In_ HANDLE ProcessId,
-    _In_ PPH_THREAD_ITEM *Threads,
-    _In_ ULONG NumberOfThreads
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
 PhUiSuspendThreads(
     _In_ HWND hWnd,
     _In_ PPH_THREAD_ITEM *Threads,

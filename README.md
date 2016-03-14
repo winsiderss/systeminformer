@@ -44,7 +44,6 @@ assist with certain functionality. This includes:
 
 * Bypassing security software and rootkits in limited ways
 * More powerful process and thread termination (*)
-* Setting DEP status of processes
 * Capturing kernel-mode stack traces
 * More efficiently enumerating process handles
 * Retrieving names for file handles

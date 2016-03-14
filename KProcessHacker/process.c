@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -528,10 +528,9 @@ NTSTATUS KpiTerminateProcess(
  * \param ProcessHandle A handle to a process.
  * \param ProcessInformationClass The type of information to query.
  * \param ProcessInformation The buffer in which the information will be stored.
- * \param ProcessInformationLength The number of bytes available in
+ * \param ProcessInformationLength The number of bytes available in \a ProcessInformation.
+ * \param ReturnLength A variable which receives the number of bytes required to be available in
  * \a ProcessInformation.
- * \param ReturnLength A variable which receives the number of bytes
- * required to be available in \a ProcessInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiQueryInformationProcess(
@@ -555,9 +554,6 @@ NTSTATUS KpiQueryInformationProcess(
 
         switch (ProcessInformationClass)
         {
-        case KphProcessProtectionInformation:
-            alignment = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
-            break;
         default:
             alignment = sizeof(ULONG);
             break;
@@ -578,7 +574,7 @@ NTSTATUS KpiQueryInformationProcess(
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
-        0,
+        PROCESS_QUERY_INFORMATION,
         *PsProcessType,
         AccessMode,
         &process,
@@ -590,120 +586,6 @@ NTSTATUS KpiQueryInformationProcess(
 
     switch (ProcessInformationClass)
     {
-    case KphProcessProtectionInformation:
-        {
-            BOOLEAN protectedProcess = FALSE;
-
-            if (PsIsProtectedProcess_I)
-                protectedProcess = PsIsProtectedProcess_I(process);
-            else
-                status = STATUS_NOT_SUPPORTED;
-
-            if (NT_SUCCESS(status))
-            {
-                if (ProcessInformationLength == sizeof(KPH_PROCESS_PROTECTION_INFORMATION))
-                {
-                    __try
-                    {
-                        ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess = protectedProcess;
-                    }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
-                    }
-                }
-                else
-                {
-                    status = STATUS_INFO_LENGTH_MISMATCH;
-                }
-            }
-
-            returnLength = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
-        }
-        break;
-    case KphProcessExecuteFlags:
-        {
-            KAPC_STATE apcState;
-            ULONG executeFlags;
-
-            KeStackAttachProcess(process, &apcState);
-            status = ZwQueryInformationProcess(
-                NtCurrentProcess(),
-                ProcessExecuteFlags,
-                &executeFlags,
-                sizeof(ULONG),
-                NULL
-                );
-            KeUnstackDetachProcess(&apcState);
-
-            if (NT_SUCCESS(status))
-            {
-                if (ProcessInformationLength == sizeof(ULONG))
-                {
-                    __try
-                    {
-                        *(PULONG)ProcessInformation = executeFlags;
-                    }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
-                    }
-                }
-                else
-                {
-                    status = STATUS_INFO_LENGTH_MISMATCH;
-                }
-            }
-
-            returnLength = sizeof(ULONG);
-        }
-        break;
-    case KphProcessIoPriority:
-        {
-            HANDLE newProcessHandle;
-            ULONG ioPriority;
-
-            if (NT_SUCCESS(status = ObOpenObjectByPointer(
-                process,
-                OBJ_KERNEL_HANDLE,
-                NULL,
-                PROCESS_QUERY_INFORMATION,
-                *PsProcessType,
-                KernelMode,
-                &newProcessHandle
-                )))
-            {
-                if (NT_SUCCESS(status = ZwQueryInformationProcess(
-                    newProcessHandle,
-                    ProcessIoPriority,
-                    &ioPriority,
-                    sizeof(ULONG),
-                    NULL
-                    )))
-                {
-                    if (ProcessInformationLength == sizeof(ULONG))
-                    {
-                        __try
-                        {
-                            *(PULONG)ProcessInformation = ioPriority;
-                        }
-                        __except (EXCEPTION_EXECUTE_HANDLER)
-                        {
-                            status = GetExceptionCode();
-                        }
-                    }
-                    else
-                    {
-                        status = STATUS_INFO_LENGTH_MISMATCH;
-                    }
-                }
-
-                ZwClose(newProcessHandle);
-            }
-
-            returnLength = sizeof(ULONG);
-        }
-        break;
     default:
         status = STATUS_INVALID_INFO_CLASS;
         returnLength = 0;
@@ -740,8 +622,7 @@ NTSTATUS KpiQueryInformationProcess(
  * \param ProcessHandle A handle to a process.
  * \param ProcessInformationClass The type of information to set.
  * \param ProcessInformation A buffer which contains the information to set.
- * \param ProcessInformationLength The number of bytes present in
- * \a ProcessInformation.
+ * \param ProcessInformationLength The number of bytes present in \a ProcessInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiSetInformationProcess(
@@ -780,7 +661,7 @@ NTSTATUS KpiSetInformationProcess(
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
-        0,
+        PROCESS_SET_INFORMATION,
         *PsProcessType,
         AccessMode,
         &process,
@@ -792,97 +673,6 @@ NTSTATUS KpiSetInformationProcess(
 
     switch (ProcessInformationClass)
     {
-    case KphProcessExecuteFlags:
-        {
-            ULONG executeFlags;
-            KAPC_STATE apcState;
-
-            if (ProcessInformationLength == sizeof(ULONG))
-            {
-                __try
-                {
-                    executeFlags = *(PULONG)ProcessInformation;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
-            }
-            else
-            {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-            }
-
-            if (NT_SUCCESS(status))
-            {
-                // Make sure the process isn't terminating, otherwise the call
-                // may hang due to a recursive acquire of the working set mutex.
-                if (KphAcquireProcessRundownProtection(process))
-                {
-                    // We can only set execute options on the current process.
-                    // So, we simply attach to the target process.
-                    KeStackAttachProcess(process, &apcState);
-                    status = ZwSetInformationProcess(
-                        NtCurrentProcess(),
-                        ProcessExecuteFlags,
-                        &executeFlags,
-                        sizeof(ULONG)
-                        );
-                    KeUnstackDetachProcess(&apcState);
-
-                    KphReleaseProcessRundownProtection(process);
-                }
-                else
-                {
-                    status = STATUS_PROCESS_IS_TERMINATING;
-                }
-            }
-        }
-        break;
-    case KphProcessIoPriority:
-        {
-            ULONG ioPriority;
-            HANDLE newProcessHandle;
-
-            if (ProcessInformationLength == sizeof(ULONG))
-            {
-                __try
-                {
-                    ioPriority = *(PULONG)ProcessInformation;
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    status = GetExceptionCode();
-                }
-            }
-            else
-            {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-            }
-
-            if (NT_SUCCESS(status))
-            {
-                if (NT_SUCCESS(status = ObOpenObjectByPointer(
-                    process,
-                    OBJ_KERNEL_HANDLE,
-                    NULL,
-                    PROCESS_SET_INFORMATION,
-                    *PsProcessType,
-                    KernelMode,
-                    &newProcessHandle
-                    )))
-                {
-                    status = ZwSetInformationProcess(
-                        newProcessHandle,
-                        ProcessIoPriority,
-                        &ioPriority,
-                        sizeof(ULONG)
-                        );
-                    ZwClose(newProcessHandle);
-                }
-            }
-        }
-        break;
     default:
         status = STATUS_INVALID_INFO_CLASS;
         break;
@@ -898,8 +688,8 @@ NTSTATUS KpiSetInformationProcess(
  *
  * \param Process A process object.
  *
- * \return TRUE if the function succeeded, FALSE if the process is
- * currently terminating or the request is not supported.
+ * \return TRUE if the function succeeded, FALSE if the process is currently terminating or the
+ * request is not supported.
  */
 BOOLEAN KphAcquireProcessRundownProtection(
     __in PEPROCESS Process

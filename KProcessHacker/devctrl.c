@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -213,52 +213,6 @@ NTSTATUS KphDispatchDeviceControl(
                 );
         }
         break;
-    case KPH_READVIRTUALMEMORY:
-        {
-            struct
-            {
-                HANDLE ProcessHandle;
-                PVOID BaseAddress;
-                PVOID Buffer;
-                SIZE_T BufferSize;
-                PSIZE_T NumberOfBytesRead;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiReadVirtualMemory(
-                input->ProcessHandle,
-                input->BaseAddress,
-                input->Buffer,
-                input->BufferSize,
-                input->NumberOfBytesRead,
-                accessMode
-                );
-        }
-        break;
-    case KPH_WRITEVIRTUALMEMORY:
-        {
-            struct
-            {
-                HANDLE ProcessHandle;
-                PVOID BaseAddress;
-                PVOID Buffer;
-                SIZE_T BufferSize;
-                PSIZE_T NumberOfBytesRead;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiWriteVirtualMemory(
-                input->ProcessHandle,
-                input->BaseAddress,
-                input->Buffer,
-                input->BufferSize,
-                input->NumberOfBytesRead,
-                accessMode
-                );
-        }
-        break;
     case KPH_READVIRTUALMEMORYUNSAFE:
         {
             struct
@@ -377,57 +331,6 @@ NTSTATUS KphDispatchDeviceControl(
             status = KpiTerminateThread(
                 input->ThreadHandle,
                 input->ExitStatus,
-                accessMode
-                );
-        }
-        break;
-    case KPH_TERMINATETHREADUNSAFE:
-        {
-            struct
-            {
-                HANDLE ThreadHandle;
-                NTSTATUS ExitStatus;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiTerminateThreadUnsafe(
-                input->ThreadHandle,
-                input->ExitStatus,
-                accessMode
-                );
-        }
-        break;
-    case KPH_GETCONTEXTTHREAD:
-        {
-            struct
-            {
-                HANDLE ThreadHandle;
-                PCONTEXT ThreadContext;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiGetContextThread(
-                input->ThreadHandle,
-                input->ThreadContext,
-                accessMode
-                );
-        }
-        break;
-    case KPH_SETCONTEXTTHREAD:
-        {
-            struct
-            {
-                HANDLE ThreadHandle;
-                PCONTEXT ThreadContext;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiSetContextThread(
-                input->ThreadHandle,
-                input->ThreadContext,
                 accessMode
                 );
         }

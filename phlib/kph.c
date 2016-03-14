@@ -599,54 +599,6 @@ NTSTATUS KphTerminateProcess(
     return status;
 }
 
-NTSTATUS KphReadVirtualMemory(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
-    _Out_opt_ PSIZE_T NumberOfBytesRead
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-        PVOID BaseAddress;
-        PVOID Buffer;
-        SIZE_T BufferSize;
-        PSIZE_T NumberOfBytesRead;
-    } input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead };
-
-    return KphpDeviceIoControl(
-        KPH_READVIRTUALMEMORY,
-        &input,
-        sizeof(input)
-        );
-}
-
-NTSTATUS KphWriteVirtualMemory(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
-    _Out_opt_ PSIZE_T NumberOfBytesWritten
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-        PVOID BaseAddress;
-        PVOID Buffer;
-        SIZE_T BufferSize;
-        PSIZE_T NumberOfBytesWritten;
-    } input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesWritten };
-
-    return KphpDeviceIoControl(
-        KPH_WRITEVIRTUALMEMORY,
-        &input,
-        sizeof(input)
-        );
-}
-
 NTSTATUS KphReadVirtualMemoryUnsafe(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
@@ -781,60 +733,6 @@ NTSTATUS KphTerminateThread(
     }
 
     return status;
-}
-
-NTSTATUS KphTerminateThreadUnsafe(
-    _In_ HANDLE ThreadHandle,
-    _In_ NTSTATUS ExitStatus
-    )
-{
-    struct
-    {
-        HANDLE ThreadHandle;
-        NTSTATUS ExitStatus;
-    } input = { ThreadHandle, ExitStatus };
-
-    return KphpDeviceIoControl(
-        KPH_TERMINATETHREADUNSAFE,
-        &input,
-        sizeof(input)
-        );
-}
-
-NTSTATUS KphGetContextThread(
-    _In_ HANDLE ThreadHandle,
-    _Inout_ PCONTEXT ThreadContext
-    )
-{
-    struct
-    {
-        HANDLE ThreadHandle;
-        PCONTEXT ThreadContext;
-    } input = { ThreadHandle, ThreadContext };
-
-    return KphpDeviceIoControl(
-        KPH_GETCONTEXTTHREAD,
-        &input,
-        sizeof(input)
-        );
-}
-
-NTSTATUS KphSetContextThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ PCONTEXT ThreadContext
-    )
-{
-    struct
-    {
-        HANDLE ThreadHandle;
-        PCONTEXT ThreadContext;
-    } input = { ThreadHandle, ThreadContext };
-
-    return KphpDeviceIoControl(
-        KPH_SETCONTEXTTHREAD,
-        &input,
-        sizeof(input)
-        );
 }
 
 NTSTATUS KphCaptureStackBackTraceThread(

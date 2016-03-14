@@ -473,14 +473,8 @@ NTSTATUS PhGetThreadContext(
     _Inout_ PCONTEXT Context
     )
 {
-    if (KphIsConnected())
-    {
-        return KphGetContextThread(ThreadHandle, Context);
-    }
-    else
-    {
-        return NtGetContextThread(ThreadHandle, Context);
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtGetContextThread(ThreadHandle, Context);
 }
 
 /**
@@ -494,14 +488,8 @@ NTSTATUS PhSetThreadContext(
     _In_ PCONTEXT Context
     )
 {
-    if (KphIsConnected())
-    {
-        return KphSetContextThread(ThreadHandle, Context);
-    }
-    else
-    {
-        return NtSetContextThread(ThreadHandle, Context);
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtSetContextThread(ThreadHandle, Context);
 }
 
 /**
@@ -521,31 +509,14 @@ NTSTATUS PhReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     )
 {
-    NTSTATUS status;
-
-    // KphReadVirtualMemory is much slower than NtReadVirtualMemory, so we'll stick to the using the
-    // original system call whenever possible.
-
-    status = NtReadVirtualMemory(
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtReadVirtualMemory(
         ProcessHandle,
         BaseAddress,
         Buffer,
         BufferSize,
         NumberOfBytesRead
         );
-
-    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
-    {
-        status = KphReadVirtualMemory(
-            ProcessHandle,
-            BaseAddress,
-            Buffer,
-            BufferSize,
-            NumberOfBytesRead
-            );
-    }
-
-    return status;
 }
 
 /**
@@ -565,28 +536,14 @@ NTSTATUS PhWriteVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     )
 {
-    NTSTATUS status;
-
-    status = NtWriteVirtualMemory(
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtWriteVirtualMemory(
         ProcessHandle,
         BaseAddress,
         Buffer,
         BufferSize,
         NumberOfBytesWritten
         );
-
-    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
-    {
-        status = KphWriteVirtualMemory(
-            ProcessHandle,
-            BaseAddress,
-            Buffer,
-            BufferSize,
-            NumberOfBytesWritten
-            );
-    }
-
-    return status;
 }
 
 /**
@@ -1003,26 +960,14 @@ NTSTATUS PhGetProcessExecuteFlags(
     _Out_ PULONG ExecuteFlags
     )
 {
-    if (KphIsConnected())
-    {
-        return KphQueryInformationProcess(
-            ProcessHandle,
-            KphProcessExecuteFlags,
-            ExecuteFlags,
-            sizeof(ULONG),
-            NULL
-            );
-    }
-    else
-    {
-        return NtQueryInformationProcess(
-            ProcessHandle,
-            ProcessExecuteFlags,
-            ExecuteFlags,
-            sizeof(ULONG),
-            NULL
-            );
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessExecuteFlags,
+        ExecuteFlags,
+        sizeof(ULONG),
+        NULL
+        );
 }
 
 NTSTATUS PhGetProcessDepStatus(
@@ -1420,24 +1365,13 @@ NTSTATUS PhSetProcessIoPriority(
     _In_ IO_PRIORITY_HINT IoPriority
     )
 {
-    if (KphIsConnected())
-    {
-        return KphSetInformationProcess(
-            ProcessHandle,
-            KphProcessIoPriority,
-            &IoPriority,
-            sizeof(IO_PRIORITY_HINT)
-            );
-    }
-    else
-    {
-        return NtSetInformationProcess(
-            ProcessHandle,
-            ProcessIoPriority,
-            &IoPriority,
-            sizeof(IO_PRIORITY_HINT)
-            );
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
+        );
 }
 
 /**
@@ -1748,24 +1682,13 @@ NTSTATUS PhSetThreadIoPriority(
     _In_ IO_PRIORITY_HINT IoPriority
     )
 {
-    if (KphIsConnected())
-    {
-        return KphSetInformationThread(
-            ThreadHandle,
-            KphThreadIoPriority,
-            &IoPriority,
-            sizeof(IO_PRIORITY_HINT)
-            );
-    }
-    else
-    {
-        return NtSetInformationThread(
-            ThreadHandle,
-            ThreadIoPriority,
-            &IoPriority,
-            sizeof(IO_PRIORITY_HINT)
-            );
-    }
+    // NOTE: This used to invoke KPH, but that feature has been removed.
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
+        );
 }
 
 NTSTATUS PhGetJobProcessIdList(

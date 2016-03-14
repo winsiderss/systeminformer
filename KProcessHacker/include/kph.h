@@ -270,24 +270,6 @@ NTSTATUS KpiTerminateThread(
     __in KPROCESSOR_MODE AccessMode
     );
 
-NTSTATUS KpiTerminateThreadUnsafe(
-    __in HANDLE ThreadHandle,
-    __in NTSTATUS ExitStatus,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KpiGetContextThread(
-    __in HANDLE ThreadHandle,
-    __inout PCONTEXT ThreadContext,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KpiSetContextThread(
-    __in HANDLE ThreadHandle,
-    __in PCONTEXT ThreadContext,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
 ULONG KphCaptureStackBackTrace(
     __in ULONG FramesToSkip,
     __in ULONG FramesToCapture,
@@ -343,24 +325,6 @@ NTSTATUS KphCopyVirtualMemory(
     __in SIZE_T BufferLength,
     __in KPROCESSOR_MODE AccessMode,
     __out PSIZE_T ReturnLength
-    );
-
-NTSTATUS KpiReadVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesRead,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KpiWriteVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in_opt PVOID BaseAddress,
-    __in_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesWritten,
-    __in KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiReadVirtualMemoryUnsafe(

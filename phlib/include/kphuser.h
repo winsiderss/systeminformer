@@ -142,28 +142,6 @@ KphTerminateProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphReadVirtualMemory(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
-    _Out_opt_ PSIZE_T NumberOfBytesRead
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphWriteVirtualMemory(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
-    _Out_opt_ PSIZE_T NumberOfBytesWritten
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 KphReadVirtualMemoryUnsafe(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
@@ -217,30 +195,6 @@ NTAPI
 KphTerminateThread(
     _In_ HANDLE ThreadHandle,
     _In_ NTSTATUS ExitStatus
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphTerminateThreadUnsafe(
-    _In_ HANDLE ThreadHandle,
-    _In_ NTSTATUS ExitStatus
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphGetContextThread(
-    _In_ HANDLE ThreadHandle,
-    _Inout_ PCONTEXT ThreadContext
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphSetContextThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ PCONTEXT ThreadContext
     );
 
 PHLIBAPI

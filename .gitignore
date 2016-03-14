@@ -108,6 +108,10 @@ ProcessHacker/sdk/phapppub.h
 plugins-extra/
 sdk/
 
+KProcessHacker/*.log
+KProcessHacker/*/objchk_*
+KProcessHacker/*/objfre_*
+
 !plugins/SamplePlugin/bin/
 plugins/SamplePlugin/bin/Debug32/
 plugins/SamplePlugin/bin/Debug64/

@@ -935,21 +935,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         SetDlgItemText(hwndDlg, IDC_PROTECTION, PhaConcatStrings2(type, signer)->Buffer);
                     }
                 }
-                else if (KphIsConnected())
-                {
-                    KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
-
-                    if (NT_SUCCESS(KphQueryInformationProcess(
-                        processHandle,
-                        KphProcessProtectionInformation,
-                        &protectionInfo,
-                        sizeof(KPH_PROCESS_PROTECTION_INFORMATION),
-                        NULL
-                        )))
-                    {
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Yes" : L"None");
-                    }
-                }
                 else
                 {
                     PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
@@ -2028,7 +2013,6 @@ VOID PhpInitializeThreadMenu(
         ULONG menuItemsMultiEnabled[] =
         {
             ID_THREAD_TERMINATE,
-            ID_THREAD_FORCETERMINATE,
             ID_THREAD_SUSPEND,
             ID_THREAD_RESUME,
             ID_THREAD_COPY
@@ -2056,27 +2040,6 @@ VOID PhpInitializeThreadMenu(
         if (item = PhFindEMenuItem(Menu, 0, L"Page Priority", 0))
             PhDestroyEMenuItem(item);
     }
-
-#ifndef _WIN64
-    if (!KphIsConnected())
-    {
-#endif
-        // Remove Force Terminate (this is always done on x64).
-        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
-            PhDestroyEMenuItem(item);
-#ifndef _WIN64
-    }
-    else
-    {
-        if (ProcessId == SYSTEM_PROCESS_ID)
-        {
-            // Remove Force Terminate because Terminate does
-            // the same job.
-            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
-                PhDestroyEMenuItem(item);
-        }
-    }
-#endif
 
     PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
 
@@ -2705,33 +2668,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
                     PhReferenceObjects(threads, numberOfThreads);
 
-                    if (
-                        processItem->ProcessId != SYSTEM_PROCESS_ID ||
-                        !KphIsConnected()
-                        )
-                    {
-                        if (PhUiTerminateThreads(hwndDlg, threads, numberOfThreads))
-                            PhDeselectAllThreadNodes(&threadsContext->ListContext);
-                    }
-                    else
-                    {
-                        if (PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads))
-                            PhDeselectAllThreadNodes(&threadsContext->ListContext);
-                    }
-
-                    PhDereferenceObjects(threads, numberOfThreads);
-                    PhFree(threads);
-                }
-                break;
-            case ID_THREAD_FORCETERMINATE:
-                {
-                    PPH_THREAD_ITEM *threads;
-                    ULONG numberOfThreads;
-
-                    PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
-                    PhReferenceObjects(threads, numberOfThreads);
-
-                    if (PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads))
+                    if (PhUiTerminateThreads(hwndDlg, threads, numberOfThreads))
                         PhDeselectAllThreadNodes(&threadsContext->ListContext);
 
                     PhDereferenceObjects(threads, numberOfThreads);

@@ -187,8 +187,7 @@ static NTSTATUS NTAPI TerminatorTP2(
 
 static NTSTATUS NTAPI TerminatorTTGeneric(
     _In_ HANDLE ProcessId,
-    _In_ BOOLEAN UseKph,
-    _In_ BOOLEAN UseKphDangerous
+    _In_ BOOLEAN UseKph
     )
 {
     NTSTATUS status;
@@ -196,7 +195,7 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG i;
 
-    if ((UseKph || UseKphDangerous) && !KphIsConnected())
+    if (UseKph && !KphIsConnected())
         return STATUS_NOT_SUPPORTED;
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
@@ -220,9 +219,7 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
             process->Threads[i].ClientId.UniqueThread
             )))
         {
-            if (UseKphDangerous)
-                KphTerminateThreadUnsafe(threadHandle, STATUS_SUCCESS);
-            else if (UseKph)
+            if (UseKph)
                 KphTerminateThread(threadHandle, STATUS_SUCCESS);
             else
                 NtTerminateThread(threadHandle, STATUS_SUCCESS);
@@ -240,7 +237,7 @@ static NTSTATUS NTAPI TerminatorTT1(
     _In_ HANDLE ProcessId
     )
 {
-    return TerminatorTTGeneric(ProcessId, FALSE, FALSE);
+    return TerminatorTTGeneric(ProcessId, FALSE);
 }
 
 static NTSTATUS NTAPI TerminatorTT2(
@@ -634,14 +631,7 @@ static NTSTATUS NTAPI TerminatorTT3(
     _In_ HANDLE ProcessId
     )
 {
-    return TerminatorTTGeneric(ProcessId, TRUE, FALSE);
-}
-
-static NTSTATUS NTAPI TerminatorTT4(
-    _In_ HANDLE ProcessId
-    )
-{
-    return TerminatorTTGeneric(ProcessId, FALSE, TRUE);
+    return TerminatorTTGeneric(ProcessId, TRUE);
 }
 
 static NTSTATUS NTAPI TerminatorM1(
@@ -788,7 +778,6 @@ TEST_ITEM PhTerminatorTests[] =
     { L"TD1", L"Debugs the process and closes the debug object", TerminatorTD1 },
     { L"TP3", L"Terminates the process in kernel-mode", TerminatorTP3 },
     { L"TT3", L"Terminates the process' threads in kernel-mode", TerminatorTT3 },
-    { L"TT4", L"Terminates the process' threads using a dangerous kernel-mode method", TerminatorTT4 },
     { L"M1", L"Writes garbage to the process' memory regions", TerminatorM1 },
     { L"M2", L"Sets the page protection of the process' memory regions to PAGE_NOACCESS", TerminatorM2 }
 };
@@ -815,18 +804,6 @@ static BOOLEAN PhpRunTerminatorTest(
         &testItem
         ))
         return FALSE;
-
-    if (PhEqualStringZ(testItem->Id, L"TT4", FALSE))
-    {
-        if (!PhShowConfirmMessage(
-            WindowHandle,
-            L"run",
-            L"the TT4 test",
-            L"The TT4 test may cause the system to crash.",
-            TRUE
-            ))
-            return FALSE;
-    }
 
     status = testItem->TestProc(processItem->ProcessId);
     interval.QuadPart = -1000 * PH_TIMEOUT_MS;
@@ -919,7 +896,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
 
                 check = TRUE;
 
-                if (PhEqualStringZ(PhTerminatorTests[i].Id, L"TT4", FALSE) || PhEqualStringZ(PhTerminatorTests[i].Id, L"M1", FALSE))
+                if (PhEqualStringZ(PhTerminatorTests[i].Id, L"M1", FALSE))
                     check = FALSE;
 
                 ListView_SetCheckState(lvHandle, itemIndex, check);
