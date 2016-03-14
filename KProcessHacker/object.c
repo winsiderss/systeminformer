@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -75,8 +75,7 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
  *
  * \param Object A pointer to an object.
  *
- * \return A pointer to the object's type object, or NULL if an error
- * occurred.
+ * \return A pointer to the object's type object, or NULL if an error occurred.
  */
 POBJECT_TYPE KphGetObjectType(
     __in PVOID Object
@@ -84,8 +83,7 @@ POBJECT_TYPE KphGetObjectType(
 {
     PAGED_CODE();
 
-    // XP to Vista: A pointer to the object type is
-    // stored in the object header.
+    // XP to Vista: A pointer to the object type is stored in the object header.
     if (
         KphDynNtVersion >= PHNT_WINXP &&
         KphDynNtVersion <= PHNT_VISTA
@@ -93,10 +91,8 @@ POBJECT_TYPE KphGetObjectType(
     {
         return OBJECT_TO_OBJECT_HEADER(Object)->Type;
     }
-    // Seven and above: An index to an internal object type
-    // table is stored in the object header. Luckily we have
-    // a new exported function, ObGetObjectType, to get
-    // the object type.
+    // Seven and above: An index to an internal object type table is stored in the object header.
+    // Luckily we have a new exported function, ObGetObjectType, to get the object type.
     else if (KphDynNtVersion >= PHNT_WIN7)
     {
         if (ObGetObjectType_I)
@@ -115,10 +111,9 @@ POBJECT_TYPE KphGetObjectType(
  *
  * \param Process A process object.
  *
- * \return A pointer to the handle table, or NULL if the process is
- * terminating or the request is not supported. You must call
- * KphDereferenceProcessHandleTable() when the handle table is no longer
- * needed.
+ * \return A pointer to the handle table, or NULL if the process is terminating or the request is
+ * not supported. You must call KphDereferenceProcessHandleTable() when the handle table is no
+ * longer needed.
  */
 PHANDLE_TABLE KphReferenceProcessHandleTable(
     __in PEPROCESS Process
@@ -219,15 +214,14 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
         }
     }
 
-    // Advance the current entry pointer regardless of whether the information will be written;
-    // this will allow the parent function to report the correct return length.
+    // Advance the current entry pointer regardless of whether the information will be written; this
+    // will allow the parent function to report the correct return length.
     entryInBuffer = context->CurrentEntry;
     context->CurrentEntry = (PVOID)((ULONG_PTR)context->CurrentEntry + sizeof(KPH_PROCESS_HANDLE));
     context->Count++;
 
-    // Only write if we have not exceeded the buffer length.
-    // Also check for a potential overflow (if the process has an extremely large number of
-    // handles, the buffer pointer may wrap).
+    // Only write if we have not exceeded the buffer length. Also check for a potential overflow (if
+    // the process has an extremely large number of handles, the buffer pointer may wrap).
     if (
         (ULONG_PTR)entryInBuffer >= (ULONG_PTR)context->Buffer &&
         (ULONG_PTR)entryInBuffer + sizeof(KPH_PROCESS_HANDLE) <= (ULONG_PTR)context->BufferLimit
@@ -275,11 +269,10 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
  * Enumerates the handles of a process.
  *
  * \param ProcessHandle A handle to a process.
- * \param Buffer The buffer in which the handle information will
- * be stored.
+ * \param Buffer The buffer in which the handle information will be stored.
  * \param BufferLength The number of bytes available in \a Buffer.
- * \param ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param ReturnLength A variable which receives the number of bytes required to be available in
+ * \a Buffer.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiEnumerateProcessHandles(
@@ -397,8 +390,7 @@ NTSTATUS KpiEnumerateProcessHandles(
     {
         ULONG returnLength;
 
-        // Note: if the CurrentEntry pointer wrapped, this will give the wrong
-        // return length.
+        // Note: if the CurrentEntry pointer wrapped, this will give the wrong return length.
         returnLength = (ULONG)((ULONG_PTR)context.CurrentEntry - (ULONG_PTR)Buffer);
 
         if (AccessMode != KernelMode)
@@ -427,8 +419,8 @@ NTSTATUS KpiEnumerateProcessHandles(
  * \param Object A pointer to an object.
  * \param Buffer The buffer in which the object name will be stored.
  * \param BufferLength The number of bytes available in \a Buffer.
- * \param ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param ReturnLength A variable which receives the number of bytes required to be available in
+ * \a Buffer.
  */
 NTSTATUS KphQueryNameObject(
     __in PVOID Object,
@@ -478,8 +470,8 @@ NTSTATUS KphQueryNameObject(
  * \param FileObject A pointer to a file object.
  * \param Buffer The buffer in which the object name will be stored.
  * \param BufferLength The number of bytes available in \a Buffer.
- * \param ReturnLength A variable which receives the number of bytes
- * required to be available in \a Buffer.
+ * \param ReturnLength A variable which receives the number of bytes required to be available in
+ * \a Buffer.
  */
 NTSTATUS KphQueryNameFileObject(
     __in PFILE_OBJECT FileObject,
@@ -497,8 +489,7 @@ NTSTATUS KphQueryNameFileObject(
 
     PAGED_CODE();
 
-    // We need at least the size of OBJECT_NAME_INFORMATION to
-    // continue.
+    // We need at least the size of OBJECT_NAME_INFORMATION to continue.
     if (BufferLength < sizeof(OBJECT_NAME_INFORMATION))
     {
         *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
@@ -508,21 +499,16 @@ NTSTATUS KphQueryNameFileObject(
 
     // Assume failure.
     Buffer->Name.Length = 0;
-    // We will place the object name directly after the
-    // UNICODE_STRING structure in the buffer.
+    // We will place the object name directly after the UNICODE_STRING structure in the buffer.
     Buffer->Name.Buffer = (PWSTR)((ULONG_PTR)Buffer + sizeof(OBJECT_NAME_INFORMATION));
-    // Retain a local pointer to the object name so we
-    // can manipulate the pointer.
+    // Retain a local pointer to the object name so we can manipulate the pointer.
     objectName = (PCHAR)Buffer->Name.Buffer;
-    // A variable that keeps track of how much space we
-    // have used.
+    // A variable that keeps track of how much space we have used.
     usedLength = sizeof(OBJECT_NAME_INFORMATION);
 
-    // Check if the file object has an associated device
-    // (e.g. "\Device\NamedPipe", "\Device\Mup"). We can
-    // use the user-supplied buffer for this since if the
-    // buffer isn't big enough, we can't proceed anyway
-    // (we are going to use the name).
+    // Check if the file object has an associated device (e.g. "\Device\NamedPipe", "\Device\Mup").
+    // We can use the user-supplied buffer for this since if the buffer isn't big enough, we can't
+    // proceed anyway (we are going to use the name).
     if (FileObject->DeviceObject)
     {
         status = ObQueryNameString(
@@ -542,18 +528,15 @@ NTSTATUS KphQueryNameFileObject(
             return status;
         }
 
-        // The UNICODE_STRING in the buffer is now filled in.
-        // We will append to the object name later, so
-        // we need to fix the object name pointer by adding
-        // the length, in bytes, of the device name string we
-        // just got.
+        // The UNICODE_STRING in the buffer is now filled in. We will append to the object name
+        // later, so we need to fix the object name pointer by adding the length, in bytes, of the
+        // device name string we just got.
         objectName += Buffer->Name.Length;
         usedLength += Buffer->Name.Length;
     }
 
-    // Check if the file object has a file name component. If not,
-    // we can't do anything else, so we just return the name we
-    // have already.
+    // Check if the file object has a file name component. If not, we can't do anything else, so we
+    // just return the name we have already.
     if (!FileObject->FileName.Buffer)
     {
         *ReturnLength = usedLength;
@@ -561,10 +544,9 @@ NTSTATUS KphQueryNameFileObject(
         return STATUS_SUCCESS;
     }
 
-    // The file object has a name. We need to walk up the file
-    // object chain and append the names of the related file
-    // objects in reverse order. This means we need to calculate
-    // the total length first.
+    // The file object has a name. We need to walk up the file object chain and append the names of
+    // the related file objects in reverse order. This means we need to calculate the total length
+    // first.
 
     relatedFileObject = FileObject;
     subNameLength = 0;
@@ -624,14 +606,12 @@ NTSTATUS KphQueryNameFileObject(
  * Queries object information.
  *
  * \param ProcessHandle A handle to a process.
- * \param Handle A handle which is present in the process referenced
- * by \a ProcessHandle.
+ * \param Handle A handle which is present in the process referenced by \a ProcessHandle.
  * \param ObjectInformationClass The type of information to retrieve.
  * \param ObjectInformation The buffer in which the information will be stored.
- * \param ObjectInformationLength The number of bytes available in \a
- * ObjectInformation.
- * \param ReturnLength A variable which receives the number of bytes
- * required to be available in \a ObjectInformation.
+ * \param ObjectInformationLength The number of bytes available in \a ObjectInformation.
+ * \param ReturnLength A variable which receives the number of bytes required to be available in
+ * \a ObjectInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiQueryInformationObject(
@@ -819,10 +799,11 @@ NTSTATUS KpiQueryInformationObject(
             if (allocateSize < sizeof(OBJECT_TYPE_INFORMATION))
                 allocateSize = sizeof(OBJECT_TYPE_INFORMATION);
 
-            // ObQueryTypeInfo uses ObjectType->Name.MaximumLength instead of ObjectType->Name.Length + sizeof(WCHAR)
-            // to calculate the required buffer size. In Windows 8, certain object types (e.g. TmTx) do NOT include
-            // the null terminator in MaximumLength, which causes ObQueryTypeInfo to overrun the given buffer.
-            // To work around this bug, we add some (generous) padding to our allocation.
+            // ObQueryTypeInfo uses ObjectType->Name.MaximumLength instead of
+            // ObjectType->Name.Length + sizeof(WCHAR) to calculate the required buffer size. In
+            // Windows 8, certain object types (e.g. TmTx) do NOT include the null terminator in
+            // MaximumLength, which causes ObQueryTypeInfo to overrun the given buffer. To work
+            // around this bug, we add some (generous) padding to our allocation.
             allocateSize += sizeof(ULONGLONG);
 
             typeInfo = ExAllocatePoolWithQuotaTag(PagedPool, allocateSize, 'QhpK');
@@ -987,9 +968,8 @@ NTSTATUS KpiQueryInformationObject(
                 KphDynEreGuidEntry != -1 &&
                 KphDynOtName != -1)
             {
-                // Attach to the process and get a pointer to the object.
-                // We don't have a pointer to the EtwRegistration object type,
-                // so we'll just have to check the type name.
+                // Attach to the process and get a pointer to the object. We don't have a pointer to
+                // the EtwRegistration object type, so we'll just have to check the type name.
 
                 KeStackAttachProcess(process, &apcState);
                 status = ObReferenceObjectByHandle(
@@ -1205,12 +1185,10 @@ NTSTATUS KpiQueryInformationObject(
  * Sets object information.
  *
  * \param ProcessHandle A handle to a process.
- * \param Handle A handle which is present in the process referenced
- * by \a ProcessHandle.
+ * \param Handle A handle which is present in the process referenced by \a ProcessHandle.
  * \param ObjectInformationClass The type of information to set.
  * \param ObjectInformation A buffer which contains the information to set.
- * \param ObjectInformationLength The number of bytes present in
- * \a ObjectInformation.
+ * \param ObjectInformationLength The number of bytes present in \a ObjectInformation.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiSetInformationObject(
@@ -1320,22 +1298,20 @@ NTSTATUS KpiSetInformationObject(
 /**
  * Re-opens an object.
  *
- * \param SourceProcess The source process from which the object
- * will be referenced.
- * \param TargetProcess The target process to which the object
- * handle will be duplicated.
+ * \param SourceProcess The source process from which the object will be referenced.
+ * \param TargetProcess The target process to which the object handle will be duplicated.
  * \param SourceHandle The source handle, present in \a SourceProcess.
  * \param TargetHandle A variable which receives the new handle.
  * \param DesiredAccess The desired access to the object for the new handle.
  * \param HandleAttributes The attributes of the new handle.
  * \param Options A combination of the following:
- * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source
- * process instead of being duplicated to the target process. The \a TargetProcess
- * and \a TargetHandle parameters are ignored.
- * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted
- * access as the existing handle.
- * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes
- * as the existing handle.
+ * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source process instead of being
+ * duplicated to the target process. The \a TargetProcess and \a TargetHandle parameters are
+ * ignored.
+ * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted access as the existing
+ * handle.
+ * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes as the existing
+ * handle.
  * \param AccessMode The mode in which access checks will be performed.
  */
 NTSTATUS KphDuplicateObject(
@@ -1385,12 +1361,11 @@ NTSTATUS KphDuplicateObject(
 
     // Closing handles in the current process from kernel-mode is *bad*.
 
-    // Example: the handle being closed is a handle to the file object
-    // on which this very request is being sent. Deadlock.
+    // Example: the handle being closed is a handle to the file object on which this very request is
+    // being sent. Deadlock.
     //
-    // If we add the current process check, the handle can't possibly
-    // be the one the request is being sent on, since system calls
-    // only operate on handles from the current process.
+    // If we add the current process check, the handle can't possibly be the one the request is
+    // being sent on, since system calls only operate on handles from the current process.
     if (SourceProcess == PsGetCurrentProcess())
     {
         if (Options & DUPLICATE_CLOSE_SOURCE)
@@ -1464,22 +1439,22 @@ NTSTATUS KphDuplicateObject(
 /**
  * Re-opens an object.
  *
- * \param SourceProcessHandle A handle to the source process from which the
- * object will be referenced.
+ * \param SourceProcessHandle A handle to the source process from which the object will be
+ * referenced.
  * \param SourceHandle The source handle, present in \a SourceProcess.
- * \param TargetProcessHandle A handle to the target process to which the object
- * handle will be duplicated.
+ * \param TargetProcessHandle A handle to the target process to which the object handle will be
+ * duplicated.
  * \param TargetHandle A variable which receives the new handle.
  * \param DesiredAccess The desired access to the object for the new handle.
  * \param HandleAttributes The attributes of the new handle.
  * \param Options A combination of the following:
- * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source
- * process instead of being duplicated to the target process. The \a TargetProcess
- * and \a TargetHandle parameters are ignored.
- * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted
- * access as the existing handle.
- * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes
- * as the existing handle.
+ * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source process instead of being
+ * duplicated to the target process. The \a TargetProcess and \a TargetHandle parameters are
+ * ignored.
+ * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted access as the existing
+ * handle.
+ * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes as the existing
+ * handle.
  * \param AccessMode The mode in which access checks will be performed.
  */
 NTSTATUS KpiDuplicateObject(
