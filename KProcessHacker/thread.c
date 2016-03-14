@@ -22,13 +22,6 @@
 #include <kph.h>
 #include <dyndata.h>
 
-typedef struct _EXIT_THREAD_CONTEXT
-{
-    KAPC Apc;
-    KEVENT CompletedEvent;
-    NTSTATUS ExitStatus;
-} EXIT_THREAD_CONTEXT, *PEXIT_THREAD_CONTEXT;
-
 typedef struct _CAPTURE_BACKTRACE_THREAD_CONTEXT
 {
     BOOLEAN Local;
@@ -42,7 +35,6 @@ typedef struct _CAPTURE_BACKTRACE_THREAD_CONTEXT
 } CAPTURE_BACKTRACE_THREAD_CONTEXT, *PCAPTURE_BACKTRACE_THREAD_CONTEXT;
 
 KKERNEL_ROUTINE KphpCaptureStackBackTraceThreadSpecialApc;
-KKERNEL_ROUTINE KphpExitThreadSpecialApc;
 
 VOID KphpCaptureStackBackTraceThreadSpecialApc(
     __in PRKAPC Apc,
