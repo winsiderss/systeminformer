@@ -26,7 +26,6 @@
 #pragma alloc_text(PAGE, KpiOpenProcess)
 #pragma alloc_text(PAGE, KpiOpenProcessToken)
 #pragma alloc_text(PAGE, KpiOpenProcessJob)
-#pragma alloc_text(PAGE, KphTerminateProcessInternal)
 #pragma alloc_text(PAGE, KpiTerminateProcess)
 #pragma alloc_text(PAGE, KpiQueryInformationProcess)
 #pragma alloc_text(PAGE, KpiSetInformationProcess)
@@ -37,9 +36,9 @@
  *
  * \param ProcessHandle A variable which receives the process handle.
  * \param DesiredAccess The desired access to the process.
- * \param ClientId The identifier of a process or thread. If \a UniqueThread
- * is present, the process of the identified thread will be opened. If
- * \a UniqueProcess is present, the identified process will be opened.
+ * \param ClientId The identifier of a process or thread. If \a UniqueThread is present, the process
+ * of the identified thread will be opened. If \a UniqueProcess is present, the identified process
+ * will be opened.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcess(
@@ -301,91 +300,10 @@ NTSTATUS KpiOpenProcessJob(
 }
 
 /**
- * Terminates a process using PsTerminateProcess.
- *
- * \param Process A process object.
- * \param ExitStatus A status value which indicates why the process
- * is being terminated.
- */
-NTSTATUS KphTerminateProcessInternal(
-    __in PEPROCESS Process,
-    __in NTSTATUS ExitStatus
-    )
-{
-    NTSTATUS status;
-    _PsTerminateProcess PsTerminateProcess_I;
-
-    PAGED_CODE();
-
-    if (KphParameters.DisableDynamicProcedureScan)
-        return STATUS_NOT_SUPPORTED;
-
-    PsTerminateProcess_I = KphGetDynamicProcedureScan(&KphDynPsTerminateProcessScan);
-
-    if (!PsTerminateProcess_I)
-    {
-        dprintf("Unable to find PsTerminateProcess\n");
-        return STATUS_NOT_SUPPORTED;
-    }
-
-#ifdef _X86_
-
-    if (
-        KphDynNtVersion == PHNT_WINXP ||
-        KphDynNtVersion == PHNT_WS03 ||
-        KphDynNtVersion == PHNT_WIN8
-        )
-    {
-        dprintf("Calling XP/03/8-style PsTerminateProcess\n");
-
-        // PspTerminateProcess on XP and Server 2003 is normal.
-        // PsTerminateProcess on 8 is also normal.
-        status = PsTerminateProcess_I(Process, ExitStatus);
-    }
-    else if (
-        KphDynNtVersion == PHNT_VISTA ||
-        KphDynNtVersion == PHNT_WIN7
-        )
-    {
-        dprintf("Calling Vista/7-style PsTerminateProcess\n");
-
-        // PsTerminateProcess on Vista and 7 has its first argument
-        // in ecx.
-        __asm
-        {
-            push    [ExitStatus]
-            mov     ecx, [Process]
-            call    [PsTerminateProcess_I]
-            mov     [status], eax
-        }
-    }
-    else if (KphDynNtVersion == PHNT_WINBLUE)
-    {
-        dprintf("Calling 8.1-style PsTerminateProcess\n");
-
-        // PsTerminateProcess on 8.1 is fastcall.
-        status = ((_PsTerminateProcess63)PsTerminateProcess_I)(Process, ExitStatus);
-    }
-    else
-    {
-        return STATUS_NOT_SUPPORTED;
-    }
-
-#else
-
-    status = PsTerminateProcess_I(Process, ExitStatus);
-
-#endif
-
-    return status;
-}
-
-/**
- * Terminates a process using PsTerminateProcess.
+ * Terminates a process.
  *
  * \param ProcessHandle A handle to a process.
- * \param ExitStatus A status value which indicates why the process
- * is being terminated.
+ * \param ExitStatus A status value which indicates why the process is being terminated.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiTerminateProcess(
@@ -413,27 +331,21 @@ NTSTATUS KpiTerminateProcess(
 
     if (process != PsGetCurrentProcess())
     {
-        dprintf("Calling KphTerminateProcessInternal from KpiTerminateProcess\n");
-        status = KphTerminateProcessInternal(process, ExitStatus);
+        HANDLE newProcessHandle;
 
-        if (status == STATUS_NOT_SUPPORTED)
+        // Re-open the process to get a kernel handle.
+        if (NT_SUCCESS(status = ObOpenObjectByPointer(
+            process,
+            OBJ_KERNEL_HANDLE,
+            NULL,
+            PROCESS_TERMINATE,
+            *PsProcessType,
+            KernelMode,
+            &newProcessHandle
+            )))
         {
-            HANDLE newProcessHandle;
-
-            // Re-open the process to get a kernel handle.
-            if (NT_SUCCESS(status = ObOpenObjectByPointer(
-                process,
-                OBJ_KERNEL_HANDLE,
-                NULL,
-                PROCESS_TERMINATE,
-                *PsProcessType,
-                KernelMode,
-                &newProcessHandle
-                )))
-            {
-                status = ZwTerminateProcess(newProcessHandle, ExitStatus);
-                ZwClose(newProcessHandle);
-            }
+            status = ZwTerminateProcess(newProcessHandle, ExitStatus);
+            ZwClose(newProcessHandle);
         }
     }
     else

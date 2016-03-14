@@ -2,7 +2,7 @@
  * Process Hacker -
  *   KProcessHacker dynamic data definitions
  *
- * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2011-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -172,7 +172,7 @@ NTSTATUS KphInitializeDynamicPackage(
     else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10586)
     {
         Package->BuildNumber = 10586;
-        Package->ResultingNtVersion = PHNT_THRESHOLD;
+        Package->ResultingNtVersion = PHNT_THRESHOLD2;
 
         Package->StructData.EgeGuid = 0x18;
         Package->StructData.EpObjectTable = 0x418;
@@ -211,8 +211,163 @@ NTSTATUS KphInitializeDynamicPackage(
     Package->ServicePackMajor = (USHORT)servicePack;
     Package->BuildNumber = -1;
 
+    // Windows XP
+    if (majorVersion == 5 && minorVersion == 1)
+    {
+        Package->ResultingNtVersion = PHNT_WINXP;
+
+        if (servicePack == 0)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+        else if (servicePack == 1)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+        else if (servicePack == 2)
+        {
+            NOTHING;
+        }
+        else if (servicePack == 3)
+        {
+            NOTHING;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        Package->StructData.EpObjectTable = 0xc4;
+        Package->StructData.EpRundownProtect = 0x80;
+        Package->StructData.OtName = 0x40;
+        Package->StructData.OtIndex = 0x4c;
+    }
+    // Windows Server 2003
+    if (majorVersion == 5 && minorVersion == 2)
+    {
+        Package->ResultingNtVersion = PHNT_WS03;
+
+        if (servicePack == 0)
+        {
+            NOTHING;
+        }
+        else if (servicePack == 1)
+        {
+            NOTHING;
+        }
+        else if (servicePack == 2)
+        {
+            NOTHING;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        Package->StructData.EpObjectTable = 0xd4;
+        Package->StructData.EpRundownProtect = 0x90;
+        Package->StructData.OtName = 0x40;
+        Package->StructData.OtIndex = 0x4c;
+    }
+    // Windows Vista, Windows Server 2008
+    else if (majorVersion == 6 && minorVersion == 0)
+    {
+        Package->ResultingNtVersion = PHNT_VISTA;
+
+        if (servicePack == 0)
+        {
+            Package->StructData.OtName = 0x40;
+            Package->StructData.OtIndex = 0x4c;
+        }
+        else if (servicePack == 1)
+        {
+            Package->StructData.OtName = 0x8; // they moved Mutex (ERESOURCE) further down
+            Package->StructData.OtIndex = 0x14;
+        }
+        else if (servicePack == 2)
+        {
+            Package->StructData.OtName = 0x8;
+            Package->StructData.OtIndex = 0x14;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        Package->StructData.EgeGuid = 0xc;
+        Package->StructData.EpObjectTable = 0xdc;
+        Package->StructData.EpRundownProtect = 0x98;
+        Package->StructData.EreGuidEntry = 0x8;
+    }
+    // Windows 7, Windows Server 2008 R2
+    else if (majorVersion == 6 && minorVersion == 1)
+    {
+        Package->ResultingNtVersion = PHNT_WIN7;
+
+        if (servicePack == 0)
+        {
+            NOTHING;
+        }
+        else if (servicePack == 1)
+        {
+            NOTHING;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        Package->StructData.EgeGuid = 0xc;
+        Package->StructData.EpObjectTable = 0xf4;
+        Package->StructData.EpRundownProtect = 0xb0;
+        Package->StructData.EreGuidEntry = 0x8;
+        Package->StructData.OtName = 0x8;
+        Package->StructData.OtIndex = 0x14; // now only a UCHAR, not a ULONG
+    }
+    // Windows 8, Windows Server 2012
+    else if (majorVersion == 6 && minorVersion == 2)
+    {
+        Package->ResultingNtVersion = PHNT_WIN8;
+
+        if (servicePack == 0)
+        {
+            NOTHING;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        Package->StructData.EgeGuid = 0xc;
+        Package->StructData.EpObjectTable = 0x150;
+        Package->StructData.EpRundownProtect = 0xb0;
+        Package->StructData.EreGuidEntry = 0x8;
+        Package->StructData.OtName = 0x8;
+        Package->StructData.OtIndex = 0x14;
+    }
+    // Windows 8.1, Windows Server 2012 R2
+    else if (majorVersion == 6 && minorVersion == 3)
+    {
+        Package->ResultingNtVersion = PHNT_WINBLUE;
+
+        if (servicePack == 0)
+        {
+            NOTHING;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        Package->StructData.EgeGuid = 0xc;
+        Package->StructData.EpObjectTable = 0x150;
+        Package->StructData.EpRundownProtect = 0xb0;
+        Package->StructData.EreGuidEntry = 0x8;
+        Package->StructData.OtName = 0x8;
+        Package->StructData.OtIndex = 0x14;
+    }
     // Windows 10
-    if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10240)
+    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10240)
     {
         Package->BuildNumber = 10240;
         Package->ResultingNtVersion = PHNT_THRESHOLD;
@@ -226,7 +381,7 @@ NTSTATUS KphInitializeDynamicPackage(
     else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10586)
     {
         Package->BuildNumber = 10586;
-        Package->ResultingNtVersion = PHNT_THRESHOLD;
+        Package->ResultingNtVersion = PHNT_THRESHOLD2;
 
         Package->StructData.EgeGuid = 0xc;
         Package->StructData.EpObjectTable = 0x154;

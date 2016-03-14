@@ -18,7 +18,6 @@
 typedef struct _KPH_PARAMETERS
 {
     KPH_SECURITY_LEVEL SecurityLevel;
-    LOGICAL DisableDynamicProcedureScan;
 } KPH_PARAMETERS, *PKPH_PARAMETERS;
 
 // main
@@ -177,11 +176,6 @@ NTSTATUS KpiOpenProcessJob(
     __in KPROCESSOR_MODE AccessMode
     );
 
-NTSTATUS KphTerminateProcessInternal(
-    __in PEPROCESS Process,
-    __in NTSTATUS ExitStatus
-    );
-
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
@@ -243,17 +237,6 @@ NTSTATUS KpiOpenThreadProcess(
     __in HANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __out PHANDLE ProcessHandle,
-    __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KphTerminateThreadByPointerInternal(
-    __in PETHREAD Thread,
-    __in NTSTATUS ExitStatus
-    );
-
-NTSTATUS KpiTerminateThread(
-    __in HANDLE ThreadHandle,
-    __in NTSTATUS ExitStatus,
     __in KPROCESSOR_MODE AccessMode
     );
 

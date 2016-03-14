@@ -42,16 +42,11 @@ rights.
 Process Hacker uses a kernel-mode driver, KProcessHacker, to
 assist with certain functionality. This includes:
 
-* Bypassing security software and rootkits in limited ways
-* More powerful process and thread termination (*)
 * Capturing kernel-mode stack traces
 * More efficiently enumerating process handles
 * Retrieving names for file handles
 * Retrieving names for EtwRegistration objects
 * Setting handle attributes
-
-The feature(s) marked with an asterisk (*) are NOT available on 64-bit
-versions of Windows.
 
 Note that by default, KProcessHacker only allows connections from
 processes with SeDebugPrivilege. To allow Process Hacker to show details

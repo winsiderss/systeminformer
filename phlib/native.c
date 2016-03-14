@@ -399,21 +399,6 @@ NTSTATUS PhTerminateThread(
     _In_ NTSTATUS ExitStatus
     )
 {
-#ifndef _WIN64
-    NTSTATUS status;
-
-    if (KphIsConnected())
-    {
-        status = KphTerminateThread(
-            ThreadHandle,
-            ExitStatus
-            );
-
-        if (status != STATUS_NOT_SUPPORTED)
-            return status;
-    }
-#endif
-
     return NtTerminateThread(
         ThreadHandle,
         ExitStatus

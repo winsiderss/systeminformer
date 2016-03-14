@@ -677,32 +677,6 @@ NTSTATUS KphOpenThreadProcess(
         );
 }
 
-NTSTATUS KphTerminateThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ NTSTATUS ExitStatus
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE ThreadHandle;
-        NTSTATUS ExitStatus;
-    } input = { ThreadHandle, ExitStatus };
-
-    status = KphpDeviceIoControl(
-        KPH_TERMINATETHREAD,
-        &input,
-        sizeof(input)
-        );
-
-    if (status == STATUS_CANT_TERMINATE_SELF)
-    {
-        RtlExitUserThread(ExitStatus);
-    }
-
-    return status;
-}
-
 NTSTATUS KphCaptureStackBackTraceThread(
     _In_ HANDLE ThreadHandle,
     _In_ ULONG FramesToSkip,

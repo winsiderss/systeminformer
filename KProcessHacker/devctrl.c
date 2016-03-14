@@ -288,23 +288,6 @@ NTSTATUS KphDispatchDeviceControl(
                 );
         }
         break;
-    case KPH_TERMINATETHREAD:
-        {
-            struct
-            {
-                HANDLE ThreadHandle;
-                NTSTATUS ExitStatus;
-            } *input = capturedInputPointer;
-
-            VERIFY_INPUT_LENGTH;
-
-            status = KpiTerminateThread(
-                input->ThreadHandle,
-                input->ExitStatus,
-                accessMode
-                );
-        }
-        break;
     case KPH_CAPTURESTACKBACKTRACETHREAD:
         {
             struct
