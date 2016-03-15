@@ -5,6 +5,7 @@
 #define PHNT_MODE PHNT_MODE_KERNEL
 #include <phnt.h>
 #include <ntfill.h>
+#include <bcrypt.h>
 #include <kphapi.h>
 
 // Debugging
@@ -14,6 +15,16 @@
 #else
 #define dprintf
 #endif
+
+typedef struct _KPH_CLIENT
+{
+    // Validated process image address range
+    PVOID ValidatedRangeStart;
+    SIZE_T ValidatedRangeSize;
+    // Level 1 and 2 secret keys
+    ULONGLONG L1Key;
+    ULONGLONG L2Key;
+} KPH_CLIENT, *PKPH_CLIENT;
 
 typedef struct _KPH_PARAMETERS
 {
@@ -28,15 +39,6 @@ extern KPH_PARAMETERS KphParameters;
 NTSTATUS KpiGetFeatures(
     __out PULONG Features,
     __in KPROCESSOR_MODE AccessMode
-    );
-
-NTSTATUS KphEnumerateSystemModules(
-    __out PRTL_PROCESS_MODULES *Modules
-    );
-
-NTSTATUS KphValidateAddressForSystemModules(
-    __in PVOID Address,
-    __in SIZE_T Length
     );
 
 // devctrl
@@ -137,6 +139,7 @@ NTSTATUS KpiOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -150,6 +153,7 @@ NTSTATUS KpiOpenProcessJob(
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -201,6 +205,7 @@ NTSTATUS KpiOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -256,6 +261,40 @@ NTSTATUS KpiSetInformationThread(
     __in KPROCESSOR_MODE AccessMode
     );
 
+// util
+
+VOID KphFreeCapturedUnicodeString(
+    __in PUNICODE_STRING CapturedUnicodeString
+    );
+
+NTSTATUS KphCaptureUnicodeString(
+    __in PUNICODE_STRING UnicodeString,
+    __out PUNICODE_STRING CapturedUnicodeString
+    );
+
+NTSTATUS KphEnumerateSystemModules(
+    __out PRTL_PROCESS_MODULES *Modules
+    );
+
+NTSTATUS KphValidateAddressForSystemModules(
+    __in PVOID Address,
+    __in SIZE_T Length
+    );
+
+// verify
+
+NTSTATUS KphHashFile(
+    __in PUNICODE_STRING FileName,
+    __out PVOID *Hash,
+    __out PULONG HashSize
+    );
+
+NTSTATUS KphVerifyFile(
+    __in PUNICODE_STRING FileName,
+    __in_bcount(SignatureSize) PVOID Signature,
+    __in ULONG SignatureSize
+    );
+
 // vm
 
 NTSTATUS KphCopyVirtualMemory(
@@ -274,76 +313,8 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     __out_bcount(BufferSize) PVOID Buffer,
     __in SIZE_T BufferSize,
     __out_opt PSIZE_T NumberOfBytesRead,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     );
-
-// Inline support functions
-
-FORCEINLINE VOID KphFreeCapturedUnicodeString(
-    __in PUNICODE_STRING CapturedUnicodeString
-    )
-{
-    if (CapturedUnicodeString->Buffer)
-        ExFreePoolWithTag(CapturedUnicodeString->Buffer, 'UhpK');
-}
-
-FORCEINLINE NTSTATUS KphCaptureUnicodeString(
-    __in PUNICODE_STRING UnicodeString,
-    __out PUNICODE_STRING CapturedUnicodeString
-    )
-{
-    UNICODE_STRING unicodeString;
-    PWSTR userBuffer;
-
-    __try
-    {
-        ProbeForRead(UnicodeString, sizeof(UNICODE_STRING), sizeof(ULONG));
-        unicodeString.Length = UnicodeString->Length;
-        unicodeString.MaximumLength = unicodeString.Length;
-        unicodeString.Buffer = NULL;
-
-        userBuffer = UnicodeString->Buffer;
-        ProbeForRead(userBuffer, unicodeString.Length, sizeof(WCHAR));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return GetExceptionCode();
-    }
-
-    if (unicodeString.Length & 1)
-    {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    if (unicodeString.Length != 0)
-    {
-        unicodeString.Buffer = ExAllocatePoolWithTag(
-            PagedPool,
-            unicodeString.Length,
-            'UhpK'
-            );
-
-        if (!unicodeString.Buffer)
-            return STATUS_INSUFFICIENT_RESOURCES;
-
-        __try
-        {
-            memcpy(
-                unicodeString.Buffer,
-                userBuffer,
-                unicodeString.Length
-                );
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            KphFreeCapturedUnicodeString(&unicodeString);
-            return GetExceptionCode();
-        }
-    }
-
-    *CapturedUnicodeString = unicodeString;
-
-    return STATUS_SUCCESS;
-}
 
 #endif

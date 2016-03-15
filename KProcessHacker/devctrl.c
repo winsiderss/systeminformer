@@ -53,18 +53,16 @@ NTSTATUS KphDispatchDeviceControl(
     ioControlCode = stackLocation->Parameters.DeviceIoControl.IoControlCode;
     accessMode = Irp->RequestorMode;
 
-    // Make sure we actually have input if the input length
-    // is non-zero.
+    // Make sure we actually have input if the input length is non-zero.
     if (inputLength != 0 && !originalInput)
     {
         status = STATUS_INVALID_BUFFER_SIZE;
         goto ControlEnd;
     }
 
-    // Make sure the caller isn't giving us a huge buffer.
-    // If they are, it can't be correct because we have a
-    // compile-time check that makes sure our buffer can
-    // store the arguments for all the calls.
+    // Make sure the caller isn't giving us a huge buffer. If they are, it can't be correct because
+    // we have a compile-time check that makes sure our buffer can store the arguments for all the
+    // calls.
     if (inputLength > sizeof(capturedInput))
     {
         status = STATUS_INVALID_BUFFER_SIZE;
@@ -116,6 +114,7 @@ NTSTATUS KphDispatchDeviceControl(
                 PHANDLE ProcessHandle;
                 ACCESS_MASK DesiredAccess;
                 PCLIENT_ID ClientId;
+                ULONGLONG Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -124,6 +123,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->ProcessHandle,
                 input->DesiredAccess,
                 input->ClientId,
+                input->Key,
                 accessMode
                 );
         }
@@ -153,6 +153,7 @@ NTSTATUS KphDispatchDeviceControl(
             {
                 HANDLE ProcessHandle;
                 NTSTATUS ExitStatus;
+                ULONGLONG Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -160,6 +161,7 @@ NTSTATUS KphDispatchDeviceControl(
             status = KpiTerminateProcess(
                 input->ProcessHandle,
                 input->ExitStatus,
+                input->Key,
                 accessMode
                 );
         }
@@ -173,6 +175,7 @@ NTSTATUS KphDispatchDeviceControl(
                 PVOID Buffer;
                 SIZE_T BufferSize;
                 PSIZE_T NumberOfBytesRead;
+                ULONGLONG Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -183,6 +186,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->Buffer,
                 input->BufferSize,
                 input->NumberOfBytesRead,
+                input->Key,
                 accessMode
                 );
         }
@@ -238,6 +242,7 @@ NTSTATUS KphDispatchDeviceControl(
                 PHANDLE ThreadHandle;
                 ACCESS_MASK DesiredAccess;
                 PCLIENT_ID ClientId;
+                ULONGLONG Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -246,6 +251,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->ThreadHandle,
                 input->DesiredAccess,
                 input->ClientId,
+                input->Key,
                 accessMode
                 );
         }

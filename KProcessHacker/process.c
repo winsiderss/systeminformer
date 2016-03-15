@@ -38,12 +38,18 @@
  * \param ClientId The identifier of a process or thread. If \a UniqueThread is present, the process
  * of the identified thread will be opened. If \a UniqueProcess is present, the identified process
  * will be opened.
+ * \param Key An access key.
+ * \li If a L2 key is provided, no access checks are performed.
+ * \li If a L1 key is provided, only read access is permitted but no additional access checks are
+ * performed.
+ * \li If no valid key is provided, the function fails.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     )
 {
@@ -220,11 +226,15 @@ NTSTATUS KpiOpenProcessJob(
  *
  * \param ProcessHandle A handle to a process.
  * \param ExitStatus A status value which indicates why the process is being terminated.
+ * \param Key An access key.
+ * \li If a L2 key is provided, no access checks are performed.
+ * \li If no valid L2 key is provided, the function fails.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     )
 {

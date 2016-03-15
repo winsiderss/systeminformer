@@ -61,12 +61,18 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  * \param DesiredAccess The desired access to the thread.
  * \param ClientId The identifier of a thread. \a UniqueThread must be present. If \a UniqueProcess
  * is present, the process of the referenced thread will be checked against this identifier.
+ * \param Key An access key.
+ * \li If a L2 key is provided, no access checks are performed.
+ * \li If a L1 key is provided, only read access is permitted but no additional access checks are
+ * performed.
+ * \li If no valid key is provided, the function fails.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
+    __in_opt ULONGLONG Key,
     __in KPROCESSOR_MODE AccessMode
     )
 {
