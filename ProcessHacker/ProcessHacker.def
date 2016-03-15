@@ -288,8 +288,6 @@ EXPORTS
 	PhQueryKey
 	PhQueryValueKey
 	PhResolveDevicePrefix
-	PhResumeProcess
-	PhResumeThread
 	PhSetFileSize
 	PhSetObjectSecurity
 	PhSetProcessIoPriority
@@ -298,10 +296,7 @@ EXPORTS
 	PhSetTokenPrivilege
 	PhSetTokenPrivilege2
 	PhSetTokenSessionId
-	PhSuspendProcess
-	PhSuspendThread
 	PhTerminateProcess
-	PhTerminateThread
 	PhTransceiveNamedPipe
 	PhUnloadDllProcess
 	PhUnloadDriver

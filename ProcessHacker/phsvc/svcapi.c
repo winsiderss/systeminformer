@@ -498,14 +498,14 @@ NTSTATUS PhSvcApiControlProcess(
     case PhSvcControlProcessSuspend:
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
         {
-            status = PhSuspendProcess(processHandle);
+            status = NtSuspendProcess(processHandle);
             NtClose(processHandle);
         }
         break;
     case PhSvcControlProcessResume:
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
         {
-            status = PhResumeProcess(processHandle);
+            status = NtResumeProcess(processHandle);
             NtClose(processHandle);
         }
         break;
@@ -1170,21 +1170,21 @@ NTSTATUS PhSvcApiControlThread(
     case PhSvcControlThreadTerminate:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
         {
-            status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
+            status = NtTerminateThread(threadHandle, STATUS_SUCCESS);
             NtClose(threadHandle);
         }
         break;
     case PhSvcControlThreadSuspend:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
         {
-            status = PhSuspendThread(threadHandle, NULL);
+            status = NtSuspendThread(threadHandle, NULL);
             NtClose(threadHandle);
         }
         break;
     case PhSvcControlThreadResume:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
         {
-            status = PhResumeThread(threadHandle, NULL);
+            status = NtResumeThread(threadHandle, NULL);
             NtClose(threadHandle);
         }
         break;

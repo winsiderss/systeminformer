@@ -1184,7 +1184,7 @@ BOOLEAN PhUiSuspendProcesses(
             Processes[i]->ProcessId
             )))
         {
-            status = PhSuspendProcess(processHandle);
+            status = NtSuspendProcess(processHandle);
             NtClose(processHandle);
         }
 
@@ -1257,7 +1257,7 @@ BOOLEAN PhUiResumeProcesses(
             Processes[i]->ProcessId
             )))
         {
-            status = PhResumeProcess(processHandle);
+            status = NtResumeProcess(processHandle);
             NtClose(processHandle);
         }
 
@@ -2383,7 +2383,7 @@ BOOLEAN PhUiTerminateThreads(
             Threads[i]->ThreadId
             )))
         {
-            status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
+            status = NtTerminateThread(threadHandle, STATUS_SUCCESS);
             NtClose(threadHandle);
         }
 
@@ -2446,7 +2446,7 @@ BOOLEAN PhUiSuspendThreads(
             Threads[i]->ThreadId
             )))
         {
-            status = PhSuspendThread(threadHandle, NULL);
+            status = NtSuspendThread(threadHandle, NULL);
             NtClose(threadHandle);
         }
 
@@ -2509,7 +2509,7 @@ BOOLEAN PhUiResumeThreads(
             Threads[i]->ThreadId
             )))
         {
-            status = PhResumeThread(threadHandle, NULL);
+            status = NtResumeThread(threadHandle, NULL);
             NtClose(threadHandle);
         }
 

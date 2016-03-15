@@ -107,44 +107,6 @@ PhTerminateProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhSuspendProcess(
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhResumeProcess(
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhTerminateThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ NTSTATUS ExitStatus
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhSuspendThread(
-    _In_ HANDLE ThreadHandle,
-    _Out_opt_ PULONG PreviousSuspendCount
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhResumeThread(
-    _In_ HANDLE ThreadHandle,
-    _Out_opt_ PULONG PreviousSuspendCount
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhGetProcessImageFileName(
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_STRING *FileName
