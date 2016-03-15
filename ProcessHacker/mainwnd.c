@@ -4345,10 +4345,10 @@ VOID PhMwpInitializeProcessMenu(
             Processes[0]->ProcessId
             )))
         {
-            if (NT_SUCCESS(PhOpenProcessToken(
-                &tokenHandle,
+            if (NT_SUCCESS(NtOpenProcessToken(
+                processHandle,
                 TOKEN_QUERY,
-                processHandle
+                &tokenHandle
                 )))
             {
                 PhGetTokenIsVirtualizationAllowed(tokenHandle, &allowed);

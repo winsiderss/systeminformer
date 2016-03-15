@@ -313,10 +313,10 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     context->ProcessId
                     )))
                 {
-                    if (NT_SUCCESS(PhOpenProcessToken(
-                        &tokenHandle,
+                    if (NT_SUCCESS(NtOpenProcessToken(
+                        processHandle,
                         TOKEN_QUERY,
-                        processHandle
+                        &tokenHandle
                         )))
                     {
                         if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
@@ -1083,7 +1083,7 @@ NTSTATUS PhRunAsServiceStart(
 
     // Enable some required privileges.
 
-    if (NT_SUCCESS(PhOpenProcessToken(
+    if (NT_SUCCESS(NtOpenProcessToken(
         &tokenHandle,
         TOKEN_ADJUST_PRIVILEGES,
         NtCurrentProcess()

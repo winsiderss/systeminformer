@@ -270,7 +270,6 @@ EXPORTS
 	PhGetProcessWindowTitle
 	PhGetProcessWorkingSetInformation
 	PhGetProcessWsCounters
-	PhGetThreadContext
 	PhGetTokenGroups
 	PhGetTokenIntegrityLevel
 	PhGetTokenOwner
@@ -282,22 +281,18 @@ EXPORTS
 	PhListenNamedPipe
 	PhOpenKey
 	PhOpenProcess
-	PhOpenProcessToken
 	PhOpenThread
 	PhOpenThreadProcess
-	PhOpenThreadToken
 	PhPeekNamedPipe
 	PhQueryFullAttributesFileWin32
 	PhQueryKey
 	PhQueryValueKey
-	PhReadVirtualMemory
 	PhResolveDevicePrefix
 	PhResumeProcess
 	PhResumeThread
 	PhSetFileSize
 	PhSetObjectSecurity
 	PhSetProcessIoPriority
-	PhSetThreadContext
 	PhSetThreadIoPriority
 	PhSetTokenIsVirtualizationEnabled
 	PhSetTokenPrivilege
@@ -313,7 +308,6 @@ EXPORTS
 	PhUpdateDosDevicePrefixes
 	PhUpdateMupDevicePrefixes
 	PhWaitForNamedPipe
-	PhWriteVirtualMemory
 
 ; phutil
 	PhAdjustRectangleToBounds

@@ -455,7 +455,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
     NTSTATUS status;
     SIZE_T numberOfBytesRead;
 
-    if (NT_SUCCESS(status = PhReadVirtualMemory(
+    if (NT_SUCCESS(status = NtReadVirtualMemory(
         this->ProcessHandle,
         (PVOID)address,
         buffer,
@@ -536,7 +536,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
 
     if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, UlongToHandle(threadID))))
     {
-        status = PhGetThreadContext(threadHandle, &buffer);
+        status = NtGetContextThread(threadHandle, &buffer);
         NtClose(threadHandle);
     }
 

@@ -120,7 +120,7 @@ NTSTATUS PhGetProcessSwitchContext(
     {
         if (WindowsVersion >= WINDOWS_8)
         {
-            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, pShimData)),
                 &data32,
@@ -131,7 +131,7 @@ NTSTATUS PhGetProcessSwitchContext(
         }
         else
         {
-            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, pContextData)),
                 &data32,
@@ -151,7 +151,7 @@ NTSTATUS PhGetProcessSwitchContext(
 
         if (WindowsVersion >= WINDOWS_8)
         {
-            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pShimData)),
                 &data,
@@ -162,7 +162,7 @@ NTSTATUS PhGetProcessSwitchContext(
         }
         else
         {
-            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
                 &data,
@@ -180,7 +180,7 @@ NTSTATUS PhGetProcessSwitchContext(
 
     if (WindowsVersion >= WINDOWS_10)
     {
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(data, 2040 + 24), // Magic value from SbReadProcContextByHandle
             Guid,
@@ -191,7 +191,7 @@ NTSTATUS PhGetProcessSwitchContext(
     }
     else if (WindowsVersion >= WINDOWS_8_1)
     {
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(data, 2040 + 16), // Magic value from SbReadProcContextByHandle
             Guid,
@@ -202,7 +202,7 @@ NTSTATUS PhGetProcessSwitchContext(
     }
     else if (WindowsVersion >= WINDOWS_8)
     {
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(data, 2040), // Magic value from SbReadProcContextByHandle
             Guid,
@@ -213,7 +213,7 @@ NTSTATUS PhGetProcessSwitchContext(
     }
     else
     {
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(data, 32), // Magic value from WdcGetProcessSwitchContext
             Guid,

@@ -2735,10 +2735,10 @@ NTSTATUS PhCreateProcessAsUser(
             )))
             return status;
 
-        status = PhOpenProcessToken(
-            &tokenHandle,
+        status = NtOpenProcessToken(
+            processHandle,
             TOKEN_ALL_ACCESS,
-            processHandle
+            &tokenHandle
             );
         NtClose(processHandle);
 

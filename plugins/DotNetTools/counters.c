@@ -253,7 +253,7 @@ PPH_LIST EnumAppDomainIpcBlock(
         appDomainInfoBlock = (AppDomainInfo*)PhAllocate(appDomainInfoBlockLength);
         memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
-        if (!NT_SUCCESS(PhReadVirtualMemory(
+        if (!NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
             tempBlock.ListOfAppDomains,
             appDomainInfoBlock,
@@ -297,7 +297,7 @@ PPH_LIST EnumAppDomainIpcBlock(
             appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
             memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
 
-            if (!NT_SUCCESS(PhReadVirtualMemory(
+            if (!NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
                 appDomainInfoBlock[i].AppDomainName,
                 appDomainName,
@@ -418,7 +418,7 @@ PPH_LIST EnumAppDomainIpcBlockWow64(
         appDomainInfoBlock = (AppDomainInfo_Wow64*)PhAllocate(appDomainInfoBlockLength);
         memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
-        if (!NT_SUCCESS(PhReadVirtualMemory(
+        if (!NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(tempBlock.ListOfAppDomains),
             appDomainInfoBlock,
@@ -462,7 +462,7 @@ PPH_LIST EnumAppDomainIpcBlockWow64(
             appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
             memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
 
-            if (!NT_SUCCESS(PhReadVirtualMemory(
+            if (!NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
                 UlongToPtr(appDomainInfoBlock[i].AppDomainName),
                 appDomainName,

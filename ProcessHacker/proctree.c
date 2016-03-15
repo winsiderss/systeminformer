@@ -948,10 +948,10 @@ static VOID PhpUpdateProcessNodeToken(
 
         if (WINDOWS_HAS_UAC && ProcessNode->ProcessItem->QueryHandle)
         {
-            if (NT_SUCCESS(PhOpenProcessToken(
-                &tokenHandle,
+            if (NT_SUCCESS(NtOpenProcessToken(
+                ProcessNode->ProcessItem->QueryHandle,
                 TOKEN_QUERY,
-                ProcessNode->ProcessItem->QueryHandle
+                &tokenHandle
                 )))
             {
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &ProcessNode->VirtualizationAllowed)) &&
@@ -1051,7 +1051,7 @@ static VOID PhpUpdateProcessNodeImage(
         {
             if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
             {
-                if (NT_SUCCESS(PhReadVirtualMemory(
+                if (NT_SUCCESS(NtReadVirtualMemory(
                     processHandle,
                     PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageBaseAddress)),
                     &imageBaseAddress,

@@ -122,7 +122,7 @@ static VOID PhpRefreshProcessList(
             if (!WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID && process->UniqueProcessId != SYSTEM_PROCESS_ID)
                 PhGetProcessImageFileName(processHandle, &fileName);
 
-            if (NT_SUCCESS(PhOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandle)))
+            if (NT_SUCCESS(NtOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             {
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
                 {

@@ -285,16 +285,16 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         {
             PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, TRUE, PebRegion);
 
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                 PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, NumberOfHeaps)),
                 &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
             {
                 processHeaps = PhAllocate(numberOfHeaps * sizeof(PVOID));
 
-                if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                     PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessHeaps)),
                     &processHeapsPtr, sizeof(PVOID), NULL)) &&
-                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                     processHeapsPtr,
                     processHeaps, numberOfHeaps * sizeof(PVOID), NULL)))
                 {
@@ -315,16 +315,16 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             isWow64 = TRUE;
             PhpSetMemoryRegionType(List, peb32, TRUE, Peb32Region);
 
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                 PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, NumberOfHeaps)),
                 &numberOfHeaps, sizeof(ULONG), NULL)) && numberOfHeaps < MAX_HEAPS)
             {
                 processHeaps32 = PhAllocate(numberOfHeaps * sizeof(ULONG));
 
-                if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                     PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessHeaps)),
                     &processHeapsPtr32, sizeof(ULONG), NULL)) &&
-                    NT_SUCCESS(PhReadVirtualMemory(ProcessHandle,
+                    NT_SUCCESS(NtReadVirtualMemory(ProcessHandle,
                     UlongToPtr(processHeapsPtr32),
                     processHeaps32, numberOfHeaps * sizeof(ULONG), NULL)))
                 {
@@ -368,7 +368,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             if (memoryItem = PhpSetMemoryRegionType(List, thread->TebBase, TRUE, TebRegion))
                 memoryItem->u.Teb.ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
 
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, thread->TebBase, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
                 bytesRead == sizeof(NT_TIB))
             {
                 if ((ULONG_PTR)ntTib.StackLimit < (ULONG_PTR)ntTib.StackBase)
@@ -386,7 +386,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     // 64-bit and 32-bit TEBs usually share the same memory region, so don't do anything for the 32-bit
                     // TEB.
 
-                    if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, UlongToPtr(teb32), &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
+                    if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, UlongToPtr(teb32), &ntTib32, sizeof(NT_TIB32), &bytesRead)) &&
                         bytesRead == sizeof(NT_TIB32))
                     {
                         if (ntTib32.StackLimit < ntTib32.StackBase)
@@ -430,7 +430,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         {
             UCHAR buffer[HEAP_SEGMENT_MAX_SIZE];
 
-            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress,
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress,
                 buffer, sizeof(buffer), NULL)))
             {
                 PVOID candidateHeap = NULL;

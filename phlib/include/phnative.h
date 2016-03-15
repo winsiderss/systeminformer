@@ -81,25 +81,6 @@ PhOpenThreadProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhOpenProcessToken(
-    _Out_ PHANDLE TokenHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhOpenThreadToken(
-    _Out_ PHANDLE TokenHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ThreadHandle,
-    _In_ BOOLEAN OpenAsSelf
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhGetObjectSecurity(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -159,44 +140,6 @@ NTAPI
 PhResumeThread(
     _In_ HANDLE ThreadHandle,
     _Out_opt_ PULONG PreviousSuspendCount
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetThreadContext(
-    _In_ HANDLE ThreadHandle,
-    _Inout_ PCONTEXT Context
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhSetThreadContext(
-    _In_ HANDLE ThreadHandle,
-    _In_ PCONTEXT Context
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhReadVirtualMemory(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
-    _Out_opt_ PSIZE_T NumberOfBytesRead
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhWriteVirtualMemory(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
-    _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
 PHLIBAPI

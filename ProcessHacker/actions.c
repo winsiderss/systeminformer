@@ -1582,14 +1582,13 @@ BOOLEAN PhUiSetVirtualizationProcess(
         Process->ProcessId
         )))
     {
-        if (NT_SUCCESS(status = PhOpenProcessToken(
-            &tokenHandle,
+        if (NT_SUCCESS(status = NtOpenProcessToken(
+            processHandle,
             TOKEN_WRITE,
-            processHandle
+            &tokenHandle
             )))
         {
             status = PhSetTokenIsVirtualizationEnabled(tokenHandle, Enable);
-
             NtClose(tokenHandle);
         }
 

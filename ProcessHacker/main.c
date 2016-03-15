@@ -992,10 +992,10 @@ VOID PhpEnablePrivileges(
 {
     HANDLE tokenHandle;
 
-    if (NT_SUCCESS(PhOpenProcessToken(
-        &tokenHandle,
+    if (NT_SUCCESS(NtOpenProcessToken(
+        NtCurrentProcess(),
         TOKEN_ADJUST_PRIVILEGES,
-        NtCurrentProcess()
+        &tokenHandle
         )))
     {
         CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 8];

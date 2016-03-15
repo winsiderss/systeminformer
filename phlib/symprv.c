@@ -991,7 +991,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
 
     // Find the function table entry for this address.
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
         ProcessHandle,
         tableListHead,
         &tableListHeadEntry,
@@ -1007,7 +1007,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     {
         functionTableAddress = CONTAINING_RECORD(tableListEntry, DYNAMIC_FUNCTION_TABLE, ListEntry);
 
-        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
             functionTableAddress,
             &functionTable,
@@ -1026,7 +1026,7 @@ NTSTATUS PhpLookupDynamicFunctionTable(
                     // just have to read as much as possible.
 
                     memset(OutOfProcessCallbackDllBuffer, 0xff, OutOfProcessCallbackDllBufferSize);
-                    status = PhReadVirtualMemory(
+                    status = NtReadVirtualMemory(
                         ProcessHandle,
                         functionTable.OutOfProcessCallbackDll,
                         OutOfProcessCallbackDllBuffer,
@@ -1214,7 +1214,7 @@ NTSTATUS PhpAccessNormalFunctionTable(
     if (!functions)
         return STATUS_NO_MEMORY;
 
-    status = PhReadVirtualMemory(ProcessHandle, FunctionTable->FunctionTable, functions, bufferSize, NULL);
+    status = NtReadVirtualMemory(ProcessHandle, FunctionTable->FunctionTable, functions, bufferSize, NULL);
 
     if (NT_SUCCESS(status))
     {
@@ -1615,7 +1615,7 @@ NTSTATUS PhWalkThreadStack(
 
         context.ContextFlags = CONTEXT_ALL;
 
-        if (!NT_SUCCESS(status = PhGetThreadContext(
+        if (!NT_SUCCESS(status = NtGetContextThread(
             ThreadHandle,
             &context
             )))
@@ -1671,7 +1671,7 @@ SkipAmd64Stack:
 
         context.ContextFlags = CONTEXT_ALL;
 
-        if (!NT_SUCCESS(status = PhGetThreadContext(
+        if (!NT_SUCCESS(status = NtGetContextThread(
             ThreadHandle,
             &context
             )))

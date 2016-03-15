@@ -89,7 +89,7 @@ BOOLEAN EtpRefreshUnloadedDlls(
     // Since ntdll is loaded at the same base address across all processes,
     // we can read the information in.
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
         processHandle,
         elementSize,
         &capturedElementSize,
@@ -98,7 +98,7 @@ BOOLEAN EtpRefreshUnloadedDlls(
         )))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
         processHandle,
         elementCount,
         &capturedElementCount,
@@ -107,7 +107,7 @@ BOOLEAN EtpRefreshUnloadedDlls(
         )))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
         processHandle,
         eventTrace,
         &capturedEventTracePointer,
@@ -132,7 +132,7 @@ BOOLEAN EtpRefreshUnloadedDlls(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
         processHandle,
         capturedEventTracePointer,
         capturedEventTrace,

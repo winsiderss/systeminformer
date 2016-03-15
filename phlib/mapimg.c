@@ -452,7 +452,7 @@ NTSTATUS PhLoadRemoteMappedImage(
 
     RemoteMappedImage->ViewBase = ViewBase;
 
-    status = PhReadVirtualMemory(
+    status = NtReadVirtualMemory(
         ProcessHandle,
         ViewBase,
         &dosHeader,
@@ -475,7 +475,7 @@ NTSTATUS PhLoadRemoteMappedImage(
     if (ntHeadersOffset == 0 || ntHeadersOffset >= 0x10000000)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    status = PhReadVirtualMemory(
+    status = NtReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
         &ntHeaders,
@@ -511,7 +511,7 @@ NTSTATUS PhLoadRemoteMappedImage(
 
     RemoteMappedImage->NtHeaders = PhAllocate(ntHeadersSize);
 
-    status = PhReadVirtualMemory(
+    status = NtReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
         RemoteMappedImage->NtHeaders,

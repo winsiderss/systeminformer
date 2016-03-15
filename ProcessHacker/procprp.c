@@ -2075,11 +2075,11 @@ VOID PhpInitializeThreadMenu(
             {
                 HANDLE tokenHandle;
 
-                if (NT_SUCCESS(PhOpenThreadToken(
-                    &tokenHandle,
-                    TOKEN_QUERY,
+                if (NT_SUCCESS(NtOpenThreadToken(
                     threadHandle,
-                    TRUE
+                    TOKEN_QUERY,
+                    TRUE,
+                    &tokenHandle
                     )))
                 {
                     PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, TRUE);
@@ -2200,11 +2200,11 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     _In_opt_ PVOID Context
     )
 {
-    return PhOpenThreadToken(
-        Handle,
-        DesiredAccess,
+    return NtOpenThreadToken(
         (HANDLE)Context,
-        TRUE
+        DesiredAccess,
+        TRUE,
+        Handle
         );
 }
 
@@ -3027,7 +3027,7 @@ static NTSTATUS NTAPI PhpOpenProcessToken(
         )))
         return status;
 
-    status = PhOpenProcessToken(Handle, DesiredAccess, processHandle);
+    status = NtOpenProcessToken(processHandle, DesiredAccess, Handle);
     NtClose(processHandle);
 
     return status;
@@ -3937,7 +3937,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                                     for (offset = 0; offset < memoryItem->RegionSize; offset += PAGE_SIZE)
                                     {
-                                        if (NT_SUCCESS(PhReadVirtualMemory(
+                                        if (NT_SUCCESS(NtReadVirtualMemory(
                                             processHandle,
                                             PTR_ADD_OFFSET(memoryItem->BaseAddress, offset),
                                             buffer,

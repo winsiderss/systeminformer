@@ -223,7 +223,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 return TRUE;
             }
 
-            if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 context->ProcessHandle,
                 context->BaseAddress,
                 context->Buffer,
@@ -457,7 +457,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         context->WriteAccess = TRUE;
                     }
 
-                    if (!NT_SUCCESS(status = PhWriteVirtualMemory(
+                    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
                         context->ProcessHandle,
                         context->BaseAddress,
                         context->Buffer,
@@ -473,7 +473,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 {
                     NTSTATUS status;
 
-                    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+                    if (!NT_SUCCESS(status = NtReadVirtualMemory(
                         context->ProcessHandle,
                         context->BaseAddress,
                         context->Buffer,
