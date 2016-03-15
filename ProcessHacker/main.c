@@ -539,7 +539,7 @@ VOID PhInitializeKph(
     parameters.SecurityLevel = KphSecurityPrivilegeCheck;
     parameters.CreateDynamicConfiguration = TRUE;
 
-    KphConnect2Ex(L"KProcessHacker2", kprocesshackerFileName->Buffer, &parameters);
+    KphConnect2Ex(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
     PhDereferenceObject(kprocesshackerFileName);
 }
 
@@ -945,7 +945,7 @@ VOID PhpProcessStartupParameters(
         parameters.SecurityLevel = KphSecurityNone;
         parameters.CreateDynamicConfiguration = TRUE;
 
-        status = KphInstallEx(L"KProcessHacker2", kprocesshackerFileName->Buffer, &parameters);
+        status = KphInstallEx(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to install KProcessHacker", status, 0);
@@ -957,7 +957,7 @@ VOID PhpProcessStartupParameters(
     {
         NTSTATUS status;
 
-        status = KphUninstall(L"KProcessHacker2");
+        status = KphUninstall(KPH_DEVICE_SHORT_NAME);
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to uninstall KProcessHacker", status, 0);

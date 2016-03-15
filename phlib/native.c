@@ -114,31 +114,32 @@ NTSTATUS PhOpenProcess(
     _In_ HANDLE ProcessId
     )
 {
+    NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
 
-    if (KphIsConnected())
-    {
-        return KphOpenProcess(
-            ProcessHandle,
-            DesiredAccess,
-            &clientId
-            );
-    }
-    else
-    {
-        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
 
-        return NtOpenProcess(
+    status = NtOpenProcess(
+        ProcessHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &clientId
+        );
+
+    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
+    {
+        status = KphOpenProcess(
             ProcessHandle,
             DesiredAccess,
-            &objectAttributes,
             &clientId
             );
     }
+
+    return status;
 }
 
 /** Limited API for untrusted/external code. */
@@ -151,10 +152,9 @@ NTSTATUS PhOpenProcessPublic(
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
-
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
 
     return NtOpenProcess(
         ProcessHandle,
@@ -177,31 +177,31 @@ NTSTATUS PhOpenThread(
     _In_ HANDLE ThreadId
     )
 {
+    NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
 
-    if (KphIsConnected())
-    {
-        return KphOpenThread(
-            ThreadHandle,
-            DesiredAccess,
-            &clientId
-            );
-    }
-    else
-    {
-        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    status = NtOpenThread(
+        ThreadHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &clientId
+        );
 
-        return NtOpenThread(
+    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
+    {
+        status = KphOpenThread(
             ThreadHandle,
             DesiredAccess,
-            &objectAttributes,
             &clientId
             );
     }
+
+    return status;
 }
 
 /** Limited API for untrusted/external code. */

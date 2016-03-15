@@ -116,7 +116,7 @@ NTSTATUS KpiQueryInformationDriver(
             }
             break;
 
-            // The name of the driver - e.g. \Driver\KProcessHacker2.
+            // The name of the driver - e.g. \Driver\Null.
             case DriverNameInformation:
             {
                 if (DriverInformation)

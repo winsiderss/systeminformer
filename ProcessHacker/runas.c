@@ -1084,9 +1084,9 @@ NTSTATUS PhRunAsServiceStart(
     // Enable some required privileges.
 
     if (NT_SUCCESS(NtOpenProcessToken(
-        &tokenHandle,
+        NtCurrentProcess(),
         TOKEN_ADJUST_PRIVILEGES,
-        NtCurrentProcess()
+        &tokenHandle
         )))
     {
         PhSetTokenPrivilege(tokenHandle, L"SeAssignPrimaryTokenPrivilege", NULL, SE_PRIVILEGE_ENABLED);

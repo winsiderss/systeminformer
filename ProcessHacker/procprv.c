@@ -1390,7 +1390,7 @@ VOID PhpFillProcessItem(
     {
         HANDLE tokenHandle;
 
-        status = NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandle);
+        status = NtOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
 
         if (NT_SUCCESS(status))
         {
