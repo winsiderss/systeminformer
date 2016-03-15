@@ -8,6 +8,8 @@ TARGETNAME=kprocesshacker
 TARGETPATH=..\bin
 !ENDIF
 
+TARGETLIBS=$(TARGETLIBS) $(DDK_LIB_PATH)\ksecdd.lib
+
 INCLUDES=$(DDK_INC_PATH);..\include;..\..\phnt\include;..\..\phlib\include
 LIBS=%BUILD%\lib
 

@@ -280,8 +280,8 @@ EXPORTS
 	PhInjectDllProcess
 	PhListenNamedPipe
 	PhOpenKey
-	PhOpenProcess
-	PhOpenThread
+	PhOpenProcess = PhOpenProcessPublic
+	PhOpenThread = PhOpenThreadPublic
 	PhOpenThreadProcess
 	PhPeekNamedPipe
 	PhQueryFullAttributesFileWin32
@@ -296,7 +296,7 @@ EXPORTS
 	PhSetTokenPrivilege
 	PhSetTokenPrivilege2
 	PhSetTokenSessionId
-	PhTerminateProcess
+	PhTerminateProcess = PhTerminateProcessPublic
 	PhTransceiveNamedPipe
 	PhUnloadDllProcess
 	PhUnloadDriver

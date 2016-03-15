@@ -55,50 +55,6 @@ BOOLEAN NTAPI PhpCommandModeOptionCallback(
     return TRUE;
 }
 
-static NTSTATUS PhpNormalOpenProcess(
-    _Out_ PHANDLE ProcessHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ProcessId
-    )
-{
-    OBJECT_ATTRIBUTES objectAttributes;
-    CLIENT_ID clientId;
-
-    clientId.UniqueProcess = ProcessId;
-    clientId.UniqueThread = NULL;
-
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
-
-    return NtOpenProcess(
-        ProcessHandle,
-        DesiredAccess,
-        &objectAttributes,
-        &clientId
-        );
-}
-
-static NTSTATUS PhpNormalOpenThread(
-    _Out_ PHANDLE ThreadHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ThreadId
-    )
-{
-    OBJECT_ATTRIBUTES objectAttributes;
-    CLIENT_ID clientId;
-
-    clientId.UniqueProcess = NULL;
-    clientId.UniqueThread = ThreadId;
-
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
-
-    return NtOpenThread(
-        ThreadHandle,
-        DesiredAccess,
-        &objectAttributes,
-        &clientId
-        );
-}
-
 NTSTATUS PhCommandModeStart(
     VOID
     )
@@ -168,7 +124,7 @@ NTSTATUS PhCommandModeStart(
 
         if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
         {
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
+            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_TERMINATE, processId)))
             {
                 status = NtTerminateProcess(processHandle, STATUS_SUCCESS);
                 NtClose(processHandle);
@@ -176,7 +132,7 @@ NTSTATUS PhCommandModeStart(
         }
         else if (PhEqualString2(PhStartupParameters.CommandAction, L"suspend", TRUE))
         {
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
             {
                 status = NtSuspendProcess(processHandle);
                 NtClose(processHandle);
@@ -184,7 +140,7 @@ NTSTATUS PhCommandModeStart(
         }
         else if (PhEqualString2(PhStartupParameters.CommandAction, L"resume", TRUE))
         {
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
             {
                 status = NtResumeProcess(processHandle);
                 NtClose(processHandle);
@@ -212,7 +168,7 @@ NTSTATUS PhCommandModeStart(
             else
                 return STATUS_INVALID_PARAMETER;
 
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 PROCESS_PRIORITY_CLASS priorityClass;
                 priorityClass.Foreground = FALSE;
@@ -239,7 +195,7 @@ NTSTATUS PhCommandModeStart(
             else
                 return STATUS_INVALID_PARAMETER;
 
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 status = PhSetProcessIoPriority(processHandle, ioPriority);
                 NtClose(processHandle);
@@ -256,7 +212,7 @@ NTSTATUS PhCommandModeStart(
             PhStringToInteger64(&PhStartupParameters.CommandValue->sr, 10, &pagePriority64);
             pagePriority = (ULONG)pagePriority64;
 
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 status = NtSetInformationProcess(
                     processHandle,
@@ -272,7 +228,7 @@ NTSTATUS PhCommandModeStart(
             if (!PhStartupParameters.CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(
+            if (NT_SUCCESS(status = PhOpenProcessPublic(
                 &processHandle,
                 ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
                 processId
@@ -294,7 +250,7 @@ NTSTATUS PhCommandModeStart(
             if (!PhStartupParameters.CommandValue)
                 return STATUS_INVALID_PARAMETER;
 
-            if (NT_SUCCESS(status = PhpNormalOpenProcess(
+            if (NT_SUCCESS(status = PhOpenProcessPublic(
                 &processHandle,
                 ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
                 processId
@@ -412,7 +368,7 @@ NTSTATUS PhCommandModeStart(
 
         if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
         {
-            if (NT_SUCCESS(status = PhpNormalOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
+            if (NT_SUCCESS(status = PhOpenThreadPublic(&threadHandle, THREAD_TERMINATE, threadId)))
             {
                 status = NtTerminateThread(threadHandle, STATUS_SUCCESS);
                 NtClose(threadHandle);
@@ -420,7 +376,7 @@ NTSTATUS PhCommandModeStart(
         }
         else if (PhEqualString2(PhStartupParameters.CommandAction, L"suspend", TRUE))
         {
-            if (NT_SUCCESS(status = PhpNormalOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+            if (NT_SUCCESS(status = PhOpenThreadPublic(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
             {
                 status = NtSuspendThread(threadHandle, NULL);
                 NtClose(threadHandle);
@@ -428,7 +384,7 @@ NTSTATUS PhCommandModeStart(
         }
         else if (PhEqualString2(PhStartupParameters.CommandAction, L"resume", TRUE))
         {
-            if (NT_SUCCESS(status = PhpNormalOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+            if (NT_SUCCESS(status = PhOpenThreadPublic(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
             {
                 status = NtResumeThread(threadHandle, NULL);
                 NtClose(threadHandle);

@@ -120,6 +120,12 @@ plugins/SamplePlugin/bin/Release32/*
 plugins/SamplePlugin/bin/Release64/*
 !plugins/SamplePlugin/bin/Release64/SamplePlugin.dll
 
+!tools/CustomSignTool/bin/
+tools/CustomSignTool/bin/Debug*/
+tools/CustomSignTool/bin/Release*/*
+!tools/CustomSignTool/bin/Release32/CustomSignTool.exe
+!tools/CustomSignTool/bin/Release64/CustomSignTool.exe
+
 !tools/fixlib/bin/
 tools/fixlib/bin/Debug/
 tools/fixlib/bin/Release/*

@@ -141,6 +141,29 @@ NTSTATUS PhOpenProcess(
     }
 }
 
+/** Limited API for untrusted/external code. */
+NTSTATUS PhOpenProcessPublic(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId
+    )
+{
+    OBJECT_ATTRIBUTES objectAttributes;
+    CLIENT_ID clientId;
+
+    clientId.UniqueProcess = ProcessId;
+    clientId.UniqueThread = NULL;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+
+    return NtOpenProcess(
+        ProcessHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &clientId
+        );
+}
+
 /**
  * Opens a thread.
  *
@@ -179,6 +202,29 @@ NTSTATUS PhOpenThread(
             &clientId
             );
     }
+}
+
+/** Limited API for untrusted/external code. */
+NTSTATUS PhOpenThreadPublic(
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ThreadId
+    )
+{
+    OBJECT_ATTRIBUTES objectAttributes;
+    CLIENT_ID clientId;
+
+    clientId.UniqueProcess = NULL;
+    clientId.UniqueThread = ThreadId;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+
+    return NtOpenThread(
+        ThreadHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &clientId
+        );
 }
 
 NTSTATUS PhOpenThreadProcess(
@@ -301,6 +347,18 @@ NTSTATUS PhTerminateProcess(
             return status;
     }
 
+    return NtTerminateProcess(
+        ProcessHandle,
+        ExitStatus
+        );
+}
+
+/** Limited API for untrusted/external code. */
+NTSTATUS PhTerminateProcessPublic(
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus
+    )
+{
     return NtTerminateProcess(
         ProcessHandle,
         ExitStatus
