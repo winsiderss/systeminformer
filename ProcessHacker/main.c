@@ -992,7 +992,7 @@ VOID PhpProcessStartupParameters(
 
         kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, L"\\kprocesshacker.sys");
 
-        parameters.SecurityLevel = KphSecurityNone;
+        parameters.SecurityLevel = KphSecuritySignatureCheck;
         parameters.CreateDynamicConfiguration = TRUE;
 
         status = KphInstallEx(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
