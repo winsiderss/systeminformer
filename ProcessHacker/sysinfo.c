@@ -3714,8 +3714,16 @@ VOID PhSipUpdateMemoryPanel(
         SIZE_T nonPaged;
 
         PhSipGetPoolLimits(&paged, &nonPaged);
-        pagedLimit = PhaFormatSize(paged, -1)->Buffer;
-        nonPagedLimit = PhaFormatSize(nonPaged, -1)->Buffer;
+        
+        if (paged != -1)
+            pagedLimit = PhaFormatSize(paged, -1)->Buffer;
+        else
+            pagedLimit = L"N/A";
+
+        if (nonPaged != -1)
+            nonPagedLimit = PhaFormatSize(nonPaged, -1)->Buffer;
+        else
+            nonPagedLimit = L"N/A";
     }
     else
     {
@@ -3876,10 +3884,10 @@ VOID PhSipGetPoolLimits(
     _Out_ PSIZE_T NonPaged
     )
 {
-    SIZE_T paged = 0;
-    SIZE_T nonPaged = 0;
+    SIZE_T paged = -1;
+    SIZE_T nonPaged = -1;
 
-    if (MmSizeOfPagedPoolInBytes)
+    if (MmSizeOfPagedPoolInBytes && WindowsVersion < WINDOWS_8)
     {
         KphReadVirtualMemoryUnsafe(
             NtCurrentProcess(),
