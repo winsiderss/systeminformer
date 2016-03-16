@@ -496,7 +496,6 @@ NTSTATUS KphOpenProcess(
     _In_ PCLIENT_ID ClientId
     )
 {
-    
     KPH_OPEN_PROCESS_INPUT input = { ProcessHandle, DesiredAccess, ClientId, 0 };
 
     if ((DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
