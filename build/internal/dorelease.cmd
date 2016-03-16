@@ -41,13 +41,20 @@ if "%SIGN%" == "1" (
     call %1\build\internal\sign.cmd %1\bin\Release64\peview.exe
 )
 
+if exist "%KPH_PRIVATE_KEY%". (
+    %1\tools\CustomSignTool\bin\Release32\CustomSignTool.exe sign -k "%KPH_PRIVATE_KEY%" -s %1\bin\Release32\ProcessHacker.sig %1\bin\Release32\ProcessHacker.exe
+    %1\tools\CustomSignTool\bin\Release32\CustomSignTool.exe sign -k "%KPH_PRIVATE_KEY%" -s %1\bin\Release64\ProcessHacker.sig %1\bin\Release64\ProcessHacker.exe
+)
+
 mkdir %2\bin\x86
 copy %1\bin\Release32\ProcessHacker.exe %2\bin\x86\
+copy %1\bin\Release32\ProcessHacker.sig %2\bin\x86\
 copy %1\KProcessHacker\bin-signed\i386\kprocesshacker.sys %2\bin\x86\
 copy %1\bin\Release32\peview.exe %2\bin\x86\
 
 mkdir %2\bin\x64
 copy %1\bin\Release64\ProcessHacker.exe %2\bin\x64\
+copy %1\bin\Release64\ProcessHacker.sig %2\bin\x64\
 copy %1\KProcessHacker\bin-signed\amd64\kprocesshacker.sys %2\bin\x64\
 copy %1\bin\Release64\peview.exe %2\bin\x64\
 

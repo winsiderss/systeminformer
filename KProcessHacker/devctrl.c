@@ -28,6 +28,8 @@ NTSTATUS KphDispatchDeviceControl(
 {
     NTSTATUS status;
     PIO_STACK_LOCATION stackLocation;
+    PFILE_OBJECT fileObject;
+    PKPH_CLIENT client;
     PVOID originalInput;
     ULONG inputLength;
     ULONG ioControlCode;
@@ -48,10 +50,30 @@ NTSTATUS KphDispatchDeviceControl(
     } while (0)
 
     stackLocation = IoGetCurrentIrpStackLocation(Irp);
+    fileObject = stackLocation->FileObject;
+    client = fileObject->FsContext;
+
     originalInput = stackLocation->Parameters.DeviceIoControl.Type3InputBuffer;
     inputLength = stackLocation->Parameters.DeviceIoControl.InputBufferLength;
     ioControlCode = stackLocation->Parameters.DeviceIoControl.IoControlCode;
     accessMode = Irp->RequestorMode;
+
+    // Make sure we have a client object.
+    if (!client)
+    {
+        status = STATUS_INTERNAL_ERROR;
+        goto ControlEnd;
+    }
+
+    // Enforce signature requirement if necessary.
+    if ((ioControlCode != KPH_GETFEATURES && ioControlCode != KPH_VERIFYCLIENT) &&
+        (KphParameters.SecurityLevel == KphSecuritySignatureCheck ||
+            KphParameters.SecurityLevel == KphSecuritySignatureAndPrivilegeCheck) &&
+        !client->VerificationSucceeded)
+    {
+        status = STATUS_ACCESS_DENIED;
+        goto ControlEnd;
+    }
 
     // Make sure we actually have input if the input length is non-zero.
     if (inputLength != 0 && !originalInput)
@@ -107,6 +129,55 @@ NTSTATUS KphDispatchDeviceControl(
                 );
         }
         break;
+    case KPH_VERIFYCLIENT:
+        {
+            struct
+            {
+                PVOID CodeAddress;
+                PVOID Signature;
+                ULONG SignatureSize;
+            } *input = capturedInputPointer;
+
+            VERIFY_INPUT_LENGTH;
+            
+            if (accessMode == UserMode)
+            {
+                status = KpiVerifyClient(
+                    input->CodeAddress,
+                    input->Signature,
+                    input->SignatureSize,
+                    client
+                    );
+            }
+            else
+            {
+                status = STATUS_UNSUCCESSFUL;
+            }
+        }
+        break;
+    case KPH_RETRIEVEKEY:
+        {
+            struct
+            {
+                KPH_KEY_LEVEL KeyLevel;
+            } *input = capturedInputPointer;
+
+            VERIFY_INPUT_LENGTH;
+
+            if (accessMode == UserMode)
+            {
+                status = KphRetrieveKeyViaApc(
+                    client,
+                    input->KeyLevel,
+                    Irp
+                    );
+            }
+            else
+            {
+                status = STATUS_UNSUCCESSFUL;
+            }
+        }
+        break;
     case KPH_OPENPROCESS:
         {
             struct
@@ -114,7 +185,7 @@ NTSTATUS KphDispatchDeviceControl(
                 PHANDLE ProcessHandle;
                 ACCESS_MASK DesiredAccess;
                 PCLIENT_ID ClientId;
-                ULONGLONG Key;
+                KPH_KEY Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -124,6 +195,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->DesiredAccess,
                 input->ClientId,
                 input->Key,
+                client,
                 accessMode
                 );
         }
@@ -153,7 +225,7 @@ NTSTATUS KphDispatchDeviceControl(
             {
                 HANDLE ProcessHandle;
                 NTSTATUS ExitStatus;
-                ULONGLONG Key;
+                KPH_KEY Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -162,6 +234,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->ProcessHandle,
                 input->ExitStatus,
                 input->Key,
+                client,
                 accessMode
                 );
         }
@@ -175,7 +248,7 @@ NTSTATUS KphDispatchDeviceControl(
                 PVOID Buffer;
                 SIZE_T BufferSize;
                 PSIZE_T NumberOfBytesRead;
-                ULONGLONG Key;
+                KPH_KEY Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -187,6 +260,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->BufferSize,
                 input->NumberOfBytesRead,
                 input->Key,
+                client,
                 accessMode
                 );
         }
@@ -242,7 +316,7 @@ NTSTATUS KphDispatchDeviceControl(
                 PHANDLE ThreadHandle;
                 ACCESS_MASK DesiredAccess;
                 PCLIENT_ID ClientId;
-                ULONGLONG Key;
+                KPH_KEY Key;
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
@@ -252,6 +326,7 @@ NTSTATUS KphDispatchDeviceControl(
                 input->DesiredAccess,
                 input->ClientId,
                 input->Key,
+                client,
                 accessMode
                 );
         }

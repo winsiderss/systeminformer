@@ -155,7 +155,9 @@ Source: ..\..\LICENSE.txt;                                        DestDir: {app}
 Source: ..\..\README.md;                                          DestDir: {app};     DestName: README.txt;                          Flags: ignoreversion
 
 Source: ..\..\bin\Release32\ProcessHacker.exe;                    DestDir: {app};                                                    Flags: ignoreversion; Check: not Is64BitInstallMode()
+Source: ..\..\bin\Release32\ProcessHacker.sig;                    DestDir: {app};                                                    Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\ProcessHacker.exe;                    DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\bin\Release64\ProcessHacker.sig;                    DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\ProcessHacker.exe;                    DestDir: {app}\x86;                                                Flags: ignoreversion; Check: Is64BitInstallMode()
 
 Source: ..\..\KProcessHacker\bin-signed\i386\kprocesshacker.sys;  DestDir: {app};                                                    Flags: ignoreversion; Check: not Is64BitInstallMode()

@@ -27,11 +27,6 @@
 #pragma alloc_text(PAGE, KphDynamicImport)
 #endif
 
-_ExfUnblockPushLock ExfUnblockPushLock_I;
-_ObGetObjectType ObGetObjectType_I;
-_PsAcquireProcessExitSynchronization PsAcquireProcessExitSynchronization_I;
-_PsReleaseProcessExitSynchronization PsReleaseProcessExitSynchronization_I;
-
 /**
  * Dynamically imports routines.
  */
@@ -40,17 +35,7 @@ VOID KphDynamicImport(
     )
 {
     PAGED_CODE();
-
-    if (KphDynNtVersion >= PHNT_WIN8)
-        ExfUnblockPushLock_I = KphGetSystemRoutineAddress(L"ExfUnblockPushLock");
-    ObGetObjectType_I = KphGetSystemRoutineAddress(L"ObGetObjectType");
-    PsAcquireProcessExitSynchronization_I = KphGetSystemRoutineAddress(L"PsAcquireProcessExitSynchronization");
-    PsReleaseProcessExitSynchronization_I = KphGetSystemRoutineAddress(L"PsReleaseProcessExitSynchronization");
-
-    dprintf("ExfUnblockPushLock: 0x%Ix\n", ExfUnblockPushLock_I);
-    dprintf("ObGetObjectType: 0x%Ix\n", ObGetObjectType_I);
-    dprintf("PsAcquireProcessExitSynchronization: 0x%Ix\n", PsAcquireProcessExitSynchronization_I);
-    dprintf("PsReleaseProcessExitSynchronization: 0x%Ix\n", PsReleaseProcessExitSynchronization_I);
+    NOTHING;
 }
 
 /**

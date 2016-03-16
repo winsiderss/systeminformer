@@ -72,13 +72,15 @@ NTSTATUS KpiOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     CLIENT_ID clientId;
     PETHREAD thread;
+    KPH_KEY_LEVEL requiredKeyLevel;
     HANDLE threadHandle;
 
     PAGED_CODE();
@@ -114,16 +116,26 @@ NTSTATUS KpiOpenThread(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Always open in KernelMode to skip access checks.
-    status = ObOpenObjectByPointer(
-        thread,
-        0,
-        NULL,
-        DesiredAccess,
-        *PsThreadType,
-        KernelMode,
-        &threadHandle
-        );
+
+    requiredKeyLevel = KphKeyLevel1;
+
+    if ((DesiredAccess & KPH_THREAD_READ_ACCESS) != DesiredAccess)
+        requiredKeyLevel = KphKeyLevel2;
+
+    if (NT_SUCCESS(status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode)))
+    {
+        // Always open in KernelMode to skip access checks.
+        status = ObOpenObjectByPointer(
+            thread,
+            0,
+            NULL,
+            DesiredAccess,
+            *PsThreadType,
+            KernelMode,
+            &threadHandle
+            );
+    }
+
     ObDereferenceObject(thread);
 
     if (NT_SUCCESS(status))

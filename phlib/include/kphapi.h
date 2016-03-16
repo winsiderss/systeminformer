@@ -124,6 +124,8 @@ typedef enum _KPH_SECURITY_LEVEL
 {
     KphSecurityNone = 0, // all clients are allowed
     KphSecurityPrivilegeCheck = 1, // require SeDebugPrivilege
+    KphSecuritySignatureCheck = 2, // require trusted signature
+    KphSecuritySignatureAndPrivilegeCheck = 3, // require trusted signature and SeDebugPrivilege
     KphMaxSecurityLevel
 } KPH_SECURITY_LEVEL, *PKPH_SECURITY_LEVEL;
 
@@ -133,7 +135,7 @@ typedef struct _KPH_DYN_STRUCT_DATA
     SHORT EpObjectTable;
     SHORT Reserved0;
     SHORT Reserved1;
-    SHORT EpRundownProtect;
+    SHORT Reserved2;
     SHORT EreGuidEntry;
     SHORT HtHandleContentionEvent;
     SHORT OtName;
@@ -152,7 +154,7 @@ typedef struct _KPH_DYN_PACKAGE
     KPH_DYN_STRUCT_DATA StructData;
 } KPH_DYN_PACKAGE, *PKPH_DYN_PACKAGE;
 
-#define KPH_DYN_CONFIGURATION_VERSION 2
+#define KPH_DYN_CONFIGURATION_VERSION 3
 #define KPH_DYN_MAXIMUM_PACKAGES 64
 
 typedef struct _KPH_DYN_CONFIGURATION
@@ -171,8 +173,17 @@ typedef struct _KPH_DYN_CONFIGURATION
 #define KPH_BLOB_PUBLIC BCRYPT_ECCPUBLIC_BLOB
 #endif
 
-#define KPH_KEY_L1 1
-#define KPH_KEY_L2 2
+#define KPH_SIGNATURE_MAX_SIZE (128 * 1024) // 128 kB
+
+typedef ULONG KPH_KEY, *PKPH_KEY;
+
+typedef enum _KPH_KEY_LEVEL
+{
+    KphKeyLevel1 = 1,
+    KphKeyLevel2 = 2
+} KPH_KEY_LEVEL;
+
+#define KPH_KEY_BACKOFF_TIME ((LONGLONG)(100 * 1000 * 10)) // 100ms
 
 #define KPH_PROCESS_READ_ACCESS \
     (PROCESS_QUERY_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ)
@@ -189,7 +200,8 @@ typedef struct _KPH_DYN_CONFIGURATION
 
 // General
 #define KPH_GETFEATURES KPH_CTL_CODE(0)
-#define KPH_RETRIEVEKEY KPH_CTL_CODE(1)
+#define KPH_VERIFYCLIENT KPH_CTL_CODE(1)
+#define KPH_RETRIEVEKEY KPH_CTL_CODE(2) // User-mode only
 
 // Processes
 #define KPH_OPENPROCESS KPH_CTL_CODE(50) // L1/L2 protected API

@@ -59,10 +59,7 @@ extern "C" {
 #include <ntldr.h>
 #include <ntexapi.h>
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <ntmmapi.h>
-#endif
-
 #include <ntobapi.h>
 #include <ntpsapi.h>
 

@@ -49,7 +49,8 @@ NTSTATUS KpiOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     )
 {
@@ -57,6 +58,7 @@ NTSTATUS KpiOpenProcess(
     CLIENT_ID clientId;
     PEPROCESS process;
     PETHREAD thread;
+    KPH_KEY_LEVEL requiredKeyLevel;
     HANDLE processHandle;
 
     PAGED_CODE();
@@ -98,16 +100,25 @@ NTSTATUS KpiOpenProcess(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Always open in KernelMode to skip access checks.
-    status = ObOpenObjectByPointer(
-        process,
-        0,
-        NULL,
-        DesiredAccess,
-        *PsProcessType,
-        KernelMode,
-        &processHandle
-        );
+    requiredKeyLevel = KphKeyLevel1;
+
+    if ((DesiredAccess & KPH_PROCESS_READ_ACCESS) != DesiredAccess)
+        requiredKeyLevel = KphKeyLevel2;
+
+    if (NT_SUCCESS(status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode)))
+    {
+        // Always open in KernelMode to skip ordinary access checks.
+        status = ObOpenObjectByPointer(
+            process,
+            0,
+            NULL,
+            DesiredAccess,
+            *PsProcessType,
+            KernelMode,
+            &processHandle
+            );
+    }
+
     ObDereferenceObject(process);
 
     if (NT_SUCCESS(status))
@@ -234,7 +245,8 @@ NTSTATUS KpiOpenProcessJob(
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     )
 {
@@ -242,6 +254,9 @@ NTSTATUS KpiTerminateProcess(
     PEPROCESS process;
 
     PAGED_CODE();
+
+    if (!NT_SUCCESS(status = KphValidateKey(KphKeyLevel2, Key, Client, AccessMode)))
+        return status;
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
@@ -443,51 +458,4 @@ NTSTATUS KpiSetInformationProcess(
     ObDereferenceObject(process);
 
     return status;
-}
-
-/**
- * Prevents a process from terminating.
- *
- * \param Process A process object.
- *
- * \return TRUE if the function succeeded, FALSE if the process is currently terminating or the
- * request is not supported.
- */
-BOOLEAN KphAcquireProcessRundownProtection(
-    __in PEPROCESS Process
-    )
-{
-    // Use the exported function if it is available.
-    // Note that we make sure the corresponding release function is also available.
-    if (PsAcquireProcessExitSynchronization_I && PsReleaseProcessExitSynchronization_I)
-    {
-        return NT_SUCCESS(PsAcquireProcessExitSynchronization_I(Process));
-    }
-
-    // Fail if we don't have an offset.
-    if (KphDynEpRundownProtect == -1)
-        return FALSE;
-
-    return ExAcquireRundownProtection((PEX_RUNDOWN_REF)((ULONG_PTR)Process + KphDynEpRundownProtect));
-}
-
-/**
- * Allows a process to terminate.
- *
- * \param Process A process object.
- */
-VOID KphReleaseProcessRundownProtection(
-    __in PEPROCESS Process
-    )
-{
-    if (PsReleaseProcessExitSynchronization_I)
-    {
-        PsReleaseProcessExitSynchronization_I(Process);
-        return;
-    }
-
-    if (KphDynEpRundownProtect == -1)
-        return;
-
-    ExReleaseRundownProtection((PEX_RUNDOWN_REF)((ULONG_PTR)Process + KphDynEpRundownProtect));
 }

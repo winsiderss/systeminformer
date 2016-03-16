@@ -3,6 +3,7 @@ Process Hacker
 2.39
  * HIGHLIGHTS:
  * OTHER CHANGES:
+   * Improved compatibility with security and anti-cheat software
    * Improved tooltip information for dllhost.exe
    * Fixed .NET process detection
    * Removed Terminator

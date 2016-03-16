@@ -24,6 +24,10 @@
 #define FILE_BUFFER_SIZE (2 * PAGE_SIZE)
 #define FILE_MAX_SIZE (32 * 1024 * 1024) // 32 MB
 
+VOID KphpBackoffKey(
+    __in PKPH_CLIENT Client
+    );
+
 static UCHAR KphpTrustedPublicKey[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00, 0x5f, 0xe8, 0xab, 0xac, 0x01, 0xad, 0x6b, 0x48,
@@ -32,6 +36,17 @@ static UCHAR KphpTrustedPublicKey[] =
     0x12, 0x91, 0xf6, 0x65, 0x23, 0x58, 0xc9, 0xeb, 0x2f, 0xcb, 0x96, 0x13, 0x8f, 0xca, 0x57, 0x7a,
     0xd0, 0x7a, 0xbf, 0x22, 0xde, 0xd2, 0x15, 0xfc
 };
+
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, KphHashFile)
+#pragma alloc_text(PAGE, KphVerifyFile)
+#pragma alloc_text(PAGE, KphVerifyClient)
+#pragma alloc_text(PAGE, KpiVerifyClient)
+#pragma alloc_text(PAGE, KphGenerateKeysClient)
+#pragma alloc_text(PAGE, KphRetrieveKeyViaApc)
+#pragma alloc_text(PAGE, KphValidateKey)
+#pragma alloc_text(PAGE, KphpBackoffKey)
+#endif
 
 NTSTATUS KphHashFile(
     __in PUNICODE_STRING FileName,
@@ -50,10 +65,12 @@ NTSTATUS KphHashFile(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK iosb;
     HANDLE fileHandle = NULL;
-    FILE_END_OF_FILE_INFORMATION endOfFileInfo;
+    FILE_STANDARD_INFORMATION standardInfo;
     ULONG remainingBytes;
     ULONG bytesToRead;
-    PVOID buffer;
+    PVOID buffer = NULL;
+
+    PAGED_CODE();
 
     // Open the hash algorithm and allocate memory for the hash object.
 
@@ -98,18 +115,18 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = ZwQueryInformationFile(fileHandle, &iosb, &endOfFileInfo,
-        sizeof(FILE_END_OF_FILE_INFORMATION), FileEndOfFileInformation)))
+    if (!NT_SUCCESS(status = ZwQueryInformationFile(fileHandle, &iosb, &standardInfo,
+        sizeof(FILE_STANDARD_INFORMATION), FileStandardInformation)))
     {
         goto CleanupExit;
     }
 
-    if (endOfFileInfo.EndOfFile.QuadPart <= 0)
+    if (standardInfo.EndOfFile.QuadPart <= 0)
     {
         status = STATUS_UNSUCCESSFUL;
         goto CleanupExit;
     }
-    if (endOfFileInfo.EndOfFile.QuadPart > FILE_MAX_SIZE)
+    if (standardInfo.EndOfFile.QuadPart > FILE_MAX_SIZE)
     {
         status = STATUS_FILE_TOO_LARGE;
         goto CleanupExit;
@@ -121,7 +138,7 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    remainingBytes = (ULONG)endOfFileInfo.EndOfFile.QuadPart;
+    remainingBytes = (ULONG)standardInfo.EndOfFile.QuadPart;
 
     while (remainingBytes != 0)
     {
@@ -176,7 +193,7 @@ CleanupExit:
 
 NTSTATUS KphVerifyFile(
     __in PUNICODE_STRING FileName,
-    __in_bcount(SignatureSize) PVOID Signature,
+    __in_bcount(SignatureSize) PUCHAR Signature,
     __in ULONG SignatureSize
     )
 {
@@ -185,6 +202,8 @@ NTSTATUS KphVerifyFile(
     BCRYPT_KEY_HANDLE keyHandle = NULL;
     PVOID hash = NULL;
     ULONG hashSize;
+
+    PAGED_CODE();
 
     // Import the trusted public key.
 
@@ -218,4 +237,260 @@ CleanupExit:
         BCryptCloseAlgorithmProvider(signAlgHandle, 0);
 
     return status;
+}
+
+VOID KphVerifyClient(
+    __inout PKPH_CLIENT Client,
+    __in PVOID CodeAddress,
+    __in_bcount(SignatureSize) PUCHAR Signature,
+    __in ULONG SignatureSize
+    )
+{
+    NTSTATUS status;
+    PUNICODE_STRING processFileName = NULL;
+    MEMORY_BASIC_INFORMATION memoryBasicInfo;
+    PUNICODE_STRING mappedFileName = NULL;
+
+    PAGED_CODE();
+
+    if (Client->VerificationPerformed)
+        return;
+
+    if ((ULONG_PTR)CodeAddress > (ULONG_PTR)MmHighestUserAddress)
+    {
+        status = STATUS_ACCESS_VIOLATION;
+        goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = SeLocateProcessImageName(PsGetCurrentProcess(), &processFileName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(NtCurrentProcess(), CodeAddress,
+        MemoryBasicInformation, &memoryBasicInfo, sizeof(MEMORY_BASIC_INFORMATION), NULL)))
+    {
+        goto CleanupExit;
+    }
+    if (memoryBasicInfo.Type != MEM_IMAGE || memoryBasicInfo.State != MEM_COMMIT)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = KphGetProcessMappedFileName(NtCurrentProcess(), CodeAddress,
+        &mappedFileName)))
+    {
+        goto CleanupExit;
+    }
+    if (!RtlEqualUnicodeString(processFileName, mappedFileName, TRUE))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto CleanupExit;
+    }
+
+    status = KphVerifyFile(processFileName, Signature, SignatureSize);
+
+CleanupExit:
+    if (mappedFileName)
+        ExFreePoolWithTag(mappedFileName, 'ThpK');
+    if (processFileName)
+        ExFreePool(processFileName);
+
+    ExAcquireFastMutex(&Client->StateMutex);
+
+    if (NT_SUCCESS(status))
+    {
+        Client->VerifiedProcess = PsGetCurrentProcess();
+        Client->VerifiedProcessId = PsGetCurrentProcessId();
+        Client->VerifiedRangeBase = memoryBasicInfo.BaseAddress;
+        Client->VerifiedRangeSize = memoryBasicInfo.RegionSize;
+    }
+
+    Client->VerificationStatus = status;
+    MemoryBarrier();
+    Client->VerificationSucceeded = NT_SUCCESS(status);
+    Client->VerificationPerformed = TRUE;
+
+    ExReleaseFastMutex(&Client->StateMutex);
+}
+
+NTSTATUS KpiVerifyClient(
+    __in PVOID CodeAddress,
+    __in_bcount(SignatureSize) PUCHAR Signature,
+    __in ULONG SignatureSize,
+    __in PKPH_CLIENT Client
+    )
+{
+    PUCHAR signature;
+
+    PAGED_CODE();
+
+    __try
+    {
+        ProbeForRead(Signature, SignatureSize, 1);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    if (SignatureSize > KPH_SIGNATURE_MAX_SIZE)
+        return STATUS_INVALID_PARAMETER_3;
+
+    signature = ExAllocatePoolWithTag(PagedPool, SignatureSize, 'ThpK');
+    if (!signature)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    __try
+    {
+        memcpy(signature, Signature, SignatureSize);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        ExFreePoolWithTag(signature, 'ThpK');
+        return GetExceptionCode();
+    }
+
+    KphVerifyClient(Client, CodeAddress, Signature, SignatureSize);
+    ExFreePoolWithTag(signature, 'ThpK');
+
+    return Client->VerificationStatus;
+}
+
+VOID KphGenerateKeysClient(
+    __inout PKPH_CLIENT Client
+    )
+{
+    ULONGLONG interruptTime;
+    ULONG seed;
+    KPH_KEY l1Key;
+    KPH_KEY l2Key;
+
+    PAGED_CODE();
+
+    if (Client->KeysGenerated)
+        return;
+
+    interruptTime = KeQueryInterruptTime();
+    seed = (ULONG)(interruptTime >> 32) | (ULONG)interruptTime | PtrToUlong(Client);
+    l1Key = RtlRandomEx(&seed) | 0x80000000; // Make sure the key is nonzero
+    do
+    {
+        l2Key = RtlRandomEx(&seed) | 0x80000000;
+    } while (l2Key == l1Key);
+
+    ExAcquireFastMutex(&Client->StateMutex);
+
+    if (!Client->KeysGenerated)
+    {
+        Client->L1Key = l1Key;
+        Client->L2Key = l2Key;
+        MemoryBarrier();
+        Client->KeysGenerated = TRUE;
+    }
+
+    ExReleaseFastMutex(&Client->StateMutex);
+}
+
+NTSTATUS KphRetrieveKeyViaApc(
+    __inout PKPH_CLIENT Client,
+    __in KPH_KEY_LEVEL KeyLevel,
+    __inout PIRP Irp
+    )
+{
+    PIO_APC_ROUTINE userApcRoutine;
+    KPH_KEY key;
+
+    PAGED_CODE();
+
+    if (!Client->VerificationSucceeded)
+        return STATUS_ACCESS_DENIED;
+
+    MemoryBarrier();
+
+    if (PsGetCurrentProcess() != Client->VerifiedProcess ||
+        PsGetCurrentProcessId() != Client->VerifiedProcessId)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
+    userApcRoutine = Irp->Overlay.AsynchronousParameters.UserApcRoutine;
+
+    if (!userApcRoutine)
+        return STATUS_INVALID_PARAMETER;
+    if ((ULONG_PTR)userApcRoutine < (ULONG_PTR)Client->VerifiedRangeBase ||
+        (ULONG_PTR)userApcRoutine >= (ULONG_PTR)Client->VerifiedRangeBase + Client->VerifiedRangeSize)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
+    KphGenerateKeysClient(Client);
+
+    switch (KeyLevel)
+    {
+    case KphKeyLevel1:
+        key = Client->L1Key;
+        break;
+    case KphKeyLevel2:
+        key = Client->L2Key;
+        break;
+    default:
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    Irp->Overlay.AsynchronousParameters.UserApcContext = UlongToPtr(key);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS KphValidateKey(
+    __in KPH_KEY_LEVEL RequiredKeyLevel,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
+    __in KPROCESSOR_MODE AccessMode
+    )
+{
+    PAGED_CODE();
+
+    if (AccessMode == KernelMode)
+        return STATUS_SUCCESS;
+
+    if (Key && Client->VerificationSucceeded && Client->KeysGenerated)
+    {
+        MemoryBarrier();
+
+        switch (RequiredKeyLevel)
+        {
+        case KphKeyLevel1:
+            if (Key == Client->L1Key || Key == Client->L2Key)
+                return STATUS_SUCCESS;
+            else
+                KphpBackoffKey(Client);
+            break;
+        case KphKeyLevel2:
+            if (Key == Client->L2Key)
+                return STATUS_SUCCESS;
+            else
+                KphpBackoffKey(Client);
+            break;
+        default:
+            return STATUS_INVALID_PARAMETER;
+        }
+    }
+
+    return STATUS_ACCESS_DENIED;
+}
+
+VOID KphpBackoffKey(
+    __in PKPH_CLIENT Client
+    )
+{
+    LARGE_INTEGER backoffTime;
+
+    PAGED_CODE();
+
+    // Serialize to make it impossible for a single client to bypass the backoff by creating
+    // multiple threads.
+    ExAcquireFastMutex(&Client->KeyBackoffMutex);
+
+    backoffTime.QuadPart = -KPH_KEY_BACKOFF_TIME;
+    KeDelayExecutionThread(KernelMode, FALSE, &backoffTime);
+
+    ExReleaseFastMutex(&Client->KeyBackoffMutex);
 }

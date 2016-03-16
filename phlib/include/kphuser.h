@@ -52,6 +52,13 @@ KphIsConnected(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+KphIsVerified(
+    VOID
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
@@ -88,6 +95,14 @@ NTSTATUS
 NTAPI
 KphGetFeatures(
     _Out_ PULONG Features
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphVerifyClient(
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize
     );
 
 PHLIBAPI

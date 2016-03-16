@@ -152,7 +152,6 @@ NTSTATUS KphpLoadDynamicConfiguration(
 
             KphDynEgeGuid = C_2sTo4(package->StructData.EgeGuid);
             KphDynEpObjectTable = C_2sTo4(package->StructData.EpObjectTable);
-            KphDynEpRundownProtect = C_2sTo4(package->StructData.EpRundownProtect);
             KphDynEreGuidEntry = C_2sTo4(package->StructData.EreGuidEntry);
             KphDynHtHandleContentionEvent = C_2sTo4(package->StructData.HtHandleContentionEvent);
             KphDynOtName = C_2sTo4(package->StructData.OtName);

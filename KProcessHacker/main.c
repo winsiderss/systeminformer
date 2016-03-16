@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -25,6 +25,7 @@
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 __drv_dispatchType(IRP_MJ_CREATE) DRIVER_DISPATCH KphDispatchCreate;
+__drv_dispatchType(IRP_MJ_CLOSE) DRIVER_DISPATCH KphDispatchClose;
 
 ULONG KphpReadIntegerParameter(
     __in_opt HANDLE KeyHandle,
@@ -92,6 +93,7 @@ NTSTATUS DriverEntry(
     // Set up I/O.
 
     DriverObject->MajorFunction[IRP_MJ_CREATE] = KphDispatchCreate;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = KphDispatchClose;
     DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = KphDispatchDeviceControl;
     DriverObject->DriverUnload = DriverUnload;
 
@@ -120,14 +122,18 @@ NTSTATUS KphDispatchCreate(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PIO_STACK_LOCATION stackLocation;
+    PFILE_OBJECT fileObject;
     PIO_SECURITY_CONTEXT securityContext;
+    PKPH_CLIENT client;
 
     stackLocation = IoGetCurrentIrpStackLocation(Irp);
+    fileObject = stackLocation->FileObject;
     securityContext = stackLocation->Parameters.Create.SecurityContext;
 
     dprintf("Client (PID %Iu) is connecting\n", PsGetCurrentProcessId());
 
-    if (KphParameters.SecurityLevel == KphSecurityPrivilegeCheck)
+    if (KphParameters.SecurityLevel == KphSecurityPrivilegeCheck ||
+        KphParameters.SecurityLevel == KphSecuritySignatureAndPrivilegeCheck)
     {
         UCHAR requiredPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)];
         PPRIVILEGE_SET requiredPrivileges;
@@ -150,6 +156,52 @@ NTSTATUS KphDispatchCreate(
             status = STATUS_PRIVILEGE_NOT_HELD;
             dprintf("Client (PID %Iu) was rejected\n", PsGetCurrentProcessId());
         }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        client = ExAllocatePoolWithTag(PagedPool, sizeof(KPH_CLIENT), 'ChpK');
+
+        if (client)
+        {
+            memset(client, 0, sizeof(KPH_CLIENT));
+
+            ExInitializeFastMutex(&client->StateMutex);
+            ExInitializeFastMutex(&client->KeyBackoffMutex);
+
+            fileObject->FsContext = client;
+        }
+        else
+        {
+            dprintf("Unable to allocate memory for client (PID %Iu)\n", PsGetCurrentProcessId());
+            status = STATUS_INSUFFICIENT_RESOURCES;
+        }
+    }
+
+    Irp->IoStatus.Status = status;
+    Irp->IoStatus.Information = 0;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+    return status;
+}
+
+NTSTATUS KphDispatchClose(
+    __in PDEVICE_OBJECT DeviceObject,
+    __in PIRP Irp
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PIO_STACK_LOCATION stackLocation;
+    PFILE_OBJECT fileObject;
+    PKPH_CLIENT client;
+
+    stackLocation = IoGetCurrentIrpStackLocation(Irp);
+    fileObject = stackLocation->FileObject;
+    client = fileObject->FsContext;
+
+    if (client)
+    {
+        ExFreePoolWithTag(client, 'ChpK');
     }
 
     Irp->IoStatus.Status = status;

@@ -54,7 +54,6 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
     );
 
 #ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, KphGetObjectType)
 #pragma alloc_text(PAGE, KphReferenceProcessHandleTable)
 #pragma alloc_text(PAGE, KphDereferenceProcessHandleTable)
 #pragma alloc_text(PAGE, KphUnlockHandleTableEntry)
@@ -67,42 +66,6 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
 #pragma alloc_text(PAGE, KpiSetInformationObject)
 #pragma alloc_text(PAGE, KphOpenNamedObject)
 #endif
-
-/**
- * Gets the type of an object.
- *
- * \param Object A pointer to an object.
- *
- * \return A pointer to the object's type object, or NULL if an error occurred.
- */
-POBJECT_TYPE KphGetObjectType(
-    __in PVOID Object
-    )
-{
-    PAGED_CODE();
-
-    // XP to Vista: A pointer to the object type is stored in the object header.
-    if (
-        KphDynNtVersion >= PHNT_WINXP &&
-        KphDynNtVersion <= PHNT_VISTA
-        )
-    {
-        return OBJECT_TO_OBJECT_HEADER(Object)->Type;
-    }
-    // Seven and above: An index to an internal object type table is stored in the object header.
-    // Luckily we have a new exported function, ObGetObjectType, to get the object type.
-    else if (KphDynNtVersion >= PHNT_WIN7)
-    {
-        if (ObGetObjectType_I)
-            return ObGetObjectType_I(Object);
-        else
-            return NULL;
-    }
-    else
-    {
-        return NULL;
-    }
-}
 
 /**
  * Gets a pointer to the handle table of a process.
@@ -126,12 +89,12 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
         return NULL;
 
     // Prevent the process from terminating and get its handle table.
-    if (KphAcquireProcessRundownProtection(Process))
+    if (PsAcquireProcessExitSynchronization(Process))
     {
         handleTable = *(PHANDLE_TABLE *)((ULONG_PTR)Process + KphDynEpObjectTable);
 
         if (!handleTable)
-            KphReleaseProcessRundownProtection(Process);
+            PsReleaseProcessExitSynchronization(Process);
     }
 
     return handleTable;
@@ -148,7 +111,7 @@ VOID KphDereferenceProcessHandleTable(
 {
     PAGED_CODE();
 
-    KphReleaseProcessRundownProtection(Process);
+    PsReleaseProcessExitSynchronization(Process);
 }
 
 VOID KphUnlockHandleTableEntry(
@@ -173,7 +136,7 @@ VOID KphUnlockHandleTableEntry(
     handleContentionEvent = (PEX_PUSH_LOCK)((ULONG_PTR)HandleTable + KphDynHtHandleContentionEvent);
 
     if (*(PULONG_PTR)handleContentionEvent != 0)
-        ExfUnblockPushLock_I(handleContentionEvent, NULL);
+        ExfUnblockPushLock(handleContentionEvent, NULL);
 }
 
 BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
@@ -201,15 +164,10 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
 
     if (handleInfo.Object)
     {
-        objectType = KphGetObjectType(handleInfo.Object);
+        objectType = ObGetObjectType(handleInfo.Object);
 
         if (objectType && KphDynOtIndex != -1)
-        {
-            if (KphDynNtVersion >= PHNT_WIN7)
-                handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)((ULONG_PTR)objectType + KphDynOtIndex);
-            else
-                handleInfo.ObjectTypeIndex = (USHORT)*(PULONG)((ULONG_PTR)objectType + KphDynOtIndex);
-        }
+            handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)((ULONG_PTR)objectType + KphDynOtIndex);
     }
 
     // Advance the current entry pointer regardless of whether the information will be written; this
@@ -289,8 +247,7 @@ NTSTATUS KpiEnumerateProcessHandles(
 
     PAGED_CODE();
 
-    if (KphDynNtVersion >= PHNT_WIN8 &&
-        (!ExfUnblockPushLock_I || KphDynHtHandleContentionEvent == -1))
+    if (KphDynNtVersion >= PHNT_WIN8 && KphDynHtHandleContentionEvent == -1)
     {
         return STATUS_NOT_SUPPORTED;
     }
@@ -432,7 +389,7 @@ NTSTATUS KphQueryNameObject(
 
     PAGED_CODE();
 
-    objectType = KphGetObjectType(Object);
+    objectType = ObGetObjectType(Object);
 
     // Check if we are going to hang when querying the object, and use
     // the special file object query function if needed.
@@ -984,7 +941,7 @@ NTSTATUS KpiQueryInformationObject(
                 {
                     // Check the type name.
 
-                    objectType = KphGetObjectType(etwReg);
+                    objectType = ObGetObjectType(etwReg);
 
                     if (objectType)
                     {

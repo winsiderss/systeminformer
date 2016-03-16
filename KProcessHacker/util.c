@@ -26,12 +26,15 @@
 #pragma alloc_text(PAGE, KphCaptureUnicodeString)
 #pragma alloc_text(PAGE, KphEnumerateSystemModules)
 #pragma alloc_text(PAGE, KphValidateAddressForSystemModules)
+#pragma alloc_text(PAGE, KphGetProcessMappedFileName)
 #endif
 
 VOID KphFreeCapturedUnicodeString(
     __in PUNICODE_STRING CapturedUnicodeString
     )
 {
+    PAGED_CODE();
+
     if (CapturedUnicodeString->Buffer)
         ExFreePoolWithTag(CapturedUnicodeString->Buffer, 'UhpK');
 }
@@ -43,6 +46,8 @@ NTSTATUS KphCaptureUnicodeString(
 {
     UNICODE_STRING unicodeString;
     PWSTR userBuffer;
+
+    PAGED_CODE();
 
     __try
     {
@@ -110,6 +115,8 @@ NTSTATUS KphEnumerateSystemModules(
     ULONG bufferSize;
     ULONG attempts;
 
+    PAGED_CODE();
+
     bufferSize = 2048;
     attempts = 8;
 
@@ -164,6 +171,8 @@ NTSTATUS KphValidateAddressForSystemModules(
     ULONG i;
     BOOLEAN valid;
 
+    PAGED_CODE();
+
     status = KphEnumerateSystemModules(&modules);
 
     if (!NT_SUCCESS(status))
@@ -191,6 +200,73 @@ NTSTATUS KphValidateAddressForSystemModules(
         status = STATUS_SUCCESS;
     else
         status = STATUS_ACCESS_VIOLATION;
+
+    return status;
+}
+
+/**
+ * Gets the file name of a mapped section.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param BaseAddress The base address of the section view.
+ * \param Modules A variable which receives a pointer to a string containing the file name of the
+ * section. The structure must be freed with the tag 'ThpK'.
+ */
+NTSTATUS KphGetProcessMappedFileName(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out PUNICODE_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    SIZE_T bufferSize;
+    SIZE_T returnLength;
+
+    PAGED_CODE();
+
+    bufferSize = 0x100;
+    buffer = ExAllocatePoolWithTag(PagedPool, bufferSize, 'ThpK');
+
+    if (!buffer)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    status = ZwQueryVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        MemoryMappedFilenameInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        ExFreePoolWithTag(buffer, 'ThpK');
+        bufferSize = returnLength;
+        buffer = ExAllocatePoolWithTag(PagedPool, bufferSize, 'ThpK');
+
+        if (!buffer)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        status = ZwQueryVirtualMemory(
+            ProcessHandle,
+            BaseAddress,
+            MemoryMappedFilenameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        ExFreePoolWithTag(buffer, 'ThpK');
+        return status;
+    }
+
+    *FileName = buffer;
 
     return status;
 }
