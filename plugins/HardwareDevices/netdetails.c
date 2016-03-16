@@ -36,7 +36,7 @@ VOID NTAPI NetAdapterProcessesUpdatedHandler(
     }
 }
 
-VOID AddListViewItemGroups(
+VOID NetAdapterAddListViewItemGroups(
     _In_ HWND ListViewHandle
     )
 {
@@ -638,7 +638,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            AddListViewItemGroups(context->ListViewHandle);
+            NetAdapterAddListViewItemGroups(context->ListViewHandle);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
