@@ -1576,7 +1576,7 @@ NTSTATUS PhWalkThreadStack(
     // Kernel stack walk.
     if ((Flags & PH_WALK_KERNEL_STACK) && KphIsConnected())
     {
-        PVOID stack[62 - 1]; // 62 limit for XP and Server 2003.
+        PVOID stack[256 - 2]; // See MAX_STACK_DEPTH
         ULONG capturedFrames;
         ULONG i;
 

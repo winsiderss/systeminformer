@@ -191,6 +191,7 @@
     <ClInclude Include="include\handle.h" />
     <ClInclude Include="include\hndlinfo.h" />
     <ClInclude Include="include\kphapi.h" />
+    <ClInclude Include="include\kphuserp.h" />
     <ClInclude Include="include\lsasup.h" />
     <ClInclude Include="include\mapimg.h" />
     <ClInclude Include="include\phbasesup.h" />

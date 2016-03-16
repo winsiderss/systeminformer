@@ -18,12 +18,23 @@
 
 typedef struct _KPH_CLIENT
 {
-    // Validated process image address range
-    PVOID ValidatedRangeStart;
-    SIZE_T ValidatedRangeSize;
+    struct
+    {
+        ULONG VerificationPerformed : 1;
+        ULONG VerificationSucceeded : 1;
+        ULONG KeysGenerated : 1;
+        ULONG SpareBits : 29;
+    };
+    FAST_MUTEX StateMutex;
+    NTSTATUS VerificationStatus;
+    PVOID VerifiedProcess; // EPROCESS (for equality checking only - do not access contents)
+    HANDLE VerifiedProcessId;
+    PVOID VerifiedRangeBase;
+    SIZE_T VerifiedRangeSize;
     // Level 1 and 2 secret keys
-    ULONGLONG L1Key;
-    ULONGLONG L2Key;
+    FAST_MUTEX KeyBackoffMutex;
+    KPH_KEY L1Key;
+    KPH_KEY L2Key;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef struct _KPH_PARAMETERS
@@ -52,11 +63,6 @@ NTSTATUS KphDispatchDeviceControl(
 
 // dynimp
 
-extern _ExfUnblockPushLock ExfUnblockPushLock_I;
-extern _ObGetObjectType ObGetObjectType_I;
-extern _PsAcquireProcessExitSynchronization PsAcquireProcessExitSynchronization_I;
-extern _PsReleaseProcessExitSynchronization PsReleaseProcessExitSynchronization_I;
-
 VOID KphDynamicImport(
     VOID
     );
@@ -66,10 +72,6 @@ PVOID KphGetSystemRoutineAddress(
     );
 
 // object
-
-POBJECT_TYPE KphGetObjectType(
-    __in PVOID Object
-    );
 
 PHANDLE_TABLE KphReferenceProcessHandleTable(
     __in PEPROCESS Process
@@ -139,7 +141,8 @@ NTSTATUS KpiOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -153,7 +156,8 @@ NTSTATUS KpiOpenProcessJob(
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -172,14 +176,6 @@ NTSTATUS KpiSetInformationProcess(
     __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength,
     __in KPROCESSOR_MODE AccessMode
-    );
-
-BOOLEAN KphAcquireProcessRundownProtection(
-    __in PEPROCESS Process
-    );
-
-VOID KphReleaseProcessRundownProtection(
-    __in PEPROCESS Process
     );
 
 // qrydrv
@@ -205,7 +201,8 @@ NTSTATUS KpiOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PCLIENT_ID ClientId,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -281,6 +278,12 @@ NTSTATUS KphValidateAddressForSystemModules(
     __in SIZE_T Length
     );
 
+NTSTATUS KphGetProcessMappedFileName(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out PUNICODE_STRING *FileName
+    );
+
 // verify
 
 NTSTATUS KphHashFile(
@@ -291,8 +294,39 @@ NTSTATUS KphHashFile(
 
 NTSTATUS KphVerifyFile(
     __in PUNICODE_STRING FileName,
-    __in_bcount(SignatureSize) PVOID Signature,
+    __in_bcount(SignatureSize) PUCHAR Signature,
     __in ULONG SignatureSize
+    );
+
+VOID KphVerifyClient(
+    __inout PKPH_CLIENT Client,
+    __in PVOID CodeAddress,
+    __in_bcount(SignatureSize) PUCHAR Signature,
+    __in ULONG SignatureSize
+    );
+
+NTSTATUS KpiVerifyClient(
+    __in PVOID CodeAddress,
+    __in_bcount(SignatureSize) PUCHAR Signature,
+    __in ULONG SignatureSize,
+    __in PKPH_CLIENT Client
+    );
+
+VOID KphGenerateKeysClient(
+    __inout PKPH_CLIENT Client
+    );
+
+NTSTATUS KphRetrieveKeyViaApc(
+    __inout PKPH_CLIENT Client,
+    __in KPH_KEY_LEVEL KeyLevel,
+    __inout PIRP Irp
+    );
+
+NTSTATUS KphValidateKey(
+    __in KPH_KEY_LEVEL RequiredKeyLevel,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
+    __in KPROCESSOR_MODE AccessMode
     );
 
 // vm
@@ -313,7 +347,8 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     __out_bcount(BufferSize) PVOID Buffer,
     __in SIZE_T BufferSize,
     __out_opt PSIZE_T NumberOfBytesRead,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     );
 

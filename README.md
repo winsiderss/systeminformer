@@ -48,6 +48,8 @@ assist with certain functionality. This includes:
 * Retrieving names for EtwRegistration objects
 * Setting handle attributes
 
+KProcessHacker is only available on Windows 7 and above.
+
 Note that by default, KProcessHacker only allows connections from
 processes with SeDebugPrivilege. To allow Process Hacker to show details
 for all processes when it is not running as administrator:

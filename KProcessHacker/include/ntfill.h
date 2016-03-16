@@ -5,6 +5,69 @@ extern ULONG KphDynNtVersion;
 extern ULONG KphDynObDecodeShift;
 extern ULONG KphDynObAttributesShift;
 
+// EX
+
+typedef struct _EX_PUSH_LOCK_WAIT_BLOCK *PEX_PUSH_LOCK_WAIT_BLOCK;
+
+NTKERNELAPI
+VOID
+FASTCALL
+ExfUnblockPushLock(
+    __inout PEX_PUSH_LOCK PushLock,
+    __inout_opt PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock
+    );
+
+typedef struct _HANDLE_TABLE_ENTRY
+{
+    union
+    {
+        PVOID Object;
+        ULONG ObAttributes;
+        ULONG_PTR Value;
+    };
+    union
+    {
+        ACCESS_MASK GrantedAccess;
+        LONG NextFreeTableEntry;
+    };
+} HANDLE_TABLE_ENTRY, *PHANDLE_TABLE_ENTRY;
+
+typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
+
+typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK_61)(
+    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
+    __in HANDLE Handle,
+    __in PVOID Context
+    );
+
+// since WIN8
+typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK)(
+    __in PHANDLE_TABLE HandleTable,
+    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
+    __in HANDLE Handle,
+    __in PVOID Context
+    );
+
+NTKERNELAPI
+BOOLEAN
+NTAPI
+ExEnumHandleTable(
+    __in PHANDLE_TABLE HandleTable,
+    __in PEX_ENUM_HANDLE_CALLBACK EnumHandleProcedure,
+    __inout PVOID Context,
+    __out_opt PHANDLE Handle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySystemInformation(
+    __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
+    __in ULONG SystemInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
 // IO
 
 extern POBJECT_TYPE *IoDriverObjectType;
@@ -63,64 +126,18 @@ KeInsertQueueApc(
     __in KPRIORITY Increment
     );
 
-// EX
-
-typedef struct _EX_PUSH_LOCK_WAIT_BLOCK *PEX_PUSH_LOCK_WAIT_BLOCK;
-
-typedef VOID (FASTCALL *_ExfUnblockPushLock)(
-    __inout PEX_PUSH_LOCK PushLock,
-    __inout_opt PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock
-    );
-
-typedef struct _HANDLE_TABLE_ENTRY
-{
-    union
-    {
-        PVOID Object;
-        ULONG ObAttributes;
-        ULONG_PTR Value;
-    };
-    union
-    {
-        ACCESS_MASK GrantedAccess;
-        LONG NextFreeTableEntry;
-    };
-} HANDLE_TABLE_ENTRY, *PHANDLE_TABLE_ENTRY;
-
-typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
-
-typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK_61)(
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
-    );
-
-// since WIN8
-typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK)(
-    __in PHANDLE_TABLE HandleTable,
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
-    );
-
-NTKERNELAPI
-BOOLEAN
-NTAPI
-ExEnumHandleTable(
-    __in PHANDLE_TABLE HandleTable,
-    __in PEX_ENUM_HANDLE_CALLBACK EnumHandleProcedure,
-    __inout PVOID Context,
-    __out_opt PHANDLE Handle
-    );
+// MM
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwQuerySystemInformation(
-    __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
-    __in ULONG SystemInformationLength,
-    __out_opt PULONG ReturnLength
+ZwQueryVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    __out_bcount(MemoryInformationLength) PVOID MemoryInformation,
+    __in SIZE_T MemoryInformationLength,
+    __out_opt PSIZE_T ReturnLength
     );
 
 // OB
@@ -203,7 +220,10 @@ typedef struct _OBJECT_HEADER
 
 #define OBJECT_TO_OBJECT_HEADER(Object) CONTAINING_RECORD((Object), OBJECT_HEADER, Body)
 
-typedef POBJECT_TYPE (NTAPI *_ObGetObjectType)(
+NTKERNELAPI
+POBJECT_TYPE
+NTAPI
+ObGetObjectType(
     __in PVOID Object
     );
 
@@ -237,26 +257,6 @@ ObCloseHandle(
     );
 
 // PS
-
-typedef NTSTATUS (NTAPI *_PsAcquireProcessExitSynchronization)(
-    __in PEPROCESS Process
-    );
-
-typedef NTSTATUS (NTAPI *_PsReleaseProcessExitSynchronization)(
-    __in PEPROCESS Process
-    );
-
-typedef NTSTATUS (NTAPI *_PsSuspendProcess)(
-    __in PEPROCESS Process
-    );
-
-typedef NTSTATUS (NTAPI *_PsResumeProcess)(
-    __in PEPROCESS Process
-    );
-
-typedef BOOLEAN (NTAPI *_PsIsProtectedProcess)(
-    __in PEPROCESS Process
-    );
 
 NTSYSCALLAPI
 NTSTATUS
@@ -306,24 +306,6 @@ PsGetThreadWin32Thread(
     __in PETHREAD Thread
     );
 
-NTKERNELAPI
-NTSTATUS
-NTAPI
-PsGetContextThread(
-    __in PETHREAD Thread,
-    __inout PCONTEXT ThreadContext,
-    __in KPROCESSOR_MODE PreviousMode
-    );
-
-NTKERNELAPI
-NTSTATUS
-NTAPI
-PsSetContextThread(
-    __in PETHREAD Thread,
-    __in PCONTEXT ThreadContext,
-    __in KPROCESSOR_MODE PreviousMode
-    );
-
 typedef struct _EJOB *PEJOB;
 
 extern POBJECT_TYPE *PsJobType;
@@ -332,6 +314,20 @@ NTKERNELAPI
 PEJOB
 NTAPI
 PsGetProcessJob(
+    __in PEPROCESS Process
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+PsAcquireProcessExitSynchronization(
+    __in PEPROCESS Process
+    );
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+PsReleaseProcessExitSynchronization(
     __in PEPROCESS Process
     );
 

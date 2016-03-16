@@ -22,14 +22,11 @@
 
 #include <ph.h>
 #include <kphuser.h>
-
-NTSTATUS KphpDeviceIoControl(
-    _In_ ULONG KphControlCode,
-    _In_ PVOID InBuffer,
-    _In_ ULONG InBufferLength
-    );
+#include <kphuserp.h>
 
 HANDLE PhKphHandle = NULL;
+BOOLEAN PhKphVerified;
+KPH_KEY PhKphL1Key;
 
 NTSTATUS KphConnect(
     _In_opt_ PWSTR DeviceName
@@ -82,6 +79,8 @@ NTSTATUS KphConnect(
             );
 
         PhKphHandle = kphHandle;
+        PhKphVerified = FALSE;
+        PhKphL1Key = 0;
     }
 
     return status;
@@ -246,6 +245,8 @@ NTSTATUS KphDisconnect(
 
     status = NtClose(PhKphHandle);
     PhKphHandle = NULL;
+    PhKphVerified = FALSE;
+    PhKphL1Key = 0;
 
     return status;
 }
@@ -255,6 +256,13 @@ BOOLEAN KphIsConnected(
     )
 {
     return PhKphHandle != NULL;
+}
+
+BOOLEAN KphIsVerified(
+    VOID
+    )
+{
+    return PhKphVerified;
 }
 
 NTSTATUS KphSetParameters(
@@ -441,28 +449,6 @@ NTSTATUS KphUninstall(
     return status;
 }
 
-NTSTATUS KphpDeviceIoControl(
-    _In_ ULONG KphControlCode,
-    _In_ PVOID InBuffer,
-    _In_ ULONG InBufferLength
-    )
-{
-    IO_STATUS_BLOCK isb;
-
-    return NtDeviceIoControlFile(
-        PhKphHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        KphControlCode,
-        InBuffer,
-        InBufferLength,
-        NULL,
-        0
-        );
-}
-
 NTSTATUS KphGetFeatures(
     _Out_ PULONG Features
     )
@@ -479,24 +465,53 @@ NTSTATUS KphGetFeatures(
         );
 }
 
+NTSTATUS KphVerifyClient(
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize
+    )
+{
+    NTSTATUS status;
+    struct
+    {
+        PVOID CodeAddress;
+        PUCHAR Signature;
+        ULONG SignatureSize;
+    } input = { KphpWithKeyApcRoutine, Signature, SignatureSize };
+
+    status = KphpDeviceIoControl(
+        KPH_VERIFYCLIENT,
+        &input,
+        sizeof(input)
+        );
+
+    if (NT_SUCCESS(status))
+        PhKphVerified = TRUE;
+
+    return status;
+}
+
 NTSTATUS KphOpenProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ PCLIENT_ID ClientId
     )
 {
-    struct
-    {
-        PHANDLE ProcessHandle;
-        ACCESS_MASK DesiredAccess;
-        PCLIENT_ID ClientId;
-    } input = { ProcessHandle, DesiredAccess, ClientId };
+    
+    KPH_OPEN_PROCESS_INPUT input = { ProcessHandle, DesiredAccess, ClientId, 0 };
 
-    return KphpDeviceIoControl(
-        KPH_OPENPROCESS,
-        &input,
-        sizeof(input)
-        );
+    if ((DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
+    {
+        KphpGetL1Key(&input.Key);
+        return KphpDeviceIoControl(
+            KPH_OPENPROCESS,
+            &input,
+            sizeof(input)
+            );
+    }
+    else
+    {
+        return KphpWithKey(KphKeyLevel2, KphpOpenProcessContinuation, &input);
+    }
 }
 
 NTSTATUS KphOpenProcessJob(
@@ -525,17 +540,9 @@ NTSTATUS KphTerminateProcess(
     )
 {
     NTSTATUS status;
-    struct
-    {
-        HANDLE ProcessHandle;
-        NTSTATUS ExitStatus;
-    } input = { ProcessHandle, ExitStatus };
+    KPH_TERMINATE_PROCESS_INPUT input = { ProcessHandle, ExitStatus, 0 };
 
-    status = KphpDeviceIoControl(
-        KPH_TERMINATEPROCESS,
-        &input,
-        sizeof(input)
-        );
+    status = KphpWithKey(KphKeyLevel2, KphpTerminateProcessContinuation, &input);
 
     // Check if we're trying to terminate the current process, because kernel-mode can't do it.
     if (status == STATUS_CANT_TERMINATE_SELF)
@@ -554,20 +561,9 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     )
 {
-    struct
-    {
-        HANDLE ProcessHandle;
-        PVOID BaseAddress;
-        PVOID Buffer;
-        SIZE_T BufferSize;
-        PSIZE_T NumberOfBytesRead;
-    } input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead };
+    KPH_READ_VIRTUAL_MEMORY_UNSAFE_INPUT input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead, 0 };
 
-    return KphpDeviceIoControl(
-        KPH_READVIRTUALMEMORYUNSAFE,
-        &input,
-        sizeof(input)
-        );
+    return KphpWithKey(KphKeyLevel2, KphpReadVirtualMemoryUnsafeContinuation, &input);
 }
 
 NTSTATUS KphQueryInformationProcess(
@@ -622,18 +618,21 @@ NTSTATUS KphOpenThread(
     _In_ PCLIENT_ID ClientId
     )
 {
-    struct
-    {
-        PHANDLE ThreadHandle;
-        ACCESS_MASK DesiredAccess;
-        PCLIENT_ID ClientId;
-    } input = { ThreadHandle, DesiredAccess, ClientId };
+    KPH_OPEN_THREAD_INPUT input = { ThreadHandle, DesiredAccess, ClientId, 0 };
 
-    return KphpDeviceIoControl(
-        KPH_OPENTHREAD,
-        &input,
-        sizeof(input)
-        );
+    if ((DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
+    {
+        KphpGetL1Key(&input.Key);
+        return KphpDeviceIoControl(
+            KPH_OPENTHREAD,
+            &input,
+            sizeof(input)
+            );
+    }
+    else
+    {
+        return KphpWithKey(KphKeyLevel2, KphpOpenThreadContinuation, &input);
+    }
 }
 
 NTSTATUS KphOpenThreadProcess(
@@ -881,5 +880,182 @@ NTSTATUS KphQueryInformationDriver(
         KPH_QUERYINFORMATIONDRIVER,
         &input,
         sizeof(input)
+        );
+}
+
+NTSTATUS KphpDeviceIoControl(
+    _In_ ULONG KphControlCode,
+    _In_ PVOID InBuffer,
+    _In_ ULONG InBufferLength
+    )
+{
+    IO_STATUS_BLOCK iosb;
+
+    return NtDeviceIoControlFile(
+        PhKphHandle,
+        NULL,
+        NULL,
+        NULL,
+        &iosb,
+        KphControlCode,
+        InBuffer,
+        InBufferLength,
+        NULL,
+        0
+        );
+}
+
+VOID KphpWithKeyApcRoutine(
+    _In_ PVOID ApcContext,
+    _In_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Reserved
+    )
+{
+    PKPHP_RETRIEVE_KEY_CONTEXT context = CONTAINING_RECORD(IoStatusBlock, KPHP_RETRIEVE_KEY_CONTEXT, Iosb);
+    KPH_KEY key = PtrToUlong(ApcContext);
+
+    if (context->Continuation != KphpGetL1KeyContinuation &&
+        context->Continuation != KphpOpenProcessContinuation &&
+        context->Continuation != KphpTerminateProcessContinuation &&
+        context->Continuation != KphpReadVirtualMemoryUnsafeContinuation &&
+        context->Continuation != KphpOpenThreadContinuation)
+    {
+        PhRaiseStatus(STATUS_ACCESS_DENIED);
+        context->Status = STATUS_ACCESS_DENIED;
+        return;
+    }
+
+    context->Status = context->Continuation(key, context->Context);
+}
+
+NTSTATUS KphpWithKey(
+    _In_ KPH_KEY_LEVEL KeyLevel,
+    _In_ PKPHP_WITH_KEY_CONTINUATION Continuation,
+    _In_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    struct
+    {
+        KPH_KEY_LEVEL KeyLevel;
+    } input = { KeyLevel };
+    KPHP_RETRIEVE_KEY_CONTEXT context;
+
+    context.Continuation = Continuation;
+    context.Context = Context;
+    context.Status = STATUS_UNSUCCESSFUL;
+
+    status = NtDeviceIoControlFile(
+        PhKphHandle,
+        NULL,
+        KphpWithKeyApcRoutine,
+        NULL,
+        &context.Iosb,
+        KPH_RETRIEVEKEY,
+        &input,
+        sizeof(input),
+        NULL,
+        0
+        );
+
+    NtTestAlert();
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return context.Status;
+}
+
+NTSTATUS KphpGetL1KeyContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    )
+{
+    PKPHP_GET_L1_KEY_CONTEXT context = Context;
+
+    *context->Key = Key;
+    PhKphL1Key = Key;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS KphpGetL1Key(
+    _Out_ PKPH_KEY Key
+    )
+{
+    KPHP_GET_L1_KEY_CONTEXT context;
+
+    if (PhKphL1Key)
+    {
+        *Key = PhKphL1Key;
+        return STATUS_SUCCESS;
+    }
+
+    context.Key = Key;
+
+    return KphpWithKey(KphKeyLevel1, KphpGetL1KeyContinuation, &context);
+}
+
+NTSTATUS KphpOpenProcessContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    )
+{
+    PKPH_OPEN_PROCESS_INPUT input = Context;
+
+    input->Key = Key;
+
+    return KphpDeviceIoControl(
+        KPH_OPENPROCESS,
+        input,
+        sizeof(*input)
+        );
+}
+
+NTSTATUS KphpTerminateProcessContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    )
+{
+    PKPH_TERMINATE_PROCESS_INPUT input = Context;
+
+    input->Key = Key;
+
+    return KphpDeviceIoControl(
+        KPH_TERMINATEPROCESS,
+        input,
+        sizeof(*input)
+        );
+}
+
+NTSTATUS KphpReadVirtualMemoryUnsafeContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    )
+{
+    PKPH_READ_VIRTUAL_MEMORY_UNSAFE_INPUT input = Context;
+
+    input->Key = Key;
+
+    return KphpDeviceIoControl(
+        KPH_READVIRTUALMEMORYUNSAFE,
+        input,
+        sizeof(*input)
+        );
+}
+
+NTSTATUS KphpOpenThreadContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    )
+{
+    PKPH_OPEN_PROCESS_INPUT input = Context;
+
+    input->Key = Key;
+    
+    return KphpDeviceIoControl(
+        KPH_OPENTHREAD,
+        input,
+        sizeof(*input)
         );
 }

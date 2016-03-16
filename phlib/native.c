@@ -121,22 +121,32 @@ NTSTATUS PhOpenProcess(
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
 
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
-
-    status = NtOpenProcess(
-        ProcessHandle,
-        DesiredAccess,
-        &objectAttributes,
-        &clientId
-        );
-
-    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
+    if (KphIsVerified() && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenProcess(
             ProcessHandle,
             DesiredAccess,
             &clientId
             );
+    }
+    else
+    {
+        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+        status = NtOpenProcess(
+            ProcessHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &clientId
+            );
+
+        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        {
+            status = KphOpenProcess(
+                ProcessHandle,
+                DesiredAccess,
+                &clientId
+                );
+        }
     }
 
     return status;
@@ -181,24 +191,35 @@ NTSTATUS PhOpenThread(
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
 
-    status = NtOpenThread(
-        ThreadHandle,
-        DesiredAccess,
-        &objectAttributes,
-        &clientId
-        );
-
-    if (status == STATUS_ACCESS_DENIED && KphIsConnected())
+    if (KphIsVerified() && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenThread(
             ThreadHandle,
             DesiredAccess,
             &clientId
             );
+    }
+    else
+    {
+        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+        status = NtOpenThread(
+            ThreadHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &clientId
+            );
+
+        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        {
+            status = KphOpenThread(
+                ThreadHandle,
+                DesiredAccess,
+                &clientId
+                );
+        }
     }
 
     return status;
@@ -336,7 +357,7 @@ NTSTATUS PhTerminateProcess(
 {
     NTSTATUS status;
 
-    if (KphIsConnected())
+    if (KphIsVerified())
     {
         status = KphTerminateProcess(
             ProcessHandle,

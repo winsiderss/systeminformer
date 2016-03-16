@@ -315,7 +315,8 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     __out_bcount(BufferSize) PVOID Buffer,
     __in SIZE_T BufferSize,
     __out_opt PSIZE_T NumberOfBytesRead,
-    __in_opt ULONGLONG Key,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
     __in KPROCESSOR_MODE AccessMode
     )
 {
@@ -324,6 +325,9 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     SIZE_T numberOfBytesRead;
 
     PAGED_CODE();
+
+    if (!NT_SUCCESS(status = KphValidateKey(KphKeyLevel2, Key, Client, AccessMode)))
+        return status;
 
     if (AccessMode != KernelMode)
     {

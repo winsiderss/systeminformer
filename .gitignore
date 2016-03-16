@@ -109,6 +109,8 @@ plugins-extra/
 sdk/
 
 KProcessHacker/*.log
+KProcessHacker/*.err
+KProcessHacker/*.wrn
 KProcessHacker/*/objchk_*
 KProcessHacker/*/objfre_*
 
