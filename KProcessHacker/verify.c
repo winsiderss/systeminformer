@@ -462,7 +462,6 @@ NTSTATUS KphValidateKey(
                 return STATUS_SUCCESS;
             else
                 KphpBackoffKey(Client);
-
             break;
         case KphKeyLevel2:
             if (Key == Client->L2Key)
