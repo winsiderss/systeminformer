@@ -566,11 +566,15 @@ VOID PhInitializeKph(
 {
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     static PH_STRINGREF processhackerSig = PH_STRINGREF_INIT(L"ProcessHacker.sig");
+
     PPH_STRING kprocesshackerFileName;
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
     PUCHAR signature;
     ULONG signatureSize;
+
+    if (WindowsVersion < WINDOWS_7)
+        return;
 
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
