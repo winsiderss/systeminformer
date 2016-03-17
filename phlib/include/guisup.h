@@ -55,59 +55,6 @@ typedef BOOL (WINAPI *_RunFileDlg)(
     _In_ ULONG uFlags
     );
 
-typedef BOOL (WINAPI *_IsThemeActive)(
-    VOID
-    );
-
-typedef HTHEME (WINAPI *_OpenThemeData)(
-    _In_ HWND hwnd,
-    _In_ LPCWSTR pszClassList
-    );
-
-typedef HRESULT (WINAPI *_CloseThemeData)(
-    _In_ HTHEME hTheme
-    );
-
-typedef BOOL (WINAPI *_IsThemePartDefined)(
-    _In_ HTHEME hTheme,
-    _In_ int iPartId,
-    _In_ int iStateId
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeBackground)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ int iPartId,
-    _In_ int iStateId,
-    _In_ const RECT *pRect,
-    _In_ const RECT *pClipRect
-    );
-
-typedef HRESULT (WINAPI *_DrawThemeText)(
-    _In_ HTHEME hTheme,
-    _In_ HDC hdc,
-    _In_ int iPartId,
-    _In_ int iStateId,
-    _In_reads_(cchText) LPCWSTR pszText,
-    _In_ int cchText,
-    _In_ DWORD dwTextFlags,
-    _Reserved_ DWORD dwTextFlags2,
-    _In_ LPCRECT pRect
-    );
-
-typedef HRESULT (WINAPI *_GetThemeInt)(
-    _In_ HTHEME hTheme,
-    _In_ int iPartId,
-    _In_ int iStateId,
-    _In_ int iPropId,
-    _Out_ int *piVal
-    );
-
-typedef HRESULT (WINAPI *_EnableThemeDialogTexture)(
-    _In_ HWND hwnd,
-    _In_ DWORD dwFlags
-    );
-
 typedef HRESULT (WINAPI *_SHAutoComplete)(
     _In_ HWND hwndEdit,
     _In_ DWORD dwFlags
@@ -123,14 +70,6 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern _RunFileDlg RunFileDlg;
-extern _IsThemeActive IsThemeActive_I;
-extern _OpenThemeData OpenThemeData_I;
-extern _CloseThemeData CloseThemeData_I;
-extern _IsThemePartDefined IsThemePartDefined_I;
-extern _DrawThemeBackground DrawThemeBackground_I;
-extern _DrawThemeText DrawThemeText_I;
-extern _GetThemeInt GetThemeInt_I;
-extern _EnableThemeDialogTexture EnableThemeDialogTexture_I;
 extern _SHAutoComplete SHAutoComplete_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 

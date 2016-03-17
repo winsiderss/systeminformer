@@ -43,6 +43,7 @@
 #include <ph.h>
 #include <guisup.h>
 #include <windowsx.h>
+#include <Uxtheme.h>
 #include <vssym32.h>
 #include <treenew.h>
 #include <treenewp.h>
@@ -365,7 +366,7 @@ VOID PhTnpDestroyTreeNewContext(
         DeleteObject(Context->Font);
 
     if (Context->ThemeData)
-        CloseThemeData_I(Context->ThemeData);
+        CloseThemeData(Context->ThemeData);
 
     if (Context->SearchString)
         PhFree(Context->SearchString);
@@ -2062,42 +2063,24 @@ VOID PhTnpUpdateThemeData(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    if (
-        IsThemeActive_I &&
-        OpenThemeData_I &&
-        CloseThemeData_I &&
-        IsThemePartDefined_I &&
-        DrawThemeBackground_I &&
-        GetThemeInt_I
-        )
+    Context->ThemeActive = !!IsThemeActive();
+
+    if (Context->ThemeData)
     {
-        Context->ThemeActive = !!IsThemeActive_I();
+        CloseThemeData(Context->ThemeData);
+        Context->ThemeData = NULL;
+    }
 
-        if (Context->ThemeData)
-        {
-            CloseThemeData_I(Context->ThemeData);
-            Context->ThemeData = NULL;
-        }
+    Context->ThemeData = OpenThemeData(Context->Handle, L"TREEVIEW");
 
-        Context->ThemeData = OpenThemeData_I(Context->Handle, L"TREEVIEW");
-
-        if (Context->ThemeData)
-        {
-            Context->ThemeHasItemBackground = !!IsThemePartDefined_I(Context->ThemeData, TVP_TREEITEM, 0);
-            Context->ThemeHasGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_GLYPH, 0);
-            Context->ThemeHasHotGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_HOTGLYPH, 0);
-        }
-        else
-        {
-            Context->ThemeHasItemBackground = FALSE;
-            Context->ThemeHasGlyph = FALSE;
-            Context->ThemeHasHotGlyph = FALSE;
-        }
+    if (Context->ThemeData)
+    {
+        Context->ThemeHasItemBackground = !!IsThemePartDefined(Context->ThemeData, TVP_TREEITEM, 0);
+        Context->ThemeHasGlyph = !!IsThemePartDefined(Context->ThemeData, TVP_GLYPH, 0);
+        Context->ThemeHasHotGlyph = !!IsThemePartDefined(Context->ThemeData, TVP_HOTGLYPH, 0);
     }
     else
     {
-        Context->ThemeData = NULL;
-        Context->ThemeActive = FALSE;
         Context->ThemeHasItemBackground = FALSE;
         Context->ThemeHasGlyph = FALSE;
         Context->ThemeHasHotGlyph = FALSE;
@@ -5060,7 +5043,7 @@ VOID PhTnpPaint(
                     rowRect.left = Context->NormalLeft - hScrollPosition;
                 }
 
-                DrawThemeBackground_I(
+                DrawThemeBackground(
                     Context->ThemeData,
                     hdc,
                     TVP_TREEITEM,
@@ -5353,7 +5336,7 @@ VOID PhTnpDrawCell(
                     partId = (RowIndex == Context->HotNodeIndex && Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
                     stateId = Node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
 
-                    if (SUCCEEDED(DrawThemeBackground_I(
+                    if (SUCCEEDED(DrawThemeBackground(
                         Context->ThemeData,
                         hdc,
                         partId,
@@ -5694,12 +5677,12 @@ VOID PhTnpDrawThemedBorder(
     ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
     // Draw the themed border.
-    DrawThemeBackground_I(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
+    DrawThemeBackground(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
 
     // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't
     // fully paint the region.
 
-    if (SUCCEEDED(GetThemeInt_I(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
+    if (SUCCEEDED(GetThemeInt(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
     {
         borderX = sizingBorderWidth;
         borderY = sizingBorderWidth;

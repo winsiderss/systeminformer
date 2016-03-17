@@ -7,12 +7,6 @@
 #undef CINTERFACE
 #undef COBJMACROS
 
-typedef HRESULT (WINAPI *_SetWindowTheme)(
-    _In_ HWND hwnd,
-    _In_ LPCWSTR pszSubAppName,
-    _In_ LPCWSTR pszSubIdList
-    );
-
 typedef HRESULT (WINAPI *_SHCreateShellItem)(
     _In_opt_ PCIDLIST_ABSOLUTE pidlParent,
     _In_opt_ IShellFolder *psfParent,
@@ -74,7 +68,6 @@ FORCEINLINE ULONG PhpGetIconEntrySize(
     return InputSize;
 }
 
-extern _SetWindowTheme SetWindowTheme_I;
 extern _SHCreateShellItem SHCreateShellItem_I;
 extern _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 extern _SHParseDisplayName SHParseDisplayName_I;

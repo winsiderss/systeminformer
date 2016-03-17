@@ -410,7 +410,7 @@ VOID PhSipOnNcDestroy(
 
     if (ThemeData)
     {
-        CloseThemeData_I(ThemeData);
+        CloseThemeData(ThemeData);
         ThemeData = NULL;
     }
 
@@ -483,8 +483,7 @@ VOID PhSipOnShowWindow(
     SetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
     RestoreSummaryControlHot = FALSE;
 
-    if (EnableThemeDialogTexture_I)
-        EnableThemeDialogTexture_I(ContainerControl, ETDT_ENABLETAB);
+    EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
 
     GetWindowRect(GetDlgItem(PhSipWindow, IDOK), &buttonRect);
     MapWindowPoints(NULL, PhSipWindow, (POINT *)&buttonRect, 2);
@@ -1255,7 +1254,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     {
         if (ThemeHasItemBackground)
         {
-            DrawThemeBackground_I(
+            DrawThemeBackground(
                 ThemeData,
                 hdc,
                 TVP_TREEITEM,
@@ -1361,7 +1360,7 @@ VOID PhSipDefaultDrawPanel(
                 themeRect = DrawPanel->Rect;
                 themeRect.left -= 2; // remove left edge
 
-                DrawThemeBackground_I(
+                DrawThemeBackground(
                     ThemeData,
                     hdc,
                     TVP_TREEITEM,
@@ -1373,7 +1372,7 @@ VOID PhSipDefaultDrawPanel(
         }
         else if (Section->HasFocus)
         {
-            DrawThemeBackground_I(
+            DrawThemeBackground(
                 ThemeData,
                 hdc,
                 TVP_TREEITEM,
@@ -2046,34 +2045,20 @@ VOID PhSipUpdateThemeData(
     VOID
     )
 {
-    if (
-        IsThemeActive_I &&
-        OpenThemeData_I &&
-        CloseThemeData_I &&
-        IsThemePartDefined_I &&
-        DrawThemeBackground_I
-        )
+    if (ThemeData)
     {
-        if (ThemeData)
-        {
-            CloseThemeData_I(ThemeData);
-            ThemeData = NULL;
-        }
+        CloseThemeData(ThemeData);
+        ThemeData = NULL;
+    }
 
-        ThemeData = OpenThemeData_I(PhSipWindow, L"TREEVIEW");
+    ThemeData = OpenThemeData(PhSipWindow, L"TREEVIEW");
 
-        if (ThemeData)
-        {
-            ThemeHasItemBackground = !!IsThemePartDefined_I(ThemeData, TVP_TREEITEM, 0);
-        }
-        else
-        {
-            ThemeHasItemBackground = FALSE;
-        }
+    if (ThemeData)
+    {
+        ThemeHasItemBackground = !!IsThemePartDefined(ThemeData, TVP_TREEITEM, 0);
     }
     else
     {
-        ThemeData = NULL;
         ThemeHasItemBackground = FALSE;
     }
 }
