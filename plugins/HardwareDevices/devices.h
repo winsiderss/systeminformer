@@ -28,6 +28,8 @@
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".NetworkList")
 #define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
+#define SETTING_NAME_ENABLE_GPU (PLUGIN_NAME L".EnableGpu")
+#define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".ShowFahrenheit")
 
 #define CINTERFACE
 #define COBJMACROS
@@ -720,5 +722,84 @@ VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     );
+
+// Graphics
+
+extern ULONG GpuMemoryLimit;
+extern FLOAT GpuCurrentGpuUsage;
+extern FLOAT GpuCurrentCoreUsage;
+extern FLOAT GpuCurrentBusUsage;
+extern ULONG GpuCurrentMemUsage;
+extern ULONG GpuCurrentMemSharedUsage;
+extern ULONG GpuCurrentCoreTemp;
+extern ULONG GpuCurrentBoardTemp;
+extern ULONG GpuCurrentCoreClock;
+extern ULONG GpuCurrentMemoryClock;
+extern ULONG GpuCurrentShaderClock;
+extern ULONG GpuCurrentVoltage;
+
+typedef struct _PH_NVGPU_SYSINFO_CONTEXT
+{
+    PPH_STRING GpuName;
+    HWND WindowHandle;
+    HWND DetailsHandle;
+    PPH_SYSINFO_SECTION Section;
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    RECT GpuGraphMargin;
+    HWND GpuPanel;
+
+    HWND GpuLabelHandle;
+    HWND MemLabelHandle;
+    HWND SharedLabelHandle;
+    HWND BusLabelHandle;
+
+    HWND GpuGraphHandle;
+    HWND MemGraphHandle;
+    HWND SharedGraphHandle;
+    HWND BusGraphHandle;
+
+    PH_GRAPH_STATE GpuGraphState;
+    PH_GRAPH_STATE MemGraphState;
+    PH_GRAPH_STATE SharedGraphState;
+    PH_GRAPH_STATE BusGraphState;
+
+    PH_CIRCULAR_BUFFER_FLOAT GpuUtilizationHistory;
+    PH_CIRCULAR_BUFFER_ULONG GpuMemoryHistory;
+    PH_CIRCULAR_BUFFER_FLOAT GpuBoardHistory;
+    PH_CIRCULAR_BUFFER_FLOAT GpuBusHistory;
+} PH_NVGPU_SYSINFO_CONTEXT, *PPH_NVGPU_SYSINFO_CONTEXT;
+
+VOID NvGpuSysInfoInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
+    );
+
+VOID ShowDetailsDialog(
+    _In_ HWND ParentHandle,
+    _In_ PVOID Context
+    );
+
+VOID InitializeNvApi(VOID);
+BOOLEAN DestroyNvApi(VOID);
+PPH_STRING NvGpuQueryDriverVersion(VOID);
+PPH_STRING NvGpuQueryVbiosVersionString(VOID);
+PPH_STRING NvGpuQueryName(VOID);
+PPH_STRING NvGpuQueryShortName(VOID);
+PPH_STRING NvGpuQueryRevision(VOID);
+PPH_STRING NvGpuQueryRamType(VOID);
+PPH_STRING NvGpuQueryFoundry(VOID);
+PPH_STRING NvGpuQueryDeviceId(VOID);
+PPH_STRING NvGpuQueryRopsCount(VOID);
+PPH_STRING NvGpuQueryShaderCount(VOID);
+PPH_STRING NvGpuQueryPciInfo(VOID);
+PPH_STRING NvGpuQueryBusWidth(VOID);
+PPH_STRING NvGpuQueryPcbValue(VOID);
+PPH_STRING NvGpuQueryDriverSettings(VOID);
+PPH_STRING NvGpuQueryFanSpeed(VOID);
+BOOLEAN NvGpuDriverIsWHQL(VOID);
+VOID NvGpuUpdateValues(VOID);
+
+
+
 
 #endif _DEVICES_H_

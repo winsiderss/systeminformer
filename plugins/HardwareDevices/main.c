@@ -50,6 +50,8 @@ VOID NTAPI LoadCallback(
 
     DiskDrivesLoadList();
     NetAdaptersLoadList();
+
+    InitializeNvApi();
 }
 
 VOID NTAPI UnloadCallback(
@@ -158,6 +160,8 @@ VOID NTAPI SystemInformationInitializingCallback(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+
+    NvGpuSysInfoInitializing(pluginEntry);
 }
 
 PPH_STRING TrimString(
@@ -328,7 +332,9 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_ENABLE_NDIS, L"1" },
                 { StringSettingType, SETTING_NAME_INTERFACE_LIST, L"" },
-                { StringSettingType, SETTING_NAME_DISK_LIST, L"" }
+                { StringSettingType, SETTING_NAME_DISK_LIST, L"" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_GPU, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" }  
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
