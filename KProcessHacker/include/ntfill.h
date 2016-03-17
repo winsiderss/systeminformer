@@ -325,7 +325,7 @@ PsAcquireProcessExitSynchronization(
     );
 
 NTKERNELAPI
-NTSTATUS
+VOID
 NTAPI
 PsReleaseProcessExitSynchronization(
     __in PEPROCESS Process

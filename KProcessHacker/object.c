@@ -89,7 +89,7 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
         return NULL;
 
     // Prevent the process from terminating and get its handle table.
-    if (PsAcquireProcessExitSynchronization(Process))
+    if (NT_SUCCESS(PsAcquireProcessExitSynchronization(Process)))
     {
         handleTable = *(PHANDLE_TABLE *)((ULONG_PTR)Process + KphDynEpObjectTable);
 
