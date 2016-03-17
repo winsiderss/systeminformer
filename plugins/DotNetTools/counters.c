@@ -633,13 +633,11 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
             {
                 PVOID ntdll;
 
-                if (ntdll = PhGetDllHandle(L"ntdll.dll"))
-                {
-                    NtOpenPrivateNamespace_I = PhGetProcedureAddress(ntdll, "NtOpenPrivateNamespace", 0);
-                    RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
-                    RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
-                    RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
-                }
+                ntdll = PhGetDllHandle(L"ntdll.dll");
+                NtOpenPrivateNamespace_I = PhGetProcedureAddress(ntdll, "NtOpenPrivateNamespace", 0);
+                RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
+                RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
+                RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
 
                 PhEndInitOnce(&initOnce);
             }
@@ -863,8 +861,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock;
 
             legacyPrivateBlock = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
-            appDomainEnumBlock = GetLegacyBlockTableEntry(TRUE, ipcControlBlockTable, eLegacyPrivateIPC_AppDomain);
-
+            
             // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
 
             // Check the IPCControlBlock version is valid.
@@ -872,6 +869,12 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             {
                 __leave;
             }
+
+            appDomainEnumBlock = GetLegacyBlockTableEntry(
+                Wow64,
+                ipcControlBlockTable,
+                eLegacyPrivateIPC_AppDomain
+                );
 
             appDomainsList = EnumAppDomainIpcBlockWow64(
                 ProcessHandle, 
@@ -884,8 +887,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             AppDomainEnumerationIPCBlock* appDomainEnumBlock;
 
             legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
-            appDomainEnumBlock = GetLegacyBlockTableEntry(FALSE, ipcControlBlockTable, eLegacyPrivateIPC_AppDomain);
-
+            
             // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
 
             // Check the IPCControlBlock version is valid.
@@ -893,6 +895,12 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             {
                 __leave;
             }
+
+            appDomainEnumBlock = GetLegacyBlockTableEntry(
+                Wow64,
+                ipcControlBlockTable, 
+                eLegacyPrivateIPC_AppDomain
+                );
 
             appDomainsList = EnumAppDomainIpcBlock(
                 ProcessHandle, 
