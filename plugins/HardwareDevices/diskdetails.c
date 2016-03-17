@@ -771,7 +771,10 @@ VOID DiskDriveQueryFileSystem(
         }
 
         NtClose(diskEntry->DeviceHandle);
+        PhFree(diskEntry);
     }
+
+    PhDereferenceObject(deviceMountHandles);
 }
 
 VOID DiskDriveQuerySmart(
