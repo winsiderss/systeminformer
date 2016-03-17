@@ -53,25 +53,25 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>

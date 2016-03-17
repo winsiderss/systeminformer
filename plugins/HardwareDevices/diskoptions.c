@@ -26,8 +26,6 @@
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
 
-static _EnableThemeDialogTexture EnableThemeDialogTexture_I = NULL;
-
 typedef struct _DISK_ENUM_ENTRY
 {
     ULONG DeviceIndex;
@@ -630,11 +628,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
             context->OptionsChanged = FALSE;
 
-            if (!EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I = PhGetModuleProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
-
-            if (EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:

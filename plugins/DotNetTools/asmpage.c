@@ -136,7 +136,6 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     _In_ LPARAM lParam
     );
 
-static _EnableThemeDialogTexture EnableThemeDialogTexture_I = NULL;
 static UNICODE_STRING DotNetLoggerName = RTL_CONSTANT_STRING(L"PhDnLogger");
 static GUID ClrRuntimeProviderGuid = { 0xe13c0d23, 0xccbc, 0x4e12, { 0x93, 0x1b, 0xd9, 0xcc, 0x2e, 0xee, 0x27, 0xe4 } };
 static GUID ClrRundownProviderGuid = { 0xa669021c, 0xc450, 0x4609, { 0xa0, 0x35, 0x5a, 0xf5, 0x9a, 0xf4, 0xdf, 0x18 } };
@@ -1241,12 +1240,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 TreeNew_SetEmptyText(tnHandle, &context->TnErrorMessage->sr, 0);
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
-
-            if (!EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I = PhGetModuleProcAddress(L"uxtheme.dll", "EnableThemeDialogTexture");
-
-            if (EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
+                
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
