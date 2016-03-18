@@ -837,6 +837,12 @@ VOID NvGpuSysInfoInitializing(
     PH_SYSINFO_SECTION section;
     PPH_NVGPU_SYSINFO_CONTEXT context;
 
+    if (!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU))
+        return;
+
+    if (!NvApiInitialized)
+        return;
+
     context = (PPH_NVGPU_SYSINFO_CONTEXT)PhAllocate(sizeof(PH_NVGPU_SYSINFO_CONTEXT));
     memset(context, 0, sizeof(PH_NVGPU_SYSINFO_CONTEXT));
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
