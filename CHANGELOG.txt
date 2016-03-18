@@ -7,6 +7,14 @@ Process Hacker
    * Improved tooltip information for dllhost.exe
    * Fixed .NET process detection
    * Removed Terminator
+   * Updated DotNetTools plugin:
+     * Fixed .NET assembly tab performance issues
+     * Added extra .NET memory counters to the .NET performance tab
+     * Added 'Show sizes in bytes' checkbox to the .NET performance tab
+     * Added right-click menu to the .NET assembly tab
+   * Updated HardwareDevices plugin:
+     * Fixed incorrect drive letters
+     * Fixed drive letter and panel clipping issue
 
 2.38
  * HIGHLIGHTS:
