@@ -724,7 +724,7 @@ VOID NetAdapterSysInfoInitializing(
     );
 
 // Graphics
-
+extern BOOLEAN NvApiInitialized;
 extern ULONG GpuMemoryLimit;
 extern FLOAT GpuCurrentGpuUsage;
 extern FLOAT GpuCurrentCoreUsage;
@@ -779,7 +779,7 @@ VOID ShowDetailsDialog(
     _In_ PVOID Context
     );
 
-VOID InitializeNvApi(VOID);
+VOID NvApiInitialize(VOID);
 BOOLEAN DestroyNvApi(VOID);
 PPH_STRING NvGpuQueryDriverVersion(VOID);
 PPH_STRING NvGpuQueryVbiosVersionString(VOID);

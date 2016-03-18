@@ -534,6 +534,12 @@ VOID NetAdapterSysInfoInitializing(
     PH_SYSINFO_SECTION section;
     PDV_NETADAPTER_SYSINFO_CONTEXT context;
 
+    if (!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU))
+        return;
+
+    if (!NvApiInitialized)
+        return;
+
     context = (PDV_NETADAPTER_SYSINFO_CONTEXT)PhAllocate(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
     memset(context, 0, sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));

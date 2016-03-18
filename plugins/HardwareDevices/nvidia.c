@@ -25,7 +25,7 @@
 #include "nvapi\nvapi.h"
 #include "nvidia.h"
 
-static BOOLEAN NvApiInitialized = FALSE;
+BOOLEAN NvApiInitialized = FALSE;
 static PVOID NvApiLibrary = NULL;
 static PPH_LIST NvGpuPhysicalHandleList = NULL;
 static PPH_LIST NvGpuDisplayHandleList = NULL;
@@ -73,7 +73,7 @@ static VOID NvGpuEnumDisplayHandles(VOID)
     }
 }
 
-VOID InitializeNvApi(VOID)
+VOID NvApiInitialize(VOID)
 {
     if (!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU))
         return;

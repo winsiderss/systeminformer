@@ -51,7 +51,7 @@ VOID NTAPI LoadCallback(
     DiskDrivesLoadList();
     NetAdaptersLoadList();
 
-    InitializeNvApi();
+    NvApiInitialize();
 }
 
 VOID NTAPI UnloadCallback(
@@ -160,6 +160,8 @@ VOID NTAPI SystemInformationInitializingCallback(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+
+    // Graphics cards
 
     NvGpuSysInfoInitializing(pluginEntry);
 }
