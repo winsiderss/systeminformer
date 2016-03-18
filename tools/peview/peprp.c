@@ -697,8 +697,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
 
-            if (EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:
@@ -785,8 +784,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
 
-            if (EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:
@@ -881,8 +879,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
 
             PhDeleteAutoPool(&autoPool);
 
-            if (EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:

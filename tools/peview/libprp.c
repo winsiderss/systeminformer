@@ -167,8 +167,7 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
 
-            if (EnableThemeDialogTexture_I)
-                EnableThemeDialogTexture_I(hwndDlg, ETDT_ENABLETAB);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:

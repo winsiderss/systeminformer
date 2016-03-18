@@ -37,7 +37,7 @@
 #include <phappresource.h>
 
 #include <windowsx.h>
-#include <Uxtheme.h>
+#include <uxtheme.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <ws2tcpip.h>

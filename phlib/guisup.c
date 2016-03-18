@@ -25,7 +25,7 @@
 #include <guisupp.h>
 #include <shellapi.h>
 #include <windowsx.h>
-#include <Uxtheme.h>
+#include <uxtheme.h>
 
 #define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
 

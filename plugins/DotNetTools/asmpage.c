@@ -24,7 +24,7 @@
 #include "dn.h"
 #include "clretw.h"
 #include <evntcons.h>
-#include <Uxtheme.h>
+#include <uxtheme.h>
 
 #define DNATNC_STRUCTURE 0
 #define DNATNC_ID 1

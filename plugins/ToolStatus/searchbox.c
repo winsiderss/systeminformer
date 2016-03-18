@@ -23,7 +23,7 @@
 
 #include "toolstatus.h"
 #include "commonutil.h"
-#include <Uxtheme.h>
+#include <uxtheme.h>
 #include <vssym32.h>
 
 VOID NcAreaFreeTheme(

@@ -43,7 +43,7 @@
 #include <ph.h>
 #include <guisup.h>
 #include <windowsx.h>
-#include <Uxtheme.h>
+#include <uxtheme.h>
 #include <vssym32.h>
 #include <treenew.h>
 #include <treenewp.h>
