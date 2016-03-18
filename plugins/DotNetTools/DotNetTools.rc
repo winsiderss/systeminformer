@@ -161,7 +161,7 @@ BEGIN
     POPUP "CLR"
     BEGIN
         MENUITEM "Open &file location",         ID_CLR_OPENFILELOCATION
-        MENUITEM "&Copy",                       ID_CLR_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_CLR_COPY
     END
 END
 
