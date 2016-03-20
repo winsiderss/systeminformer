@@ -57,7 +57,7 @@ VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    Context->CXWidth = PhMultiplyDivide(20, PhGlobalDpi, 96);
+    Context->CXWidth = PhMultiplyDivide(19, PhGlobalDpi, 96);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
     Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
@@ -195,7 +195,7 @@ VOID NcAreaDrawButton(
             Context->ImageList,
             1,
             bufferDc,
-            bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth + 2) / 2,  // (ImageWidth + 2) offset left by two 
+            bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2, // (ImageWidth - 2) offset left by two 
             bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2, // (ImageHeight - 2) offset top by one 
             ILD_NORMAL | ILD_TRANSPARENT
             );
