@@ -77,9 +77,6 @@
     <ClCompile Include="disknotify.c">
       <Filter>Source Files\Disk</Filter>
     </ClCompile>
-    <ClCompile Include="gpudetails.c">
-      <Filter>Source Files\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="gpugraph.c">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>

@@ -75,8 +75,16 @@ static VOID NvGpuEnumDisplayHandles(VOID)
 
 VOID NvApiInitialize(VOID)
 {
+    ULONG sampleCount;
+
     if (!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU))
         return;
+
+    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhInitializeCircularBuffer_FLOAT(&GpuUtilizationHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG(&GpuMemoryHistory, sampleCount);
+    PhInitializeCircularBuffer_FLOAT(&GpuBoardHistory, sampleCount);
+    PhInitializeCircularBuffer_FLOAT(&GpuBusHistory, sampleCount);
 
     NvGpuPhysicalHandleList = PhCreateList(1);
     NvGpuDisplayHandleList = PhCreateList(1);

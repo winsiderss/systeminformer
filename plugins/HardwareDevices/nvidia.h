@@ -2,7 +2,7 @@
  * Process Hacker Extra Plugins -
  *   Nvidia GPU Plugin
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,14 +23,16 @@
 #include "devices.h"
 #include <pshpack8.h>
 
+// These structures and types have been gathered from nvapi leaks and symbols, as well as reverse engineering and guessing.
+
 // rev
-#define NVAPI_MAX_USAGES_PER_GPU    33
+#define NVAPI_MAX_USAGES_PER_GPU    0x21
 #define NVAPI_MAX_CLOCKS_PER_GPU    0x120
-#define NVAPI_MAX_COOLERS_PER_GPU   3
-#define NVAPI_MIN_COOLER_LEVEL      0
-#define NVAPI_MAX_COOLER_LEVEL      100
-#define NVAPI_MAX_COOLER_LEVELS     24
-#define NVAPI_MAX_PROCESSES         128
+#define NVAPI_MAX_COOLERS_PER_GPU   0x3
+#define NVAPI_MIN_COOLER_LEVEL      0x0
+#define NVAPI_MAX_COOLER_LEVEL      0x64
+#define NVAPI_MAX_COOLER_LEVELS     0x18
+#define NVAPI_MAX_PROCESSES         0x80
 
 // rev
 typedef PVOID (__cdecl *_NvAPI_QueryInterface)(_In_ NvU32 FunctionOffset);

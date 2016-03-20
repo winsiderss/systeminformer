@@ -79,7 +79,6 @@
     <ClCompile Include="adapter.c" />
     <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />
-    <ClCompile Include="gpudetails.c" />
     <ClCompile Include="gpugraph.c" />
     <ClCompile Include="netdetails.c" />
     <ClCompile Include="diskgraph.c" />

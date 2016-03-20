@@ -737,38 +737,10 @@ extern ULONG GpuCurrentCoreClock;
 extern ULONG GpuCurrentMemoryClock;
 extern ULONG GpuCurrentShaderClock;
 extern ULONG GpuCurrentVoltage;
-
-typedef struct _PH_NVGPU_SYSINFO_CONTEXT
-{
-    PPH_STRING GpuName;
-    HWND WindowHandle;
-    HWND DetailsHandle;
-    PPH_SYSINFO_SECTION Section;
-    PH_LAYOUT_MANAGER LayoutManager;
-
-    RECT GpuGraphMargin;
-    HWND GpuPanel;
-
-    HWND GpuLabelHandle;
-    HWND MemLabelHandle;
-    HWND SharedLabelHandle;
-    HWND BusLabelHandle;
-
-    HWND GpuGraphHandle;
-    HWND MemGraphHandle;
-    HWND SharedGraphHandle;
-    HWND BusGraphHandle;
-
-    PH_GRAPH_STATE GpuGraphState;
-    PH_GRAPH_STATE MemGraphState;
-    PH_GRAPH_STATE SharedGraphState;
-    PH_GRAPH_STATE BusGraphState;
-
-    PH_CIRCULAR_BUFFER_FLOAT GpuUtilizationHistory;
-    PH_CIRCULAR_BUFFER_ULONG GpuMemoryHistory;
-    PH_CIRCULAR_BUFFER_FLOAT GpuBoardHistory;
-    PH_CIRCULAR_BUFFER_FLOAT GpuBusHistory;
-} PH_NVGPU_SYSINFO_CONTEXT, *PPH_NVGPU_SYSINFO_CONTEXT;
+extern PH_CIRCULAR_BUFFER_FLOAT GpuUtilizationHistory;
+extern PH_CIRCULAR_BUFFER_ULONG GpuMemoryHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT GpuBoardHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT GpuBusHistory;
 
 VOID NvGpuSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
