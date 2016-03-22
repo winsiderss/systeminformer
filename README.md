@@ -55,9 +55,9 @@ processes with SeDebugPrivilege. To allow Process Hacker to show details
 for all processes when it is not running as administrator:
 
 1. In Registry Editor, navigate to:
-   HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\KProcessHacker2
+   HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\KProcessHacker3
 2. Under this key, create a key named Parameters if it does not exist.
 3. Create a DWORD value named SecurityLevel and set it to 2. If you are
    not using an official build, you may need to set it to 0 instead.
-4. Restart the KProcessHacker2 service (sc stop KProcessHacker2,
-   sc start KProcessHacker2).
+4. Restart the KProcessHacker3 service (sc stop KProcessHacker3,
+   sc start KProcessHacker3).
