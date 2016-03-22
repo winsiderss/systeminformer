@@ -556,6 +556,12 @@ NTSTATUS UpdateCheckSilentThread(
             );
 #endif
 
+        if (WindowsVersion < WINDOWS_7 && context->MajorVersion != 2)
+        { 
+            // If we're running on XP or Vista, we only support 2.x branch releases.  
+            latestVersion = currentVersion;
+        }
+
         // Compare the current version against the latest available version
         if (currentVersion < latestVersion)
         {
@@ -635,7 +641,12 @@ NTSTATUS UpdateCheckThread(
         );
 #endif
 
-    if (currentVersion == latestVersion)
+    if (WindowsVersion < WINDOWS_7 && context->MajorVersion != 2)
+    {
+        // If we're running on XP or Vista, we only support 2.x branch releases.
+        PostMessage(context->DialogHandle, PH_UPDATENOTSUPPORTED, 0, 0);
+    }
+    else if (currentVersion == latestVersion)
     {
         // User is running the latest version
         PostMessage(context->DialogHandle, PH_UPDATEISCURRENT, 0, 0);
@@ -1356,6 +1367,31 @@ INT_PTR CALLBACK UpdaterWndProc(
 
             Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
             Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+        }
+        break;
+    case PH_UPDATENOTSUPPORTED:
+        {
+            // Set updater state
+            context->UpdaterState = PhUpdateMaximum;
+
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(
+                L"You're running the latest version: v%lu.%lu.%lu",
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
+                context->CurrentRevisionVersion
+                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"v%lu.%lu.%lu is available for Windows 7 and above.",
+                context->MajorVersion,
+                context->MinorVersion,
+                context->RevisionVersion
+                )->Buffer);
+
+            // Disable the download button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            // Enable the changelog link
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
         }
         break;
     case WM_NOTIFY:

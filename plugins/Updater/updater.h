@@ -44,6 +44,7 @@
 #define PH_UPDATENEWER     (WM_APP + 104)
 #define PH_UPDATESUCCESS   (WM_APP + 105)
 #define PH_UPDATEFAILURE   (WM_APP + 106)
+#define PH_UPDATENOTSUPPORTED (WM_APP + 107)
 #define WM_SHOWDIALOG      (WM_APP + 150)
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"

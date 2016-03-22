@@ -1,3 +1,6 @@
+1.7
+ * Blocked 3.x branch updates for XP and Vista.
+
 1.6
  * Fixed background update check interval
 
