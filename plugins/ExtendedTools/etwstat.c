@@ -394,16 +394,7 @@ HANDLE EtThreadIdToProcessId(
     HANDLE processId;
 
     if (!EtpProcessInformation)
-    {
-        EtpUpdateProcessInformation();
-
-        if (!EtpProcessInformation)
-        {
-            // TODO: We return the IDLE process so we can easily see when an error has occurred
-            // when trying to identify the process, at some point we should change this to something more unique.
-            return SYSTEM_IDLE_PROCESS_ID; 
-        }
-    }
+        return SYSTEM_PROCESS_ID;
 
     PhAcquireQueuedLockShared(&EtpProcessInformationLock);
 
@@ -425,7 +416,5 @@ HANDLE EtThreadIdToProcessId(
 
     PhReleaseQueuedLockShared(&EtpProcessInformationLock);
 
-    // TODO: We return the IDLE process so we can easily see when an error has occurred
-    // when trying to identify the process, at some point we should change this to something more unique.
-    return SYSTEM_IDLE_PROCESS_ID;
+    return SYSTEM_PROCESS_ID;
 }
