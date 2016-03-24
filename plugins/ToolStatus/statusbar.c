@@ -218,11 +218,14 @@ PWSTR StatusBarGetText(
 }
 
 VOID StatusBarShowMenu(
-    _In_ PPOINT Point
+    VOID
     )
 {
     PPH_EMENU menu;
     PPH_EMENU_ITEM selectedItem;
+    POINT cursorPos;
+
+    GetCursorPos(&cursorPos);
 
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Customize...", NULL, NULL), -1);
@@ -232,8 +235,8 @@ VOID StatusBarShowMenu(
         PhMainWndHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
-        Point->x,
-        Point->y
+        cursorPos.x,
+        cursorPos.y
         );
 
     if (selectedItem && selectedItem->Id != -1)

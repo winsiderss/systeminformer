@@ -337,7 +337,7 @@ VOID StatusBarUpdate(
     );
 
 VOID StatusBarShowMenu(
-    _In_ PPOINT Point
+    VOID
     );
 
 // customizetb.c

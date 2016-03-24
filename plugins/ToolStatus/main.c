@@ -1022,11 +1022,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                 case NM_RCLICK:
                     {
-                        POINT cursorPos;
-
-                        GetCursorPos(&cursorPos);
-
-                        StatusBarShowMenu(&cursorPos);
+                        StatusBarShowMenu();
                     }
                     break;
                 }
