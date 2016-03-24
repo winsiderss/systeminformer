@@ -394,7 +394,7 @@ HANDLE EtThreadIdToProcessId(
     HANDLE processId;
 
     if (!EtpProcessInformation)
-        return NULL;
+        return SYSTEM_PROCESS_ID;
 
     PhAcquireQueuedLockShared(&EtpProcessInformationLock);
 
@@ -416,5 +416,5 @@ HANDLE EtThreadIdToProcessId(
 
     PhReleaseQueuedLockShared(&EtpProcessInformationLock);
 
-    return NULL;
+    return SYSTEM_PROCESS_ID;
 }
