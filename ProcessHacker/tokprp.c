@@ -25,6 +25,7 @@
 #include <emenu.h>
 #include <cpysave.h>
 #include <lsasup.h>
+#include <uxtheme.h>
 
 typedef struct _ATTRIBUTE_NODE
 {
@@ -1060,6 +1061,9 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             WCHAR tokenSourceName[TOKEN_SOURCE_LENGTH + 1] = L"Unknown";
             WCHAR tokenSourceLuid[PH_PTR_STR_LEN_1] = L"Unknown";
 
+            // HACK
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY,
@@ -1188,6 +1192,21 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                     {
                         PhShowStatus(hwndDlg, L"Unable to open the token", status, 0);
                     }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_QUERYINITIALFOCUS:
+                {
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_LINKEDTOKEN));
+                    return TRUE;
                 }
                 break;
             }
@@ -1377,6 +1396,8 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
                 NtClose(tokenHandle);
             }
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -1794,6 +1815,8 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
 
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -1895,6 +1918,8 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
 
             TreeNew_NodesStructured(tnHandle);
             TreeNew_SetRedraw(tnHandle, TRUE);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
