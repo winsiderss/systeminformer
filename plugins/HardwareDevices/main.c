@@ -114,6 +114,7 @@ VOID NTAPI ProcessesUpdatedCallback(
 {
     DiskDrivesUpdate();
     NetAdaptersUpdate();
+    NvGpuUpdate();
 }
 
 VOID NTAPI SystemInformationInitializingCallback(

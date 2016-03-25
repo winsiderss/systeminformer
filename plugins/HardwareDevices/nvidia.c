@@ -915,7 +915,7 @@ PPH_STRING NvGpuQueryFanSpeed(VOID)
 
 
 
-VOID NvGpuUpdateValues(VOID)
+VOID NvGpuUpdate(VOID)
 {
     NV_USAGES_INFO usagesInfo = { NV_USAGES_INFO_VER };
     NV_GPU_THERMAL_SETTINGS thermalSettings = { NV_GPU_THERMAL_SETTINGS_VER };
@@ -1023,4 +1023,9 @@ VOID NvGpuUpdateValues(VOID)
 
     //Nv120 clockInfo = { NV_PERF_CLOCKS_INFO_VER };
     //NvAPI_GPU_GetPerfClocks(NvGpuPhysicalHandleList->Items[0], 0, &clockInfo);
+
+    PhAddItemCircularBuffer_FLOAT(&GpuUtilizationHistory, GpuCurrentGpuUsage);
+    PhAddItemCircularBuffer_ULONG(&GpuMemoryHistory, GpuCurrentMemUsage);
+    PhAddItemCircularBuffer_FLOAT(&GpuBoardHistory, GpuCurrentCoreUsage);
+    PhAddItemCircularBuffer_FLOAT(&GpuBusHistory, GpuCurrentBusUsage);
 }

@@ -769,6 +769,6 @@ PPH_STRING NvGpuQueryPcbValue(VOID);
 PPH_STRING NvGpuQueryDriverSettings(VOID);
 PPH_STRING NvGpuQueryFanSpeed(VOID);
 BOOLEAN NvGpuDriverIsWHQL(VOID);
-VOID NvGpuUpdateValues(VOID);
+VOID NvGpuUpdate(VOID);
 
 #endif _DEVICES_H_

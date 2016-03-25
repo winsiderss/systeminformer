@@ -646,7 +646,7 @@ static INT_PTR CALLBACK NvGpuDialogProc(
 
             NvGpuCreateGraphs();
 
-            NvGpuUpdateValues();
+            NvGpuUpdate();
             NvGpuUpdateGraphs();
             NvGpuUpdatePanel();
         }
@@ -702,13 +702,6 @@ static BOOLEAN NvGpuSectionCallback(
         return TRUE;
     case SysInfoTick:
         {
-            NvGpuUpdateValues();
-
-            PhAddItemCircularBuffer_FLOAT(&GpuUtilizationHistory, GpuCurrentGpuUsage);
-            PhAddItemCircularBuffer_ULONG(&GpuMemoryHistory, GpuCurrentMemUsage);
-            PhAddItemCircularBuffer_FLOAT(&GpuBoardHistory, GpuCurrentCoreUsage);
-            PhAddItemCircularBuffer_FLOAT(&GpuBusHistory, GpuCurrentBusUsage);
-
             if (WindowHandle)
                 PostMessage(WindowHandle, UPDATE_MSG, 0, 0);
 
