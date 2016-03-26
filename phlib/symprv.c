@@ -1514,7 +1514,7 @@ NTSTATUS PhWalkThreadStack(
     BOOLEAN suspended = FALSE;
     BOOLEAN processOpened = FALSE;
     BOOLEAN isCurrentThread = FALSE;
-    BOOLEAN isSystemProcess = FALSE;
+    BOOLEAN isSystemThread = FALSE;
     THREAD_BASIC_INFORMATION basicInfo;
 
     // Open a handle to the process if we weren't given one.
@@ -1548,7 +1548,7 @@ NTSTATUS PhWalkThreadStack(
         if (ClientId->UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
             isCurrentThread = TRUE;
         if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
-            isSystemProcess = TRUE;
+            isSystemThread = TRUE;
     }
     else
     {
@@ -1561,13 +1561,26 @@ NTSTATUS PhWalkThreadStack(
             if (basicInfo.ClientId.UniqueThread == NtCurrentTeb()->ClientId.UniqueThread)
                 isCurrentThread = TRUE;
             if (basicInfo.ClientId.UniqueProcess == SYSTEM_PROCESS_ID)
-                isSystemProcess = TRUE;
+                isSystemThread = TRUE;
+        }
+    }
+
+    // Make sure this isn't a kernel-mode thread.
+    if (!isSystemThread)
+    {
+        PVOID startAddress;
+
+        if (NT_SUCCESS(NtQueryInformationThread(ThreadHandle, ThreadQuerySetWin32StartAddress,
+            &startAddress, sizeof(PVOID), NULL)))
+        {
+            if ((ULONG_PTR)startAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+                isSystemThread = TRUE;
         }
     }
 
     // Suspend the thread to avoid inaccurate results. Don't suspend if we're walking the stack of
-    // the current thread or this is the System process.
-    if (!isCurrentThread && !isSystemProcess)
+    // the current thread or this is a kernel-mode thread.
+    if (!isCurrentThread && !isSystemThread)
     {
         if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
             suspended = TRUE;

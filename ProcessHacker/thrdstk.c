@@ -108,7 +108,7 @@ VOID PhShowThreadStackDialog(
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
-        ThreadQueryAccess | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
         ThreadId
         )))
     {
