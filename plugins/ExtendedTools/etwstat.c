@@ -33,10 +33,6 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Context
     );
 
-VOID EtpUpdateProcessInformation(
-    VOID
-    );
-
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
 
@@ -229,7 +225,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     // event headers for disk events. We need to update our process information since
     // etwmon uses our EtThreadIdToProcessId function.
     if (WindowsVersion >= WINDOWS_8)
-        EtpUpdateProcessInformation();
+        EtUpdateProcessInformation();
 
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it
     // manually.
@@ -368,7 +364,7 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     }
 }
 
-VOID EtpUpdateProcessInformation(
+VOID EtUpdateProcessInformation(
     VOID
     )
 {
@@ -393,10 +389,13 @@ HANDLE EtThreadIdToProcessId(
     ULONG i;
     HANDLE processId;
 
-    if (!EtpProcessInformation)
-        return NULL;
-
     PhAcquireQueuedLockShared(&EtpProcessInformationLock);
+
+    if (!EtpProcessInformation)
+    {
+        PhReleaseQueuedLockShared(&EtpProcessInformationLock);
+        return NULL;
+    }
 
     process = PH_FIRST_PROCESS(EtpProcessInformation);
 

@@ -1,3 +1,6 @@
+1.16
+ * Fixed "No process" disk event bug
+
 1.15
  * Added tray icon mini info window support
  * Improved automatic GPU node selection

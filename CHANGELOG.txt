@@ -2,16 +2,18 @@ Process Hacker
 
 2.39
  * HIGHLIGHTS:
- * OTHER CHANGES:
    * Improved compatibility with security and anti-cheat software
-   * Improved tooltip information for dllhost.exe
    * Fixed .NET process detection
+ * OTHER CHANGES:
+   * Improved tooltip information for dllhost.exe
    * Removed Terminator
    * Updated DotNetTools plugin:
      * Fixed .NET assembly tab performance issues
      * Added extra .NET memory counters to the .NET performance tab
-     * Added 'Show sizes in bytes' checkbox to the .NET performance tab
+     * Added "Show sizes in bytes" checkbox to the .NET performance tab
      * Added right-click menu to the .NET assembly tab
+   * Updated ExtendedTools plugin:
+     * Fixed "No process" disk event bug
    * Updated HardwareDevices plugin:
      * Fixed incorrect drive letters
      * Fixed drive letter and panel clipping issue

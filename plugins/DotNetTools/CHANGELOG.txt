@@ -1,7 +1,7 @@
 1.6
  * Fixed .NET assembly tab performance issues
  * Added extra .NET memory counters to the .NET performance tab
- * Added 'Show sizes in bytes' checkbox to the .NET performance tab
+ * Added "Show sizes in bytes" checkbox to the .NET performance tab
  * Added right-click menu to the .NET assembly tab
  * Removed all Win32 functions for querying .NET process performance
 

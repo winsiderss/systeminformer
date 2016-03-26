@@ -119,6 +119,10 @@ VOID EtProcessNetworkEvent(
     _In_ PET_ETW_NETWORK_EVENT Event
     );
 
+VOID EtUpdateProcessInformation(
+    VOID
+    );
+
 HANDLE EtThreadIdToProcessId(
     _In_ HANDLE ThreadId
     );

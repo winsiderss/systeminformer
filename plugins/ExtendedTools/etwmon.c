@@ -386,6 +386,10 @@ NTSTATUS EtpEtwMonitorThreadStart(
     EVENT_TRACE_LOGFILE logFile;
     TRACEHANDLE traceHandle;
 
+    // See comment in EtEtwProcessesUpdatedCallback.
+    if (WindowsVersion >= WINDOWS_8)
+        EtUpdateProcessInformation();
+
     memset(&logFile, 0, sizeof(EVENT_TRACE_LOGFILE));
     logFile.LoggerName = EtpActualKernelLoggerName->Buffer;
     logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD;
