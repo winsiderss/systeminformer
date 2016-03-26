@@ -200,8 +200,7 @@ VOID PhpThreadProviderDeleteProcedure(
         }
     }
 
-    // We don't close the process handle because it is owned by
-    // the symbol provider.
+    // We don't close the process handle because it is owned by the symbol provider.
     if (threadProvider->SymbolProvider) PhDereferenceObject(threadProvider->SymbolProvider);
 }
 
@@ -241,9 +240,8 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
-    // If we're loading kernel module symbols for a process other than
-    // System, ignore modules which are in user space. This may happen
-    // in Windows 7.
+    // If we're loading kernel module symbols for a process other than System, ignore modules which
+    // are in user space. This may happen in Windows 7.
     if (context->ProcessId == SYSTEM_PROCESS_ID &&
         context->ThreadProvider->ProcessId != SYSTEM_PROCESS_ID &&
         (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
@@ -316,8 +314,7 @@ VOID PhLoadSymbolsThreadProvider(
         }
         else
         {
-            // We can't enumerate the process modules. Load
-            // symbols for ntdll.dll and kernel32.dll.
+            // We can't enumerate the process modules. Load symbols for ntdll.dll and kernel32.dll.
             loadContext.ProcessId = NtCurrentProcessId();
             PhEnumGenericModules(
                 NtCurrentProcessId(),
@@ -343,9 +340,8 @@ VOID PhLoadSymbolsThreadProvider(
     }
     else
     {
-        // System Idle Process has one thread for each CPU,
-        // each having a start address at KiIdleLoop. We
-        // need to load symbols for the kernel.
+        // System Idle Process has one thread for each CPU, each having a start address at
+        // KiIdleLoop. We need to load symbols for the kernel.
 
         PRTL_PROCESS_MODULES kernelModules;
 
@@ -734,8 +730,7 @@ VOID PhpThreadProviderUpdate(
 
     if (!process)
     {
-        // The process doesn't exist anymore. Pretend it does but
-        // has no threads.
+        // The process doesn't exist anymore. Pretend it does but has no threads.
         process = &localProcess;
         process->NumberOfThreads = 0;
     }
@@ -743,9 +738,8 @@ VOID PhpThreadProviderUpdate(
     threads = process->Threads;
     numberOfThreads = process->NumberOfThreads;
 
-    // System Idle Process has one thread per CPU.
-    // They all have a TID of 0, but we can't have
-    // multiple TIDs, so we'll assign unique TIDs.
+    // System Idle Process has one thread per CPU. They all have a TID of 0. We can't have duplicate
+    // TIDs, so we'll assign unique TIDs.
     if (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
         for (i = 0; i < numberOfThreads; i++)
@@ -1004,12 +998,9 @@ VOID PhpThreadProviderUpdate(
                 }
             }
 
-            // If we couldn't resolve the start address to a
-            // module+offset, use the StartAddress instead
-            // of the Win32StartAddress and try again.
-            // Note that we check the resolve level again
-            // because we may have changed it in the previous
-            // block.
+            // If we couldn't resolve the start address to a module+offset, use the StartAddress
+            // instead of the Win32StartAddress and try again. Note that we check the resolve level
+            // again because we may have changed it in the previous block.
             if (threadItem->JustResolved &&
                 threadItem->StartAddressResolveLevel == PhsrlAddress)
             {
