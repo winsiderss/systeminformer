@@ -14,7 +14,7 @@
     <ProjectGuid>{5C00734F-F50A-49FC-9D2A-F6EE51ECB00F}</ProjectGuid>
     <RootNamespace>ProcessHackerSetup</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
-    <ProjectName>ProcessHacker-Setup</ProjectName>
+    <ProjectName>ProcessHackerSetup</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
