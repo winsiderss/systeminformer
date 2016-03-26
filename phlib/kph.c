@@ -1051,7 +1051,7 @@ NTSTATUS KphpOpenThreadContinuation(
     PKPH_OPEN_PROCESS_INPUT input = Context;
 
     input->Key = Key;
-    
+
     return KphpDeviceIoControl(
         KPH_OPENTHREAD,
         input,
