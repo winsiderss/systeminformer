@@ -36,8 +36,6 @@ BOOL PropSheetPage4_OnInitDialog(
     _Inout_ LPARAM lParam
     )
 {
-    EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-
     InitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER), -17, FW_SEMIBOLD);
     InitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER1), -12, FW_SEMIBOLD);
 
@@ -47,6 +45,9 @@ BOOL PropSheetPage4_OnInitDialog(
         IDC_PROGRESS1,
         0
         );
+
+    // Enable the themed dialog background texture.
+    EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
 
     return TRUE;
 }
@@ -70,7 +71,6 @@ BOOL PropSheetPage4_OnNotify(
 
             _hwndProgress = hwndDlg;
 
-            
             SetTimer(hwndDlg, 1, 100, NULL);
 
             PhCreateThread(0, DownloadThread, hwPropSheet);

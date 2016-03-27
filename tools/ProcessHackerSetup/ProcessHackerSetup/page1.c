@@ -2,7 +2,7 @@
 #include <appsup.h>
 
 VOID LoadSetupIcons(
-    _In_ HWND WindowHandle
+    _In_ HWND hwndDlg
     )
 {
     HBITMAP smallIconHandle = (HBITMAP)LoadImage(
@@ -22,15 +22,15 @@ VOID LoadSetupIcons(
         LR_DEFAULTCOLOR
         );
    
-    SendMessage(GetParent(WindowHandle), WM_SETICON, ICON_SMALL, (LPARAM)smallIconHandle);
-    SendMessage(GetParent(WindowHandle), WM_SETICON, ICON_BIG, (LPARAM)largeIconHandle);
+    SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_SMALL, (LPARAM)smallIconHandle);
+    SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_BIG, (LPARAM)largeIconHandle);
 
     DeleteObject(largeIconHandle);
     DeleteObject(smallIconHandle);
 }
 
 VOID LoadSetupImage(
-    _In_ HWND WindowHandle
+    _In_ HWND hwndDlg
     )
 {
     HBITMAP imageBitmap = LoadPngImageFromResources(MAKEINTRESOURCE(IDB_PNG1));
@@ -38,13 +38,13 @@ VOID LoadSetupImage(
     // The image control uses a large square frame so that we can use the VS designer easily.
     // Remove the frame style and apply the bitmap style.
     PhSetWindowStyle(
-        GetDlgItem(WindowHandle, IDC_PROJECT_ICON), 
+        GetDlgItem(hwndDlg, IDC_PROJECT_ICON),
         SS_BITMAP | SS_BLACKFRAME, 
         SS_BITMAP
         );
 
     SendMessage(
-        GetDlgItem(WindowHandle, IDC_PROJECT_ICON),
+        GetDlgItem(hwndDlg, IDC_PROJECT_ICON),
         STM_SETIMAGE,
         IMAGE_BITMAP,
         (LPARAM)imageBitmap

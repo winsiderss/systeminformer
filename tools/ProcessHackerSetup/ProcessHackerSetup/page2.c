@@ -2,7 +2,7 @@
 #include <appsup.h>
 
 VOID LoadEulaText(
-    _In_ HWND WindowHandle
+    _In_ HWND hwndDlg
     )
 {
     HRSRC resourceHandle;
@@ -23,7 +23,7 @@ VOID LoadEulaText(
             {
                 PPH_STRING eulaTextString = PhConvertMultiByteToUtf16(resourceBuffer);
 
-                SetWindowText(GetDlgItem(WindowHandle, IDC_EDIT1), eulaTextString->Buffer);
+                SetWindowText(GetDlgItem(hwndDlg, IDC_EDIT1), eulaTextString->Buffer);
 
                 PhDereferenceObject(eulaTextString);
             }
@@ -85,7 +85,7 @@ BOOL PropSheetPage2_OnNotify(
 }
 
 BOOL PropSheetPage2_OnCommand(
-    _In_ HWND hwnd,
+    _In_ HWND hwndDlg,
     _In_ INT id,
     _In_ HWND hwndCtl,
     _In_ UINT codeNotify
@@ -96,15 +96,15 @@ BOOL PropSheetPage2_OnCommand(
     case IDC_RADIO1:
     case IDC_RADIO2:
         {
-            if (Button_GetCheck(GetDlgItem(hwnd, IDC_RADIO1)) == BST_CHECKED)
+            if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_RADIO1)) == BST_CHECKED)
             {
                 // The user has agreed to the EULA, enable the Next button.
-                PropSheet_SetWizButtons(GetParent(hwnd), PSWIZB_NEXT | PSWIZB_BACK);
+                PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_NEXT | PSWIZB_BACK);
             }
             else
             {
                 // The user did not agree, disable the next button.
-                PropSheet_SetWizButtons(GetParent(hwnd), PSWIZB_BACK);
+                PropSheet_SetWizButtons(GetParent(hwndDlg), PSWIZB_BACK);
             }
         }
         break;

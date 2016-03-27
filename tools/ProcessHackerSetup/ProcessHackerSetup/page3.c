@@ -2,7 +2,7 @@
 #include <appsup.h>
 
 VOID LoadInstallDirectory(
-    _In_ HWND WindowHandle
+    _In_ HWND hwndDlg
     )
 {
     if (SetupInstallPath = GetProcessHackerInstallPath())
@@ -43,7 +43,7 @@ VOID LoadInstallDirectory(
         SetupInstallPath = PhCreateString(L"C:\\Program Files\\Process Hacker 2\\");
     }
 
-    SetDlgItemText(WindowHandle, IDC_INSTALL_DIRECTORY, SetupInstallPath->Buffer);
+    SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, SetupInstallPath->Buffer);
 }
 
 BOOL PropSheetPage3_OnInitDialog(
@@ -99,7 +99,7 @@ BOOL PropSheetPage3_OnNotify(
 }
 
 BOOL PropSheetPage3_OnCommand(
-    _In_ HWND hwnd,
+    _In_ HWND hwndDlg,
     _In_ INT id,
     _In_ HWND hwndCtl,
     _In_ UINT codeNotify
@@ -111,13 +111,13 @@ BOOL PropSheetPage3_OnCommand(
         {
             PPH_STRING installFolder;
 
-            installFolder = BrowseForFolder(hwnd, L"Select installation folder");
+            installFolder = BrowseForFolder(hwndDlg, L"Select installation folder");
 
             if (installFolder)
             {
                 PhSwapReference(&SetupInstallPath, installFolder);
 
-                SetDlgItemText(hwnd, IDC_INSTALL_DIRECTORY, SetupInstallPath->Buffer);
+                SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, SetupInstallPath->Buffer);
             }
         }
         break;

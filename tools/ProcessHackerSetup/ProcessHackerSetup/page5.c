@@ -2,7 +2,7 @@
 #include <appsup.h>
 
 static VOID LoadSetupImage(
-    _In_ HWND WindowHandle
+    _In_ HWND hwndDlg
     )
 {
     HBITMAP imageBitmap = LoadPngImageFromResources(MAKEINTRESOURCE(IDB_PNG1));
@@ -10,13 +10,13 @@ static VOID LoadSetupImage(
     // The image control uses a large square frame so that we can use the VS dialog designer more easily.
     // Remove the frame style and apply the bitmap style.
     PhSetWindowStyle(
-        GetDlgItem(WindowHandle, IDC_PROJECT_ICON),
+        GetDlgItem(hwndDlg, IDC_PROJECT_ICON),
         SS_BITMAP | SS_BLACKFRAME,
         SS_BITMAP
         );
 
     SendMessage(
-        GetDlgItem(WindowHandle, IDC_PROJECT_ICON),
+        GetDlgItem(hwndDlg, IDC_PROJECT_ICON),
         STM_SETIMAGE,
         IMAGE_BITMAP,
         (LPARAM)imageBitmap
@@ -31,10 +31,12 @@ BOOL PropSheetPage5_OnInitDialog(
     _Inout_ LPARAM lParam
     )
 {
+    // Set the fonts.
     InitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER), -17, FW_SEMIBOLD);
 
     LoadSetupImage(hwndDlg);
 
+    // Enable the themed dialog background texture.
     EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
 
     return TRUE;
