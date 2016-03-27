@@ -25,6 +25,8 @@
 #include "nvapi\nvapi.h"
 #include "nvidia.h"
 
+#ifdef _NV_GPU_BUILD
+
 BOOLEAN NvApiInitialized = FALSE;
 static PVOID NvApiLibrary = NULL;
 static PPH_LIST NvGpuPhysicalHandleList = NULL;
@@ -1029,3 +1031,5 @@ VOID NvGpuUpdate(VOID)
     PhAddItemCircularBuffer_FLOAT(&GpuBoardHistory, GpuCurrentCoreUsage);
     PhAddItemCircularBuffer_FLOAT(&GpuBusHistory, GpuCurrentBusUsage);
 }
+
+#endif

@@ -28,8 +28,10 @@
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".NetworkList")
 #define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
+#ifdef _NV_GPU_BUILD
 #define SETTING_NAME_ENABLE_GPU (PLUGIN_NAME L".EnableGpu")
 #define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".ShowFahrenheit")
+#endif
 
 #define CINTERFACE
 #define COBJMACROS
@@ -723,6 +725,7 @@ VOID NetAdapterSysInfoInitializing(
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     );
 
+#ifdef _NV_GPU_BUILD
 // Graphics
 extern BOOLEAN NvApiInitialized;
 extern ULONG GpuMemoryLimit;
@@ -746,11 +749,6 @@ VOID NvGpuSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     );
 
-VOID ShowDetailsDialog(
-    _In_ HWND ParentHandle,
-    _In_ PVOID Context
-    );
-
 VOID NvApiInitialize(VOID);
 BOOLEAN DestroyNvApi(VOID);
 PPH_STRING NvGpuQueryDriverVersion(VOID);
@@ -770,5 +768,6 @@ PPH_STRING NvGpuQueryDriverSettings(VOID);
 PPH_STRING NvGpuQueryFanSpeed(VOID);
 BOOLEAN NvGpuDriverIsWHQL(VOID);
 VOID NvGpuUpdate(VOID);
+#endif
 
 #endif _DEVICES_H_

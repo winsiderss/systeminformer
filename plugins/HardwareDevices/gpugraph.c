@@ -22,6 +22,8 @@
 
 #include "devices.h"
 
+#ifdef _NV_GPU_BUILD
+
 #define ET_GPU_PADDING 3
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
@@ -787,3 +789,5 @@ VOID NvGpuSysInfoInitializing(
 
     Section = Pointers->CreateSection(&section);
 }
+
+#endif
