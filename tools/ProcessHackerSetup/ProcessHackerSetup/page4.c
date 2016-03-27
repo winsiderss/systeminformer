@@ -5,23 +5,29 @@ NTSTATUS DownloadThread(
     _In_ PVOID Arguments
     )
 {
-    if (DownloadBuild(Arguments))
+    BOOLEAN setupSuccess = FALSE;
+
+    // Download the latest build
+    if (setupSuccess = SetupDownloadBuild(Arguments))
     {
-        if (ResetThread(Arguments))
+        // Reset the current installation
+        if (setupSuccess = SetupResetCurrentInstall(Arguments))
         {
-            if (StartExtract())
+            // Extract and install the latest build
+            if (setupSuccess = SetupExtractBuild(Arguments))
             {
-                //PropSheet_SetCurSelByID(_hwndPropertySheet, IDD_DIALOG5);
                 PostMessage(Arguments, PSM_SETCURSELID, 0, IDD_DIALOG5);
             }
         }
     }
-    else
+
+    if (!setupSuccess)
     {
         // Retry download...
-        //PropSheet_SetCurSelByID(Arguments, IDD_DIALOG4);
         PostMessage(Arguments, PSM_SETCURSELID, 0, IDD_DIALOG4);
     }
+
+    return STATUS_SUCCESS;
 }
 
 BOOL PropSheetPage4_OnInitDialog(

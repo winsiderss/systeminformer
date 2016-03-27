@@ -35,7 +35,9 @@ struct
 };
 
 
-BOOLEAN StartExtract(VOID)
+BOOLEAN SetupExtractBuild(
+    _In_ PVOID Arguments
+    )
 {
     BOOLEAN isInstallSuccess = FALSE;
     mz_uint64 totalLength = 0;
@@ -206,7 +208,7 @@ BOOLEAN StartExtract(VOID)
             }
 
             totalLength += (mz_uint64)bufferLength;
-            SetProgress(totalLength, total_size);
+            SetProgress((LONG)totalLength, (LONG)total_size);
 
             NtClose(fileHandle);
             mz_free(buffer);

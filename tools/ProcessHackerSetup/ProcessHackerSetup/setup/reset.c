@@ -1,7 +1,7 @@
 #include <setup.h>
 #include <appsup.h>
 
-BOOLEAN ResetThread(
+BOOLEAN SetupResetCurrentInstall(
     _In_ PVOID Arguments
     )
 {

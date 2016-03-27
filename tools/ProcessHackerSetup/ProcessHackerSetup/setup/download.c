@@ -89,7 +89,7 @@ BOOLEAN QueryBuildServerThread(
 
 
 
-BOOLEAN DownloadBuild(
+BOOLEAN SetupDownloadBuild(
     _In_ PVOID Arguments
     )
 {

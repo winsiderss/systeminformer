@@ -83,19 +83,36 @@ INT_PTR CALLBACK PropSheetPage5_WndProc(
 
 VOID StartProgress(VOID);
 VOID _SetProgressTime(VOID);
-
 VOID SetProgress(
     _In_ LONG Completed,
     _In_ LONG Total
     );
 
-typedef enum _SUBCLASS_TYPE
-{
-    SUBCLASS_TYPE_NONE,
-    SUBCLASS_TYPE_BUTTON,
-    SUBCLASS_TYPE_CHECKBOX,
-    SUBCLASS_TYPE_PROGRESS
-} SUBCLASS_TYPE;
+_Check_return_
+BOOLEAN ProcessHackerShutdown(
+    VOID
+    );
+_Check_return_
+BOOLEAN RemoveAppCompatEntries(
+    VOID
+    );
+_Check_return_
+ULONG KphUninstall(
+    VOID
+    );
+
+
+BOOLEAN SetupDownloadBuild(
+    _In_ PVOID Arguments
+    );
+BOOLEAN SetupResetCurrentInstall(
+    _In_ PVOID Arguments
+    );
+BOOLEAN SetupExtractBuild(
+    _In_ PVOID Arguments
+    );
+
+
 
 LRESULT CALLBACK SubclassWindowProc(
     _In_ HWND hWnd,
