@@ -63,6 +63,21 @@ NTSTATUS KphpOpenProcessContinuation(
     _In_ PVOID Context
     );
 
+// Open process token
+
+typedef struct _KPH_OPEN_PROCESS_TOKEN_INPUT
+{
+    HANDLE ProcessHandle;
+    ACCESS_MASK DesiredAccess;
+    PHANDLE TokenHandle;
+    KPH_KEY Key;
+} KPH_OPEN_PROCESS_TOKEN_INPUT, *PKPH_OPEN_PROCESS_TOKEN_INPUT;
+
+NTSTATUS KphpOpenProcessTokenContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    );
+
 // Terminate process
 
 typedef struct _KPH_TERMINATE_PROCESS_INPUT

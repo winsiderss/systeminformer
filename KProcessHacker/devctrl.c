@@ -200,6 +200,28 @@ NTSTATUS KphDispatchDeviceControl(
                 );
         }
         break;
+    case KPH_OPENPROCESSTOKEN:
+        {
+            struct
+            {
+                HANDLE ProcessHandle;
+                ACCESS_MASK DesiredAccess;
+                PHANDLE TokenHandle;
+                KPH_KEY Key;
+            } *input = capturedInputPointer;
+
+            VERIFY_INPUT_LENGTH;
+
+            status = KpiOpenProcessToken(
+                input->ProcessHandle,
+                input->DesiredAccess,
+                input->TokenHandle,
+                input->Key,
+                client,
+                accessMode
+                );
+        }
+        break;
     case KPH_OPENPROCESSJOB:
         {
             struct

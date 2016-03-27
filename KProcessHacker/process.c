@@ -24,6 +24,7 @@
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KpiOpenProcess)
+#pragma alloc_text(PAGE, KpiOpenProcessToken)
 #pragma alloc_text(PAGE, KpiOpenProcessJob)
 #pragma alloc_text(PAGE, KpiTerminateProcess)
 #pragma alloc_text(PAGE, KpiQueryInformationProcess)
@@ -43,6 +44,7 @@
  * \li If a L1 key is provided, only read access is permitted but no additional access checks are
  * performed.
  * \li If no valid key is provided, the function fails.
+ * \param Client The client that initiated the request.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcess(
@@ -137,6 +139,112 @@ NTSTATUS KpiOpenProcess(
         else
         {
             *ProcessHandle = processHandle;
+        }
+    }
+
+    return status;
+}
+
+/**
+ * Opens the token of a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param TokenHandle A variable which receives the token handle.
+ * \param Key An access key.
+ * \li If a L2 key is provided, no access checks are performed.
+ * \li If a L1 key is provided, only read access is permitted but no additional access checks are
+ * performed.
+ * \li If no valid key is provided, the function fails.
+ * \param Client The client that initiated the request.
+ * \param AccessMode The mode in which to perform access checks.
+ */
+NTSTATUS KpiOpenProcessToken(
+    __in HANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE TokenHandle,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
+    __in KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PEPROCESS process;
+    PACCESS_TOKEN primaryToken;
+    KPH_KEY_LEVEL requiredKeyLevel;
+    HANDLE tokenHandle;
+
+    PAGED_CODE();
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeForWrite(TokenHandle, sizeof(HANDLE), sizeof(HANDLE));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+
+    status = ObReferenceObjectByHandle(
+        ProcessHandle,
+        0,
+        *PsProcessType,
+        AccessMode,
+        &process,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (primaryToken = PsReferencePrimaryToken(process))
+    {
+        requiredKeyLevel = KphKeyLevel1;
+
+        if ((DesiredAccess & KPH_TOKEN_READ_ACCESS) != DesiredAccess)
+            requiredKeyLevel = KphKeyLevel2;
+
+        if (NT_SUCCESS(status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode)))
+        {
+            status = ObOpenObjectByPointer(
+                primaryToken,
+                0,
+                NULL,
+                DesiredAccess,
+                *SeTokenObjectType,
+                KernelMode,
+                &tokenHandle
+                );
+        }
+
+        PsDereferencePrimaryToken(primaryToken);
+    }
+    else
+    {
+        status = STATUS_NO_TOKEN;
+    }
+
+    ObDereferenceObject(process);
+
+    if (NT_SUCCESS(status))
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *TokenHandle = tokenHandle;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
+        {
+            *TokenHandle = tokenHandle;
         }
     }
 
@@ -240,6 +348,7 @@ NTSTATUS KpiOpenProcessJob(
  * \param Key An access key.
  * \li If a L2 key is provided, no access checks are performed.
  * \li If no valid L2 key is provided, the function fails.
+ * \param Client The client that initiated the request.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiTerminateProcess(

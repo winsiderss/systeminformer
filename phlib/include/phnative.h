@@ -91,9 +91,18 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhOpenThreadProcess(
-    _Out_ PHANDLE ProcessHandle,
+    _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ThreadHandle
+    _Out_ PHANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenProcessToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
     );
 
 PHLIBAPI
@@ -188,14 +197,6 @@ PhGetProcessWindowTitle(
     _Out_ PPH_STRING *WindowTitle
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetProcessExecuteFlags(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PULONG ExecuteFlags
-    );
-
 #define PH_PROCESS_DEP_ENABLED 0x1
 #define PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED 0x2
 #define PH_PROCESS_DEP_PERMANENT 0x4
@@ -272,14 +273,6 @@ PhGetProcessWsCounters(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhSetProcessIoPriority(
-    _In_ HANDLE ProcessHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhInjectDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PWSTR FileName,
@@ -293,14 +286,6 @@ PhUnloadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhSetThreadIoPriority(
-    _In_ HANDLE ThreadHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
     );
 
 PHLIBAPI

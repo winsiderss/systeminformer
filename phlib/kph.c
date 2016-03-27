@@ -2,7 +2,7 @@
  * Process Hacker -
  *   KProcessHacker API
  *
- * Copyright (C) 2009-2011 wj32
+ * Copyright (C) 2009-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -513,6 +513,29 @@ NTSTATUS KphOpenProcess(
     }
 }
 
+NTSTATUS KphOpenProcessToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
+    )
+{
+    KPH_OPEN_PROCESS_TOKEN_INPUT input = { ProcessHandle, DesiredAccess, TokenHandle, 0 };
+
+    if ((DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
+    {
+        KphpGetL1Key(&input.Key);
+        return KphpDeviceIoControl(
+            KPH_OPENPROCESSTOKEN,
+            &input,
+            sizeof(input)
+            );
+    }
+    else
+    {
+        return KphpWithKey(KphKeyLevel2, KphpOpenProcessTokenContinuation, &input);
+    }
+}
+
 NTSTATUS KphOpenProcessJob(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -915,6 +938,7 @@ VOID KphpWithKeyApcRoutine(
 
     if (context->Continuation != KphpGetL1KeyContinuation &&
         context->Continuation != KphpOpenProcessContinuation &&
+        context->Continuation != KphpOpenProcessTokenContinuation &&
         context->Continuation != KphpTerminateProcessContinuation &&
         context->Continuation != KphpReadVirtualMemoryUnsafeContinuation &&
         context->Continuation != KphpOpenThreadContinuation)
@@ -1006,6 +1030,22 @@ NTSTATUS KphpOpenProcessContinuation(
 
     return KphpDeviceIoControl(
         KPH_OPENPROCESS,
+        input,
+        sizeof(*input)
+        );
+}
+
+NTSTATUS KphpOpenProcessTokenContinuation(
+    _In_ KPH_KEY Key,
+    _In_ PVOID Context
+    )
+{
+    PKPH_OPEN_PROCESS_TOKEN_INPUT input = Context;
+
+    input->Key = Key;
+
+    return KphpDeviceIoControl(
+        KPH_OPENPROCESSTOKEN,
         input,
         sizeof(*input)
         );

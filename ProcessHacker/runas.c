@@ -313,7 +313,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     context->ProcessId
                     )))
                 {
-                    if (NT_SUCCESS(NtOpenProcessToken(
+                    if (NT_SUCCESS(PhOpenProcessToken(
                         processHandle,
                         TOKEN_QUERY,
                         &tokenHandle

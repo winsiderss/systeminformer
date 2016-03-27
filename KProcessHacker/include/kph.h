@@ -146,6 +146,15 @@ NTSTATUS KpiOpenProcess(
     __in KPROCESSOR_MODE AccessMode
     );
 
+NTSTATUS KpiOpenProcessToken(
+    __in HANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE TokenHandle,
+    __in_opt KPH_KEY Key,
+    __in PKPH_CLIENT Client,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
 NTSTATUS KpiOpenProcessJob(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,

@@ -66,6 +66,7 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  * \li If a L1 key is provided, only read access is permitted but no additional access checks are
  * performed.
  * \li If no valid key is provided, the function fails.
+ * \param Client The client that initiated the request.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenThread(

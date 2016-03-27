@@ -1060,7 +1060,7 @@ VOID PhpProcessQueryStage1(
         {
             HANDLE tokenHandle;
 
-            status = NtOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle);
+            status = PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle);
 
             if (NT_SUCCESS(status))
             {
@@ -1390,7 +1390,7 @@ VOID PhpFillProcessItem(
     {
         HANDLE tokenHandle;
 
-        status = NtOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
+        status = PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
 
         if (NT_SUCCESS(status))
         {

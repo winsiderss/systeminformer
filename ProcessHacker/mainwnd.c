@@ -2034,7 +2034,7 @@ BOOLEAN PhMwpOnNotify(
             HANDLE tokenHandle;
             HANDLE newTokenHandle;
 
-            if (NT_SUCCESS(status = NtOpenProcessToken(
+            if (NT_SUCCESS(status = PhOpenProcessToken(
                 NtCurrentProcess(),
                 TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS |
                 TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
@@ -4345,7 +4345,7 @@ VOID PhMwpInitializeProcessMenu(
             Processes[0]->ProcessId
             )))
         {
-            if (NT_SUCCESS(NtOpenProcessToken(
+            if (NT_SUCCESS(PhOpenProcessToken(
                 processHandle,
                 TOKEN_QUERY,
                 &tokenHandle

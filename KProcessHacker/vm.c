@@ -307,6 +307,7 @@ NTSTATUS KphCopyVirtualMemory(
  * \param BufferSize The number of bytes to copy.
  * \param NumberOfBytesRead A variable which receives the number of bytes copied to the buffer.
  * \param Key An access key. If no valid L2 key is provided, the function fails.
+ * \param Client The client that initiated the request.
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiReadVirtualMemoryUnsafe(

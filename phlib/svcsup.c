@@ -455,9 +455,9 @@ NTSTATUS PhGetThreadServiceTag(
     if (!ProcessHandle)
     {
         if (!NT_SUCCESS(status = PhOpenThreadProcess(
-            &ProcessHandle,
+            ThreadHandle,
             PROCESS_VM_READ,
-            ThreadHandle
+            &ProcessHandle
             )))
             return status;
 

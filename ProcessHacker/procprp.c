@@ -3027,7 +3027,7 @@ static NTSTATUS NTAPI PhpOpenProcessToken(
         )))
         return status;
 
-    status = NtOpenProcessToken(processHandle, DesiredAccess, Handle);
+    status = PhOpenProcessToken(processHandle, DesiredAccess, Handle);
     NtClose(processHandle);
 
     return status;

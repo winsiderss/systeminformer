@@ -1523,9 +1523,9 @@ NTSTATUS PhWalkThreadStack(
         if (KphIsConnected() || !ClientId)
         {
             if (!NT_SUCCESS(status = PhOpenThreadProcess(
-                &ProcessHandle,
+                ThreadHandle,
                 PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                ThreadHandle
+                &ProcessHandle
                 )))
                 return status;
         }

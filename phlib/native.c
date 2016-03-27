@@ -249,9 +249,9 @@ NTSTATUS PhOpenThreadPublic(
 }
 
 NTSTATUS PhOpenThreadProcess(
-    _Out_ PHANDLE ProcessHandle,
+    _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ThreadHandle
+    _Out_ PHANDLE ProcessHandle
     )
 {
     if (KphIsConnected())
@@ -279,6 +279,50 @@ NTSTATUS PhOpenThreadProcess(
             basicInfo.ClientId.UniqueProcess
             );
     }
+}
+
+/**
+ * Opens a process token.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param TokenHandle A variable which receives a handle to the token.
+ */
+NTSTATUS PhOpenProcessToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
+    )
+{
+    NTSTATUS status;
+
+    if (KphIsVerified() && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
+    {
+        status = KphOpenProcessToken(
+            ProcessHandle,
+            DesiredAccess,
+            TokenHandle
+            );
+    }
+    else
+    {
+        status = NtOpenProcessToken(
+            ProcessHandle,
+            DesiredAccess,
+            TokenHandle
+            );
+
+        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        {
+            status = KphOpenProcessToken(
+                ProcessHandle,
+                DesiredAccess,
+                TokenHandle
+                );
+        }
+    }
+
+    return status;
 }
 
 NTSTATUS PhGetObjectSecurity(
@@ -788,28 +832,6 @@ NTSTATUS PhGetProcessWindowTitle(
     return status;
 }
 
-/**
- * Gets a process' no-execute status.
- *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
- * access.
- * \param ExecuteFlags A variable which receives the no-execute flags.
- */
-NTSTATUS PhGetProcessExecuteFlags(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PULONG ExecuteFlags
-    )
-{
-    // NOTE: This used to invoke KPH, but that feature has been removed.
-    return NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessExecuteFlags,
-        ExecuteFlags,
-        sizeof(ULONG),
-        NULL
-        );
-}
-
 NTSTATUS PhGetProcessDepStatus(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG DepStatus
@@ -1195,26 +1217,6 @@ NTSTATUS PhGetProcessWsCounters(
 }
 
 /**
- * Sets a process' I/O priority.
- *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
- * \param IoPriority The new I/O priority.
- */
-NTSTATUS PhSetProcessIoPriority(
-    _In_ HANDLE ProcessHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
-    )
-{
-    // NOTE: This used to invoke KPH, but that feature has been removed.
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessIoPriority,
-        &IoPriority,
-        sizeof(IO_PRIORITY_HINT)
-        );
-}
-
-/**
  * Causes a process to load a DLL.
  *
  * \param ProcessHandle A handle to a process. The handle must have
@@ -1508,27 +1510,6 @@ NTSTATUS PhUnloadDllProcess(
     NtClose(threadHandle);
 
     return status;
-}
-
-/**
- * Sets a thread's I/O priority.
- *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
- * access.
- * \param IoPriority The new I/O priority.
- */
-NTSTATUS PhSetThreadIoPriority(
-    _In_ HANDLE ThreadHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
-    )
-{
-    // NOTE: This used to invoke KPH, but that feature has been removed.
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadIoPriority,
-        &IoPriority,
-        sizeof(IO_PRIORITY_HINT)
-        );
 }
 
 NTSTATUS PhGetJobProcessIdList(

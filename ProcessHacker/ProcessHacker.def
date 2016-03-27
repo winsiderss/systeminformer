@@ -259,7 +259,6 @@ EXPORTS
 	PhGetProcessCommandLine
 	PhGetProcessDepStatus
 	PhGetProcessEnvironment
-	PhGetProcessExecuteFlags
 	PhGetProcessImageFileName
 	PhGetProcessImageFileNameByProcessId
 	PhGetProcessImageFileNameWin32
@@ -290,8 +289,6 @@ EXPORTS
 	PhResolveDevicePrefix
 	PhSetFileSize
 	PhSetObjectSecurity
-	PhSetProcessIoPriority
-	PhSetThreadIoPriority
 	PhSetTokenIsVirtualizationEnabled
 	PhSetTokenPrivilege
 	PhSetTokenPrivilege2

@@ -239,6 +239,29 @@ PhGetProcessDebugObject(
 }
 
 /**
+ * Gets a process' no-execute status.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
+ * access.
+ * \param ExecuteFlags A variable which receives the no-execute flags.
+ */
+FORCEINLINE
+NTSTATUS
+PhGetProcessExecuteFlags(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ExecuteFlags
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessExecuteFlags,
+        ExecuteFlags,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+/**
  * Gets a process' I/O priority.
  *
  * \param ProcessHandle A handle to a process. The handle must have
@@ -375,6 +398,27 @@ PhSetProcessAffinityMask(
 }
 
 /**
+ * Sets a process' I/O priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
+ * \param IoPriority The new I/O priority.
+ */
+FORCEINLINE
+NTSTATUS
+PhSetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
+        );
+}
+
+/**
  * Gets basic information for a thread.
  *
  * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION
@@ -505,6 +549,28 @@ PhSetThreadAffinityMask(
         ThreadAffinityMask,
         &AffinityMask,
         sizeof(ULONG_PTR)
+        );
+}
+
+/**
+ * Sets a thread's I/O priority.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
+ * access.
+ * \param IoPriority The new I/O priority.
+ */
+FORCEINLINE
+NTSTATUS
+PhSetThreadIoPriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
         );
 }
 

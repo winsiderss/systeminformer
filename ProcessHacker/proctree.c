@@ -948,7 +948,7 @@ static VOID PhpUpdateProcessNodeToken(
 
         if (WINDOWS_HAS_UAC && ProcessNode->ProcessItem->QueryHandle)
         {
-            if (NT_SUCCESS(NtOpenProcessToken(
+            if (NT_SUCCESS(PhOpenProcessToken(
                 ProcessNode->ProcessItem->QueryHandle,
                 TOKEN_QUERY,
                 &tokenHandle
