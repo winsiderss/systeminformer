@@ -4265,7 +4265,7 @@ BOOLEAN PhTnpProcessNodeKey(
     ULONG changedEnd;
     RECT rect;
 
-    if (VirtualKey != VK_SPACE && VirtualKey != VK_LEFT && VirtualKey != VK_RIGHT)
+    if (VirtualKey != VK_SPACE && VirtualKey != VK_LEFT && VirtualKey != VK_RIGHT && VirtualKey != VK_ADD && VirtualKey != VK_OEM_PLUS)
     {
         return FALSE;
     }
@@ -4395,6 +4395,22 @@ BOOLEAN PhTnpProcessNodeKey(
                         }
                     }
                 }
+            }
+        }
+        break;
+    case VK_ADD:
+    case VK_OEM_PLUS:
+        {
+            if ((VirtualKey == VK_ADD && controlKey) ||
+                (VirtualKey == VK_OEM_PLUS && controlKey && shiftKey))
+            {
+                ULONG i;
+
+                if (Context->FixedColumnVisible)
+                    PhTnpAutoSizeColumnHeader(Context, Context->FixedHeaderHandle, Context->FixedColumn, 0);
+
+                for (i = 0; i < Context->NumberOfColumnsByDisplay; i++)
+                    PhTnpAutoSizeColumnHeader(Context, Context->HeaderHandle, Context->ColumnsByDisplay[i], 0);
             }
         }
         break;
