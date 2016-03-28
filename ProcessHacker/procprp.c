@@ -4141,6 +4141,9 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"EnvironmentListViewColumns", lvHandle);
 
+            EnableWindow(GetDlgItem(hwndDlg, IDC_EDIT), FALSE);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), FALSE);
+
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
                 PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
@@ -4216,6 +4219,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NEW),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDIT),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DELETE),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
                 PhDoPropPageLayout(hwndDlg);
 
@@ -4262,6 +4271,18 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 
             switch (header->code)
             {
+            case LVN_ITEMCHANGED:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        ULONG selectedCount;
+
+                        selectedCount = ListView_GetSelectedCount(lvHandle);
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_EDIT), selectedCount == 1);
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), selectedCount == 1);
+                    }
+                }
+                break;
             case NM_DBLCLK:
                 {
                     if (header->hwndFrom == lvHandle)
