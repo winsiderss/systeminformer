@@ -1,7 +1,7 @@
 /*
  * KProcessHacker
  *
- * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -34,6 +34,7 @@ VOID KphpCopyInfoUnicodeString(
 
 NTSTATUS KpiOpenDriver(
     __out PHANDLE DriverHandle,
+    __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in KPROCESSOR_MODE AccessMode
     )
@@ -42,7 +43,7 @@ NTSTATUS KpiOpenDriver(
 
     return KphOpenNamedObject(
         DriverHandle,
-        SYNCHRONIZE,
+        DesiredAccess,
         ObjectAttributes,
         *IoDriverObjectType,
         AccessMode
@@ -122,11 +123,8 @@ NTSTATUS KpiQueryInformationDriver(
                 if (DriverInformation)
                 {
                     /* Check buffer length. */
-                    if (
-                        sizeof(UNICODE_STRING) +
-                        driverObject->DriverName.Length <=
-                        DriverInformationLength
-                        )
+                    if (sizeof(UNICODE_STRING) + driverObject->DriverName.Length <=
+                        DriverInformationLength)
                     {
                         KphpCopyInfoUnicodeString(
                             DriverInformation,
@@ -151,11 +149,9 @@ NTSTATUS KpiQueryInformationDriver(
                 {
                     if (DriverInformation)
                     {
-                        if (
-                            sizeof(UNICODE_STRING) +
+                        if (sizeof(UNICODE_STRING) +
                             driverObject->DriverExtension->ServiceKeyName.Length <=
-                            DriverInformationLength
-                            )
+                            DriverInformationLength)
                         {
                             KphpCopyInfoUnicodeString(
                                 DriverInformation,
@@ -169,8 +165,10 @@ NTSTATUS KpiQueryInformationDriver(
                     }
 
                     if (ReturnLength)
+                    {
                         *ReturnLength = sizeof(UNICODE_STRING) +
                             driverObject->DriverExtension->ServiceKeyName.Length;
+                    }
                 }
                 else
                 {
@@ -217,20 +215,19 @@ VOID KphpCopyInfoUnicodeString(
     __in_opt PUNICODE_STRING UnicodeString
     )
 {
-    PUNICODE_STRING targetUnicodeString = (PUNICODE_STRING)Information;
+    PUNICODE_STRING targetUnicodeString = Information;
+    PWCHAR targetBuffer;
 
     PAGED_CODE();
 
     if (UnicodeString)
     {
+        targetBuffer = (PWCHAR)((PCHAR)Information + sizeof(UNICODE_STRING));
+
         targetUnicodeString->Length = UnicodeString->Length;
-        targetUnicodeString->MaximumLength = targetUnicodeString->Length;
-        targetUnicodeString->Buffer = (PWSTR)((PCHAR)Information + sizeof(UNICODE_STRING));
-        memcpy(
-            targetUnicodeString->Buffer,
-            UnicodeString->Buffer,
-            targetUnicodeString->Length
-            );
+        targetUnicodeString->MaximumLength = UnicodeString->Length;
+        targetUnicodeString->Buffer = targetBuffer;
+        memcpy(targetBuffer, UnicodeString->Buffer, UnicodeString->Length);
     }
     else
     {

@@ -269,6 +269,7 @@ NTSTATUS
 NTAPI
 KphOpenDriver(
     _Out_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 

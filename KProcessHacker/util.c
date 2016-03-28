@@ -45,7 +45,7 @@ NTSTATUS KphCaptureUnicodeString(
     )
 {
     UNICODE_STRING unicodeString;
-    PWSTR userBuffer;
+    PWCHAR userBuffer;
 
     PAGED_CODE();
 

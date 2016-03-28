@@ -2355,7 +2355,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
         NULL
         );
 
-    status = KphOpenDriver(&driverHandle, &objectAttributes);
+    status = KphOpenDriver(&driverHandle, SYNCHRONIZE, &objectAttributes);
     PhDereferenceObject(driverName);
 
     if (!NT_SUCCESS(status))

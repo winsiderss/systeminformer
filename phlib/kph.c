@@ -865,14 +865,16 @@ NTSTATUS KphSetInformationObject(
 
 NTSTATUS KphOpenDriver(
     _Out_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     )
 {
     struct
     {
         PHANDLE DriverHandle;
+        ACCESS_MASK DesiredAccess;
         POBJECT_ATTRIBUTES ObjectAttributes;
-    } input = { DriverHandle, ObjectAttributes };
+    } input = { DriverHandle, DesiredAccess, ObjectAttributes };
 
     return KphpDeviceIoControl(
         KPH_OPENDRIVER,

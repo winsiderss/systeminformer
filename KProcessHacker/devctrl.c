@@ -515,6 +515,7 @@ NTSTATUS KphDispatchDeviceControl(
             struct
             {
                 PHANDLE DriverHandle;
+                ACCESS_MASK DesiredAccess;
                 POBJECT_ATTRIBUTES ObjectAttributes;
             } *input = capturedInputPointer;
 
@@ -522,6 +523,7 @@ NTSTATUS KphDispatchDeviceControl(
 
             status = KpiOpenDriver(
                 input->DriverHandle,
+                input->DesiredAccess,
                 input->ObjectAttributes,
                 accessMode
                 );
