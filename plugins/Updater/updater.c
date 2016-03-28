@@ -556,9 +556,9 @@ NTSTATUS UpdateCheckSilentThread(
             );
 #endif
 
-        if (WindowsVersion < WINDOWS_7 && context->MajorVersion >= 2 && context->MinorVersion >= 40)
+        if (WindowsVersion < WINDOWS_7 && context->MajorVersion != 2)
         { 
-            // If we're running on XP or Vista, we only support 2.39 and below.  
+            // If we're running on XP or Vista, we only support 2.x builds and below.
             latestVersion = currentVersion;
         }
 
@@ -641,9 +641,9 @@ NTSTATUS UpdateCheckThread(
         );
 #endif
 
-    if (WindowsVersion < WINDOWS_7 && context->MajorVersion >= 2 && context->MinorVersion >= 40)
+    if (WindowsVersion < WINDOWS_7 && context->MajorVersion != 2)
     {
-        // If we're running on XP or Vista, we only support 2.39 and below.
+        // If we're running on XP or Vista, we only support 2.x builds and below.
         PostMessage(context->DialogHandle, PH_UPDATENOTSUPPORTED, 0, 0);
     }
     else if (currentVersion == latestVersion)
