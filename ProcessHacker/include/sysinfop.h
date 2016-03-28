@@ -26,6 +26,8 @@
 
 // Thread & window
 
+extern HWND PhSipWindow;
+
 NTSTATUS PhSipSysInfoThreadStart(
     _In_ PVOID Parameter
     );

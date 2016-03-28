@@ -357,6 +357,15 @@
     <ClCompile Include="hndlmenu.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="syssccpu.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="sysscmem.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="sysscio.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

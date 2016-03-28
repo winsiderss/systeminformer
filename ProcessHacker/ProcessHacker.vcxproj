@@ -306,6 +306,9 @@
     <ClCompile Include="srvprv.c" />
     <ClCompile Include="sessmsg.c" />
     <ClCompile Include="sysinfo.c" />
+    <ClCompile Include="syssccpu.c" />
+    <ClCompile Include="sysscio.c" />
+    <ClCompile Include="sysscmem.c" />
     <ClCompile Include="thrdlist.c" />
     <ClCompile Include="thrdprv.c" />
     <ClCompile Include="thrdstk.c" />
