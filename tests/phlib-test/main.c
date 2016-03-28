@@ -10,7 +10,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     Test_basesup();
     Test_avltree();
     Test_format();
-    Test_support();
+    Test_util();
 
     return 0;
 }

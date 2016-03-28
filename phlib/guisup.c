@@ -33,10 +33,6 @@ _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _IsImmersiveProcess IsImmersiveProcess_I;
 _RunFileDlg RunFileDlg;
 _SHAutoComplete SHAutoComplete_I;
-_SHCreateShellItem SHCreateShellItem_I;
-_SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
-_SHParseDisplayName SHParseDisplayName_I;
-_TaskDialogIndirect TaskDialogIndirect_I;
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -58,10 +54,6 @@ VOID PhGuiSupportInitialization(
         IsImmersiveProcess_I = PhGetModuleProcAddress(L"user32.dll", "IsImmersiveProcess");
     RunFileDlg = PhGetProcedureAddress(shell32Handle, NULL, 61);
     SHAutoComplete_I = PhGetProcedureAddress(shlwapiHandle, "SHAutoComplete", 0);
-    SHCreateShellItem_I = PhGetProcedureAddress(shell32Handle, "SHCreateShellItem", 0);
-    SHOpenFolderAndSelectItems_I = PhGetProcedureAddress(shell32Handle, "SHOpenFolderAndSelectItems", 0);
-    SHParseDisplayName_I = PhGetProcedureAddress(shell32Handle, "SHParseDisplayName", 0);
-    TaskDialogIndirect_I = PhGetModuleProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
 
 VOID PhSetControlTheme(

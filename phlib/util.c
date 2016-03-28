@@ -21,13 +21,18 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
+#include <apiimport.h>
 #include <mapimg.h>
-#include <guisupp.h>
-#include <winsta.h>
 #include <lsasup.h>
-#include <shellapi.h>
+#include <winsta.h>
+#include <commctrl.h>
 #include <commdlg.h>
+#include <shellapi.h>
+#define CINTERFACE
+#define COBJMACROS
+#include <shlobj.h>
+#undef CINTERFACE
+#undef COBJMACROS
 #include "md5.h"
 #include "sha.h"
 
@@ -553,7 +558,7 @@ BOOLEAN PhShowConfirmMessage(
     // "terminate", "the process" -> "terminate the process"
     action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
 
-    if (TaskDialogIndirect_I)
+    if (TaskDialogIndirect_Import())
     {
         TASKDIALOGCONFIG config = { sizeof(config) };
         TASKDIALOG_BUTTON buttons[2];
@@ -578,7 +583,7 @@ BOOLEAN PhShowConfirmMessage(
         config.pButtons = buttons;
         config.nDefaultButton = IDYES;
 
-        if (TaskDialogIndirect_I(
+        if (TaskDialogIndirect_Import()(
             &config,
             &button,
             NULL,
@@ -3269,14 +3274,14 @@ VOID PhShellExploreFile(
     _In_ PWSTR FileName
     )
 {
-    if (SHOpenFolderAndSelectItems_I && SHParseDisplayName_I)
+    if (SHOpenFolderAndSelectItems_Import() && SHParseDisplayName_Import())
     {
         LPITEMIDLIST item;
         SFGAOF attributes;
 
-        if (SUCCEEDED(SHParseDisplayName_I(FileName, NULL, &item, 0, &attributes)))
+        if (SUCCEEDED(SHParseDisplayName_Import()(FileName, NULL, &item, 0, &attributes)))
         {
-            SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
+            SHOpenFolderAndSelectItems_Import()(item, 0, NULL, 0);
             CoTaskMemFree(item);
         }
         else
@@ -4093,7 +4098,7 @@ VOID PhSetFileDialogFileName(
         PH_STRINGREF baseNamePart;
 
         if (PhSplitStringRefAtLastChar(&fileName, '\\', &pathNamePart, &baseNamePart) &&
-            SHParseDisplayName_I && SHCreateShellItem_I)
+            SHParseDisplayName_Import() && SHCreateShellItem_Import())
         {
             LPITEMIDLIST item;
             SFGAOF attributes;
@@ -4101,9 +4106,9 @@ VOID PhSetFileDialogFileName(
 
             pathName = PhCreateString2(&pathNamePart);
 
-            if (SUCCEEDED(SHParseDisplayName_I(pathName->Buffer, NULL, &item, 0, &attributes)))
+            if (SUCCEEDED(SHParseDisplayName_Import()(pathName->Buffer, NULL, &item, 0, &attributes)))
             {
-                SHCreateShellItem_I(NULL, NULL, item, &shellItem);
+                SHCreateShellItem_Import()(NULL, NULL, item, &shellItem);
                 CoTaskMemFree(item);
             }
 

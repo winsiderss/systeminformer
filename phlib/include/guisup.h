@@ -60,18 +60,10 @@ typedef HRESULT (WINAPI *_SHAutoComplete)(
     _In_ DWORD dwFlags
     );
 
-typedef HRESULT (WINAPI *_TaskDialogIndirect)(
-    _In_ const TASKDIALOGCONFIG *pTaskConfig,
-    _In_ int *pnButton,
-    _In_ int *pnRadioButton,
-    _In_ BOOL *pfVerificationFlagChecked
-    );
-
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern _RunFileDlg RunFileDlg;
 extern _SHAutoComplete SHAutoComplete_I;
-extern _TaskDialogIndirect TaskDialogIndirect_I;
 
 PHLIBAPI
 VOID PhGuiSupportInitialization(

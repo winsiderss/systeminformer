@@ -498,60 +498,6 @@ static VOID Test_width(
     assert(result && wcscmp(buffer, L"   1234asdf      ") == 0);
 }
 
-static VOID Test_wildcards(
-    VOID
-    )
-{
-    static WCHAR *testCases[][3] =
-    {
-        { L"", L"", L"true" },
-        { L"", L"a", L"false" },
-        { L"a", L"a", L"true" },
-        { L"a", L"b", L"false" },
-        { L"?", L"b", L"true" },
-        { L"??", L"bc", L"true" },
-        { L"?c", L"bc", L"true" },
-        { L"b?", L"bc", L"true" },
-        { L"*", L"a", L"true" },
-        { L"**", L"a", L"true" },
-        { L"*", L"", L"true" },
-        { L"*bc*hij", L"abcdfghij", L"true" },
-        { L"*b*a*", L"b", L"false" },
-        { L"*bc*hik", L"abcdfghij", L"false" },
-        { L"abc*", L"abc", L"true" },
-        { L"abc**", L"abc", L"true" },
-        { L"*???", L"abc", L"true" },
-        { L"*???", L"ab", L"false" },
-        { L"*???", L"abcd", L"true" },
-        { L"*?*", L"abcd", L"true" },
-        { L"*bc", L"abc", L"true" },
-        { L"*cc", L"abc", L"false" },
-        { L"*a*", L"de", L"false" },
-        { L"*???*", L"123", L"true" },
-        { L"a*bc", L"abbc", L"true" },
-        { L"a*b", L"a", L"false" },
-        { L"a*?b", L"axb", L"true" },
-        { L"a**b", L"axb", L"true" }
-    };
-
-    ULONG i;
-    BOOLEAN r;
-    BOOLEAN fail;
-
-    for (i = 0; i < sizeof(testCases) / sizeof(WCHAR *[3]); i++)
-    {
-        r = PhMatchWildcards(testCases[i][0], testCases[i][1], TRUE);
-        fail = r != PhEqualStringZ(testCases[i][2], L"true", FALSE);
-
-        if (fail)
-        {
-            wprintf(L"pattern '%s' against '%s': %s (%s expected)\n",
-                testCases[i][0], testCases[i][1], r ? L"true" : L"false", testCases[i][2]);
-            assert(FALSE);
-        }
-    }
-}
-
 VOID Test_format(
     VOID
     )
@@ -562,5 +508,4 @@ VOID Test_format(
     Test_integer();
     Test_float();
     Test_width();
-    Test_wildcards();
 }

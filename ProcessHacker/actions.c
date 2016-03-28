@@ -39,6 +39,7 @@
 #include <kphuser.h>
 #include <phsvccl.h>
 #include <svcsup.h>
+#include <apiimport.h>
 #include <winsta.h>
 #include <iphlpapi.h>
 
@@ -110,7 +111,7 @@ BOOLEAN PhpShowElevatePrompt(
 
     config.pfCallback = PhpElevateActionCallbackProc;
 
-    if (TaskDialogIndirect_I(
+    if (TaskDialogIndirect_Import()(
         &config,
         &button,
         NULL,
@@ -166,7 +167,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
     if (elevationLevel == NeverElevateAction)
         return FALSE;
 
-    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_I)
+    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_Import())
     {
         if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
             return FALSE;
@@ -266,7 +267,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
         return TRUE;
     }
 
-    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_I)
+    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_Import())
     {
         if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
             return FALSE;
