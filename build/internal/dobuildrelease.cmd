@@ -10,6 +10,8 @@ rem SEVENZIPBIN - Specify the path to 7-Zip.
 rem     e.g. C:\Program Files\7-Zip
 rem SIGN - Specify 1 to sign executable files.
 rem SIGN_TIMESTAMP - Specify 1 to timestamp executable files.
+rem MAJORVERSION - Specify the major version of the Process Hacker release being built.
+rem     e.g. 2
 rem MINORVERSION - Specify the minor version of the Process Hacker release being built.
 rem     e.g. 8
 

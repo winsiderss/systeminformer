@@ -1,4 +1,4 @@
-;* Process Hacker 2 - Installer custom messages
+;* Process Hacker - Installer custom messages
 ;*
 ;* Copyright (C) 2010-2015 XhmikosR
 ;*
