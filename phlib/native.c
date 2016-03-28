@@ -1512,6 +1512,232 @@ NTSTATUS PhUnloadDllProcess(
     return status;
 }
 
+// Contributed by dmex
+/**
+ * Sets an environment variable in a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have
+ * PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION, PROCESS_VM_READ
+ * and PROCESS_VM_WRITE access.
+ * \param Name The name of the environment variable to set.
+ * \param Value The new value of the environment variable. If this parameter is NULL, the
+ * environment variable is deleted.
+ * \param Timeout The timeout, in milliseconds, for the process to set the environment variable.
+ */
+NTSTATUS PhSetEnvironmentVariableRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ PPH_STRINGREF Value,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+    PPH_STRING ntdllFileName = NULL;
+    PPH_STRING kernel32FileName = NULL;
+    PVOID nameBaseAddress = NULL;
+    PVOID valueBaseAddress = NULL;
+    SIZE_T nameAllocationSize = 0;
+    SIZE_T valueAllocationSize = 0;
+    PVOID rtlExitUserThread = NULL;
+    PVOID setEnvironmentVariableW = NULL;
+    HANDLE threadHandle = NULL;
+
+    nameAllocationSize = Name->Length + sizeof(WCHAR);
+
+    if (Value)
+        valueAllocationSize = Value->Length + sizeof(WCHAR);
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        goto CleanupExit;
+
+    if (isWow64)
+    {
+        ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
+        kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\kernel32.dll");
+    }
+    else
+    {
+#endif
+        ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
+        kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\kernel32.dll");
+#ifdef _WIN64
+    }
+#endif
+
+    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        ntdllFileName->Buffer,
+        "RtlExitUserThread",
+        0,
+        &rtlExitUserThread,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        kernel32FileName->Buffer,
+        "SetEnvironmentVariableW",
+        0,
+        &setEnvironmentVariableW,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &nameBaseAddress,
+        0,
+        &nameAllocationSize,
+        MEM_COMMIT,
+        PAGE_READWRITE
+        )))
+    {
+        goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
+        ProcessHandle,
+        nameBaseAddress,
+        Name->Buffer,
+        Name->Length,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (Value)
+    {
+        if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+            ProcessHandle,
+            &valueBaseAddress,
+            0,
+            &valueAllocationSize,
+            MEM_COMMIT,
+            PAGE_READWRITE
+            )))
+        {
+            goto CleanupExit;
+        }
+        if (!NT_SUCCESS(status = NtWriteVirtualMemory(
+            ProcessHandle,
+            valueBaseAddress,
+            Value->Buffer,
+            Value->Length,
+            NULL
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        if (!NT_SUCCESS(status = RtlCreateUserThread(
+            ProcessHandle,
+            NULL,
+            TRUE,
+            0,
+            0,
+            0,
+            (PUSER_THREAD_START_ROUTINE)rtlExitUserThread,
+            NULL,
+            &threadHandle,
+            NULL
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        if (!(threadHandle = CreateRemoteThread(
+            ProcessHandle,
+            NULL,
+            0,
+            (PTHREAD_START_ROUTINE)rtlExitUserThread,
+            NULL,
+            CREATE_SUSPENDED,
+            NULL
+            )))
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+            goto CleanupExit;
+        }
+    }
+    
+#ifdef _WIN64
+    if (isWow64)
+    {
+        // NtQueueApcThread doesn't work for WOW64 processes - we need to use RtlQueueApcWow64Thread
+        // instead.
+        if (!NT_SUCCESS(status = RtlQueueApcWow64Thread(
+            threadHandle,
+            setEnvironmentVariableW,
+            nameBaseAddress,
+            valueBaseAddress,
+            NULL
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+#endif
+        if (!NT_SUCCESS(status = NtQueueApcThread(
+            threadHandle,
+            setEnvironmentVariableW,
+            nameBaseAddress,
+            valueBaseAddress,
+            NULL
+            )))
+        {
+            goto CleanupExit;
+        }
+#ifdef _WIN64
+    }
+#endif
+
+    // This causes our APC to be executed.
+    NtResumeThread(threadHandle, NULL);
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+CleanupExit:
+    if (threadHandle)
+        NtClose(threadHandle);
+    if (nameBaseAddress)
+    {
+        nameAllocationSize = 0;
+        NtFreeVirtualMemory(
+            ProcessHandle,
+            &nameBaseAddress,
+            &nameAllocationSize,
+            MEM_RELEASE
+            );
+    }
+    if (valueBaseAddress)
+    {
+        valueAllocationSize = 0;
+        NtFreeVirtualMemory(
+            ProcessHandle,
+            &valueBaseAddress,
+            &valueAllocationSize,
+            MEM_RELEASE
+            );
+    }
+    PhClearReference(&ntdllFileName);
+    PhClearReference(&kernel32FileName);
+
+    return status;
+}
+
 NTSTATUS PhGetJobProcessIdList(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
