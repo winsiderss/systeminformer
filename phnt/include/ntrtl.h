@@ -2727,6 +2727,38 @@ RtlWow64SetThreadContext(
     );
 #endif
 
+// Vectored exception handlers
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlAddVectoredExceptionHandler(
+    _In_ ULONG First,
+    _In_ PVECTORED_EXCEPTION_HANDLER Handler
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlRemoveVectoredExceptionHandler(
+    _In_ PVOID Handle
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlAddVectoredContinueHandler(
+    _In_ ULONG First,
+    _In_ PVECTORED_EXCEPTION_HANDLER Handler
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlRemoveVectoredContinueHandler(
+    _In_ PVOID Handle
+    );
+
 // Runtime exception handling
 
 #ifdef _WIN64
@@ -6206,6 +6238,44 @@ RtlReadThreadProfilingData(
 
 #endif
 
+// WOW64
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetNativeSystemInformation(
+    _In_ ULONG SystemInformationClass,
+    _In_ PVOID NativeSystemInformation,
+    _In_ ULONG InformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueueApcWow64Thread(
+    _In_ HANDLE ThreadHandle,
+    _In_ PPS_APC_ROUTINE ApcRoutine,
+    _In_ PVOID ApcArgument1,
+    _In_ PVOID ApcArgument2,
+    _In_ PVOID ApcArgument3
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64EnableFsRedirection(
+    _In_ BOOLEAN Wow64FsEnableRedirection
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64EnableFsRedirectionEx(
+    _In_ PVOID Wow64FsEnableRedirection,
+    _Out_ PVOID *OldFsRedirectionLevel
+    );
+
 // Misc.
 
 NTSYSAPI
@@ -6257,6 +6327,38 @@ BOOLEAN
 NTAPI
 RtlIsThreadWithinLoaderCallout(
     VOID
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlPushFrame(
+    _In_ PTEB_ACTIVE_FRAME Frame
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlPopFrame(
+    _In_ PTEB_ACTIVE_FRAME Frame
+    );
+
+NTSYSAPI
+PTEB_ACTIVE_FRAME
+NTAPI
+RtlGetFrame(
+    VOID
+    );
+
+typedef ULONG (NTAPI *PRTLP_UNHANDLED_EXCEPTION_FILTER)(
+    struct _EXCEPTION_POINTERS *ExceptionInfo
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetUnhandledExceptionFilter(
+    _In_ PRTLP_UNHANDLED_EXCEPTION_FILTER UnhandledExceptionFilter
     );
 
 // begin_private
