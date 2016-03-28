@@ -48,6 +48,46 @@ INT CALLBACK PhpStandardPropPageProc(
     _In_ LPPROPSHEETPAGE ppsp
     );
 
+FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam,
+    _Out_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    _Out_ PPH_PROCESS_ITEM *ProcessItem
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        // Save the context.
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
+    }
+
+    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, PhMakeContextAtom());
+
+    if (!propSheetPage)
+        return FALSE;
+
+    *PropSheetPage = propSheetPage;
+    *PropPageContext = propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+    *ProcessItem = propPageContext->PropContext->ProcessItem;
+
+    return TRUE;
+}
+
+FORCEINLINE VOID PhpPropPageDlgProcDestroy(
+    _In_ HWND hwndDlg
+    )
+{
+    RemoveProp(hwndDlg, PhMakeContextAtom());
+}
+
+#define SET_BUTTON_ICON(Id, Icon) \
+    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_ICON, (LPARAM)(Icon))
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -74,6 +114,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+NTSTATUS NTAPI PhpOpenProcessTokenForPage(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK PhpProcessTokenHookProc(
@@ -111,12 +157,27 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     _In_ LPARAM lParam
     );
 
+NTSTATUS NTAPI PhpOpenProcessJobForPage(
+    _Out_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    );
+
+INT_PTR CALLBACK PhpProcessJobHookProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 INT_PTR CALLBACK PhpProcessServicesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
+
+extern PH_STRINGREF PhpLoadingText;
 
 #define WM_PH_THREADS_UPDATED (WM_APP + 200)
 #define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 201)

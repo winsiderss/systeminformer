@@ -295,6 +295,17 @@
     <ClCompile Include="procprv.c" />
     <ClCompile Include="procrec.c" />
     <ClCompile Include="proctree.c" />
+    <ClCompile Include="prpgenv.c" />
+    <ClCompile Include="prpggen.c" />
+    <ClCompile Include="prpghndl.c" />
+    <ClCompile Include="prpgjob.c" />
+    <ClCompile Include="prpgmem.c" />
+    <ClCompile Include="prpgmod.c" />
+    <ClCompile Include="prpgperf.c" />
+    <ClCompile Include="prpgsrv.c" />
+    <ClCompile Include="prpgstat.c" />
+    <ClCompile Include="prpgthrd.c" />
+    <ClCompile Include="prpgtok.c" />
     <ClCompile Include="runas.c" />
     <ClCompile Include="sessprp.c" />
     <ClCompile Include="sessshad.c" />

@@ -366,6 +366,39 @@
     <ClCompile Include="sysscio.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="prpggen.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgstat.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgperf.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgthrd.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgtok.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgmod.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgmem.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgenv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpghndl.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgjob.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgsrv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
