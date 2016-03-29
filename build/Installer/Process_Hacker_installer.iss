@@ -34,7 +34,7 @@
 #include "Services.iss"
 
 #define installer_build_number "14"
-#define copyright              "Copyright Â© 2010-2016, Process Hacker Team. Licensed under the GNU GPL, v3."
+#define copyright              "Copyright © 2010-2016, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
   #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
