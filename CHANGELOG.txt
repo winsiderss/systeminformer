@@ -3,6 +3,7 @@ Process Hacker
 2.39
  * HIGHLIGHTS:
    * Improved compatibility with security and anti-cheat software
+   * Added ability to edit process environment variables
    * Fixed .NET process detection
  * OTHER CHANGES:
    * Improved tooltip information for dllhost.exe

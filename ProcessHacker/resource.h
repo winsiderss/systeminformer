@@ -120,6 +120,7 @@
 #define IDI_FOLDER                      217
 #define IDI_PENCIL                      218
 #define IDI_MAGNIFIER                   219
+#define IDD_EDITENV                     221
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -726,8 +727,9 @@
 #define ID_PROCESS_GOTOPROCESS          40287
 #define ID_MINIINFO_REFRESH             40288
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
-#define ID_ENVIRONMENT_VIEW             40290
+#define ID_ENVIRONMENT_EDIT             40290
 #define ID_ENVIRONMENT_COPY             40291
+#define ID_ENVIRONMENT_DELETE           40292
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -735,8 +737,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        221
-#define _APS_NEXT_COMMAND_VALUE         40292
+#define _APS_NEXT_RESOURCE_VALUE        223
+#define _APS_NEXT_COMMAND_VALUE         40293
 #define _APS_NEXT_CONTROL_VALUE         1385
 #define _APS_NEXT_SYMED_VALUE           169
 #endif

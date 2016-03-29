@@ -503,7 +503,8 @@ IDR_ENVIRONMENT MENU
 BEGIN
     POPUP "Environment"
     BEGIN
-        MENUITEM "&View",                       ID_ENVIRONMENT_VIEW
+        MENUITEM "&Edit",                       ID_ENVIRONMENT_EDIT
+        MENUITEM "&Delete\aDel",                ID_ENVIRONMENT_DELETE
         MENUITEM "&Copy\aCtrl+C",               ID_ENVIRONMENT_COPY
     END
 END
@@ -1906,6 +1907,19 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,220,196,50,14
 END
 
+IDD_EDITENV DIALOGEX 0, 0, 311, 177
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Edit Environment Variable"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Name:",IDC_STATIC,7,8,21,8
+    EDITTEXT        IDC_NAME,38,7,266,12,ES_AUTOHSCROLL
+    LTEXT           "Value:",IDC_STATIC,7,25,21,8
+    EDITTEXT        IDC_VALUE,38,24,266,128,ES_MULTILINE | WS_VSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,200,156,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,254,156,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2434,6 +2448,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 210
     END
+
+    IDD_EDITENV, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 304
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 170
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2558,6 +2580,11 @@ BEGIN
 END
 
 IDD_PROCENVIRONMENT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_EDITENV AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
