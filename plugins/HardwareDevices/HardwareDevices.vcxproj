@@ -79,7 +79,6 @@
     <ClCompile Include="adapter.c" />
     <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />
-    <ClCompile Include="gpugraph.c" />
     <ClCompile Include="netdetails.c" />
     <ClCompile Include="diskgraph.c" />
     <ClCompile Include="diskoptions.c" />
@@ -88,14 +87,12 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="ndis.c" />
     <ClCompile Include="netoptions.c" />
-    <ClCompile Include="nvidia.c" />
     <ClCompile Include="storage.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />
     <ClInclude Include="nvapi\nvapi.h" />
     <ClInclude Include="nvapi\nvapi_lite_common.h" />
-    <ClInclude Include="nvidia.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

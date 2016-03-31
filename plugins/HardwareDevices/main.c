@@ -50,10 +50,6 @@ VOID NTAPI LoadCallback(
 
     DiskDrivesLoadList();
     NetAdaptersLoadList();
-
-#ifdef _NV_GPU_BUILD
-    NvApiInitialize();
-#endif
 }
 
 VOID NTAPI UnloadCallback(
@@ -116,10 +112,6 @@ VOID NTAPI ProcessesUpdatedCallback(
 {
     DiskDrivesUpdate();
     NetAdaptersUpdate();
-
-#ifdef _NV_GPU_BUILD
-    NvGpuUpdate();
-#endif
 }
 
 VOID NTAPI SystemInformationInitializingCallback(
@@ -166,11 +158,6 @@ VOID NTAPI SystemInformationInitializingCallback(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
-
-    // Graphics cards
-#ifdef _NV_GPU_BUILD
-    NvGpuSysInfoInitializing(pluginEntry);
-#endif
 }
 
 PPH_STRING TrimString(
@@ -342,10 +329,6 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_NDIS, L"1" },
                 { StringSettingType, SETTING_NAME_INTERFACE_LIST, L"" },
                 { StringSettingType, SETTING_NAME_DISK_LIST, L"" },
-#ifdef _NV_GPU_BUILD
-                { IntegerSettingType, SETTING_NAME_ENABLE_GPU, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" }  
-#endif
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

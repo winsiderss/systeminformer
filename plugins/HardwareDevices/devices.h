@@ -28,10 +28,6 @@
 #define SETTING_NAME_ENABLE_NDIS (PLUGIN_NAME L".EnableNDIS")
 #define SETTING_NAME_INTERFACE_LIST (PLUGIN_NAME L".NetworkList")
 #define SETTING_NAME_DISK_LIST (PLUGIN_NAME L".DiskList")
-#ifdef _NV_GPU_BUILD
-#define SETTING_NAME_ENABLE_GPU (PLUGIN_NAME L".EnableGpu")
-#define SETTING_NAME_ENABLE_FAHRENHEIT (PLUGIN_NAME L".ShowFahrenheit")
-#endif
 
 #define CINTERFACE
 #define COBJMACROS
@@ -724,50 +720,5 @@ VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     );
-
-#ifdef _NV_GPU_BUILD
-// Graphics
-extern BOOLEAN NvApiInitialized;
-extern ULONG GpuMemoryLimit;
-extern FLOAT GpuCurrentGpuUsage;
-extern FLOAT GpuCurrentCoreUsage;
-extern FLOAT GpuCurrentBusUsage;
-extern ULONG GpuCurrentMemUsage;
-extern ULONG GpuCurrentMemSharedUsage;
-extern ULONG GpuCurrentCoreTemp;
-extern ULONG GpuCurrentBoardTemp;
-extern ULONG GpuCurrentCoreClock;
-extern ULONG GpuCurrentMemoryClock;
-extern ULONG GpuCurrentShaderClock;
-extern ULONG GpuCurrentVoltage;
-extern PH_CIRCULAR_BUFFER_FLOAT GpuUtilizationHistory;
-extern PH_CIRCULAR_BUFFER_ULONG GpuMemoryHistory;
-extern PH_CIRCULAR_BUFFER_FLOAT GpuBoardHistory;
-extern PH_CIRCULAR_BUFFER_FLOAT GpuBusHistory;
-
-VOID NvGpuSysInfoInitializing(
-    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
-    );
-
-VOID NvApiInitialize(VOID);
-BOOLEAN DestroyNvApi(VOID);
-PPH_STRING NvGpuQueryDriverVersion(VOID);
-PPH_STRING NvGpuQueryVbiosVersionString(VOID);
-PPH_STRING NvGpuQueryName(VOID);
-PPH_STRING NvGpuQueryShortName(VOID);
-PPH_STRING NvGpuQueryRevision(VOID);
-PPH_STRING NvGpuQueryRamType(VOID);
-PPH_STRING NvGpuQueryFoundry(VOID);
-PPH_STRING NvGpuQueryDeviceId(VOID);
-PPH_STRING NvGpuQueryRopsCount(VOID);
-PPH_STRING NvGpuQueryShaderCount(VOID);
-PPH_STRING NvGpuQueryPciInfo(VOID);
-PPH_STRING NvGpuQueryBusWidth(VOID);
-PPH_STRING NvGpuQueryPcbValue(VOID);
-PPH_STRING NvGpuQueryDriverSettings(VOID);
-PPH_STRING NvGpuQueryFanSpeed(VOID);
-BOOLEAN NvGpuDriverIsWHQL(VOID);
-VOID NvGpuUpdate(VOID);
-#endif
 
 #endif _DEVICES_H_
