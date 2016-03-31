@@ -33,6 +33,7 @@
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
             <GenerateDebugInformation>true</GenerateDebugInformation>
+            <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
             <SubSystem>Windows</SubSystem>
         </Link>
         <BuildLog>
@@ -77,7 +78,6 @@
         </ClCompile>
         <Link>
             <AdditionalLibraryDirectories>..\..\sdk\lib\i386;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-            <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
             <TargetMachine>MachineX86</TargetMachine>
         </Link>
     </ItemDefinitionGroup>
@@ -86,7 +86,6 @@
     <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
         <Link>
             <AdditionalLibraryDirectories>..\..\sdk\lib\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-            <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
             <TargetMachine>MachineX64</TargetMachine>
         </Link>
     </ItemDefinitionGroup>
