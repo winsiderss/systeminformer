@@ -25,32 +25,6 @@
 #include "clr/ipcheader.h"
 #include "clr/ipcshared.h"
 
-typedef PVOID (NTAPI* _RtlCreateBoundaryDescriptor)(
-    _In_ PUNICODE_STRING Name,
-    _In_ ULONG Flags
-    );
-
-typedef NTSTATUS (NTAPI* _RtlAddSIDToBoundaryDescriptor)(
-    _Inout_ PVOID* BoundaryDescriptor,
-    _In_ PSID RequiredSid
-    );
-
-typedef VOID (NTAPI* _RtlDeleteBoundaryDescriptor)(
-    _In_ PVOID BoundaryDescriptor
-    );
-
-typedef NTSTATUS (WINAPI* _NtOpenPrivateNamespace)(
-    _Out_ PHANDLE NamespaceHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ PVOID BoundaryDescriptor
-    );
-
-static _NtOpenPrivateNamespace NtOpenPrivateNamespace_I = NULL;
-static _RtlCreateBoundaryDescriptor RtlCreateBoundaryDescriptor_I = NULL;
-static _RtlDeleteBoundaryDescriptor RtlDeleteBoundaryDescriptor_I = NULL;
-static _RtlAddSIDToBoundaryDescriptor RtlAddSIDToBoundaryDescriptor_I = NULL;
-
 PPH_STRING GeneratePrivateName(_In_ HANDLE ProcessId)
 {
     return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlock, HandleToUlong(ProcessId));
@@ -64,11 +38,6 @@ PPH_STRING GeneratePrivateNameV4(_In_ HANDLE ProcessId)
 PPH_STRING GenerateLegacyPublicName(_In_ HANDLE ProcessId)
 {
     return PhaFormatString(L"\\BaseNamedObjects\\" CorLegacyPublicIPCBlock, HandleToUlong(ProcessId));
-}
-
-PPH_STRING GenerateSxSPublicNameV4(_In_ HANDLE ProcessId)
-{
-    return PhaFormatString(L"\\BaseNamedObjects\\" CorSxSPublicIPCBlock, HandleToUlong(ProcessId));
 }
 
 PPH_STRING GenerateBoundaryDescriptorName(_In_ HANDLE ProcessId)
@@ -595,144 +564,102 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
     __try
     {
-        if (WindowsVersion < WINDOWS_VISTA)
+        UNICODE_STRING prefixNameUs;
+        UNICODE_STRING sectionNameUs;
+        UNICODE_STRING boundaryNameUs;
+        OBJECT_ATTRIBUTES namespaceObjectAttributes;
+        OBJECT_ATTRIBUTES sectionObjectAttributes;
+
+        if (!PhStringRefToUnicodeString(&GenerateBoundaryDescriptorName(ProcessId)->sr, &boundaryNameUs))
+            __leave;
+
+        if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor(&boundaryNameUs, 0)))
+            __leave;
+
+        if (!NT_SUCCESS(RtlAllocateAndInitializeSid(&SIDWorldAuth, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &everyoneSIDHandle)))
+            __leave;
+
+        if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, everyoneSIDHandle)))
+            __leave;
+
+        if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
         {
-            UNICODE_STRING sectionNameUs;
-            OBJECT_ATTRIBUTES objectAttributes;
-
-            if (!PhStringRefToUnicodeString(&GenerateSxSPublicNameV4(ProcessId)->sr, &sectionNameUs))
-                __leave;
-
-            InitializeObjectAttributes(
-                &objectAttributes,
-                &sectionNameUs,
-                0,
-                NULL,
-                NULL
-                );
-
-            if (!NT_SUCCESS(NtOpenSection(
-                &blockTableHandle,
-                SECTION_MAP_READ,
-                &objectAttributes
-                )))
+            if (NT_SUCCESS(NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, ProcessHandle)))
             {
-                __leave;
+                ULONG returnLength = 0;
+
+                if (NtQueryInformationToken(
+                    tokenHandle,
+                    TokenAppContainerSid,
+                    NULL,
+                    0,
+                    &returnLength
+                    ) != STATUS_BUFFER_TOO_SMALL)
+                {
+                    __leave;
+                }
+
+                if (returnLength < 1)
+                    __leave;
+
+                appContainerInfo = PhAllocate(returnLength);
+
+                if (!NT_SUCCESS(NtQueryInformationToken(
+                    tokenHandle,
+                    TokenAppContainerSid,
+                    appContainerInfo,
+                    returnLength,
+                    &returnLength
+                    )))
+                {
+                    __leave;
+                }
+
+                if (!appContainerInfo->TokenAppContainer)
+                    __leave;
+
+                if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
+                    __leave;
             }
         }
-        else
+
+        RtlInitUnicodeString(&prefixNameUs, CorSxSReaderPrivateNamespacePrefix);
+
+        InitializeObjectAttributes(
+            &namespaceObjectAttributes,
+            &prefixNameUs,
+            OBJ_CASE_INSENSITIVE,
+            boundaryDescriptorHandle,
+            NULL
+            );
+
+        if (!NT_SUCCESS(NtOpenPrivateNamespace(
+            &privateNamespaceHandle,
+            MAXIMUM_ALLOWED,
+            &namespaceObjectAttributes,
+            boundaryDescriptorHandle
+            )))
         {
-            static PH_INITONCE initOnce = PH_INITONCE_INIT;
-            UNICODE_STRING prefixNameUs;
-            UNICODE_STRING sectionNameUs;
-            UNICODE_STRING boundaryNameUs;
-            OBJECT_ATTRIBUTES namespaceObjectAttributes;
-            OBJECT_ATTRIBUTES sectionObjectAttributes;
+            __leave;
+        }
 
-            if (PhBeginInitOnce(&initOnce))
-            {
-                PVOID ntdll;
+        RtlInitUnicodeString(&sectionNameUs, CorSxSVistaPublicIPCBlock);
 
-                ntdll = PhGetDllHandle(L"ntdll.dll");
-                NtOpenPrivateNamespace_I = PhGetProcedureAddress(ntdll, "NtOpenPrivateNamespace", 0);
-                RtlCreateBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlCreateBoundaryDescriptor", 0);
-                RtlDeleteBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlDeleteBoundaryDescriptor", 0);
-                RtlAddSIDToBoundaryDescriptor_I = PhGetProcedureAddress(ntdll, "RtlAddSIDToBoundaryDescriptor", 0);
+        InitializeObjectAttributes(
+            &sectionObjectAttributes,
+            &sectionNameUs,
+            OBJ_CASE_INSENSITIVE,
+            privateNamespaceHandle,
+            NULL
+            );
 
-                PhEndInitOnce(&initOnce);
-            }
-
-            if (!PhStringRefToUnicodeString(&GenerateBoundaryDescriptorName(ProcessId)->sr, &boundaryNameUs))
-                __leave;
-
-            if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor_I(&boundaryNameUs, 0)))
-                __leave;
-
-            if (!NT_SUCCESS(RtlAllocateAndInitializeSid(&SIDWorldAuth, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &everyoneSIDHandle)))
-                __leave;
-
-            if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor_I(&boundaryDescriptorHandle, everyoneSIDHandle)))
-                __leave;
-
-            if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
-            {
-                if (NT_SUCCESS(NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, ProcessHandle)))
-                {
-                    ULONG returnLength = 0;
-
-                    if (NtQueryInformationToken(
-                        tokenHandle,
-                        TokenAppContainerSid,
-                        NULL,
-                        0,
-                        &returnLength
-                        ) != STATUS_BUFFER_TOO_SMALL)
-                    {
-                        __leave;
-                    }
-
-                    if (returnLength < 1)
-                        __leave;
-
-                    appContainerInfo = PhAllocate(returnLength);
-
-                    if (!NT_SUCCESS(NtQueryInformationToken(
-                        tokenHandle,
-                        TokenAppContainerSid,
-                        appContainerInfo,
-                        returnLength,
-                        &returnLength
-                        )))
-                    {
-                        __leave;
-                    }
-
-                    if (!appContainerInfo->TokenAppContainer)
-                        __leave;
-
-                    if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor_I(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
-                        __leave;
-                }
-            }
-
-            RtlInitUnicodeString(&prefixNameUs, CorSxSReaderPrivateNamespacePrefix);
-
-            InitializeObjectAttributes(
-                &namespaceObjectAttributes,
-                &prefixNameUs,
-                OBJ_CASE_INSENSITIVE,
-                boundaryDescriptorHandle,
-                NULL
-                );
-
-            if (!NT_SUCCESS(NtOpenPrivateNamespace_I(
-                &privateNamespaceHandle,
-                MAXIMUM_ALLOWED,
-                &namespaceObjectAttributes,
-                boundaryDescriptorHandle
-                )))
-            {
-                __leave;
-            }
-
-            RtlInitUnicodeString(&sectionNameUs, CorSxSVistaPublicIPCBlock);
-
-            InitializeObjectAttributes(
-                &sectionObjectAttributes,
-                &sectionNameUs,
-                OBJ_CASE_INSENSITIVE,
-                privateNamespaceHandle,
-                NULL
-                );
-
-            if (!NT_SUCCESS(NtOpenSection(
-                &blockTableHandle,
-                SECTION_MAP_READ,
-                &sectionObjectAttributes
-                )))
-            {
-                __leave;
-            }
+        if (!NT_SUCCESS(NtOpenSection(
+            &blockTableHandle,
+            SECTION_MAP_READ,
+            &sectionObjectAttributes
+            )))
+        {
+            __leave;
         }
 
         if (!NT_SUCCESS(NtMapViewOfSection(
@@ -794,9 +721,9 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
             RtlFreeSid(everyoneSIDHandle);
         }
 
-        if (RtlDeleteBoundaryDescriptor_I && boundaryDescriptorHandle)
+        if (boundaryDescriptorHandle)
         {
-            RtlDeleteBoundaryDescriptor_I(boundaryDescriptorHandle);
+            RtlDeleteBoundaryDescriptor(boundaryDescriptorHandle);
         }
     }
 
