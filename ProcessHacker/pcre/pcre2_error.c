@@ -40,8 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // dmex: Disable warnings
 #pragma warning(push)
-#pragma warning(disable : 4996)
 #pragma warning(disable : 4267)
+
+// dmex: Disable CRT secure warnings
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H

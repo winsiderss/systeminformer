@@ -44,7 +44,6 @@ functions. */
 
 // dmex: Disable warnings
 #pragma warning(push)
-#pragma warning(disable : 4996)
 #pragma warning(disable : 4267)
 
 #define HAVE_CONFIG_H

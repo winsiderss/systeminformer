@@ -74,7 +74,6 @@ in others, so I abandoned this code. */
 // dmex: Disable warnings
 #pragma warning(push)
 #pragma warning(disable : 4267)
-#pragma warning(disable : 4146)
 
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H

@@ -5,17 +5,9 @@
 
 #ifndef PHLIB_NO_DEFAULT_LIB
 #pragma comment(lib, "ntdll.lib")
-
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "version.lib")
 #endif
-
-// nonstandard extension used : nameless struct/union
-#pragma warning(disable: 4201)
-// nonstandard extension used : bit field types other than int
-#pragma warning(disable: 4214)
-// 'function': attributes not present on previous declaration
-#pragma warning(disable: 4985)
 
 #ifndef UNICODE
 #define UNICODE

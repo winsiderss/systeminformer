@@ -24,12 +24,7 @@
 #include <workqueue.h>
 #include <kphuser.h>
 #include <fastlock.h>
-
-#pragma warning(push)
-#pragma warning(disable: 4091) // Ignore 'no variable declared on typedef'
 #include <dbghelp.h>
-#pragma warning(pop)
-
 #include <symprv.h>
 #include <symprvp.h>
 
