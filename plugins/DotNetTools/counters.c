@@ -559,17 +559,16 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     PVOID blockTableAddress = NULL;
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
+    UNICODE_STRING prefixNameUs;
+    UNICODE_STRING sectionNameUs;
+    UNICODE_STRING boundaryNameUs;
+    OBJECT_ATTRIBUTES namespaceObjectAttributes;
+    OBJECT_ATTRIBUTES sectionObjectAttributes;
     PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
     __try
     {
-        UNICODE_STRING prefixNameUs;
-        UNICODE_STRING sectionNameUs;
-        UNICODE_STRING boundaryNameUs;
-        OBJECT_ATTRIBUTES namespaceObjectAttributes;
-        OBJECT_ATTRIBUTES sectionObjectAttributes;
-
         if (!PhStringRefToUnicodeString(&GenerateBoundaryDescriptorName(ProcessId)->sr, &boundaryNameUs))
             __leave;
 
@@ -599,9 +598,6 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
                     __leave;
                 }
 
-                if (returnLength < 1)
-                    __leave;
-
                 appContainerInfo = PhAllocate(returnLength);
 
                 if (!NT_SUCCESS(NtQueryInformationToken(
@@ -614,9 +610,6 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
                 {
                     __leave;
                 }
-
-                if (!appContainerInfo->TokenAppContainer)
-                    __leave;
 
                 if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
                     __leave;
