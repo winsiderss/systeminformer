@@ -228,6 +228,9 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             OBJECT_BASIC_INFORMATION basicInfo;
             BOOLEAN haveBasicInfo = FALSE;
 
+            // HACK
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
