@@ -214,7 +214,7 @@ NTSTATUS EspLoadRecoveryInfo(
     // Enable actions for stops with errors
 
     // This is Vista and above only.
-    if (WindowsVersion >= WINDOWS_VISTA && QueryServiceConfig2(
+    if (QueryServiceConfig2(
         serviceHandle,
         SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
         (BYTE *)&failureActionsFlag,
@@ -318,13 +318,9 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             }
             else if (!NT_SUCCESS(status))
             {
+                context->EnableFlagCheckBox = TRUE;
                 SetDlgItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
-
-                if (WindowsVersion >= WINDOWS_VISTA)
-                {
-                    context->EnableFlagCheckBox = TRUE;
-                    EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
-                }
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
 
                 PhShowWarning(hwndDlg, L"Unable to query service recovery information: %s",
                     ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);

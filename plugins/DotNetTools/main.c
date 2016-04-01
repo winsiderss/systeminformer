@@ -64,21 +64,6 @@ VOID NTAPI ShowOptionsCallback(
     NOTHING;
 }
 
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    switch (menuItem->Id)
-    {
-    default:
-        NOTHING;
-        break;
-    }
-}
-
 VOID NTAPI TreeNewMessageCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -123,46 +108,13 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     {
         if (isDotNet)
         {
-            if (WindowsVersion >= WINDOWS_VISTA)
-                AddAsmPageToPropContext(propContext);
+            AddAsmPageToPropContext(propContext);
             AddPerfPageToPropContext(propContext);
         }
 
         if (propContext->ProcessItem->IsDotNet != isDotNet)
             propContext->ProcessItem->UpdateIsDotNet = TRUE; // force a refresh
     }
-}
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ModuleMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ProcessTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
 }
 
 VOID NTAPI ThreadStackControlCallback(
@@ -244,12 +196,6 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-            //    MenuItemCallback,
-            //    NULL,
-            //    &PluginMenuItemCallbackRegistration
-            //    );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
                 TreeNewMessageCallback,
@@ -262,43 +208,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginPhSvcRequestCallbackRegistration
                 );
-
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-            //    MainWindowShowingCallback,
-            //    NULL,
-            //    &MainWindowShowingCallbackRegistration
-            //    );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
                 ProcessPropertiesInitializingCallback,
                 NULL,
                 &ProcessPropertiesInitializingCallbackRegistration
                 );
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-            //    ProcessMenuInitializingCallback,
-            //    NULL,
-            //    &ProcessMenuInitializingCallbackRegistration
-            //    );
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing),
-            //    ThreadMenuInitializingCallback,
-            //    NULL,
-            //    &ThreadMenuInitializingCallbackRegistration
-            //    );
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
-            //    ModuleMenuInitializingCallback,
-            //    NULL,
-            //    &ModuleMenuInitializingCallbackRegistration
-            //    );
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
-            //    ProcessTreeNewInitializingCallback,
-            //    NULL,
-            //    &ProcessTreeNewInitializingCallbackRegistration
-            //    );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackThreadTreeNewInitializing),
                 ThreadTreeNewInitializingCallback,
