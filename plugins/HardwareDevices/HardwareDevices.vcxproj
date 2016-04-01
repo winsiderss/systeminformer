@@ -53,26 +53,27 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;setupapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;setupapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -91,8 +92,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />
-    <ClInclude Include="nvapi\nvapi.h" />
-    <ClInclude Include="nvapi\nvapi_lite_common.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

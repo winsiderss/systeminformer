@@ -79,7 +79,7 @@ INT AddListViewItemGroupId(
     _In_opt_ PVOID Param
     );
 
-ULONG64 RegQueryUlong64(
+ULONG64 QueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_ PWSTR ValueName
     );
@@ -348,14 +348,9 @@ ULONG64 NetworkAdapterQueryValue(
     _In_ NDIS_OID OpCode
     );
 
-BOOLEAN QueryInterfaceRowVista(
+BOOLEAN QueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
     _Out_ PMIB_IF_ROW2 InterfaceRow
-    );
-
-BOOLEAN QueryInterfaceRowXP(
-    _In_ PDV_NETADAPTER_ID Id,
-    _Out_ PMIB_IFROW InterfaceRow
     );
 
 // netoptions.c

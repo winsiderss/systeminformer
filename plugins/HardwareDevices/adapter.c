@@ -133,11 +133,11 @@ VOID NetAdaptersUpdate(
 
             NtClose(deviceHandle);
         }
-        else if (WindowsVersion >= WINDOWS_VISTA && GetIfEntry2)
+        else
         {
             MIB_IF_ROW2 interfaceRow;
 
-            if (QueryInterfaceRowVista(&entry->Id, &interfaceRow))
+            if (QueryInterfaceRow(&entry->Id, &interfaceRow))
             {
                 networkInOctets = interfaceRow.InOctets;
                 networkOutOctets = interfaceRow.OutOctets;
@@ -149,31 +149,6 @@ VOID NetAdaptersUpdate(
                 if (!entry->AdapterName && PhCountStringZ(interfaceRow.Description) > 0)
                 {
                     entry->AdapterName = PhCreateString(interfaceRow.Description);
-                }
-
-                entry->DevicePresent = TRUE;
-            }
-            else
-            {
-                entry->DevicePresent = FALSE;
-            }
-        }
-        else
-        {
-            MIB_IFROW interfaceRow;
-
-            if (QueryInterfaceRowXP(&entry->Id, &interfaceRow))
-            {
-                networkInOctets = interfaceRow.dwInOctets;
-                networkOutOctets = interfaceRow.dwOutOctets;
-                mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
-                networkRcvSpeed = networkInOctets - entry->LastInboundValue;
-                networkXmitSpeed = networkOutOctets - entry->LastOutboundValue;
-
-                // HACK: Pull the Adapter name from the current query.
-                if (!entry->AdapterName && strlen(interfaceRow.bDescr) > 0)
-                {
-                    entry->AdapterName = PhConvertMultiByteToUtf16(interfaceRow.bDescr);
                 }
 
                 entry->DevicePresent = TRUE;
@@ -256,16 +231,8 @@ BOOLEAN EquivalentNetAdapterId(
     _In_ PDV_NETADAPTER_ID Id2
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        if (Id1->InterfaceLuid.Value == Id2->InterfaceLuid.Value)
-            return TRUE;
-    }
-    else
-    {
-        if (Id1->InterfaceIndex == Id2->InterfaceIndex)
-            return TRUE;
-    }
+    if (Id1->InterfaceLuid.Value == Id2->InterfaceLuid.Value)
+        return TRUE;
 
     return FALSE;
 }

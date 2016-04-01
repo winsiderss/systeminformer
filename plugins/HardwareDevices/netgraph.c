@@ -111,28 +111,16 @@ VOID NetAdapterUpdatePanel(
 
         NtClose(deviceHandle);
     }
-    else if (WindowsVersion >= WINDOWS_VISTA && GetIfEntry2)
+    else
     {
         MIB_IF_ROW2 interfaceRow;
 
-        if (QueryInterfaceRowVista(&Context->AdapterEntry->Id, &interfaceRow))
+        if (QueryInterfaceRow(&Context->AdapterEntry->Id, &interfaceRow))
         {
             inOctets = interfaceRow.InOctets;
             outOctets = interfaceRow.OutOctets;
             mediaState = interfaceRow.MediaConnectState;
             linkSpeed = interfaceRow.TransmitLinkSpeed;
-        }
-    }
-    else
-    {
-        MIB_IFROW interfaceRow;
-
-        if (QueryInterfaceRowXP(&Context->AdapterEntry->Id, &interfaceRow))
-        {
-            inOctets = interfaceRow.dwInOctets;
-            outOctets = interfaceRow.dwOutOctets;
-            mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateUnknown;
-            linkSpeed = interfaceRow.dwSpeed;
         }
     }
 

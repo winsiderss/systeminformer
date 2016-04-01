@@ -21,7 +21,7 @@
  */
 
 #include "devices.h"
-#include <Setupapi.h>
+#include <cfgmgr32.h>
 
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
 #define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
@@ -237,138 +237,176 @@ VOID FreeListViewDiskDriveEntries(
     }
 }
 
+BOOLEAN QueryDiskDeviceInterfaceDescription(
+    _In_ PWSTR DeviceInterface,
+    _Out_ DEVINST *DeviceInstanceHandle,
+    _Out_ PPH_STRING *DeviceDescription
+    )
+{
+    CONFIGRET result;
+    ULONG bufferSize;
+    PPH_STRING deviceDescription;
+    DEVPROPTYPE devicePropertyType;
+    DEVINST deviceInstanceHandle;
+    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+
+    if (CM_Get_Device_Interface_Property(
+        DeviceInterface,
+        &DEVPKEY_Device_InstanceId,
+        &devicePropertyType,
+        (PBYTE)deviceInstanceId,
+        &deviceInstanceIdLength,
+        0
+        ) != CR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    if (CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        deviceInstanceId,
+        CM_LOCATE_DEVNODE_PHANTOM
+        ) != CR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    bufferSize = 0x40;
+    deviceDescription = PhCreateStringEx(NULL, bufferSize);
+
+    if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
+        deviceInstanceHandle,
+        &DEVPKEY_Device_FriendlyName,
+        &devicePropertyType,
+        (PBYTE)deviceDescription->Buffer,
+        &bufferSize,
+        0
+        )) != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceDescription);
+        deviceDescription = PhCreateStringEx(NULL, bufferSize);
+
+        result = CM_Get_DevNode_Property(
+            deviceInstanceHandle,
+            &DEVPKEY_Device_FriendlyName,
+            &devicePropertyType,
+            (PBYTE)deviceDescription->Buffer,
+            &bufferSize,
+            0
+            );
+    }
+
+    if (result != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceDescription);
+        return FALSE;
+    }
+
+    PhTrimToNullTerminatorString(deviceDescription);
+
+    *DeviceInstanceHandle = deviceInstanceHandle;
+    *DeviceDescription = deviceDescription;
+
+    return TRUE;
+}
+
 VOID FindDiskDrives(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
     PPH_LIST deviceList;
-    HDEVINFO deviceInfoHandle;
-    SP_DEVICE_INTERFACE_DATA deviceInterfaceData = { sizeof(SP_DEVICE_INTERFACE_DATA) };
-    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
-    PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail;
-    ULONG deviceInfoLength = 0;
+    PWSTR deviceInterfaceList;
+    ULONG deviceInterfaceListLength = 0;
+    PWSTR deviceInterface;
 
-    if ((deviceInfoHandle = SetupDiGetClassDevs(
-        &GUID_DEVINTERFACE_DISK,
+    if (CM_Get_Device_Interface_List_Size(
+        &deviceInterfaceListLength,
+        (PGUID)&GUID_DEVINTERFACE_DISK,
         NULL,
-        NULL,
-        DIGCF_DEVICEINTERFACE
-        )) == INVALID_HANDLE_VALUE)
+        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+        ) != CR_SUCCESS)
     {
+        return;
+    }
+
+    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+
+    if (CM_Get_Device_Interface_List(
+        (PGUID)&GUID_DEVINTERFACE_DISK,
+        NULL,
+        deviceInterfaceList,
+        deviceInterfaceListLength,
+        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+        ) != CR_SUCCESS)
+    {
+        PhFree(deviceInterfaceList);
         return;
     }
 
     deviceList = PH_AUTO(PhCreateList(1));
 
-    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, NULL, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
+    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
     {
-        if (SetupDiGetDeviceInterfaceDetail(
-            deviceInfoHandle,
-            &deviceInterfaceData,
-            0,
-            0,
-            &deviceInfoLength,
-            &deviceInfoData
-            ) || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-        {
+        DEVINST deviceInstanceHandle;
+        PPH_STRING deviceDescription = NULL;
+        HANDLE deviceHandle;
+        PDISK_ENUM_ENTRY diskEntry;
+
+        if (!QueryDiskDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
             continue;
-        }
 
-        deviceInterfaceDetail = PhAllocate(deviceInfoLength);
-        deviceInterfaceDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+        diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
+        memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
 
-        if (SetupDiGetDeviceInterfaceDetail(
-            deviceInfoHandle,
-            &deviceInterfaceData,
-            deviceInterfaceDetail,
-            deviceInfoLength,
-            &deviceInfoLength,
-            &deviceInfoData
-            ))
+        diskEntry->DeviceIndex = ULONG_MAX; // Note: Do not initialize to zero.
+        diskEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
+        diskEntry->DevicePath = PhCreateString(deviceInterface);
+
+        if (NT_SUCCESS(DiskDriveCreateHandle(&deviceHandle, diskEntry->DevicePath)))
         {
-            HANDLE deviceHandle;
-            PDISK_ENUM_ENTRY diskEntry;
-            WCHAR diskFriendlyName[MAX_PATH] = L"";
+            ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero
 
-            // This crashes on XP with error 0xC06D007F
-            //SetupDiGetDeviceProperty(
-            //    deviceInfoHandle,
-            //    &deviceInfoData,
-            //    &DEVPKEY_Device_FriendlyName,
-            //    &devicePropertyType,
-            //    (PBYTE)diskFriendlyName,
-            //    ARRAYSIZE(diskFriendlyName),
-            //    NULL,
-            //    0
-            //    );
-
-            if (!SetupDiGetDeviceRegistryProperty(
-                deviceInfoHandle,
-                &deviceInfoData,
-                SPDRP_FRIENDLYNAME,
-                NULL,
-                (PBYTE)diskFriendlyName,
-                ARRAYSIZE(diskFriendlyName),
+            if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
+                deviceHandle,
+                &diskIndex,
                 NULL
-                ))
-            {
-                continue;
-            }
-
-            diskEntry = PhAllocate(sizeof(DISK_ENUM_ENTRY));
-            memset(diskEntry, 0, sizeof(DISK_ENUM_ENTRY));
-
-            diskEntry->DeviceIndex = ULONG_MAX; // Note: Do not initialize to zero.
-            diskEntry->DeviceName = PhCreateString(diskFriendlyName);
-            diskEntry->DevicePath = PhCreateString(deviceInterfaceDetail->DevicePath);
-
-            if (NT_SUCCESS(DiskDriveCreateHandle(
-                &deviceHandle,
-                diskEntry->DevicePath
                 )))
             {
-                ULONG diskIndex = ULONG_MAX; // Note: Do not initialize to zero
+                PPH_STRING diskMountPoints;
 
-                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
-                    deviceHandle,
-                    &diskIndex,
-                    NULL
-                    )))
+                diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
+
+                diskEntry->DeviceIndex = diskIndex;
+                diskEntry->DevicePresent = TRUE;
+
+                if (!PhIsNullOrEmptyString(diskMountPoints))
                 {
-                    PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(diskIndex));
-
-                    diskEntry->DeviceIndex = diskIndex;
-                    diskEntry->DevicePresent = TRUE;
-
-                    if (!PhIsNullOrEmptyString(diskMountPoints))
-                    {
-                        diskEntry->DeviceMountPoints = PhFormatString(
-                            L"Disk %lu (%s) [%s]",
-                            diskIndex,
-                            diskMountPoints->Buffer,
-                            diskFriendlyName
-                            );
-                    }
-                    else
-                    {
-                        diskEntry->DeviceMountPoints = PhFormatString(
-                            L"Disk %lu [%s]",
-                            diskIndex,
-                            diskFriendlyName
-                            );
-                    }
+                    diskEntry->DeviceMountPoints = PhFormatString(
+                        L"Disk %lu (%s) [%s]",
+                        diskIndex,
+                        diskMountPoints->Buffer,
+                        deviceDescription->Buffer
+                        );
                 }
-
-                NtClose(deviceHandle);
+                else
+                {
+                    diskEntry->DeviceMountPoints = PhFormatString(
+                        L"Disk %lu [%s]",
+                        diskIndex,
+                        deviceDescription->Buffer
+                        );
+                }
             }
 
-            PhAddItemList(deviceList, diskEntry);
+            NtClose(deviceHandle);
         }
 
-        PhFree(deviceInterfaceDetail);
-    }
+        PhAddItemList(deviceList, diskEntry);
 
-    SetupDiDestroyDeviceInfoList(deviceInfoHandle);
+        PhDereferenceObject(deviceDescription);
+    }
 
     // Sort the entries
     qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), DiskEntryCompareFunction);
@@ -458,71 +496,62 @@ PPH_STRING FindDiskDeviceInstance(
     _In_ PPH_STRING DevicePath
     )
 {
-    PPH_STRING deviceIdString = NULL;
-    HDEVINFO deviceInfoHandle;
-    SP_DEVICE_INTERFACE_DATA deviceInterfaceData = { sizeof(SP_DEVICE_INTERFACE_DATA) };
-    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
-    PSP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail;
-    ULONG deviceInfoLength = 0;
+    PPH_STRING deviceInstanceString = NULL;
+    PWSTR deviceInterfaceList;
+    ULONG deviceInterfaceListLength = 0;
+    PWSTR deviceInterface;
 
-    if ((deviceInfoHandle = SetupDiGetClassDevs(
-        &GUID_DEVINTERFACE_DISK,
+    if (CM_Get_Device_Interface_List_Size(
+        &deviceInterfaceListLength,
+        (PGUID)&GUID_DEVINTERFACE_DISK,
         NULL,
-        NULL,
-        DIGCF_DEVICEINTERFACE
-        )) == INVALID_HANDLE_VALUE)
+        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+        ) != CR_SUCCESS)
     {
         return NULL;
     }
 
-    for (ULONG i = 0; SetupDiEnumDeviceInterfaces(deviceInfoHandle, NULL, &GUID_DEVINTERFACE_DISK, i, &deviceInterfaceData); i++)
+    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+
+    if (CM_Get_Device_Interface_List(
+        (PGUID)&GUID_DEVINTERFACE_DISK,
+        NULL,
+        deviceInterfaceList,
+        deviceInterfaceListLength,
+        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+        ) != CR_SUCCESS)
     {
-        if (SetupDiGetDeviceInterfaceDetail(
-            deviceInfoHandle,
-            &deviceInterfaceData,
-            0,
-            0,
-            &deviceInfoLength,
-            &deviceInfoData
-            ) || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        PhFree(deviceInterfaceList);
+        return NULL;
+    }
+
+    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    {
+        DEVPROPTYPE devicePropertyType;
+        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+
+        if (CM_Get_Device_Interface_Property(
+            deviceInterface,
+            &DEVPKEY_Device_InstanceId,
+            &devicePropertyType,
+            (PBYTE)deviceInstanceId,
+            &deviceInstanceIdLength,
+            0
+            ) != CR_SUCCESS)
         {
             continue;
         }
 
-        deviceInterfaceDetail = PhAllocate(deviceInfoLength);
-        deviceInterfaceDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-
-        if (SetupDiGetDeviceInterfaceDetail(
-            deviceInfoHandle,
-            &deviceInterfaceData,
-            deviceInterfaceDetail,
-            deviceInfoLength,
-            &deviceInfoLength,
-            &deviceInfoData
-            ))
+        if (PhEqualStringZ(deviceInterface, DevicePath->Buffer, TRUE))
         {
-            if (PhEqualStringZ(deviceInterfaceDetail->DevicePath, DevicePath->Buffer, TRUE))
-            {
-                deviceIdString = PhCreateStringEx(NULL, 0x100);
-
-                SetupDiGetDeviceInstanceId(
-                    deviceInfoHandle,
-                    &deviceInfoData,
-                    deviceIdString->Buffer,
-                    (ULONG)deviceIdString->Length,
-                    NULL
-                    );
-
-                PhTrimToNullTerminatorString(deviceIdString);
-            }
+            deviceInstanceString = PhCreateString(deviceInstanceId);
+            break;
         }
-
-        PhFree(deviceInterfaceDetail);
     }
 
-    SetupDiDestroyDeviceInfoList(deviceInfoHandle);
-
-    return deviceIdString;
+    return deviceInstanceString;
 }
 
 //VOID LoadDiskDriveImages(
@@ -616,19 +645,16 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Disk Drives");
             PhSetExtendedListView(context->ListViewHandle);
+
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            AddListViewGroup(context->ListViewHandle, 0, L"Connected");
+            AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
            
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                ListView_EnableGroupView(context->ListViewHandle, TRUE);
-                AddListViewGroup(context->ListViewHandle, 0, L"Connected");
-                AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
-            }
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
 
             FindDiskDrives(context);
 
             context->OptionsChanged = FALSE;
-
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_NOTIFY:

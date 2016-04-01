@@ -40,15 +40,12 @@ VOID NetAdapterAddListViewItemGroups(
     _In_ HWND ListViewHandle
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        ListView_EnableGroupView(ListViewHandle, TRUE);
-        AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, L"Adapter");
-        AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_UNICAST, L"Unicast");
-        AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, L"Broadcast");
-        AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, L"Multicast");
-        AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, L"Errors");
-    }
+    ListView_EnableGroupView(ListViewHandle, TRUE);
+    AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, L"Adapter");
+    AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_UNICAST, L"Unicast");
+    AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_BROADCAST, L"Broadcast");
+    AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_MULTICAST, L"Multicast");
+    AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, L"Errors");
 
     AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State", NULL);
     //AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");  
@@ -102,21 +99,12 @@ PVOID NetAdapterGetAddresses(
     _In_ ULONG Family
     )
 {
-    ULONG flags;
+    ULONG flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_FRIENDLY_NAME | GAA_FLAG_INCLUDE_ALL_INTERFACES;
     ULONG bufferLength = 0;
-    PIP_ADAPTER_ADDRESSES buffer = NULL;
-
-    flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_FRIENDLY_NAME;
-
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
-    }
+    PIP_ADAPTER_ADDRESSES buffer;
 
     if (GetAdaptersAddresses(Family, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
-    {
         return NULL;
-    }
 
     buffer = PhAllocate(bufferLength);
     memset(buffer, 0, bufferLength);
@@ -159,17 +147,14 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn = { 0 };
+                PSOCKADDR_IN sockAddrIn;
                 IN_ADDR subnetMask = { 0 };
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
                 WCHAR subnetAddressString[INET_ADDRSTRLEN] = L"";
 
                 sockAddrIn = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
-                if (WindowsVersion >= WINDOWS_VISTA && ConvertLengthToIpv4Mask)
-                {
-                    ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
-                }
+                ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
                 if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
                 {
@@ -184,7 +169,7 @@ VOID NetAdapterEnumerateAddresses(
             
             if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
-                PSOCKADDR_IN6 sockAddrIn6 = { 0 };
+                PSOCKADDR_IN6 sockAddrIn6;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
 
                 sockAddrIn6 = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
@@ -200,7 +185,7 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn = { 0 };
+                PSOCKADDR_IN sockAddrIn;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
 
                 sockAddrIn = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
@@ -253,138 +238,81 @@ VOID NetAdapterLookupConfig(
     _Inout_ PDV_NETADAPTER_DETAILS_CONTEXT Context
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
+    PVOID addressesBuffer = NULL;
+    PPH_STRING domainString = NULL;
+    PPH_STRING ipAddressString = NULL;
+    PPH_STRING subnetAddressString = NULL;
+    PPH_STRING gatewayAddressString = NULL;
+    PPH_STRING dnsAddressString = NULL;
+    PH_STRING_BUILDER domainBuffer;
+    PH_STRING_BUILDER ipAddressBuffer;
+    PH_STRING_BUILDER subnetAddressBuffer;
+    PH_STRING_BUILDER gatewayAddressBuffer;
+    PH_STRING_BUILDER dnsAddressBuffer;
+
+    PhInitializeStringBuilder(&domainBuffer, 64);
+    PhInitializeStringBuilder(&ipAddressBuffer, 64);
+    PhInitializeStringBuilder(&subnetAddressBuffer, 64);
+    PhInitializeStringBuilder(&gatewayAddressBuffer, 64);
+    PhInitializeStringBuilder(&dnsAddressBuffer, 64);
+
+    if (addressesBuffer = NetAdapterGetAddresses(AF_INET))
     {
-        PVOID addressesBuffer = NULL;
-        PPH_STRING domainString = NULL;
-        PPH_STRING ipAddressString = NULL;
-        PPH_STRING subnetAddressString = NULL;
-        PPH_STRING gatewayAddressString = NULL;
-        PPH_STRING dnsAddressString = NULL;
-        PH_STRING_BUILDER domainBuffer;
-        PH_STRING_BUILDER ipAddressBuffer;
-        PH_STRING_BUILDER subnetAddressBuffer;
-        PH_STRING_BUILDER gatewayAddressBuffer;
-        PH_STRING_BUILDER dnsAddressBuffer;
-
-        PhInitializeStringBuilder(&domainBuffer, 64);
-        PhInitializeStringBuilder(&ipAddressBuffer, 64);
-        PhInitializeStringBuilder(&subnetAddressBuffer, 64);
-        PhInitializeStringBuilder(&gatewayAddressBuffer, 64);
-        PhInitializeStringBuilder(&dnsAddressBuffer, 64);
-
-        if (addressesBuffer = NetAdapterGetAddresses(AF_INET))
-        {
-            NetAdapterEnumerateAddresses(
-                addressesBuffer,
-                Context->AdapterId.InterfaceLuid.Value,
-                &domainBuffer,
-                &ipAddressBuffer,
-                &subnetAddressBuffer,
-                &gatewayAddressBuffer,
-                &dnsAddressBuffer
-                );
-            PhFree(addressesBuffer);
-        }
-
-        if (addressesBuffer = NetAdapterGetAddresses(AF_INET6))
-        {
-            NetAdapterEnumerateAddresses(
-                addressesBuffer,
-                Context->AdapterId.InterfaceLuid.Value,
-                &domainBuffer,
-                &ipAddressBuffer,
-                &subnetAddressBuffer,
-                &gatewayAddressBuffer,
-                &dnsAddressBuffer
-                );
-            PhFree(addressesBuffer);
-        }
-
-        if (domainBuffer.String->Length > 2)
-            PhRemoveEndStringBuilder(&domainBuffer, 2);
-        if (ipAddressBuffer.String->Length > 2)
-            PhRemoveEndStringBuilder(&ipAddressBuffer, 2);
-        if (subnetAddressBuffer.String->Length > 2)
-            PhRemoveEndStringBuilder(&subnetAddressBuffer, 2);
-        if (gatewayAddressBuffer.String->Length > 2)
-            PhRemoveEndStringBuilder(&gatewayAddressBuffer, 2);
-        if (dnsAddressBuffer.String->Length > 2)
-            PhRemoveEndStringBuilder(&dnsAddressBuffer, 2);
-
-        domainString = PhFinalStringBuilderString(&domainBuffer);
-        ipAddressString = PhFinalStringBuilderString(&ipAddressBuffer);
-        subnetAddressString = PhFinalStringBuilderString(&subnetAddressBuffer);
-        gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
-        dnsAddressString = PhFinalStringBuilderString(&dnsAddressBuffer);
-
-        //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DNS, 1, dnsAddressString->Buffer);
-        PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString->Buffer);
-
-        PhDeleteStringBuilder(&domainBuffer);
-        PhDeleteStringBuilder(&ipAddressBuffer);
-        PhDeleteStringBuilder(&subnetAddressBuffer);
-        PhDeleteStringBuilder(&gatewayAddressBuffer);
-        PhDeleteStringBuilder(&dnsAddressBuffer);
+        NetAdapterEnumerateAddresses(
+            addressesBuffer,
+            Context->AdapterId.InterfaceLuid.Value,
+            &domainBuffer,
+            &ipAddressBuffer,
+            &subnetAddressBuffer,
+            &gatewayAddressBuffer,
+            &dnsAddressBuffer
+        );
+        PhFree(addressesBuffer);
     }
-    else
+
+    if (addressesBuffer = NetAdapterGetAddresses(AF_INET6))
     {
-        static PH_STRINGREF tcpIpv4KeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\");
-        HANDLE keyHandle;
-        PPH_STRING keyNameIpV4;
-
-        keyNameIpV4 = PhConcatStringRef2(&tcpIpv4KeyName, &Context->AdapterId.InterfaceGuid->sr);
-
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
-            KEY_READ,
-            PH_KEY_LOCAL_MACHINE,
-            &keyNameIpV4->sr,
-            0
-            )))
-        {
-            PPH_STRING domainString = NULL;
-            PPH_STRING ipAddressString = NULL;
-            PPH_STRING subnetAddressString = NULL;
-            PPH_STRING gatewayAddressString = NULL;
-
-            domainString = PhQueryRegistryString(keyHandle, L"DhcpDomain");
-            ipAddressString = PhQueryRegistryString(keyHandle, L"DhcpIPAddress");
-            subnetAddressString = PhQueryRegistryString(keyHandle, L"DhcpSubnetMask");
-            gatewayAddressString = PhQueryRegistryString(keyHandle, L"DhcpDefaultGateway");
-
-            if (PhIsNullOrEmptyString(domainString))
-                PhMoveReference(&domainString, PhQueryRegistryString(keyHandle, L"Domain"));
-
-            if (PhIsNullOrEmptyString(ipAddressString))
-                PhMoveReference(&ipAddressString, PhQueryRegistryString(keyHandle, L"IPAddress"));
-
-            if (PhIsNullOrEmptyString(subnetAddressString))
-                PhMoveReference(&subnetAddressString, PhQueryRegistryString(keyHandle, L"SubnetMask"));
-
-            if (PhIsNullOrEmptyString(gatewayAddressString))
-                PhMoveReference(&gatewayAddressString, PhQueryRegistryString(keyHandle, L"DefaultGateway"));
-
-            //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, PhIsNullOrEmptyString(ipAddressString) ? L"" : ipAddressString->Buffer);
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, PhIsNullOrEmptyString(subnetAddressString) ? L"" : subnetAddressString->Buffer);
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, PhIsNullOrEmptyString(gatewayAddressString) ? L"" : gatewayAddressString->Buffer);
-            PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, PhIsNullOrEmptyString(domainString) ? L"" : domainString->Buffer);
-
-            PhClearReference(&domainString);
-            PhClearReference(&ipAddressString);
-            PhClearReference(&subnetAddressString);
-            PhClearReference(&gatewayAddressString);
-
-            NtClose(keyHandle);
-        }
-
-        PhDereferenceObject(keyNameIpV4);
+        NetAdapterEnumerateAddresses(
+            addressesBuffer,
+            Context->AdapterId.InterfaceLuid.Value,
+            &domainBuffer,
+            &ipAddressBuffer,
+            &subnetAddressBuffer,
+            &gatewayAddressBuffer,
+            &dnsAddressBuffer
+        );
+        PhFree(addressesBuffer);
     }
+
+    if (domainBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&domainBuffer, 2);
+    if (ipAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipAddressBuffer, 2);
+    if (subnetAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&subnetAddressBuffer, 2);
+    if (gatewayAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&gatewayAddressBuffer, 2);
+    if (dnsAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&dnsAddressBuffer, 2);
+
+    domainString = PhFinalStringBuilderString(&domainBuffer);
+    ipAddressString = PhFinalStringBuilderString(&ipAddressBuffer);
+    subnetAddressString = PhFinalStringBuilderString(&subnetAddressBuffer);
+    gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
+    dnsAddressString = PhFinalStringBuilderString(&dnsAddressBuffer);
+
+    //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DNS, 1, dnsAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString->Buffer);
+
+    PhDeleteStringBuilder(&domainBuffer);
+    PhDeleteStringBuilder(&ipAddressBuffer);
+    PhDeleteStringBuilder(&subnetAddressBuffer);
+    PhDeleteStringBuilder(&gatewayAddressBuffer);
+    PhDeleteStringBuilder(&dnsAddressBuffer);
 }
 
 VOID NETIOAPI_API_ NetAdapterChangeCallback(
@@ -464,71 +392,35 @@ VOID NetAdapterUpdateDetails(
     }
     else
     {
-        if (WindowsVersion >= WINDOWS_VISTA && GetIfEntry2)
+        MIB_IF_ROW2 interfaceRow;
+
+        if (QueryInterfaceRow(&Context->AdapterId, &interfaceRow))
         {
-            MIB_IF_ROW2 interfaceRow;
+            interfaceStats.ifInDiscards = interfaceRow.InDiscards;
+            interfaceStats.ifInErrors = interfaceRow.InErrors;
+            interfaceStats.ifHCInOctets = interfaceRow.InOctets;
+            interfaceStats.ifHCInUcastPkts = interfaceRow.InUcastPkts;
+            //interfaceStats.ifHCInMulticastPkts;
+            //interfaceStats.ifHCInBroadcastPkts;
+            interfaceStats.ifHCOutOctets = interfaceRow.OutOctets;
+            interfaceStats.ifHCOutUcastPkts = interfaceRow.OutUcastPkts;
+            //interfaceStats.ifHCOutMulticastPkts;
+            //interfaceStats.ifHCOutBroadcastPkts;
+            interfaceStats.ifOutErrors = interfaceRow.OutErrors;
+            interfaceStats.ifOutDiscards = interfaceRow.OutDiscards;
+            interfaceStats.ifHCInUcastOctets = interfaceRow.InUcastOctets;
+            interfaceStats.ifHCInMulticastOctets = interfaceRow.InMulticastOctets;
+            interfaceStats.ifHCInBroadcastOctets = interfaceRow.InBroadcastOctets;
+            interfaceStats.ifHCOutUcastOctets = interfaceRow.OutUcastOctets;
+            interfaceStats.ifHCOutMulticastOctets = interfaceRow.OutMulticastOctets;
+            interfaceStats.ifHCOutBroadcastOctets = interfaceRow.OutBroadcastOctets;
+            //interfaceRow.InNUcastPkts;
+            //interfaceRow.InUnknownProtos;
+            //interfaceRow.OutNUcastPkts;
+            //interfaceRow.OutQLen;
 
-            if (QueryInterfaceRowVista(&Context->AdapterId, &interfaceRow))
-            {
-                interfaceStats.ifInDiscards = interfaceRow.InDiscards;
-                interfaceStats.ifInErrors = interfaceRow.InErrors;
-                interfaceStats.ifHCInOctets = interfaceRow.InOctets;
-                interfaceStats.ifHCInUcastPkts = interfaceRow.InUcastPkts;
-                //interfaceStats.ifHCInMulticastPkts;
-                //interfaceStats.ifHCInBroadcastPkts;
-                interfaceStats.ifHCOutOctets = interfaceRow.OutOctets;
-                interfaceStats.ifHCOutUcastPkts = interfaceRow.OutUcastPkts;
-                //interfaceStats.ifHCOutMulticastPkts;
-                //interfaceStats.ifHCOutBroadcastPkts;
-                interfaceStats.ifOutErrors = interfaceRow.OutErrors;
-                interfaceStats.ifOutDiscards = interfaceRow.OutDiscards;
-                interfaceStats.ifHCInUcastOctets = interfaceRow.InUcastOctets;
-                interfaceStats.ifHCInMulticastOctets = interfaceRow.InMulticastOctets;
-                interfaceStats.ifHCInBroadcastOctets = interfaceRow.InBroadcastOctets;
-                interfaceStats.ifHCOutUcastOctets = interfaceRow.OutUcastOctets;
-                interfaceStats.ifHCOutMulticastOctets = interfaceRow.OutMulticastOctets;
-                interfaceStats.ifHCOutBroadcastOctets = interfaceRow.OutBroadcastOctets;
-                //interfaceRow.InNUcastPkts;
-                //interfaceRow.InUnknownProtos;
-                //interfaceRow.OutNUcastPkts;
-                //interfaceRow.OutQLen;
-
-                mediaState = interfaceRow.MediaConnectState;
-                interfaceLinkSpeed = interfaceRow.TransmitLinkSpeed;
-            }
-        }
-        else
-        {
-            MIB_IFROW interfaceRow;
-
-            if (QueryInterfaceRowXP(&Context->AdapterId, &interfaceRow))
-            {
-                interfaceStats.ifInDiscards = interfaceRow.dwInDiscards;
-                interfaceStats.ifInErrors = interfaceRow.dwInErrors;
-                interfaceStats.ifHCInOctets = interfaceRow.dwInOctets;
-                interfaceStats.ifHCInUcastPkts = interfaceRow.dwInUcastPkts;
-                //interfaceStats.ifHCInMulticastPkts;
-                //interfaceStats.ifHCInBroadcastPkts;
-                interfaceStats.ifHCOutOctets = interfaceRow.dwOutOctets;
-                interfaceStats.ifHCOutUcastPkts = interfaceRow.dwOutUcastPkts;
-                //interfaceStats.ifHCOutMulticastPkts;
-                //interfaceStats.ifHCOutBroadcastPkts;
-                interfaceStats.ifOutErrors = interfaceRow.dwOutErrors;
-                interfaceStats.ifOutDiscards = interfaceRow.dwOutDiscards;
-                //interfaceStats.ifHCInUcastOctets;
-                //interfaceStats.ifHCInMulticastOctets;
-                //interfaceStats.ifHCInBroadcastOctets;
-                //interfaceStats.ifHCOutUcastOctets;
-                //interfaceStats.ifHCOutMulticastOctets;
-                //interfaceStats.ifHCOutBroadcastOctets;
-                //interfaceRow.InNUcastPkts;
-                //interfaceRow.InUnknownProtos;
-                //interfaceRow.OutNUcastPkts;
-                //interfaceRow.OutQLen;
-
-                mediaState = interfaceRow.dwOperStatus == IF_OPER_STATUS_OPERATIONAL ? MediaConnectStateConnected : MediaConnectStateDisconnected;
-                interfaceLinkSpeed = interfaceRow.dwSpeed;
-            }
+            mediaState = interfaceRow.MediaConnectState;
+            interfaceLinkSpeed = interfaceRow.TransmitLinkSpeed;
         }
     }
 
@@ -650,16 +542,13 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             NetAdapterLookupConfig(context);
             NetAdapterUpdateDetails(context);
 
-            if (WindowsVersion >= WINDOWS_VISTA && NotifyIpInterfaceChange)
-            {
-                NotifyIpInterfaceChange(
-                    AF_UNSPEC,
-                    NetAdapterChangeCallback,
-                    context,
-                    FALSE,
-                    &context->NotifyHandle
-                    );
-            }
+            NotifyIpInterfaceChange(
+                AF_UNSPEC,
+                NetAdapterChangeCallback,
+                context,
+                FALSE,
+                &context->NotifyHandle
+                );
         }
         break;
     case WM_DESTROY:
@@ -669,7 +558,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            if (WindowsVersion >= WINDOWS_VISTA && CancelMibChangeNotify2 && context->NotifyHandle)
+            if (context->NotifyHandle)
             {
                 CancelMibChangeNotify2(context->NotifyHandle);
             }

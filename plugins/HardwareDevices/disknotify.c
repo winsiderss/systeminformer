@@ -52,7 +52,7 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
 
                     if (deviceBroadcast->dbch_devicetype == DBT_DEVTYP_VOLUME)
                     {
-                        PDEV_BROADCAST_VOLUME deviceVolume = (PDEV_BROADCAST_VOLUME)deviceBroadcast;
+                        //PDEV_BROADCAST_VOLUME deviceVolume = (PDEV_BROADCAST_VOLUME)deviceBroadcast;
 
                         PhAcquireQueuedLockShared(&DiskDrivesListLock);
 

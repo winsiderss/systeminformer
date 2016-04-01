@@ -1562,6 +1562,96 @@ PWSTR SmartAttributeGetDescription(
         return L"This attribute indicates the count of full hard disk power on/off cycles.";
     case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
         return L"Uncorrected read errors reported to the operating system.";
+    case SMART_ATTRIBUTE_ID_SATA_DOWNSHIFT_ERROR_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_END_TO_END_ERROR: 
+        break;
+    case SMART_ATTRIBUTE_ID_HEAD_STABILITY:
+        break;
+    case SMART_ATTRIBUTE_ID_INDUCED_OP_VIBRATION_DETECTION:
+        break;
+    case SMART_ATTRIBUTE_ID_REPORTED_UNCORRECTABLE_ERRORS: 
+        break;
+    case SMART_ATTRIBUTE_ID_COMMAND_TIMEOUT: 
+        break;
+    case SMART_ATTRIBUTE_ID_HIGH_FLY_WRITES: 
+        break;
+    case SMART_ATTRIBUTE_ID_TEMPERATURE_DIFFERENCE_FROM_100: 
+        break;
+    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE: 
+        break;
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_LOAD_CYCLE_COUNT:
+        break;
+    case SMART_ATTRIBUTE_ID_TEMPERATURE: 
+        break;
+    case SMART_ATTRIBUTE_ID_HARDWARE_ECC_RECOVERED: 
+        break;
+    case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_ULTRADMA_CRC_ERROR_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_MULTI_ZONE_ERROR_RATE: 
+        break;
+    case SMART_ATTRIBUTE_ID_OFFTRACK_SOFT_READ_ERROR_RATE: 
+        break;
+    case SMART_ATTRIBUTE_ID_DATA_ADDRESS_MARK_ERRORS: 
+        break;
+    case SMART_ATTRIBUTE_ID_RUN_OUT_CANCEL: 
+        break;
+    case SMART_ATTRIBUTE_ID_SOFT_ECC_CORRECTION: 
+        break;
+    case SMART_ATTRIBUTE_ID_THERMAL_ASPERITY_RATE_TAR: 
+        break;
+    case SMART_ATTRIBUTE_ID_FLYING_HEIGHT: 
+        break;
+    case SMART_ATTRIBUTE_ID_SPIN_HIGH_CURRENT: 
+        break;
+    case SMART_ATTRIBUTE_ID_SPIN_BUZZ:
+        break;
+    case SMART_ATTRIBUTE_ID_OFFLINE_SEEK_PERFORMANCE: 
+        break;
+    case SMART_ATTRIBUTE_ID_VIBRATION_DURING_WRITE: 
+        break;
+    case SMART_ATTRIBUTE_ID_SHOCK_DURING_WRITE: 
+        break;
+    case SMART_ATTRIBUTE_ID_DISK_SHIFT: 
+        break;
+    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE_ALT: 
+        break;
+    case SMART_ATTRIBUTE_ID_LOADED_HOURS: 
+        break;
+    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_RETRY_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_LOAD_FRICTION:
+        break;
+    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_CYCLE_COUNT: 
+        break;
+    case SMART_ATTRIBUTE_ID_LOAD_IN_TIME:
+        break;
+    case SMART_ATTRIBUTE_ID_TORQUE_AMPLIFICATION_COUNT:
+        break;
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETTRACT_CYCLE: 
+        break;
+    case SMART_ATTRIBUTE_ID_GMR_HEAD_AMPLITUDE: 
+        break;
+    case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE: 
+        break;
+    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS: 
+        break;
+    case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN: 
+        break;
+    case SMART_ATTRIBUTE_ID_TOTAL_LBA_READ: 
+        break;
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE: 
+        break;
+    case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION: 
+        break;
     }
 
     //TODO: Include more descriptions..

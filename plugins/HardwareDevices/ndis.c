@@ -54,7 +54,7 @@ BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterStatsSupported = FALSE;
     BOOLEAN adapterLinkStateSupported = FALSE;
     BOOLEAN adapterLinkSpeedSupported = FALSE;
-    PNDIS_OID ndisObjectIdentifiers = NULL;
+    PNDIS_OID ndisObjectIdentifiers;
 
     // https://msdn.microsoft.com/en-us/library/ff569642.aspx
     opcode = OID_GEN_SUPPORTED_LIST;
@@ -80,9 +80,9 @@ BOOLEAN NetworkAdapterQuerySupported(
 
         for (ULONG i = 0; i < (ULONG)isb.Information / sizeof(NDIS_OID); i++)
         {
-            NDIS_OID opcode = ndisObjectIdentifiers[i];
+            NDIS_OID objectId = ndisObjectIdentifiers[i];
 
-            switch (opcode)
+            switch (objectId)
             {
             case OID_GEN_FRIENDLY_NAME:
                 adapterNameSupported = TRUE;
@@ -408,7 +408,7 @@ ULONG64 NetworkAdapterQueryValue(
     return 0;
 }
 
-BOOLEAN QueryInterfaceRowVista(
+BOOLEAN QueryInterfaceRow(
     _In_ PDV_NETADAPTER_ID Id,
     _Out_ PMIB_IF_ROW2 InterfaceRow
     )
@@ -421,13 +421,10 @@ BOOLEAN QueryInterfaceRowVista(
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
-    if (GetIfEntry2)
+    if (GetIfEntry2(&interfaceRow) == NO_ERROR)
     {
-        if (GetIfEntry2(&interfaceRow) == NO_ERROR)
-        {
-            result = TRUE;
-            *InterfaceRow = interfaceRow;
-        }
+        result = TRUE;
+        *InterfaceRow = interfaceRow;
     }
 
     //MIB_IPINTERFACE_ROW interfaceTable;
@@ -439,34 +436,6 @@ BOOLEAN QueryInterfaceRowVista(
 
     return result;
 }
-
-BOOLEAN QueryInterfaceRowXP(
-    _In_ PDV_NETADAPTER_ID Id,
-    _Out_ PMIB_IFROW InterfaceRow
-    )
-{
-    BOOLEAN result = FALSE;
-    MIB_IFROW interfaceRow;
-
-    memset(&interfaceRow, 0, sizeof(MIB_IFROW));
-
-    interfaceRow.dwIndex = Id->InterfaceIndex;
-
-    if (GetIfEntry(&interfaceRow) == NO_ERROR)
-    {
-        result = TRUE;
-        *InterfaceRow = interfaceRow;
-    }
-
-    //MIB_IPINTERFACE_ROW interfaceTable;
-    //memset(&interfaceTable, 0, sizeof(MIB_IPINTERFACE_ROW));
-    //interfaceTable.Family = AF_INET;
-    //interfaceTable.InterfaceIndex = Context->AdapterEntry->InterfaceIndex;
-    //GetIpInterfaceEntry(&interfaceTable);
-
-    return result;
-}
-
 
 //BOOLEAN NetworkAdapterQueryInternet(
 //    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,

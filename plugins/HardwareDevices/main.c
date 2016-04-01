@@ -178,18 +178,12 @@ INT AddListViewGroup(
 {
     LVGROUP group;
 
-    group.cbSize = LVGROUP_V5_SIZE;
-    group.mask = LVGF_HEADER;
+    group.cbSize = sizeof(LVGROUP);
+    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
+    group.uAlign = LVGA_HEADER_LEFT;
+    group.state = LVGS_COLLAPSIBLE;
+    group.iGroupId = GroupId;
     group.pszHeader = Text;
-
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        group.cbSize = sizeof(LVGROUP);
-        group.mask |= LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
-        group.uAlign = LVGA_HEADER_LEFT;
-        group.state = LVGS_COLLAPSIBLE;
-        group.iGroupId = GroupId;
-    }
 
     return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
 }
@@ -204,16 +198,11 @@ INT AddListViewItemGroupId(
 {
     LVITEM item;
 
-    item.mask = LVIF_TEXT;
+    item.mask = LVIF_TEXT | LVIF_GROUPID;
     item.iItem = Index;
     item.iSubItem = 0;
     item.pszText = Text;
-
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        item.mask |= LVIF_GROUPID;
-        item.iGroupId = GroupId;
-    }
+    item.iGroupId = GroupId;
 
     if (Param)
     {
@@ -224,7 +213,7 @@ INT AddListViewItemGroupId(
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
-ULONG64 RegQueryUlong64(
+ULONG64 QueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_ PWSTR ValueName
     )
@@ -292,7 +281,7 @@ VOID ShowDeviceMenu(
 
                 if (devMgrHandle = LoadLibrary(L"devmgr.dll"))
                 {
-                    if (DeviceProperties_RunDLL_I = (PVOID)GetProcAddress(devMgrHandle, "DeviceProperties_RunDLLW"))
+                    if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
                     {
                         // This will sometimes re-throw an RPC error during debugging and can be safely ignored.
                         DeviceProperties_RunDLL_I(

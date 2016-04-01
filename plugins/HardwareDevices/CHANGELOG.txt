@@ -1,3 +1,6 @@
+1.5
+ * Removed legacy code
+
 1.4
  * Fixed incorrect drive letters
  * Fixed drive letter and panel clipping issue

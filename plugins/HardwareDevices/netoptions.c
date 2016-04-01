@@ -23,7 +23,7 @@
 
 #define INITGUID
 #include "devices.h"
-#include <Setupapi.h>
+#include <cfgmgr32.h>
 #include <ndisguid.h>
 
 #define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
@@ -254,20 +254,96 @@ VOID FreeListViewAdapterEntries(
     }
 }
 
+BOOLEAN QueryNetworkDeviceInterfaceDescription(
+    _In_ PWSTR DeviceInterface,
+    _Out_ DEVINST *DeviceInstanceHandle,
+    _Out_ PPH_STRING *DeviceDescription
+    )
+{
+    CONFIGRET result;
+    ULONG bufferSize;
+    PPH_STRING deviceDescription;
+    DEVPROPTYPE devicePropertyType;
+    DEVINST deviceInstanceHandle;
+    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+
+    if (CM_Get_Device_Interface_Property(
+        DeviceInterface,
+        &DEVPKEY_Device_InstanceId,
+        &devicePropertyType,
+        (PBYTE)deviceInstanceId,
+        &deviceInstanceIdLength,
+        0
+        ) != CR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    if (CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        deviceInstanceId,
+        CM_LOCATE_DEVNODE_PHANTOM
+        ) != CR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    bufferSize = 0x40;
+    deviceDescription = PhCreateStringEx(NULL, bufferSize);
+
+    // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
+    // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only 
+    //  supported on Windows 8 and above.
+
+    // We use our NetworkAdapterQueryName function to query the full adapter name
+    // from the NDIS driver directly, if that fails then we use one of the above properties. 
+
+    if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
+        deviceInstanceHandle,
+        WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+        &devicePropertyType,
+        (PBYTE)deviceDescription->Buffer,
+        &bufferSize,
+        0
+        )) != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceDescription);
+        deviceDescription = PhCreateStringEx(NULL, bufferSize);
+
+        result = CM_Get_DevNode_Property(
+            deviceInstanceHandle,
+            WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+            &devicePropertyType,
+            (PBYTE)deviceDescription->Buffer,
+            &bufferSize,
+            0
+            );
+    }
+
+    if (result != CR_SUCCESS)
+    {
+        PhDereferenceObject(deviceDescription);
+        return FALSE;
+    }
+
+    PhTrimToNullTerminatorString(deviceDescription);
+
+    *DeviceInstanceHandle = deviceInstanceHandle;
+    *DeviceDescription = deviceDescription;
+
+    return TRUE;
+}
+
 VOID FindNetworkAdapters(
     _In_ PDV_NETADAPTER_CONTEXT Context
     )
 {
     if (Context->UseAlternateMethod)
     {
+        ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_ALL_INTERFACES;
         ULONG bufferLength = 0;
-        PVOID buffer = NULL;
-        ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
-
-        if (WindowsVersion >= WINDOWS_VISTA)
-        {
-            flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
-        }
+        PVOID buffer;
 
         if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
             return;
@@ -308,54 +384,54 @@ VOID FindNetworkAdapters(
     else
     {
         PPH_LIST deviceList;
-        HDEVINFO deviceInfoHandle;
-        SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
+        PWSTR deviceInterfaceList;
+        ULONG deviceInterfaceListLength = 0;
+        PWSTR deviceInterface;
 
-        if ((deviceInfoHandle = SetupDiGetClassDevs(
-            &GUID_DEVINTERFACE_NET,
+        if (CM_Get_Device_Interface_List_Size(
+            &deviceInterfaceListLength,
+            (PGUID)&GUID_DEVINTERFACE_NET,
             NULL,
-            NULL,
-            DIGCF_DEVICEINTERFACE
-            )) == INVALID_HANDLE_VALUE)
+            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+            ) != CR_SUCCESS)
         {
+            return;
+        }
+
+        deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+        memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+
+        if (CM_Get_Device_Interface_List(
+            (PGUID)&GUID_DEVINTERFACE_NET,
+            NULL,
+            deviceInterfaceList,
+            deviceInterfaceListLength,
+            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+            ) != CR_SUCCESS)
+        {
+            PhFree(deviceInterfaceList);
             return;
         }
 
         deviceList = PH_AUTO(PhCreateList(1));
 
-        for (ULONG i = 0; SetupDiEnumDeviceInfo(deviceInfoHandle, i, &deviceInfoData); i++)
+        for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
         {
-            HANDLE keyHandle;
-            DEVPROPTYPE devicePropertyType;
-            WCHAR adapterDescription[MAX_PATH] = L"";
+            HKEY keyHandle;
+            DEVINST deviceInstanceHandle;
+            PPH_STRING deviceDescription = NULL;
 
-            // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
-            // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only 
-            //  supported on Windows 8 and above.
-            // We use our NetworkAdapterQueryName function to query the full adapter name
-            // from the NDIS driver directly, if that fails then we use one of the above properties. 
-            if (!SetupDiGetDeviceProperty(
-                deviceInfoHandle,
-                &deviceInfoData,
-                WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
-                &devicePropertyType,
-                (PBYTE)adapterDescription,
-                ARRAYSIZE(adapterDescription),
-                NULL,
-                0
-                ))
-            {
+            if (!QueryNetworkDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
                 continue;
-            }
 
-            if (keyHandle = SetupDiOpenDevRegKey(
-                deviceInfoHandle,
-                &deviceInfoData,
-                DICS_FLAG_GLOBAL,
+            if (CM_Open_DevInst_Key(
+                deviceInstanceHandle,
+                KEY_QUERY_VALUE,
                 0,
-                DIREG_DRV,
-                KEY_QUERY_VALUE
-                ))
+                RegDisposition_OpenExisting,
+                &keyHandle,
+                CM_REGISTRY_SOFTWARE
+                ) == CR_SUCCESS)
             {
                 PNET_ENUM_ENTRY adapterEntry;
                 HANDLE deviceHandle;
@@ -364,15 +440,17 @@ VOID FindNetworkAdapters(
                 memset(adapterEntry, 0, sizeof(NET_ENUM_ENTRY));
 
                 adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DeviceLuid.Info.IfType = RegQueryUlong64(keyHandle, L"*IfType");
-                adapterEntry->DeviceLuid.Info.NetLuidIndex = RegQueryUlong64(keyHandle, L"NetLuidIndex");
+                adapterEntry->DeviceLuid.Info.IfType = QueryRegistryUlong64(keyHandle, L"*IfType");
+                adapterEntry->DeviceLuid.Info.NetLuidIndex = QueryRegistryUlong64(keyHandle, L"NetLuidIndex");
 
                 if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, adapterEntry->DeviceGuid)))
                 {
                     PPH_STRING adapterName;
 
                     // Try query the full adapter name
-                    if (adapterName = NetworkAdapterQueryName(deviceHandle, adapterEntry->DeviceGuid))
+                    adapterName = NetworkAdapterQueryName(deviceHandle, adapterEntry->DeviceGuid);
+
+                    if (adapterName)
                         adapterEntry->DeviceName = adapterName;
 
                     adapterEntry->DevicePresent = TRUE;
@@ -381,15 +459,15 @@ VOID FindNetworkAdapters(
                 }
 
                 if (!adapterEntry->DeviceName)
-                    adapterEntry->DeviceName = PhCreateString(adapterDescription);
+                    adapterEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
 
                 PhAddItemList(deviceList, adapterEntry);
 
                 NtClose(keyHandle);
             }
-        }
 
-        SetupDiDestroyDeviceInfoList(deviceInfoHandle);
+            PhClearReference(&deviceDescription);
+        }
 
         // Sort the entries
         qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), AdapterEntryCompareFunction);
@@ -420,7 +498,6 @@ VOID FindNetworkAdapters(
         PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
         Context->EnumeratingAdapters = FALSE;
     }
-
 
     // HACK: Show all unknown devices.
     Context->EnumeratingAdapters = TRUE;
@@ -482,31 +559,73 @@ PPH_STRING FindNetworkDeviceInstance(
     _In_ PPH_STRING DevicePath
     )
 {
-    PPH_STRING deviceIdString = NULL;
-    HANDLE keyHandle;
-    HDEVINFO deviceInfoHandle;
-    SP_DEVINFO_DATA deviceInfoData = { sizeof(SP_DEVINFO_DATA) };
+    PPH_STRING deviceInstanceString = NULL;
+    PWSTR deviceInterfaceList;
+    ULONG deviceInterfaceListLength = 0;
+    PWSTR deviceInterface;
 
-    if ((deviceInfoHandle = SetupDiGetClassDevs(
-        &GUID_DEVINTERFACE_NET,
+    if (CM_Get_Device_Interface_List_Size(
+        &deviceInterfaceListLength,
+        (PGUID)&GUID_DEVINTERFACE_NET,
         NULL,
-        NULL,
-        DIGCF_DEVICEINTERFACE
-        )) == INVALID_HANDLE_VALUE)
+        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+        ) != CR_SUCCESS)
     {
         return NULL;
     }
 
-    for (ULONG i = 0; SetupDiEnumDeviceInfo(deviceInfoHandle, i, &deviceInfoData); i++)
+    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
+
+    if (CM_Get_Device_Interface_List(
+        (PGUID)&GUID_DEVINTERFACE_NET,
+        NULL,
+        deviceInterfaceList,
+        deviceInterfaceListLength,
+        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+        ) != CR_SUCCESS)
     {
-        if (keyHandle = SetupDiOpenDevRegKey(
-            deviceInfoHandle,
-            &deviceInfoData,
-            DICS_FLAG_GLOBAL,
+        PhFree(deviceInterfaceList);
+        return NULL;
+    }
+
+    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    {
+        HKEY keyHandle;
+        DEVPROPTYPE devicePropertyType;
+        DEVINST deviceInstanceHandle;
+        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+
+        if (CM_Get_Device_Interface_Property(
+            deviceInterface,
+            &DEVPKEY_Device_InstanceId,
+            &devicePropertyType,
+            (PBYTE)deviceInstanceId,
+            &deviceInstanceIdLength,
+            0
+            ) != CR_SUCCESS)
+        {
+            continue;
+        }
+
+        if (CM_Locate_DevNode(
+            &deviceInstanceHandle,
+            deviceInstanceId,
+            CM_LOCATE_DEVNODE_PHANTOM
+            ) != CR_SUCCESS)
+        {
+            continue;
+        }
+
+        if (CM_Open_DevInst_Key(
+            deviceInstanceHandle,
+            KEY_QUERY_VALUE,
             0,
-            DIREG_DRV,
-            KEY_QUERY_VALUE
-            ))
+            RegDisposition_OpenExisting,
+            &keyHandle,
+            CM_REGISTRY_SOFTWARE
+            ) == CR_SUCCESS)
         {
             PPH_STRING deviceGuid;
 
@@ -514,17 +633,11 @@ PPH_STRING FindNetworkDeviceInstance(
             {
                 if (PhEqualString(deviceGuid, DevicePath, TRUE))
                 {
-                    deviceIdString = PhCreateStringEx(NULL, 0x100);
+                    deviceInstanceString = PhCreateString(deviceInstanceId);
 
-                    SetupDiGetDeviceInstanceId(
-                        deviceInfoHandle,
-                        &deviceInfoData,
-                        deviceIdString->Buffer,
-                        (ULONG)deviceIdString->Length,
-                        NULL
-                        );
-
-                    PhTrimToNullTerminatorString(deviceIdString);
+                    PhDereferenceObject(deviceGuid);
+                    NtClose(keyHandle);
+                    break;
                 }
 
                 PhDereferenceObject(deviceGuid);
@@ -534,9 +647,7 @@ PPH_STRING FindNetworkDeviceInstance(
         }
     }
 
-    SetupDiDestroyDeviceInfoList(deviceInfoHandle);
-
-    return deviceIdString;
+    return deviceInstanceString;
 }
 
 //VOID LoadNetworkAdapterImages(
@@ -624,19 +735,9 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Network Adapters");
             PhSetExtendedListView(context->ListViewHandle);
 
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                ListView_EnableGroupView(context->ListViewHandle, TRUE);
-                AddListViewGroup(context->ListViewHandle, 0, L"Connected");
-                AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
-
-                context->UseAlternateMethod = FALSE;
-            }
-            else
-            {
-                Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), FALSE);
-                context->UseAlternateMethod = TRUE;
-            }
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            AddListViewGroup(context->ListViewHandle, 0, L"Connected");
+            AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             FindNetworkAdapters(context);
 
@@ -649,18 +750,15 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             {
             case IDC_SHOW_HIDDEN_ADAPTERS:
                 {
-                    if (WindowsVersion >= WINDOWS_VISTA)
-                    {
-                        context->UseAlternateMethod = !context->UseAlternateMethod;
+                    context->UseAlternateMethod = !context->UseAlternateMethod;
 
-                        if (context->UseAlternateMethod)
-                        {
-                            ListView_EnableGroupView(context->ListViewHandle, FALSE);
-                        }
-                        else
-                        {
-                            ListView_EnableGroupView(context->ListViewHandle, TRUE);
-                        }
+                    if (context->UseAlternateMethod)
+                    {
+                        ListView_EnableGroupView(context->ListViewHandle, FALSE);
+                    }
+                    else
+                    {
+                        ListView_EnableGroupView(context->ListViewHandle, TRUE);
                     }
 
                     FreeListViewAdapterEntries(context);

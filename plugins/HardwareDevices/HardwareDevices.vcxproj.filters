@@ -16,9 +16,6 @@
     <Filter Include="Source Files\Network">
       <UniqueIdentifier>{c7c48d78-64cd-4559-87c1-74e2141dcd2e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Graphics">
-      <UniqueIdentifier>{987f6036-c8df-4352-abc3-060d5a1bc7e4}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -26,12 +23,6 @@
     </ClInclude>
     <ClInclude Include="devices.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nvapi\nvapi.h">
-      <Filter>Header Files\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="nvapi\nvapi_lite_common.h">
-      <Filter>Header Files\Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
