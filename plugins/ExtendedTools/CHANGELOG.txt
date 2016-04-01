@@ -1,3 +1,6 @@
+1.17
+ * Removed legacy code
+
 1.16
  * Fixed "No process" disk event bug
 

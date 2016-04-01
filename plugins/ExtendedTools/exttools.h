@@ -1,7 +1,6 @@
 #ifndef EXTTOOLS_H
 #define EXTTOOLS_H
 
-#define PHNT_VERSION PHNT_VISTA
 #include <phdk.h>
 #include <windowsx.h>
 #include <math.h>

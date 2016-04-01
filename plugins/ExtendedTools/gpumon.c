@@ -25,14 +25,9 @@
 #include "exttools.h"
 #include <cfgmgr32.h>
 #include <devpkey.h>
+#include <ntddvdeo.h>
 #include "d3dkmt.h"
 #include "gpumon.h"
-
-static GUID GUID_DISPLAY_DEVICE_ARRIVAL_I = { 0x1ca05180, 0xa699, 0x450a, { 0x9a, 0x0c, 0xde, 0x4f, 0xbe, 0x3d, 0xdd, 0x89 } };
-
-static PFND3DKMT_OPENADAPTERFROMDEVICENAME D3DKMTOpenAdapterFromDeviceName_I;
-static PFND3DKMT_CLOSEADAPTER D3DKMTCloseAdapter_I;
-static PFND3DKMT_QUERYSTATISTICS D3DKMTQueryStatistics_I;
 
 BOOLEAN EtGpuEnabled;
 static PPH_LIST EtpGpuAdapterList;
@@ -69,28 +64,12 @@ VOID EtGpuMonitorInitialization(
     VOID
     )
 {
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) && WindowsVersion >= WINDOWS_7)
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {
-        PVOID gdi32Handle;
+        EtpGpuAdapterList = PhCreateList(4);
 
-        if (gdi32Handle = PhGetDllHandle(L"gdi32.dll"))
-        {
-            D3DKMTOpenAdapterFromDeviceName_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTOpenAdapterFromDeviceName", 0);
-            D3DKMTCloseAdapter_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTCloseAdapter", 0);
-            D3DKMTQueryStatistics_I = PhGetProcedureAddress(gdi32Handle, "D3DKMTQueryStatistics", 0);
-        }
-
-        if (
-            D3DKMTOpenAdapterFromDeviceName_I &&
-            D3DKMTCloseAdapter_I &&
-            D3DKMTQueryStatistics_I
-            )
-        {
-            EtpGpuAdapterList = PhCreateList(4);
-
-            if (EtpInitializeD3DStatistics() && EtpGpuAdapterList->Count != 0)
-                EtGpuEnabled = TRUE;
-        }
+        if (EtpInitializeD3DStatistics())
+            EtGpuEnabled = TRUE;
     }
 
     if (EtGpuEnabled)
@@ -156,7 +135,7 @@ VOID EtGpuMonitorInitialization(
                     queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
                     queryStatistics.QueryNode.NodeId = j;
 
-                    if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+                    if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
                     {
                         // The numbers below are quite arbitrary.
                         if (queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart != 0 &&
@@ -191,7 +170,7 @@ BOOLEAN EtpInitializeD3DStatistics(
     VOID
     )
 {
-    PWSTR deviceInterfaceList = NULL;
+    PWSTR deviceInterfaceList;
     ULONG deviceInterfaceListLength = 0;
     PWSTR deviceInterface;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
@@ -200,7 +179,7 @@ BOOLEAN EtpInitializeD3DStatistics(
 
     if (CM_Get_Device_Interface_List_Size(
         &deviceInterfaceListLength,
-        &GUID_DISPLAY_DEVICE_ARRIVAL_I,
+        (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
         NULL,
         CM_GET_DEVICE_INTERFACE_LIST_PRESENT
         ) != CR_SUCCESS)
@@ -212,7 +191,7 @@ BOOLEAN EtpInitializeD3DStatistics(
     memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
 
     if (CM_Get_Device_Interface_List(
-        &GUID_DISPLAY_DEVICE_ARRIVAL_I,
+        (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
         NULL,
         deviceInterfaceList,
         deviceInterfaceListLength,
@@ -228,13 +207,13 @@ BOOLEAN EtpInitializeD3DStatistics(
         memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
         openAdapterFromDeviceName.pDeviceName = deviceInterface;
 
-        if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName_I(&openAdapterFromDeviceName)))
+        if (NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
         {
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
             queryStatistics.AdapterLuid = openAdapterFromDeviceName.AdapterLuid;
 
-            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
             {
                 PETP_GPU_ADAPTER gpuAdapter;
                 ULONG i;
@@ -260,7 +239,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                     queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
                     queryStatistics.QuerySegment.SegmentId = i;
 
-                    if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+                    if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
                     {
                         ULONG64 commitLimit;
                         ULONG aperture;
@@ -289,7 +268,7 @@ BOOLEAN EtpInitializeD3DStatistics(
 
             memset(&closeAdapter, 0, sizeof(D3DKMT_CLOSEADAPTER));
             closeAdapter.hAdapter = openAdapterFromDeviceName.hAdapter;
-            D3DKMTCloseAdapter_I(&closeAdapter);
+            D3DKMTCloseAdapter(&closeAdapter);
         }
     }
 
@@ -430,7 +409,7 @@ VOID EtpUpdateSegmentInformation(
                 queryStatistics.QuerySegment.SegmentId = j;
             }
 
-            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
             {
                 if (Block)
                 {
@@ -529,7 +508,7 @@ VOID EtpUpdateNodeInformation(
                 queryStatistics.QueryNode.NodeId = j;
             }
 
-            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
             {
                 if (Block)
                 {
@@ -791,7 +770,7 @@ VOID EtQueryProcessGpuStatistics(
             queryStatistics.hProcess = ProcessHandle;
             queryStatistics.QueryProcessSegment.SegmentId = j;
 
-            if (NT_SUCCESS(status = D3DKMTQueryStatistics_I(&queryStatistics)))
+            if (NT_SUCCESS(status = D3DKMTQueryStatistics(&queryStatistics)))
             {
                 ULONG64 bytesCommitted;
 
@@ -819,7 +798,7 @@ VOID EtQueryProcessGpuStatistics(
             queryStatistics.hProcess = ProcessHandle;
             queryStatistics.QueryProcessNode.NodeId = j;
 
-            if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+            if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
             {
                 Statistics->RunningTime += queryStatistics.QueryResult.ProcessNodeInformation.RunningTime.QuadPart;
                 Statistics->ContextSwitches += queryStatistics.QueryResult.ProcessNodeInformation.ContextSwitch;
@@ -831,7 +810,7 @@ VOID EtQueryProcessGpuStatistics(
         queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
         queryStatistics.hProcess = ProcessHandle;
 
-        if (NT_SUCCESS(D3DKMTQueryStatistics_I(&queryStatistics)))
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
         {
             Statistics->BytesAllocated += queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesAllocated;
             Statistics->BytesReserved += queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesReserved;

@@ -475,8 +475,22 @@ typedef struct _D3DKMT_QUERYSTATISTICS
 
 // Function pointers
 
-typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_OPENADAPTERFROMDEVICENAME)(_Inout_ D3DKMT_OPENADAPTERFROMDEVICENAME *);
-typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_CLOSEADAPTER)(_In_ const D3DKMT_CLOSEADAPTER *);
-typedef _Check_return_ NTSTATUS (APIENTRY *PFND3DKMT_QUERYSTATISTICS)(_In_ const D3DKMT_QUERYSTATISTICS *);
+// https://msdn.microsoft.com/en-us/library/ff547033.aspx
+_Check_return_
+NTSTATUS D3DKMTOpenAdapterFromDeviceName(
+    _Inout_ D3DKMT_OPENADAPTERFROMDEVICENAME *pData
+    );
+
+// https://msdn.microsoft.com/en-us/library/ff546787.aspx
+_Check_return_
+NTSTATUS D3DKMTCloseAdapter(
+    _In_ const D3DKMT_CLOSEADAPTER *pData
+    );
+
+// rev
+_Check_return_ 
+NTSTATUS D3DKMTQueryStatistics(
+    _Inout_ const D3DKMT_QUERYSTATISTICS *pData
+    );
 
 #endif
