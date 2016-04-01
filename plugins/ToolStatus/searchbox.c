@@ -384,13 +384,6 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
 
                 return FALSE;
             }
-
-            // Handle CTRL+A below Vista.
-            if (WindowsVersion < WINDOWS_VISTA && (GetKeyState(VK_CONTROL) & VK_LCONTROL) && wParam == 'A')
-            {
-                Edit_SetSel(hWnd, 0, -1);
-                return FALSE;
-            }
         }
         break;
     case WM_CHAR:
@@ -512,8 +505,6 @@ HBITMAP LoadImageFromResources(
     _In_ PCWSTR Name
     )
 {
-    UINT width = 0;
-    UINT height = 0;
     UINT frameCount = 0;
     BOOLEAN isSuccess = FALSE;
     ULONG resourceLength = 0;
@@ -686,7 +677,11 @@ HBITMAP LoadImageFromResources(
         }
     }
 
-    return bitmapHandle;
+    if (isSuccess)
+        return bitmapHandle;
+
+    DeleteObject(bitmapHandle);
+    return NULL;
 }
 
 HWND CreateSearchControl(
