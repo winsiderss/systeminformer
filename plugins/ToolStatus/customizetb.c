@@ -410,11 +410,8 @@ VOID CustomizeLoadToolbarSettings(
     {
         ComboBox_Enable(searchboxCombo, FALSE);
     }
-
-    if (WindowsVersion <= WINDOWS_VISTA)
-    {
-        ComboBox_Enable(themeCombo, FALSE);
-    }
+  
+    ComboBox_Enable(themeCombo, FALSE);
 }
 
 VOID CustomizeResetImages(
