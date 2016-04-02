@@ -105,14 +105,14 @@ if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-%
 rem Installer distribution
 
 if exist "%INNOBIN%\iscc.exe". (
-    pushd %1\build\Installer\
+    pushd %1\build\installer\
     del *.exe
     "%INNOBIN%\iscc.exe" Process_Hacker_installer.iss
     popd
 )
 
-if exist %1\build\Installer\processhacker-%MAJORVERSION%.%MINORVERSION%-setup.exe (
-    copy %1\build\Installer\processhacker-%MAJORVERSION%.%MINORVERSION%-setup.exe %2\
+if exist %1\build\installer\processhacker-%MAJORVERSION%.%MINORVERSION%-setup.exe (
+    copy %1\build\installer\processhacker-%MAJORVERSION%.%MINORVERSION%-setup.exe %2\
     if "%SIGN%" == "1" (
         call %1\build\internal\sign.cmd %2\processhacker-%MAJORVERSION%.%MINORVERSION%-setup.exe
     )

@@ -102,7 +102,7 @@ Desktop.ini
 ## Project specific rules
 ##########################
 
-build/Installer/*.exe
+build/installer/*.exe
 ProcessHacker/include/phapprev.h
 ProcessHacker/sdk/phapppub.h
 plugins-extra/
