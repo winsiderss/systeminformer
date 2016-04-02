@@ -34,7 +34,10 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT), FALSE);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            SetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, PhGetIntegerSetting(SETTING_NAME_PING_SIZE), FALSE);
+            SetDlgItemInt(hwndDlg, IDC_MINSCALING, PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING), FALSE);
         }
         break;
     case WM_COMMAND:
@@ -46,9 +49,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    ULONG maxPingTimeout = GetDlgItemInt(hwndDlg, IDC_MAXTIMEOUTTEXT, NULL, FALSE);
-
-                    PhSetIntegerSetting(SETTING_NAME_PING_TIMEOUT, maxPingTimeout);
+                    ULONG pingPacketLength = GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE);
+                    ULONG minGraphScaling = GetDlgItemInt(hwndDlg, IDC_MINSCALING, NULL, FALSE);
+                   
+                    PhSetIntegerSetting(SETTING_NAME_PING_SIZE, pingPacketLength);
+                    PhSetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING, minGraphScaling);
 
                     EndDialog(hwndDlg, IDOK);
                 }
@@ -59,4 +64,16 @@ INT_PTR CALLBACK OptionsDlgProc(
     }
 
     return FALSE;
+}
+
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
+    )
+{
+    DialogBox(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parent,
+        OptionsDlgProc
+        );
 }

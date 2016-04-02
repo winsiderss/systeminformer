@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,6,0,0
- PRODUCTVERSION 1,6,0,0
+ FILEVERSION 1,7,0,0
+ PRODUCTVERSION 1,7,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.6"
+            VALUE "FileVersion", "1.7"
             VALUE "InternalName", "NetworkTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkTools.dll"
             VALUE "ProductName", "Network Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.6"
+            VALUE "ProductVersion", "1.7"
         END
     END
     BLOCK "VarFileInfo"
@@ -103,10 +103,12 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Timeout (milliseconds):",IDC_STATIC,9,7,73,8
-    EDITTEXT        IDC_MAXTIMEOUTTEXT,7,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Ping packet length:",IDC_STATIC,9,7,62,8
+    EDITTEXT        IDC_PINGPACKETLENGTH,7,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
     DEFPUSHBUTTON   "OK",IDOK,104,58,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,158,58,50,14
+    LTEXT           "Minimum graph scaling:",IDC_STATIC,101,7,74,8
+    EDITTEXT        IDC_MINSCALING,99,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
 END
 
 IDD_PINGDIALOG DIALOGEX 0, 0, 269, 131

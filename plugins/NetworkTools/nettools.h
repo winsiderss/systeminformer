@@ -43,7 +43,8 @@
 #define SETTING_NAME_TRACERT_WINDOW_SIZE (PLUGIN_NAME L".WindowSize")
 #define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")
-#define SETTING_NAME_PING_TIMEOUT (PLUGIN_NAME L".PingMaxTimeout")
+#define SETTING_NAME_PING_MINIMUM_SCALING (PLUGIN_NAME L".PingMinScaling")
+#define SETTING_NAME_PING_SIZE (PLUGIN_NAME L".PingSize")
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
 // The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure
@@ -51,6 +52,16 @@
 // This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message)
 //       + space for an IO_STATUS_BLOCK structure.
 #define ICMP_BUFFER_SIZE(EchoReplyLength, Buffer) (ULONG)(((EchoReplyLength) + (Buffer)->Length) + 8 + sizeof(IO_STATUS_BLOCK))
+
+// The ICMPV6_ECHO_REPLY struct doesn't have a field to access the reply data,
+// so copy the struct and add an additional Data field.
+typedef struct _ICMPV6_ECHO_REPLY2 
+{
+    IPV6_ADDRESS_EX Address;
+    ULONG Status;
+    unsigned int RoundTripTime;
+    BYTE Data[ANYSIZE_ARRAY]; // custom
+} ICMPV6_ECHO_REPLY2, *PICMPV6_ECHO_REPLY2;
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -70,15 +81,7 @@ typedef enum _PH_NETWORK_ACTION
 
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
-    PH_NETWORK_ACTION Action;
-    PH_LAYOUT_MANAGER LayoutManager;
-    PH_WORK_QUEUE PingWorkQueue;
-    PH_GRAPH_STATE PingGraphState;
-    PH_CIRCULAR_BUFFER_ULONG PingHistory;
-    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
-
     HWND WindowHandle;
-    HWND ParentHandle;
     HWND StatusHandle;
     HWND PingGraphHandle;
     HWND OutputHandle;
@@ -87,6 +90,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HFONT FontHandle;
     HICON IconHandle;
 
+    ULONG PingSize;
     ULONG CurrentPingMs;
     ULONG MaxPingTimeout;
     ULONG HashFailCount;
@@ -97,9 +101,16 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     ULONG PingRecvCount;
     ULONG PingLossCount;
 
+    PH_NETWORK_ACTION Action;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PH_WORK_QUEUE PingWorkQueue;
+    PH_GRAPH_STATE PingGraphState;
+    PH_CIRCULAR_BUFFER_ULONG PingHistory;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
     PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ADDRESS IpAddress;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN];
+    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
 NTSTATUS PhNetworkPingDialogThreadStart(
@@ -123,19 +134,11 @@ NTSTATUS NetworkWhoisThreadStart(
     _In_ PVOID Parameter
     );
 
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
     );
 
 INT_PTR CALLBACK NetworkOutputDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

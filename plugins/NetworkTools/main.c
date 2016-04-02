@@ -34,12 +34,7 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
-        );
+    ShowOptionsDialog((HWND)Parameter);
 }
 
 VOID NTAPI MenuItemCallback(
@@ -121,7 +116,8 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|600,365" },
                 { IntegerPairSettingType, SETTING_NAME_PING_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PING_WINDOW_SIZE, L"@96|420,250" },
-                { IntegerSettingType, SETTING_NAME_PING_TIMEOUT, L"3e8" } // 1000 timeout.
+                { IntegerSettingType, SETTING_NAME_PING_MINIMUM_SCALING, L"64" }, // 100ms minimum scaling
+                { IntegerSettingType, SETTING_NAME_PING_SIZE, L"20" } // 32 byte packet
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

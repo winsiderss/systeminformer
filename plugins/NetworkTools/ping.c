@@ -133,11 +133,9 @@ NTSTATUS NetworkPingThreadStart(
 {
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     ULONG icmpCurrentPingMs = 0;
-    ULONG icmpCurrentPingTtl = 0;
     ULONG icmpReplyCount = 0;
     ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
-    PPH_STRING phVersion = NULL;
     PPH_BYTES icmpEchoBuffer = NULL;
     IP_OPTION_INFORMATION pingOptions =
     {
@@ -151,19 +149,38 @@ NTSTATUS NetworkPingThreadStart(
 
     __try
     {
-        // Query PH version.
-        if ((phVersion = PhGetPhVersion()) == NULL)
-            __leave;
-
         // Create ICMP echo buffer.
-        if ((icmpEchoBuffer = FormatAnsiString("processhacker_%S_0x0D06F00D_x1", phVersion->Buffer)) == NULL)
-            __leave;
+        if (context->PingSize > 0 && context->PingSize != 32)
+        {
+            PPH_STRING randString;
+            
+            randString = PhCreateStringEx(NULL, context->PingSize * 2 + 2);
+
+            // Create a random string to fill the buffer.
+            PhGenerateRandomAlphaString(randString->Buffer, (ULONG)randString->Length / sizeof(WCHAR));
+
+            icmpEchoBuffer = PhConvertUtf16ToMultiByte(randString->Buffer);
+            PhDereferenceObject(randString);
+        }
+        else
+        {
+            PPH_STRING version;
+
+            // We're using a default length, query the PH version and use the previous buffer format.
+            version = PhGetPhVersion();
+
+            if (version)
+            {
+                icmpEchoBuffer = FormatAnsiString("processhacker_%S_0x0D06F00D_x1", version->Buffer);
+                PhDereferenceObject(version);
+            }
+        }
 
         if (context->IpAddress.Type == PH_IPV6_NETWORK_TYPE)
         {
             SOCKADDR_IN6 icmp6LocalAddr = { 0 };
             SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
-            PICMPV6_ECHO_REPLY icmp6ReplyStruct = NULL;
+            PICMPV6_ECHO_REPLY2 icmp6ReplyStruct = NULL;
 
             // Create ICMPv6 handle.
             if ((icmpHandle = Icmp6CreateFile()) == INVALID_HANDLE_VALUE)
@@ -200,7 +217,7 @@ NTSTATUS NetworkPingThreadStart(
                 context->MaxPingTimeout
                 );
 
-            icmp6ReplyStruct = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
+            icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
             if (icmpReplyCount > 0 && icmp6ReplyStruct)
             {
                 BOOLEAN icmpPacketSignature = FALSE;
@@ -219,22 +236,18 @@ NTSTATUS NetworkPingThreadStart(
                     InterlockedIncrement(&context->UnknownAddrCount);
                 }
 
-                //if (icmp6ReplyStruct->DataSize == icmpEchoBuffer->MaximumLength)
-                //{
-                //    icmpPacketSignature = (_memicmp(
-                //        icmpEchoBuffer->Buffer,
-                //        icmp6ReplyStruct->Data,
-                //        icmp6ReplyStruct->DataSize
-                //        ) == 0);
-                //}
+                icmpPacketSignature = _memicmp(
+                    icmpEchoBuffer->Buffer,
+                    icmp6ReplyStruct->Data,
+                    icmpEchoBuffer->Length
+                    ) == 0;
 
-                //if (icmpPacketSignature != TRUE)
-                //{
-                //    InterlockedIncrement(&context->HashFailCount);
-                //}
+                if (!icmpPacketSignature)
+                {
+                    InterlockedIncrement(&context->HashFailCount);
+                }
 
                 icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
-                //icmpCurrentPingTtl = icmp6ReplyStruct->Options.Ttl;
             }
             else
             {
@@ -265,30 +278,12 @@ NTSTATUS NetworkPingThreadStart(
             InterlockedIncrement(&context->PingSentCount);
 
             // Send ICMPv4 ping...
-            //if (WindowsVersion > WINDOWS_VISTA)
-            //{
-            //    // Vista SP1 and up we can specify the source address:
-            //    icmpReplyCount = IcmpSendEcho2Ex(
-            //        icmpHandle,
-            //        NULL,
-            //        NULL,
-            //        NULL,
-            //        icmpLocalAddr,
-            //        icmpRemoteAddr,
-            //        icmpEchoBuffer->Buffer,
-            //        icmpEchoBuffer->MaximumLength,
-            //        &pingOptions,
-            //        icmpReplyBuffer,
-            //        icmpReplyLength,
-            //        context->MaxPingTimeout
-            //        );
-            //}
-
-            icmpReplyCount = IcmpSendEcho2(
+            icmpReplyCount = IcmpSendEcho2Ex(
                 icmpHandle,
                 NULL,
                 NULL,
                 NULL,
+                icmpLocalAddr,
                 icmpRemoteAddr,
                 icmpEchoBuffer->Buffer,
                 (USHORT)icmpEchoBuffer->Length,
@@ -316,15 +311,14 @@ NTSTATUS NetworkPingThreadStart(
 
                 if (icmpReplyStruct->DataSize == icmpEchoBuffer->Length)
                 {
-                    icmpPacketSignature = (_memicmp(
+                    icmpPacketSignature = _memicmp(
                         icmpEchoBuffer->Buffer,
                         icmpReplyStruct->Data,
                         icmpReplyStruct->DataSize
-                        ) == 0);
+                        ) == 0;
                 }
 
                 icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
-                icmpCurrentPingTtl = icmpReplyStruct->Options.Ttl;
 
                 if (!icmpPacketSignature)
                 {
@@ -350,11 +344,6 @@ NTSTATUS NetworkPingThreadStart(
     }
     __finally
     {
-        if (phVersion)
-        {
-            PhDereferenceObject(phVersion);
-        }
-
         if (icmpEchoBuffer)
         {
             PhDereferenceObject(icmpEchoBuffer);
@@ -427,9 +416,9 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             context->WindowHandle = hwndDlg;
-            context->ParentHandle = GetParent(hwndDlg);
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
-            context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
+            context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
+            context->PingSize = PhGetIntegerSetting(SETTING_NAME_PING_SIZE);
 
             windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION);
             windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE, TRUE).Pair;
@@ -506,7 +495,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             }
 
             SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
-            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with 32 bytes of data:", context->IpAddressString)->Buffer);
+            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data:", context->IpAddressString, context->PingSize)->Buffer);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -722,14 +711,13 @@ NTSTATUS PhNetworkPingDialogThreadStart(
     MSG message;
     HWND windowHandle;
     PH_AUTO_POOL autoPool;
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
 
     PhInitializeAutoPool(&autoPool);
 
     windowHandle = CreateDialogParam(
         (HINSTANCE)PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PINGDIALOG),
-        PhMainWndHandle,
+        NULL,
         NetworkPingWndProc,
         (LPARAM)Parameter
         );
