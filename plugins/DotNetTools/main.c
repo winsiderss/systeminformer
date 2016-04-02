@@ -123,8 +123,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     {
         if (isDotNet)
         {
-            if (WindowsVersion >= WINDOWS_VISTA)
-                AddAsmPageToPropContext(propContext);
+            AddAsmPageToPropContext(propContext);
             AddPerfPageToPropContext(propContext);
         }
 
