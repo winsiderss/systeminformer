@@ -1502,6 +1502,7 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
             else
             {
                 PhWaitForWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock, FALSE, Timeout);
+                // TODO: Recompute the timeout value.
             }
         }
         else
