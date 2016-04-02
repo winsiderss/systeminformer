@@ -71,15 +71,6 @@ VOID PhPluginsInitialization(
 
     for (i = 0; i < GeneralCallbackMaximum; i++)
         PhInitializeCallback(&GeneralCallbacks[i]);
-
-    if (WindowsVersion <= WINDOWS_XP)
-    {
-        PH_STRINGREF extendedTools = PH_STRINGREF_INIT(L"ExtendedTools.dll");
-
-        // HACK and violation of abstraction.
-        // Always disable ExtendedTools on XP to avoid the annoying error message.
-        PhSetPluginDisabled(&extendedTools, TRUE);
-    }
 }
 
 INT NTAPI PhpPluginsCompareFunction(
