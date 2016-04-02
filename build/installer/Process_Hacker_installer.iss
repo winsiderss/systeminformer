@@ -34,7 +34,7 @@
 #include "Services.iss"
 
 #define copyright              "Copyright © 2010-2016, Process Hacker Team. Licensed under the GNU GPL, v3."
-
+#define website_url            "http://processhacker.sourceforge.net/"
 #if defined(TWO_DIGIT_VER)
   #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
   #define app_version_long     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + ".0" + "." + str(PHAPP_VERSION_REVISION)
@@ -56,9 +56,9 @@ AppName=Process Hacker
 AppVerName=Process Hacker {#app_version_full}
 AppVersion={#app_version_long}
 AppPublisher=wj32
-AppPublisherURL=http://processhacker.sourceforge.net/
+AppPublisherURL={#website_url}
 AppSupportURL=http://wj32.org/processhacker/forums/
-AppUpdatesURL=http://processhacker.sourceforge.net/
+AppUpdatesURL={#website_url}
 UninstallDisplayName=Process Hacker {#app_version_full}
 DefaultDirName={pf}\Process Hacker 2
 DefaultGroupName=Process Hacker 2
@@ -198,9 +198,9 @@ Source: Icons\uninstall.ico;                                      DestDir: {app}
 [Icons]
 Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; AppUserModelID: "wj32.ProcessHacker2"
-Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
-Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
-Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};     Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
+Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app};                 Comment: {cm:sm_com_Changelog}
+Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: {#website_url};                     Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
+Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};  Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
 Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
 Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user; AppUserModelID: "wj32.ProcessHacker2"
@@ -239,7 +239,7 @@ Type: dirifempty; Name: {app}\plugins
 [Run]
 Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent
 Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};              Flags: nowait postinstall skipifsilent unchecked shellexec
-Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite};               Flags: nowait postinstall skipifsilent unchecked shellexec
+Filename: {#website_url}; Description: {cm:run_VisitWebsite};                                      Flags: nowait postinstall skipifsilent unchecked shellexec
 
 
 [Code]
