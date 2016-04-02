@@ -1189,7 +1189,10 @@ INT_PTR CALLBACK UpdaterWndProc(
                         break;
                     case PhUpdateDownload:
                         {
-                            if (PhInstalledUsingSetup())
+                            // We can't download updates below Vista due to SHA2 and the
+                            // WINHTTP_OPTION_SECURITY_FLAGS option doesn't work on XP for some reason.
+                            // Just show the downloads page when there is a new release.
+                            if (WindowsVersion >= WINDOWS_VISTA && PhInstalledUsingSetup())
                             {
                                 HANDLE downloadThreadHandle = NULL;
 
@@ -1198,7 +1201,9 @@ INT_PTR CALLBACK UpdaterWndProc(
 
                                 // Reset the progress bar (might be a download retry)
                                 SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, 0, 0);
-                                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
+
+                                if (WindowsVersion >= WINDOWS_VISTA)
+                                    SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
 
                                 // Start file download thread
                                 if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
@@ -1335,7 +1340,9 @@ INT_PTR CALLBACK UpdaterWndProc(
         {
             context->UpdaterState = PhUpdateDefault;
 
-            SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
+            if (WindowsVersion >= WINDOWS_VISTA)
+                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
+
             SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
             SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
 
