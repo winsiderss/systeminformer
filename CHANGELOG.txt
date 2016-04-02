@@ -1,5 +1,9 @@
 Process Hacker
 
+3.0
+ * HIGHLIGHTS:
+ * OTHER CHANGES:
+
 2.39
  * HIGHLIGHTS:
    * Improved compatibility with security and anti-cheat software
