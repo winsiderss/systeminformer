@@ -1,3 +1,6 @@
+1.8
+ * Removed legacy code
+
 1.7
  * Ignore v2.40 and above on XP and Vista.
 
