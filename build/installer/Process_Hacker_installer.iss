@@ -33,7 +33,6 @@
 #include "Custom_Messages.iss"
 #include "Services.iss"
 
-#define installer_build_number "14"
 #define copyright              "Copyright © 2010-2016, Process Hacker Team. Licensed under the GNU GPL, v3."
 
 #if defined(TWO_DIGIT_VER)
@@ -46,20 +45,19 @@
   #define app_version_full     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD) + " (r" + str(PHAPP_VERSION_REVISION) + ")"
 #endif
 
-#define installer_build_date   GetDateTimeString('mmm, d yyyy', '', '')
 #define quick_launch           "{userappdata}\Microsoft\Internet Explorer\Quick Launch"
 
 
 [Setup]
 AppID=Process_Hacker2
 AppCopyright={#copyright}
-AppContact=http://sourceforge.net/projects/processhacker/support
+AppContact=http://wj32.org/processhacker/forums/
 AppName=Process Hacker
 AppVerName=Process Hacker {#app_version_full}
 AppVersion={#app_version_long}
 AppPublisher=wj32
 AppPublisherURL=http://processhacker.sourceforge.net/
-AppSupportURL=http://sourceforge.net/projects/processhacker/support
+AppSupportURL=http://wj32.org/processhacker/forums/
 AppUpdatesURL=http://processhacker.sourceforge.net/
 UninstallDisplayName=Process Hacker {#app_version_full}
 DefaultDirName={pf}\Process Hacker 2
@@ -100,7 +98,7 @@ Name: en; MessagesFile: compiler:Default.isl
 [Messages]
 WelcomeLabel1=[name/ver]
 WelcomeLabel2=This will install [name] on your computer.%n%nIt is recommended that you close all other applications before continuing.
-BeveledLabel=Process Hacker v{#app_version_full}, Setup v{#installer_build_number} built on {#installer_build_date}
+BeveledLabel=Process Hacker v{#app_version_full}
 SetupAppTitle=Setup - Process Hacker
 SetupWindowTitle=Setup - Process Hacker
 
