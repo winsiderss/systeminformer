@@ -1,6 +1,8 @@
 #ifndef PHAPP_H
 #define PHAPP_H
 
+#define PHNT_VERSION PHNT_WIN7
+
 #if !defined(_PHAPP_)
 #define PHAPPAPI __declspec(dllimport)
 #else

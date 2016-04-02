@@ -3,6 +3,7 @@
 
 #pragma once
 
+#define PHNT_VERSION PHNT_WIN7
 #define PHAPPAPI __declspec(dllimport)
 
 #include "ph.h"
