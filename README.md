@@ -10,7 +10,7 @@ type". You cannot run the 32-bit version of Process Hacker on a
 
 ## System requirements
 
-Windows XP SP2 or higher, 32-bit or 64-bit.
+Windows 7 or higher, 32-bit or 64-bit.
 
 ## Settings
 
@@ -47,8 +47,6 @@ assist with certain functionality. This includes:
 * Retrieving names for file handles
 * Retrieving names for EtwRegistration objects
 * Setting handle attributes
-
-KProcessHacker is only available on Windows 7 and above.
 
 Note that by default, KProcessHacker only allows connections from
 processes with SeDebugPrivilege. To allow Process Hacker to show details
