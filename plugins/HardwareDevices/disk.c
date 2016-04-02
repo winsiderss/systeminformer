@@ -146,8 +146,8 @@ VOID DiskDrivesUpdate(
                 //   2) Try not to query this information while opening the sysinfo window (e.g. delay).
                 //   3) Try not to query this information during startup (e.g. delay).
                 //
-                // Note: If the user opens the Sysinfo window before we query the disk info, 
-                // we have a second check in diskgraph.c that queries the information on demand. 
+                // Note: If the user opens the Sysinfo window before we query the disk info,
+                // we have a second check in diskgraph.c that queries the information on demand.
                 DiskDriveUpdateDeviceInfo(deviceHandle, entry);
             }
 
@@ -207,7 +207,7 @@ VOID DiskDriveUpdateDeviceInfo(
 
         if (!DeviceHandle)
         {
-            DiskDriveCreateHandle(&deviceHandle, DiskEntry->Id.DevicePath);        
+            DiskDriveCreateHandle(&deviceHandle, DiskEntry->Id.DevicePath);
         }
         else
         {

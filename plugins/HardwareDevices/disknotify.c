@@ -33,10 +33,10 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
     _In_ UINT_PTR uIdSubclass,
     _In_ ULONG_PTR dwRefData
     )
-{ 
-    // Subclassing the main window just to process drive letter notifications 
+{
+    // Subclassing the main window just to process drive letter notifications
     // is bad and I don't know of any other way to achieve this.
-    // The IOCTL_MOUNTMGR_CHANGE_NOTIFY callback would have been preferred but 
+    // The IOCTL_MOUNTMGR_CHANGE_NOTIFY callback would have been preferred but
     // doesn't work from non-elevated processes.
 
     switch (uMsg)

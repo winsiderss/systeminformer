@@ -7,7 +7,7 @@ VOID LoadInstallDirectory(
 {
     if (SetupInstallPath = GetProcessHackerInstallPath())
     {
-        // We must make sure the install path ends with a backslash since 
+        // We must make sure the install path ends with a backslash since
         // this string is wcscat' with our zip extraction paths.
         if (PathAddBackslash(SetupInstallPath->Buffer))
         {
@@ -62,9 +62,9 @@ BOOL PropSheetPage3_OnInitDialog(
     if (WindowsVersion >= WINDOWS_VISTA)
     {
         SendMessage(
-            GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY), 
-            EM_SETMARGINS, 
-            EC_LEFTMARGIN | EC_RIGHTMARGIN, 
+            GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY),
+            EM_SETMARGINS,
+            EC_LEFTMARGIN | EC_RIGHTMARGIN,
             MAKELPARAM(0, 0)
             );
     }

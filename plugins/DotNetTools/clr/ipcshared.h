@@ -20,14 +20,14 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Licensed to the .NET Foundation under one or more agreements. 
-// The .NET Foundation licenses this file to you under the MIT license. 
-// See the LICENSE file in the current folder for more information. 
-//----------------------------------------------------------------------------- 
-// IPCShared.h 
-// 
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the current folder for more information.
+//-----------------------------------------------------------------------------
+// IPCShared.h
+//
 // Shared LegacyPrivate utility functions for IPC operations.
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 //
 // dmex: This header has been highly modified.
 // Original: https://github.com/dotnet/coreclr/blob/master/src/ipcman/ipcshared.h

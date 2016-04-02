@@ -39,8 +39,8 @@ BOOLEAN SetupResetCurrentInstall(
     // Create the Uninstall key...
 
     //HKEY keyHandle = RegistryCreateKey(
-    //    HKEY_LOCAL_MACHINE, 
-    //    TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker2"), 
+    //    HKEY_LOCAL_MACHINE,
+    //    TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker2"),
     //    KEY_ALL_ACCESS | KEY_WOW64_32KEY
     //    );
     //
@@ -151,16 +151,16 @@ BOOLEAN SetupResetCurrentInstall(
 
     //_tspawnl(_P_DETACH, clientPathString->Buffer, clientPathArgsString->Buffer, NULL);
 
-    //if (clientPathExeString) 
+    //if (clientPathExeString)
     //    PhFree(clientPathExeString);
 
-    //if (clientPathArgsString) 
+    //if (clientPathArgsString)
     //    PhFree(clientPathArgsString);
 
     //if (uninstallPath)
     //    PhFree(uninstallPath);
 
-    //if (clientPathString) 
+    //if (clientPathString)
     //    PhFree(clientPathString);
 
 

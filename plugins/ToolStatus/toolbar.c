@@ -690,7 +690,7 @@ VOID ToolbarLoadButtonSettings(
         if (remaining.Length == 0)
             break;
 
-        PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);        
+        PhSplitStringRefAtChar(&remaining, '|', &commandIdPart, &remaining);
         PhStringToInteger64(&commandIdPart, 10, &commandInteger);
 
         buttonArray[index].idCommand = (INT)commandInteger;
@@ -754,7 +754,7 @@ VOID ToolbarSaveButtonSettings(
 
     for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
     {
-        TBBUTTONINFO buttonInfo = 
+        TBBUTTONINFO buttonInfo =
         {
             sizeof(TBBUTTONINFO),
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
@@ -766,7 +766,7 @@ VOID ToolbarSaveButtonSettings(
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
-            L"%d|", 
+            L"%d|",
             buttonInfo.idCommand
             );
     }
@@ -804,7 +804,7 @@ VOID ReBarLoadLayoutSettings(
         ULONG64 cxInteger;
         ULONG64 styleInteger;
         UINT oldBandIndex;
-        REBARBANDINFO rebarBandInfo = 
+        REBARBANDINFO rebarBandInfo =
         {
             REBARBANDINFO_V6_SIZE,
             RBBIM_STYLE | RBBIM_SIZE

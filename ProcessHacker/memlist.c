@@ -524,7 +524,7 @@ BEGIN_SORT_FUNCTION(PrivateWs)
 {
     sortResult = uintptrcmp(memoryItem1->PrivateWorkingSetPages, memoryItem2->PrivateWorkingSetPages);
 }
-END_SORT_FUNCTION 
+END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ShareableWs)
 {

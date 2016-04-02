@@ -150,9 +150,9 @@ INT_PTR CALLBACK GpuPanelDialogProc(
             case IDC_GPUDETAILS:
                 {
                     DialogBoxParam(
-                        PluginInstance->DllBase, 
-                        MAKEINTRESOURCE(IDD_PROCGPU_DETAILS), 
-                        hwndDlg, 
+                        PluginInstance->DllBase,
+                        MAKEINTRESOURCE(IDD_PROCGPU_DETAILS),
+                        hwndDlg,
                         GpuDetailsDialogProc,
                         (LPARAM)context
                         );

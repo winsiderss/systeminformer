@@ -135,7 +135,7 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
     HWND WindowHandle;
     HWND PanelWindowHandle;
     HWND GraphHandle;
-    
+
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -161,7 +161,7 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
     HWND WindowHandle;
     HWND ParentHandle;
     HWND ListViewHandle;
-   
+
     HANDLE NotifyHandle;
 
     PH_LAYOUT_MANAGER LayoutManager;
@@ -238,7 +238,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
 {
     NETADAPTER_DETAILS_INDEX_STATE,
     //NETADAPTER_DETAILS_INDEX_CONNECTIVITY,
-    
+
     NETADAPTER_DETAILS_INDEX_IPADDRESS,
     NETADAPTER_DETAILS_INDEX_SUBNET,
     NETADAPTER_DETAILS_INDEX_GATEWAY,
@@ -678,15 +678,15 @@ typedef struct _SMART_ATTRIBUTES
     // 1 : The value of this attribute is updated during both normal operation and offline activities.
     BOOLEAN OnlineDataCollection;
 
-    // TRUE: This attribute characterizes a performance aspect of the drive, 
+    // TRUE: This attribute characterizes a performance aspect of the drive,
     //   degradation of which may indicate imminent drive failure, such as data throughput, seektimes, spin up time, etc.
     BOOLEAN Performance;
 
-    // TRUE: This attribute is based on the expected, non-fatal errors that are inherent in disk drives, 
+    // TRUE: This attribute is based on the expected, non-fatal errors that are inherent in disk drives,
     //    increases in which may indicate imminent drive failure, such as ECC errors, seek errors, etc.
     BOOLEAN ErrorRate;
 
-    // TRUE: This attribute counts events, of which an excessive number of which may 
+    // TRUE: This attribute counts events, of which an excessive number of which may
     //       indicate imminent drive failure, such as number of re-allocated sectors, etc.
     BOOLEAN EventCount;
 

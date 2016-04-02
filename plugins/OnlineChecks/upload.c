@@ -214,11 +214,11 @@ BOOLEAN PerformSubRequest(
 
         // Send the request.
         if (!WinHttpSendRequest(
-            requestHandle, 
-            WINHTTP_NO_ADDITIONAL_HEADERS, 
-            0, 
-            WINHTTP_NO_REQUEST_DATA, 
-            0, 
+            requestHandle,
+            WINHTTP_NO_ADDITIONAL_HEADERS,
+            0,
+            WINHTTP_NO_REQUEST_DATA,
+            0,
             WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
             0
             ))
@@ -570,9 +570,9 @@ NTSTATUS UploadFileThreadStart(
         // Send the request.
         if (!WinHttpSendRequest(
             requestHandle,
-            WINHTTP_NO_ADDITIONAL_HEADERS, 
+            WINHTTP_NO_ADDITIONAL_HEADERS,
             0,
-            WINHTTP_NO_REQUEST_DATA, 
+            WINHTTP_NO_REQUEST_DATA,
             0,
             totalUploadLength,
             0
@@ -1046,9 +1046,9 @@ NTSTATUS UploadCheckThreadStart(
                 // Send the request.
                 if (!WinHttpSendRequest(
                     requestHandle,
-                    WINHTTP_NO_ADDITIONAL_HEADERS, 
-                    0, 
-                    WINHTTP_NO_REQUEST_DATA, 
+                    WINHTTP_NO_ADDITIONAL_HEADERS,
+                    0,
+                    WINHTTP_NO_REQUEST_DATA,
                     0,
                     WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
                     0

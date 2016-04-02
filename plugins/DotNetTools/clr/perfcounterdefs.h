@@ -20,14 +20,14 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Licensed to the .NET Foundation under one or more agreements. 
-// The .NET Foundation licenses this file to you under the MIT license. 
-// See the LICENSE file in the current folder for more information. 
-//----------------------------------------------------------------------------- 
-// PerfCounterDefs.h 
-// 
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the current folder for more information.
+//-----------------------------------------------------------------------------
+// PerfCounterDefs.h
+//
 // Internal Interface for CLR to use Performance counters.
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 //
 // dmex: This header has been highly modified.
 // Original: https://github.com/dotnet/coreclr/blob/master/src/inc/perfcounterdefs.h
@@ -45,7 +45,7 @@
 #define PERF_ATTR_GLOBAL  0x0002   // Is this a global or private block?
 
 //.............................................................................
-// Tri Counter. Support for the common trio of counters (Total, Current, and Instantaneous). 
+// Tri Counter. Support for the common trio of counters (Total, Current, and Instantaneous).
 typedef struct _TRICOUNT
 {
     ULONG Current;                          // Current, has +, -
@@ -53,7 +53,7 @@ typedef struct _TRICOUNT
 } TRICOUNT;
 
 //.............................................................................
-// Interlocked Tri Counter. Support for the common trio of counters (Total, Current, and Instantaneous). 
+// Interlocked Tri Counter. Support for the common trio of counters (Total, Current, and Instantaneous).
 typedef struct _TRICOUNT_IL
 {
     ULONG Current;                          // Current, has +, -
@@ -228,8 +228,8 @@ typedef struct Perf_LocksAndThreads
     DUALCOUNT cContention;                  // # of times in AwareLock::EnterEpilogue()
     TRICOUNT cQueueLength;                  // Lenght of queue
     // Threads
-    ULONG cCurrentThreadsLogical;           // Number (created - destroyed) of logical threads 
-    ULONG cCurrentThreadsPhysical;          // Number (created - destroyed) of OS threads 
+    ULONG cCurrentThreadsLogical;           // Number (created - destroyed) of logical threads
+    ULONG cCurrentThreadsPhysical;          // Number (created - destroyed) of OS threads
     TRICOUNT cRecognizedThreads;            // # of Threads execute in runtime's control
 } Perf_LocksAndThreads;
 #ifndef _WIN64
@@ -246,9 +246,9 @@ typedef struct Perf_LocksAndThreads
 typedef struct Perf_Contexts
 {
     // Contexts & Remoting
-    DUALCOUNT cRemoteCalls;                 // # of remote calls    
+    DUALCOUNT cRemoteCalls;                 // # of remote calls
     ULONG cChannels;                        // Number of current channels
-    ULONG cProxies;                         // Number of context proxies. 
+    ULONG cProxies;                         // Number of context proxies.
     ULONG cClasses;                         // # of Context-bound classes
     ULONG cObjAlloc;                        // # of context bound objects allocated
     ULONG cContexts;                        // The current number of contexts.
@@ -316,7 +316,7 @@ typedef struct _PerfCounterIPCControlBlock_Wow64
     // Versioning info
     USHORT Bytes;           // size of this entire block
     USHORT Attributes;      // attributes for this block
-                   
+
     // Counter Sections
     Perf_GC_Wow64           GC;
     Perf_Contexts           Context;

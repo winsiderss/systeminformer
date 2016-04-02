@@ -264,7 +264,7 @@ typedef struct _EDIT_CONTEXT
     LONG CXWidth;
     INT CXBorder;
     INT ImageWidth;
-    INT ImageHeight;  
+    INT ImageHeight;
 
     HWND WindowHandle;
     HFONT WindowFont;

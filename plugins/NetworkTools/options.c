@@ -51,7 +51,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 {
                     ULONG pingPacketLength = GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE);
                     ULONG minGraphScaling = GetDlgItemInt(hwndDlg, IDC_MINSCALING, NULL, FALSE);
-                   
+
                     PhSetIntegerSetting(SETTING_NAME_PING_SIZE, pingPacketLength);
                     PhSetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING, minGraphScaling);
 

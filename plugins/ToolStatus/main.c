@@ -269,7 +269,7 @@ VOID ShowCustomizeMenu(
 
                 if (ToolStatusConfig.SearchBoxEnabled)
                 {
-                    // Adding the Searchbox makes it focused, 
+                    // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
                     SetFocus(PhMainWndHandle);
                 }
@@ -324,10 +324,10 @@ VOID ShowCustomizeMenu(
 
                 for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
                 {
-                    REBARBANDINFO rebarBandInfo = 
-                    { 
-                        REBARBANDINFO_V6_SIZE, 
-                        RBBIM_STYLE 
+                    REBARBANDINFO rebarBandInfo =
+                    {
+                        REBARBANDINFO_V6_SIZE,
+                        RBBIM_STYLE
                     };
 
                     SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
@@ -337,7 +337,7 @@ VOID ShowCustomizeMenu(
                         // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
                         // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
 
-                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;   
+                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
 
                         SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
 
@@ -771,8 +771,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                         for (index = 0; index < buttonCount; index++)
                         {
                             RECT buttonRect;
-                            TBBUTTONINFO buttonInfo = 
-                            { 
+                            TBBUTTONINFO buttonInfo =
+                            {
                                 sizeof(TBBUTTONINFO),
                                 TBIF_BYINDEX | TBIF_STYLE | TBIF_COMMAND | TBIF_IMAGE
                             };
@@ -911,14 +911,14 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                             if (!found)
                             {
-                                // We didn't find a cached bitmap index... 
+                                // We didn't find a cached bitmap index...
                                 // Load the button bitmap and cache the index.
                                 for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
                                 {
                                     if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                     {
                                         HBITMAP buttonImage;
-                                        
+
                                         buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand);
 
                                         // Cache the bitmap index.
@@ -926,7 +926,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
                                         toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = ImageList_Add(
                                             ToolBarImageList,
-                                            buttonImage, 
+                                            buttonImage,
                                             NULL
                                             );
 
@@ -1030,8 +1030,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                 goto DefaultWndProc;
             }
             else if (
-                CpuGraphHandle && hdr->hwndFrom == CpuGraphHandle || 
-                MemGraphHandle && hdr->hwndFrom == MemGraphHandle || 
+                CpuGraphHandle && hdr->hwndFrom == CpuGraphHandle ||
+                MemGraphHandle && hdr->hwndFrom == MemGraphHandle ||
                 CommitGraphHandle && hdr->hwndFrom == CommitGraphHandle ||
                 IoGraphHandle && hdr->hwndFrom == IoGraphHandle
                 )

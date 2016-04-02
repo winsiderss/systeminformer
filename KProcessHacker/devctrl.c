@@ -139,7 +139,7 @@ NTSTATUS KphDispatchDeviceControl(
             } *input = capturedInputPointer;
 
             VERIFY_INPUT_LENGTH;
-            
+
             if (accessMode == UserMode)
             {
                 status = KpiVerifyClient(

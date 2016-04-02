@@ -20,14 +20,14 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Licensed to the .NET Foundation under one or more agreements. 
-// The .NET Foundation licenses this file to you under the MIT license. 
-// See the LICENSE file in the current folder for more information. 
-//----------------------------------------------------------------------------- 
-// IPCHeader.h 
-// 
-// Define the LegacyPrivate header format for IPC memory mapped files. 
-//----------------------------------------------------------------------------- 
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the current folder for more information.
+//-----------------------------------------------------------------------------
+// IPCHeader.h
+//
+// Define the LegacyPrivate header format for IPC memory mapped files.
+//-----------------------------------------------------------------------------
 //
 // dmex: This header has been highly modified.
 // Original: https://github.com/dotnet/coreclr/blob/master/src/ipcman/ipcheader.h
@@ -46,7 +46,7 @@ const USHORT VER_LEGACYPUBLIC_IPC_BLOCK = 3;
 
 //-----------------------------------------------------------------------------
 // Entry in the IPC Directory. Ensure binary compatibility across versions
-// if we add (or remove) entries. If we remove an block, the entry should 
+// if we add (or remove) entries. If we remove an block, the entry should
 // be EMPTY_ENTRY_OFFSET
 //-----------------------------------------------------------------------------
 
@@ -61,23 +61,23 @@ typedef struct IPCEntry
 
 // Newer versions of the CLR use Flags field
 const USHORT IPC_FLAG_USES_FLAGS  = 0x1;
-const USHORT IPC_FLAG_INITIALIZED = 0x2; 
-const USHORT IPC_FLAG_X86         = 0x4;  
+const USHORT IPC_FLAG_INITIALIZED = 0x2;
+const USHORT IPC_FLAG_X86         = 0x4;
 
 // In hindsight, we should have made the offsets be absolute, but we made them
-// relative to the end of the FullIPCHeader. 
+// relative to the end of the FullIPCHeader.
 // The problem is that as future versions added new Entries to the directory,
-// the header size grew. 
+// the header size grew.
 // Thus we make IPCEntry::Offset is relative to IPC_ENTRY_OFFSET_BASE, which
-// corresponds to sizeof(PrivateIPCHeader) for an v1.0 /v1.1 build. 
+// corresponds to sizeof(PrivateIPCHeader) for an v1.0 /v1.1 build.
 const ULONG IPC_ENTRY_OFFSET_BASE_X86 = 0x14;
 const ULONG IPC_ENTRY_OFFSET_BASE_X64 = 0x0;
 
 
 /******************************************************************************
  * The CLR opens memory mapped files to expose perfcounter values and other
- * information to other processes. Historically there have been three memory 
- * mapped files: the BlockTable, the LegacyPrivateBlock, and the 
+ * information to other processes. Historically there have been three memory
+ * mapped files: the BlockTable, the LegacyPrivateBlock, and the
  * LegacyPublicBlock.
  *
  * BlockTable - The block table was designed to work with multiple runtimes
@@ -86,11 +86,11 @@ const ULONG IPC_ENTRY_OFFSET_BASE_X64 = 0x0;
  *     a block from the block table in a thread-safe manner.
  *
  * LegacyPrivateBlock - The legacy private block was used by older versions
- *     of the runtime to expose various information to the debugger. The 
+ *     of the runtime to expose various information to the debugger. The
  *     legacy private block is not compatible with in-proc SxS, and thus it
  *     must be removed in the near future. Currently it is being used to expose
  *     information about AppDomains to the debugger. We will need to keep the
- *     code that knows how to read the legacy private block as long as we 
+ *     code that knows how to read the legacy private block as long as we
  *     continue to support .NET 3.5 SP1.
  *
  * LegacyPublicBlock - The legacy public block was used by older versions
@@ -267,7 +267,7 @@ typedef struct FullIPCHeaderLegacyPublic_Wow64
 {
     // Header
     LegacyPrivateIPCHeader_Wow64 Header;
-                                           
+
     // Directory
     IPCEntry EntryTable[eLegacyPublicIPC_MAX]; // entry describing each client's block
 } FullIPCHeaderLegacyPublic_Wow64;
@@ -315,7 +315,7 @@ typedef struct _LegacyPrivateIPCControlBlock_Wow64
 typedef struct LegacyPublicIPCControlBlock
 {
     FullIPCHeaderLegacyPublic  FullIPCHeaderLegacyPublic;
-                                                     
+
     // Client blocks
     PerfCounterIPCControlBlock PerfIpcBlock;
 } LegacyPublicIPCControlBlock;
@@ -385,8 +385,8 @@ typedef struct _LegacyPublicIPCControlBlock_Wow64
 //        HaveLock = FALSE;
 //    }
 //
-//    ~IPCHeaderLockHolder() 
-//    { 
+//    ~IPCHeaderLockHolder()
+//    {
 //        if (HaveLock)
 //            FreeLock();
 //    }
@@ -397,7 +397,7 @@ typedef struct _LegacyPublicIPCControlBlock_Wow64
 //    IPCHeader CachedHeader;
 //    IPCHeader * pUnreliableHeader;
 //    BOOL IsOpen;
-//    
+//
 //  public:
 //
 //    IPCHeaderReadHelper() : pUnreliableHeader(NULL), IsOpen(FALSE) {}
@@ -405,7 +405,7 @@ typedef struct _LegacyPublicIPCControlBlock_Wow64
 //    BOOL TryOpenHeader(IPCHeader * header)
 //    {
 //        _ASSERTE(!IsOpen);
-//        
+//
 //        pUnreliableHeader = header;
 //
 //        // Read the counter and the runtime ID from the header
@@ -414,7 +414,7 @@ typedef struct _LegacyPublicIPCControlBlock_Wow64
 //            return FALSE;
 //        CachedHeader.RuntimeId = pUnreliableHeader->RuntimeId;
 //
-//        // If runtime ID is 0, then this block is not allocated by 
+//        // If runtime ID is 0, then this block is not allocated by
 //        // a runtime, and thus there is no further work to do
 //        if (CachedHeader.RuntimeId == 0)
 //        {
@@ -492,7 +492,7 @@ typedef struct _LegacyPublicIPCControlBlock_Wow64
 //        IsOpen = TRUE;
 //        return TRUE;
 //    }
-//    
+//
 //
 //    BOOL HeaderHasChanged()
 //    {

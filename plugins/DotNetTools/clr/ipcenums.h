@@ -20,14 +20,14 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Licensed to the .NET Foundation under one or more agreements. 
-// The .NET Foundation licenses this file to you under the MIT license. 
-// See the LICENSE file in the current folder for more information. 
-//----------------------------------------------------------------------------- 
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the current folder for more information.
+//-----------------------------------------------------------------------------
 // IPCEnums.h
-// 
+//
 // Define various enums used by IPCMan.
-//----------------------------------------------------------------------------- 
+//-----------------------------------------------------------------------------
 //
 // dmex: This header has been highly modified.
 // Original: https://github.com/dotnet/coreclr/blob/master/src/ipcman/ipcenums.h

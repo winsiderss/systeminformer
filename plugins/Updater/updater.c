@@ -43,7 +43,7 @@ BOOLEAN LastUpdateCheckExpired(
     LARGE_INTEGER currentUpdateTimeTicks;
     PPH_STRING lastUpdateTimeString;
 
-    // Get the last update check time 
+    // Get the last update check time
     lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
     PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks);
 
@@ -120,7 +120,7 @@ PPH_STRING UpdateWindowsString(
         )))
     {
         PPH_STRING buildLabString;
-        
+
         if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
         {
             buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
@@ -131,7 +131,7 @@ PPH_STRING UpdateWindowsString(
             buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
             PhDereferenceObject(buildLabString);
         }
-        
+
         NtClose(keyHandle);
     }
 
@@ -222,7 +222,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     )
 {
     PPH_UPDATER_CONTEXT context;
-    
+
     context = (PPH_UPDATER_CONTEXT)PhAllocate(sizeof(PH_UPDATER_CONTEXT));
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
@@ -323,8 +323,8 @@ BOOLEAN QueryUpdateData(
             ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
             WinHttpSetOption(
-                httpSessionHandle, 
-                WINHTTP_OPTION_DECOMPRESSION, 
+                httpSessionHandle,
+                WINHTTP_OPTION_DECOMPRESSION,
                 &httpFlags,
                 sizeof(ULONG)
                 );
@@ -384,9 +384,9 @@ BOOLEAN QueryUpdateData(
         if (versionHeader)
         {
             WinHttpAddRequestHeaders(
-                httpRequestHandle, 
-                versionHeader->Buffer, 
-                (ULONG)versionHeader->Length / sizeof(WCHAR), 
+                httpRequestHandle,
+                versionHeader->Buffer,
+                (ULONG)versionHeader->Length / sizeof(WCHAR),
                 WINHTTP_ADDREQ_FLAG_ADD
                 );
         }
@@ -394,7 +394,7 @@ BOOLEAN QueryUpdateData(
         if (windowsHeader)
         {
             WinHttpAddRequestHeaders(
-                httpRequestHandle, 
+                httpRequestHandle,
                 windowsHeader->Buffer,
                 (ULONG)windowsHeader->Length / sizeof(WCHAR),
                 WINHTTP_ADDREQ_FLAG_ADD
@@ -403,11 +403,11 @@ BOOLEAN QueryUpdateData(
 
         if (!WinHttpSendRequest(
             httpRequestHandle,
-            WINHTTP_NO_ADDITIONAL_HEADERS, 
+            WINHTTP_NO_ADDITIONAL_HEADERS,
             0,
-            WINHTTP_NO_REQUEST_DATA, 
+            WINHTTP_NO_REQUEST_DATA,
             0,
-            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH, 
+            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
             0
             ))
         {
@@ -703,7 +703,7 @@ NTSTATUS UpdateDownloadThread(
 
         // Generate random guid for our directory path.
         PhGenerateGuid(&randomGuid);
-        
+
         if (randomGuidString = PhFormatGuid(&randomGuid))
         {
             PPH_STRING guidSubString;
@@ -733,7 +733,7 @@ NTSTATUS UpdateDownloadThread(
 
             if (indexOfFileName == -1)
                 __leave;
-            
+
             if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
             {
                 SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
@@ -1095,7 +1095,7 @@ INT_PTR CALLBACK UpdaterWndProc(
                 GetSystemMetrics(SM_CYICON),
                 0
                 );
-            
+
             context->IconBitmap = PhIconToBitmap(context->IconHandle, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 
             // Set the window icons

@@ -488,7 +488,7 @@ NTSTATUS D3DKMTCloseAdapter(
     );
 
 // rev
-_Check_return_ 
+_Check_return_
 NTSTATUS D3DKMTQueryStatistics(
     _Inout_ const D3DKMT_QUERYSTATISTICS *pData
     );

@@ -293,11 +293,11 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
     deviceDescription = PhCreateStringEx(NULL, bufferSize);
 
     // DEVPKEY_Device_DeviceDesc doesn't give us the full adapter name.
-    // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only 
+    // DEVPKEY_Device_FriendlyName does give us the full adapter name but is only
     //  supported on Windows 8 and above.
 
     // We use our NetworkAdapterQueryName function to query the full adapter name
-    // from the NDIS driver directly, if that fails then we use one of the above properties. 
+    // from the NDIS driver directly, if that fails then we use one of the above properties.
 
     if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
         deviceInstanceHandle,

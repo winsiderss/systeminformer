@@ -42,8 +42,8 @@ INT GetClientWindowHeight(HWND hwnd)
 
 
 static VOID InflateClientRect(
-    _Inout_ PRECT rect, 
-    _In_ INT x, 
+    _Inout_ PRECT rect,
+    _In_ INT x,
     _In_ INT y
     )
 {
@@ -54,12 +54,12 @@ static VOID InflateClientRect(
 }
 
 static VOID FrameClientRect(
-    _In_ HDC hdc, 
-    _In_ const PRECT rect, 
+    _In_ HDC hdc,
+    _In_ const PRECT rect,
     _In_ HBRUSH hbrush
     )
 {
-    if ((rect->right <= rect->left) || (rect->bottom <= rect->top)) 
+    if ((rect->right <= rect->left) || (rect->bottom <= rect->top))
         return;
 
     HBRUSH prevBrush = SelectObject(hdc, hbrush);
@@ -68,7 +68,7 @@ static VOID FrameClientRect(
     PatBlt(hdc, rect->right - 1, rect->top, 1, rect->bottom - rect->top, PATCOPY);
     PatBlt(hdc, rect->left, rect->top, rect->right - rect->left, 1, PATCOPY);
     PatBlt(hdc, rect->left, rect->bottom - 1, rect->right - rect->left, 1, PATCOPY);
-       
+
     if (prevBrush)
     {
         SelectObject(hdc, prevBrush);
@@ -76,8 +76,8 @@ static VOID FrameClientRect(
 }
 
 static VOID FillClientRect(
-    _In_ HDC hdc, 
-    _In_ const PRECT rect, 
+    _In_ HDC hdc,
+    _In_ const PRECT rect,
     _In_ HBRUSH hbrush
     )
 {
@@ -88,7 +88,7 @@ static VOID FillClientRect(
         rect->left,
         rect->top,
         rect->right - rect->left,
-        rect->bottom - rect->top, 
+        rect->bottom - rect->top,
         PATCOPY
         );
 
@@ -106,8 +106,8 @@ static VOID FillClientRect(
 
 // http://msdn.microsoft.com/en-us/library/windows/desktop/bb760816.aspx
 VOID DrawProgressBarControl(
-    _In_ HWND WindowHandle, 
-    _In_ HDC WindowDC, 
+    _In_ HWND WindowHandle,
+    _In_ HDC WindowDC,
     _In_ RECT ClientRect
     )
 {
@@ -178,7 +178,7 @@ LRESULT CALLBACK SubclassWindowProc(
         {
             PAINTSTRUCT paintStruct;
             RECT clientRect;
-            
+
             GetClientRect(hWnd, &clientRect);
 
             if (BeginPaint(hWnd, &paintStruct))
@@ -234,7 +234,7 @@ LRESULT CALLBACK SubclassWindowProc(
 //
 //    if (GetClassInfoEx(NULL, WC_BUTTON, &windowClassInfo))
 //    {
-//        parentWndProc = windowClassInfo.lpfnWndProc; // save the original message handler 
+//        parentWndProc = windowClassInfo.lpfnWndProc; // save the original message handler
 //        windowClassInfo.lpfnWndProc = WindowProc; // Set our new message handler
 //
 //        UnregisterClass(WC_BUTTON, NULL);

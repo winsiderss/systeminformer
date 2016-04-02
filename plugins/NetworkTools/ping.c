@@ -153,7 +153,7 @@ NTSTATUS NetworkPingThreadStart(
         if (context->PingSize > 0 && context->PingSize != 32)
         {
             PPH_STRING randString;
-            
+
             randString = PhCreateStringEx(NULL, context->PingSize * 2 + 2);
 
             // Create a random string to fill the buffer.

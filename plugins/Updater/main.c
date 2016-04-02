@@ -150,7 +150,7 @@ LOGICAL DllMain(
                 MainWindowShowingCallback,
                 NULL,
                 &MainWindowShowingCallbackRegistration
-                ); 
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
                 MainMenuInitializingCallback,
@@ -169,7 +169,7 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
-               
+
             PhAddSettings(settings, ARRAYSIZE(settings));
         }
         break;

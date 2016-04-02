@@ -2,7 +2,7 @@
 #define _COMMONUTIL_H
 
 FORCEINLINE
-HFONT 
+HFONT
 CommonDuplicateFont(
     _In_ HFONT Font
     )

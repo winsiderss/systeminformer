@@ -14,7 +14,7 @@ typedef enum _PH_PHSVC_MODE
     ElevatedPhSvcMode,
     Wow64PhSvcMode
 } PH_PHSVC_MODE;
-            
+
 PHAPPAPI
 BOOLEAN
 NTAPI

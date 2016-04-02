@@ -1,11 +1,11 @@
 /*
- * Process Hacker .NET Tools - 
+ * Process Hacker .NET Tools -
  *   thread list extensions
- * 
+ *
  * Copyright (C) 2015 wj32
- * 
+ *
  * This file is part of Process Hacker.
- * 
+ *
  * Process Hacker is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or

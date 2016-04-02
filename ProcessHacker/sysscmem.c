@@ -669,7 +669,7 @@ VOID PhSipUpdateMemoryPanel(
 
     if (InstalledMemory != 0)
     {
-        SetDlgItemText(MemoryPanel, IDC_ZPHYSICALRESERVED_V, 
+        SetDlgItemText(MemoryPanel, IDC_ZPHYSICALRESERVED_V,
             PhaFormatSize(InstalledMemory * 1024 - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer);
     }
     else
@@ -724,7 +724,7 @@ VOID PhSipUpdateMemoryPanel(
         SIZE_T nonPaged;
 
         PhSipGetPoolLimits(&paged, &nonPaged);
-        
+
         if (paged != -1)
             pagedLimit = PhaFormatSize(paged, -1)->Buffer;
         else

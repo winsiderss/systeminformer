@@ -340,7 +340,7 @@ PPH_STRING PhGetWin32Message(
     )
 {
     PPH_STRING message;
-    
+
     message = PhGetMessage(GetModuleHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
 
     if (message)

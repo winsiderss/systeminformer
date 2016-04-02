@@ -234,7 +234,7 @@ VOID DiskDriveAddListViewItemGroups(
     AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_WRITES, L"User Index writes", NULL);
     AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_READ_BYTES, L"User Index read bytes", NULL);
     AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_USER_INDEX_WRITE_BYTES, L"User Index write bytes", NULL);
-  
+
     AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_READS, L"LogFile reads", NULL);
     AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_WRITES, L"LogFile writes", NULL);
     AddListViewItemGroupId(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LOGFILE_READ_BYTES, L"LogFile read bytes", NULL);
@@ -298,7 +298,7 @@ VOID DiskDriveQueryFileSystem(
     )
 {
     PPH_LIST deviceMountHandles;
-    
+
     deviceMountHandles = DiskDriveQueryMountPointHandles(Context->PageContext->DiskIndex);
 
     for (ULONG i = 0; i < deviceMountHandles->Count; i++)
@@ -307,7 +307,7 @@ VOID DiskDriveQueryFileSystem(
         PVOID fsInfoBuffer;
         INT diskGroupId = -1;
         PFILE_FS_VOLUME_INFORMATION volumeInfo;
-        PDISK_HANDLE_ENTRY diskEntry;        
+        PDISK_HANDLE_ENTRY diskEntry;
 
         diskEntry = deviceMountHandles->Items[i];
 
@@ -352,7 +352,7 @@ VOID DiskDriveQueryFileSystem(
             {
             case FILESYSTEM_STATISTICS_TYPE_NTFS:
             case FILESYSTEM_STATISTICS_TYPE_REFS:
-                {                
+                {
                     PNTFS_FILESYSTEM_STATISTICS buffer = fsInfoBuffer;
 
                     if (fsInfoType == FILESYSTEM_STATISTICS_TYPE_NTFS)
@@ -364,11 +364,11 @@ VOID DiskDriveQueryFileSystem(
                         if (DiskDriveQueryNtfsVolumeInfo(diskEntry->DeviceHandle, &ntfsVolumeInfo))
                         {
                             ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart = _byteswap_uint64(ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart);
-                            
+
                             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, 1,
                                 PhaFormatString(L"0x%s", PH_AUTO_T(PH_STRING, PhBufferToHexString((PUCHAR)&ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart, sizeof(ntfsVolumeInfo.VolumeData.VolumeSerialNumber.QuadPart)))->Buffer)->Buffer
                                 );
-    
+
                             PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_FS_VERSION, 1,
                                 PhaFormatString(L"%lu.%lu", ntfsVolumeInfo.ExtendedVolumeData.MajorVersion, ntfsVolumeInfo.ExtendedVolumeData.MinorVersion)->Buffer
                                 );
@@ -538,7 +538,7 @@ VOID DiskDriveQueryFileSystem(
                         PhaFormatSize(buffer->FileSystemStatistics.MetaDataWriteBytes, -1)->Buffer
                         );
 
-                    // NTFS specific 
+                    // NTFS specific
 
                     PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_MFT_READS, 1,
                         PhaFormatUInt64(buffer->NtfsStatistics.MftReads, TRUE)->Buffer

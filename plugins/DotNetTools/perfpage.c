@@ -75,10 +75,10 @@ typedef struct _PERFPAGE_CONTEXT
 } PERFPAGE_CONTEXT, *PPERFPAGE_CONTEXT;
 
 static PWSTR DotNetCategoryStrings[] =
-{ 
-    L".NET CLR Exceptions", 
-    L".NET CLR Interop", 
-    L".NET CLR Jit", 
+{
+    L".NET CLR Exceptions",
+    L".NET CLR Interop",
+    L".NET CLR Jit",
     L".NET CLR Loading",
     L".NET CLR LocksAndThreads",
     L".NET CLR Memory",
@@ -650,7 +650,7 @@ VOID UpdateCounterData(
             PhSetListViewSubItem(Context->CountersLv, 16, 1, FormatByteValue(Context, dotNetPerfGC.cTotalCommittedBytes)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 17, 1, FormatByteValue(Context, dotNetPerfGC.cTotalReservedBytes)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 18, 1, PhaFormatUInt64(dotNetPerfGC.cPinnedObj, TRUE)->Buffer);
-            PhSetListViewSubItem(Context->CountersLv, 19, 1, PhaFormatUInt64(dotNetPerfGC.cSinkBlocks, TRUE)->Buffer);                                                                     
+            PhSetListViewSubItem(Context->CountersLv, 19, 1, PhaFormatUInt64(dotNetPerfGC.cSinkBlocks, TRUE)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 20, 1, FormatByteValue(Context, dotNetPerfGC.cbAlloc)->Buffer);
             PhSetListViewSubItem(Context->CountersLv, 21, 1, FormatByteValue(Context, dotNetPerfGC.cbLargeAlloc)->Buffer);
         }
@@ -737,7 +737,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhAddListViewColumn(context->CountersLv, 0, 0, 0, LVCFMT_LEFT, 250, L"Counter");
             PhAddListViewColumn(context->CountersLv, 1, 1, 1, LVCFMT_RIGHT, 140, L"Value");
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersLv);
-           
+
             if (PhGetIntegerSetting(SETTING_NAME_DOT_NET_SHOW_BYTE_SIZE))
             {
                 context->ShowByteSize = TRUE;
@@ -826,7 +826,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessesUpdated), 
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
                 &context->ProcessesUpdatedCallbackRegistration
                 );
 

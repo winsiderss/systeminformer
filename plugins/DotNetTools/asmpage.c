@@ -976,7 +976,7 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     PASMPAGE_QUERY_CONTEXT context = Parameter;
 
     context->TraceResult = UpdateDotNetTraceInfo(context, context->TraceClrV2);
-   
+
     return STATUS_SUCCESS;
 }
 
@@ -1109,7 +1109,7 @@ VOID CreateDotNetTraceQueryThread(
 {
     HANDLE threadHandle;
     PASMPAGE_QUERY_CONTEXT context;
-    
+
     context = PhAllocate(sizeof(ASMPAGE_QUERY_CONTEXT));
     memset(context, 0, sizeof(ASMPAGE_QUERY_CONTEXT));
 
@@ -1118,7 +1118,7 @@ VOID CreateDotNetTraceQueryThread(
     context->ProcessId = ProcessId;
     context->NodeList = PhCreateList(64);
     context->NodeRootList = PhCreateList(2);
-    
+
     if (threadHandle = PhCreateThread(0, DotNetTraceQueryThreadStart, context))
     {
         NtClose(threadHandle);
@@ -1227,20 +1227,20 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 )
             {
                 CreateDotNetTraceQueryThread(
-                    hwndDlg, 
-                    context->ClrVersions, 
+                    hwndDlg,
+                    context->ClrVersions,
                     processItem->ProcessId
                     );
             }
             else
             {
-                PhSwapReference(&context->TnErrorMessage, 
+                PhSwapReference(&context->TnErrorMessage,
                     PhCreateString(L"Unable to start the event tracing session because the process is suspended.")
                     );
                 TreeNew_SetEmptyText(tnHandle, &context->TnErrorMessage->sr, 0);
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
-                
+
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
@@ -1306,7 +1306,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             {
                 PhSwapReference(&context->NodeList, queryContext->NodeList);
                 PhSwapReference(&context->NodeRootList, queryContext->NodeRootList);
-                
+
                 DestroyDotNetTraceQuery(queryContext);
 
                 TreeNew_NodesStructured(context->TnHandle);

@@ -21,7 +21,7 @@ P_HTTP_SESSION HttpSocketCreate(VOID)
 {
     P_HTTP_SESSION httpSocket;
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-    
+
     httpSocket = (P_HTTP_SESSION)PhAllocate(sizeof(HTTP_SESSION));
     memset(httpSocket, 0, sizeof(HTTP_SESSION));
 
@@ -290,7 +290,7 @@ PPH_STRING HttpDownloadString(
 }
 
 BOOLEAN HttpParseURL(
-    _Inout_ P_HTTP_SESSION HttpSocket, 
+    _Inout_ P_HTTP_SESSION HttpSocket,
     _In_ PCWSTR Url,
     _Out_ HTTP_PARSED_URL* HttpParsedUrl
     )
@@ -316,7 +316,7 @@ BOOLEAN HttpParseURL(
 
         wmemcpy(httpParsedUrl->HttpMethod, httpUrlComponents.lpszScheme, httpUrlComponents.dwSchemeLength);
         wmemcpy(httpParsedUrl->HttpServer, httpUrlComponents.lpszHostName, httpUrlComponents.dwHostNameLength);
-        wmemcpy(httpParsedUrl->HttpPath, httpUrlComponents.lpszUrlPath, httpUrlComponents.dwUrlPathLength); 
+        wmemcpy(httpParsedUrl->HttpPath, httpUrlComponents.lpszUrlPath, httpUrlComponents.dwUrlPathLength);
 
         *HttpParsedUrl = httpParsedUrl;
 

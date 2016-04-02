@@ -131,7 +131,7 @@ namespace UpdateRevision
                 latestRepositoryVersion = new VersionInfo(); // no git repository
             }
         }
-        
+
         private static void WriteWarning(string message)
         {
             Console.WriteLine();

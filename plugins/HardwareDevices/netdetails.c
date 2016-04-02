@@ -48,7 +48,7 @@ VOID NetAdapterAddListViewItemGroups(
     AddListViewGroup(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, L"Errors");
 
     AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State", NULL);
-    //AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");  
+    //AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");
     AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPADDRESS, L"IP address", NULL);
     AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_SUBNET, L"Subnet mask", NULL);
     AddListViewItemGroupId(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_GATEWAY, L"Default gateway", NULL);
@@ -166,7 +166,7 @@ VOID NetAdapterEnumerateAddresses(
                     PhAppendFormatStringBuilder(SubnetAddressBuffer, L"%s, ", subnetAddressString);
                 }
             }
-            
+
             if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
                 PSOCKADDR_IN6 sockAddrIn6;
@@ -195,7 +195,7 @@ VOID NetAdapterEnumerateAddresses(
                     PhAppendFormatStringBuilder(GatewayAddressBuffer, L"%s, ", ipv4AddressString);
                 }
             }
-            
+
             if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
                 PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
@@ -214,7 +214,7 @@ VOID NetAdapterEnumerateAddresses(
             {
                 PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)dnsAddress->Address.lpSockaddr;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
-        
+
                 if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
                 {
                     PhAppendFormatStringBuilder(DnsAddressBuffer, L"%s, ", ipv4AddressString);
@@ -224,7 +224,7 @@ VOID NetAdapterEnumerateAddresses(
             {
                 PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)dnsAddress->Address.lpSockaddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
-            
+
                 if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
                 {
                     PhAppendFormatStringBuilder(DnsAddressBuffer, L"%s, ", ipv6AddressString);
@@ -301,7 +301,7 @@ VOID NetAdapterLookupConfig(
     gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
     dnsAddressString = PhFinalStringBuilderString(&dnsAddressBuffer);
 
-    //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");      
+    //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString->Buffer);

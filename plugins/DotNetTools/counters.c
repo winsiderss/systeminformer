@@ -781,7 +781,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock;
 
             legacyPrivateBlock = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
-            
+
             // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
 
             // Check the IPCControlBlock version is valid.
@@ -797,7 +797,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                 );
 
             appDomainsList = EnumAppDomainIpcBlockWow64(
-                ProcessHandle, 
+                ProcessHandle,
                 appDomainEnumBlock
                 );
         }
@@ -807,7 +807,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
             AppDomainEnumerationIPCBlock* appDomainEnumBlock;
 
             legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
-            
+
             // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
 
             // Check the IPCControlBlock version is valid.
@@ -818,12 +818,12 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
 
             appDomainEnumBlock = GetLegacyBlockTableEntry(
                 Wow64,
-                ipcControlBlockTable, 
+                ipcControlBlockTable,
                 eLegacyPrivateIPC_AppDomain
                 );
 
             appDomainsList = EnumAppDomainIpcBlock(
-                ProcessHandle, 
+                ProcessHandle,
                 appDomainEnumBlock
                 );
         }
@@ -942,7 +942,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
             }
 
             appDomainsList = EnumAppDomainIpcBlock(
-                ProcessHandle, 
+                ProcessHandle,
                 appDomainEnumBlock
                 );
         }

@@ -195,8 +195,8 @@ VOID NcAreaDrawButton(
             Context->ImageList,
             1,
             bufferDc,
-            bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2, // (ImageWidth - 2) offset left by two 
-            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2, // (ImageHeight - 2) offset top by one 
+            bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2, // (ImageWidth - 2) offset left by two
+            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2, // (ImageHeight - 2) offset top by one
             ILD_NORMAL | ILD_TRANSPARENT
             );
     }

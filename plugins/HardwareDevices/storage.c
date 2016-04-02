@@ -24,7 +24,7 @@
 #include <ntdddisk.h>
 
 // NOTE: Functions in this file can be used on disks, volumes, and partitions,
-// even if they appear to only support one type, they can be used to query different 
+// even if they appear to only support one type, they can be used to query different
 // information from other types.
 // TODO: Come up with a better naming scheme to identify these multi-purpose functions.
 
@@ -62,7 +62,7 @@ ULONG DiskDriveQueryDeviceMap(
 {
 #ifndef _WIN64
     PROCESS_DEVICEMAP_INFORMATION deviceMapInfo;
-#else 
+#else
     PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
 #endif
 
@@ -126,7 +126,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 {
                     // BUG: Device numbers are re-used on seperate device controllers and this
                     // causes drive letters to be assigned to disks at those same indexes.
-                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and 
+                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and
                     // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
                     if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                     {
@@ -186,7 +186,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                 {
                     // BUG: Device numbers are re-used on seperate device controllers and this
                     // causes drive letters to be assigned to disks at those same indexes.
-                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and 
+                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and
                     // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
                     if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                     {
@@ -1149,7 +1149,7 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
     for (ULONG i = 0; i < result.BootSectorCount; i++)
     {
         // https://msdn.microsoft.com/en-us/library/windows/desktop/dd442654.aspx
-        typedef struct _FILE_SYSTEM_RECOGNITION_STRUCTURE 
+        typedef struct _FILE_SYSTEM_RECOGNITION_STRUCTURE
         {
             UCHAR Jmp[3];
             UCHAR FsName[8];
@@ -1194,7 +1194,7 @@ BOOLEAN DiskDriveQueryBootSectorFsCount(
         memset(&sector, 0, sizeof(BOOT_SECTOR));
 
         // There are 2 boot sectors on NTFS partitions, we can't access the second one.
-        // To read or write to the last few sectors of a volume (where the second boot sector is located), 
+        // To read or write to the last few sectors of a volume (where the second boot sector is located),
         // you must call FSCTL_ALLOW_EXTENDED_DASD_IO, which instructs the file system to not perform any boundary checks,
         // which doesn't work for some reason.
         if (!NT_SUCCESS(NtReadFile(
@@ -1562,95 +1562,95 @@ PWSTR SmartAttributeGetDescription(
         return L"This attribute indicates the count of full hard disk power on/off cycles.";
     case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
         return L"Uncorrected read errors reported to the operating system.";
-    case SMART_ATTRIBUTE_ID_SATA_DOWNSHIFT_ERROR_COUNT: 
+    case SMART_ATTRIBUTE_ID_SATA_DOWNSHIFT_ERROR_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_END_TO_END_ERROR: 
+    case SMART_ATTRIBUTE_ID_END_TO_END_ERROR:
         break;
     case SMART_ATTRIBUTE_ID_HEAD_STABILITY:
         break;
     case SMART_ATTRIBUTE_ID_INDUCED_OP_VIBRATION_DETECTION:
         break;
-    case SMART_ATTRIBUTE_ID_REPORTED_UNCORRECTABLE_ERRORS: 
+    case SMART_ATTRIBUTE_ID_REPORTED_UNCORRECTABLE_ERRORS:
         break;
-    case SMART_ATTRIBUTE_ID_COMMAND_TIMEOUT: 
+    case SMART_ATTRIBUTE_ID_COMMAND_TIMEOUT:
         break;
-    case SMART_ATTRIBUTE_ID_HIGH_FLY_WRITES: 
+    case SMART_ATTRIBUTE_ID_HIGH_FLY_WRITES:
         break;
-    case SMART_ATTRIBUTE_ID_TEMPERATURE_DIFFERENCE_FROM_100: 
+    case SMART_ATTRIBUTE_ID_TEMPERATURE_DIFFERENCE_FROM_100:
         break;
-    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE: 
+    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE:
         break;
-    case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_COUNT: 
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_COUNT:
         break;
     case SMART_ATTRIBUTE_ID_LOAD_CYCLE_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_TEMPERATURE: 
+    case SMART_ATTRIBUTE_ID_TEMPERATURE:
         break;
-    case SMART_ATTRIBUTE_ID_HARDWARE_ECC_RECOVERED: 
+    case SMART_ATTRIBUTE_ID_HARDWARE_ECC_RECOVERED:
         break;
-    case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT: 
+    case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT: 
+    case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT: 
+    case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_ULTRADMA_CRC_ERROR_COUNT: 
+    case SMART_ATTRIBUTE_ID_ULTRADMA_CRC_ERROR_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_MULTI_ZONE_ERROR_RATE: 
+    case SMART_ATTRIBUTE_ID_MULTI_ZONE_ERROR_RATE:
         break;
-    case SMART_ATTRIBUTE_ID_OFFTRACK_SOFT_READ_ERROR_RATE: 
+    case SMART_ATTRIBUTE_ID_OFFTRACK_SOFT_READ_ERROR_RATE:
         break;
-    case SMART_ATTRIBUTE_ID_DATA_ADDRESS_MARK_ERRORS: 
+    case SMART_ATTRIBUTE_ID_DATA_ADDRESS_MARK_ERRORS:
         break;
-    case SMART_ATTRIBUTE_ID_RUN_OUT_CANCEL: 
+    case SMART_ATTRIBUTE_ID_RUN_OUT_CANCEL:
         break;
-    case SMART_ATTRIBUTE_ID_SOFT_ECC_CORRECTION: 
+    case SMART_ATTRIBUTE_ID_SOFT_ECC_CORRECTION:
         break;
-    case SMART_ATTRIBUTE_ID_THERMAL_ASPERITY_RATE_TAR: 
+    case SMART_ATTRIBUTE_ID_THERMAL_ASPERITY_RATE_TAR:
         break;
-    case SMART_ATTRIBUTE_ID_FLYING_HEIGHT: 
+    case SMART_ATTRIBUTE_ID_FLYING_HEIGHT:
         break;
-    case SMART_ATTRIBUTE_ID_SPIN_HIGH_CURRENT: 
+    case SMART_ATTRIBUTE_ID_SPIN_HIGH_CURRENT:
         break;
     case SMART_ATTRIBUTE_ID_SPIN_BUZZ:
         break;
-    case SMART_ATTRIBUTE_ID_OFFLINE_SEEK_PERFORMANCE: 
+    case SMART_ATTRIBUTE_ID_OFFLINE_SEEK_PERFORMANCE:
         break;
-    case SMART_ATTRIBUTE_ID_VIBRATION_DURING_WRITE: 
+    case SMART_ATTRIBUTE_ID_VIBRATION_DURING_WRITE:
         break;
-    case SMART_ATTRIBUTE_ID_SHOCK_DURING_WRITE: 
+    case SMART_ATTRIBUTE_ID_SHOCK_DURING_WRITE:
         break;
-    case SMART_ATTRIBUTE_ID_DISK_SHIFT: 
+    case SMART_ATTRIBUTE_ID_DISK_SHIFT:
         break;
-    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE_ALT: 
+    case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE_ALT:
         break;
-    case SMART_ATTRIBUTE_ID_LOADED_HOURS: 
+    case SMART_ATTRIBUTE_ID_LOADED_HOURS:
         break;
-    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_RETRY_COUNT: 
+    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_RETRY_COUNT:
         break;
     case SMART_ATTRIBUTE_ID_LOAD_FRICTION:
         break;
-    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_CYCLE_COUNT: 
+    case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_CYCLE_COUNT:
         break;
     case SMART_ATTRIBUTE_ID_LOAD_IN_TIME:
         break;
     case SMART_ATTRIBUTE_ID_TORQUE_AMPLIFICATION_COUNT:
         break;
-    case SMART_ATTRIBUTE_ID_POWER_OFF_RETTRACT_CYCLE: 
+    case SMART_ATTRIBUTE_ID_POWER_OFF_RETTRACT_CYCLE:
         break;
-    case SMART_ATTRIBUTE_ID_GMR_HEAD_AMPLITUDE: 
+    case SMART_ATTRIBUTE_ID_GMR_HEAD_AMPLITUDE:
         break;
-    case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE: 
+    case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE:
         break;
-    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS: 
+    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS:
         break;
-    case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN: 
+    case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN:
         break;
-    case SMART_ATTRIBUTE_ID_TOTAL_LBA_READ: 
+    case SMART_ATTRIBUTE_ID_TOTAL_LBA_READ:
         break;
-    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE: 
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE:
         break;
-    case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION: 
+    case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION:
         break;
     }
 

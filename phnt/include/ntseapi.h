@@ -443,7 +443,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetCachedSigningLevel(
-    _In_ ULONG Flags, 
+    _In_ ULONG Flags,
     _In_ SE_SIGNING_LEVEL InputSigningLevel,
     _In_reads_(SourceFileCount) PHANDLE SourceFiles,
     _In_ ULONG SourceFileCount,

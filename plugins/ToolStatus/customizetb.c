@@ -132,7 +132,7 @@ VOID CustomizeAddToolbarItem(
         itemContext->IsRemovable = TRUE;
     }
 
-    // insert into 'current' list 
+    // insert into 'current' list
     ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, itemContext);
 
     CustomizeInsertToolbarButton(IndexTo, itemContext);
@@ -336,8 +336,8 @@ VOID CustomizeLoadToolbarItems(
         if (buttonImage = ToolbarGetImage(button.idCommand))
         {
             itemContext->IdBitmap = ImageList_Add(
-                Context->ImageListHandle, 
-                buttonImage, 
+                Context->ImageListHandle,
+                buttonImage,
                 NULL
                 );
             DeleteObject(buttonImage);
@@ -383,13 +383,13 @@ VOID CustomizeLoadToolbarSettings(
     HWND themeCombo = GetDlgItem(Context->DialogHandle, IDC_THEMEOPTIONS);
 
     PhAddComboBoxStrings(
-        toolbarCombo, 
-        CustomizeTextOptionsStrings, 
+        toolbarCombo,
+        CustomizeTextOptionsStrings,
         ARRAYSIZE(CustomizeTextOptionsStrings)
         );
     PhAddComboBoxStrings(
         searchboxCombo,
-        CustomizeSearchDisplayStrings, 
+        CustomizeSearchDisplayStrings,
         ARRAYSIZE(CustomizeSearchDisplayStrings)
         );
     PhAddComboBoxStrings(
@@ -410,7 +410,7 @@ VOID CustomizeLoadToolbarSettings(
     {
         ComboBox_Enable(searchboxCombo, FALSE);
     }
-  
+
     ComboBox_Enable(themeCombo, FALSE);
 }
 
@@ -435,9 +435,9 @@ VOID CustomizeResetImages(
                 if (buttonImage = ToolbarGetImage(itemContext->IdCommand))
                 {
                     ImageList_Replace(
-                        Context->ImageListHandle, 
-                        itemContext->IdBitmap, 
-                        buttonImage, 
+                        Context->ImageListHandle,
+                        itemContext->IdBitmap,
+                        buttonImage,
                         NULL
                         );
                     DeleteObject(buttonImage);
@@ -461,8 +461,8 @@ VOID CustomizeResetImages(
                 {
                     ImageList_Replace(
                         Context->ImageListHandle,
-                        itemContext->IdBitmap, 
-                        buttonImage, 
+                        itemContext->IdBitmap,
+                        buttonImage,
                         NULL
                         );
                     DeleteObject(buttonImage);
@@ -556,7 +556,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 );
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->BitmapWidth); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->BitmapWidth); // BitmapHeight 
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->BitmapWidth); // BitmapHeight
 
             CustomizeLoadToolbarItems(context);
             CustomizeLoadToolbarSettings(context);

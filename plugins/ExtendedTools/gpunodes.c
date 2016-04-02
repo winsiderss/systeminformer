@@ -198,7 +198,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 MinimumSize.right = labelRect.right;
 
             SetWindowPos(hwndDlg, NULL, 0, 0, MinimumSize.right, MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
-            
+
             // Note: This dialog must be centered after all other graphs and controls have been added.
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 

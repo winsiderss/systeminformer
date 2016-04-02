@@ -63,7 +63,7 @@ PPH_STRING HttpDownloadString(
     );
 
 BOOLEAN HttpParseURL(
-    _Inout_ P_HTTP_SESSION HttpSocket, 
+    _Inout_ P_HTTP_SESSION HttpSocket,
     _In_ PCWSTR Url,
     _Out_ HTTP_PARSED_URL* HttpParsedUrl
     );

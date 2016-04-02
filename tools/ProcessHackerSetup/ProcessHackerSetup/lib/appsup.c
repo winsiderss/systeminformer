@@ -258,7 +258,7 @@ PPH_STRING BrowseForFolder(
             folderPath = PhCreateStringEx(fileDialogFolderPath->Buffer, fileDialogFolderPath->Length * 2);
 
             // Ensure the folder path ends with a slash
-            // We must make sure the install path ends with a backslash since 
+            // We must make sure the install path ends with a backslash since
             // this string is wcscat' with our zip extraction paths.
             PathAddBackslash(folderPath->Buffer);
 
@@ -287,7 +287,7 @@ PPH_STRING BrowseForFolder(
             if (SHGetPathFromIDList(shellItemId, folderPath->Buffer))
             {
                 // Ensure the folder path ends with a slash
-                // We must make sure the install path ends with a backslash since 
+                // We must make sure the install path ends with a backslash since
                 // this string is wcscat' with our zip extraction paths.
                 PathAddBackslash(folderPath->Buffer);
 
@@ -464,8 +464,8 @@ PWSTR XmlParseToken(
     xmlStringData = PhDuplicateStringZ(XmlString);
 
     xmlTokenString = wcstok_s(
-        xmlStringData, 
-        L"<>", 
+        xmlStringData,
+        L"<>",
         &xmlTokenNext
         );
 
@@ -526,7 +526,7 @@ BOOLEAN DialogPromptExit(
         mbParams.lpszText = L"Are you sure you want to cancel the Setup?";
         mbParams.lpszCaption = PhApplicationName;
         mbParams.dwStyle = MB_YESNO | MB_ICONEXCLAMATION;
-        // | MB_USERICON;                                    
+        // | MB_USERICON;
         //params.lpszIcon = MAKEINTRESOURCE(IDI_ICON1);
 
         return MessageBoxIndirect(&mbParams) == IDNO;
@@ -561,7 +561,7 @@ VOID DialogPromptsProcessHackerIsRunning(
         mbParams.hInstance = PhLibImageBase;
         mbParams.lpszText = L"Please close Process Hacker before continuing.";
         mbParams.lpszCaption = PhApplicationName;
-        mbParams.dwStyle = MB_OK; // | MB_USERICON;          
+        mbParams.dwStyle = MB_OK; // | MB_USERICON;
         //params.lpszIcon = MAKEINTRESOURCE(IDI_ICON1);
 
         MessageBoxIndirect(&mbParams);
@@ -646,13 +646,13 @@ BOOLEAN IsProcessHackerInstalled(VOID)
 
     if (!PhEndsWithString2(installPath, L"ProcessHacker.exe", TRUE))
     {
-        
+
     }
 
     // Check if KeyData value maps to valid file path.
     if (GetFileAttributes(installPath->Buffer) == INVALID_FILE_ATTRIBUTES)
     {
-        
+
     }
 
     keySuccess = TRUE;
@@ -840,7 +840,7 @@ BOOLEAN RemoveAppCompatEntries(
     )
 {
     static PH_STRINGREF appCompatLayersName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers");
-    static PH_STRINGREF appCompatPersistedName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Compatibility Assistant\\Persisted"); 
+    static PH_STRINGREF appCompatPersistedName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Compatibility Assistant\\Persisted");
     HANDLE keyHandle;
 
     if (NT_SUCCESS(PhOpenKey(

@@ -20,10 +20,10 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Licensed to the .NET Foundation under one or more agreements. 
-// The .NET Foundation licenses this file to you under the MIT license. 
-// See the LICENSE file in the current folder for more information. 
-//----------------------------------------------------------------------------- 
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the current folder for more information.
+//-----------------------------------------------------------------------------
 //
 // dmex: This header has been highly modified.
 // Original: https://github.com/dotnet/coreclr/blob/master/src/debug/inc/dbgappdomain.h
@@ -64,7 +64,7 @@ typedef struct _AppDomainInfo_Wow64
 typedef struct _AppDomainEnumerationIPCBlock
 {
     HANDLE Mutex;                 // lock for serialization while manipulating AppDomain list.
- 
+
     INT TotalSlots;                  // Number of slots in AppDomainListElement array
     INT NumOfUsedSlots;
     INT LastFreedSlot;

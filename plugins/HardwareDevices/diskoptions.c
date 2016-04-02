@@ -649,7 +649,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             AddListViewGroup(context->ListViewHandle, 0, L"Connected");
             AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
-           
+
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
 
             FindDiskDrives(context);

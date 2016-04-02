@@ -264,7 +264,7 @@ BOOLEAN SetupDownloadBuild(
         //}
         //
         //    //if (_tcsstr(hashETag->Buffer, finalHexString->Buffer))
-        //    {         
+        //    {
         //        //DEBUG_MSG(TEXT("Hash success: %s (%s)\n"), SetupFileName->Buffer, finalHexString->Buffer);
         //    }
         //    //else

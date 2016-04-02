@@ -540,7 +540,7 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
         {
             name = PhFormatString(
                 L"Non-existent process (%u): %u",
-                HandleToUlong(ClientId->UniqueProcess), 
+                HandleToUlong(ClientId->UniqueProcess),
                 HandleToUlong(ClientId->UniqueThread)
                 );
         }

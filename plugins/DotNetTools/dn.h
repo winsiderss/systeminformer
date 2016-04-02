@@ -76,13 +76,13 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
 PPH_LIST QueryDotNetAppDomainsForPid_V2(
     _In_ BOOLEAN Wow64,
-    _In_ HANDLE ProcessHandle, 
+    _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId
     );
 
 PPH_LIST QueryDotNetAppDomainsForPid_V4(
     _In_ BOOLEAN Wow64,
-    _In_ HANDLE ProcessHandle, 
+    _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId
     );
 

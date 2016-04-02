@@ -79,7 +79,7 @@ INT WINAPI wWinMain(
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
     propSheetPage.pfnDlgProc = PropSheetPage1_WndProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    
+
     // page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -88,14 +88,14 @@ INT WINAPI wWinMain(
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG2);
     propSheetPage.pfnDlgProc = PropSheetPage2_WndProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    
+
     // page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG3);
     propSheetPage.pfnDlgProc = PropSheetPage3_WndProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    
+
     // page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -104,8 +104,8 @@ INT WINAPI wWinMain(
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
     propSheetPage.pfnDlgProc = PropSheetPage4_WndProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    
-    // page    
+
+    // page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USETITLE;

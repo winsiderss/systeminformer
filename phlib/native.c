@@ -1671,7 +1671,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
             goto CleanupExit;
         }
     }
-    
+
 #ifdef _WIN64
     if (isWow64)
     {

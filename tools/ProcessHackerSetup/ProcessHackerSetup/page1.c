@@ -21,7 +21,7 @@ VOID LoadSetupIcons(
         GetSystemMetrics(SM_CYICON),
         LR_DEFAULTCOLOR
         );
-   
+
     SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_SMALL, (LPARAM)smallIconHandle);
     SendMessage(GetParent(hwndDlg), WM_SETICON, ICON_BIG, (LPARAM)largeIconHandle);
 
@@ -39,7 +39,7 @@ VOID LoadSetupImage(
     // Remove the frame style and apply the bitmap style.
     PhSetWindowStyle(
         GetDlgItem(hwndDlg, IDC_PROJECT_ICON),
-        SS_BITMAP | SS_BLACKFRAME, 
+        SS_BITMAP | SS_BLACKFRAME,
         SS_BITMAP
         );
 
@@ -103,7 +103,7 @@ BOOL PropSheetPage1_OnNotify(
 
             // Enable the back button for other pages.
             //PropSheet_SetWizButtons(hwPropSheet, PSWIZB_NEXT | PSWIZB_BACK);
-            
+
             // Show the back button for other pages.
             ShowWindow(GetDlgItem(hwPropSheet, IDC_PROPSHEET_BACK), SW_SHOW);
         }

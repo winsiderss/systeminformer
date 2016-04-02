@@ -101,7 +101,7 @@ VOID CustomizeAddStatusBarItem(
             ListBox_SetCurSel(Context->AvailableListHandle, IndexAvail);
         }
 
-        // insert into 'current' list 
+        // insert into 'current' list
         ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, itemContext);
 
         CustomizeInsertStatusBarItem(IndexTo, itemContext);
@@ -345,7 +345,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->FontHandle = CommonDuplicateFont((HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight 
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
 

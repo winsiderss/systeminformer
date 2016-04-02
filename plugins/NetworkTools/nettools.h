@@ -55,7 +55,7 @@
 
 // The ICMPV6_ECHO_REPLY struct doesn't have a field to access the reply data,
 // so copy the struct and add an additional Data field.
-typedef struct _ICMPV6_ECHO_REPLY2 
+typedef struct _ICMPV6_ECHO_REPLY2
 {
     IPV6_ADDRESS_EX Address;
     ULONG Status;

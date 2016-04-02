@@ -165,7 +165,7 @@ BOOLEAN PhpEqualFileNameAndUserName(
     otherFileName = PhpGetRelevantFileName(ProcessItem, Flags);
     otherUserName = ProcessItem->UserName;
 
-    return 
+    return
         otherFileName && PhEqualString(otherFileName, FileName, TRUE) &&
         otherUserName && PhEqualString(otherUserName, UserName, TRUE);
 }
