@@ -44,6 +44,9 @@ if "%SIGN%" == "1" (
 if exist "%KPH_PRIVATE_KEY%". (
     %1\tools\CustomSignTool\bin\Release32\CustomSignTool.exe sign -k "%KPH_PRIVATE_KEY%" -s %1\bin\Release32\ProcessHacker.sig %1\bin\Release32\ProcessHacker.exe
     %1\tools\CustomSignTool\bin\Release32\CustomSignTool.exe sign -k "%KPH_PRIVATE_KEY%" -s %1\bin\Release64\ProcessHacker.sig %1\bin\Release64\ProcessHacker.exe
+) else (
+    type nul > %1\bin\Release32\ProcessHacker.sig
+    type nul > %1\bin\Release64\ProcessHacker.sig
 )
 
 mkdir %2\bin\x86
