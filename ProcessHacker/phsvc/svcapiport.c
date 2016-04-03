@@ -239,7 +239,7 @@ VOID PhSvcHandleConnectionRequest(
         PH_AUTO(referenceFileName);
 
         remoteFileName = NULL;
-        PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &remoteFileName);
+        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
 
         if (!referenceFileName || !remoteFileName || !PhEqualString(referenceFileName, remoteFileName, TRUE))
