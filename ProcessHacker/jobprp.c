@@ -633,6 +633,9 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
     {
     case WM_INITDIALOG:
         {
+			// HACK
+			PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+
             PhpRefreshJobStatisticsInfo(hwndDlg, jobPageContext);
             SetTimer(hwndDlg, 1, PhGetIntegerSetting(L"UpdateInterval"), NULL);
         }
