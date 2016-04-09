@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object security editor
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -95,7 +95,8 @@ HPROPSHEETPAGE PhCreateSecurityPage(
         SetObjectSecurity,
         Context,
         AccessEntries,
-        NumberOfAccessEntries
+        NumberOfAccessEntries,
+        TRUE
         );
 
     page = CreateSecurityPage_I(info);
@@ -141,7 +142,8 @@ VOID PhEditSecurity(
         SetObjectSecurity,
         Context,
         AccessEntries,
-        NumberOfAccessEntries
+        NumberOfAccessEntries,
+        FALSE
         );
 
     EditSecurity_I(hWnd, info);
@@ -155,7 +157,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ ULONG NumberOfAccessEntries,
+    _In_ BOOLEAN IsPage
     )
 {
     PhSecurityInformation *info;
@@ -171,6 +174,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->Context = Context;
     info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * NumberOfAccessEntries);
     info->NumberOfAccessEntries = NumberOfAccessEntries;
+    info->IsPage = IsPage;
 
     for (i = 0; i < NumberOfAccessEntries; i++)
     {
@@ -357,6 +361,14 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     _In_ SI_PAGE_TYPE uPage
     )
 {
+    PhSecurityInformation *this = (PhSecurityInformation *)This;
+
+    if (uMsg == PSPCB_SI_INITDIALOG && !this->IsPage)
+    {
+        // Center the security editor window.
+        PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
+    }
+
     return E_NOTIMPL;
 }
 

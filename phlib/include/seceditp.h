@@ -16,6 +16,7 @@ typedef struct
     PVOID Context;
     PSI_ACCESS AccessEntries;
     ULONG NumberOfAccessEntries;
+    BOOLEAN IsPage;
 } PhSecurityInformation;
 
 ISecurityInformation *PhSecurityInformation_Create(
@@ -24,7 +25,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ ULONG NumberOfAccessEntries,
+    _In_ BOOLEAN IsPage
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
