@@ -837,6 +837,9 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
+            // HACK
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+
             WepRefreshWindowGeneralInfo(hwndDlg, context);
         }
         break;
