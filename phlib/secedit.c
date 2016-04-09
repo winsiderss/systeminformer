@@ -90,6 +90,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
         return NULL;
 
     info = PhSecurityInformation_Create(
+        TRUE,
         ObjectName,
         GetObjectSecurity,
         SetObjectSecurity,
@@ -136,6 +137,7 @@ VOID PhEditSecurity(
         return;
 
     info = PhSecurityInformation_Create(
+        FALSE,
         ObjectName,
         GetObjectSecurity,
         SetObjectSecurity,
@@ -150,6 +152,7 @@ VOID PhEditSecurity(
 }
 
 ISecurityInformation *PhSecurityInformation_Create(
+    _In_ BOOLEAN SecurityPage,
     _In_ PWSTR ObjectName,
     _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
@@ -163,6 +166,7 @@ ISecurityInformation *PhSecurityInformation_Create(
 
     info = PhAllocate(sizeof(PhSecurityInformation));
     info->VTable = &PhSecurityInformation_VTable;
+    info->IsPage = SecurityPage;
     info->RefCount = 1;
 
     info->ObjectName = PhCreateString(ObjectName);
@@ -357,6 +361,14 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     _In_ SI_PAGE_TYPE uPage
     )
 {
+    PhSecurityInformation *this = (PhSecurityInformation *)This;
+
+    if (uMsg == PSPCB_SI_INITDIALOG && !this->IsPage)
+    {
+        // HACK
+        PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
+    }
+
     return E_NOTIMPL;
 }
 
