@@ -88,7 +88,6 @@
     <ClCompile Include="json-c\printbuf.c" />
     <ClCompile Include="json-c\random_seed.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="sha256.c" />
     <ClCompile Include="upload.c" />
   </ItemGroup>
   <ItemGroup>
@@ -111,7 +110,6 @@
     <ClInclude Include="json-c\random_seed.h" />
     <ClInclude Include="onlnchk.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="sha256.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OnlineChecks.rc" />

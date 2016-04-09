@@ -174,6 +174,7 @@
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
     <ClCompile Include="sha.c" />
+    <ClCompile Include="sha256.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="svcsup.c" />
     <ClCompile Include="symprv.c" />
@@ -240,6 +241,7 @@
     <ClInclude Include="include\verifyp.h" />
     <ClInclude Include="include\workqueue.h" />
     <ClInclude Include="include\workqueuep.h" />
+    <ClInclude Include="sha256.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

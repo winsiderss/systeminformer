@@ -293,29 +293,20 @@ BOOLEAN PerformSubRequest(
 NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,
-    _In_ ULONG Algorithm,
+    _In_ PH_HASH_ALGORITHM Algorithm,
     _Out_ PVOID Hash
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
-    sha256_context sha256;
     ULONG64 bytesRemaining;
     FILE_POSITION_INFORMATION positionInfo;
     UCHAR buffer[PAGE_SIZE];
 
     bytesRemaining = FileSize->QuadPart;
 
-    switch (Algorithm)
-    {
-    case HASH_SHA1:
-        PhInitializeHash(&hashContext, Sha1HashAlgorithm);
-        break;
-    case HASH_SHA256:
-        sha256_starts(&sha256);
-        break;
-    }
+    PhInitializeHash(&hashContext, Algorithm);
 
     while (bytesRemaining)
     {
@@ -334,16 +325,7 @@ NTSTATUS HashFileAndResetPosition(
         if (!NT_SUCCESS(status))
             break;
 
-        switch (Algorithm)
-        {
-        case HASH_SHA1:
-            PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
-            break;
-        case HASH_SHA256:
-            sha256_update(&sha256, (PUCHAR)buffer, (ULONG)iosb.Information);
-            break;
-        }
-
+        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
         bytesRemaining -= (ULONG)iosb.Information;
     }
 
@@ -354,11 +336,14 @@ NTSTATUS HashFileAndResetPosition(
     {
         switch (Algorithm)
         {
-        case HASH_SHA1:
+        case Md5HashAlgorithm:
+            PhFinalHash(&hashContext, Hash, 16, NULL);
+            break;
+        case Sha1HashAlgorithm:
             PhFinalHash(&hashContext, Hash, 20, NULL);
             break;
-        case HASH_SHA256:
-            sha256_finish(&sha256, Hash);
+        case Sha256HashAlgorithm:
+            PhFinalHash(&hashContext, Hash, 32, NULL);
             break;
         }
 
@@ -945,7 +930,7 @@ NTSTATUS UploadCheckThreadStart(
                 UCHAR hash[32];
                 json_object_ptr rootJsonObject;
 
-                if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash)))
+                if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
                 {
                     RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
                     __leave;
@@ -1006,7 +991,7 @@ NTSTATUS UploadCheckThreadStart(
                 ULONG status = 0;
                 ULONG statusLength = sizeof(statusLength);
 
-                if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, HASH_SHA256, hash)))
+                if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
                 {
                     RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
                     __leave;

@@ -946,7 +946,8 @@ typedef enum _PH_HASH_ALGORITHM
 {
     Md5HashAlgorithm,
     Sha1HashAlgorithm,
-    Crc32HashAlgorithm
+    Crc32HashAlgorithm,
+    Sha256HashAlgorithm
 } PH_HASH_ALGORITHM;
 
 typedef struct _PH_HASH_CONTEXT
