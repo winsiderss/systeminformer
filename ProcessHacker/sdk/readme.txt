@@ -24,10 +24,10 @@ marked with PHLIBAPI or PHAPPAPI; if not, the function
 cannot be used by your plugin.
 
 If you wish to use Native API functions available only on
-platforms newer than Windows XP, set PHNT_VERSION to the
+platforms newer than Windows 7, set PHNT_VERSION to the
 appropriate value before including <phdk.h>:
 
-    #define PHNT_VERSION PHNT_WIN7 // or PHNT_VISTA
+    #define PHNT_VERSION PHNT_WIN8 // or PHNT_WIN10
     #include <phdk.h>
 
 To load a plugin, create a directory named "plugins" in the
