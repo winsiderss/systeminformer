@@ -183,8 +183,6 @@ NTSTATUS KphInitializeDynamicPackage(
     // Windows 7, Windows Server 2008 R2
     if (majorVersion == 6 && minorVersion == 1)
     {
-        ULONG revisionNumber = KphpGetKernelRevisionNumber();
-
         Package->ResultingNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
