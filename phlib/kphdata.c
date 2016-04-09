@@ -70,6 +70,8 @@ NTSTATUS KphInitializeDynamicPackage(
     // Windows 7, Windows Server 2008 R2
     if (majorVersion == 6 && minorVersion == 1)
     {
+        ULONG revisionNumber = KphpGetKernelRevisionNumber();
+
         Package->ResultingNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
@@ -85,7 +87,7 @@ NTSTATUS KphInitializeDynamicPackage(
 
         Package->StructData.EgeGuid = 0x14;
         Package->StructData.EpObjectTable = 0x200;
-        Package->StructData.EreGuidEntry = 0x10;
+        Package->StructData.EreGuidEntry = revisionNumber >= 19160 ? 0x20 : 0x10;
         Package->StructData.OtName = 0x10;
         Package->StructData.OtIndex = 0x28; // now only a UCHAR, not a ULONG
     }
@@ -181,6 +183,8 @@ NTSTATUS KphInitializeDynamicPackage(
     // Windows 7, Windows Server 2008 R2
     if (majorVersion == 6 && minorVersion == 1)
     {
+        ULONG revisionNumber = KphpGetKernelRevisionNumber();
+
         Package->ResultingNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
