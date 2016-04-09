@@ -515,8 +515,7 @@ NTSTATUS KphQueryNameFileObject(
             break;
 
         relatedFileObject = relatedFileObject->RelatedFileObject;
-    }
-    while (relatedFileObject);
+    } while (relatedFileObject);
 
     usedLength += subNameLength;
 
@@ -545,8 +544,7 @@ NTSTATUS KphQueryNameFileObject(
             break;
 
         relatedFileObject = relatedFileObject->RelatedFileObject;
-    }
-    while (relatedFileObject);
+    } while (relatedFileObject);
 
     // Update the length.
     Buffer->Name.Length += (USHORT)subNameLength;
