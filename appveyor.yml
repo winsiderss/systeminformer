@@ -6,12 +6,23 @@ branches:
   only:
     - master
 
-# Clone directory
+# Do not increment build number after pull requests
+pull_requests:
+  do_not_increment_build_number: true
+
+# Do not start a new build when a new Git tag is created
+skip_tags: true
+  
+# Set the clone directory on the buildbot
 clone_folder: C:\projects\processhacker2
 
 # Set clone depth
 clone_depth: 1
 
+# Do not build on commits, only nightly builds (TODO: Add specific string to force build)
+skip_commits:
+  author: /.*/
+  
 # Immediately finish build if something fails
 matrix:
   fast_finish: true
@@ -19,17 +30,13 @@ matrix:
 # Install inno setup
 install:
   - choco install -y InnoSetup
+  
+# Disable running any test assemblies
+test: off
 
 # Run custom build script
 build_script:
 - ps: .\build\internal\nightly.ps1
-
-# Do not build on commits, only nightly builds (TODO: Add specific string to force build)
-skip_commits:
-  author: /.*/
-
-# Disable running any test assemblies
-test: off
 
 # FTP deployment settings
 deploy:
