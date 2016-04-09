@@ -21,6 +21,7 @@
  */
 
 #include "updater.h"
+#include <commonutil.h>
 #include <shellapi.h>
 #include <shlobj.h>
 
@@ -1051,40 +1052,17 @@ INT_PTR CALLBACK UpdaterWndProc(
     {
     case WM_INITDIALOG:
         {
-            LOGFONT logFont;
             HWND parentWindow = GetParent(hwndDlg);
+            
+            // Center the update window on PH if it's visible else we center on the desktop.
+            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsMinimized(parentWindow)) ? parentWindow : NULL);
 
             context->DialogHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS);
 
-            if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-            {
-                HDC hdc;
-
-                if (hdc = GetDC(hwndDlg))
-                {
-                    // Create the font handle
-                    context->FontHandle = CreateFont(
-                        -MulDiv(-14, GetDeviceCaps(hdc, LOGPIXELSY), 72),
-                        0,
-                        0,
-                        0,
-                        FW_MEDIUM,
-                        FALSE,
-                        FALSE,
-                        FALSE,
-                        ANSI_CHARSET,
-                        OUT_DEFAULT_PRECIS,
-                        CLIP_DEFAULT_PRECIS,
-                        CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-                        DEFAULT_PITCH,
-                        logFont.lfFaceName
-                        );
-
-                    ReleaseDC(hwndDlg, hdc);
-                }
-            }
+            // Set the font handle
+            context->FontHandle = CommonCreateFont(-14, GetDlgItem(hwndDlg, IDC_MESSAGE));
 
             // Load the Process Hacker icon.
             context->IconHandle = (HICON)LoadImage(
@@ -1101,15 +1079,9 @@ INT_PTR CALLBACK UpdaterWndProc(
             // Set the window icons
             if (context->IconHandle)
                 SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
-            // Set the text font
-            if (context->FontHandle)
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_MESSAGE), context->FontHandle, FALSE);
             // Set the window image
             if (context->IconBitmap)
                 SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->IconBitmap);
-
-            // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsMinimized(parentWindow)) ? parentWindow : NULL);
 
             // Show new version info (from the background update check)
             if (context->HaveData)

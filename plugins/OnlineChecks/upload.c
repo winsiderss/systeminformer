@@ -22,6 +22,7 @@
  */
 
 #include "onlnchk.h"
+#include <commonutil.h>
 #include "json-c/json.h"
 
 static SERVICE_INFO UploadServiceInfo[] =
@@ -38,47 +39,6 @@ json_object_ptr json_get_object(json_object_ptr rootObj, const char* key)
     if (json_object_object_get_ex(rootObj, key, &returnObj))
     {
         return returnObj;
-    }
-
-    return NULL;
-}
-
-HFONT InitializeFont(
-    _In_ HWND hwnd
-    )
-{
-    LOGFONT logFont;
-
-    // Create the font handle
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-    {
-        HDC hdc;
-
-        if (hdc = GetDC(hwnd))
-        {
-            HFONT fontHandle = CreateFont(
-                -MulDiv(-14, GetDeviceCaps(hdc, LOGPIXELSY), 72),
-                0,
-                0,
-                0,
-                FW_MEDIUM,
-                FALSE,
-                FALSE,
-                FALSE,
-                ANSI_CHARSET,
-                OUT_DEFAULT_PRECIS,
-                CLIP_DEFAULT_PRECIS,
-                CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-                DEFAULT_PITCH,
-                logFont.lfFaceName
-                );
-
-            SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
-
-            ReleaseDC(hwnd, hdc);
-
-            return fontHandle;
-        }
     }
 
     return NULL;
@@ -1163,7 +1123,7 @@ INT_PTR CALLBACK UploadDlgProc(
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS1);
             context->MessageHandle = GetDlgItem(hwndDlg, IDC_MESSAGE);
-            context->MessageFont = InitializeFont(context->MessageHandle);
+            context->MessageFont = CommonCreateFont(-14, context->MessageHandle);
             context->WindowFileName = PhFormatString(L"Uploading: %s", context->BaseFileName->Buffer);
             context->UploadServiceState = PhUploadServiceChecking;
 

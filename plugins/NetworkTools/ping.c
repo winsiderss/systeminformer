@@ -21,52 +21,12 @@
  */
 
 #include "nettools.h"
+#include <commonutil.h>
 
 #define WM_PING_UPDATE (WM_APP + 151)
 
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
-
-HFONT InitializeFont(
-    _In_ HWND hwnd
-    )
-{
-    LOGFONT logFont;
-
-    // Create the font handle
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-    {
-        HDC hdc;
-
-        if (hdc = GetDC(hwnd))
-        {
-            HFONT fontHandle = CreateFont(
-                -MulDiv(-15, GetDeviceCaps(hdc, LOGPIXELSY), 72),
-                0,
-                0,
-                0,
-                FW_MEDIUM,
-                FALSE,
-                FALSE,
-                FALSE,
-                ANSI_CHARSET,
-                OUT_DEFAULT_PRECIS,
-                CLIP_DEFAULT_PRECIS,
-                CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-                DEFAULT_PITCH,
-                logFont.lfFaceName
-                );
-
-            SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
-
-            ReleaseDC(hwnd, hdc);
-
-            return fontHandle;
-        }
-    }
-
-    return NULL;
-}
 
 VOID NetworkPingUpdateGraph(
     _In_ PNETWORK_OUTPUT_CONTEXT Context
@@ -424,7 +384,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE, TRUE).Pair;
 
             // Create the font handle.
-            context->FontHandle = InitializeFont(context->StatusHandle);
+            context->FontHandle = CommonCreateFont(-15, context->StatusHandle);
 
             // Create the graph control.
             context->PingGraphHandle = CreateWindow(
