@@ -75,6 +75,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
 
             SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
             SetProp(hwndDlg, L"String", (HANDLE)context->String);
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
         }
         break;
     case WM_DESTROY:
