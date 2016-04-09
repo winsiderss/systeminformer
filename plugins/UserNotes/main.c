@@ -792,10 +792,8 @@ VOID ProcessMenuInitializingCallback(
 
     processItem = menuInfo->u.Process.Processes[0];
 
-    if (PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) || processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID || processItem->ProcessId == SYSTEM_PROCESS_ID)
-        return;
-
-    AddSavePriorityMenuItemsAndHook(menuInfo, processItem, TRUE);
+    if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) && processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID && processItem->ProcessId != SYSTEM_PROCESS_ID)
+        AddSavePriorityMenuItemsAndHook(menuInfo, processItem, TRUE);
 
     if (!(miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0)))
         return;
