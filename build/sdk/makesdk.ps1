@@ -121,11 +121,11 @@ function BuildSolution([string] $FileName)
 
     if ($LASTEXITCODE -eq 0)
     {
-        Write-Host "`t[SUCCESS]" -ForegroundColor Green
+        Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
     }
     else
     {
-        Write-Host "`t[ERROR]" -ForegroundColor Red
+        Write-Host "`t`t[ERROR]" -ForegroundColor Red
     }
 }
 
@@ -318,7 +318,7 @@ function ShowBuildTime()
     $TimeEnd = New-TimeSpan -Start $global:TimeStart -End $(Get-Date)
 
     Write-Host "";
-    Write-Host "Build Time: $($TimeEnd.Minutes) min $($TimeEnd.Seconds) sec $($TimeEnd.Milliseconds) ms";
+    Write-Host "Build Time: $($TimeEnd.Minutes) min, $($TimeEnd.Seconds) sec, $($TimeEnd.Milliseconds) ms";
     Write-Host "";
 }
 
