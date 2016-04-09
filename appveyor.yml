@@ -1,0 +1,64 @@
+# Version format
+version: "Build #{build}"
+
+# Only build the master branch
+branches:
+  only:
+    - master
+
+# Clone directory
+clone_folder: C:\projects\processhacker2
+
+# Set clone depth
+clone_depth: 1
+
+# Immediately finish build if something fails
+matrix:
+  fast_finish: true
+
+# Install inno setup
+install:
+  - choco install -y InnoSetup
+
+# Run custom build script
+build_script:
+- ps: .\build\internal\nightly.ps1
+
+# Do not build on commits, only nightly builds (TODO: Add specific string to force build)
+skip_commits:
+  author: /.*/
+
+# Disable running any test assemblies
+test: off
+
+# FTP deployment settings
+deploy:
+- provider: FTP
+  host: wj32.org
+  protocol: sftp
+  username: processhacker
+  password:
+    secure: lWdlTtxnMMQRjUQ8pndOBPBiJPn8b8ssP1qtSPzIj58=
+  folder: /www/rel
+
+# deploy these files to our ftp
+artifacts:
+- path: .\processhacker-nightly-setup.exe
+  name: processhacker-nightly-setup.exe
+- path: .\processhacker-nightly-bin.zip
+  name: processhacker-nightly-bin.zip
+- path: .\processhacker-nightly-sdk.zip
+  name: processhacker-nightly-sdk.zip
+- path: .\processhacker-nightly-src.zip
+  name: processhacker-nightly-src.zip
+- path: .\processhacker-nightly-checksums.txt
+  name: processhacker-nightly-checksums.txt
+
+# setup build notifications
+notifications:
+- provider: Email
+  to:
+  - dmex04@gmail.com
+  on_build_success: false
+  on_build_failure: true
+  on_build_status_changed: false
