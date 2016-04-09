@@ -2,7 +2,7 @@
  * Process Hacker -
  *   object security editor
  *
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2016 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -90,13 +90,13 @@ HPROPSHEETPAGE PhCreateSecurityPage(
         return NULL;
 
     info = PhSecurityInformation_Create(
-        TRUE,
         ObjectName,
         GetObjectSecurity,
         SetObjectSecurity,
         Context,
         AccessEntries,
-        NumberOfAccessEntries
+        NumberOfAccessEntries,
+        TRUE
         );
 
     page = CreateSecurityPage_I(info);
@@ -137,13 +137,13 @@ VOID PhEditSecurity(
         return;
 
     info = PhSecurityInformation_Create(
-        FALSE,
         ObjectName,
         GetObjectSecurity,
         SetObjectSecurity,
         Context,
         AccessEntries,
-        NumberOfAccessEntries
+        NumberOfAccessEntries,
+        FALSE
         );
 
     EditSecurity_I(hWnd, info);
@@ -152,13 +152,13 @@ VOID PhEditSecurity(
 }
 
 ISecurityInformation *PhSecurityInformation_Create(
-    _In_ BOOLEAN SecurityPage,
     _In_ PWSTR ObjectName,
     _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ ULONG NumberOfAccessEntries,
+    _In_ BOOLEAN IsPage
     )
 {
     PhSecurityInformation *info;
@@ -166,7 +166,6 @@ ISecurityInformation *PhSecurityInformation_Create(
 
     info = PhAllocate(sizeof(PhSecurityInformation));
     info->VTable = &PhSecurityInformation_VTable;
-    info->IsPage = SecurityPage;
     info->RefCount = 1;
 
     info->ObjectName = PhCreateString(ObjectName);
@@ -175,6 +174,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->Context = Context;
     info->AccessEntries = PhAllocate(sizeof(SI_ACCESS) * NumberOfAccessEntries);
     info->NumberOfAccessEntries = NumberOfAccessEntries;
+    info->IsPage = IsPage;
 
     for (i = 0; i < NumberOfAccessEntries; i++)
     {
@@ -365,7 +365,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
 
     if (uMsg == PSPCB_SI_INITDIALOG && !this->IsPage)
     {
-        // HACK
+        // Center the security editor window.
         PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
     }
 

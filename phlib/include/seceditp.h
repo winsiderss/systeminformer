@@ -9,7 +9,6 @@ typedef struct
     ISecurityInformationVtbl *VTable;
 
     ULONG RefCount;
-    BOOLEAN IsPage;
 
     PPH_STRING ObjectName;
     PPH_GET_OBJECT_SECURITY GetObjectSecurity;
@@ -17,16 +16,17 @@ typedef struct
     PVOID Context;
     PSI_ACCESS AccessEntries;
     ULONG NumberOfAccessEntries;
+    BOOLEAN IsPage;
 } PhSecurityInformation;
 
 ISecurityInformation *PhSecurityInformation_Create(
-    _In_ BOOLEAN SecurityPage,
     _In_ PWSTR ObjectName,
     _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ PPH_ACCESS_ENTRY AccessEntries,
-    _In_ ULONG NumberOfAccessEntries
+    _In_ ULONG NumberOfAccessEntries,
+    _In_ BOOLEAN IsPage
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
