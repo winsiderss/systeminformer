@@ -44,6 +44,8 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
         {
             PPH_STRING appName;
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
                 L"Process Hacker %u.%u.%u",
@@ -77,6 +79,8 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"    <a href=\"http://www.famfamfam.com/lab/icons/silk\">Silk icons</a>\n"
                 L"    <a href=\"http://www.fatcow.com/free-icons\">Farm-fresh web icons</a>\n"
                 );
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (LPARAM)GetDlgItem(hwndDlg, IDOK), TRUE);
         }
         break;
     case WM_COMMAND:
