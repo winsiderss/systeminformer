@@ -1,45 +1,45 @@
-# Version format
+# Version format.
 version: "Build #{build}"
 
-# Only build the master branch
+# Only build the master branch.
 branches:
   only:
     - master
 
-# Do not increment build number after pull requests
+# Do not increment build number after pull requests.
 pull_requests:
   do_not_increment_build_number: true
 
-# Do not start a new build when a new Git tag is created
+# Do not start a new build when a new Git tag is created.
 skip_tags: true
   
-# Set the clone directory on the buildbot
+# Set the clone directory on the buildbot.
 clone_folder: C:\projects\processhacker2
 
-# Set clone depth
+# Set clone depth.
 clone_depth: 1
 
-# Do not build on commits, only nightly builds and
-#  any commit messages that include "force-build" (without quotes)
+# Do not build on commits, only nightly builds.
+# Force the nightly build by including the string "force-build" in the commit message.
 skip_commits:
   author: /force-build/
   
-# Immediately finish build if something fails
+# Immediately finish build if something fails.
 matrix:
   fast_finish: true
 
-# Install inno setup
+# Install inno setup.
 install:
   - choco install -y InnoSetup
   
-# Disable running any test assemblies
+# Disable running any test assemblies.
 test: off
 
-# Run custom build script
+# Run custom build script.
 build_script:
 - ps: .\build\internal\nightly.ps1
 
-# FTP deployment settings
+# FTP deployment settings.
 deploy:
 - provider: FTP
   host: wj32.org
@@ -49,7 +49,7 @@ deploy:
     secure: lWdlTtxnMMQRjUQ8pndOBPBiJPn8b8ssP1qtSPzIj58=
   folder: /www/rel
 
-# deploy these files to our ftp
+# Deploy these files to our ftp.
 artifacts:
 - path: .\processhacker-nightly-setup.exe
   name: processhacker-nightly-setup.exe
@@ -62,7 +62,7 @@ artifacts:
 - path: .\processhacker-nightly-checksums.txt
   name: processhacker-nightly-checksums.txt
 
-# setup build notifications
+# Setup build notifications.
 notifications:
 - provider: Email
   to:
