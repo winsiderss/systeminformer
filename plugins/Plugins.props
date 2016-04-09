@@ -8,8 +8,6 @@
         <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
         <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
         <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
-        <LinkIncremental Condition="'$(Configuration)'=='Debug'">true</LinkIncremental>
-        <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Debug'">false</WholeProgramOptimization>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
         <!-- Debugging -->
