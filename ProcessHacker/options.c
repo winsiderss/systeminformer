@@ -21,13 +21,16 @@
  */
 
 #include <phapp.h>
-#include <proctree.h>
-#include <settings.h>
-#include <colorbox.h>
-#include <sysinfo.h>
-#include <mainwnd.h>
+
 #include <commdlg.h>
 #include <windowsx.h>
+
+#include <colorbox.h>
+
+#include <mainwnd.h>
+#include <proctree.h>
+#include <settings.h>
+#include <sysinfo.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)
 

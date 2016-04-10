@@ -21,10 +21,12 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
 #include <secedit.h>
-#include <seceditp.h>
+
+#include <guisup.h>
 #include <hndlinfo.h>
+
+#include <seceditp.h>
 
 static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {

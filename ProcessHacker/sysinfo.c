@@ -45,15 +45,17 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
-#include <settings.h>
 #include <sysinfo.h>
-#include <phplug.h>
-#include <windowsx.h>
+#include <sysinfop.h>
+
 #include <uxtheme.h>
 #include <vssym32.h>
-#include <sysinfop.h>
+#include <windowsx.h>
+
 #include <mainwnd.h>
+#include <phplug.h>
+#include <procprv.h>
+#include <settings.h>
 
 static HANDLE PhSipThread = NULL;
 HWND PhSipWindow = NULL;

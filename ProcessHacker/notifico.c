@@ -21,17 +21,20 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
-#include <settings.h>
-#include <extmgri.h>
-#include <miniinfo.h>
-#include <phplug.h>
 #include <notifico.h>
-#include <notificop.h>
-#include <mainwnd.h>
-#include <mainwndp.h>
+
 #include <shellapi.h>
 #include <windowsx.h>
+
+#include <extmgri.h>
+#include <mainwnd.h>
+#include <miniinfo.h>
+#include <phplug.h>
+#include <procprv.h>
+#include <settings.h>
+
+#include <mainwndp.h>
+#include <notificop.h>
 
 BOOLEAN PhNfTerminating = FALSE;
 ULONG PhNfIconMask;

@@ -71,9 +71,10 @@
  */
 
 #include <phbase.h>
-#include <queuedlock.h>
+
 #include <fastlock.h>
 #include <phintrnl.h>
+#include <queuedlock.h>
 
 VOID FASTCALL PhpfOptimizeQueuedLockList(
     _Inout_ PPH_QUEUED_LOCK QueuedLock,

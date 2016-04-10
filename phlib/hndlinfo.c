@@ -22,6 +22,7 @@
 
 #include <ph.h>
 #include <hndlinfo.h>
+
 #include <kphuser.h>
 #include <lsasup.h>
 

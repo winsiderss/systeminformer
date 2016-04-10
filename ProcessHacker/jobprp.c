@@ -21,9 +21,11 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
+
 #include <hndlinfo.h>
 #include <secedit.h>
+
+#include <procprv.h>
 #include <settings.h>
 
 typedef struct _JOB_PAGE_CONTEXT

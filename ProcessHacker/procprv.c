@@ -52,16 +52,19 @@
 
 #include <phapp.h>
 #include <procprv.h>
-#include <srvprv.h>
-#include <workqueue.h>
-#include <kphuser.h>
+
+#include <shellapi.h>
+#include <winsta.h>
+
 #include <hndlinfo.h>
+#include <kphuser.h>
 #include <lsasup.h>
+#include <verify.h>
+#include <workqueue.h>
+
 #include <extmgri.h>
 #include <phplug.h>
-#include <verify.h>
-#include <winsta.h>
-#include <shellapi.h>
+#include <srvprv.h>
 
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))

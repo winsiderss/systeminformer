@@ -21,8 +21,9 @@
  */
 
 #include <ph.h>
-#include <phintrnl.h>
+
 #include <filestream.h>
+#include <phintrnl.h>
 #include <symprv.h>
 
 BOOLEAN PhInitializeSystem(

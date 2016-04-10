@@ -22,15 +22,17 @@
 
 #include <phapp.h>
 #include <netlist.h>
-#include <procprv.h>
-#include <netprv.h>
-#include <settings.h>
-#include <extmgri.h>
-#include <colmgr.h>
-#include <phplug.h>
-#include <mainwnd.h>
+
 #include <cpysave.h>
 #include <emenu.h>
+
+#include <colmgr.h>
+#include <extmgri.h>
+#include <mainwnd.h>
+#include <netprv.h>
+#include <phplug.h>
+#include <procprv.h>
+#include <settings.h>
 
 BOOLEAN PhpNetworkNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

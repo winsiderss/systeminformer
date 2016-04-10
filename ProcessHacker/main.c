@@ -21,24 +21,27 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
-#include <srvprv.h>
-#include <netprv.h>
-#include <modprv.h>
-#include <thrdprv.h>
-#include <hndlprv.h>
-#include <memprv.h>
+
+#include <shlobj.h>
+
+#include <colorbox.h>
+#include <hexedit.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
-#include <hndlinfo.h>
-#include <phsvc.h>
-#include <mainwnd.h>
-#include <procprp.h>
-#include <settings.h>
+
 #include <extmgri.h>
-#include <hexedit.h>
-#include <colorbox.h>
-#include <shlobj.h>
+#include <hndlprv.h>
+#include <mainwnd.h>
+#include <memprv.h>
+#include <modprv.h>
+#include <netprv.h>
+#include <phsvc.h>
+#include <procprp.h>
+#include <procprv.h>
+#include <settings.h>
+#include <srvprv.h>
+#include <thrdprv.h>
 
 LONG PhMainMessageLoop(
     VOID

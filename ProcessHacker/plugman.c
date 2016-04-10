@@ -21,9 +21,10 @@
  */
 
 #include <phapp.h>
-#include <settings.h>
+
 #include <mainwnd.h>
 #include <phplug.h>
+#include <settings.h>
 
 #define IS_PLUGIN_LOADED(Plugin) (!!(Plugin)->AppContext.AppName.Buffer)
 #define STR_OR_DEFAULT(String, Default) ((String) ? (String) : (Default))

@@ -21,10 +21,13 @@
  */
 
 #include <phapp.h>
-#include <actions.h>
-#include <svcsup.h>
-#include <phsvccl.h>
+
 #include <windowsx.h>
+
+#include <svcsup.h>
+
+#include <actions.h>
+#include <phsvccl.h>
 
 INT_PTR CALLBACK PhpCreateServiceDlgProc(
     _In_ HWND hwndDlg,

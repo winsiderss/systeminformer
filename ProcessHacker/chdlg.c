@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
-#include <settings.h>
+
 #include <windowsx.h>
+
+#include <settings.h>
 
 typedef struct _CHOICE_DIALOG_CONTEXT
 {

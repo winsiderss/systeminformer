@@ -62,9 +62,11 @@
  */
 
 #include <phbase.h>
-#include <phintrnl.h>
+
 #include <math.h>
 #include <objbase.h>
+
+#include <phintrnl.h>
 
 #define PH_VECTOR_LEVEL_NONE 0
 #define PH_VECTOR_LEVEL_SSE2 1

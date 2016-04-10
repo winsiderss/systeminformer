@@ -21,9 +21,11 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
 #include <secedit.h>
+
 #include <wmistr.h>
+
+#include <guisup.h>
 
 #define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
 #define ACCESS_ENTRY(Type, HasSynchronize) \

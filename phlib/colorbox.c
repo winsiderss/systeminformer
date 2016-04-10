@@ -21,9 +21,11 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
 #include <colorbox.h>
+
 #include <commdlg.h>
+
+#include <guisup.h>
 
 typedef struct _PHP_COLORBOX_CONTEXT
 {

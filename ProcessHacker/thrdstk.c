@@ -21,12 +21,14 @@
  */
 
 #include <phapp.h>
-#include <thrdprv.h>
+
 #include <kphuser.h>
 #include <symprv.h>
-#include <settings.h>
-#include <phplug.h>
+
 #include <actions.h>
+#include <phplug.h>
+#include <settings.h>
+#include <thrdprv.h>
 
 #define WM_PH_COMPLETED (WM_APP + 301)
 #define WM_PH_STATUS_UPDATE (WM_APP + 302)

@@ -22,17 +22,20 @@
 
 #include <phapp.h>
 #include <procprp.h>
+#include <procprpp.h>
+
+#include <windowsx.h>
+
 #include <cpysave.h>
 #include <emenu.h>
-#include <procprv.h>
-#include <memprv.h>
-#include <memlist.h>
+
 #include <actions.h>
-#include <phplug.h>
 #include <extmgri.h>
 #include <mainwnd.h>
-#include <windowsx.h>
-#include <procprpp.h>
+#include <memlist.h>
+#include <memprv.h>
+#include <phplug.h>
+#include <procprv.h>
 
 static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");
 

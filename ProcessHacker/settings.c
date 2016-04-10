@@ -34,11 +34,12 @@
  * the setting does not exist, an exception will be raised.
  */
 
-#define PH_SETTINGS_PRIVATE
 #include <phapp.h>
-#include "mxml/mxml.h"
+#define PH_SETTINGS_PRIVATE
 #include <settings.h>
 #include <settingsp.h>
+
+#include "mxml/mxml.h"
 
 PPH_HASHTABLE PhSettingsHashtable;
 PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;

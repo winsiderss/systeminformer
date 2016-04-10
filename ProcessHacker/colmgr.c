@@ -21,9 +21,10 @@
  */
 
 #include <phapp.h>
+#include <colmgr.h>
+
 #include <extmgri.h>
 #include <phplug.h>
-#include <colmgr.h>
 
 typedef struct _PH_CM_SORT_CONTEXT
 {

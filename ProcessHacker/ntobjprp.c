@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
+
 #include <hndlinfo.h>
+
+#include <procprv.h>
 
 typedef struct _COMMON_PAGE_CONTEXT
 {

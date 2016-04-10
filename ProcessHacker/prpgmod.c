@@ -22,18 +22,21 @@
 
 #include <phapp.h>
 #include <procprp.h>
+#include <procprpp.h>
+
+#include <uxtheme.h>
+#include <windowsx.h>
+
 #include <cpysave.h>
 #include <emenu.h>
-#include <settings.h>
-#include <procprv.h>
-#include <modprv.h>
-#include <modlist.h>
+
 #include <actions.h>
-#include <phplug.h>
 #include <extmgri.h>
-#include <windowsx.h>
-#include <uxtheme.h>
-#include <procprpp.h>
+#include <modlist.h>
+#include <modprv.h>
+#include <phplug.h>
+#include <procprv.h>
+#include <settings.h>
 
 static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 

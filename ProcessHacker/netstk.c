@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
-#include <netprv.h>
+
 #include <symprv.h>
+
+#include <netprv.h>
 
 typedef struct NETWORK_STACK_CONTEXT
 {

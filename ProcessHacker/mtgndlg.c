@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+
 #include <procmtgn.h>
 
 typedef struct _MITIGATION_POLICY_ENTRY

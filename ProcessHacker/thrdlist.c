@@ -22,13 +22,15 @@
 
 #include <phapp.h>
 #include <thrdlist.h>
-#include <thrdprv.h>
-#include <settings.h>
+
+#include <emenu.h>
+
 #include <extmgri.h>
 #include <phplug.h>
-#include <emenu.h>
 #include <procprp.h>
 #include <procprpp.h>
+#include <settings.h>
+#include <thrdprv.h>
 
 BOOLEAN PhpThreadNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

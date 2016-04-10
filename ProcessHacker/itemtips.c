@@ -21,14 +21,17 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
-#include <srvprv.h>
-#include <svcsup.h>
-#include <phplug.h>
-#include <verify.h>
+
 #define CINTERFACE
 #define COBJMACROS
 #include <taskschd.h>
+
+#include <svcsup.h>
+#include <verify.h>
+
+#include <phplug.h>
+#include <procprv.h>
+#include <srvprv.h>
 
 VOID PhpFillUmdfDrivers(
     _In_ PPH_PROCESS_ITEM Process,

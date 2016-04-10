@@ -21,19 +21,23 @@
  */
 
 #include <phapp.h>
-#include <settings.h>
-#include <symprv.h>
-#include <cpysave.h>
-#include <phappres.h>
-#include <emenu.h>
-#include <svcsup.h>
-#include <actions.h>
-#include <phsvccl.h>
-#include "mxml/mxml.h"
-#include "pcre/pcre2.h"
+
 #include <winsta.h>
 #include <dbghelp.h>
 #include <appmodel.h>
+
+#include <cpysave.h>
+#include <emenu.h>
+#include <svcsup.h>
+#include <symprv.h>
+
+#include <actions.h>
+#include <phappres.h>
+#include <phsvccl.h>
+#include <settings.h>
+
+#include "mxml/mxml.h"
+#include "pcre/pcre2.h"
 
 typedef LONG (WINAPI *_GetPackageFullName)(
     _In_ HANDLE hProcess,

@@ -27,8 +27,10 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
+
 #include <windowsx.h>
+
+#include <guisup.h>
 
 #define PH_MAX_COMPARE_FUNCTIONS 16
 

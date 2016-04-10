@@ -21,8 +21,9 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
 #include <emenu.h>
+
+#include <guisup.h>
 
 static const PH_FLAG_MAPPING EMenuTypeMappings[] =
 {

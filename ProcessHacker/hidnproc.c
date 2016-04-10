@@ -40,13 +40,16 @@
  */
 
 #include <phapp.h>
-#include <kphuser.h>
-#include <procprv.h>
-#include <mainwnd.h>
-#include <settings.h>
 #include <hidnproc.h>
+
 #include <shellapi.h>
 #include <windowsx.h>
+
+#include <kphuser.h>
+
+#include <mainwnd.h>
+#include <procprv.h>
+#include <settings.h>
 
 INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     _In_ HWND hwndDlg,

@@ -22,11 +22,13 @@
 
 #include <phapp.h>
 #include <procprp.h>
-#include <graph.h>
-#include <settings.h>
-#include <procprv.h>
-#include <sysinfo.h>
 #include <procprpp.h>
+
+#include <graph.h>
+
+#include <procprv.h>
+#include <settings.h>
+#include <sysinfo.h>
 
 static VOID NTAPI PerformanceUpdateHandler(
     _In_opt_ PVOID Parameter,

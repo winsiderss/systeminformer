@@ -22,8 +22,9 @@
 
 #include <phapp.h>
 #include <procprp.h>
-#include <kphuser.h>
 #include <procprpp.h>
+
+#include <kphuser.h>
 
 NTSTATUS NTAPI PhpOpenProcessJobForPage(
     _Out_ PHANDLE Handle,

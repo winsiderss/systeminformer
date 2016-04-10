@@ -21,13 +21,16 @@
  */
 
 #include <phapp.h>
-#include <srvprv.h>
-#include <secedit.h>
-#include <phplug.h>
-#include <actions.h>
-#include <svcsup.h>
-#include <phsvccl.h>
+
 #include <windowsx.h>
+
+#include <secedit.h>
+#include <svcsup.h>
+
+#include <actions.h>
+#include <phplug.h>
+#include <phsvccl.h>
+#include <srvprv.h>
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
 {

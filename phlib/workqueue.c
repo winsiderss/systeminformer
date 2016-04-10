@@ -22,8 +22,10 @@
 
 #include <phbase.h>
 #include <workqueue.h>
-#include <workqueuep.h>
+
 #include <phintrnl.h>
+
+#include <workqueuep.h>
 
 static PH_INITONCE PhWorkQueueInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST PhWorkQueueItemFreeList;

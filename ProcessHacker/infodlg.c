@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+
 #include <windowsx.h>
 
 typedef struct _INFORMATION_CONTEXT

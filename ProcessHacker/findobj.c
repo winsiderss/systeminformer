@@ -21,18 +21,22 @@
  */
 
 #include <phapp.h>
+
+#include <windowsx.h>
+
+#include <emenu.h>
+#include <hndlinfo.h>
+#include <kphuser.h>
 #include <workqueue.h>
-#include <procprv.h>
+
+#include <hndlmenu.h>
 #include <hndlprv.h>
 #include <mainwnd.h>
+#include <procprv.h>
 #include <proctree.h>
-#include <emenu.h>
-#include <kphuser.h>
-#include <hndlinfo.h>
 #include <settings.h>
-#include <hndlmenu.h>
+
 #include "pcre/pcre2.h"
-#include <windowsx.h>
 
 #define WM_PH_SEARCH_UPDATE (WM_APP + 801)
 #define WM_PH_SEARCH_FINISHED (WM_APP + 802)

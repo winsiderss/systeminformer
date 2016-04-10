@@ -21,10 +21,12 @@
  */
 
 #include <phapp.h>
+
 #include <kphuser.h>
-#include <hndlprv.h>
 #include <hndlinfo.h>
 #include <secedit.h>
+
+#include <hndlprv.h>
 #include <phplug.h>
 
 typedef struct _HANDLE_PROPERTIES_CONTEXT

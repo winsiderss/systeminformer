@@ -22,34 +22,38 @@
 
 #include <phapp.h>
 #include <mainwnd.h>
-#include <workqueue.h>
-#include <kphuser.h>
-#include <procprv.h>
-#include <srvprv.h>
-#include <netprv.h>
-#include <proctree.h>
-#include <srvlist.h>
-#include <netlist.h>
-#include <procprp.h>
-#include <settings.h>
-#include <emenu.h>
-#include <verify.h>
-#include <phsvccl.h>
-#include <phplug.h>
-#include <cpysave.h>
-#include <notifico.h>
-#include <memsrch.h>
-#include <symprv.h>
-#include <svcsup.h>
-#include <actions.h>
-#include <sysinfo.h>
-#include <miniinfo.h>
-#include <mainwndp.h>
-#include <windowsx.h>
-#include <shlobj.h>
-#include <shellapi.h>
-#include <winsta.h>
+
 #include <iphlpapi.h>
+#include <shellapi.h>
+#include <shlobj.h>
+#include <windowsx.h>
+#include <winsta.h>
+
+#include <cpysave.h>
+#include <emenu.h>
+#include <kphuser.h>
+#include <svcsup.h>
+#include <symprv.h>
+#include <verify.h>
+#include <workqueue.h>
+
+#include <actions.h>
+#include <memsrch.h>
+#include <miniinfo.h>
+#include <netlist.h>
+#include <netprv.h>
+#include <notifico.h>
+#include <phplug.h>
+#include <phsvccl.h>
+#include <procprp.h>
+#include <procprv.h>
+#include <proctree.h>
+#include <settings.h>
+#include <srvlist.h>
+#include <srvprv.h>
+#include <sysinfo.h>
+
+#include <mainwndp.h>
 
 #define RUNAS_MODE_ADMIN 1
 #define RUNAS_MODE_LIMITED 2

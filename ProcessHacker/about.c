@@ -21,15 +21,17 @@
  */
 
 #include <phapp.h>
+
+#include <symprv.h>
+
+#include <hndlprv.h>
+#include <memprv.h>
+#include <modprv.h>
+#include <netprv.h>
 #include <phappres.h>
 #include <procprv.h>
 #include <srvprv.h>
-#include <netprv.h>
-#include <modprv.h>
 #include <thrdprv.h>
-#include <hndlprv.h>
-#include <memprv.h>
-#include <symprv.h>
 
 static INT_PTR CALLBACK PhpAboutDlgProc(
     _In_ HWND hwndDlg,

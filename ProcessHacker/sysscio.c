@@ -21,10 +21,11 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
-#include <settings.h>
 #include <sysinfo.h>
 #include <sysinfop.h>
+
+#include <procprv.h>
+#include <settings.h>
 
 static PPH_SYSINFO_SECTION IoSection;
 static HWND IoDialog;

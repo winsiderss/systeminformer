@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+
 #include <settings.h>
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;

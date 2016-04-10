@@ -59,15 +59,18 @@
  */
 
 #include <phapp.h>
-#include <phsvc.h>
-#include <phsvccl.h>
-#include <actions.h>
-#include <settings.h>
+
+#include <shlwapi.h>
+#include <windowsx.h>
+#include <winsta.h>
+
 #include <emenu.h>
 #include <lsasup.h>
-#include <shlwapi.h>
-#include <winsta.h>
-#include <windowsx.h>
+
+#include <actions.h>
+#include <phsvc.h>
+#include <phsvccl.h>
+#include <settings.h>
 
 typedef struct _RUNAS_DIALOG_CONTEXT
 {

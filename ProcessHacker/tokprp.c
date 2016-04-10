@@ -21,11 +21,13 @@
  */
 
 #include <phapp.h>
-#include <secedit.h>
-#include <emenu.h>
-#include <cpysave.h>
-#include <lsasup.h>
+
 #include <uxtheme.h>
+
+#include <cpysave.h>
+#include <emenu.h>
+#include <lsasup.h>
+#include <secedit.h>
 
 typedef struct _ATTRIBUTE_NODE
 {

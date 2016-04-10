@@ -22,19 +22,22 @@
 
 #include <phapp.h>
 #include <procprp.h>
+#include <procprpp.h>
+
+#include <windowsx.h>
+
 #include <cpysave.h>
 #include <emenu.h>
 #include <kphuser.h>
-#include <settings.h>
-#include <procprv.h>
-#include <hndlprv.h>
-#include <hndllist.h>
+
 #include <actions.h>
-#include <phplug.h>
 #include <extmgri.h>
+#include <hndllist.h>
 #include <hndlmenu.h>
-#include <windowsx.h>
-#include <procprpp.h>
+#include <hndlprv.h>
+#include <phplug.h>
+#include <procprv.h>
+#include <settings.h>
 
 static PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 

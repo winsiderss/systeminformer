@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+
 #include <windowsx.h>
 #include <winsta.h>
 

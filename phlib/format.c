@@ -32,6 +32,7 @@
  */
 
 #include <phbase.h>
+
 #include <locale.h>
 
 extern ULONG PhMaxSizeUnit;

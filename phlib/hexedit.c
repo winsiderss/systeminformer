@@ -21,8 +21,10 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
 #include <hexedit.h>
+
+#include <guisup.h>
+
 #include <hexeditp.h>
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539

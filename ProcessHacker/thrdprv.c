@@ -28,12 +28,14 @@
 
 #include <phapp.h>
 #include <thrdprv.h>
-#include <procprv.h>
-#include <workqueue.h>
+
 #include <kphuser.h>
-#include <symprv.h>
 #include <svcsup.h>
+#include <symprv.h>
+#include <workqueue.h>
+
 #include <extmgri.h>
+#include <procprv.h>
 
 typedef struct _PH_THREAD_QUERY_DATA
 {

@@ -21,12 +21,14 @@
  */
 
 #include <phapp.h>
+#include <sysinfo.h>
+#include <sysinfop.h>
+
+#include <math.h>
+#include <windowsx.h>
+
 #include <procprv.h>
 #include <settings.h>
-#include <sysinfo.h>
-#include <windowsx.h>
-#include <math.h>
-#include <sysinfop.h>
 
 static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;

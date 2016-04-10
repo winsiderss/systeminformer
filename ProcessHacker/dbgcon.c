@@ -27,14 +27,16 @@
  */
 
 #include <phapp.h>
+
 #include <phintrnl.h>
+#include <refp.h>
+#include <symprv.h>
 #include <workqueue.h>
 #include <workqueuep.h>
-#include <refp.h>
+
 #include <procprv.h>
 #include <srvprv.h>
 #include <thrdprv.h>
-#include <symprv.h>
 
 typedef struct _STRING_TABLE_ENTRY
 {

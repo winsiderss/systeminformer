@@ -21,15 +21,18 @@
  */
 
 #include <phapp.h>
-#include <secedit.h>
 #include <phsvc.h>
-#include <lsasup.h>
-#include <svcsup.h>
-#include <phplug.h>
-#include <mainwnd.h>
-#include <extmgri.h>
-#include <symprv.h>
+
 #include <accctrl.h>
+
+#include <lsasup.h>
+#include <secedit.h>
+#include <svcsup.h>
+#include <symprv.h>
+
+#include <extmgri.h>
+#include <mainwnd.h>
+#include <phplug.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
 {

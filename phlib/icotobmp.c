@@ -1,6 +1,8 @@
 #include <ph.h>
-#include <guisup.h>
+
 #include <uxtheme.h>
+
+#include <guisup.h>
 
 // code from http://msdn.microsoft.com/en-us/library/bb757020.aspx
 

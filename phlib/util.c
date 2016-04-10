@@ -21,10 +21,7 @@
  */
 
 #include <ph.h>
-#include <apiimport.h>
-#include <mapimg.h>
-#include <lsasup.h>
-#include <winsta.h>
+
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
@@ -33,6 +30,12 @@
 #include <shlobj.h>
 #undef CINTERFACE
 #undef COBJMACROS
+#include <winsta.h>
+
+#include <apiimport.h>
+#include <lsasup.h>
+#include <mapimg.h>
+
 #include "md5.h"
 #include "sha.h"
 #include "sha256.h"

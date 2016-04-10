@@ -23,13 +23,16 @@
 
 #include <phapp.h>
 #include <netprv.h>
-#include <procprv.h>
-#include <workqueue.h>
-#include <svcsup.h>
+
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
 #include <iphlpapi.h>
+
+#include <svcsup.h>
+#include <workqueue.h>
+
 #include <extmgri.h>
+#include <procprv.h>
 
 typedef struct _PH_NETWORK_CONNECTION
 {

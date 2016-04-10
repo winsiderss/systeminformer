@@ -22,12 +22,15 @@
 
 #include <phapp.h>
 #include <procprp.h>
-#include <procprv.h>
-#include <kphuser.h>
-#include <settings.h>
-#include <phplug.h>
 #include <procprpp.h>
+
 #include <uxtheme.h>
+
+#include <kphuser.h>
+
+#include <phplug.h>
+#include <procprv.h>
+#include <settings.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;

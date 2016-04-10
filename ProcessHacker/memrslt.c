@@ -21,13 +21,17 @@
  */
 
 #include <phapp.h>
+
+#include <windowsx.h>
+
 #include <emenu.h>
+
+#include <mainwnd.h>
+#include <memsrch.h>
 #include <procprv.h>
 #include <settings.h>
-#include <memsrch.h>
-#include <mainwnd.h>
+
 #include "pcre/pcre2.h"
-#include <windowsx.h>
 
 #define FILTER_CONTAINS 1
 #define FILTER_CONTAINS_IGNORECASE 2

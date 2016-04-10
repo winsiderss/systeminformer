@@ -22,10 +22,12 @@
 
 #include <ph.h>
 #include <guisup.h>
-#include <guisupp.h>
+
 #include <shellapi.h>
-#include <windowsx.h>
 #include <uxtheme.h>
+#include <windowsx.h>
+
+#include <guisupp.h>
 
 #define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
 

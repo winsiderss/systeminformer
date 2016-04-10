@@ -22,11 +22,13 @@
 
 #include <phapp.h>
 #include <memlist.h>
-#include <memprv.h>
-#include <settings.h>
-#include <extmgri.h>
-#include <phplug.h>
+
 #include <emenu.h>
+
+#include <extmgri.h>
+#include <memprv.h>
+#include <phplug.h>
+#include <settings.h>
 
 VOID PhpClearMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context

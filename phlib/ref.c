@@ -21,9 +21,10 @@
  */
 
 #include <phbase.h>
+#include <refp.h>
+
 #include <phintrnl.h>
 #include <workqueue.h>
-#include <refp.h>
 
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
 SLIST_HEADER PhObjectDeferDeleteListHead;

@@ -22,11 +22,13 @@
 
 #include <phapp.h>
 #include <modprv.h>
-#include <procprv.h>
-#include <workqueue.h>
+
 #include <mapimg.h>
 #include <verify.h>
+#include <workqueue.h>
+
 #include <extmgri.h>
+#include <procprv.h>
 
 typedef struct _PH_MODULE_QUERY_DATA
 {

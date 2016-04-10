@@ -22,15 +22,17 @@
 
 #include <phapp.h>
 #include <srvlist.h>
-#include <srvprv.h>
-#include <settings.h>
-#include <extmgri.h>
-#include <colmgr.h>
-#include <phplug.h>
+
 #include <cpysave.h>
 #include <emenu.h>
 #include <svcsup.h>
+
+#include <colmgr.h>
+#include <extmgri.h>
 #include <mainwnd.h>
+#include <phplug.h>
+#include <settings.h>
+#include <srvprv.h>
 
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

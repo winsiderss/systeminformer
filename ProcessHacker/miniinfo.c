@@ -22,17 +22,19 @@
 
 #include <phapp.h>
 #include <miniinfo.h>
+#include <miniinfop.h>
+
+#include <emenu.h>
+#include <uxtheme.h>
+#include <windowsx.h>
+
+#include <actions.h>
+#include <mainwnd.h>
+#include <notifico.h>
+#include <phplug.h>
 #include <procprv.h>
 #include <proctree.h>
 #include <settings.h>
-#include <emenu.h>
-#include <actions.h>
-#include <phplug.h>
-#include <notifico.h>
-#include <mainwnd.h>
-#include <windowsx.h>
-#include <uxtheme.h>
-#include <miniinfop.h>
 
 static HWND PhMipContainerWindow = NULL;
 static POINT PhMipSourcePoint;

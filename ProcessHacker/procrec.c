@@ -21,8 +21,9 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
+
 #include <mainwnd.h>
+#include <procprv.h>
 
 typedef struct _PROCESS_RECORD_CONTEXT
 {

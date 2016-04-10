@@ -21,13 +21,15 @@
  */
 
 #include <phapp.h>
-#include <workqueue.h>
-#include <kphuser.h>
-#include <symprv.h>
-#include <procprv.h>
-#include <settings.h>
 #include <sysinfo.h>
 #include <sysinfop.h>
+
+#include <kphuser.h>
+#include <symprv.h>
+#include <workqueue.h>
+
+#include <procprv.h>
+#include <settings.h>
 
 static PPH_SYSINFO_SECTION MemorySection;
 static HWND MemoryDialog;

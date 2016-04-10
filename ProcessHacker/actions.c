@@ -28,20 +28,23 @@
 
 #include <phapp.h>
 #include <actions.h>
-#include <procprv.h>
-#include <srvprv.h>
-#include <netprv.h>
-#include <modprv.h>
-#include <thrdprv.h>
+
+#include <iphlpapi.h>
+#include <winsta.h>
+
+#include <apiimport.h>
+#include <kphuser.h>
+#include <svcsup.h>
+
 #include <hndlprv.h>
 #include <memprv.h>
-#include <settings.h>
-#include <kphuser.h>
+#include <modprv.h>
+#include <netprv.h>
 #include <phsvccl.h>
-#include <svcsup.h>
-#include <apiimport.h>
-#include <winsta.h>
-#include <iphlpapi.h>
+#include <procprv.h>
+#include <settings.h>
+#include <srvprv.h>
+#include <thrdprv.h>
 
 typedef DWORD (WINAPI *_SetTcpEntry)(
     _In_ PMIB_TCPROW pTcpRow

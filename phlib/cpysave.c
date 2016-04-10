@@ -21,9 +21,10 @@
  */
 
 #include <ph.h>
+#include <cpysave.h>
+
 #include <guisup.h>
 #include <treenew.h>
-#include <cpysave.h>
 
 #define TAB_SIZE 8
 

@@ -22,14 +22,16 @@
 
 #include <phapp.h>
 #include <phplug.h>
-#include <procprv.h>
-#include <settings.h>
+
 #include <emenu.h>
+
 #include <colmgr.h>
 #include <extmgri.h>
-#include <notifico.h>
 #include <mainwnd.h>
+#include <notifico.h>
 #include <phsvccl.h>
+#include <procprv.h>
+#include <settings.h>
 
 typedef struct _PHP_PLUGIN_LOAD_ERROR
 {

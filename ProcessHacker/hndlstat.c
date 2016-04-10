@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
-#include <hndlprv.h>
+
 #include <hndlinfo.h>
+
+#include <hndlprv.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
 {

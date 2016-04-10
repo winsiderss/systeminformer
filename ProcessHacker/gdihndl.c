@@ -21,8 +21,10 @@
  */
 
 #include <phapp.h>
-#include <procprv.h>
+
 #include <ntgdi.h>
+
+#include <procprv.h>
 
 typedef struct _GDI_HANDLES_CONTEXT
 {

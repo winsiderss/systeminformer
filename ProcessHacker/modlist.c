@@ -22,12 +22,14 @@
 
 #include <phapp.h>
 #include <modlist.h>
-#include <modprv.h>
-#include <settings.h>
-#include <extmgri.h>
-#include <phplug.h>
+
 #include <emenu.h>
 #include <verify.h>
+
+#include <extmgri.h>
+#include <modprv.h>
+#include <phplug.h>
+#include <settings.h>
 
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

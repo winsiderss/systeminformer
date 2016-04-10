@@ -22,8 +22,9 @@
 
 #include <phapp.h>
 #include <procprp.h>
-#include <procprv.h>
 #include <procprpp.h>
+
+#include <procprv.h>
 
 static VOID PhpLayoutServiceListControl(
     _In_ HWND hwndDlg,

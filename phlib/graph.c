@@ -21,9 +21,11 @@
  */
 
 #include <ph.h>
-#include <guisup.h>
-#include <graph.h>
+
 #include <math.h>
+
+#include <graph.h>
+#include <guisup.h>
 
 #define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
 

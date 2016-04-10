@@ -22,12 +22,14 @@
 
 #include <phapp.h>
 #include <hndlmenu.h>
-#include <procprv.h>
-#include <mainwnd.h>
-#include <procprp.h>
-#include <kphuser.h>
+
 #include <emenu.h>
 #include <hndlinfo.h>
+#include <kphuser.h>
+
+#include <mainwnd.h>
+#include <procprp.h>
+#include <procprv.h>
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
     _In_ struct _PH_EMENU_ITEM *Menu,

@@ -21,11 +21,14 @@
  */
 
 #include <ph.h>
-#include <workqueue.h>
-#include <kphuser.h>
-#include <fastlock.h>
-#include <dbghelp.h>
 #include <symprv.h>
+
+#include <dbghelp.h>
+
+#include <fastlock.h>
+#include <kphuser.h>
+#include <workqueue.h>
+
 #include <symprvp.h>
 
 typedef struct _PH_SYMBOL_MODULE

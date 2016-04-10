@@ -22,11 +22,14 @@
 
 #include <phapp.h>
 #include <procprp.h>
+#include <procprpp.h>
+
+#include <uxtheme.h>
+
 #include <cpysave.h>
 #include <emenu.h>
+
 #include <procprv.h>
-#include <uxtheme.h>
-#include <procprpp.h>
 
 typedef struct _EDIT_ENV_DIALOG_CONTEXT
 {

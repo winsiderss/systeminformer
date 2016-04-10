@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+typedef struct _PSP *HPROPSHEETPAGE;
+
 // secedit
 
 typedef struct _PH_ACCESS_ENTRY
