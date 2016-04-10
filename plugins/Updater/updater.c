@@ -461,7 +461,7 @@ BOOLEAN QueryUpdateData(
 
         //Find the hash node
         Context->Hash = PhGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "sha1", NULL, NULL, MXML_DESCEND)
+            mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->Hash))
             __leave;
@@ -864,7 +864,7 @@ NTSTATUS UpdateDownloadThread(
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
             BYTE buffer[PAGE_SIZE];
-            BYTE hashBuffer[20];
+            BYTE hashBuffer[32];
 
             PH_HASH_CONTEXT hashContext;
             IO_STATUS_BLOCK isb;
@@ -882,7 +882,7 @@ NTSTATUS UpdateDownloadThread(
             }
 
             // Initialize hash algorithm.
-            PhInitializeHash(&hashContext, Sha1HashAlgorithm);
+            PhInitializeHash(&hashContext, Sha256HashAlgorithm);
 
             // Zero the buffer.
             memset(buffer, 0, PAGE_SIZE);
@@ -950,10 +950,10 @@ NTSTATUS UpdateDownloadThread(
             }
 
             // Compute hash result (will fail if file not downloaded correctly).
-            if (PhFinalHash(&hashContext, &hashBuffer, 20, NULL))
+            if (PhFinalHash(&hashContext, &hashBuffer, 32, NULL))
             {
                 // Allocate our hash string, hex the final hash result in our hashBuffer.
-                PPH_STRING hexString = PhBufferToHexString(hashBuffer, 20);
+                PPH_STRING hexString = PhBufferToHexString(hashBuffer, 32);
 
                 if (PhEqualString(hexString, context->Hash, TRUE))
                 {
