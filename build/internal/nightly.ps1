@@ -564,11 +564,6 @@ function GenerateHashes()
     Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip" -Algorithm SHA256 -OutVariable +array | Out-Null
     Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" -Algorithm SHA1 -OutVariable +array | Out-Null
     Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" -Algorithm SHA256 -OutVariable +array | Out-Null
-    
-    # Add the compile time to the Arraylist
-    $array += [PSCustomObject]@{
-        "Build Time" = ($global:TimeStart).ToLongDateString() + ", " + ($global:TimeStart).ToLongTimeString();
-    };
 
     # Convert the Arraylist to a string
     $data = $array | Out-String
