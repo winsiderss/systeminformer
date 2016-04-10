@@ -76,15 +76,6 @@ function BuildSolution([string] $FileName)
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($FileName);
 
     Write-Host "Building $baseName" -NoNewline -ForegroundColor Cyan
-    
-    if ($rebuild)
-    {
-        $buildTarget = "Rebuild";
-    }
-    else
-    {
-        $buildTarget = "Build";
-    }
 
     # Debug builds
     & $msBuild  "/m",
@@ -93,7 +84,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Debug",
                 "/p:Platform=Win32",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:$buildTarget",
+                "/target:Rebuild",
                 "$FileName"
 
     & $msBuild  "/m",
@@ -102,7 +93,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Debug",
                 "/p:Platform=x64",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:$buildTarget",
+                "/target:Rebuild",
                 "$FileName"
     
     # Release builds
@@ -112,7 +103,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Release",
                 "/p:Platform=Win32",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:$buildTarget",
+                "/target:Rebuild",
                 "$FileName"
 
     & $msBuild  "/m",
@@ -121,7 +112,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Release",
                 "/p:Platform=x64",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:$buildTarget",
+                "/target:Rebuild",
                 "$FileName"
 
     if ($LASTEXITCODE -eq 0)
@@ -332,9 +323,12 @@ function main()
     # Cleanup old builds
     CleanSdk;
 
-    # Build the main solution
-    BuildSolution("ProcessHacker.sln");
-    
+    if ($rebuild)
+    {
+        # Build the main solution
+        BuildSolution("ProcessHacker.sln");
+    }
+
     # Setup the SDK files required by the plugins
     SetupSdkHeaders;
 
