@@ -3,6 +3,8 @@ Process Hacker
 3.0
  * HIGHLIGHTS:
  * OTHER CHANGES:
+ * NOTE:
+   * Support for Windows XP and Vista has been dropped. For those platforms, use Process Hacker 2.38.
 
 2.39
  * HIGHLIGHTS:
