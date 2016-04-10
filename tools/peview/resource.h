@@ -26,6 +26,7 @@
 #define IDC_VERSION                     1013
 #define IDC_VERSIONSTRING               1014
 #define IDC_IMAGEBASE                   1015
+#define IDC_ENTRYPOINT                  1016
 #define IDC_NAME                        1044
 #define IDC_COMPANYNAME_LINK            1279
 
@@ -35,7 +36,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
