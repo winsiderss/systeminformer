@@ -1,4 +1,4 @@
-base=..\..\ProcessHacker\include
+base=ProcessHacker\include
 modes=phapppub
 in=phapp.h;appsup.h;phfwddef.h;procprv.h;srvprv.h;netprv.h;modprv.h;thrdprv.h;hndlprv.h;memprv.h;phuisup.h;colmgr.h;proctree.h;srvlist.h;netlist.h;thrdlist.h;modlist.h;hndllist.h;memlist.h;extmgr.h;mainwnd.h;notifico.h;settings.h;phplug.h;actions.h;procprp.h;procprpp.h;phsvccl.h;sysinfo.h;procgrp.h;miniinfo.h
 out=..\sdk\phapppub.h

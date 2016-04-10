@@ -332,25 +332,19 @@ function BuildPublicHeaders()
 {
     Write-Host "Building public headers" -NoNewline -ForegroundColor Cyan
 
-    # Change the current directory to the include directory (Required by phapppub_options.txt)
-    Push-Location "ProcessHacker\include\"
-
     # Set GenerateHeader path
-    $genheader = "..\..\tools\GenerateHeader\GenerateHeader\bin\Release\GenerateHeader.exe"
+    $genheader = "tools\GenerateHeader\GenerateHeader\bin\Release\GenerateHeader.exe"
 
     if ($global:debug_enabled)
     {
         # call the executable
-        & $genheader "..\..\build\sdk\phapppub_options.txt"
+        & $genheader "build\sdk\phapppub_options.txt"
     }
     else
     {
         # call the executable (no output)
-        & $genheader "..\..\build\sdk\phapppub_options.txt" | Out-Null
+        & $genheader "build\sdk\phapppub_options.txt" | Out-Null
     }    
-
-    # Revert to the base directory
-    Pop-Location
 
     if ($LASTEXITCODE -eq 0)
     {
