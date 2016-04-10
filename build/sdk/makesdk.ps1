@@ -20,6 +20,9 @@
 # along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# Script entry-point arguments:
+Param([bool] $rebuild);
+
 function InitializeScriptEnvironment()
 {
     # Get script start time
@@ -54,11 +57,6 @@ function CheckBaseDirectory()
 
 function CleanSdk()
 {
-    if (Test-Path "bin")
-    {
-        Remove-Item "bin" -Recurse -Force
-    }
-
     if (Test-Path "sdk")
     {
         Remove-Item "sdk" -Recurse -Force
@@ -79,7 +77,14 @@ function BuildSolution([string] $FileName)
 
     Write-Host "Building $baseName" -NoNewline -ForegroundColor Cyan
     
-    #"/nodeReuse:true",
+    if ($rebuild)
+    {
+        $buildTarget = "Rebuild";
+    }
+    else
+    {
+        $buildTarget = "Build";
+    }
 
     # Debug builds
     & $msBuild  "/m",
@@ -88,7 +93,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Debug",
                 "/p:Platform=Win32",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:Rebuild",
+                "/target:$buildTarget",
                 "$FileName"
 
     & $msBuild  "/m",
@@ -97,7 +102,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Debug",
                 "/p:Platform=x64",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:Rebuild",
+                "/target:$buildTarget",
                 "$FileName"
     
     # Release builds
@@ -107,7 +112,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Release",
                 "/p:Platform=Win32",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:Rebuild",
+                "/target:$buildTarget",
                 "$FileName"
 
     & $msBuild  "/m",
@@ -116,7 +121,7 @@ function BuildSolution([string] $FileName)
                 "/p:Configuration=Release",
                 "/p:Platform=x64",
                 "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:Rebuild",
+                "/target:$buildTarget",
                 "$FileName"
 
     if ($LASTEXITCODE -eq 0)
@@ -353,8 +358,6 @@ function main()
 
     #
     ShowBuildTime;
-
-    Start-Sleep 10;
 }
 
 # Entry point
