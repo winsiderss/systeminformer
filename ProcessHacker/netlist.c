@@ -28,6 +28,7 @@
 #include <extmgri.h>
 #include <colmgr.h>
 #include <phplug.h>
+#include <mainwnd.h>
 #include <cpysave.h>
 #include <emenu.h>
 

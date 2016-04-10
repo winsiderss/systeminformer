@@ -30,6 +30,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <svcsup.h>
+#include <mainwnd.h>
 
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

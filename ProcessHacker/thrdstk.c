@@ -26,6 +26,7 @@
 #include <symprv.h>
 #include <settings.h>
 #include <phplug.h>
+#include <actions.h>
 
 #define WM_PH_COMPLETED (WM_APP + 301)
 #define WM_PH_STATUS_UPDATE (WM_APP + 302)
@@ -96,7 +97,7 @@ VOID PhShowThreadStackDialog(
     // but KProcessHacker is not loaded, show an error message.
     if (ProcessId == SYSTEM_PROCESS_ID && !KphIsConnected())
     {
-        PhShowError(ParentWindowHandle, KPH_ERROR_MESSAGE);
+        PhShowError(ParentWindowHandle, PH_KPH_ERROR_MESSAGE);
         return;
     }
 

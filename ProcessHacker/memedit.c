@@ -24,6 +24,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <hexedit.h>
+#include <mainwnd.h>
 #include <windowsx.h>
 
 #define WM_PH_SELECT_OFFSET (WM_APP + 300)

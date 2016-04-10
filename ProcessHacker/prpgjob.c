@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprp.h>
 #include <kphuser.h>
 #include <procprpp.h>
 

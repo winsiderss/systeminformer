@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprp.h>
 #include <graph.h>
 #include <settings.h>
 #include <procprv.h>

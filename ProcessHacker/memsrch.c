@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <procprv.h>
 #include <memsrch.h>
+#include <mainwnd.h>
 #include <windowsx.h>
 
 #define WM_PH_MEMORY_STATUS_UPDATE (WM_APP + 301)

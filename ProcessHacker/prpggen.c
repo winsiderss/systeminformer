@@ -21,12 +21,14 @@
  */
 
 #include <phapp.h>
+#include <procprp.h>
 #include <secedit.h>
 #include <verify.h>
 #include <settings.h>
 #include <procprv.h>
 #include <actions.h>
 #include <procmtgn.h>
+#include <mainwnd.h>
 #include <windowsx.h>
 #include <procprpp.h>
 

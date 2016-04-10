@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprp.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <secedit.h>

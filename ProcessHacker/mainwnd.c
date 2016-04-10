@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <mainwnd.h>
 #include <workqueue.h>
 #include <kphuser.h>
 #include <procprv.h>
@@ -29,6 +30,7 @@
 #include <proctree.h>
 #include <srvlist.h>
 #include <netlist.h>
+#include <procprp.h>
 #include <settings.h>
 #include <emenu.h>
 #include <verify.h>

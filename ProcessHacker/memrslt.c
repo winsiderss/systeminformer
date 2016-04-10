@@ -25,6 +25,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <memsrch.h>
+#include <mainwnd.h>
 #include "pcre/pcre2.h"
 #include <windowsx.h>
 

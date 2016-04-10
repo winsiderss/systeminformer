@@ -27,6 +27,7 @@
 #include <extmgri.h>
 #include <phplug.h>
 #include <emenu.h>
+#include <procprp.h>
 #include <procprpp.h>
 
 BOOLEAN PhpThreadNodeHashtableEqualFunction(

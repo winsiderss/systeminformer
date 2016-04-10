@@ -26,6 +26,7 @@
 #include <lsasup.h>
 #include <svcsup.h>
 #include <phplug.h>
+#include <mainwnd.h>
 #include <extmgri.h>
 #include <symprv.h>
 #include <accctrl.h>

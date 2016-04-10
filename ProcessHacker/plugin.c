@@ -28,6 +28,7 @@
 #include <colmgr.h>
 #include <extmgri.h>
 #include <notifico.h>
+#include <mainwnd.h>
 #include <phsvccl.h>
 
 typedef struct _PHP_PLUGIN_LOAD_ERROR

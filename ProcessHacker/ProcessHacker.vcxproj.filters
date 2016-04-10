@@ -560,6 +560,15 @@
     <ClInclude Include="include\actions.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\appsup.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mainwnd.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procprp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\cross.bmp">

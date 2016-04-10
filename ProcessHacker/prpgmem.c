@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <procprp.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <procprv.h>
@@ -29,6 +30,7 @@
 #include <actions.h>
 #include <phplug.h>
 #include <extmgri.h>
+#include <mainwnd.h>
 #include <windowsx.h>
 #include <procprpp.h>
 

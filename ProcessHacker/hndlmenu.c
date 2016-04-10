@@ -23,6 +23,8 @@
 #include <phapp.h>
 #include <hndlmenu.h>
 #include <procprv.h>
+#include <mainwnd.h>
+#include <procprp.h>
 #include <kphuser.h>
 #include <emenu.h>
 #include <hndlinfo.h>

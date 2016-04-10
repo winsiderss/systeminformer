@@ -53,6 +53,7 @@
 #include <uxtheme.h>
 #include <vssym32.h>
 #include <sysinfop.h>
+#include <mainwnd.h>
 
 static HANDLE PhSipThread = NULL;
 HWND PhSipWindow = NULL;

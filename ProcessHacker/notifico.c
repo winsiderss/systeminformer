@@ -28,6 +28,7 @@
 #include <phplug.h>
 #include <notifico.h>
 #include <notificop.h>
+#include <mainwnd.h>
 #include <mainwndp.h>
 #include <shellapi.h>
 #include <windowsx.h>

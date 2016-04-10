@@ -1,6 +1,10 @@
 #ifndef PH_ACTIONS_H
 #define PH_ACTIONS_H
 
+#define PH_KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
+    L"or could not be loaded. Make sure Process Hacker is running " \
+    L"with administrative privileges.")
+
 typedef enum _PH_ACTION_ELEVATION_LEVEL
 {
     NeverElevateAction = 0,

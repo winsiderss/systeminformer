@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <mainwnd.h>
 #include <phplug.h>
 
 #define IS_PLUGIN_LOADED(Plugin) (!!(Plugin)->AppContext.AppName.Buffer)

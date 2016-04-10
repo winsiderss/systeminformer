@@ -25,6 +25,7 @@
 #include <settings.h>
 #include <colorbox.h>
 #include <sysinfo.h>
+#include <mainwnd.h>
 #include <commdlg.h>
 #include <windowsx.h>
 

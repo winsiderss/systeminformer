@@ -29,6 +29,7 @@
 #include <actions.h>
 #include <phplug.h>
 #include <notifico.h>
+#include <mainwnd.h>
 #include <windowsx.h>
 #include <uxtheme.h>
 #include <miniinfop.h>

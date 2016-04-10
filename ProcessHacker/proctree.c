@@ -39,6 +39,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <verify.h>
+#include <mainwnd.h>
 
 typedef enum _PHP_AGGREGATE_TYPE
 {

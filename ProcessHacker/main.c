@@ -32,7 +32,8 @@
 #include <lsasup.h>
 #include <hndlinfo.h>
 #include <phsvc.h>
-#include <procprv.h>
+#include <mainwnd.h>
+#include <procprp.h>
 #include <settings.h>
 #include <extmgri.h>
 #include <hexedit.h>

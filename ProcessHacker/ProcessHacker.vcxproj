@@ -336,6 +336,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\actions.h" />
+    <ClInclude Include="include\appsup.h" />
     <ClInclude Include="include\colmgr.h" />
     <ClInclude Include="include\extmgr.h" />
     <ClInclude Include="include\extmgri.h" />
@@ -343,6 +344,7 @@
     <ClInclude Include="include\hndllist.h" />
     <ClInclude Include="include\hndlmenu.h" />
     <ClInclude Include="include\hndlprv.h" />
+    <ClInclude Include="include\mainwnd.h" />
     <ClInclude Include="include\mainwndp.h" />
     <ClInclude Include="include\memlist.h" />
     <ClInclude Include="include\miniinfop.h" />
@@ -355,6 +357,7 @@
     <ClInclude Include="include\phfwddef.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\procmtgn.h" />
+    <ClInclude Include="include\procprp.h" />
     <ClInclude Include="include\procprv.h" />
     <ClInclude Include="include\proctree.h" />
     <ClInclude Include="include\srvlist.h" />

@@ -2,6 +2,10 @@
 #define PH_PHFWDDEF_H
 
 // begin_phapppub
+// phlib
+
+typedef struct _PH_SYMBOL_PROVIDER *PPH_SYMBOL_PROVIDER;
+
 // Providers
 
 typedef struct _PH_PROCESS_ITEM *PPH_PROCESS_ITEM;
@@ -26,6 +30,10 @@ typedef struct _PH_MODULE_NODE *PPH_MODULE_NODE;
 typedef struct _PH_THREAD_NODE *PPH_THREAD_NODE;
 typedef struct _PH_HANDLE_NODE *PPH_HANDLE_NODE;
 typedef struct _PH_MEMORY_NODE *PPH_MEMORY_NODE;
+
+// procprv
+
+typedef struct _PH_PROCESS_PROPCONTEXT *PPH_PROCESS_PROPCONTEXT;
 // end_phapppub
 
 #endif

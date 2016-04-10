@@ -24,6 +24,7 @@
 #include <workqueue.h>
 #include <procprv.h>
 #include <hndlprv.h>
+#include <mainwnd.h>
 #include <proctree.h>
 #include <emenu.h>
 #include <kphuser.h>

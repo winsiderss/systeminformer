@@ -3090,7 +3090,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (!KphIsConnected())
     {
-        PhShowError(hWnd, KPH_ERROR_MESSAGE);
+        PhShowError(hWnd, PH_KPH_ERROR_MESSAGE);
         return FALSE;
     }
 
