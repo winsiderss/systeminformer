@@ -2181,7 +2181,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_SHOW_MEMORY_EDITOR:
         {
-            PPH_SHOWMEMORYEDITOR showMemoryEditor = (PPH_SHOWMEMORYEDITOR)LParam;
+            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)LParam;
 
             PhShowMemoryEditorDialog(
                 showMemoryEditor->ProcessId,
@@ -2198,7 +2198,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_SHOW_MEMORY_RESULTS:
         {
-            PPH_SHOWMEMORYRESULTS showMemoryResults = (PPH_SHOWMEMORYRESULTS)LParam;
+            PPH_SHOW_MEMORY_RESULTS showMemoryResults = (PPH_SHOW_MEMORY_RESULTS)LParam;
 
             PhShowMemoryResultsDialog(
                 showMemoryResults->ProcessId,
@@ -2324,7 +2324,7 @@ ULONG_PTR PhMwpOnUserMessage(
         break;
     case WM_PH_ADD_MENU_ITEM:
         {
-            PPH_ADDMENUITEM addMenuItem = (PPH_ADDMENUITEM)LParam;
+            PPH_ADD_MENU_ITEM addMenuItem = (PPH_ADD_MENU_ITEM)LParam;
 
             return PhMwpLegacyAddPluginMenuItem(addMenuItem);
         }
@@ -2908,16 +2908,16 @@ VOID PhMwpDispatchMenuCommand(
 }
 
 ULONG_PTR PhMwpLegacyAddPluginMenuItem(
-    _In_ PPH_ADDMENUITEM AddMenuItem
+    _In_ PPH_ADD_MENU_ITEM AddMenuItem
     )
 {
-    PPH_ADDMENUITEM addMenuItem;
+    PPH_ADD_MENU_ITEM addMenuItem;
     PPH_PLUGIN_MENU_ITEM pluginMenuItem;
 
     if (!LegacyAddMenuItemList)
         LegacyAddMenuItemList = PhCreateList(8);
 
-    addMenuItem = PhAllocateCopy(AddMenuItem, sizeof(PH_ADDMENUITEM));
+    addMenuItem = PhAllocateCopy(AddMenuItem, sizeof(PH_ADD_MENU_ITEM));
     PhAddItemList(LegacyAddMenuItemList, addMenuItem);
 
     pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
@@ -3124,7 +3124,7 @@ VOID PhMwpInitializeSubMenu(
     if (LegacyAddMenuItemList)
     {
         ULONG i;
-        PPH_ADDMENUITEM addMenuItem;
+        PPH_ADD_MENU_ITEM addMenuItem;
 
         for (i = 0; i < LegacyAddMenuItemList->Count; i++)
         {

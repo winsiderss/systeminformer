@@ -321,9 +321,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     {
                         if (memoryNode->MemoryItem->State & MEM_COMMIT)
                         {
-                            PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
+                            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
 
-                            memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
+                            memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
                             showMemoryEditor->ProcessId = processItem->ProcessId;
                             showMemoryEditor->BaseAddress = memoryNode->MemoryItem->BaseAddress;
                             showMemoryEditor->RegionSize = memoryNode->MemoryItem->RegionSize;
@@ -508,9 +508,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                             if (memoryItem)
                             {
-                                PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
+                                PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
 
-                                memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
+                                memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
                                 showMemoryEditor->ProcessId = processItem->ProcessId;
                                 showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
                                 showMemoryEditor->RegionSize = memoryItem->RegionSize;

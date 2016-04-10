@@ -650,7 +650,7 @@ ULONG_PTR PhPluginAddMenuItem(
     _In_opt_ PVOID Context
     )
 {
-    PH_ADDMENUITEM addMenuItem;
+    PH_ADD_MENU_ITEM addMenuItem;
 
     addMenuItem.Plugin = Plugin;
     addMenuItem.InsertAfter = InsertAfter;

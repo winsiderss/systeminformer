@@ -242,7 +242,7 @@ VOID PhMwpDispatchMenuCommand(
     );
 
 ULONG_PTR PhMwpLegacyAddPluginMenuItem(
-    _In_ PPH_ADDMENUITEM AddMenuItem
+    _In_ PPH_ADD_MENU_ITEM AddMenuItem
     );
 
 HBITMAP PhMwpGetShieldBitmap(

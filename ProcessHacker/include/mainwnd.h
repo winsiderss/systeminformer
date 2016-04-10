@@ -103,7 +103,7 @@ extern BOOLEAN PhMainWndExiting;
 #define ProcessHacker_IconClick(hWnd) \
     SendMessage(hWnd, WM_PH_ICON_CLICK, 0, 0)
 
-typedef struct _PH_SHOWMEMORYEDITOR
+typedef struct _PH_SHOW_MEMORY_EDITOR
 {
     HANDLE ProcessId;
     PVOID BaseAddress;
@@ -112,21 +112,22 @@ typedef struct _PH_SHOWMEMORYEDITOR
     ULONG SelectLength;
     PPH_STRING Title;
     ULONG Flags;
-} PH_SHOWMEMORYEDITOR, *PPH_SHOWMEMORYEDITOR;
+} PH_SHOW_MEMORY_EDITOR, *PPH_SHOW_MEMORY_EDITOR;
 
-typedef struct _PH_SHOWMEMORYRESULTS
+typedef struct _PH_SHOW_MEMORY_RESULTS
 {
     HANDLE ProcessId;
     PPH_LIST Results;
-} PH_SHOWMEMORYRESULTS, *PPH_SHOWMEMORYRESULTS;
+} PH_SHOW_MEMORY_RESULTS, *PPH_SHOW_MEMORY_RESULTS;
 
 // begin_phapppub
 typedef struct _PH_LAYOUT_PADDING_DATA
 {
     RECT Padding;
 } PH_LAYOUT_PADDING_DATA, *PPH_LAYOUT_PADDING_DATA;
+// end_phapppub
 
-typedef struct _PH_ADDMENUITEM
+typedef struct _PH_ADD_MENU_ITEM
 {
     _In_ PVOID Plugin;
     _In_ ULONG Location;
@@ -135,8 +136,9 @@ typedef struct _PH_ADDMENUITEM
     _In_ ULONG Id;
     _In_ PWSTR Text;
     _In_opt_ PVOID Context;
-} PH_ADDMENUITEM, *PPH_ADDMENUITEM;
+} PH_ADD_MENU_ITEM, *PPH_ADD_MENU_ITEM;
 
+// begin_phapppub
 typedef HWND (NTAPI *PPH_TAB_PAGE_CREATE_FUNCTION)(
     _In_ PVOID Context
     );

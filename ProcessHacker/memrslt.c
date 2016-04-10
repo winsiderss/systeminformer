@@ -567,7 +567,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             PPH_MEMORY_RESULT result = context->Results->Items[index];
                             HANDLE processHandle;
                             MEMORY_BASIC_INFORMATION basicInfo;
-                            PPH_SHOWMEMORYEDITOR showMemoryEditor;
+                            PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
 
                             if (NT_SUCCESS(status = PhOpenProcess(
                                 &processHandle,
@@ -584,8 +584,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     NULL
                                     )))
                                 {
-                                    showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
-                                    memset(showMemoryEditor, 0, sizeof(PH_SHOWMEMORYEDITOR));
+                                    showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
+                                    memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
                                     showMemoryEditor->ProcessId = context->ProcessId;
                                     showMemoryEditor->BaseAddress = basicInfo.BaseAddress;
                                     showMemoryEditor->RegionSize = basicInfo.RegionSize;
