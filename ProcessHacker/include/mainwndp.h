@@ -211,11 +211,6 @@ VOID PhMwpLayout(
     _Inout_ HDWP *DeferHandle
     );
 
-VOID PhMwpSetCheckOpacityMenu(
-    _In_ BOOLEAN AssumeAllUnchecked,
-    _In_ ULONG Opacity
-    );
-
 VOID PhMwpSetupComputerMenu(
     _In_ PPH_EMENU_ITEM Root
     );
@@ -277,16 +272,16 @@ VOID PhMwpSelectionChangedTabControl(
     _In_ ULONG OldIndex
     );
 
-PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
-    _In_ PPH_ADDITIONAL_TAB_PAGE TabPage
+PPH_MAIN_TAB_PAGE PhMwpCreateTabPage(
+    _In_ PPH_MAIN_TAB_PAGE Template
     );
 
 VOID PhMwpSelectTabPage(
     _In_ ULONG Index
     );
 
-INT PhMwpFindTabPageIndex(
-    _In_ PWSTR Text
+PPH_MAIN_TAB_PAGE PhMwpFindTabPage(
+    _In_ PPH_STRINGREF Name
     );
 
 // Notifications
@@ -294,10 +289,6 @@ INT PhMwpFindTabPageIndex(
 VOID PhMwpAddIconProcesses(
     _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG NumberOfProcesses
-    );
-
-VOID PhMwpShowIconContextMenu(
-    _In_ POINT Location
     );
 
 VOID PhMwpClearLastNotificationDetails(

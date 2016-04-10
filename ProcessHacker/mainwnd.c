@@ -73,16 +73,14 @@ static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
 static RECT LayoutPadding = { 0, 0, 0, 0 };
 static BOOLEAN LayoutPaddingValid = TRUE;
 static HWND TabControlHandle;
-static INT ProcessesTabIndex;
-static INT ServicesTabIndex;
-static INT NetworkTabIndex;
-static INT MaxTabIndex;
+static PPH_LIST PageList;
+static PPH_MAIN_TAB_PAGE CurrentPage;
 static INT OldTabIndex;
-static PPH_LIST AdditionalTabPageList = NULL;
+static HFONT CurrentCustomFont;
+
 static HWND ProcessTreeListHandle;
 static HWND ServiceTreeListHandle;
 static HWND NetworkTreeListHandle;
-static HFONT CurrentCustomFont;
 
 static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN ServiceTreeListLoaded = FALSE;
@@ -261,10 +259,10 @@ BOOLEAN PhMainWndInitialization(
 
     if (PhStartupParameters.SelectTab)
     {
-        INT tabIndex = PhMwpFindTabPageIndex(PhStartupParameters.SelectTab->Buffer);
+        PPH_MAIN_TAB_PAGE page = PhMwpFindTabPage(&PhStartupParameters.SelectTab->sr);
 
-        if (tabIndex != -1)
-            PhMwpSelectTabPage(tabIndex);
+        if (page)
+            PhMwpSelectTabPage(page->Index);
     }
 
     if (PhStartupParameters.SysInfo)
@@ -459,7 +457,6 @@ VOID PhMwpInitializeControls(
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
     ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
-    MaxTabIndex = NetworkTabIndex;
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
 
@@ -785,41 +782,14 @@ VOID PhMwpOnCommand(
                 { L"All files (*.*)", L"*.*" }
             };
             PVOID fileDialog = PhCreateSaveFileDialog();
-            ULONG selectedTab = TabCtrl_GetCurSel(TabControlHandle);
-            PWSTR tabText = L"Output";
-            PPH_ADDITIONAL_TAB_PAGE selectedTabPage = NULL;
+            PH_FORMAT format[3];
 
-            if (selectedTab == ProcessesTabIndex)
-            {
-                tabText = L"Processes";
-            }
-            else if (selectedTab == ServicesTabIndex)
-            {
-                tabText = L"Services";
-            }
-            else if (selectedTab == NetworkTabIndex)
-            {
-                tabText = L"Network";
-            }
-            else if (AdditionalTabPageList)
-            {
-                ULONG i;
-
-                for (i = 0; i < AdditionalTabPageList->Count; i++)
-                {
-                    PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
-
-                    if (tabPage->Index == selectedTab)
-                    {
-                        selectedTabPage = tabPage;
-                        tabText = selectedTabPage->Text;
-                        break;
-                    }
-                }
-            }
+            PhInitFormatS(&format[0], L"Process Hacker ");
+            PhInitFormatSR(&format[1], CurrentPage->Name);
+            PhInitFormatS(&format[2], L".txt");
 
             PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-            PhSetFileDialogFileName(fileDialog, PhaFormatString(L"Process Hacker %s.txt", tabText)->Buffer);
+            PhSetFileDialogFileName(fileDialog, PH_AUTO_T(PH_STRING, PhFormat(format, 3, 60))->Buffer);
 
             if (PhShowFileDialog(PhMainWndHandle, fileDialog))
             {
@@ -841,6 +811,7 @@ VOID PhMwpOnCommand(
                     )))
                 {
                     ULONG mode;
+                    PH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent;
 
                     if (filterIndex == 2)
                         mode = PH_EXPORT_MODE_CSV;
@@ -850,25 +821,9 @@ VOID PhMwpOnCommand(
                     PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
                     PhWritePhTextHeader(fileStream);
 
-                    if (selectedTab == ProcessesTabIndex)
-                    {
-                        PhWriteProcessTree(fileStream, mode);
-                    }
-                    else if (selectedTab == ServicesTabIndex)
-                    {
-                        PhWriteServiceList(fileStream, mode);
-                    }
-                    else if (selectedTab == NetworkTabIndex)
-                    {
-                        PhWriteNetworkList(fileStream, mode);
-                    }
-                    else if (selectedTabPage)
-                    {
-                        if (selectedTabPage->SaveContentCallback)
-                        {
-                            selectedTabPage->SaveContentCallback(fileStream, UlongToPtr(mode), NULL, selectedTabPage->Context);
-                        }
-                    }
+                    exportContent.FileStream = fileStream;
+                    exportContent.Mode = mode;
+                    CurrentPage->Callback(CurrentPage, MainTabPageExportContent, &exportContent, NULL);
 
                     PhDereferenceObject(fileStream);
                 }
@@ -1758,7 +1713,7 @@ VOID PhMwpOnCommand(
         {
             ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
-            if (selectedIndex != MaxTabIndex)
+            if (selectedIndex != PageList->Count - 1)
                 selectedIndex++;
             else
                 selectedIndex = 0;
@@ -1773,7 +1728,7 @@ VOID PhMwpOnCommand(
             if (selectedIndex != 0)
                 selectedIndex--;
             else
-                selectedIndex = MaxTabIndex;
+                selectedIndex = PageList->Count - 1;
 
             PhMwpSelectTabPage(selectedIndex);
         }
@@ -1938,14 +1893,8 @@ VOID PhMwpOnSetFocus(
     VOID
     )
 {
-    INT selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
-
-    if (selectedIndex == ProcessesTabIndex)
-        SetFocus(ProcessTreeListHandle);
-    else if (selectedIndex == ServicesTabIndex)
-        SetFocus(ServiceTreeListHandle);
-    else if (selectedIndex == NetworkTabIndex)
-        SetFocus(NetworkTreeListHandle);
+    if (CurrentPage->WindowHandle)
+        SetFocus(CurrentPage->WindowHandle);
 }
 
 VOID PhMwpOnTimer(
@@ -2218,12 +2167,8 @@ ULONG_PTR PhMwpOnUserMessage(
 
             PhMwpSelectTabPage(index);
 
-            if (index == ProcessesTabIndex)
-                SetFocus(ProcessTreeListHandle);
-            else if (index == ServicesTabIndex)
-                SetFocus(ServiceTreeListHandle);
-            else if (index == NetworkTabIndex)
-                SetFocus(NetworkTreeListHandle);
+            if (CurrentPage->WindowHandle)
+                SetFocus(CurrentPage->WindowHandle);
         }
         break;
     case WM_PH_GET_CALLBACK_LAYOUT_PADDING:
@@ -2285,28 +2230,17 @@ ULONG_PTR PhMwpOnUserMessage(
 
                 if (newFont)
                 {
+                    ULONG i;
+
                     if (CurrentCustomFont)
                         DeleteObject(CurrentCustomFont);
-
                     CurrentCustomFont = newFont;
 
-                    SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
-                    SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
-                    SendMessage(NetworkTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
-
-                    if (AdditionalTabPageList)
+                    for (i = 0; i < PageList->Count; i++)
                     {
-                        ULONG i;
+                        PPH_MAIN_TAB_PAGE page = PageList->Items[i];
 
-                        for (i = 0; i < AdditionalTabPageList->Count; i++)
-                        {
-                            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
-
-                            if (tabPage->FontChangedCallback)
-                            {
-                                tabPage->FontChangedCallback((PVOID)newFont, NULL, NULL, tabPage->Context);
-                            }
-                        }
+                        page->Callback(page, MainTabPageFontChanged, newFont, NULL);
                     }
                 }
             }
@@ -2329,9 +2263,9 @@ ULONG_PTR PhMwpOnUserMessage(
             return PhMwpLegacyAddPluginMenuItem(addMenuItem);
         }
         break;
-    case WM_PH_ADD_TAB_PAGE:
+    case WM_PH_CREATE_TAB_PAGE:
         {
-            return (ULONG_PTR)PhMwpAddTabPage((PPH_ADDITIONAL_TAB_PAGE)LParam);
+            return (ULONG_PTR)PhMwpCreateTabPage((PPH_MAIN_TAB_PAGE)LParam);
         }
         break;
     case WM_PH_REFRESH:
@@ -3233,28 +3167,17 @@ VOID PhMwpInitializeSectionMenuItems(
         // Remove the extra separator.
         PhRemoveEMenuItem(Menu, NULL, StartIndex);
     }
-    else if (AdditionalTabPageList)
+    else if (CurrentPage)
     {
-        ULONG i;
+        PH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo;
 
-        for (i = 0; i < AdditionalTabPageList->Count; i++)
+        menuInfo.Menu = Menu;
+        menuInfo.StartIndex = StartIndex;
+
+        if (!CurrentPage->Callback(CurrentPage, MainTabPageInitializeSectionMenuItems, &menuInfo, NULL))
         {
-            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
-
-            if (selectedIndex == tabPage->Index)
-            {
-                if (tabPage->InitializeSectionMenuItemsCallback)
-                {
-                    tabPage->InitializeSectionMenuItemsCallback(Menu, UlongToPtr(StartIndex), NULL, tabPage->Context);
-                }
-                else
-                {
-                    // Remove the extra separator.
-                    PhRemoveEMenuItem(Menu, NULL, StartIndex);
-                }
-
-                break;
-            }
+            // Remove the extra separator.
+            PhRemoveEMenuItem(Menu, NULL, StartIndex);
         }
     }
 }
@@ -3264,7 +3187,6 @@ VOID PhMwpLayoutTabControl(
     )
 {
     RECT rect;
-    INT selectedIndex;
 
     if (!LayoutPaddingValid)
     {
@@ -3276,56 +3198,22 @@ VOID PhMwpLayoutTabControl(
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
     TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
 
-    selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
-
-    if (selectedIndex == ProcessesTabIndex)
+    // Create the tab page window if it doesn't exist.
+    if (!CurrentPage->WindowHandle)
     {
-        *DeferHandle = DeferWindowPos(*DeferHandle, ProcessTreeListHandle, NULL,
+        CurrentPage->Callback(CurrentPage, MainTabPageCreateWindow, &CurrentPage->WindowHandle, NULL);
+
+        if (CurrentPage->WindowHandle)
+            BringWindowToTop(CurrentPage->WindowHandle);
+        if (CurrentCustomFont)
+            CurrentPage->Callback(CurrentPage, MainTabPageFontChanged, CurrentCustomFont, NULL);
+    }
+
+    if (CurrentPage->WindowHandle)
+    {
+        *DeferHandle = DeferWindowPos(*DeferHandle, CurrentPage->WindowHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
-    }
-    else if (selectedIndex == ServicesTabIndex)
-    {
-        *DeferHandle = DeferWindowPos(*DeferHandle, ServiceTreeListHandle, NULL,
-            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER);
-    }
-    else if (selectedIndex == NetworkTabIndex)
-    {
-        *DeferHandle = DeferWindowPos(*DeferHandle, NetworkTreeListHandle, NULL,
-            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER);
-    }
-    else if (AdditionalTabPageList)
-    {
-        ULONG i;
-
-        for (i = 0; i < AdditionalTabPageList->Count; i++)
-        {
-            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
-
-            if (selectedIndex == tabPage->Index)
-            {
-                // Create the tab page window if it doesn't exist.
-                if (!tabPage->WindowHandle)
-                {
-                    tabPage->WindowHandle = tabPage->CreateFunction(tabPage->Context);
-                    BringWindowToTop(tabPage->WindowHandle);
-
-                    if (CurrentCustomFont && tabPage->FontChangedCallback)
-                        tabPage->FontChangedCallback((PVOID)CurrentCustomFont, NULL, NULL, tabPage->Context);
-                }
-
-                if (tabPage->WindowHandle)
-                {
-                    *DeferHandle = DeferWindowPos(*DeferHandle, tabPage->WindowHandle, NULL,
-                        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-                        SWP_NOACTIVATE | SWP_NOZORDER);
-                }
-
-                break;
-            }
-        }
     }
 }
 
@@ -3349,6 +3237,7 @@ VOID PhMwpSelectionChangedTabControl(
 {
     INT selectedIndex;
     HDWP deferHandle;
+    ULONG i;
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
@@ -3378,33 +3267,23 @@ VOID PhMwpSelectionChangedTabControl(
         PhSetEnabledProvider(&NetworkProviderRegistration, FALSE);
     }
 
-    ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
-    ShowWindow(ServiceTreeListHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
-    ShowWindow(NetworkTreeListHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
-
-    // Additional tabs
-
-    if (AdditionalTabPageList)
+    for (i = 0; i < PageList->Count; i++)
     {
-        ULONG i;
+        PPH_MAIN_TAB_PAGE page = PageList->Items[i];
 
-        for (i = 0; i < AdditionalTabPageList->Count; i++)
+        if (page->Index == OldIndex)
         {
-            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+            page->Callback(page, MainTabPageSelected, (PVOID)FALSE, NULL);
 
-            if (tabPage->SelectionChangedCallback)
-            {
-                if (tabPage->Index == OldIndex)
-                {
-                    tabPage->SelectionChangedCallback((PVOID)FALSE, 0, 0, tabPage->Context);
-                }
-                else if (tabPage->Index == selectedIndex)
-                {
-                    tabPage->SelectionChangedCallback((PVOID)TRUE, 0, 0, tabPage->Context);
-                }
-            }
+            if (page->WindowHandle)
+                ShowWindow(page->WindowHandle, SW_HIDE);
+        }
+        else if (page->Index == selectedIndex)
+        {
+            page->Callback(page, MainTabPageSelected, (PVOID)TRUE, NULL);
 
-            ShowWindow(tabPage->WindowHandle, selectedIndex == tabPage->Index ? SW_SHOW : SW_HIDE);
+            if (page->WindowHandle)
+                ShowWindow(page->WindowHandle, SW_SHOW);
         }
     }
 
@@ -3412,31 +3291,36 @@ VOID PhMwpSelectionChangedTabControl(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), IntToPtr(selectedIndex));
 }
 
-PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
-    _In_ PPH_ADDITIONAL_TAB_PAGE TabPage
+PPH_MAIN_TAB_PAGE PhMwpCreateTabPage(
+    _In_ PPH_MAIN_TAB_PAGE Template
     )
 {
-    PPH_ADDITIONAL_TAB_PAGE newTabPage;
+    PPH_MAIN_TAB_PAGE page;
+    PPH_STRING name;
     HDWP deferHandle;
 
-    if (!AdditionalTabPageList)
-        AdditionalTabPageList = PhCreateList(2);
+    page = PhAllocate(sizeof(PH_MAIN_TAB_PAGE));
+    memset(page, 0, sizeof(PH_MAIN_TAB_PAGE));
 
-    newTabPage = PhAllocateCopy(TabPage, sizeof(PH_ADDITIONAL_TAB_PAGE));
-    PhAddItemList(AdditionalTabPageList, newTabPage);
+    page->Name = Template->Name;
+    page->Flags = Template->Flags;
+    page->Callback = Template->Callback;
+    page->Context = Template->Context;
 
-    newTabPage->Index = PhAddTabControlTab(TabControlHandle, MAXINT, newTabPage->Text);
-    MaxTabIndex = newTabPage->Index;
+    PhAddItemList(PageList, page);
 
-    if (newTabPage->WindowHandle)
-        BringWindowToTop(newTabPage->WindowHandle);
+    name = PhCreateString2(&page->Name);
+    page->Index = PhAddTabControlTab(TabControlHandle, MAXINT, name->Buffer);
+    PhDereferenceObject(name);
+
+    page->Callback(page, MainTabPageCreate, NULL, NULL);
 
     // The tab control might need multiple lines, so we need to refresh the layout.
     deferHandle = BeginDeferWindowPos(1);
     PhMwpLayoutTabControl(&deferHandle);
     EndDeferWindowPos(deferHandle);
 
-    return newTabPage;
+    return page;
 }
 
 VOID PhMwpSelectTabPage(
@@ -3450,36 +3334,21 @@ VOID PhMwpSelectTabPage(
     PhMwpSelectionChangedTabControl(oldIndex);
 }
 
-INT PhMwpFindTabPageIndex(
-    _In_ PWSTR Text
+PPH_MAIN_TAB_PAGE PhMwpFindTabPage(
+    _In_ PPH_STRINGREF Name
     )
 {
-    if (PhEqualStringZ(Text, L"Processes", TRUE))
-    {
-        return ProcessesTabIndex;
-    }
-    else if (PhEqualStringZ(Text, L"Services", TRUE))
-    {
-        return ServicesTabIndex;
-    }
-    else if (PhEqualStringZ(Text, L"Network", TRUE))
-    {
-        return NetworkTabIndex;
-    }
-    else if (AdditionalTabPageList)
-    {
-        ULONG i;
+    ULONG i;
 
-        for (i = 0; i < AdditionalTabPageList->Count; i++)
-        {
-            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+    for (i = 0; i < PageList->Count; i++)
+    {
+        PPH_MAIN_TAB_PAGE page = PageList->Items[i];
 
-            if (PhEqualStringZ(tabPage->Text, Text, TRUE))
-                return tabPage->Index;
-        }
+        if (PhEqualStringRef(page->Name, Name, TRUE))
+            return page;
     }
 
-    return -1;
+    return NULL;
 }
 
 static int __cdecl IconProcessesCpuUsageCompare(

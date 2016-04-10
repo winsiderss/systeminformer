@@ -50,7 +50,7 @@ extern BOOLEAN PhMainWndExiting;
 // begin_phapppub
 #define WM_PH_INVOKE (WM_APP + 138)
 #define WM_PH_ADD_MENU_ITEM (WM_APP + 139)
-#define WM_PH_ADD_TAB_PAGE (WM_APP + 140)
+#define WM_PH_CREATE_TAB_PAGE (WM_APP + 140)
 #define WM_PH_REFRESH (WM_APP + 141)
 #define WM_PH_GET_UPDATE_AUTOMATICALLY (WM_APP + 142)
 #define WM_PH_SET_UPDATE_AUTOMATICALLY (WM_APP + 143)
@@ -91,8 +91,8 @@ extern BOOLEAN PhMainWndExiting;
     PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
 #define ProcessHacker_AddMenuItem(hWnd, AddMenuItem) \
     ((ULONG_PTR)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
-#define ProcessHacker_AddTabPage(hWnd, TabPage) \
-    ((PPH_ADDITIONAL_TAB_PAGE)SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage)))
+#define ProcessHacker_CreateTabPage(hWnd, Template) \
+    ((struct _PH_MAIN_TAB_PAGE *)SendMessage(hWnd, WM_PH_CREATE_TAB_PAGE, 0, (LPARAM)(Template)))
 #define ProcessHacker_Refresh(hWnd) \
     SendMessage(hWnd, WM_PH_REFRESH, 0, 0)
 #define ProcessHacker_GetUpdateAutomatically(hWnd) \
@@ -139,30 +139,57 @@ typedef struct _PH_ADD_MENU_ITEM
 } PH_ADD_MENU_ITEM, *PPH_ADD_MENU_ITEM;
 
 // begin_phapppub
-typedef HWND (NTAPI *PPH_TAB_PAGE_CREATE_FUNCTION)(
-    _In_ PVOID Context
-    );
-
-typedef VOID (NTAPI *PPH_TAB_PAGE_CALLBACK_FUNCTION)(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
-typedef struct _PH_ADDITIONAL_TAB_PAGE
+typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
 {
-    PWSTR Text;
+    MainTabPageCreate,
+    MainTabPageDestroy,
+    MainTabPageCreateWindow, // HWND *Parameter1 (WindowHandle)
+    MainTabPageSelected, // BOOLEAN Parameter1 (Selected)
+    MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
+    MainTabPageInitializeSectionMenuItems, // PPH_MAIN_TAB_PAGE_MENU_INFORMATION Parameter1
+
+    MainTabPageFontChanged, // HFONT Parameter1 (Font)
+    MainTabPageUpdateAutomaticallyChanged, // BOOLEAN Parameter1 (UpdateAutomatically)
+
+    MaxMainTabPageMessage
+} PH_MAIN_TAB_PAGE_MESSAGE;
+
+typedef BOOLEAN (NTAPI *PPH_MAIN_TAB_PAGE_CALLBACK)(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
+typedef struct _PH_MAIN_TAB_PAGE_EXPORT_CONTENT
+{
+    PPH_FILE_STREAM FileStream;
+    ULONG Mode;
+} PH_MAIN_TAB_PAGE_EXPORT_CONTENT, *PPH_MAIN_TAB_PAGE_EXPORT_CONTENT;
+
+typedef struct _PH_MAIN_TAB_PAGE_MENU_INFORMATION
+{
+    struct _PH_EMENU_ITEM *Menu;
+    ULONG StartIndex;
+} PH_MAIN_TAB_PAGE_MENU_INFORMATION, *PPH_MAIN_TAB_PAGE_MENU_INFORMATION;
+
+typedef struct _PH_MAIN_TAB_PAGE
+{
+    // Public
+
+    PH_STRINGREF Name;
+    ULONG Flags;
+    PPH_MAIN_TAB_PAGE_CALLBACK Callback;
     PVOID Context;
-    PPH_TAB_PAGE_CREATE_FUNCTION CreateFunction;
-    HWND WindowHandle;
     INT Index;
-    PPH_TAB_PAGE_CALLBACK_FUNCTION SelectionChangedCallback;
-    PPH_TAB_PAGE_CALLBACK_FUNCTION SaveContentCallback;
-    PPH_TAB_PAGE_CALLBACK_FUNCTION FontChangedCallback;
-    PPH_TAB_PAGE_CALLBACK_FUNCTION InitializeSectionMenuItemsCallback;
     PVOID Reserved[3];
-} PH_ADDITIONAL_TAB_PAGE, *PPH_ADDITIONAL_TAB_PAGE;
+// end_phapppub
+
+    // Private
+
+    HWND WindowHandle;
+// begin_phapppub
+} PH_MAIN_TAB_PAGE, *PPH_MAIN_TAB_PAGE;
 // end_phapppub
 
 // begin_phapppub
