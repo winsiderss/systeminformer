@@ -20,9 +20,8 @@ clone_folder: C:\projects\processhacker2
 clone_depth: 1
 
 # Do not build on commits, only nightly builds.
-# Force the nightly build by including the string "force-build" in the commit message.
 skip_commits:
-  author: /force-build/
+  author: /.*/
   
 # Immediately finish build if something fails.
 matrix:
