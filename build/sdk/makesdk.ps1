@@ -28,8 +28,8 @@ function InitializeScriptEnvironment()
     # Get script start time
     $global:TimeStart = (Get-Date);
 
-    # Ask the user if we should stop script execution after any errors.
-    $global:ErrorActionPreference = "Inquire";
+    # Stop script execution after any errors.
+    $global:ErrorActionPreference = "Stop";
 
     # Clear the console
     Clear-Host;
