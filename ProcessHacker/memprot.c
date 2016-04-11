@@ -73,6 +73,8 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
         {
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             SetDlgItemText(hwndDlg, IDC_INTRO,
                 L"Possible values:\r\n"
                 L"\r\n"
