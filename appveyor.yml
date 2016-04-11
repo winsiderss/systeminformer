@@ -21,7 +21,7 @@ clone_depth: 1
 
 # Do not build on commits, only nightly builds.
 skip_commits:
-  author: /.*/
+  message: /^(?!.*(appveyor)).*/
   
 # Immediately finish build if something fails.
 matrix:
