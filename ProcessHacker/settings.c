@@ -895,13 +895,6 @@ VOID PhConvertIgnoredSettings(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-mxml_type_t PhpSettingsLoadCallback(
-    _In_ mxml_node_t *node
-    )
-{
-    return MXML_OPAQUE;
-}
-
 NTSTATUS PhLoadSettings(
     _In_ PWSTR FileName
     )
@@ -934,7 +927,7 @@ NTSTATUS PhLoadSettings(
         return status;
     }
 
-    topNode = mxmlLoadFd(NULL, fileHandle, PhpSettingsLoadCallback);
+    topNode = mxmlLoadFd(NULL, fileHandle, MXML_OPAQUE_CALLBACK);
     NtClose(fileHandle);
 
     if (!topNode)
