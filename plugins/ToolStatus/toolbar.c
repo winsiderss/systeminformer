@@ -478,7 +478,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN), FALSE);
             }
             else
             {
@@ -494,7 +494,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN), FALSE);
             }
             else
             {
@@ -510,7 +510,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND_MODERN), FALSE);
             }
             else
             {
@@ -526,7 +526,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN), FALSE);
             }
             else
             {
@@ -542,7 +542,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN), FALSE);
             }
             else
             {
@@ -558,7 +558,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN), FALSE);
             }
             else
             {
@@ -574,7 +574,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS_MODERN), FALSE);
             }
             else
             {
@@ -590,7 +590,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN), FALSE);
             }
             else
             {
@@ -606,7 +606,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER_MODERN));
+                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER_MODERN), FALSE);
             }
             else
             {

@@ -107,7 +107,7 @@ VOID NcAreaInitializeImageList(
     ImageList_SetImageCount(Context->ImageList, 2);
 
     // Add the images to the imagelist
-    if (bitmapActive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE)))
+    if (bitmapActive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {
         ImageList_Replace(Context->ImageList, 0, bitmapActive, NULL);
         DeleteObject(bitmapActive);
@@ -117,7 +117,7 @@ VOID NcAreaInitializeImageList(
         PhSetImageListBitmap(Context->ImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
 
-    if (bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE)))
+    if (bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
     {
         ImageList_Replace(Context->ImageList, 1, bitmapInactive, NULL);
         DeleteObject(bitmapInactive);
@@ -502,7 +502,8 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,
     _In_ UINT Height,
-    _In_ PCWSTR Name
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN RGBAImage
     )
 {
     UINT frameCount = 0;
@@ -527,6 +528,7 @@ HBITMAP LoadImageFromResources(
     WICPixelFormatGUID pixelFormat;
 
     WICRect rect = { 0, 0, Width, Height };
+    GUID imagePixelFormat = RGBAImage ? GUID_WICPixelFormat32bppPRGBA : GUID_WICPixelFormat32bppPBGRA;
 
     __try
     {
@@ -575,7 +577,7 @@ HBITMAP LoadImageFromResources(
             __leave;
 
         // Check if the image format is supported:
-        if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppRGBA)) //  GUID_WICPixelFormat32bppPBGRA
+        if (IsEqualGUID(&pixelFormat, &imagePixelFormat))
         {
             wicBitmapSource = (IWICBitmapSource*)wicFrame;
         }
@@ -589,7 +591,7 @@ HBITMAP LoadImageFromResources(
             if (FAILED(IWICFormatConverter_Initialize(
                 wicFormatConverter,
                 (IWICBitmapSource*)wicFrame,
-                &GUID_WICPixelFormat32bppBGRA,
+                &imagePixelFormat,
                 WICBitmapDitherTypeNone,
                 NULL,
                 0.0,
