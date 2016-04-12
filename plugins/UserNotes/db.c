@@ -22,6 +22,7 @@
  */
 
 #include "usernotes.h"
+#include <commonutil.h>
 
 BOOLEAN NTAPI ObjectDbEqualFunction(
     _In_ PVOID Entry1,
@@ -168,13 +169,6 @@ VOID SetDbPath(
     PhSwapReference(&ObjectDbPath, Path);
 }
 
-mxml_type_t MxmlLoadCallback(
-    _In_ mxml_node_t *node
-    )
-{
-    return MXML_OPAQUE;
-}
-
 PPH_STRING GetOpaqueXmlNodeText(
     _In_ mxml_node_t *node
     )
@@ -219,7 +213,7 @@ NTSTATUS LoadDb(
         return status;
     }
 
-    topNode = mxmlLoadFd(NULL, fileHandle, MxmlLoadCallback);
+    topNode = mxmlLoadFd(NULL, fileHandle, MXML_OPAQUE_CALLBACK);
     NtClose(fileHandle);
 
     if (!topNode)
