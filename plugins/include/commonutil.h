@@ -1,6 +1,8 @@
 #ifndef _COMMONUTIL_H
 #define _COMMONUTIL_H
 
+#include <mxml.h>
+
 FORCEINLINE
 HFONT
 CommonCreateFont(
@@ -50,6 +52,13 @@ CommonDuplicateFont(
         return CreateFontIndirect(&logFont);
     else
         return NULL;
+}
+
+FORCEINLINE
+mxml_type_t
+mxml_opaque_cb(mxml_node_t *node)
+{
+    return MXML_OPAQUE;
 }
 
 #endif
