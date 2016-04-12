@@ -24,6 +24,21 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="page2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page3.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page4.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page5.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="updater.h">
