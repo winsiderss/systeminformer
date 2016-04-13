@@ -29,7 +29,7 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDYES, L"Install Update" }
 };
 
-HRESULT CALLBACK TaskDialogCallbackProc6(
+HRESULT CALLBACK FinalTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -122,7 +122,7 @@ VOID ShowUpdateInstallDialog(
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
 
     config.cxWidth = 200;
-    config.pfCallback = TaskDialogCallbackProc6;
+    config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = Context;
 
     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
@@ -154,7 +154,7 @@ VOID ShowLatestVersionDialog(
         )->Buffer;
 
     config.cxWidth = 200;
-    config.pfCallback = TaskDialogCallbackProc6;
+    config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = Context;
 
     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
@@ -186,7 +186,7 @@ VOID ShowNewerVersionDialog(
         )->Buffer;
 
     config.cxWidth = 200;
-    config.pfCallback = TaskDialogCallbackProc6;
+    config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = Context;
 
     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
@@ -228,7 +228,7 @@ VOID ShowUpdateFailedDialog(
     }
 
     config.cxWidth = 200;
-    config.pfCallback = TaskDialogCallbackProc6;
+    config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = Context;
 
     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);

@@ -91,7 +91,7 @@ VOID ShowAvailableDialog(
     config.hMainIcon = context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"An update for Process Hacker is available:";
+    config.pszMainInstruction = L"An update for Process Hacker is available";
     config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
         context->MajorVersion,
         context->MinorVersion,
