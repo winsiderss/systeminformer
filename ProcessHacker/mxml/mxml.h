@@ -317,10 +317,10 @@ PHMXMLAPI extern mxml_node_t	*mxmlWalkPrev(mxml_node_t *node, mxml_node_t *top,
  */
 
 extern void		mxml_error(const char *format, ...);
-extern mxml_type_t	mxml_ignore_cb(mxml_node_t *node);
-extern mxml_type_t	mxml_integer_cb(mxml_node_t *node);
-extern mxml_type_t	mxml_opaque_cb(mxml_node_t *node);
-extern mxml_type_t	mxml_real_cb(mxml_node_t *node);
+PHMXMLAPI extern mxml_type_t	mxml_ignore_cb(mxml_node_t *node);
+PHMXMLAPI extern mxml_type_t	mxml_integer_cb(mxml_node_t *node);
+PHMXMLAPI extern mxml_type_t	mxml_opaque_cb(mxml_node_t *node);
+PHMXMLAPI extern mxml_type_t	mxml_real_cb(mxml_node_t *node);
 
 
 /*
