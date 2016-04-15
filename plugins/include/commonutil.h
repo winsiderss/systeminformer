@@ -1,6 +1,59 @@
 #ifndef _COMMONUTIL_H
 #define _COMMONUTIL_H
 
+/**
+ * Creates a Ansi string using format specifiers.
+ *
+ * \param Format The format-control string.
+ * \param ArgPtr A pointer to the list of arguments.
+ */
+FORCEINLINE
+PPH_BYTES 
+FormatAnsiString_V(
+    _In_ _Printf_format_string_ PSTR Format,
+    _In_ va_list ArgPtr
+    )
+{
+    PPH_BYTES string;
+    int length;
+
+    length = _vscprintf(Format, ArgPtr);
+
+    if (length == -1)
+        return NULL;
+
+    string = PhCreateBytesEx(NULL, length * sizeof(CHAR));
+
+    _vsnprintf(
+        string->Buffer,
+        length,
+        Format, ArgPtr
+        );
+
+    return string;
+}
+
+/**
+ * Creates a Ansi string using format specifiers.
+ *
+ * \param Format The format-control string.
+ */
+FORCEINLINE
+PPH_BYTES 
+FormatAnsiString(
+    _In_ _Printf_format_string_ PSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+
+    return FormatAnsiString_V(Format, argptr);
+}
+
+
+
 FORCEINLINE
 HFONT
 CommonCreateFont(
