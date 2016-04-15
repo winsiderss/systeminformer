@@ -78,6 +78,11 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
+    <ClCompile Include="page1.c" />
+    <ClCompile Include="page2.c" />
+    <ClCompile Include="page3.c" />
+    <ClCompile Include="page4.c" />
+    <ClCompile Include="page5.c" />
     <ClCompile Include="updater.c" />
   </ItemGroup>
   <ItemGroup>
