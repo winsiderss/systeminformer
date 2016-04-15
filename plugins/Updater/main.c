@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2016 dmex
+ * Copyright (C) 2011-2015 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,10 +23,10 @@
 #include "updater.h"
 
 PPH_PLUGIN PluginInstance;
-PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 
 VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Parameter,
@@ -73,7 +73,48 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    ShowOptionsDialog((HWND)Parameter);
+    DialogBox(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        (HWND)Parameter,
+        OptionsDlgProc
+        );
+}
+
+PPH_STRING PhGetOpaqueXmlNodeText(
+    _In_ mxml_node_t *xmlNode
+    )
+{
+    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
+    {
+        return PhConvertUtf8ToUtf16(xmlNode->child->value.opaque);
+    }
+
+    return PhReferenceEmptyString();
+}
+
+BOOL PhInstalledUsingSetup(
+    VOID
+    )
+{
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
+
+    HANDLE keyHandle = NULL;
+
+    // Check uninstall entries for the 'Process_Hacker2_is1' registry key.
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        NtClose(keyHandle);
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 LOGICAL DllMain(

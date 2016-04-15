@@ -22,147 +22,24 @@
 
 #include "updater.h"
 #include <commonutil.h>
+#include <shellapi.h>
 #include <shlobj.h>
 
-HWND UpdateDialogHandle = NULL;
-HANDLE UpdateDialogThreadHandle = NULL;
-PH_EVENT InitializedEvent = PH_EVENT_INIT;
+static HANDLE UpdateDialogThreadHandle = NULL;
+static HWND UpdateDialogHandle = NULL;
+static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
-PPH_UPDATER_CONTEXT CreateUpdateContext(
-    _In_ BOOLEAN StartupCheck
+mxml_type_t QueryXmlDataCallback(
+    _In_ mxml_node_t *node
     )
 {
-    PPH_UPDATER_CONTEXT context;
-
-    context = (PPH_UPDATER_CONTEXT)PhAllocate(sizeof(PH_UPDATER_CONTEXT));
-    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
-    
-    context->StartupCheck = StartupCheck;
-
-    return context;
-}
-
-VOID FreeUpdateContext(
-    _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    if (!Context)
-        return;
-
-    Context->HaveData = FALSE;
-
-    Context->MinorVersion = 0;
-    Context->MajorVersion = 0;
-    Context->RevisionVersion = 0;
-    Context->CurrentMinorVersion = 0;
-    Context->CurrentMajorVersion = 0;
-    Context->CurrentRevisionVersion = 0;
-
-    PhClearReference(&Context->Version);
-    PhClearReference(&Context->RevVersion);
-    PhClearReference(&Context->RelDate);
-    PhClearReference(&Context->Size);
-    PhClearReference(&Context->Hash);
-    PhClearReference(&Context->ReleaseNotesUrl);
-    PhClearReference(&Context->SetupFilePath);
-    PhClearReference(&Context->SetupFileDownloadUrl);
-
-    if (Context->IconSmallHandle)
-    {
-        DeleteObject(Context->IconSmallHandle);
-        Context->IconSmallHandle = NULL;
-    }
-
-    if (Context->IconLargeHandle)
-    {
-        DestroyIcon(Context->IconLargeHandle);
-        Context->IconLargeHandle = NULL;
-    }
-
-    PhFree(Context);
-}
-
-VOID TaskDialogCreateIcons(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    // Load the Process Hacker window icon
-    Context->IconLargeHandle = (HICON)LoadImage(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON),
-        LR_SHARED
-        );
-    Context->IconSmallHandle = (HICON)LoadImage(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON),
-        LR_SHARED
-        );
-
-    // Set the TaskDialog window icons
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
-}
-
-VOID TaskDialogLinkClicked(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    if (!PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
-    {
-        // Launch the ReleaseNotes URL (if it exists) with the default browser
-        PhShellExecute(Context->DialogHandle, Context->ReleaseNotesUrl->Buffer, NULL);
-    }
-}
-
-PPH_STRING UpdaterGetOpaqueXmlNodeText(
-    _In_ mxml_node_t *xmlNode
-    )
-{
-    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
-    {
-        return PhConvertUtf8ToUtf16(xmlNode->child->value.opaque);
-    }
-
-    return PhReferenceEmptyString();
-}
-
-BOOLEAN UpdaterInstalledUsingSetup(
-    VOID
-    )
-{
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
-
-    HANDLE keyHandle = NULL;
-
-    // Check uninstall entries for the 'Process_Hacker2_is1' registry key.
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName,
-        0
-        )))
-    {
-        NtClose(keyHandle);
-        return TRUE;
-    }
-
-    return FALSE;
+    return MXML_OPAQUE;
 }
 
 BOOLEAN LastUpdateCheckExpired(
     VOID
     )
 {
-#ifdef FORCE_UPDATE_CHECK
-    return TRUE;
-#else
     ULONG64 lastUpdateTimeTicks = 0;
     LARGE_INTEGER currentUpdateTimeTicks;
     PPH_STRING lastUpdateTimeString;
@@ -191,7 +68,6 @@ BOOLEAN LastUpdateCheckExpired(
     // Cleanup
     PhDereferenceObject(lastUpdateTimeString);
     return FALSE;
-#endif
 }
 
 PPH_STRING UpdateVersionString(
@@ -262,7 +138,6 @@ PPH_STRING UpdateWindowsString(
 
     return buildLabHeader;
 }
-
 
 BOOLEAN ParseVersionString(
     _Inout_ PPH_UPDATER_CONTEXT Context
@@ -343,6 +218,64 @@ BOOLEAN ReadRequestString(
     return TRUE;
 }
 
+PPH_UPDATER_CONTEXT CreateUpdateContext(
+    VOID
+    )
+{
+    PPH_UPDATER_CONTEXT context;
+
+    context = (PPH_UPDATER_CONTEXT)PhAllocate(sizeof(PH_UPDATER_CONTEXT));
+    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
+
+    return context;
+}
+
+VOID FreeUpdateContext(
+    _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
+    )
+{
+    if (!Context)
+        return;
+
+    Context->HaveData = FALSE;
+    Context->UpdaterState = PhUpdateMaximum;
+
+    Context->MinorVersion = 0;
+    Context->MajorVersion = 0;
+    Context->RevisionVersion = 0;
+    Context->CurrentMinorVersion = 0;
+    Context->CurrentMajorVersion = 0;
+    Context->CurrentRevisionVersion = 0;
+
+    PhClearReference(&Context->Version);
+    PhClearReference(&Context->RevVersion);
+    PhClearReference(&Context->RelDate);
+    PhClearReference(&Context->Size);
+    PhClearReference(&Context->Hash);
+    PhClearReference(&Context->ReleaseNotesUrl);
+    PhClearReference(&Context->SetupFilePath);
+    PhClearReference(&Context->SetupFileDownloadUrl);
+
+    if (Context->FontHandle)
+    {
+        DeleteObject(Context->FontHandle);
+        Context->FontHandle = NULL;
+    }
+
+    if (Context->IconBitmap)
+    {
+        DeleteObject(Context->IconBitmap);
+        Context->IconBitmap = NULL;
+    }
+
+    if (Context->IconHandle)
+    {
+        DestroyIcon(Context->IconHandle);
+        Context->IconHandle = NULL;
+    }
+
+    PhFree(Context);
+}
 
 BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context,
@@ -494,54 +427,54 @@ BOOLEAN QueryUpdateData(
             __leave;
 
         // Load our XML
-        xmlNode = mxmlLoadString(NULL, xmlStringBuffer, MXML_OPAQUE_CALLBACK);
+        xmlNode = mxmlLoadString(NULL, xmlStringBuffer, QueryXmlDataCallback);
         if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
             __leave;
 
         // Find the version node
-        Context->Version = UpdaterGetOpaqueXmlNodeText(
+        Context->Version = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->Version))
             __leave;
 
         // Find the revision node
-        Context->RevVersion = UpdaterGetOpaqueXmlNodeText(
+        Context->RevVersion = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "rev", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->RevVersion))
             __leave;
 
         // Find the release date node
-        Context->RelDate = UpdaterGetOpaqueXmlNodeText(
+        Context->RelDate = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->RelDate))
             __leave;
 
         // Find the size node
-        Context->Size = UpdaterGetOpaqueXmlNodeText(
+        Context->Size = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "size", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->Size))
             __leave;
 
         //Find the hash node
-        Context->Hash = UpdaterGetOpaqueXmlNodeText(
+        Context->Hash = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->Hash))
             __leave;
 
         // Find the release notes URL
-        Context->ReleaseNotesUrl = UpdaterGetOpaqueXmlNodeText(
+        Context->ReleaseNotesUrl = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "relnotes", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
             __leave;
 
         // Find the installer download URL
-        Context->SetupFileDownloadUrl = UpdaterGetOpaqueXmlNodeText(
+        Context->SetupFileDownloadUrl = PhGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "setupurl", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
@@ -576,7 +509,6 @@ BOOLEAN QueryUpdateData(
     return isSuccess;
 }
 
-
 NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
     )
@@ -585,7 +517,7 @@ NTSTATUS UpdateCheckSilentThread(
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
 
-    context = CreateUpdateContext(TRUE);
+    context = CreateUpdateContext();
 
     __try
     {
@@ -605,32 +537,23 @@ NTSTATUS UpdateCheckSilentThread(
         currentVersion = MAKEDLLVERULL(
             context->CurrentMajorVersion,
             context->CurrentMinorVersion,
-            context->CurrentRevisionVersion,
-            0
+            0,
+            context->CurrentRevisionVersion
             );
 
-#ifdef FORCE_UPDATE_CHECK
-#ifdef FORCE_LATEST_VERSION
-        latestVersion = MAKEDLLVERULL(
-            context->CurrentMajorVersion,
-            context->CurrentMinorVersion,
-            context->CurrentRevisionVersion,
-            0
-            );
-#else
+#ifdef DEBUG_UPDATE
         latestVersion = MAKEDLLVERULL(
             9999,
             9999,
-            9999,
-            0
+            0,
+            9999
             );
-#endif
 #else
         latestVersion = MAKEDLLVERULL(
             context->MajorVersion,
             context->MinorVersion,
-            context->RevisionVersion,
-            0
+            0,
+            context->RevisionVersion
             );
 #endif
 
@@ -638,9 +561,8 @@ NTSTATUS UpdateCheckSilentThread(
         if (currentVersion < latestVersion)
         {
             // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-            //Sleep(3000);
+            Sleep(3000);
 
-            // Check if the user hasn't already opened the dialog.
             if (!UpdateDialogHandle)
             {
                 // We have data we're going to cache and pass into the dialog
@@ -694,32 +616,23 @@ NTSTATUS UpdateCheckThread(
     currentVersion = MAKEDLLVERULL(
         context->CurrentMajorVersion,
         context->CurrentMinorVersion,
-        context->CurrentRevisionVersion,
-        0
+        0,
+        context->CurrentRevisionVersion
         );
 
-#ifdef FORCE_UPDATE_CHECK
-#ifdef FORCE_LATEST_VERSION
-    latestVersion = MAKEDLLVERULL(
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion,
-        0
-        );
-#else
+#ifdef DEBUG_UPDATE
     latestVersion = MAKEDLLVERULL(
         9999,
         9999,
-        9999,
-        0
+        0,
+        9999
         );
-#endif
 #else
     latestVersion = MAKEDLLVERULL(
         context->MajorVersion,
         context->MinorVersion,
-        context->RevisionVersion,
-        0
+        0,
+        context->RevisionVersion
         );
 #endif
 
@@ -763,13 +676,8 @@ NTSTATUS UpdateDownloadThread(
     GUID randomGuid;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-    LARGE_INTEGER timeNow;
-    LARGE_INTEGER timeStart;
-    ULONG64 timeTicks = 0;
-    ULONG64 timeBitsPerSecond = 0;
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
 
-    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
+    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
 
     __try
     {
@@ -879,7 +787,7 @@ NTSTATUS UpdateDownloadThread(
         if (PhIsNullOrEmptyString(downloadUrlPath))
             __leave;
 
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
+        SetDlgItemText(context->DialogHandle, IDC_STATUS, L"Connecting...");
 
         // Query the current system proxy
         WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
@@ -932,7 +840,7 @@ NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
+        SetDlgItemText(context->DialogHandle, IDC_STATUS, L"Sending request...");
 
         if (!WinHttpSendRequest(
             httpRequestHandle,
@@ -947,7 +855,7 @@ NTSTATUS UpdateDownloadThread(
             __leave;
         }
 
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
+        SetDlgItemText(context->DialogHandle, IDC_STATUS, L"Waiting for response...");
 
         if (WinHttpReceiveResponse(httpRequestHandle, NULL))
         {
@@ -960,16 +868,6 @@ NTSTATUS UpdateDownloadThread(
 
             PH_HASH_CONTEXT hashContext;
             IO_STATUS_BLOCK isb;
-
-            // Start the clock.
-            PhQuerySystemTime(&timeStart);
-
-            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhFormatString(L"Downloading update %lu.%lu.%lu...",
-                context->MajorVersion,
-                context->MinorVersion,
-                context->RevisionVersion
-                )->Buffer);
 
             if (!WinHttpQueryHeaders(
                 httpRequestHandle,
@@ -997,6 +895,7 @@ NTSTATUS UpdateDownloadThread(
                     break;
 
                 // If the dialog was closed, just cleanup and exit
+                //if (context->UpdaterState == PhUpdateMaximum)
                 if (!UpdateDialogThreadHandle)
                     __leave;
 
@@ -1025,40 +924,28 @@ NTSTATUS UpdateDownloadThread(
                 if (bytesDownloaded != isb.Information)
                     __leave;
 
-                // Query the current time
-                PhQuerySystemTime(&timeNow);
-
-                // Calculate the number of ticks
-                timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
-                timeBitsPerSecond = downloadedBytes / __max(timeTicks, 1);
-                
-                // TODO: Update on timer callback.
+                // Update the GUI progress.
+                // TODO: Update on GUI thread.
                 {
+                    //int percent = MulDiv(100, downloadedBytes, contentLength);
                     FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
-                    PPH_STRING totalLength = PhFormatSize(contentLength, -1);
                     PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
-                    PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
+                    PPH_STRING totalLength = PhFormatSize(contentLength, -1);
 
-                    PPH_STRING statusMessage = PhFormatString(
-                        L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
+                    PPH_STRING dlLengthString = PhFormatString(
+                        L"%s of %s (%.0f%%)",
                         totalDownloaded->Buffer,
                         totalLength->Buffer,
-                        percent,
-                        totalSpeed->Buffer
+                        percent
                         );
 
-                    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
-                    SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
-
-                    //Static_SetText(context->StatusHandle, statusMessage->Buffer);
-
                     // Update the progress bar position
-                    //PostMessage(context->ProgressHandle, PBM_SETPOS, (INT)percent, 0);
+                    SendMessage(context->ProgressHandle, PBM_SETPOS, (ULONG)percent, 0);
+                    Static_SetText(context->StatusHandle, dlLengthString->Buffer);
 
-                    PhDereferenceObject(statusMessage);
-                    PhDereferenceObject(totalSpeed);
-                    PhDereferenceObject(totalLength);
+                    PhDereferenceObject(dlLengthString);
                     PhDereferenceObject(totalDownloaded);
+                    PhDereferenceObject(totalLength);
                 }
             }
 
@@ -1070,18 +957,14 @@ NTSTATUS UpdateDownloadThread(
 
                 if (PhEqualString(hexString, context->Hash, TRUE))
                 {
-#ifndef FORCE_HASH_CHECK_ERROR
                     hashSuccess = TRUE;
-#endif
                 }
 
                 PhDereferenceObject(hexString);
             }
         }
 
-#ifndef FORCE_DOWNLOAD_ERROR
         downloadSuccess = TRUE;
-#endif
     }
     __finally
     {
@@ -1108,59 +991,107 @@ NTSTATUS UpdateDownloadThread(
     if (WindowsVersion < WINDOWS_8)
     {
         // Disable signature checking on Win7 due to SHA2 certificate issues.
-#ifndef FORCE_SIGNATURE_CHECK_ERROR
         verifySuccess = TRUE;
-#endif
     }
     else
     {
         // Check the digital signature of the installer...
         if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)
         {
-#ifndef FORCE_SIGNATURE_CHECK_ERROR
             verifySuccess = TRUE;
-#endif
         }
     }
 
-    if (UpdateDialogThreadHandle)
+    if (downloadSuccess && hashSuccess && verifySuccess)
     {
-        if (downloadSuccess && hashSuccess && verifySuccess)
-        {
-            PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
-        }
-        else if (downloadSuccess)
-        {
-            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, verifySuccess, hashSuccess);
-        }
-        else
-        {
-            PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
-        }
+        PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
+    }
+    else if (downloadSuccess)
+    {
+        PostMessage(context->DialogHandle, PH_UPDATEFAILURE, verifySuccess, hashSuccess);
+    }
+    else
+    {
+        PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
     }
 
     return STATUS_SUCCESS;
 }
 
-
-LRESULT CALLBACK TaskDialogSubclassProc(
+INT_PTR CALLBACK UpdaterWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PPH_UPDATER_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PPH_UPDATER_CONTEXT)lParam;
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_UPDATER_CONTEXT)GetProp(hwndDlg, L"Context");
+
+        if (uMsg == WM_NCDESTROY)
+        {
+            RemoveProp(hwndDlg, L"Context");
+            FreeUpdateContext(context);
+
+            PostQuitMessage(0);
+        }
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_INITDIALOG:
         {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+            HWND parentWindow = GetParent(hwndDlg);
+            
+            // Center the update window on PH if it's visible else we center on the desktop.
+            PhCenterWindow(hwndDlg, (IsWindowVisible(parentWindow) && !IsMinimized(parentWindow)) ? parentWindow : NULL);
 
-            FreeUpdateContext(context);
+            context->DialogHandle = hwndDlg;
+            context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
+            context->ProgressHandle = GetDlgItem(hwndDlg, IDC_PROGRESS);
+
+            // Set the font handle
+            context->FontHandle = CommonCreateFont(-14, GetDlgItem(hwndDlg, IDC_MESSAGE));
+
+            // Load the Process Hacker icon.
+            context->IconHandle = (HICON)LoadImage(
+                NtCurrentPeb()->ImageBaseAddress,
+                MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+                IMAGE_ICON,
+                GetSystemMetrics(SM_CXICON),
+                GetSystemMetrics(SM_CYICON),
+                0
+                );
+
+            context->IconBitmap = PhIconToBitmap(context->IconHandle, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+
+            // Set the window icons
+            if (context->IconHandle)
+                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
+            // Set the window image
+            if (context->IconBitmap)
+                SendMessage(GetDlgItem(hwndDlg, IDC_UPDATEICON), STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)context->IconBitmap);
+
+            // Show new version info (from the background update check)
+            if (context->HaveData)
+            {
+                HANDLE updateCheckThread = NULL;
+
+                // Create the update check thread.
+                if (updateCheckThread = PhCreateThread(0, UpdateCheckThread, context))
+                    NtClose(updateCheckThread);
+            }
         }
         break;
     case WM_SHOWDIALOG:
@@ -1173,165 +1104,311 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hDC = (HDC)wParam;
+            HWND hwndChild = (HWND)lParam;
+
+            // Check for our static label and change the color.
+            if (GetWindowID(hwndChild) == IDC_MESSAGE)
+            {
+                SetTextColor(hDC, RGB(19, 112, 171));
+            }
+
+            // Set a transparent background for the control backcolor.
+            SetBkMode(hDC, TRANSPARENT);
+
+            // set window background color.
+            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+            case IDOK:
+                DestroyWindow(hwndDlg);
+                break;
+            case IDC_DOWNLOAD:
+                {
+                    switch (context->UpdaterState)
+                    {
+                    case PhUpdateDefault:
+                        {
+                            HANDLE updateCheckThread = NULL;
+
+                            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Checking for new releases...");
+                            SetDlgItemText(hwndDlg, IDC_RELDATE, L"");
+                            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+
+                            if (updateCheckThread = PhCreateThread(0, UpdateCheckThread, context))
+                                NtClose(updateCheckThread);
+                        }
+                        break;
+                    case PhUpdateDownload:
+                        {
+                            if (PhInstalledUsingSetup())
+                            {
+                                HANDLE downloadThreadHandle = NULL;
+
+                                // Disable the download button
+                                Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+
+                                // Reset the progress bar (might be a download retry)
+                                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETPOS, 0, 0);
+                                SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_NORMAL, 0);
+
+                                // Start file download thread
+                                if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
+                                    NtClose(downloadThreadHandle);
+                            }
+                            else
+                            {
+                                // Let the user handle non-setup installation, show the homepage and close this dialog.
+                                PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/downloads.php", NULL);
+                                DestroyWindow(hwndDlg);
+                            }
+                        }
+                        break;
+                    case PhUpdateInstall:
+                        {
+                            SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+
+                            if (PhIsNullOrEmptyString(context->SetupFilePath))
+                                break;
+
+                            info.lpFile = context->SetupFilePath->Buffer;
+                            info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
+                            info.nShow = SW_SHOW;
+                            info.hwnd = hwndDlg;
+
+                            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
+                            if (!ShellExecuteEx(&info))
+                            {
+                                // Install failed, cancel the shutdown.
+                                ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+
+                                // Set button text for next action
+                                Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+                            }
+                            else
+                            {
+                                ProcessHacker_Destroy(PhMainWndHandle);
+                            }
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case PH_UPDATEAVAILABLE:
         {
-            ShowAvailableDialog(hwndDlg, dwRefData);
+            // Set updater state
+            context->UpdaterState = PhUpdateDownload;
+
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(
+                L"Process Hacker %lu.%lu.%lu",
+                context->MajorVersion,
+                context->MinorVersion,
+                context->RevisionVersion
+                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"Released: %s",
+                context->RelDate->Buffer
+                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_STATUS, PhaFormatString(
+                L"Size: %s",
+                context->Size->Buffer
+                )->Buffer);
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Download");
+
+            // Enable the controls
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+            Control_Visible(GetDlgItem(hwndDlg, IDC_PROGRESS), TRUE);
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
         }
         break;
     case PH_UPDATEISCURRENT:
         {
-            ShowLatestVersionDialog(hwndDlg, dwRefData);
+            // Set updater state
+            context->UpdaterState = PhUpdateMaximum;
+
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running the latest version.");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"Stable release build: v%lu.%lu.%lu",
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
+                context->CurrentRevisionVersion
+                )->Buffer);
+
+            // Disable the download button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            // Enable the changelog link
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
         }
         break;
     case PH_UPDATENEWER:
         {
-            ShowNewerVersionDialog(hwndDlg, dwRefData);
+            context->UpdaterState = PhUpdateMaximum;
+
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"You're running a newer version!");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"Pre-release build: v%lu.%lu.%lu",
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
+                context->CurrentRevisionVersion
+                )->Buffer);
+
+            // Disable the download button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            // Disable the changelog link
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), FALSE);
         }
         break;
     case PH_UPDATESUCCESS:
         {
-            ShowUpdateInstallDialog(hwndDlg, dwRefData);
+            context->UpdaterState = PhUpdateInstall;
+
+            // If PH is not elevated, set the UAC shield for the install button as the setup requires elevation.
+            if (!PhGetOwnTokenAttributes().Elevated)
+                SendMessage(GetDlgItem(hwndDlg, IDC_DOWNLOAD), BCM_SETSHIELD, 0, TRUE);
+
+            // Set the download result, don't include hash status since it succeeded.
+            SetDlgItemText(hwndDlg, IDC_STATUS, L"Click Install to continue update...");
+
+            // Set button text for next action
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Install");
+            // Enable the Download/Install button so the user can install the update
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
     case PH_UPDATEFAILURE:
         {
+            context->UpdaterState = PhUpdateDefault;
+
+            SendDlgItemMessage(hwndDlg, IDC_PROGRESS, PBM_SETSTATE, PBST_ERROR, 0);
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
+
             if ((BOOLEAN)wParam)
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, TRUE, FALSE);
+                SetDlgItemText(hwndDlg, IDC_STATUS, L"Hash check failed.");
             else if ((BOOLEAN)lParam)
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, TRUE);
-            else
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, FALSE);
+                SetDlgItemText(hwndDlg, IDC_STATUS, L"Signature check failed.");
+
+            // Set button text for next action
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+            // Enable the Install button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
+            // Hash failed, reset state to downloading so user can redownload the file.
         }
         break;
     case PH_UPDATEISERRORED:
         {
-            ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, FALSE);
+            context->UpdaterState = PhUpdateDefault;
+
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"Please check for updates again...");
+            SetDlgItemText(hwndDlg, IDC_RELDATE, L"An error was encountered while checking for updates.");
+
+            Button_SetText(GetDlgItem(hwndDlg, IDC_DOWNLOAD), L"Retry");
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), TRUE);
         }
         break;
-    //case WM_PARENTNOTIFY:
-    //    {
-    //        if (wParam == WM_CREATE)
-    //        {
-    //            // uMsg == 49251 for expand/collapse button click
-    //            HWND hwndEdit = CreateWindowEx(
-    //                WS_EX_CLIENTEDGE,
-    //                L"EDIT",
-    //                NULL,
-    //                WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL,
-    //                5,
-    //                5,
-    //                390,
-    //                85,
-    //                (HWND)lParam, // parent window 
-    //                0,
-    //                NULL,
-    //                NULL
-    //            );
-    //
-    //            CommonCreateFont(-11, hwndEdit);
-    //
-    //            // Add text to the window. 
-    //            SendMessage(hwndEdit, WM_SETTEXT, 0, (LPARAM)L"TEST");
-    //        }
-    //    }
-    //    break;
-    //case WM_NCACTIVATE:
-    //    {
-    //        if (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle))
-    //        {
-    //            if (!context->FixedWindowStyles)
-    //            {
-    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWndHandle);
-    //                PhSetWindowExStyle(hwndDlg, WS_EX_APPWINDOW, WS_EX_APPWINDOW);
-    //                context->FixedWindowStyles = TRUE;
-    //            }
-    //        }
-    //    }
-    //    break;
-    }
-
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
-}
-
-HRESULT CALLBACK TaskDialogBootstrapCallback(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ LONG_PTR dwRefData
-    )
-{
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
-
-    switch (uMsg)
-    {
-    case TDN_CREATED:
+    case PH_UPDATENOTSUPPORTED:
         {
-            UpdateDialogHandle = context->DialogHandle = hwndDlg;
+            // Set updater state
+            context->UpdaterState = PhUpdateMaximum;
 
-            // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
+            // Set the UI text
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(
+                L"You're running the latest version: v%lu.%lu.%lu",
+                context->CurrentMajorVersion,
+                context->CurrentMinorVersion,
+                context->CurrentRevisionVersion
+                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_RELDATE, PhaFormatString(
+                L"v%lu.%lu.%lu is available for Windows 7 and above.",
+                context->MajorVersion,
+                context->MinorVersion,
+                context->RevisionVersion
+                )->Buffer);
 
-            // Create the Taskdialog icons
-            TaskDialogCreateIcons(context);
-
-            // Subclass the Taskdialog
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
-
-            if (context->StartupCheck)
+            // Disable the download button
+            Button_Enable(GetDlgItem(hwndDlg, IDC_DOWNLOAD), FALSE);
+            // Enable the changelog link
+            Control_Visible(GetDlgItem(hwndDlg, IDC_INFOSYSLINK), TRUE);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            switch (((LPNMHDR)lParam)->code)
             {
-                ShowAvailableDialog(hwndDlg, dwRefData);
-            }
-            else
-            {
-                ShowCheckForUpdatesDialog(hwndDlg, dwRefData);
+            case NM_CLICK: // Mouse
+            case NM_RETURN: // Keyboard
+                {
+                    // Launch the ReleaseNotes URL (if it exists) with the default browser
+                    if (!PhIsNullOrEmptyString(context->ReleaseNotesUrl))
+                        PhShellExecute(hwndDlg, context->ReleaseNotesUrl->Buffer, NULL);
+                }
+                break;
             }
         }
         break;
     }
 
-    return S_OK;
-}
-
-VOID ShowInitialDialog(
-    _In_ PVOID Context
-    )
-{
-    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
-    config.pszContent = L"Initializing...";
-    config.lpCallbackData = (LONG_PTR)Context;
-    config.pfCallback = TaskDialogBootstrapCallback;
-
-    // Start TaskDialog bootstrap
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    return FALSE;
 }
 
 NTSTATUS ShowUpdateDialogThread(
     _In_ PVOID Parameter
     )
 {
+    BOOL result;
+    MSG message;
     PH_AUTO_POOL autoPool;
     PPH_UPDATER_CONTEXT context;
 
     if (Parameter)
         context = (PPH_UPDATER_CONTEXT)Parameter;
     else
-        context = CreateUpdateContext(FALSE);
+        context = CreateUpdateContext();
 
     PhInitializeAutoPool(&autoPool);
 
-    // Start the TaskDialog bootstrap.
-    ShowInitialDialog(context);
+    UpdateDialogHandle = CreateDialogParam(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_UPDATE),
+        PhMainWndHandle,
+        UpdaterWndProc,
+        (LPARAM)context
+        );
+
+    PhSetEvent(&InitializedEvent);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(UpdateDialogHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
 
     PhDeleteAutoPool(&autoPool);
-
     PhResetEvent(&InitializedEvent);
-
-    if (UpdateDialogHandle)
-    {
-        UpdateDialogHandle = NULL;
-    }
 
     if (UpdateDialogThreadHandle)
     {
@@ -1364,10 +1441,8 @@ VOID StartInitialCheck(
     VOID
     )
 {
-#ifndef DISABLE_STARTUP_CHECK
     HANDLE silentCheckThread = NULL;
 
     if (silentCheckThread = PhCreateThread(0, UpdateCheckSilentThread, NULL))
         NtClose(silentCheckThread);
-#endif
 }
