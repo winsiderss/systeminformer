@@ -15,7 +15,7 @@
 
 1.3
  * Added plugin options for ping/tracert/whois
- * Added native pint/tracert/whois support
+ * Added native ping/tracert/whois support
  * Updated UI
 
 1.2
