@@ -1298,7 +1298,7 @@ VOID ShowInitialDialog(
     )
 {
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = TaskDialogBootstrapCallback;

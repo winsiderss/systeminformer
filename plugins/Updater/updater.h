@@ -36,7 +36,7 @@
 #include "resource.h"
 
 #ifdef _DEBUG
-// Force update checks to succeed
+ // Force update checks to succeed
 //#define FORCE_UPDATE_CHECK
 // Force update check to show the current version as the latest version
 //#define FORCE_LATEST_VERSION
