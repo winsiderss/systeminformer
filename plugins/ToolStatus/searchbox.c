@@ -412,7 +412,6 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
 
             // Force the edit control to update its non-client area.
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-            //SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER);
         }
         break;
     case WM_SETFOCUS:
