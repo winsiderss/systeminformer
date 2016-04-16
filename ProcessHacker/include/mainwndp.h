@@ -9,6 +9,19 @@
 #define TIMER_ICON_CLICK_ACTIVATE 2
 #define TIMER_ICON_RESTORE_HOVER 3
 
+typedef union _PH_MWP_NOTIFICATION_DETAILS
+{
+    HANDLE ProcessId;
+    PPH_STRING ServiceName;
+} PH_MWP_NOTIFICATION_DETAILS, *PPH_MWP_NOTIFICATION_DETAILS;
+
+extern PPH_TN_FILTER_ENTRY PhMwpCurrentUserFilterEntry;
+extern PPH_TN_FILTER_ENTRY PhMwpSignedFilterEntry;
+
+extern ULONG PhMwpNotifyIconNotifyMask;
+extern ULONG PhMwpLastNotificationType;
+extern PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;
+
 LRESULT CALLBACK PhMwpWndProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -272,16 +285,22 @@ VOID PhMwpSelectionChangedTabControl(
     _In_ ULONG OldIndex
     );
 
-PPH_MAIN_TAB_PAGE PhMwpCreateTabPage(
+PPH_MAIN_TAB_PAGE PhMwpCreatePage(
     _In_ PPH_MAIN_TAB_PAGE Template
     );
 
-VOID PhMwpSelectTabPage(
+VOID PhMwpSelectPage(
     _In_ ULONG Index
     );
 
-PPH_MAIN_TAB_PAGE PhMwpFindTabPage(
+PPH_MAIN_TAB_PAGE PhMwpFindPage(
     _In_ PPH_STRINGREF Name
+    );
+
+PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MAIN_TAB_PAGE_CALLBACK Callback
     );
 
 // Notifications
@@ -301,6 +320,18 @@ BOOLEAN PhMwpPluginNotifyEvent(
     );
 
 // Processes
+
+extern PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
+extern HWND PhMwpProcessTreeNewHandle;
+extern HWND PhMwpSelectedProcessWindowHandle;
+extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
+
+BOOLEAN PhMwpProcessesPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
 
 VOID PhMwpShowProcessProperties(
     _In_ PPH_PROCESS_ITEM ProcessItem

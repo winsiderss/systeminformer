@@ -145,8 +145,8 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
     MainTabPageDestroy,
     MainTabPageCreateWindow, // HWND *Parameter1 (WindowHandle)
     MainTabPageSelected, // BOOLEAN Parameter1 (Selected)
-    MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
     MainTabPageInitializeSectionMenuItems, // PPH_MAIN_TAB_PAGE_MENU_INFORMATION Parameter1
+    MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
 
     MainTabPageFontChanged, // HFONT Parameter1 (Font)
     MainTabPageUpdateAutomaticallyChanged, // BOOLEAN Parameter1 (UpdateAutomatically)

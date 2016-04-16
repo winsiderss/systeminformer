@@ -250,6 +250,7 @@
     <ClCompile Include="modlist.c" />
     <ClCompile Include="modprv.c" />
     <ClCompile Include="mtgndlg.c" />
+    <ClCompile Include="mwpgproc.c" />
     <ClCompile Include="netlist.c" />
     <ClCompile Include="netprv.c" />
     <ClCompile Include="netstk.c" />
