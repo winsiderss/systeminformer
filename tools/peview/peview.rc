@@ -116,22 +116,22 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Target machine:",IDC_STATIC,7,57,53,8
     LTEXT           "Static",IDC_TARGETMACHINE,78,57,215,8
-    LTEXT           "Checksum:",IDC_STATIC,7,102,36,8
-    LTEXT           "Static",IDC_CHECKSUM,78,102,215,8
-    LTEXT           "Subsystem:",IDC_STATIC,7,113,38,8
-    LTEXT           "Subsystem version:",IDC_STATIC,7,125,64,8
-    LTEXT           "Characteristics:",IDC_STATIC,7,136,51,8
-    LTEXT           "Static",IDC_SUBSYSTEM,78,113,215,8
-    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,125,215,8
+    LTEXT           "Checksum:",IDC_STATIC,7,100,36,8
+    LTEXT           "Static",IDC_CHECKSUM,78,100,215,8
+    LTEXT           "Subsystem:",IDC_STATIC,7,111,38,8
+    LTEXT           "Subsystem version:",IDC_STATIC,7,122,64,8
+    LTEXT           "Characteristics:",IDC_STATIC,7,133,51,8
+    LTEXT           "Static",IDC_SUBSYSTEM,78,111,215,8
+    LTEXT           "Static",IDC_SUBSYSTEMVERSION,78,122,215,8
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,156,286,116
-    LTEXT           "Sections:",IDC_STATIC,7,147,30,8
-    EDITTEXT        IDC_CHARACTERISTICS,76,136,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Sections:",IDC_STATIC,7,146,30,8
+    EDITTEXT        IDC_CHARACTERISTICS,76,133,217,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Time stamp:",IDC_STATIC,7,68,40,8
     LTEXT           "Static",IDC_TIMESTAMP,78,68,215,8
-    LTEXT           "Entry point:",IDC_STATIC,7,80,39,8
-    LTEXT           "Static",IDC_ENTRYPOINT,78,80,215,8
-    LTEXT           "Image base:",IDC_STATIC,7,91,41,8
-    LTEXT           "Static",IDC_IMAGEBASE,78,91,215,8
+    LTEXT           "Entry point:",IDC_STATIC,7,90,39,8
+    LTEXT           "Static",IDC_ENTRYPOINT,78,90,215,8
+    LTEXT           "Image base:",IDC_STATIC,7,79,41,8
+    LTEXT           "Static",IDC_IMAGEBASE,78,79,215,8
     ICON            "",IDC_FILEICON,14,18,20,20
     GROUPBOX        "File",IDC_FILE,7,7,286,48
     EDITTEXT        IDC_NAME,44,17,242,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
@@ -201,6 +201,11 @@ IDR_RT_MANIFEST         RT_MANIFEST             "peview.manifest"
 //
 
 IDD_PELOADCONFIG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PEGENERAL AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
