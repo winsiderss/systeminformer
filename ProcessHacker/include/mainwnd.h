@@ -146,8 +146,10 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
     MainTabPageCreateWindow, // HWND *Parameter1 (WindowHandle)
     MainTabPageSelected, // BOOLEAN Parameter1 (Selected)
     MainTabPageInitializeSectionMenuItems, // PPH_MAIN_TAB_PAGE_MENU_INFORMATION Parameter1
-    MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
 
+    MainTabPageLoadSettings,
+    MainTabPageSaveSettings,
+    MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
     MainTabPageFontChanged, // HFONT Parameter1 (Font)
     MainTabPageUpdateAutomaticallyChanged, // BOOLEAN Parameter1 (UpdateAutomatically)
 
@@ -181,8 +183,18 @@ typedef struct _PH_MAIN_TAB_PAGE
     ULONG Flags;
     PPH_MAIN_TAB_PAGE_CALLBACK Callback;
     PVOID Context;
+
     INT Index;
-    PVOID Reserved[3];
+    union
+    {
+        ULONG StateFlags;
+        struct
+        {
+            ULONG Selected : 1;
+            ULONG SpareStateFlags : 31;
+        };
+    };
+    PVOID Reserved[2];
 // end_phapppub
 
     // Private

@@ -29,7 +29,9 @@
 #include <emenu.h>
 #include <verify.h>
 
+#include <actions.h>
 #include <phplug.h>
+#include <procprp.h>
 #include <procprv.h>
 #include <proctree.h>
 #include <settings.h>
@@ -41,9 +43,17 @@ HWND PhMwpProcessTreeNewHandle;
 HWND PhMwpSelectedProcessWindowHandle;
 BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
 
+static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
 static ULONG NeedsSelectPid = 0;
 static BOOLEAN ProcessesNeedsRedraw = FALSE;
 static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
+
+static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -57,6 +67,32 @@ BOOLEAN PhMwpProcessesPageCallback(
     case MainTabPageCreate:
         {
             PhMwpProcessesPage = Page;
+
+            PhRegisterCallback(
+                &PhProcessAddedEvent,
+                PhMwpProcessAddedHandler,
+                NULL,
+                &ProcessAddedRegistration
+                );
+            PhRegisterCallback(
+                &PhProcessModifiedEvent,
+                PhMwpProcessModifiedHandler,
+                NULL,
+                &ProcessModifiedRegistration
+                );
+            PhRegisterCallback(
+                &PhProcessRemovedEvent,
+                PhMwpProcessRemovedHandler,
+                NULL,
+                &ProcessRemovedRegistration
+                );
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                PhMwpProcessesUpdatedHandler,
+                NULL,
+                &ProcessesUpdatedRegistration
+                );
+
             NeedsSelectPid = PhStartupParameters.SelectPid;
         }
         break;
@@ -77,9 +113,9 @@ BOOLEAN PhMwpProcessesPageCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scroll to new processes", NULL, NULL), startIndex + 2);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU below 0.01", NULL, NULL), startIndex + 3);
 
-            if (PhMwpCurrentUserFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+            if (CurrentUserFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
-            if (PhMwpSignedFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+            if (SignedFilterEntry && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhCsScrollToNewProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SCROLLTONEWPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -97,6 +133,21 @@ BOOLEAN PhMwpProcessesPageCallback(
                 }
             }
         }
+        return TRUE;
+    case MainTabPageLoadSettings:
+        {
+            PhLoadSettingsProcessTreeList();
+
+            if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
+                CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+            if (PhGetIntegerSetting(L"HideSignedProcesses"))
+                SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
+        }
+        break;
+    case MainTabPageSaveSettings:
+        {
+            PhSaveSettingsProcessTreeList();
+        }
         break;
     case MainTabPageExportContent:
         {
@@ -110,6 +161,13 @@ BOOLEAN PhMwpProcessesPageCallback(
             HFONT font = (HFONT)Parameter1;
 
             SendMessage(PhMwpProcessTreeNewHandle, WM_SETFONT, (WPARAM)font, TRUE);
+        }
+        break;
+    case MainTabPageUpdateAutomaticallyChanged:
+        {
+            BOOLEAN updateAutomatically = (BOOLEAN)PtrToUlong(Parameter1);
+
+            PhSetEnabledProvider(&PhMwpProcessProviderRegistration, updateAutomatically);
         }
         break;
     }
@@ -135,6 +193,25 @@ VOID PhMwpShowProcessProperties(
     }
 }
 
+VOID PhMwpToggleCurrentUserProcessTreeFilter(
+    VOID
+    )
+{
+    if (!CurrentUserFilterEntry)
+    {
+        CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+    }
+    else
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), CurrentUserFilterEntry);
+        CurrentUserFilterEntry = NULL;
+    }
+
+    PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+
+    PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
+}
+
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -152,6 +229,34 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
         return FALSE;
 
     return TRUE;
+}
+
+VOID PhMwpToggleSignedProcessTreeFilter(
+    VOID
+    )
+{
+    if (!SignedFilterEntry)
+    {
+        if (!PhEnableProcessQueryStage2)
+        {
+            PhShowInformation(
+                PhMainWndHandle,
+                L"This filter cannot function because digital signature checking is not enabled. "
+                L"Enable it in Options > Advanced and restart Process Hacker."
+                );
+        }
+
+        SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
+    }
+    else
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), SignedFilterEntry);
+        SignedFilterEntry = NULL;
+    }
+
+    PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+
+    PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
 }
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
@@ -605,6 +710,54 @@ VOID PhShowProcessContextMenu(
     PhFree(processes);
 }
 
+VOID NTAPI PhMwpProcessAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    // Reference the process item so it doesn't get deleted before
+    // we handle the event in the main thread.
+    PhReferenceObject(processItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_PROCESS_ADDED,
+        (WPARAM)PhGetRunIdProvider(&PhMwpProcessProviderRegistration),
+        (LPARAM)processItem
+        );
+}
+
+VOID NTAPI PhMwpProcessModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
+}
+
+VOID NTAPI PhMwpProcessRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    // We already have a reference to the process item, so we don't need to
+    // reference it here.
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
+}
+
+VOID NTAPI PhMwpProcessesUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
+}
+
 VOID PhMwpOnProcessAdded(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG RunId
@@ -688,7 +841,7 @@ VOID PhMwpOnProcessModified(
 {
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
 
-    if (PhMwpSignedFilterEntry)
+    if (SignedFilterEntry)
         PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 }
 

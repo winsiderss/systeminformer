@@ -15,8 +15,10 @@ typedef union _PH_MWP_NOTIFICATION_DETAILS
     PPH_STRING ServiceName;
 } PH_MWP_NOTIFICATION_DETAILS, *PPH_MWP_NOTIFICATION_DETAILS;
 
-extern PPH_TN_FILTER_ENTRY PhMwpCurrentUserFilterEntry;
-extern PPH_TN_FILTER_ENTRY PhMwpSignedFilterEntry;
+extern PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
+extern PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
+extern PH_PROVIDER_REGISTRATION PhMwpNetworkProviderRegistration;
+extern BOOLEAN PhMwpUpdateAutomatically;
 
 extern ULONG PhMwpNotifyIconNotifyMask;
 extern ULONG PhMwpLastNotificationType;
@@ -129,46 +131,6 @@ ULONG_PTR PhMwpOnUserMessage(
     );
 
 // Callbacks
-
-VOID NTAPI PhMwpProcessAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpProcessModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpProcessRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServiceAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServiceModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServiceRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServicesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
 
 VOID NTAPI PhMwpNetworkItemAddedHandler(
     _In_opt_ PVOID Parameter,
@@ -303,6 +265,12 @@ PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
     _In_ PPH_MAIN_TAB_PAGE_CALLBACK Callback
     );
 
+VOID PhMwpNotifyAllPages(
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
 // Notifications
 
 VOID PhMwpAddIconProcesses(
@@ -337,9 +305,17 @@ VOID PhMwpShowProcessProperties(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhMwpToggleCurrentUserProcessTreeFilter(
+    VOID
+    );
+
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
+    );
+
+VOID PhMwpToggleSignedProcessTreeFilter(
+    VOID
     );
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
@@ -373,6 +349,26 @@ VOID PhMwpInitializeProcessMenu(
     _In_ ULONG NumberOfProcesses
     );
 
+VOID NTAPI PhMwpProcessAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpProcessModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpProcessRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpProcessesUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
 VOID PhMwpOnProcessAdded(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG RunId
@@ -392,7 +388,21 @@ VOID PhMwpOnProcessesUpdated(
 
 // Services
 
+extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
+extern HWND PhMwpServiceTreeNewHandle;
+
+BOOLEAN PhMwpServicesPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
 VOID PhMwpNeedServiceTreeList(
+    VOID
+    );
+
+VOID PhMwpToggleDriverServiceTreeFilter(
     VOID
     );
 
@@ -405,6 +415,26 @@ VOID PhMwpInitializeServiceMenu(
     _In_ PPH_EMENU Menu,
     _In_ PPH_SERVICE_ITEM *Services,
     _In_ ULONG NumberOfServices
+    );
+
+VOID NTAPI PhMwpServiceAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpServiceModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpServiceRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpServicesUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID PhMwpOnServiceAdded(
@@ -425,6 +455,16 @@ VOID PhMwpOnServicesUpdated(
     );
 
 // Network
+
+extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
+extern HWND PhMwpNetworkTreeNewHandle;
+
+BOOLEAN PhMwpNetworkPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
 
 VOID PhMwpNeedNetworkTreeList(
     VOID
