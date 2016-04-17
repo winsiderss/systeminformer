@@ -386,6 +386,18 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_IMAGEBASE, string->Buffer);
             PhDereferenceObject(string);
 
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                string = PhFormatString(L"0x%Ix", PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint);
+            }
+            else
+            {
+                string = PhFormatString(L"0x%I64x", ((PIMAGE_OPTIONAL_HEADER64)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
+            }
+
+            SetDlgItemText(hwndDlg, IDC_ENTRYPOINT, string->Buffer);
+            PhDereferenceObject(string);
+
             string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum); // same for 32-bit and 64-bit images
             SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
             PhDereferenceObject(string);

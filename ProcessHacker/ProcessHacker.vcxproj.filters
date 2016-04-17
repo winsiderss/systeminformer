@@ -399,6 +399,15 @@
     <ClCompile Include="prpgsrv.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="mwpgproc.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="mwpgsrv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="mwpgnet.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

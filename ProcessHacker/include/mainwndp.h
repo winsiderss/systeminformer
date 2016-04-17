@@ -9,6 +9,21 @@
 #define TIMER_ICON_CLICK_ACTIVATE 2
 #define TIMER_ICON_RESTORE_HOVER 3
 
+typedef union _PH_MWP_NOTIFICATION_DETAILS
+{
+    HANDLE ProcessId;
+    PPH_STRING ServiceName;
+} PH_MWP_NOTIFICATION_DETAILS, *PPH_MWP_NOTIFICATION_DETAILS;
+
+extern PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
+extern PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
+extern PH_PROVIDER_REGISTRATION PhMwpNetworkProviderRegistration;
+extern BOOLEAN PhMwpUpdateAutomatically;
+
+extern ULONG PhMwpNotifyIconNotifyMask;
+extern ULONG PhMwpLastNotificationType;
+extern PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;
+
 LRESULT CALLBACK PhMwpWndProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -117,46 +132,6 @@ ULONG_PTR PhMwpOnUserMessage(
 
 // Callbacks
 
-VOID NTAPI PhMwpProcessAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpProcessModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpProcessRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServiceAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServiceModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServiceRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpServicesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
 VOID NTAPI PhMwpNetworkItemAddedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -209,11 +184,6 @@ VOID PhMwpApplyLayoutPadding(
 
 VOID PhMwpLayout(
     _Inout_ HDWP *DeferHandle
-    );
-
-VOID PhMwpSetCheckOpacityMenu(
-    _In_ BOOLEAN AssumeAllUnchecked,
-    _In_ ULONG Opacity
     );
 
 VOID PhMwpSetupComputerMenu(
@@ -277,16 +247,28 @@ VOID PhMwpSelectionChangedTabControl(
     _In_ ULONG OldIndex
     );
 
-PPH_ADDITIONAL_TAB_PAGE PhMwpAddTabPage(
-    _In_ PPH_ADDITIONAL_TAB_PAGE TabPage
+PPH_MAIN_TAB_PAGE PhMwpCreatePage(
+    _In_ PPH_MAIN_TAB_PAGE Template
     );
 
-VOID PhMwpSelectTabPage(
+VOID PhMwpSelectPage(
     _In_ ULONG Index
     );
 
-INT PhMwpFindTabPageIndex(
-    _In_ PWSTR Text
+PPH_MAIN_TAB_PAGE PhMwpFindPage(
+    _In_ PPH_STRINGREF Name
+    );
+
+PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
+    _In_ PWSTR Name,
+    _In_ ULONG Flags,
+    _In_ PPH_MAIN_TAB_PAGE_CALLBACK Callback
+    );
+
+VOID PhMwpNotifyAllPages(
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 // Notifications
@@ -294,10 +276,6 @@ INT PhMwpFindTabPageIndex(
 VOID PhMwpAddIconProcesses(
     _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG NumberOfProcesses
-    );
-
-VOID PhMwpShowIconContextMenu(
-    _In_ POINT Location
     );
 
 VOID PhMwpClearLastNotificationDetails(
@@ -311,13 +289,33 @@ BOOLEAN PhMwpPluginNotifyEvent(
 
 // Processes
 
+extern PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
+extern HWND PhMwpProcessTreeNewHandle;
+extern HWND PhMwpSelectedProcessWindowHandle;
+extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
+
+BOOLEAN PhMwpProcessesPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
 VOID PhMwpShowProcessProperties(
     _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+VOID PhMwpToggleCurrentUserProcessTreeFilter(
+    VOID
     );
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
+    );
+
+VOID PhMwpToggleSignedProcessTreeFilter(
+    VOID
     );
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
@@ -351,6 +349,26 @@ VOID PhMwpInitializeProcessMenu(
     _In_ ULONG NumberOfProcesses
     );
 
+VOID NTAPI PhMwpProcessAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpProcessModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpProcessRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpProcessesUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
 VOID PhMwpOnProcessAdded(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG RunId
@@ -370,7 +388,21 @@ VOID PhMwpOnProcessesUpdated(
 
 // Services
 
+extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
+extern HWND PhMwpServiceTreeNewHandle;
+
+BOOLEAN PhMwpServicesPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+
 VOID PhMwpNeedServiceTreeList(
+    VOID
+    );
+
+VOID PhMwpToggleDriverServiceTreeFilter(
     VOID
     );
 
@@ -383,6 +415,26 @@ VOID PhMwpInitializeServiceMenu(
     _In_ PPH_EMENU Menu,
     _In_ PPH_SERVICE_ITEM *Services,
     _In_ ULONG NumberOfServices
+    );
+
+VOID NTAPI PhMwpServiceAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpServiceModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpServiceRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI PhMwpServicesUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID PhMwpOnServiceAdded(
@@ -403,6 +455,16 @@ VOID PhMwpOnServicesUpdated(
     );
 
 // Network
+
+extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
+extern HWND PhMwpNetworkTreeNewHandle;
+
+BOOLEAN PhMwpNetworkPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
 
 VOID PhMwpNeedNetworkTreeList(
     VOID
