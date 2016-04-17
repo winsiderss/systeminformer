@@ -25,6 +25,7 @@
 #include <toolstatusintf.h>
 #include "disktabp.h"
 
+static PPH_MAIN_TAB_PAGE DiskPage;
 static BOOLEAN DiskTreeNewCreated = FALSE;
 static HWND DiskTreeNewHandle;
 static ULONG DiskTreeNewSortColumn;
@@ -47,8 +48,7 @@ VOID EtInitializeDiskTab(
     VOID
     )
 {
-    PH_ADDITIONAL_TAB_PAGE tabPage;
-    PPH_ADDITIONAL_TAB_PAGE addedTabPage;
+    PH_MAIN_TAB_PAGE page;
     PPH_PLUGIN toolStatusPlugin;
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
@@ -59,147 +59,143 @@ VOID EtInitializeDiskTab(
             ToolStatusInterface = NULL;
     }
 
-    memset(&tabPage, 0, sizeof(PH_ADDITIONAL_TAB_PAGE));
-    tabPage.Text = L"Disk";
-    tabPage.CreateFunction = EtpDiskTabCreateFunction;
-    tabPage.Index = MAXINT;
-    tabPage.SelectionChangedCallback = EtpDiskTabSelectionChangedCallback;
-    tabPage.SaveContentCallback = EtpDiskTabSaveContentCallback;
-    tabPage.FontChangedCallback = EtpDiskTabFontChangedCallback;
-    addedTabPage = ProcessHacker_AddTabPage(PhMainWndHandle, &tabPage);
+    memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
+    PhInitializeStringRef(&page.Name, L"Disk");
+    page.Callback = EtpDiskPageCallback;
+    DiskPage = ProcessHacker_CreateTabPage(PhMainWndHandle, &page);
 
     if (ToolStatusInterface)
     {
         PTOOLSTATUS_TAB_INFO tabInfo;
 
-        tabInfo = ToolStatusInterface->RegisterTabInfo(addedTabPage->Index);
+        tabInfo = ToolStatusInterface->RegisterTabInfo(DiskPage->Index);
         tabInfo->BannerText = L"Search Disk";
         tabInfo->ActivateContent = EtpToolStatusActivateContent;
         tabInfo->GetTreeNewHandle = EtpToolStatusGetTreeNewHandle;
     }
 }
 
-HWND NTAPI EtpDiskTabCreateFunction(
-    _In_ PVOID Context
+BOOLEAN EtpDiskPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     )
 {
-    HWND hwnd;
-
-    if (EtEtwEnabled)
+    switch (Message)
     {
-        ULONG thinRows;
+    case MainTabPageCreateWindow:
+        {
+            HWND hwnd;
 
-        thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
-        hwnd = CreateWindow(
-            PH_TREENEW_CLASSNAME,
-            NULL,
-            WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
-            0,
-            0,
-            3,
-            3,
-            PhMainWndHandle,
-            NULL,
-            NULL,
-            NULL
-            );
+            if (EtEtwEnabled)
+            {
+                ULONG thinRows;
 
-        if (!hwnd)
-            return NULL;
+                thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
+                hwnd = CreateWindow(
+                    PH_TREENEW_CLASSNAME,
+                    NULL,
+                    WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+                    0,
+                    0,
+                    3,
+                    3,
+                    PhMainWndHandle,
+                    NULL,
+                    NULL,
+                    NULL
+                    );
+
+                if (!hwnd)
+                    return FALSE;
+            }
+            else
+            {
+                *(HWND *)Parameter1 = CreateDialog(
+                    PluginInstance->DllBase,
+                    MAKEINTRESOURCE(IDD_DISKTABERROR),
+                    PhMainWndHandle,
+                    EtpDiskTabErrorDialogProc
+                    );
+                return TRUE;
+            }
+
+            DiskTreeNewCreated = TRUE;
+
+            DiskNodeHashtable = PhCreateHashtable(
+                sizeof(PET_DISK_NODE),
+                EtpDiskNodeHashtableEqualFunction,
+                EtpDiskNodeHashtableHashFunction,
+                100
+                );
+            DiskNodeList = PhCreateList(100);
+
+            EtInitializeDiskTreeList(hwnd);
+
+            PhRegisterCallback(
+                &EtDiskItemAddedEvent,
+                EtpDiskItemAddedHandler,
+                NULL,
+                &DiskItemAddedRegistration
+                );
+            PhRegisterCallback(
+                &EtDiskItemModifiedEvent,
+                EtpDiskItemModifiedHandler,
+                NULL,
+                &DiskItemModifiedRegistration
+                );
+            PhRegisterCallback(
+                &EtDiskItemRemovedEvent,
+                EtpDiskItemRemovedHandler,
+                NULL,
+                &DiskItemRemovedRegistration
+                );
+            PhRegisterCallback(
+                &EtDiskItemsUpdatedEvent,
+                EtpDiskItemsUpdatedHandler,
+                NULL,
+                &DiskItemsUpdatedRegistration
+                );
+
+            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            EtInitializeDiskInformation();
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+            *(HWND *)Parameter1 = hwnd;
+        }
+        return TRUE;
+    case MainTabPageLoadSettings:
+        {
+            // Nothing
+        }
+        return TRUE;
+    case MainTabPageSaveSettings:
+        {
+            // Nothing
+        }
+        return TRUE;
+    case MainTabPageExportContent:
+        {
+            PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
+
+            if (!EtEtwEnabled)
+                return FALSE;
+
+            EtWriteDiskList(exportContent->FileStream, exportContent->Mode);
+        }
+        return TRUE;
+    case MainTabPageFontChanged:
+        {
+            HFONT font = (HFONT)Parameter1;
+
+            if (DiskTreeNewHandle)
+                SendMessage(DiskTreeNewHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+        }
+        break;
     }
-    else
-    {
-        return CreateDialog(
-            PluginInstance->DllBase,
-            MAKEINTRESOURCE(IDD_DISKTABERROR),
-            PhMainWndHandle,
-            EtpDiskTabErrorDialogProc
-            );
-    }
 
-    DiskTreeNewCreated = TRUE;
-
-    DiskNodeHashtable = PhCreateHashtable(
-        sizeof(PET_DISK_NODE),
-        EtpDiskNodeHashtableEqualFunction,
-        EtpDiskNodeHashtableHashFunction,
-        100
-        );
-    DiskNodeList = PhCreateList(100);
-
-    EtInitializeDiskTreeList(hwnd);
-
-    PhRegisterCallback(
-        &EtDiskItemAddedEvent,
-        EtpDiskItemAddedHandler,
-        NULL,
-        &DiskItemAddedRegistration
-        );
-    PhRegisterCallback(
-        &EtDiskItemModifiedEvent,
-        EtpDiskItemModifiedHandler,
-        NULL,
-        &DiskItemModifiedRegistration
-        );
-    PhRegisterCallback(
-        &EtDiskItemRemovedEvent,
-        EtpDiskItemRemovedHandler,
-        NULL,
-        &DiskItemRemovedRegistration
-        );
-    PhRegisterCallback(
-        &EtDiskItemsUpdatedEvent,
-        EtpDiskItemsUpdatedHandler,
-        NULL,
-        &DiskItemsUpdatedRegistration
-        );
-
-    SetCursor(LoadCursor(NULL, IDC_WAIT));
-    EtInitializeDiskInformation();
-    SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-    return hwnd;
-}
-
-VOID NTAPI EtpDiskTabSelectionChangedCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    )
-{
-    if ((BOOLEAN)Parameter1)
-    {
-        if (DiskTreeNewHandle)
-            SetFocus(DiskTreeNewHandle);
-    }
-}
-
-VOID NTAPI EtpDiskTabSaveContentCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    )
-{
-    PPH_FILE_STREAM fileStream = Parameter1;
-    ULONG mode = PtrToUlong(Parameter2);
-
-    if (!EtEtwEnabled)
-        return;
-
-    EtWriteDiskList(fileStream, mode);
-}
-
-VOID NTAPI EtpDiskTabFontChangedCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    )
-{
-    if (DiskTreeNewHandle)
-        SendMessage(DiskTreeNewHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+    return FALSE;
 }
 
 BOOLEAN EtpDiskNodeHashtableEqualFunction(

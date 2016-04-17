@@ -118,7 +118,7 @@ typedef enum _PH_MINIINFO_LIST_SECTION_MESSAGE
     MiListSectionDestroy,
     MiListSectionTick,
     MiListSectionShowing, // BOOLEAN Parameter1 (Showing)
-    MiListSectionDialogCreated, // HWND Parameter1
+    MiListSectionDialogCreated, // HWND Parameter1 (DialogHandle)
     MiListSectionSortProcessList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
     MiListSectionAssignSortData, // PPH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA Parameter1
     MiListSectionSortGroupList, // PPH_MINIINFO_LIST_SECTION_SORT_LIST Parameter1
