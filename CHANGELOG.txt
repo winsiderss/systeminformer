@@ -5,6 +5,7 @@ Process Hacker
  * OTHER CHANGES:
  * NOTE:
    * Support for Windows XP and Vista has been dropped. For those platforms, use Process Hacker 2.38.
+   * This release has significant internal code changes. Please make sure all plugins are up-to-date.
 
 2.39
  * HIGHLIGHTS:
