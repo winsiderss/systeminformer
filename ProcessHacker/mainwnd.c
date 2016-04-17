@@ -2899,11 +2899,14 @@ VOID PhMwpSelectionChangedTabControl(
     _In_ ULONG OldIndex
     )
 {
-    INT selectedIndex;
+    ULONG selectedIndex;
     HDWP deferHandle;
     ULONG i;
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+    if (selectedIndex == OldIndex)
+        return;
 
     for (i = 0; i < PageList->Count; i++)
     {
@@ -2911,14 +2914,7 @@ VOID PhMwpSelectionChangedTabControl(
 
         page->Selected = page->Index == selectedIndex;
 
-        if (page->Index == OldIndex)
-        {
-            page->Callback(page, MainTabPageSelected, (PVOID)FALSE, NULL);
-
-            if (page->WindowHandle)
-                ShowWindow(page->WindowHandle, SW_HIDE);
-        }
-        else if (page->Index == selectedIndex)
+        if (page->Index == selectedIndex)
         {
             CurrentPage = page;
 
@@ -2941,6 +2937,13 @@ VOID PhMwpSelectionChangedTabControl(
                 ShowWindow(page->WindowHandle, SW_SHOW);
                 SetFocus(page->WindowHandle);
             }
+        }
+        else if (page->Index == OldIndex)
+        {
+            page->Callback(page, MainTabPageSelected, (PVOID)FALSE, NULL);
+
+            if (page->WindowHandle)
+                ShowWindow(page->WindowHandle, SW_HIDE);
         }
     }
 
