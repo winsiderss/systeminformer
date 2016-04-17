@@ -216,15 +216,15 @@ VOID ShowUpdateFailedDialog(
 
     if (SignatureFailed)
     {
-        config.pszContent = L"Signature check failed. Please click Retry and download the update again.";
+        config.pszContent = L"Signature check failed. Click Retry to download the update again.";
     }
     else if (HashFailed)
     {
-        config.pszContent = L"Hash check failed. Please click Retry and download the update again.";
+        config.pszContent = L"Hash check failed. Click Retry to download the update again.";
     }
     else
     {
-        config.pszContent = L"Please click Retry and download the update again.";
+        config.pszContent = L"Click Retry to download the update again.";
     }
 
     config.cxWidth = 200;
