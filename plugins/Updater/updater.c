@@ -36,7 +36,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
 
     context = (PPH_UPDATER_CONTEXT)PhAllocate(sizeof(PH_UPDATER_CONTEXT));
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
-    
+
     context->StartupCheck = StartupCheck;
 
     return context;
@@ -1031,7 +1031,7 @@ NTSTATUS UpdateDownloadThread(
                 // Calculate the number of ticks
                 timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
                 timeBitsPerSecond = downloadedBytes / __max(timeTicks, 1);
-                
+
                 // TODO: Update on timer callback.
                 {
                     FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
@@ -1222,7 +1222,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //                5,
     //                390,
     //                85,
-    //                (HWND)lParam, // parent window 
+    //                (HWND)lParam, // parent window
     //                0,
     //                NULL,
     //                NULL
@@ -1230,7 +1230,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //
     //            CommonCreateFont(-11, hwndEdit);
     //
-    //            // Add text to the window. 
+    //            // Add text to the window.
     //            SendMessage(hwndEdit, WM_SETTEXT, 0, (LPARAM)L"TEST");
     //        }
     //    }

@@ -76,7 +76,7 @@ typedef struct _PH_UPDATER_CONTEXT
     BOOLEAN StartupCheck;
     BOOLEAN HaveData;
     BOOLEAN FixedWindowStyles;
-    
+
     HICON IconSmallHandle;
     HICON IconLargeHandle;
 

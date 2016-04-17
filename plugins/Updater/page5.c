@@ -26,7 +26,7 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDYES, L"Install Update" }
+    { IDYES, L"Install" }
 };
 
 HRESULT CALLBACK FinalTaskDialogCallbackProc(
@@ -116,7 +116,7 @@ VOID ShowUpdateInstallDialog(
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"Ready to install update";
-    config.pszContent = L"The update has been sucessfully downloaded, hashed and the digital signature verified.\r\n\r\nClick install to continue update...";
+    config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
 
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
