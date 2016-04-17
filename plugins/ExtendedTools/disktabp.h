@@ -1,8 +1,11 @@
 #ifndef DISKTABP_H
 #define DISKTABP_H
 
-HWND NTAPI EtpDiskTabCreateFunction(
-    _In_ PVOID Context
+BOOLEAN EtpDiskPageCallback(
+    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 VOID NTAPI EtpDiskTabSelectionChangedCallback(
