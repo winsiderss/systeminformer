@@ -100,7 +100,7 @@ BOOLEAN PhMwpProcessesPageCallback(
         {
             *(HWND *)Parameter1 = PhMwpProcessTreeNewHandle;
         }
-        break;
+        return TRUE;
     case MainTabPageInitializeSectionMenuItems:
         {
             PPH_MAIN_TAB_PAGE_MENU_INFORMATION menuInfo = Parameter1;
@@ -143,19 +143,19 @@ BOOLEAN PhMwpProcessesPageCallback(
             if (PhGetIntegerSetting(L"HideSignedProcesses"))
                 SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
         }
-        break;
+        return TRUE;
     case MainTabPageSaveSettings:
         {
             PhSaveSettingsProcessTreeList();
         }
-        break;
+        return TRUE;
     case MainTabPageExportContent:
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
 
             PhWriteProcessTree(exportContent->FileStream, exportContent->Mode);
         }
-        break;
+        return TRUE;
     case MainTabPageFontChanged:
         {
             HFONT font = (HFONT)Parameter1;

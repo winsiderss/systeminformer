@@ -2873,25 +2873,11 @@ VOID PhMwpLayoutTabControl(
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
     TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
 
-    if (CurrentPage)
+    if (CurrentPage && CurrentPage->WindowHandle)
     {
-        // Create the tab page window if it doesn't exist.
-        if (!CurrentPage->WindowHandle)
-        {
-            CurrentPage->Callback(CurrentPage, MainTabPageCreateWindow, &CurrentPage->WindowHandle, NULL);
-
-            if (CurrentPage->WindowHandle)
-                BringWindowToTop(CurrentPage->WindowHandle);
-            if (CurrentCustomFont)
-                CurrentPage->Callback(CurrentPage, MainTabPageFontChanged, CurrentCustomFont, NULL);
-        }
-
-        if (CurrentPage->WindowHandle)
-        {
-            *DeferHandle = DeferWindowPos(*DeferHandle, CurrentPage->WindowHandle, NULL,
-                rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-                SWP_NOACTIVATE | SWP_NOZORDER);
-        }
+        *DeferHandle = DeferWindowPos(*DeferHandle, CurrentPage->WindowHandle, NULL,
+            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER);
     }
 }
 
@@ -2919,10 +2905,6 @@ VOID PhMwpSelectionChangedTabControl(
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
-    deferHandle = BeginDeferWindowPos(1);
-    PhMwpLayoutTabControl(&deferHandle);
-    EndDeferWindowPos(deferHandle);
-
     for (i = 0; i < PageList->Count; i++)
     {
         PPH_MAIN_TAB_PAGE page = PageList->Items[i];
@@ -2938,12 +2920,33 @@ VOID PhMwpSelectionChangedTabControl(
         }
         else if (page->Index == selectedIndex)
         {
+            CurrentPage = page;
+
+            // Create the tab page window if it doesn't exist.
+            if (!page->WindowHandle && !page->CreateWindowCalled)
+            {
+                if (page->Callback(page, MainTabPageCreateWindow, &page->WindowHandle, NULL))
+                    page->CreateWindowCalled = TRUE;
+
+                if (page->WindowHandle)
+                    BringWindowToTop(page->WindowHandle);
+                if (CurrentCustomFont)
+                    page->Callback(page, MainTabPageFontChanged, CurrentCustomFont, NULL);
+            }
+
             page->Callback(page, MainTabPageSelected, (PVOID)TRUE, NULL);
 
             if (page->WindowHandle)
+            {
                 ShowWindow(page->WindowHandle, SW_SHOW);
+                SetFocus(page->WindowHandle);
+            }
         }
     }
+
+    deferHandle = BeginDeferWindowPos(1);
+    PhMwpLayoutTabControl(&deferHandle);
+    EndDeferWindowPos(deferHandle);
 
     if (PhPluginsEnabled)
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), IntToPtr(selectedIndex));

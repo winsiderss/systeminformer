@@ -92,7 +92,7 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             *(HWND *)Parameter1 = PhMwpServiceTreeNewHandle;
         }
-        break;
+        return TRUE;
     case MainTabPageSelected:
         {
             BOOLEAN selected = (BOOLEAN)Parameter1;
@@ -118,20 +118,20 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             // Nothing
         }
-        break;
+        return TRUE;
     case MainTabPageSaveSettings:
         {
             if (ServiceTreeListLoaded)
                 PhSaveSettingsServiceTreeList();
         }
-        break;
+        return TRUE;
     case MainTabPageExportContent:
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
 
             PhWriteServiceList(exportContent->FileStream, exportContent->Mode);
         }
-        break;
+        return TRUE;
     case MainTabPageFontChanged:
         {
             HFONT font = (HFONT)Parameter1;

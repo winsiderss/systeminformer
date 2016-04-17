@@ -191,7 +191,8 @@ typedef struct _PH_MAIN_TAB_PAGE
         struct
         {
             ULONG Selected : 1;
-            ULONG SpareStateFlags : 31;
+            ULONG CreateWindowCalled : 1;
+            ULONG SpareStateFlags : 30;
         };
     };
     PVOID Reserved[2];
