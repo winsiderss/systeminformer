@@ -1,3 +1,7 @@
+2.0
+ * Major rewrite of updater
+ * Improved UI with native TaskDialog
+
 1.8
  * Removed legacy code
 

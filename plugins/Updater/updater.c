@@ -263,7 +263,6 @@ PPH_STRING UpdateWindowsString(
     return buildLabHeader;
 }
 
-
 BOOLEAN ParseVersionString(
     _Inout_ PPH_UPDATER_CONTEXT Context
     )
@@ -342,7 +341,6 @@ BOOLEAN ReadRequestString(
 
     return TRUE;
 }
-
 
 BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context,
@@ -575,7 +573,6 @@ BOOLEAN QueryUpdateData(
 
     return isSuccess;
 }
-
 
 NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
@@ -1048,12 +1045,8 @@ NTSTATUS UpdateDownloadThread(
                         );
 
                     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
-                    SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
-
-                    //Static_SetText(context->StatusHandle, statusMessage->Buffer);
-
                     // Update the progress bar position
-                    //PostMessage(context->ProgressHandle, PBM_SETPOS, (INT)percent, 0);
+                    SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
 
                     PhDereferenceObject(statusMessage);
                     PhDereferenceObject(totalSpeed);
@@ -1142,7 +1135,6 @@ NTSTATUS UpdateDownloadThread(
     return STATUS_SUCCESS;
 }
 
-
 LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1159,8 +1151,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     case WM_NCDESTROY:
         {
             RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
-
-            FreeUpdateContext(context);
         }
         break;
     case WM_SHOWDIALOG:
@@ -1323,6 +1313,8 @@ NTSTATUS ShowUpdateDialogThread(
 
     // Start the TaskDialog bootstrap.
     ShowInitialDialog(context);
+
+    FreeUpdateContext(context);
 
     PhDeleteAutoPool(&autoPool);
 

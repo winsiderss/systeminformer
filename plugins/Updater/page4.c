@@ -42,13 +42,8 @@ HRESULT CALLBACK ShowProgressCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             // Start file download thread
-            if (downloadThreadHandle = PhCreateThread(0,
-                (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread,
-                context
-                ))
-            {
+            if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
                 NtClose(downloadThreadHandle);
-            }
         }
         break;
     case TDN_HYPERLINK_CLICKED:
