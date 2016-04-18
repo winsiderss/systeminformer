@@ -178,6 +178,7 @@ INT AddListViewGroup(
 {
     LVGROUP group;
 
+    memset(&group, 0, sizeof(LVGROUP));
     group.cbSize = sizeof(LVGROUP);
     group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
     group.uAlign = LVGA_HEADER_LEFT;
