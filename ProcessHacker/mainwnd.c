@@ -433,7 +433,7 @@ VOID PhMwpInitializeControls(
     PhMwpServiceTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
         0,
         0,
         3,
@@ -448,7 +448,7 @@ VOID PhMwpInitializeControls(
     PhMwpNetworkTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
         0,
         0,
         3,
@@ -2908,6 +2908,8 @@ VOID PhMwpSelectionChangedTabControl(
     if (selectedIndex == OldIndex)
         return;
 
+    deferHandle = BeginDeferWindowPos(3);
+
     for (i = 0; i < PageList->Count; i++)
     {
         PPH_MAIN_TAB_PAGE page = PageList->Items[i];
@@ -2934,7 +2936,7 @@ VOID PhMwpSelectionChangedTabControl(
 
             if (page->WindowHandle)
             {
-                ShowWindow(page->WindowHandle, SW_SHOW);
+                deferHandle = DeferWindowPos(deferHandle, page->WindowHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
                 SetFocus(page->WindowHandle);
             }
         }
@@ -2943,12 +2945,14 @@ VOID PhMwpSelectionChangedTabControl(
             page->Callback(page, MainTabPageSelected, (PVOID)FALSE, NULL);
 
             if (page->WindowHandle)
-                ShowWindow(page->WindowHandle, SW_HIDE);
+            {
+                deferHandle = DeferWindowPos(deferHandle, page->WindowHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY);
+            }
         }
     }
 
-    deferHandle = BeginDeferWindowPos(1);
     PhMwpLayoutTabControl(&deferHandle);
+
     EndDeferWindowPos(deferHandle);
 
     if (PhPluginsEnabled)
