@@ -463,9 +463,7 @@ HFONT PhpCreateFont(
     _In_ ULONG Weight
     )
 {
-    HFONT font;
-
-    font = CreateFont(
+    return CreateFont(
         -(LONG)PhMultiplyDivide(Size, PhGlobalDpi, 72),
         0,
         0,
@@ -481,8 +479,6 @@ HFONT PhpCreateFont(
         DEFAULT_PITCH,
         Name
         );
-
-    return font;
 }
 
 VOID PhInitializeFont(

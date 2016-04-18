@@ -1564,7 +1564,8 @@ NTSTATUS PhpCallWithTimeout(
             PhpCallWithTimeoutThreadStart,
             ThreadContext,
             &ThreadContext->ThreadHandle,
-            &clientId)))
+            &clientId
+            )))
         {
             return status;
         }
