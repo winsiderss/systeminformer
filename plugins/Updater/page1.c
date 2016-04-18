@@ -41,11 +41,8 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            if (!PhTestEvent(&InitializedEvent))
-            {
-                // Taskdialog is now initialized
-                PhSetEvent(&InitializedEvent);
-            }
+            // Taskdialog is now initialized
+            PhSetEvent(&InitializedEvent);
         }
         break;
     case TDN_BUTTON_CLICKED:

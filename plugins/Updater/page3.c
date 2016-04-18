@@ -41,11 +41,8 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            if (!PhTestEvent(&InitializedEvent))
-            {
-                // Taskdialog is now initialized (Required if the background startup check starts here)
-                PhSetEvent(&InitializedEvent);
-            }
+            // Taskdialog is now initialized (Required if the background startup check starts here)
+            PhSetEvent(&InitializedEvent);
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -99,13 +96,13 @@ VOID ShowAvailableDialog(
         context->Size->Buffer
         )->Buffer;
     config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-   
+
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
 
     config.lpCallbackData = Context;
     config.pfCallback = ShowAvailableCallbackProc;
-    
+
     SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
