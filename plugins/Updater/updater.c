@@ -590,7 +590,7 @@ NTSTATUS UpdateCheckSilentThread(
         {
             __leave;
         }
-
+#ifndef FORCE_NO_INTERNET
         if (!QueryUpdateData(context, FALSE))
         {
             if (!QueryUpdateData(context, TRUE))
@@ -598,7 +598,9 @@ NTSTATUS UpdateCheckSilentThread(
                 __leave;
             }
         }
-
+#else
+        __leave;
+#endif
         currentVersion = MAKEDLLVERULL(
             context->CurrentMajorVersion,
             context->CurrentMinorVersion,
@@ -681,12 +683,16 @@ NTSTATUS UpdateCheckThread(
         }
     }
 
-    // sanity check
-    if (!context->HaveData)
+#ifndef FORCE_NO_INTERNET
+    if (!context->HaveData) // sanity check
     {
         PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
         return STATUS_SUCCESS;
     }
+#else
+    PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+    return STATUS_SUCCESS;
+#endif
 
     currentVersion = MAKEDLLVERULL(
         context->CurrentMajorVersion,

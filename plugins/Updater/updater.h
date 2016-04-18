@@ -36,15 +36,18 @@
 #include "resource.h"
 
 #ifdef _DEBUG
-// Force update checks to succeed
+// Force update checks to succeed (most of the below flags require this to be defined).
 //#define FORCE_UPDATE_CHECK
-// Force update check to show the current version as the latest version
+// Force update check to show the current version as the latest version.
 //#define FORCE_LATEST_VERSION
-// Force error states (can be combined).
+// Force the download error state.
 //#define FORCE_DOWNLOAD_ERROR
+// Hash and Signature errors can be combined.
 //#define FORCE_HASH_CHECK_ERROR
 //#define FORCE_SIGNATURE_CHECK_ERROR
-// Disable startup update check
+// Forces the same result as having no internet connection.
+//#define FORCE_NO_INTERNET
+// Disable startup update check.
 //#define DISABLE_STARTUP_CHECK
 #endif
 
