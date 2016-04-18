@@ -2,17 +2,8 @@
 // Microsoft Visual C++ generated include file.
 // Used by Updater.rc
 //
-#define IDD_UPDATE                      101
 #define IDD_OPTIONS                     103
-#define IDB_PNG1                        104
-#define IDC_MESSAGE                     1001
 #define IDC_AUTOCHECKBOX                1002
-#define IDC_PROGRESS                    1003
-#define IDC_RELDATE                     1004
-#define IDC_STATUS                      1005
-#define IDC_DOWNLOAD                    1006
-#define IDC_UPDATEICON                  1007
-#define IDC_INFOSYSLINK                 1008
 
 // Next default values for new objects
 // 

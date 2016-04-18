@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,8,0,0
- PRODUCTVERSION 1,8,0,0
+ FILEVERSION 2,0,0,0
+ PRODUCTVERSION 2,0,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Update checker plugin for Process Hacker"
-            VALUE "FileVersion", "1.8"
+            VALUE "FileVersion", "2.0"
             VALUE "InternalName", "Updater"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "Updater.dll"
             VALUE "ProductName", "Update checker plugin for Process Hacker"
-            VALUE "ProductVersion", "1.8"
+            VALUE "ProductVersion", "2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -88,22 +88,6 @@ END
 //
 // Dialog
 //
-
-IDD_UPDATE DIALOGEX 0, 0, 259, 89
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
-EXSTYLE WS_EX_APPWINDOW
-CAPTION "Process Hacker Updater"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    CONTROL         "Check for new releases?",IDC_MESSAGE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,7,6,194,13,WS_EX_TRANSPARENT
-    CONTROL         "",IDC_RELDATE,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,8,24,194,11,WS_EX_TRANSPARENT
-    CONTROL         "<a>View Changelog</a>",IDC_INFOSYSLINK,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,8,39,89,11,WS_EX_TRANSPARENT
-    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | NOT WS_VISIBLE,8,54,244,11
-    CONTROL         "",IDC_STATUS,"Static",SS_SIMPLE | SS_NOPREFIX | SS_WORDELLIPSIS | WS_GROUP,7,72,135,8,WS_EX_TRANSPARENT
-    PUSHBUTTON      "Start",IDC_DOWNLOAD,149,70,50,14
-    PUSHBUTTON      "Close",IDOK,203,70,50,14
-    CONTROL         "",IDC_UPDATEICON,"Static",SS_BITMAP | SS_CENTERIMAGE,224,0,32,32,WS_EX_TRANSPARENT
-END
 
 IDD_OPTIONS DIALOGEX 0, 0, 215, 54
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
@@ -125,14 +109,6 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    IDD_UPDATE, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 252
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 84
-    END
-
     IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -148,11 +124,6 @@ END
 //
 // AFX_DIALOG_LAYOUT
 //
-
-IDD_UPDATE AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
 
 IDD_OPTIONS AFX_DIALOG_LAYOUT
 BEGIN
