@@ -35,6 +35,25 @@
 
 #include "resource.h"
 
+#define UPDATE_MENUITEM    1001
+#define PH_UPDATEISERRORED (WM_APP + 501)
+#define PH_UPDATEAVAILABLE (WM_APP + 502)
+#define PH_UPDATEISCURRENT (WM_APP + 503)
+#define PH_UPDATENEWER     (WM_APP + 504)
+#define PH_UPDATESUCCESS   (WM_APP + 505)
+#define PH_UPDATEFAILURE   (WM_APP + 506)
+#define WM_SHOWDIALOG      (WM_APP + 550)
+
+#define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
+#define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
+#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+
+#define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
+    (((ULONGLONG)(major) << 48) | \
+    ((ULONGLONG)(minor) << 32) | \
+    ((ULONGLONG)(build) << 16) | \
+    ((ULONGLONG)(revision) <<  0))
+
 #ifdef _DEBUG
 // Force update checks to succeed (most of the below flags require this to be defined).
 //#define FORCE_UPDATE_CHECK
@@ -50,25 +69,6 @@
 // Disable startup update check.
 //#define DISABLE_STARTUP_CHECK
 #endif
-
-#define UPDATE_MENUITEM    1001
-#define PH_UPDATEISERRORED (WM_APP + 501)
-#define PH_UPDATEAVAILABLE (WM_APP + 502)
-#define PH_UPDATEISCURRENT (WM_APP + 503)
-#define PH_UPDATENEWER     (WM_APP + 504)
-#define PH_UPDATESUCCESS   (WM_APP + 505)
-#define PH_UPDATEFAILURE   (WM_APP + 506)
-#define WM_SHOWDIALOG      (WM_APP + 550)
-
-#define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
-#define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
-#define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
-
-#define MAKEDLLVERULL(major, minor, build, revision) \
-    (((ULONGLONG)(major) << 48) | \
-    ((ULONGLONG)(minor) << 32) | \
-    ((ULONGLONG)(build) << 16) | \
-    ((ULONGLONG)(revision) <<  0))
 
 extern HWND UpdateDialogHandle;
 extern PH_EVENT InitializedEvent;

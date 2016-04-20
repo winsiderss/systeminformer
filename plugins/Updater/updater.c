@@ -601,7 +601,7 @@ NTSTATUS UpdateCheckSilentThread(
 #else
         __leave;
 #endif
-        currentVersion = MAKEDLLVERULL(
+        currentVersion = MAKE_VERSION_ULONGLONG(
             context->CurrentMajorVersion,
             context->CurrentMinorVersion,
             context->CurrentRevisionVersion,
@@ -610,14 +610,14 @@ NTSTATUS UpdateCheckSilentThread(
 
 #ifdef FORCE_UPDATE_CHECK
 #ifdef FORCE_LATEST_VERSION
-        latestVersion = MAKEDLLVERULL(
+        latestVersion = MAKE_VERSION_ULONGLONG(
             context->CurrentMajorVersion,
             context->CurrentMinorVersion,
             context->CurrentRevisionVersion,
             0
             );
 #else
-        latestVersion = MAKEDLLVERULL(
+        latestVersion = MAKE_VERSION_ULONGLONG(
             9999,
             9999,
             9999,
@@ -625,7 +625,7 @@ NTSTATUS UpdateCheckSilentThread(
             );
 #endif
 #else
-        latestVersion = MAKEDLLVERULL(
+        latestVersion = MAKE_VERSION_ULONGLONG(
             context->MajorVersion,
             context->MinorVersion,
             context->RevisionVersion,
@@ -694,7 +694,7 @@ NTSTATUS UpdateCheckThread(
     return STATUS_SUCCESS;
 #endif
 
-    currentVersion = MAKEDLLVERULL(
+    currentVersion = MAKE_VERSION_ULONGLONG(
         context->CurrentMajorVersion,
         context->CurrentMinorVersion,
         context->CurrentRevisionVersion,
@@ -703,14 +703,14 @@ NTSTATUS UpdateCheckThread(
 
 #ifdef FORCE_UPDATE_CHECK
 #ifdef FORCE_LATEST_VERSION
-    latestVersion = MAKEDLLVERULL(
+    latestVersion = MAKE_VERSION_ULONGLONG(
         context->CurrentMajorVersion,
         context->CurrentMinorVersion,
         context->CurrentRevisionVersion,
         0
         );
 #else
-    latestVersion = MAKEDLLVERULL(
+    latestVersion = MAKE_VERSION_ULONGLONG(
         9999,
         9999,
         9999,
@@ -718,7 +718,7 @@ NTSTATUS UpdateCheckThread(
         );
 #endif
 #else
-    latestVersion = MAKEDLLVERULL(
+    latestVersion = MAKE_VERSION_ULONGLONG(
         context->MajorVersion,
         context->MinorVersion,
         context->RevisionVersion,
