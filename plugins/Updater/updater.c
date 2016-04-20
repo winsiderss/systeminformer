@@ -447,6 +447,12 @@ BOOLEAN QueryUpdateData(
             }
         }
 
+        if (WindowsVersion >= WINDOWS_7)
+        {
+            ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
+            WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
+        }
+
         if (versionHeader)
         {
             WinHttpAddRequestHeaders(
@@ -933,6 +939,12 @@ NTSTATUS UpdateDownloadThread(
             )))
         {
             __leave;
+        }
+
+        if (WindowsVersion >= WINDOWS_7)
+        {
+            ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
+            WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
         }
 
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
