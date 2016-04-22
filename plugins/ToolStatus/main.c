@@ -326,7 +326,7 @@ VOID ShowCustomizeMenu(
                 {
                     REBARBANDINFO rebarBandInfo =
                     {
-                        REBARBANDINFO_V6_SIZE,
+                        sizeof(REBARBANDINFO),
                         RBBIM_STYLE
                     };
 

@@ -49,9 +49,10 @@ VOID RebarBandInsert(
     _In_ UINT cyMinChild
     )
 {
+    UINT index;
     REBARBANDINFO rebarBandInfo =
     {
-        REBARBANDINFO_V6_SIZE,
+        sizeof(REBARBANDINFO),
         RBBIM_STYLE | RBBIM_ID | RBBIM_CHILD | RBBIM_CHILDSIZE,
         RBBS_USECHEVRON // RBBS_NOGRIPPER | RBBS_HIDETITLE | RBBS_TOPALIGN
     };
@@ -61,17 +62,19 @@ VOID RebarBandInsert(
     rebarBandInfo.cxMinChild = cxMinChild;
     rebarBandInfo.cyMinChild = cyMinChild;
 
-    if (BandID == REBAR_BAND_ID_SEARCHBOX)
-    {
-        rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
-    }
-
     if (ToolStatusConfig.ToolBarLocked)
     {
         rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
     }
 
-    SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+    if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_SEARCHBOX, 0)) != -1)
+    {
+        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)index, (LPARAM)&rebarBandInfo);
+    }
+    else
+    {
+        SendMessage(RebarHandle, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rebarBandInfo);
+    }
 }
 
 VOID RebarBandRemove(
@@ -372,11 +375,11 @@ VOID ToolbarLoadSettings(
         UINT index;
         REBARBANDINFO rebarBandInfo =
         {
-            REBARBANDINFO_V6_SIZE,
+            sizeof(REBARBANDINFO),
             RBBIM_IDEALSIZE
         };
 
-        index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (WPARAM)REBAR_BAND_ID_TOOLBAR, 0);
+        index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_TOOLBAR, 0);
 
         // Get settings for Rebar band.
         if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo) != -1)
@@ -806,7 +809,7 @@ VOID ReBarLoadLayoutSettings(
         UINT oldBandIndex;
         REBARBANDINFO rebarBandInfo =
         {
-            REBARBANDINFO_V6_SIZE,
+            sizeof(REBARBANDINFO),
             RBBIM_STYLE | RBBIM_SIZE
         };
 
@@ -831,11 +834,6 @@ VOID ReBarLoadLayoutSettings(
 
         if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
         {
-            if (idInteger == REBAR_BAND_ID_SEARCHBOX)
-            {
-                rebarBandInfo.fStyle |= RBBS_FIXEDSIZE;
-            }
-
             rebarBandInfo.cx = (UINT)cxInteger;
             rebarBandInfo.fStyle |= (UINT)styleInteger;
 
@@ -861,7 +859,7 @@ VOID ReBarSaveLayoutSettings(
     {
         REBARBANDINFO rebarBandInfo =
         {
-            REBARBANDINFO_V6_SIZE,
+            sizeof(REBARBANDINFO),
             RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID
         };
 
