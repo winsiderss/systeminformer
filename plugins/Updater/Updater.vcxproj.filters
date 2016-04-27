@@ -39,6 +39,9 @@
     <ClCompile Include="page1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="verify.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="updater.h">

@@ -181,4 +181,38 @@ VOID ShowOptionsDialog(
     _In_opt_ HWND Parent
     );
 
+// verify.c
+
+typedef struct _UPDATER_HASH_CONTEXT
+{
+    BCRYPT_ALG_HANDLE SignAlgHandle;
+    BCRYPT_ALG_HANDLE HashAlgHandle;
+    BCRYPT_KEY_HANDLE KeyHandle;
+    BCRYPT_HASH_HANDLE HashHandle;
+    ULONG HashObjectSize;
+    ULONG HashSize;
+    PVOID HashObject;
+    PVOID Hash;
+} UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
+
+BOOLEAN UpdaterInitializeHash(
+    _Out_ PUPDATER_HASH_CONTEXT *Context
+    );
+
+BOOLEAN UpdaterUpdateHash(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+BOOLEAN UpdaterFinalHash(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_ ULONG SignatureSize,
+    _In_ PVOID Signature
+    );
+
+VOID UpdaterDestroyHash(
+    _Inout_ PUPDATER_HASH_CONTEXT Context
+    );
+
 #endif
