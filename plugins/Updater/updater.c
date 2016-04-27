@@ -563,18 +563,19 @@ NTSTATUS UpdateCheckSilentThread(
 
     __try
     {
+#ifdef FORCE_NO_INTERNET
+        __leave;
+#endif
         if (!LastUpdateCheckExpired())
         {
             __leave;
         }
-#ifndef FORCE_NO_INTERNET
+
         if (!QueryUpdateData(context))
         {
             __leave;
         }
-#else
-        __leave;
-#endif
+
         currentVersion = MAKE_VERSION_ULONGLONG(
             context->CurrentMajorVersion,
             context->CurrentMinorVersion,
@@ -646,7 +647,11 @@ NTSTATUS UpdateCheckThread(
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
 
-#ifndef FORCE_NO_INTERNET
+#ifdef FORCE_NO_INTERNET
+    PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+    return STATUS_SUCCESS;
+#endif
+
     // Check if we have cached update data
     if (!context->HaveData)
     {
@@ -658,10 +663,6 @@ NTSTATUS UpdateCheckThread(
         PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
         return STATUS_SUCCESS;
     }
-#else
-    PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
-    return STATUS_SUCCESS;
-#endif
 
     currentVersion = MAKE_VERSION_ULONGLONG(
         context->CurrentMajorVersion,
