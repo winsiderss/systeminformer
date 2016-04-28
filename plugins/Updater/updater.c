@@ -943,18 +943,22 @@ NTSTATUS UpdateDownloadThread(
             ULONG downloadedBytes = 0;
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
+            PPH_STRING status;
             IO_STATUS_BLOCK isb;
             BYTE buffer[PAGE_SIZE];
-            
-            // Start the clock.
-            PhQuerySystemTime(&timeStart);
 
-            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhFormatString(L"Downloading update %lu.%lu.%lu...",
+            status = PhFormatString(L"Downloading update %lu.%lu.%lu...",
                 context->MajorVersion,
                 context->MinorVersion,
                 context->RevisionVersion
-                )->Buffer);
+                );
+
+            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
+            PhDereferenceObject(status);
+
+            // Start the clock.
+            PhQuerySystemTime(&timeStart);
 
             if (!WinHttpQueryHeaders(
                 httpRequestHandle,
