@@ -248,4 +248,6 @@ VOID UpdaterDestroyHash(
 
     if (Context->Hash)
         PhFree(Context->Hash);
+
+    PhFree(Context);
 }
