@@ -24,11 +24,15 @@
 
 static UCHAR UpdaterTrustedPublicKey[] =
 {
-    0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00, 0x5f, 0xe8, 0xab, 0xac, 0x01, 0xad, 0x6b, 0x48,
-    0xfd, 0x84, 0x7f, 0x43, 0x70, 0xb6, 0x57, 0xb0, 0x76, 0xe3, 0x10, 0x07, 0x19, 0xbd, 0x0e, 0xd4,
-    0x10, 0x5c, 0x1f, 0xfc, 0x40, 0x91, 0xb6, 0xed, 0x94, 0x37, 0x76, 0xb7, 0x86, 0x88, 0xf7, 0x34,
-    0x12, 0x91, 0xf6, 0x65, 0x23, 0x58, 0xc9, 0xeb, 0x2f, 0xcb, 0x96, 0x13, 0x8f, 0xca, 0x57, 0x7a,
-    0xd0, 0x7a, 0xbf, 0x22, 0xde, 0xd2, 0x15, 0xfc
+    0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+    0x91, 0x7C, 0xDF, 0x3D, 0x09, 0xBF, 0xF9, 0xCA,
+    0xA7, 0x5E, 0x96, 0xEA, 0x38, 0x91, 0x24, 0xCA,
+    0xF3, 0x5D, 0x87, 0xA4, 0x4A, 0x96, 0x48, 0xA7,
+    0xC1, 0xB2, 0x07, 0x1C, 0x8E, 0x09, 0x3A, 0x37,
+    0x41, 0x9B, 0xC5, 0x70, 0x64, 0xAD, 0xAE, 0x24,
+    0x46, 0xA1, 0xB4, 0xE9, 0x1C, 0xE0, 0x79, 0x6D,
+    0x57, 0x71, 0xD0, 0xD0, 0xF3, 0x72, 0x3D, 0x67,
+    0x31, 0xAB, 0x77, 0xF8, 0xFD, 0xE6, 0x28, 0xF0,
 };
 
 BOOLEAN UpdaterInitializeHash(
@@ -151,43 +155,75 @@ BOOLEAN UpdaterUpdateHash(
     )
 {
     // Update the hash.
-
     return NT_SUCCESS(BCryptHashData(Context->HashHandle, Buffer, Length, 0));
 }
 
-BOOLEAN UpdaterFinalHash(
+BOOLEAN UpdaterVerifyHash(
     _Inout_ PUPDATER_HASH_CONTEXT Context,
-    _In_ ULONG SignatureSize,
-    _In_ PVOID Signature
+    _In_ PPH_STRING Sha2Hash
     )
 {
+    PPH_STRING sha2HexString;
+
     // Compute the final hash.
 
     if (!NT_SUCCESS(BCryptFinishHash(
-        Context->HashHandle, 
-        Context->Hash, 
-        Context->HashSize, 
+        Context->HashHandle,
+        Context->Hash,
+        Context->HashSize,
         0
         )))
     {
         return FALSE;
     }
 
-    // Verify the hash.
+    if (!(sha2HexString = PhBufferToHexString(Context->Hash, Context->HashSize)))
+        return FALSE;
+
+    if (!PhEqualString(sha2HexString, Sha2Hash, TRUE))
+    {
+        PhDereferenceObject(sha2HexString);
+        return FALSE;
+    }
+
+    PhDereferenceObject(sha2HexString);
+    return TRUE;
+}
+
+BOOLEAN UpdaterVerifySignature(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_ PPH_STRING HexSignature
+    )
+{
+    ULONG signatureLength;
+    PUCHAR signatureBuffer;
+
+    signatureLength = (ULONG)HexSignature->Length / sizeof(WCHAR) / 2;
+    signatureBuffer = PhAllocate(signatureLength);
+
+    if (!PhHexStringToBuffer(&HexSignature->sr, signatureBuffer))
+    {
+        PhFree(signatureBuffer);
+        return FALSE;
+    }
+
+    // Verify the signature.
 
     if (!NT_SUCCESS(BCryptVerifySignature(
-        Context->KeyHandle, 
-        NULL, 
-        Context->Hash, 
-        Context->HashSize, 
-        Signature, 
-        SignatureSize, 
+        Context->KeyHandle,
+        NULL,
+        Context->Hash,
+        Context->HashSize,
+        signatureBuffer,
+        signatureLength,
         0
         )))
     {
+        PhFree(signatureBuffer);
         return FALSE;
     }
 
+    PhFree(signatureBuffer);
     return TRUE;
 }
 

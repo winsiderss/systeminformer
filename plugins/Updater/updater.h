@@ -59,13 +59,6 @@
 //#define FORCE_UPDATE_CHECK
 // Force update check to show the current version as the latest version.
 //#define FORCE_LATEST_VERSION
-// Force the download error state.
-//#define FORCE_DOWNLOAD_ERROR
-// Hash and Signature errors can be combined.
-//#define FORCE_HASH_CHECK_ERROR
-//#define FORCE_SIGNATURE_CHECK_ERROR
-// Forces the same result as having no internet connection.
-//#define FORCE_NO_INTERNET
 // Disable startup update check.
 //#define DISABLE_STARTUP_CHECK
 #endif
@@ -96,6 +89,7 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING RelDate;
     PPH_STRING Size;
     PPH_STRING Hash;
+    PPH_STRING Signature;
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
@@ -205,10 +199,14 @@ BOOLEAN UpdaterUpdateHash(
     _In_ ULONG Length
     );
 
-BOOLEAN UpdaterFinalHash(
+BOOLEAN UpdaterVerifyHash(
     _Inout_ PUPDATER_HASH_CONTEXT Context,
-    _In_ ULONG SignatureSize,
-    _In_ PVOID Signature
+    _In_ PPH_STRING Sha2Hash
+    );
+
+BOOLEAN UpdaterVerifySignature(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_ PPH_STRING HexSignature
     );
 
 VOID UpdaterDestroyHash(
