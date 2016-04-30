@@ -63,6 +63,7 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->RelDate);
     PhClearReference(&Context->Size);
     PhClearReference(&Context->Hash);
+    PhClearReference(&Context->Signature);
     PhClearReference(&Context->ReleaseNotesUrl);
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
