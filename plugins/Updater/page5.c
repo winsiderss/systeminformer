@@ -53,7 +53,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDRETRY)
             {
-                ShowCheckingForUpdatesDialog(hwndDlg, dwRefData);
+                ShowCheckingForUpdatesDialog(context);
                 return S_FALSE;
             }
 
@@ -99,20 +99,16 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
 }
 
 VOID ShowUpdateInstallDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
+    config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"Ready to install update";
@@ -123,14 +119,13 @@ VOID ShowUpdateInstallDialog(
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 VOID ShowLatestVersionDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
     PPH_UPDATER_CONTEXT context;
@@ -155,14 +150,13 @@ VOID ShowLatestVersionDialog(
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 VOID ShowNewerVersionDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
     PPH_UPDATER_CONTEXT context;
@@ -187,29 +181,25 @@ VOID ShowNewerVersionDialog(
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 VOID ShowUpdateFailedDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context,
+    _In_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN HashFailed,
     _In_ BOOLEAN SignatureFailed
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     //config.pszMainIcon = MAKEINTRESOURCE(65529);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
+    config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"An error was encountered while downloading the update.";
@@ -229,7 +219,7 @@ VOID ShowUpdateFailedDialog(
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

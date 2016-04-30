@@ -1086,6 +1086,7 @@ NTSTATUS UpdateDownloadThread(
         PhClearReference(&userAgentString);
     }
 
+    // The 
     if (UpdateDialogThreadHandle)
     {
         if (downloadSuccess && hashSuccess && signatureSuccess)
@@ -1152,37 +1153,37 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         break;
     case PH_UPDATEAVAILABLE:
         {
-            ShowAvailableDialog(hwndDlg, dwRefData);
+            ShowAvailableDialog(context);
         }
         break;
     case PH_UPDATEISCURRENT:
         {
-            ShowLatestVersionDialog(hwndDlg, dwRefData);
+            ShowLatestVersionDialog(context);
         }
         break;
     case PH_UPDATENEWER:
         {
-            ShowNewerVersionDialog(hwndDlg, dwRefData);
+            ShowNewerVersionDialog(context);
         }
         break;
     case PH_UPDATESUCCESS:
         {
-            ShowUpdateInstallDialog(hwndDlg, dwRefData);
+            ShowUpdateInstallDialog(context);
         }
         break;
     case PH_UPDATEFAILURE:
         {
             if ((BOOLEAN)wParam)
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, TRUE, FALSE);
+                ShowUpdateFailedDialog(context, TRUE, FALSE);
             else if ((BOOLEAN)lParam)
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, TRUE);
+                ShowUpdateFailedDialog(context, FALSE, TRUE);
             else
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, FALSE);
+                ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         break;
     case PH_UPDATEISERRORED:
         {
-            ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, FALSE);
+            ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -1257,11 +1258,11 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
             if (context->StartupCheck)
             {
-                ShowAvailableDialog(hwndDlg, dwRefData);
+                ShowAvailableDialog(context);
             }
             else
             {
-                ShowCheckForUpdatesDialog(hwndDlg, dwRefData);
+                ShowCheckForUpdatesDialog(context);
             }
         }
         break;

@@ -109,48 +109,40 @@ NTSTATUS UpdateDownloadThread(
 
 // page1.c
 VOID ShowCheckForUpdatesDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page2.c
 VOID ShowCheckingForUpdatesDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page3.c
 VOID ShowAvailableDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page4.c
 VOID ShowProgressDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page5.c
 
 VOID ShowUpdateInstallDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID ShowLatestVersionDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID ShowNewerVersionDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID ShowUpdateFailedDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context,
+    _In_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN HashFailed,
     _In_ BOOLEAN SignatureFailed
     );
