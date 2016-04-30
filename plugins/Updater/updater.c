@@ -728,7 +728,6 @@ NTSTATUS UpdateDownloadThread(
 {
     BOOLEAN downloadSuccess = FALSE;
     BOOLEAN hashSuccess = FALSE;
-    BOOLEAN verifySuccess = FALSE;
     BOOLEAN signatureSuccess = FALSE;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
@@ -1086,33 +1085,15 @@ NTSTATUS UpdateDownloadThread(
         PhClearReference(&userAgentString);
     }
 
-    // The 
     if (UpdateDialogThreadHandle)
     {
         if (downloadSuccess && hashSuccess && signatureSuccess)
-        {
-            if (WindowsVersion < WINDOWS_8)
-            {
-                // Disable signature checking on Win7 due to SHA2 certificate issues.
-                verifySuccess = TRUE;
-            }
-            else
-            {
-                // Check the digital signature of the installer...
-                if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)
-                {
-                    verifySuccess = TRUE;
-                }
-            }
-        }
-
-        if (downloadSuccess && hashSuccess && signatureSuccess && verifySuccess)
         {
             PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
         }
         else if (downloadSuccess)
         {
-            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, verifySuccess, hashSuccess);
+            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, signatureSuccess, hashSuccess);
         }
         else
         {
