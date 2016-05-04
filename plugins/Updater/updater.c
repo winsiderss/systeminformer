@@ -63,6 +63,7 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->RelDate);
     PhClearReference(&Context->Size);
     PhClearReference(&Context->Hash);
+    PhClearReference(&Context->Signature);
     PhClearReference(&Context->ReleaseNotesUrl);
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
@@ -501,11 +502,18 @@ BOOLEAN QueryUpdateData(
         if (PhIsNullOrEmptyString(Context->Size))
             __leave;
 
-        //Find the hash node
+        // Find the Hash node
         Context->Hash = UpdaterGetOpaqueXmlNodeText(
             mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
             );
         if (PhIsNullOrEmptyString(Context->Hash))
+            __leave;
+
+        // Find the signature node
+        Context->Signature = UpdaterGetOpaqueXmlNodeText(
+            mxmlFindElement(xmlNode->child, xmlNode, "sig", NULL, NULL, MXML_DESCEND)
+            );
+        if (PhIsNullOrEmptyString(Context->Signature))
             __leave;
 
         // Find the release notes URL
@@ -721,7 +729,7 @@ NTSTATUS UpdateDownloadThread(
 {
     BOOLEAN downloadSuccess = FALSE;
     BOOLEAN hashSuccess = FALSE;
-    BOOLEAN verifySuccess = FALSE;
+    BOOLEAN signatureSuccess = FALSE;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
@@ -732,6 +740,7 @@ NTSTATUS UpdateDownloadThread(
     PPH_STRING userAgentString = NULL;
     PPH_STRING fullSetupPath = NULL;
     PPH_STRING randomGuidString = NULL;
+    PUPDATER_HASH_CONTEXT hashContext = NULL;
     ULONG indexOfFileName = -1;
     GUID randomGuid;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
@@ -934,21 +943,22 @@ NTSTATUS UpdateDownloadThread(
             ULONG downloadedBytes = 0;
             ULONG contentLengthSize = sizeof(ULONG);
             ULONG contentLength = 0;
-            BYTE buffer[PAGE_SIZE];
-            BYTE hashBuffer[32];
-
-            PH_HASH_CONTEXT hashContext;
+            PPH_STRING status;
             IO_STATUS_BLOCK isb;
+            BYTE buffer[PAGE_SIZE];
 
-            // Start the clock.
-            PhQuerySystemTime(&timeStart);
-
-            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhFormatString(L"Downloading update %lu.%lu.%lu...",
+            status = PhFormatString(L"Downloading update %lu.%lu.%lu...",
                 context->MajorVersion,
                 context->MinorVersion,
                 context->RevisionVersion
-                )->Buffer);
+                );
+
+            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
+            PhDereferenceObject(status);
+
+            // Start the clock.
+            PhQuerySystemTime(&timeStart);
 
             if (!WinHttpQueryHeaders(
                 httpRequestHandle,
@@ -963,7 +973,8 @@ NTSTATUS UpdateDownloadThread(
             }
 
             // Initialize hash algorithm.
-            PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+            if (!UpdaterInitializeHash(&hashContext))
+                __leave;
 
             // Zero the buffer.
             memset(buffer, 0, PAGE_SIZE);
@@ -980,7 +991,7 @@ NTSTATUS UpdateDownloadThread(
                     __leave;
 
                 // Update the hash of bytes we downloaded.
-                PhUpdateHash(&hashContext, buffer, bytesDownloaded);
+                UpdaterUpdateHash(hashContext, buffer, bytesDownloaded);
 
                 // Write the downloaded bytes to disk.
                 if (!NT_SUCCESS(NtWriteFile(
@@ -1037,29 +1048,24 @@ NTSTATUS UpdateDownloadThread(
                 }
             }
 
-            // Compute hash result (will fail if file not downloaded correctly).
-            if (PhFinalHash(&hashContext, &hashBuffer, 32, NULL))
+            downloadSuccess = TRUE;
+
+            if (UpdaterVerifyHash(hashContext, context->Hash))
             {
-                // Allocate our hash string, hex the final hash result in our hashBuffer.
-                PPH_STRING hexString = PhBufferToHexString(hashBuffer, 32);
+                hashSuccess = TRUE;
+            }
 
-                if (PhEqualString(hexString, context->Hash, TRUE))
-                {
-#ifndef FORCE_HASH_CHECK_ERROR
-                    hashSuccess = TRUE;
-#endif
-                }
-
-                PhDereferenceObject(hexString);
+            if (UpdaterVerifySignature(hashContext, context->Signature))
+            {
+                signatureSuccess = TRUE;
             }
         }
-
-#ifndef FORCE_DOWNLOAD_ERROR
-        downloadSuccess = TRUE;
-#endif
     }
     __finally
     {
+        if (hashContext)
+            UpdaterDestroyHash(hashContext);
+
         if (tempFileHandle)
             NtClose(tempFileHandle);
 
@@ -1080,33 +1086,15 @@ NTSTATUS UpdateDownloadThread(
         PhClearReference(&userAgentString);
     }
 
-    if (WindowsVersion < WINDOWS_8)
-    {
-        // Disable signature checking on Win7 due to SHA2 certificate issues.
-#ifndef FORCE_SIGNATURE_CHECK_ERROR
-        verifySuccess = TRUE;
-#endif
-    }
-    else
-    {
-        // Check the digital signature of the installer...
-        if (context->SetupFilePath && PhVerifyFile(context->SetupFilePath->Buffer, NULL) == VrTrusted)
-        {
-#ifndef FORCE_SIGNATURE_CHECK_ERROR
-            verifySuccess = TRUE;
-#endif
-        }
-    }
-
     if (UpdateDialogThreadHandle)
     {
-        if (downloadSuccess && hashSuccess && verifySuccess)
+        if (downloadSuccess && hashSuccess && signatureSuccess)
         {
             PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
         }
         else if (downloadSuccess)
         {
-            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, verifySuccess, hashSuccess);
+            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, signatureSuccess, hashSuccess);
         }
         else
         {
@@ -1147,37 +1135,37 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         break;
     case PH_UPDATEAVAILABLE:
         {
-            ShowAvailableDialog(hwndDlg, dwRefData);
+            ShowAvailableDialog(context);
         }
         break;
     case PH_UPDATEISCURRENT:
         {
-            ShowLatestVersionDialog(hwndDlg, dwRefData);
+            ShowLatestVersionDialog(context);
         }
         break;
     case PH_UPDATENEWER:
         {
-            ShowNewerVersionDialog(hwndDlg, dwRefData);
+            ShowNewerVersionDialog(context);
         }
         break;
     case PH_UPDATESUCCESS:
         {
-            ShowUpdateInstallDialog(hwndDlg, dwRefData);
+            ShowUpdateInstallDialog(context);
         }
         break;
     case PH_UPDATEFAILURE:
         {
             if ((BOOLEAN)wParam)
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, TRUE, FALSE);
+                ShowUpdateFailedDialog(context, TRUE, FALSE);
             else if ((BOOLEAN)lParam)
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, TRUE);
+                ShowUpdateFailedDialog(context, FALSE, TRUE);
             else
-                ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, FALSE);
+                ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         break;
     case PH_UPDATEISERRORED:
         {
-            ShowUpdateFailedDialog(hwndDlg, dwRefData, FALSE, FALSE);
+            ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -1252,11 +1240,11 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
             if (context->StartupCheck)
             {
-                ShowAvailableDialog(hwndDlg, dwRefData);
+                ShowAvailableDialog(context);
             }
             else
             {
-                ShowCheckForUpdatesDialog(hwndDlg, dwRefData);
+                ShowCheckForUpdatesDialog(context);
             }
         }
         break;

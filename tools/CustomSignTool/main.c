@@ -33,18 +33,20 @@
 
 #define ARG_KEY 1
 #define ARG_SIG 2
+#define ARG_HEX 3
 
 PPH_STRING CstCommand = NULL;
 PPH_STRING CstArgument1 = NULL;
 PPH_STRING CstArgument2 = NULL;
 PPH_STRING CstKeyFileName = NULL;
 PPH_STRING CstSigFileName = NULL;
+BOOLEAN CstHex = FALSE;
 
 PWSTR CstHelpMessage =
     L"Usage: CustomSignTool.exe command ...\n"
     L"Commands:\n"
     L"createkeypair\tprivatekeyfile publickeyfile\n"
-    L"sign\t\t-k privatekeyfile -s outputsigfile inputfile\n"
+    L"sign\t\t-k privatekeyfile [-s outputsigfile] [-h] inputfile\n"
     L"verify\t\t-k publickeyfile -s inputsigfile inputfile\n"
     ;
 
@@ -63,6 +65,9 @@ static BOOLEAN NTAPI CstCommandLineCallback(
             break;
         case ARG_SIG:
             PhSwapReference(&CstSigFileName, Value);
+            break;
+        case ARG_HEX:
+            CstHex = TRUE;
             break;
         }
     }
@@ -222,7 +227,8 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     static PH_COMMAND_LINE_OPTION options[] =
     {
         { ARG_KEY, L"k", MandatoryArgumentType },
-        { ARG_SIG, L"s", MandatoryArgumentType }
+        { ARG_SIG, L"s", MandatoryArgumentType },
+        { ARG_HEX, L"h", NoArgumentType }
     };
 
     NTSTATUS status;
@@ -268,7 +274,6 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     else if (PhEqualString2(CstCommand, L"sign", TRUE))
     {
         BCRYPT_ALG_HANDLE signAlgHandle;
-        HANDLE fileHandle;
         ULONG bufferSize;
         PVOID buffer;
         IO_STATUS_BLOCK iosb;
@@ -277,8 +282,10 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         PVOID hash;
         ULONG signatureSize;
         PVOID signature;
+        PPH_STRING string;
+        HANDLE fileHandle;
 
-        if (!CstArgument1 || !CstKeyFileName || !CstSigFileName)
+        if (!CstArgument1 || !CstKeyFileName || (!CstSigFileName && !CstHex))
             CstFailWith(CstHelpMessage);
 
         // Import the key.
@@ -305,13 +312,25 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         BCryptDestroyKey(keyHandle);
         BCryptCloseAlgorithmProvider(signAlgHandle, 0);
 
-        // Write the signature to the output file.
+        if (CstHex)
+        {
+            // Output the signature as a hex string.
 
-        if (!NT_SUCCESS(status = PhCreateFileWin32(&fileHandle, CstSigFileName->Buffer, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE)))
-            CstFailWithStatus(PhFormatString(L"Unable to create '%s'", CstSigFileName->Buffer)->Buffer, status, 0);
-        if (!NT_SUCCESS(status = NtWriteFile(fileHandle, NULL, NULL, NULL, &iosb, signature, signatureSize, NULL, NULL)))
-            CstFailWithStatus(PhFormatString(L"Unable to write signature to '%s'", CstSigFileName->Buffer)->Buffer, status, 0);
-        NtClose(fileHandle);
+            string = PhBufferToHexString(signature, signatureSize);
+            wprintf(L"%.*s", (ULONG)(string->Length / sizeof(WCHAR)), string->Buffer);
+            PhDereferenceObject(string);
+        }
+        else
+        {
+            // Write the signature to the output file.
+
+            if (!NT_SUCCESS(status = PhCreateFileWin32(&fileHandle, CstSigFileName->Buffer, FILE_GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE)))
+                CstFailWithStatus(PhFormatString(L"Unable to create '%s'", CstSigFileName->Buffer)->Buffer, status, 0);
+            if (!NT_SUCCESS(status = NtWriteFile(fileHandle, NULL, NULL, NULL, &iosb, signature, signatureSize, NULL, NULL)))
+                CstFailWithStatus(PhFormatString(L"Unable to write signature to '%s'", CstSigFileName->Buffer)->Buffer, status, 0);
+            NtClose(fileHandle);
+        }
+
         PhFree(signature);
     }
     else if (PhEqualString2(CstCommand, L"verify", TRUE))

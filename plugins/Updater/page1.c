@@ -49,7 +49,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
         {
             if ((INT)wParam == IDOK)
             {
-                ShowCheckingForUpdatesDialog(hwndDlg, dwRefData);
+                ShowCheckingForUpdatesDialog(context);
                 return S_FALSE;
             }
         }
@@ -60,20 +60,16 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
 }
 
 VOID ShowCheckForUpdatesDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
+    config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"Check for new Process Hacker releases?";
@@ -84,7 +80,7 @@ VOID ShowCheckForUpdatesDialog(
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.pfCallback = CheckForUpdatesCallbackProc;
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

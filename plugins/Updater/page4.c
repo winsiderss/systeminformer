@@ -57,33 +57,29 @@ HRESULT CALLBACK ShowProgressCallbackProc(
 }
 
 VOID ShowProgressDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_MARQUEE_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
+    config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = PhaFormatString(L"Downloading update %lu.%lu.%lu...",
-        context->MajorVersion,
-        context->MinorVersion,
-        context->RevisionVersion
+        Context->MajorVersion,
+        Context->MinorVersion,
+        Context->RevisionVersion
         )->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
     config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";   
     
     config.cxWidth = 200;
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowProgressCallbackProc;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

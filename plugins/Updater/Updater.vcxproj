@@ -53,26 +53,26 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>bcrypt.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>bcrypt.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>bcrypt.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>bcrypt.lib;winhttp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -84,6 +84,7 @@
     <ClCompile Include="page4.c" />
     <ClCompile Include="page5.c" />
     <ClCompile Include="updater.c" />
+    <ClCompile Include="verify.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="updater.h" />

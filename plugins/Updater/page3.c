@@ -51,7 +51,7 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
             {
                 if (UpdaterInstalledUsingSetup())
                 {
-                    ShowProgressDialog(hwndDlg, dwRefData);
+                    ShowProgressDialog(context);
                     return S_FALSE;
                 }
                 else
@@ -72,28 +72,24 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
 }
 
 VOID ShowAvailableDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_MARQUEE_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
+    config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"An update for Process Hacker is available";
     config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
-        context->MajorVersion,
-        context->MinorVersion,
-        context->RevisionVersion,
-        context->Size->Buffer
+        Context->MajorVersion,
+        Context->MinorVersion,
+        Context->RevisionVersion,
+        Context->Size->Buffer
         )->Buffer;
     config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
 
@@ -101,8 +97,8 @@ VOID ShowAvailableDialog(
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
 
-    config.lpCallbackData = Context;
+    config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowAvailableCallbackProc;
 
-    SendMessage(hwndDlg, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

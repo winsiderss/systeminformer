@@ -59,13 +59,6 @@
 //#define FORCE_UPDATE_CHECK
 // Force update check to show the current version as the latest version.
 //#define FORCE_LATEST_VERSION
-// Force the download error state.
-//#define FORCE_DOWNLOAD_ERROR
-// Hash and Signature errors can be combined.
-//#define FORCE_HASH_CHECK_ERROR
-//#define FORCE_SIGNATURE_CHECK_ERROR
-// Forces the same result as having no internet connection.
-//#define FORCE_NO_INTERNET
 // Disable startup update check.
 //#define DISABLE_STARTUP_CHECK
 #endif
@@ -96,6 +89,7 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING RelDate;
     PPH_STRING Size;
     PPH_STRING Hash;
+    PPH_STRING Signature;
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
@@ -115,48 +109,40 @@ NTSTATUS UpdateDownloadThread(
 
 // page1.c
 VOID ShowCheckForUpdatesDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page2.c
 VOID ShowCheckingForUpdatesDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page3.c
 VOID ShowAvailableDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page4.c
 VOID ShowProgressDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page5.c
 
 VOID ShowUpdateInstallDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID ShowLatestVersionDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID ShowNewerVersionDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 VOID ShowUpdateFailedDialog(
-    _In_ HWND hwndDlg,
-    _In_ LONG_PTR Context,
+    _In_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN HashFailed,
     _In_ BOOLEAN SignatureFailed
     );
@@ -179,6 +165,44 @@ BOOLEAN UpdaterInstalledUsingSetup(
 
 VOID ShowOptionsDialog(
     _In_opt_ HWND Parent
+    );
+
+// verify.c
+
+typedef struct _UPDATER_HASH_CONTEXT
+{
+    BCRYPT_ALG_HANDLE SignAlgHandle;
+    BCRYPT_ALG_HANDLE HashAlgHandle;
+    BCRYPT_KEY_HANDLE KeyHandle;
+    BCRYPT_HASH_HANDLE HashHandle;
+    ULONG HashObjectSize;
+    ULONG HashSize;
+    PVOID HashObject;
+    PVOID Hash;
+} UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
+
+BOOLEAN UpdaterInitializeHash(
+    _Out_ PUPDATER_HASH_CONTEXT *Context
+    );
+
+BOOLEAN UpdaterUpdateHash(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+BOOLEAN UpdaterVerifyHash(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_ PPH_STRING Sha2Hash
+    );
+
+BOOLEAN UpdaterVerifySignature(
+    _Inout_ PUPDATER_HASH_CONTEXT Context,
+    _In_ PPH_STRING HexSignature
+    );
+
+VOID UpdaterDestroyHash(
+    _Inout_ PUPDATER_HASH_CONTEXT Context
     );
 
 #endif
