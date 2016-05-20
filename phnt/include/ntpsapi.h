@@ -263,7 +263,8 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
             ULONG IsBackground : 1;
             ULONG IsStronglyNamed : 1;
             ULONG IsSecureProcess : 1;
-            ULONG SpareBits : 24;
+            ULONG IsPicoProcess : 1;
+            ULONG SpareBits : 23;
         };
     };
 } PROCESS_EXTENDED_BASIC_INFORMATION, *PPROCESS_EXTENDED_BASIC_INFORMATION;
