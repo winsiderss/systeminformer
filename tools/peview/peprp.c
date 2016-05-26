@@ -376,7 +376,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
-                string = PhFormatString(L"0x%Ix", PvMappedImage.NtHeaders->OptionalHeader.ImageBase);
+                string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER32)&PvMappedImage.NtHeaders->OptionalHeader)->ImageBase);
             }
             else
             {
@@ -388,7 +388,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
-                string = PhFormatString(L"0x%Ix", PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint);
+                string = PhFormatString(L"0x%I32x", ((PIMAGE_OPTIONAL_HEADER32)&PvMappedImage.NtHeaders->OptionalHeader)->AddressOfEntryPoint);
             }
             else
             {
