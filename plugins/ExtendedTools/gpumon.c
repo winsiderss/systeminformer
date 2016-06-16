@@ -435,11 +435,11 @@ VOID EtpUpdateSegmentInformation(
 
                     if (WindowsVersion >= WINDOWS_8)
                     {
-                        bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesCommitted;
+                        bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesResident;
                     }
                     else
                     {
-                        bytesCommitted = queryStatistics.QueryResult.SegmentInformationV1.BytesCommitted;
+                        bytesCommitted = queryStatistics.QueryResult.SegmentInformationV1.BytesResident;
                     }
 
                     if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
