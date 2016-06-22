@@ -147,12 +147,10 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn;
+                PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
                 IN_ADDR subnetMask = { 0 };
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
                 WCHAR subnetAddressString[INET_ADDRSTRLEN] = L"";
-
-                sockAddrIn = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
                 ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
@@ -166,13 +164,10 @@ VOID NetAdapterEnumerateAddresses(
                     PhAppendFormatStringBuilder(SubnetAddressBuffer, L"%s, ", subnetAddressString);
                 }
             }
-
-            if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET6)
+            else if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
-                PSOCKADDR_IN6 sockAddrIn6;
+                PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
-
-                sockAddrIn6 = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
 
                 if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
                 {
@@ -185,18 +180,15 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn;
+                PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
-
-                sockAddrIn = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
 
                 if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
                 {
                     PhAppendFormatStringBuilder(GatewayAddressBuffer, L"%s, ", ipv4AddressString);
                 }
             }
-
-            if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET6)
+            else if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
                 PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
@@ -265,8 +257,8 @@ VOID NetAdapterLookupConfig(
             &ipAddressBuffer,
             &subnetAddressBuffer,
             &gatewayAddressBuffer,
-            &dnsAddressBuffer
-        );
+            &dnsAddressBuffer);
+
         PhFree(addressesBuffer);
     }
 
@@ -279,8 +271,8 @@ VOID NetAdapterLookupConfig(
             &ipAddressBuffer,
             &subnetAddressBuffer,
             &gatewayAddressBuffer,
-            &dnsAddressBuffer
-        );
+            &dnsAddressBuffer);
+
         PhFree(addressesBuffer);
     }
 
