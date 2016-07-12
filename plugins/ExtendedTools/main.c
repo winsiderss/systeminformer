@@ -274,9 +274,9 @@ VOID NTAPI SystemInformationInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (EtGpuEnabled)
+    if (EtGpuEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
         EtGpuSystemInformationInitializing(Parameter);
-    if (EtEtwEnabled)
+    if (EtEtwEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
         EtEtwSystemInformationInitializing(Parameter);
 }
 
@@ -602,6 +602,7 @@ LOGICAL DllMain(
                     { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                     { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                     { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
+                    { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                     { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
                     { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" }
                 };

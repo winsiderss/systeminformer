@@ -56,6 +56,7 @@
 #define IDC_NODES                       1048
 #define IDC_ENABLEGPUMONITOR            1049
 #define IDC_EXAMPLE                     1050
+#define IDC_ENABLESYSINFOGRAPHS         1050
 #define IDC_GROUPGPU                    1051
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
@@ -105,7 +106,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_RESOURCE_VALUE        135
 #define _APS_NEXT_COMMAND_VALUE         40009
 #define _APS_NEXT_CONTROL_VALUE         1091
 #define _APS_NEXT_SYMED_VALUE           130
