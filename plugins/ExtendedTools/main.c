@@ -274,7 +274,7 @@ VOID NTAPI SystemInformationInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (EtGpuEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
+    if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
     if (EtEtwEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
         EtEtwSystemInformationInitializing(Parameter);
