@@ -60,8 +60,8 @@ AppPublisherURL={#website_url}
 AppSupportURL=http://wj32.org/processhacker/forums/
 AppUpdatesURL={#website_url}
 UninstallDisplayName=Process Hacker {#app_version_full}
-DefaultDirName={pf}\Process Hacker 2
-DefaultGroupName=Process Hacker 2
+DefaultDirName={pf}\Process Hacker
+DefaultGroupName=Process Hacker
 VersionInfoCompany=wj32
 VersionInfoCopyright={#copyright}
 VersionInfoDescription=Process Hacker Setup
@@ -199,15 +199,15 @@ Source: Icons\uninstall.ico;                                      DestDir: {app}
 
 
 [Icons]
-Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
-Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; AppUserModelID: "wj32.ProcessHacker2"
+Name: {group}\PE Viewer;      Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
+Name: {group}\Process Hacker; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; AppUserModelID: "wj32.ProcessHacker2"
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app};                 Comment: {cm:sm_com_Changelog}
-Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: {#website_url};                     Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
-Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};  Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
+Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker}; Filename: {#website_url};                     Comment: {cm:ProgramOnTheWeb,Process Hacker}
+Name: {group}\{cm:UninstallProgram,Process Hacker};             Filename: {uninstallexe}; WorkingDir: {app};  Comment: {cm:UninstallProgram,Process Hacker}; IconFilename: {app}\uninstall.ico
 
-Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
-Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user; AppUserModelID: "wj32.ProcessHacker2"
-Name: {#quick_launch}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
+Name: {commondesktop}\Process Hacker; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
+Name: {userdesktop}\Process Hacker;   Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user; AppUserModelID: "wj32.ProcessHacker2"
+Name: {#quick_launch}\Process Hacker; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
 
 
 [InstallDelete]
@@ -215,6 +215,14 @@ Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Check: not 
 Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Check: not IsTaskSelected('desktopicon\common') and IsUpgrade()
 Type: files;      Name: {#quick_launch}\Process Hacker 2.lnk;        Check: not IsTaskSelected('quicklaunchicon')    and IsUpgrade(); OnlyBelowVersion: 6.01
 Type: files;      Name: {group}\Help and Support\Process Hacker Help.lnk; Check: IsUpgrade()
+
+; Old shortcuts
+Type: files;      Name: {group}\PE Viewer;                          Check: IsUpgrade()
+Type: files;      Name: {group}\Process Hacker 2;                   Check: IsUpgrade()
+Type: files;      Name: {group}\{cm:sm_Help}\{cm:sm_Changelog};     Check: IsUpgrade()
+Type: files;      Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Check: IsUpgrade()
+Type: files;      Name: {group}\{cm:UninstallProgram,Process Hacker 2}; Check: IsUpgrade()
+Type: dirifempty; Name: {group};                                    Check: IsUpgrade()
 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
@@ -241,9 +249,9 @@ Type: dirifempty; Name: {app}\plugins
 
 
 [Run]
-Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent
-Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};              Flags: nowait postinstall skipifsilent unchecked shellexec
-Filename: {#website_url}; Description: {cm:run_VisitWebsite};                                      Flags: nowait postinstall skipifsilent unchecked shellexec
+Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker}; Flags: nowait postinstall skipifsilent
+Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};            Flags: nowait postinstall skipifsilent unchecked shellexec
+Filename: {#website_url}; Description: {cm:run_VisitWebsite};                                    Flags: nowait postinstall skipifsilent unchecked shellexec
 
 
 [Code]
@@ -312,7 +320,7 @@ function StartupCheck(): Boolean;
 var
   svalue: String;
 begin
-  if RegQueryStringValue(HKCU, HKCURUN, 'Process Hacker 2', svalue) then begin
+  if RegQueryStringValue(HKCU, HKCURUN, 'Process Hacker', svalue) then begin
     if (svalue = (ExpandConstant('"{app}\ProcessHacker.exe"'))) or (svalue = (ExpandConstant('"{app}\ProcessHacker.exe" -hide'))) then
       Result := True;
   end else
@@ -356,11 +364,11 @@ begin
     end;
 
     if IsTaskSelected('startup') then
-      RegWriteStringValue(HKCU, HKCURUN, 'Process Hacker 2', ExpandConstant('"{app}\ProcessHacker.exe"'));
+      RegWriteStringValue(HKCU, HKCURUN, 'Process Hacker', ExpandConstant('"{app}\ProcessHacker.exe"'));
     if IsTaskSelected('startup\minimized') then
-      RegWriteStringValue(HKCU, HKCURUN, 'Process Hacker 2', ExpandConstant('"{app}\ProcessHacker.exe" -hide'));
+      RegWriteStringValue(HKCU, HKCURUN, 'Process Hacker', ExpandConstant('"{app}\ProcessHacker.exe" -hide'));
     if IsTaskSelected('remove_startup') then
-      RegDeleteValue(HKCU, HKCURUN, 'Process Hacker 2');
+      RegDeleteValue(HKCU, HKCURUN, 'Process Hacker');
 
   end;
 end;
@@ -383,7 +391,7 @@ begin
       RegDeleteValue(HKLM, IFEO, 'Debugger');
     RegDeleteKeyIfEmpty(HKLM, IFEO);
     if StartupCheck() then
-      RegDeleteValue(HKCU, HKCURUN, 'Process Hacker 2');
+      RegDeleteValue(HKCU, HKCURUN, 'Process Hacker');
 
     RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2'));
     RemoveDir(ExpandConstant('{app}\plugins'));
