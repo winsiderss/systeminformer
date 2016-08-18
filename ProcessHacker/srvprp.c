@@ -176,7 +176,7 @@ static VOID PhpRefreshControls(
 {
     if (
         WindowsVersion >= WINDOWS_VISTA &&
-        PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_STARTTYPE), L"Auto Start", FALSE)
+        PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_STARTTYPE), L"Auto start", FALSE)
         )
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
