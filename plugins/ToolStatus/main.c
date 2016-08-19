@@ -268,6 +268,8 @@ VOID ShowCustomizeMenu(
             {
                 ToolStatusConfig.AutoHideMenu = !ToolStatusConfig.AutoHideMenu;
 
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
                 if (ToolStatusConfig.AutoHideMenu)
                 {
                     SetMenu(PhMainWndHandle, NULL);
