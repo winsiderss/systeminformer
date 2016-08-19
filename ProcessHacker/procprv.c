@@ -1154,7 +1154,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Subsystem for Linux
-    if (processHandleLimited && WINDOWS_HAS_UAC)
+    if (processHandleLimited && WindowsVersion >= WINDOWS_10)
     {
         PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
 
