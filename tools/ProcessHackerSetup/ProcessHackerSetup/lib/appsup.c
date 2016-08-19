@@ -717,22 +717,22 @@ BOOLEAN ProcessHackerShutdown(
 }
 
 _Check_return_
-ULONG KphUninstall(
-    VOID
+ULONG UninstallKph(
+    _In_ BOOLEAN Kph2Uninstall
     )
 {
     ULONG status = ERROR_SUCCESS;
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-
-    if (!scmHandle)
+    if (!(scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT)))
         return PhGetLastWin32ErrorAsNtStatus();
 
-    serviceHandle = OpenService(scmHandle, L"KProcessHacker2", SERVICE_STOP | DELETE);
-
-    if (serviceHandle)
+    if (serviceHandle = OpenService(
+        scmHandle, 
+        Kph2Uninstall ? L"KProcessHacker2" : L"KProcessHacker3", 
+        SERVICE_STOP | DELETE
+        ))
     {
         SERVICE_STATUS serviceStatus;
 

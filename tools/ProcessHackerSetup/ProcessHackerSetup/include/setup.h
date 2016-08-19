@@ -96,9 +96,10 @@ _Check_return_
 BOOLEAN RemoveAppCompatEntries(
     VOID
     );
+
 _Check_return_
-ULONG KphUninstall(
-    VOID
+ULONG UninstallKph(
+    _In_ BOOLEAN Kph2Uninstall
     );
 
 

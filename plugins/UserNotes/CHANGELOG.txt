@@ -1,3 +1,6 @@
+1.7
+ * Added ability to save process affinity
+
 1.6
  * Added "Collapse by Default" option for processes
 

@@ -237,6 +237,7 @@ NTSTATUS LoadDb(
         PPH_STRING comment = NULL;
         PPH_STRING backColor = NULL;
         PPH_STRING collapse = NULL;
+        PPH_STRING affinityMask = NULL;
 
         if (currentNode->type == MXML_ELEMENT &&
             currentNode->value.element.num_attrs >= 2)
@@ -255,6 +256,8 @@ NTSTATUS LoadDb(
                     PhMoveReference(&backColor, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
                 else if (_stricmp(currentNode->value.element.attrs[i].name, "collapse") == 0)
                     PhMoveReference(&collapse, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
+                else if (_stricmp(currentNode->value.element.attrs[i].name, "affinity") == 0)
+                    PhMoveReference(&affinityMask, PhConvertUtf8ToUtf16(currentNode->value.element.attrs[i].value));
             }
         }
 
@@ -279,6 +282,7 @@ NTSTATUS LoadDb(
         }
 
         // NOTE: These items are handled separately to maintain compatibility with previous versions of the database.
+
         if (object && backColor)
         {
             ULONG64 backColorInteger = ULONG_MAX;
@@ -297,6 +301,15 @@ NTSTATUS LoadDb(
             object->Collapse = !!collapseInteger;
         }
 
+        if (object && affinityMask)
+        {
+            ULONG64 affinityInteger = 0;
+
+            PhStringToInteger64(&affinityMask->sr, 10, &affinityInteger);
+
+            object->AffinityMask = (ULONG)affinityInteger;
+        }
+
         PhClearReference(&tag);
         PhClearReference(&name);
         PhClearReference(&priorityClass);
@@ -304,6 +317,7 @@ NTSTATUS LoadDb(
         PhClearReference(&comment);
         PhClearReference(&backColor);
         PhClearReference(&collapse);
+        PhClearReference(&affinityMask);
     }
 
     UnlockDb();
@@ -349,7 +363,8 @@ mxml_node_t *CreateObjectElement(
     _In_ PPH_STRINGREF IoPriorityPlusOne,
     _In_ PPH_STRINGREF Comment,
     _In_ PPH_STRINGREF BackColor,
-    _In_ PPH_STRINGREF Collapse
+    _In_ PPH_STRINGREF Collapse,
+    _In_ PPH_STRINGREF AffinityMask
     )
 {
     mxml_node_t *objectNode;
@@ -365,6 +380,7 @@ mxml_node_t *CreateObjectElement(
     mxmlElementSetAttr(objectNode, "iopriorityplusone", StringRefToUtf8(IoPriorityPlusOne)->Buffer);
     mxmlElementSetAttr(objectNode, "backcolor", StringRefToUtf8(BackColor)->Buffer);
     mxmlElementSetAttr(objectNode, "collapse", StringRefToUtf8(Collapse)->Buffer);
+    mxmlElementSetAttr(objectNode, "affinity", StringRefToUtf8(AffinityMask)->Buffer);
 
     // Set the value.
     textNode = mxmlNewOpaque(objectNode, StringRefToUtf8(Comment)->Buffer);
@@ -406,7 +422,8 @@ NTSTATUS SaveDb(
             &UInt64ToBase10String((*object)->IoPriorityPlusOne)->sr,
             &(*object)->Comment->sr,
             &UInt64ToBase10String((*object)->BackColor)->sr,
-            &UInt64ToBase10String((*object)->Collapse)->sr
+            &UInt64ToBase10String((*object)->Collapse)->sr,
+            &UInt64ToBase10String((*object)->AffinityMask)->sr
             );
         PhDrainAutoPool(&autoPool);
     }

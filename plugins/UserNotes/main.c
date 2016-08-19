@@ -70,7 +70,8 @@ BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_PRIORITY_CLASS) || Object->PriorityClass != 0) &&
         (!(Intent & INTENT_PROCESS_IO_PRIORITY) || Object->IoPriorityPlusOne != 0) &&
         (!(Intent & INTENT_PROCESS_HIGHLIGHT) || Object->BackColor != ULONG_MAX) &&
-        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse);
+        (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse == TRUE) &&
+        (!(Intent & INTENT_PROCESS_AFFINITY) || Object->AffinityMask != 0);
 }
 
 PDB_OBJECT FindDbObjectForProcess(
@@ -109,7 +110,8 @@ VOID DeleteDbObjectForProcessIfUnused(
         Object->PriorityClass == 0 &&
         Object->IoPriorityPlusOne == 0 &&
         Object->BackColor == ULONG_MAX &&
-        !Object->Collapse
+        Object->Collapse == FALSE && 
+        Object->AffinityMask == 0
         )
     {
         DeleteDbObject(Object);
@@ -167,6 +169,34 @@ PPH_STRING SaveCustomColors(
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
+}
+
+ULONG GetProcessAffinity(
+    _In_ HANDLE ProcessId
+    )
+{
+    HANDLE processHandle;
+    ULONG affinityMask = 0;
+    PROCESS_BASIC_INFORMATION basicInfo;
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        ProcessId
+        )))
+    {
+        if (NT_SUCCESS(PhGetProcessBasicInformation(
+            processHandle, 
+            &basicInfo
+            )))
+        {
+            affinityMask = (ULONG)basicInfo.AffinityMask;
+        }
+
+        NtClose(processHandle);
+    }
+
+    return affinityMask;
 }
 
 IO_PRIORITY_HINT GetProcessIoPriority(
@@ -449,6 +479,47 @@ VOID NTAPI MenuItemCallback(
             SaveDb();
         }
         break;
+    case PROCESS_AFFINITY_SAVE_ID:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->AffinityMask != 0)
+            {
+                object->AffinityMask = 0;
+                DeleteDbObjectForProcessIfUnused(object);
+            }
+            else
+            {
+                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                object->AffinityMask = GetProcessAffinity(processItem->ProcessId);
+            }
+
+            UnlockDb();
+            SaveDb();
+        }
+        break;
+    case PROCESS_AFFINITY_SAVE_FOR_THIS_COMMAND_LINE_ID:
+        {
+            if (processItem->CommandLine)
+            {
+                LockDb();
+
+                if ((object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->AffinityMask != 0)
+                {
+                    object->AffinityMask = 0;
+                    DeleteDbObjectForProcessIfUnused(object);
+                }
+                else
+                {
+                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                    object->AffinityMask = GetProcessAffinity(processItem->ProcessId);
+                }
+
+                UnlockDb();
+                SaveDb();
+            }
+        }
+        break;
     }
 }
 
@@ -534,6 +605,64 @@ VOID NTAPI MenuHookCallback(
 
             if (changed)
                 SaveDb();
+        }
+        break;     
+    case PHAPP_ID_PROCESS_AFFINITY:
+        {
+            BOOLEAN changed = FALSE;
+            ULONG_PTR affinityMask;
+            ULONG_PTR newAffinityMask;
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (!processItem)
+                break;
+
+            // Don't show the default Process Hacker affinity dialog.
+            menuHookInfo->Handled = TRUE;
+
+            // Query the current process affinity.
+            affinityMask = GetProcessAffinity(processItem->ProcessId);
+
+            // Show the affinity dialog (with our values).
+            if (PhShowProcessAffinityDialog2(PhMainWndHandle, affinityMask, &newAffinityMask))
+            {
+                PDB_OBJECT object;
+
+                LockDb();
+
+                // Update the process affinity in our database (if the database values are different).
+                if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
+                {
+                    if (object->AffinityMask != (ULONG)newAffinityMask)
+                    {
+                        object->AffinityMask = (ULONG)newAffinityMask;
+                        changed = TRUE;
+                    }
+                }
+
+                UnlockDb();
+
+                if (changed)
+                {
+                    SaveDb();
+                }
+
+                // Update the process affinity in Windows (if the system values are different).
+                if (affinityMask != newAffinityMask)
+                {
+                    HANDLE processHandle;
+
+                    if (NT_SUCCESS(PhOpenProcess(
+                        &processHandle,
+                        PROCESS_SET_INFORMATION,
+                        processItem->ProcessId
+                        )))
+                    {
+                        PhSetProcessAffinityMask(processHandle, newAffinityMask);
+                        NtClose(processHandle);
+                    }
+                }
+            }
         }
         break;
     }
@@ -725,11 +854,35 @@ VOID AddSavePriorityMenuItemsAndHook(
     _In_ BOOLEAN UseSelectionForHook
     )
 {
+    PPH_EMENU_ITEM affinityMenuItem;
     PPH_EMENU_ITEM priorityMenuItem;
     PPH_EMENU_ITEM ioPriorityMenuItem;
     PPH_EMENU_ITEM saveMenuItem;
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
     PDB_OBJECT object;
+
+    if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Affinity", 0))
+    {
+        // HACK HACK HACK change Affinity menu-item into a drop-down list. 
+        PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuItem(0, affinityMenuItem->Id, L"Set &affinity", NULL, NULL), -1);
+
+        // Insert standard menu-items
+        PhInsertEMenuItem(affinityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(affinityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_SAVE_ID, PhaFormatString(L"Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
+        PhInsertEMenuItem(affinityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save for this command line", NULL), -1);
+
+        if (!ProcessItem->CommandLine)
+            saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
+
+        LockDb();
+
+        if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->AffinityMask != 0)
+            saveMenuItem->Flags |= PH_EMENU_CHECKED;
+        if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->AffinityMask != 0)
+            saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
+
+        UnlockDb();
+    }
 
     // Priority
     if (priorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Priority", 0))
@@ -779,10 +932,10 @@ VOID ProcessMenuInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN highlightPresent = FALSE;
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
     PPH_EMENU_ITEM miscMenuItem;
-    BOOLEAN highlightPresent = FALSE;
     PPH_EMENU_ITEM collapseMenuItem;
     PPH_EMENU_ITEM highlightMenuItem;
     PDB_OBJECT object;
@@ -1024,6 +1177,24 @@ VOID ProcessesUpdatedCallback(
             }
         }
 
+        if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
+        {
+            if (object->AffinityMask != 0)
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_SET_INFORMATION,
+                    processItem->ProcessId
+                    )))
+                {
+                    PhSetProcessAffinityMask(processHandle, object->AffinityMask);
+                    NtClose(processHandle);
+                }
+            }
+        }
+
         listEntry = listEntry->Flink;
     }
 
@@ -1169,7 +1340,7 @@ LOGICAL DllMain(
 
         info->DisplayName = L"User Notes";
         info->Author = L"dmex, wj32";
-        info->Description = L"Allows the user to add comments for processes and services. Also allows the user to save process priority. Also allows the user to highlight individual processes.";
+        info->Description = L"Allows the user to add comments for processes and services, save process priority and affinity, highlight individual processes and show processes collapsed by default.";
         info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1120";
         info->HasOptions = TRUE;
 

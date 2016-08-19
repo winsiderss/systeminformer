@@ -9,23 +9,19 @@ VOID LoadEulaText(
     HGLOBAL resourceData;
     PVOID resourceBuffer;
 
-    resourceHandle = FindResource(PhLibImageBase, MAKEINTRESOURCE(IDR_TXT1), L"TXT");
-
-    if (resourceHandle)
+    if (resourceHandle = FindResource(PhLibImageBase, MAKEINTRESOURCE(IDR_TXT1), L"TXT"))
     {
-        resourceData = LoadResource(PhLibImageBase, resourceHandle);
-
-        if (resourceData)
+        if (resourceData = LoadResource(PhLibImageBase, resourceHandle))
         {
-            resourceBuffer = LockResource(resourceData);
-
-            if (resourceBuffer)
+            if (resourceBuffer = LockResource(resourceData))
             {
-                PPH_STRING eulaTextString = PhConvertMultiByteToUtf16(resourceBuffer);
-
-                SetWindowText(GetDlgItem(hwndDlg, IDC_EDIT1), eulaTextString->Buffer);
-
-                PhDereferenceObject(eulaTextString);
+                PPH_STRING eulaTextString;
+                
+                if (eulaTextString = PhConvertMultiByteToUtf16(resourceBuffer))
+                {
+                    SetWindowText(GetDlgItem(hwndDlg, IDC_EDIT1), eulaTextString->Buffer);
+                    PhDereferenceObject(eulaTextString);
+                }
             }
         }
 
@@ -45,10 +41,11 @@ BOOL PropSheetPage2_OnInitDialog(
     // Set the default radio button state to 'do not accept'.
     Button_SetCheck(GetDlgItem(hwndDlg, IDC_RADIO2), BST_CHECKED);
 
-    LoadEulaText(hwndDlg);
-
     // Enable the themed dialog background texture.
     EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+
+    // Load the EULA text into the window.
+    LoadEulaText(hwndDlg);
 
     return TRUE;
 }

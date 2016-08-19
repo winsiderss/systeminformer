@@ -5,42 +5,43 @@ VOID LoadInstallDirectory(
     _In_ HWND hwndDlg
     )
 {
-    if (SetupInstallPath = GetProcessHackerInstallPath())
-    {
-        // We must make sure the install path ends with a backslash since
-        // this string is wcscat' with our zip extraction paths.
-        if (PathAddBackslash(SetupInstallPath->Buffer))
-        {
-            //PathSearchAndQualify()
-        }
-    }
+    // Load the path used by previous installations.
+    SetupInstallPath = GetProcessHackerInstallPath();
 
     // If the string is null or empty, use the default installation path.
     if (PhIsNullOrEmptyString(SetupInstallPath))
     {
-        //SetupInstallPath = PhGetKnownLocation(CSIDL_PROGRAM_FILES, L"\\Process Hacker 2\\settings.xml");
+        PPH_STRING defaultInstallPath;
+        PPH_STRING expandedString;
 
-        // TODO: Find a better method that handles Program Files on different drives than C:
-        // (It's common for some poeple to do this)
+        // TODO: Does ProgramW6432 work on 32bit?
+        defaultInstallPath = PhCreateString(L"%ProgramW6432%\\Process Hacker\\");
 
-        if (WindowsVersion >= WINDOWS_7)
+        if (expandedString = PhExpandEnvironmentStrings(&defaultInstallPath->sr))
         {
-            PPH_STRING defaultInstallPath;
-            PPH_STRING expandedString;
-
-            // TODO: Does ProgramW6432 work on 32bit?
-            defaultInstallPath = PhCreateString(L"%ProgramW6432%\\Process Hacker 2\\");
-
-            if (expandedString = PhExpandEnvironmentStrings(&defaultInstallPath->sr))
-            {
-                SetupInstallPath = expandedString;
-            }
+            SetupInstallPath = expandedString;
         }
+
+        PhDereferenceObject(defaultInstallPath);
     }
 
+    // If the string is null or empty, fallback to a hard-coded default path.
     if (PhIsNullOrEmptyString(SetupInstallPath))
     {
-        SetupInstallPath = PhCreateString(L"C:\\Program Files\\Process Hacker 2\\");
+        SetupInstallPath = PhCreateString(L"C:\\Program Files\\Process Hacker\\");
+    }
+    
+#ifdef _DEBUG
+    PPH_STRING setupDirectory = PhGetApplicationDirectory();
+    PhSwapReference(&SetupInstallPath, PhConcatStrings2(setupDirectory->Buffer, L"ProcessHacker_Test\\"));
+    PhDereferenceObject(setupDirectory);
+#endif
+
+    // We must make sure the install path ends with a backslash since
+    // the string is wcscat' with our zip extraction paths.
+    if (PathAddBackslash(SetupInstallPath->Buffer))
+    {
+        //PathSearchAndQualify()
     }
 
     SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, SetupInstallPath->Buffer);
@@ -59,16 +60,14 @@ BOOL PropSheetPage3_OnInitDialog(
     Button_SetCheck(GetDlgItem(hwndDlg, IDC_CHECK1), TRUE);
     Button_SetCheck(GetDlgItem(hwndDlg, IDC_CHECK6), TRUE);
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        SendMessage(
-            GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY),
-            EM_SETMARGINS,
-            EC_LEFTMARGIN | EC_RIGHTMARGIN,
-            MAKELPARAM(0, 0)
-            );
-    }
+    // Fix the text margins.
+    SendMessage(
+        GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY),
+        EM_SETMARGINS,
+        EC_LEFTMARGIN | EC_RIGHTMARGIN,
+        MAKELPARAM(0, 0));
 
+    // Query the default installation path
     LoadInstallDirectory(hwndDlg);
 
     // Enable the themed dialog background texture.

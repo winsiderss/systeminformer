@@ -922,14 +922,12 @@ ULONG ProcessDotNetTrace(
     return result;
 }
 
-ULONG UpdateDotNetTraceInfo(
-    _In_ PASMPAGE_QUERY_CONTEXT Context,
-    _In_ BOOLEAN ClrV2
+NTSTATUS UpdateDotNetTraceInfoThreadStart(
+    _In_ PVOID Parameter
     )
 {
     static _EnableTraceEx EnableTraceEx_I = NULL;
-
-    ULONG result;
+    PASMPAGE_QUERY_CONTEXT context = Parameter;
     TRACEHANDLE sessionHandle;
     PEVENT_TRACE_PROPERTIES properties;
     PGUID guidToEnable;
@@ -939,12 +937,12 @@ ULONG UpdateDotNetTraceInfo(
     if (!EnableTraceEx_I)
         return ERROR_NOT_SUPPORTED;
 
-    result = StartDotNetTrace(&sessionHandle, &properties);
+    context->TraceResult = StartDotNetTrace(&sessionHandle, &properties);
 
-    if (result != 0)
-        return result;
+    if (context->TraceResult != 0)
+        return context->TraceResult;
 
-    if (!ClrV2)
+    if (!context->TraceClrV2)
         guidToEnable = &ClrRundownProviderGuid;
     else
         guidToEnable = &ClrRuntimeProviderGuid;
@@ -961,23 +959,12 @@ ULONG UpdateDotNetTraceInfo(
         NULL
         );
 
-    result = ProcessDotNetTrace(Context);
+    context->TraceResult = ProcessDotNetTrace(context);
 
     ControlTrace(sessionHandle, NULL, properties, EVENT_TRACE_CONTROL_STOP);
     PhFree(properties);
 
-    return result;
-}
-
-NTSTATUS UpdateDotNetTraceInfoThreadStart(
-    _In_ PVOID Parameter
-    )
-{
-    PASMPAGE_QUERY_CONTEXT context = Parameter;
-
-    context->TraceResult = UpdateDotNetTraceInfo(context, context->TraceClrV2);
-
-    return STATUS_SUCCESS;
+    return context->TraceResult;
 }
 
 ULONG UpdateDotNetTraceInfoWithTimeout(

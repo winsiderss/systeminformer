@@ -206,6 +206,7 @@ VOID ShowCustomizeMenu(
     GetCursorPos(&cursorPos);
 
     menu = PhCreateEMenu();
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_CPU_GRAPH, L"CPU history", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_ENABLE_IO_GRAPH, L"I/O history", NULL, NULL), -1);
@@ -214,6 +215,11 @@ VOID ShowCustomizeMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL, NULL), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL, NULL), -1);
+    
+    if (ToolStatusConfig.AutoHideMenu)
+    {
+        PhSetFlagsEMenuItem(menu, COMMAND_ID_ENABLE_MENU, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
 
     if (ToolStatusConfig.SearchBoxEnabled)
     {
@@ -258,6 +264,23 @@ VOID ShowCustomizeMenu(
     {
         switch (selectedItem->Id)
         {
+        case COMMAND_ID_ENABLE_MENU:
+            {
+                ToolStatusConfig.AutoHideMenu = !ToolStatusConfig.AutoHideMenu;
+
+                PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+                if (ToolStatusConfig.AutoHideMenu)
+                {
+                    SetMenu(PhMainWndHandle, NULL);
+                }
+                else
+                {
+                    SetMenu(PhMainWndHandle, MainMenu);
+                    DrawMenuBar(PhMainWndHandle);
+                }
+            }
+            break;
         case COMMAND_ID_ENABLE_SEARCHBOX:
             {
                 ToolStatusConfig.SearchBoxEnabled = !ToolStatusConfig.SearchBoxEnabled;
