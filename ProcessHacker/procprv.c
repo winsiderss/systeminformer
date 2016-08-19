@@ -101,6 +101,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     BOOLEAN IsDotNet;
     BOOLEAN IsWow64;
     BOOLEAN IsWow64Valid;
+    BOOLEAN IsPicoProcess;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
 typedef struct _PH_PROCESS_QUERY_S2_DATA
@@ -1152,6 +1153,17 @@ VOID PhpProcessQueryStage1(
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
 
+    // Subsystem for Linux
+    if (processHandleLimited && WINDOWS_HAS_UAC)
+    {
+        PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &extendedBasicInfo)))
+        {
+            Data->IsPicoProcess = !!extendedBasicInfo.IsPicoProcess;
+        }
+    }
+
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
@@ -1299,6 +1311,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsWow64 = Data->IsWow64;
     processItem->IsWow64Valid = Data->IsWow64Valid;
+    processItem->IsPicoProcess = Data->IsPicoProcess;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 }
