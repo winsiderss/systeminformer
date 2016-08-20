@@ -467,6 +467,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     BOOLEAN hide;
 
                     hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
+                    
+                    PhSetIntegerSetting(L"HideUnnamedHandles", hide);
                     PhSetOptionsHandleList(&handlesContext->ListContext, hide);
                 }
                 break;
