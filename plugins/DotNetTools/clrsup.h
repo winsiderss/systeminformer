@@ -25,7 +25,7 @@
 
 #define CINTERFACE
 #define COBJMACROS
-#include <clrdata.h>
+#include "clr/clrdata.h"
 #undef CINTERFACE
 #undef COBJMACROS
 
