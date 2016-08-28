@@ -91,6 +91,7 @@ static const uint8_t autoposstab[APTROWS][APTCOLS] = {
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 }   /* \X */
 };
 
+#ifdef SUPPORT_UNICODE
 /* This table is used to check whether auto-possessification is possible
 between adjacent Unicode property opcodes (OP_PROP and OP_NOTPROP). The
 left-hand (repeated) opcode is used to select the row, and the right-hand
@@ -170,6 +171,7 @@ static const uint8_t posspropstab[3][4] = {
   { ucp_Z, ucp_Z, ucp_C, ucp_Cc },  /* SPACE and PXSPACE, 2nd value redundant */
   { ucp_L, ucp_N, ucp_P, ucp_Po }   /* WORD */
 };
+#endif  /* SUPPORT_UNICODE */
 
 
 

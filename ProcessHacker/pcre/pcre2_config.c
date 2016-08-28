@@ -38,10 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-// dmex: Disable warnings
-#pragma warning(push)
-#pragma warning(disable : 4267)
-
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -66,15 +62,16 @@ convenient for user programs that want to test their values. */
 * Return info about what features are configured *
 *************************************************/
 
-/*
+/* If where is NULL, the length of memory required is returned.
+
 Arguments:
   what             what information is required
   where            where to put the information
 
-Returns:           0 if data returned
-                   >= 0 if where is NULL, giving length required
+Returns:           0 if a numerical value is returned
+                   >= 0 if a string value
                    PCRE2_ERROR_BADOPTION if "where" not recognized
-                   or JIT target requested when JIT not enabled
+                     or JIT target requested when JIT not enabled
 */
 
 PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
@@ -132,15 +129,15 @@ switch (what)
 #ifdef SUPPORT_JIT
     {
     const char *v = PRIV(jit_get_target)();
-    return 1 + ((where == NULL)?
-      strlen(v) : PRIV(strcpy_c8)((PCRE2_UCHAR *)where, v));
+    return (int)(1 + ((where == NULL)?
+      strlen(v) : PRIV(strcpy_c8)((PCRE2_UCHAR *)where, v)));
     }
 #else
   return PCRE2_ERROR_BADOPTION;
 #endif
 
   case PCRE2_CONFIG_LINKSIZE:
-  *((uint32_t *)where) = configured_link_size;
+  *((uint32_t *)where) = (uint32_t)configured_link_size;
   break;
 
   case PCRE2_CONFIG_MATCHLIMIT:
@@ -174,8 +171,8 @@ switch (what)
 #else
     const char *v = "Unicode not supported";
 #endif
-    return 1 + ((where == NULL)?
-      strlen(v): PRIV(strcpy_c8)((PCRE2_UCHAR *)where, v));
+    return (int)(1 + ((where == NULL)?
+      strlen(v) : PRIV(strcpy_c8)((PCRE2_UCHAR *)where, v)));
    }
   break;
 
@@ -211,8 +208,8 @@ switch (what)
     const char *v = (XSTRING(Z PCRE2_PRERELEASE)[1] == 0)?
       XSTRING(PCRE2_MAJOR.PCRE2_MINOR PCRE2_DATE) :
       XSTRING(PCRE2_MAJOR.PCRE2_MINOR) XSTRING(PCRE2_PRERELEASE PCRE2_DATE);
-    return 1 + ((where == NULL)?
-      strlen(v) : PRIV(strcpy_c8)((PCRE2_UCHAR *)where, v));
+    return (int)(1 + ((where == NULL)?
+      strlen(v) : PRIV(strcpy_c8)((PCRE2_UCHAR *)where, v)));
     }
   }
 
@@ -220,4 +217,3 @@ return 0;
 }
 
 /* End of pcre2_config.c */
-#pragma warning(pop)

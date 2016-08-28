@@ -94,7 +94,7 @@ easier to maintain, the storing and loading of offsets from the compiled code
 unit string is now handled by the macros that are defined here.
 
 The macros are controlled by the value of LINK_SIZE. This defaults to 2, but
-values of 2 or 4 are also supported. */
+values of 3 or 4 are also supported. */
 
 /* ------------------- 8-bit support  ------------------ */
 
@@ -102,29 +102,29 @@ values of 2 or 4 are also supported. */
 
 #if LINK_SIZE == 2
 #define PUT(a,n,d)   \
-  (a[n] = (d) >> 8), \
-  (a[(n)+1] = (d) & 255)
+  (a[n] = (PCRE2_UCHAR)((d) >> 8)), \
+  (a[(n)+1] = (PCRE2_UCHAR)((d) & 255))
 #define GET(a,n) \
-  (((a)[n] << 8) | (a)[(n)+1])
+  (unsigned int)(((a)[n] << 8) | (a)[(n)+1])
 #define MAX_PATTERN_SIZE (1 << 16)
 
 #elif LINK_SIZE == 3
 #define PUT(a,n,d)       \
-  (a[n] = (d) >> 16),    \
-  (a[(n)+1] = (d) >> 8), \
-  (a[(n)+2] = (d) & 255)
+  (a[n] = (PCRE2_UCHAR)((d) >> 16)),    \
+  (a[(n)+1] = (PCRE2_UCHAR)((d) >> 8)), \
+  (a[(n)+2] = (PCRE2_UCHAR)((d) & 255))
 #define GET(a,n) \
-  (((a)[n] << 16) | ((a)[(n)+1] << 8) | (a)[(n)+2])
+  (unsigned int)(((a)[n] << 16) | ((a)[(n)+1] << 8) | (a)[(n)+2])
 #define MAX_PATTERN_SIZE (1 << 24)
 
 #elif LINK_SIZE == 4
 #define PUT(a,n,d)        \
-  (a[n] = (d) >> 24),     \
-  (a[(n)+1] = (d) >> 16), \
-  (a[(n)+2] = (d) >> 8),  \
-  (a[(n)+3] = (d) & 255)
+  (a[n] = (PCRE2_UCHAR)((d) >> 24)),     \
+  (a[(n)+1] = (PCRE2_UCHAR)((d) >> 16)), \
+  (a[(n)+2] = (PCRE2_UCHAR)((d) >> 8)),  \
+  (a[(n)+3] = (PCRE2_UCHAR)((d) & 255))
 #define GET(a,n) \
-  (((a)[n] << 24) | ((a)[(n)+1] << 16) | ((a)[(n)+2] << 8) | (a)[(n)+3])
+  (unsigned int)(((a)[n] << 24) | ((a)[(n)+1] << 16) | ((a)[(n)+2] << 8) | (a)[(n)+3])
 #define MAX_PATTERN_SIZE (1 << 30)   /* Keep it positive */
 
 #else
@@ -149,10 +149,10 @@ values of 2 or 4 are also supported. */
 #undef LINK_SIZE
 #define LINK_SIZE 2
 #define PUT(a,n,d)   \
-  (a[n] = (d) >> 16), \
-  (a[(n)+1] = (d) & 65535)
+  (a[n] = (PCRE2_UCHAR)((d) >> 16)), \
+  (a[(n)+1] = (PCRE2_UCHAR)((d) & 65535))
 #define GET(a,n) \
-  (((a)[n] << 16) | (a)[(n)+1])
+  (unsigned int)(((a)[n] << 16) | (a)[(n)+1])
 #define MAX_PATTERN_SIZE (1 << 30)  /* Keep it positive */
 
 #else
@@ -283,47 +283,47 @@ UTF support is omitted, we don't even define them. */
 /* Returns with the additional number of characters if IS_MULTICHAR(c) is TRUE.
 Otherwise it has an undefined behaviour. */
 
-#define GET_EXTRALEN(c) (PRIV(utf8_table4)[(c) & 0x3f])
+#define GET_EXTRALEN(c) (PRIV(utf8_table4)[(c) & 0x3fu])
 
 /* Returns TRUE, if the given value is not the first code unit of a UTF
 sequence. */
 
-#define NOT_FIRSTCU(c) (((c) & 0xc0) == 0x80)
+#define NOT_FIRSTCU(c) (((c) & 0xc0u) == 0x80u)
 
 /* Get the next UTF-8 character, not advancing the pointer. This is called when
 we know we are in UTF-8 mode. */
 
 #define GETCHAR(c, eptr) \
   c = *eptr; \
-  if (c >= 0xc0) GETUTF8(c, eptr);
+  if (c >= 0xc0u) GETUTF8(c, eptr);
 
 /* Get the next UTF-8 character, testing for UTF-8 mode, and not advancing the
 pointer. */
 
 #define GETCHARTEST(c, eptr) \
   c = *eptr; \
-  if (utf && c >= 0xc0) GETUTF8(c, eptr);
+  if (utf && c >= 0xc0u) GETUTF8(c, eptr);
 
 /* Get the next UTF-8 character, advancing the pointer. This is called when we
 know we are in UTF-8 mode. */
 
 #define GETCHARINC(c, eptr) \
   c = *eptr++; \
-  if (c >= 0xc0) GETUTF8INC(c, eptr);
+  if (c >= 0xc0u) GETUTF8INC(c, eptr);
 
 /* Get the next character, testing for UTF-8 mode, and advancing the pointer.
 This is called when we don't know if we are in UTF-8 mode. */
 
 #define GETCHARINCTEST(c, eptr) \
   c = *eptr++; \
-  if (utf && c >= 0xc0) GETUTF8INC(c, eptr);
+  if (utf && c >= 0xc0u) GETUTF8INC(c, eptr);
 
 /* Get the next UTF-8 character, not advancing the pointer, incrementing length
 if there are extra bytes. This is called when we know we are in UTF-8 mode. */
 
 #define GETCHARLEN(c, eptr, len) \
   c = *eptr; \
-  if (c >= 0xc0) GETUTF8LEN(c, eptr, len);
+  if (c >= 0xc0u) GETUTF8LEN(c, eptr, len);
 
 /* Get the next UTF-8 character, testing for UTF-8 mode, not advancing the
 pointer, incrementing length if there are extra bytes. This is called when we
@@ -331,21 +331,21 @@ do not know if we are in UTF-8 mode. */
 
 #define GETCHARLENTEST(c, eptr, len) \
   c = *eptr; \
-  if (utf && c >= 0xc0) GETUTF8LEN(c, eptr, len);
+  if (utf && c >= 0xc0u) GETUTF8LEN(c, eptr, len);
 
 /* If the pointer is not at the start of a character, move it back until
 it is. This is called only in UTF-8 mode - we don't put a test within the macro
 because almost all calls are already within a block of UTF-8 only code. */
 
-#define BACKCHAR(eptr) while((*eptr & 0xc0) == 0x80) eptr--
+#define BACKCHAR(eptr) while((*eptr & 0xc0u) == 0x80u) eptr--
 
 /* Same as above, just in the other direction. */
-#define FORWARDCHAR(eptr) while((*eptr & 0xc0) == 0x80) eptr++
-#define FORWARDCHARTEST(eptr,end) while(eptr < end && (*eptr & 0xc0) == 0x80) eptr++
+#define FORWARDCHAR(eptr) while((*eptr & 0xc0u) == 0x80u) eptr++
+#define FORWARDCHARTEST(eptr,end) while(eptr < end && (*eptr & 0xc0u) == 0x80u) eptr++
 
 /* Same as above, but it allows a fully customizable form. */
 #define ACROSSCHAR(condition, eptr, action) \
-  while((condition) && ((eptr) & 0xc0) == 0x80) action
+  while((condition) && ((eptr) & 0xc0u) == 0x80u) action
 
 /* Deposit a character into memory, returning the number of code units. */
 
@@ -364,7 +364,7 @@ because almost all calls are already within a block of UTF-8 only code. */
 
 /* Tests whether the code point needs extra characters to decode. */
 
-#define HAS_EXTRALEN(c) (((c) & 0xfc00) == 0xd800)
+#define HAS_EXTRALEN(c) (((c) & 0xfc00u) == 0xd800u)
 
 /* Returns with the additional number of characters if IS_MULTICHAR(c) is TRUE.
 Otherwise it has an undefined behaviour. */
@@ -374,53 +374,53 @@ Otherwise it has an undefined behaviour. */
 /* Returns TRUE, if the given value is not the first code unit of a UTF
 sequence. */
 
-#define NOT_FIRSTCU(c) (((c) & 0xfc00) == 0xdc00)
+#define NOT_FIRSTCU(c) (((c) & 0xfc00u) == 0xdc00u)
 
 /* Base macro to pick up the low surrogate of a UTF-16 character, not
 advancing the pointer. */
 
 #define GETUTF16(c, eptr) \
-   { c = (((c & 0x3ff) << 10) | (eptr[1] & 0x3ff)) + 0x10000; }
+   { c = (((c & 0x3ffu) << 10) | (eptr[1] & 0x3ffu)) + 0x10000u; }
 
 /* Get the next UTF-16 character, not advancing the pointer. This is called when
 we know we are in UTF-16 mode. */
 
 #define GETCHAR(c, eptr) \
   c = *eptr; \
-  if ((c & 0xfc00) == 0xd800) GETUTF16(c, eptr);
+  if ((c & 0xfc00u) == 0xd800u) GETUTF16(c, eptr);
 
 /* Get the next UTF-16 character, testing for UTF-16 mode, and not advancing the
 pointer. */
 
 #define GETCHARTEST(c, eptr) \
   c = *eptr; \
-  if (utf && (c & 0xfc00) == 0xd800) GETUTF16(c, eptr);
+  if (utf && (c & 0xfc00u) == 0xd800u) GETUTF16(c, eptr);
 
 /* Base macro to pick up the low surrogate of a UTF-16 character, advancing
 the pointer. */
 
 #define GETUTF16INC(c, eptr) \
-   { c = (((c & 0x3ff) << 10) | (*eptr++ & 0x3ff)) + 0x10000; }
+   { c = (((c & 0x3ffu) << 10) | (*eptr++ & 0x3ffu)) + 0x10000u; }
 
 /* Get the next UTF-16 character, advancing the pointer. This is called when we
 know we are in UTF-16 mode. */
 
 #define GETCHARINC(c, eptr) \
   c = *eptr++; \
-  if ((c & 0xfc00) == 0xd800) GETUTF16INC(c, eptr);
+  if ((c & 0xfc00u) == 0xd800u) GETUTF16INC(c, eptr);
 
 /* Get the next character, testing for UTF-16 mode, and advancing the pointer.
 This is called when we don't know if we are in UTF-16 mode. */
 
 #define GETCHARINCTEST(c, eptr) \
   c = *eptr++; \
-  if (utf && (c & 0xfc00) == 0xd800) GETUTF16INC(c, eptr);
+  if (utf && (c & 0xfc00u) == 0xd800u) GETUTF16INC(c, eptr);
 
 /* Base macro to pick up the low surrogate of a UTF-16 character, not
 advancing the pointer, incrementing the length. */
 
 #define GETUTF16LEN(c, eptr, len) \
-   { c = (((c & 0x3ff) << 10) | (eptr[1] & 0x3ff)) + 0x10000; len++; }
+   { c = (((c & 0x3ffu) << 10) | (eptr[1] & 0x3ffu)) + 0x10000u; len++; }
 
 /* Get the next UTF-16 character, not advancing the pointer, incrementing
 length if there is a low surrogate. This is called when we know we are in
@@ -428,7 +428,7 @@ UTF-16 mode. */
 
 #define GETCHARLEN(c, eptr, len) \
   c = *eptr; \
-  if ((c & 0xfc00) == 0xd800) GETUTF16LEN(c, eptr, len);
+  if ((c & 0xfc00u) == 0xd800u) GETUTF16LEN(c, eptr, len);
 
 /* Get the next UTF-816character, testing for UTF-16 mode, not advancing the
 pointer, incrementing length if there is a low surrogate. This is called when
@@ -436,22 +436,22 @@ we do not know if we are in UTF-16 mode. */
 
 #define GETCHARLENTEST(c, eptr, len) \
   c = *eptr; \
-  if (utf && (c & 0xfc00) == 0xd800) GETUTF16LEN(c, eptr, len);
+  if (utf && (c & 0xfc00u) == 0xd800u) GETUTF16LEN(c, eptr, len);
 
 /* If the pointer is not at the start of a character, move it back until
 it is. This is called only in UTF-16 mode - we don't put a test within the
 macro because almost all calls are already within a block of UTF-16 only
 code. */
 
-#define BACKCHAR(eptr) if ((*eptr & 0xfc00) == 0xdc00) eptr--
+#define BACKCHAR(eptr) if ((*eptr & 0xfc00u) == 0xdc00u) eptr--
 
 /* Same as above, just in the other direction. */
-#define FORWARDCHAR(eptr) if ((*eptr & 0xfc00) == 0xdc00) eptr++
-#define FORWARDCHARTEST(eptr,end) if (eptr < end && (*eptr & 0xfc00) == 0xdc00) eptr++
+#define FORWARDCHAR(eptr) if ((*eptr & 0xfc00u) == 0xdc00u) eptr++
+#define FORWARDCHARTEST(eptr,end) if (eptr < end && (*eptr & 0xfc00u) == 0xdc00u) eptr++
 
 /* Same as above, but it allows a fully customizable form. */
 #define ACROSSCHAR(condition, eptr, action) \
-  if ((condition) && ((eptr) & 0xfc00) == 0xdc00) action
+  if ((condition) && ((eptr) & 0xfc00u) == 0xdc00u) action
 
 /* Deposit a character into memory, returning the number of code units. */
 
