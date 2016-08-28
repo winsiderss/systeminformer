@@ -68,6 +68,10 @@ VOID PhInsertHandleObjectPropertiesEMenuItems(
     {
         PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Go to thread", EnableShortcut), NULL, NULL), indexInParent);
     }
+    else if (PhEqualString2(Info->TypeName, L"TpWorkerFactory", TRUE))
+    {
+        PhInsertEMenuItem(parentItem, PhCreateEMenuItem(0, ID_HANDLE_OBJECTPROPERTIES1, PhaAppendCtrlEnter(L"Shutdown", EnableShortcut), NULL, NULL), indexInParent);
+    }
 }
 
 static NTSTATUS PhpDuplicateHandleFromProcessItem(
@@ -361,6 +365,51 @@ VOID PhShowHandleObjectProperties1(
             {
                 PhShowError(hWnd, L"The process does not exist.");
             }
+        }
+    }
+    else if (PhEqualString2(Info->TypeName, L"TpWorkerFactory", TRUE))
+    {
+        HANDLE handle;
+
+        if (NT_SUCCESS(PhpDuplicateHandleFromProcessItem(
+            &handle,
+            ProcessAllAccess,
+            Info->ProcessId,
+            Info->Handle
+            )))
+        {
+            NTSTATUS status;
+            volatile LONG pendingWorkerCount = 0;
+
+            if (NT_SUCCESS(status = NtShutdownWorkerFactory(handle, &pendingWorkerCount)))
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_DUP_HANDLE,
+                    Info->ProcessId
+                    )))
+                {
+                    status = NtDuplicateObject(
+                        processHandle,
+                        Info->Handle,
+                        NULL,
+                        NULL,
+                        0,
+                        0,
+                        DUPLICATE_CLOSE_SOURCE
+                        );
+
+                    NtClose(processHandle);
+                }
+            }
+            else
+            {
+                PhShowStatus(hWnd, L"Unable to shutdown the worker factory", status, 0);
+            }
+
+            NtClose(handle);
         }
     }
 }
