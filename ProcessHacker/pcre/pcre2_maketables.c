@@ -44,12 +44,12 @@ character tables for PCRE2 in the current locale. The file is compiled on its
 own as part of the PCRE2 library. However, it is also included in the
 compilation of dftables.c, in which case the macro DFTABLES is defined. */
 
-#ifndef DFTABLES
 #define HAVE_CONFIG_H
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "pcre2_internal.h"
+#ifndef DFTABLES
+#  ifdef HAVE_CONFIG_H
+#  include "config.h"
+#  endif
+#  include "pcre2_internal.h"
 #endif
 
 

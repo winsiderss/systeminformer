@@ -1452,7 +1452,7 @@ do
           for (c = 0; c < 16; c++) re->start_bitmap[c] |= classmap[c];
           for (c = 128; c < 256; c++)
             {
-            if ((classmap[c/8] && (1 << (c&7))) != 0)
+            if ((classmap[c/8] & (1 << (c&7))) != 0)
               {
               int d = (c >> 6) | 0xc0;            /* Set bit for this starter */
               re->start_bitmap[d/8] |= (1 << (d&7));  /* and then skip on to the */

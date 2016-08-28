@@ -38,13 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-
-/* This module is a wrapper that provides a POSIX API to the underlying PCRE2
-functions. */
-
 // dmex: Disable warnings
 #pragma warning(push)
 #pragma warning(disable : 4267)
+
+/* This module is a wrapper that provides a POSIX API to the underlying PCRE2
+functions. */
 
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
@@ -62,15 +61,48 @@ previously been set. */
 #  define PCRE2POSIX_EXP_DEFN __declspec(dllexport)
 #endif
 
-/* We include pcre2.h before pcre2_internal.h so that the PCRE2 library
-functions are declared as "import" for Windows by defining PCRE2_EXP_DECL as
-"import". This is needed even though pcre2_internal.h itself includes pcre2.h,
-because it does so after it has set PCRE2_EXP_DECL to "export" if it is not
-already set. */
+/* Older versions of MSVC lack snprintf(). This define allows for
+warning/error-free compilation and testing with MSVC compilers back to at least
+MSVC 10/2010. Except for VC6 (which is missing some fundamentals and fails). */
+
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+#define snprintf _snprintf
+#endif
+
+
+/* Compile-time error numbers start at this value. It should probably never be
+changed. This #define is a copy of the one in pcre2_internal.h. */
+
+#define COMPILE_ERROR_BASE 100
+
+
+/* Standard C headers */
+
+#include <ctype.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* PCRE2 headers */
 
 #include "pcre2.h"
-#include "pcre2_internal.h"
 #include "pcre2posix.h"
+
+/* When compiling with the MSVC compiler, it is sometimes necessary to include
+a "calling convention" before exported function names. (This is secondhand
+information; I know nothing about MSVC myself). For example, something like
+
+  void __cdecl function(....)
+
+might be needed. In order so make this easy, all the exported functions have
+PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
+set, we ensure here that it has no effect. */
+
+#ifndef PCRE2_CALL_CONVENTION
+#define PCRE2_CALL_CONVENTION
+#endif
 
 /* Table to translate PCRE2 compile time error codes into POSIX error codes.
 Only a few PCRE2 errors with a value greater than 23 turn into special POSIX
@@ -209,11 +241,11 @@ int re_nsub = 0;
 if ((cflags & REG_ICASE) != 0)    options |= PCRE2_CASELESS;
 if ((cflags & REG_NEWLINE) != 0)  options |= PCRE2_MULTILINE;
 if ((cflags & REG_DOTALL) != 0)   options |= PCRE2_DOTALL;
-if ((cflags & REG_NOSUB) != 0)    options |= PCRE2_NO_AUTO_CAPTURE;
 if ((cflags & REG_UTF) != 0)      options |= PCRE2_UTF;
 if ((cflags & REG_UCP) != 0)      options |= PCRE2_UCP;
 if ((cflags & REG_UNGREEDY) != 0) options |= PCRE2_UNGREEDY;
 
+preg->re_cflags = cflags;
 preg->re_pcre2_code = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED,
    options, &errorcode, &erroffset, NULL);
 preg->re_erroffset = erroffset;
@@ -238,7 +270,6 @@ if (preg->re_pcre2_code == NULL)
 (void)pcre2_pattern_info((const pcre2_code *)preg->re_pcre2_code,
   PCRE2_INFO_CAPTURECOUNT, &re_nsub);
 preg->re_nsub = (size_t)re_nsub;
-if ((options & PCRE2_NO_AUTO_CAPTURE) != 0) re_nsub = -1;
 preg->re_match_data = pcre2_match_data_create(re_nsub + 1, NULL);
 
 if (preg->re_match_data == NULL)
@@ -276,11 +307,11 @@ if ((eflags & REG_NOTEMPTY) != 0) options |= PCRE2_NOTEMPTY;
 
 ((regex_t *)preg)->re_erroffset = (size_t)(-1);  /* Only has meaning after compile */
 
-/* When no string data is being returned, or no vector has been passed in which
-to put it, ensure that nmatch is zero. */
+/* When REG_NOSUB was specified, or if no vector has been passed in which to
+put captured strings, ensure that nmatch is zero. This will stop any attempt to
+write to pmatch. */
 
-if ((((pcre2_real_code *)(preg->re_pcre2_code))->compile_options &
-  PCRE2_NO_AUTO_CAPTURE) != 0 || pmatch == NULL) nmatch = 0;
+if ((preg->re_cflags & REG_NOSUB) != 0 || pmatch == NULL) nmatch = 0;
 
 /* REG_STARTEND is a BSD extension, to allow for non-NUL-terminated strings.
 The man page from OS X says "REG_STARTEND affects only the location of the
@@ -307,11 +338,12 @@ rc = pcre2_match((const pcre2_code *)preg->re_pcre2_code,
 if (rc >= 0)
   {
   size_t i;
+  PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);
   if ((size_t)rc > nmatch) rc = (int)nmatch;
   for (i = 0; i < (size_t)rc; i++)
     {
-    pmatch[i].rm_so = md->ovector[i*2];
-    pmatch[i].rm_eo = md->ovector[i*2+1];
+    pmatch[i].rm_so = ovector[i*2];
+    pmatch[i].rm_eo = ovector[i*2+1];
     }
   for (; i < nmatch; i++) pmatch[i].rm_so = pmatch[i].rm_eo = -1;
   return 0;
@@ -337,4 +369,5 @@ switch(rc)
 }
 
 /* End of pcre2posix.c */
+
 #pragma warning(pop)
