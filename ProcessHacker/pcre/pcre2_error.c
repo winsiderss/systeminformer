@@ -38,15 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-// dmex: Disable warnings
-#pragma warning(push)
-#pragma warning(disable : 4267)
-
-// dmex: Disable CRT secure warnings
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -71,7 +62,7 @@ Each substring ends with \0 to insert a null character. This includes the final
 substring, so that the whole string ends with \0\0, which can be detected when
 counting through. */
 
-static const char compile_error_texts[] =
+static const unsigned char compile_error_texts[] =
   "no error\0"
   "\\ at end of pattern\0"
   "\\c at end of pattern\0"
@@ -115,7 +106,7 @@ static const char compile_error_texts[] =
   "character code point value in \\x{} or \\o{} is too large\0"
   /* 35 */
   "invalid condition (?(0)\0"
-  "\\C is not allowed in a lookbehind assertion\0"
+  "\\C is not allowed in a lookbehind assertion in UTF-" XSTRING(PCRE2_CODE_UNIT_WIDTH) " mode\0"
   "PCRE does not support \\L, \\l, \\N{name}, \\U, or \\u\0"
   "number after (?C is greater than 255\0"
   "closing parenthesis for (?C expected\0"
@@ -186,7 +177,7 @@ static const char compile_error_texts[] =
 
 /* Match-time and UTF error texts are in the same format. */
 
-static const char match_error_texts[] =
+static const unsigned char match_error_texts[] =
   "no error\0"
   "no match\0"
   "partial match\0"
@@ -261,6 +252,7 @@ static const char match_error_texts[] =
   /* 60 */
   "match with end before start is not supported\0"
   "too many replacements (more than INT_MAX)\0"
+  "bad serialized data\0"
   ;
 
 
@@ -285,32 +277,32 @@ Returns:        length of message if all is well
 PCRE2_EXP_DEFN int PCRE2_CALL_CONVENTION
 pcre2_get_error_message(int enumber, PCRE2_UCHAR *buffer, size_t size)
 {
-char xbuff[128];
-const char *message;
+const unsigned char *message;
 size_t i;
-uint32_t n;
+int n;
 
 if (size == 0) return PCRE2_ERROR_NOMEMORY;
 
-if (enumber > COMPILE_ERROR_BASE)  /* Compile error */
+if (enumber >= COMPILE_ERROR_BASE)  /* Compile error */
   {
   message = compile_error_texts;
   n = enumber - COMPILE_ERROR_BASE;
   }
-else                               /* Match or UTF error */
+else if (enumber < 0)               /* Match or UTF error */
   {
   message = match_error_texts;
   n = -enumber;
+  }
+else                                /* Invalid error number */
+  {
+  message = (unsigned char *)"\0";  /* Empty message list */
+  n = 1;
   }
 
 for (; n > 0; n--)
   {
   while (*message++ != CHAR_NULL) {};
-  if (*message == CHAR_NULL)
-    {
-    sprintf(xbuff, "No text for error %d", enumber);
-    break;
-    }
+  if (*message == CHAR_NULL) return PCRE2_ERROR_BADDATA;
   }
 
 for (i = 0; *message != 0; i++)
@@ -324,8 +316,7 @@ for (i = 0; *message != 0; i++)
   }
 
 buffer[i] = 0;
-return i;
+return (int)i;
 }
 
 /* End of pcre2_error.c */
-#pragma warning(pop)

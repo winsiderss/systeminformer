@@ -38,9 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-// dmex: Required for PhAllocateSafe / PhFree
-#include <phbase.h>
-
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -59,14 +56,14 @@ POSSIBILITY OF SUCH DAMAGE.
 static void *default_malloc(size_t size, void *data)
 {
 (void)data;
-return PhAllocateSafe(size);
+return malloc(size);
 }
 
 
 static void default_free(void *block, void *data)
 {
 (void)data;
-PhFree(block);
+free(block);
 }
 
 
