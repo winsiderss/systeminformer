@@ -158,6 +158,7 @@ int32_t i, j;
 
 if (data == NULL || codes == NULL) return PCRE2_ERROR_NULL;
 if (number_of_codes <= 0) return PCRE2_ERROR_BADDATA;
+if (data->number_of_codes <= 0) return PCRE2_ERROR_BADSERIALIZEDDATA;
 if (data->magic != SERIALIZED_DATA_MAGIC) return PCRE2_ERROR_BADMAGIC;
 if (data->version != SERIALIZED_DATA_VERSION) return PCRE2_ERROR_BADMODE;
 if (data->config != SERIALIZED_DATA_CONFIG) return PCRE2_ERROR_BADMODE;
@@ -188,6 +189,8 @@ for (i = 0; i < number_of_codes; i++)
   CODE_BLOCKSIZE_TYPE blocksize;
   memcpy(&blocksize, src_bytes + offsetof(pcre2_real_code, blocksize),
     sizeof(CODE_BLOCKSIZE_TYPE));
+  if (blocksize <= sizeof(pcre2_real_code))
+    return PCRE2_ERROR_BADSERIALIZEDDATA;
 
   /* The allocator provided by gcontext replaces the original one. */
 
@@ -208,6 +211,10 @@ for (i = 0; i < number_of_codes; i++)
 
   memcpy(((uint8_t *)dst_re) + sizeof(pcre2_memctl),
     src_bytes + sizeof(pcre2_memctl), blocksize - sizeof(pcre2_memctl));
+  if (dst_re->magic_number != MAGIC_NUMBER ||
+      dst_re->name_entry_size > MAX_NAME_SIZE + IMM2_SIZE + 1 ||
+      dst_re->name_count > MAX_NAME_COUNT)
+    return PCRE2_ERROR_BADSERIALIZEDDATA;
 
   /* At the moment only one table is supported. */
 

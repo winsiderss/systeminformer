@@ -113,6 +113,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define HAVE_STRERROR 1
 #endif
 
+
 /* Define to 1 if you have the <strings.h> header file. */
 /* #undef HAVE_STRINGS_H */
 
@@ -130,6 +131,9 @@ sure both macros are undefined; an emulation function will then be used. */
 #ifndef HAVE_SYS_TYPES_H
 #define HAVE_SYS_TYPES_H 1
 #endif
+
+/* Define to 1 if you have the <sys/wait.h> header file. */
+/* #undef HAVE_SYS_WAIT_H */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 /* #undef HAVE_UNISTD_H */
@@ -225,7 +229,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_NAME "PCRE2"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "PCRE2 10.21"
+#define PACKAGE_STRING "PCRE2 10.22"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pcre2"
@@ -234,7 +238,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "10.21"
+#define PACKAGE_VERSION "10.22"
 
 /* The value of PARENS_NEST_LIMIT specifies the maximum depth of nested
    parentheses (of any kind) in a pattern. This limits the amount of system
@@ -297,6 +301,9 @@ sure both macros are undefined; an emulation function will then be used. */
    is able to handle .gz files. */
 /* #undef SUPPORT_LIBZ */
 
+/* Define to any value to enable callout script support in pcre2grep. */
+/* #undef SUPPORT_PCRE2GREP_CALLOUT */
+
 /* Define to any value to enable JIT support in pcre2grep. */
 /* #undef SUPPORT_PCRE2GREP_JIT */
 
@@ -323,7 +330,7 @@ sure both macros are undefined; an emulation function will then be used. */
 /* #undef SUPPORT_VALGRIND */
 
 /* Version number of package */
-#define VERSION "10.21"
+#define VERSION "10.22"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */

@@ -539,7 +539,9 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
+
             SetDlgItemText(hwndDlg, IDC_MINIMUMLENGTH, L"10");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE), BST_CHECKED);
