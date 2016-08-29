@@ -2619,8 +2619,8 @@ typedef struct _KUSER_SHARED_DATA
     ULONGLONG RNGSeedVersion;
     ULONG GlobalValidationRunlevel;
     LONG TimeZoneBiasStamp;
-    ULONG Reserved2;
 
+    ULONG NtBuildNumber;
     ULONG NtProductType;
     BOOLEAN ProductTypeIsValid;
     UCHAR Reserved0[1];
@@ -2637,7 +2637,7 @@ typedef struct _KUSER_SHARED_DATA
     volatile ULONG TimeSlip;
 
     ALTERNATIVE_ARCHITECTURE_TYPE AlternativeArchitecture;
-    ULONG AltArchitecturePad[1];
+    ULONG BootId;
 
     LARGE_INTEGER SystemExpirationDate;
 
@@ -2668,7 +2668,8 @@ typedef struct _KUSER_SHARED_DATA
     ULONG NumberOfPhysicalPages;
 
     BOOLEAN SafeBootMode;
-    UCHAR Reserved12[3];
+    UCHAR VirtualizationFlags;
+    UCHAR Reserved12[2];
 
     union
     {
@@ -2683,14 +2684,18 @@ typedef struct _KUSER_SHARED_DATA
             ULONG DbgDynProcessorEnabled : 1;
             ULONG DbgConsoleBrokerEnabled : 1;
             ULONG DbgSecureBootEnabled : 1;
-            ULONG SpareBits : 24;
+            ULONG DbgMultiSessionSku : 1;
+            ULONG DbgMultiUsersInSessionSku : 1;
+            ULONG SpareBits : 22;
         };
     };
     ULONG DataFlagsPad[1];
 
     ULONGLONG TestRetInstruction;
-    ULONGLONG QpcFrequency;
-    ULONGLONG SystemCallPad[3];
+    LONGLONG QpcFrequency;
+    ULONG SystemCall;
+    ULONG SystemCallPad0;
+    ULONGLONG SystemCallPad[2];
 
     union
     {
@@ -2709,12 +2714,12 @@ typedef struct _KUSER_SHARED_DATA
     ULONGLONG BaselineInterruptTimeQpc;
     ULONGLONG QpcSystemTimeIncrement;
     ULONGLONG QpcInterruptTimeIncrement;
-    ULONG QpcSystemTimeIncrement32;
-    ULONG QpcInterruptTimeIncrement32;
     UCHAR QpcSystemTimeIncrementShift;
     UCHAR QpcInterruptTimeIncrementShift;
-    UCHAR Reserved8[14];
 
+    USHORT UnparkedProcessorCount;
+    ULONG EnclaveFeatureMask[4];
+    ULONG Reserved8;
     USHORT UserModeGlobalLogger[16];
     ULONG ImageFileExecutionOptions;
 
@@ -2723,7 +2728,7 @@ typedef struct _KUSER_SHARED_DATA
     volatile ULONG64 InterruptTimeBias;
     volatile ULONG64 QpcBias;
 
-    volatile ULONG ActiveProcessorCount;
+    ULONG ActiveProcessorCount;
     volatile UCHAR ActiveGroupCount;
     UCHAR Reserved9;
     union
@@ -2772,10 +2777,11 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount) == 0x2e4);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages) == 0x2e8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x308);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x310);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
+C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x708);
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 

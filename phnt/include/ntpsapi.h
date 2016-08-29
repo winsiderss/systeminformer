@@ -165,9 +165,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessCommitReleaseInformation, // PROCESS_COMMIT_RELEASE_INFORMATION
     ProcessDefaultCpuSetsInformation,
     ProcessAllowedCpuSetsInformation,
-    ProcessReserved1Information,
-    ProcessReserved2Information,
-    ProcessSubsystemProcess, // 70
+    ProcessSubsystemProcess, // 68
     ProcessJobMemoryInformation, // PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate, // since THRESHOLD2
     ProcessRaiseUMExceptionOnInvalidHandleClose,
@@ -220,6 +218,7 @@ typedef enum _THREADINFOCLASS
     ThreadSelectedCpuSets,
     ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // since THRESHOLD2
+    ThreadDynamicCodePolicyInfo,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
