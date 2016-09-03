@@ -35,8 +35,6 @@ NtSetSystemEnvironmentValue(
     _In_ PUNICODE_STRING VariableValue
     );
 
-#if (PHNT_VERSION >= PHNT_WIN8)
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -67,8 +65,6 @@ NtEnumerateSystemEnvironmentValuesEx(
     _Out_ PVOID Buffer,
     _Inout_ PULONG BufferLength
     );
-
-#endif
 
 // EFI
 
