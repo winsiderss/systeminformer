@@ -66,7 +66,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
        i --, attr ++)
   {
 #ifdef DEBUG
-    fprintf(stderr, "    %s=\"%s\"\n", attr->name, attr->value);
+    printf("    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
@@ -128,13 +128,13 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
        i --, attr ++)
   {
 #ifdef DEBUG
-    fprintf(stderr, "    %s=\"%s\"\n", attr->name, attr->value);
+    printf("    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
     {
 #ifdef DEBUG
-      fprintf(stderr, "    Returning \"%s\"!\n", attr->value);
+      printf("    Returning \"%s\"!\n", attr->value);
 #endif /* DEBUG */
       return (attr->value);
     }
@@ -145,7 +145,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   */
 
 #ifdef DEBUG
-  fputs("    Returning NULL!\n", stderr);
+  puts("    Returning NULL!\n");
 #endif /* DEBUG */
 
   return (NULL);
