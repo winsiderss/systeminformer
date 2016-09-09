@@ -297,6 +297,9 @@ BOOLEAN ProcessTreeFilterCallback(
 
         for (i = 0; i < serviceList->Count; i++)
         {
+            PPH_STRING serviceFileName = NULL;
+            PPH_STRING serviceBinaryPath = NULL;
+
             serviceItem = serviceList->Items[i];
 
             if (!PhIsNullOrEmptyString(serviceItem->Name))
@@ -329,6 +332,36 @@ BOOLEAN ProcessTreeFilterCallback(
                     break;
                 }
             }
+
+            if (NT_SUCCESS(QueryServiceFileName(
+                &serviceItem->Name->sr,
+                &serviceFileName,
+                &serviceBinaryPath
+                )))
+            {
+                if (serviceFileName)
+                {
+                    if (WordMatchStringRef(&serviceFileName->sr))
+                    {
+                        matched = TRUE;
+                    }
+
+                    PhDereferenceObject(serviceFileName);
+                }
+
+                if (serviceBinaryPath)
+                {
+                    if (WordMatchStringRef(&serviceBinaryPath->sr))
+                    {
+                        matched = TRUE;
+                    }
+
+                    PhDereferenceObject(serviceBinaryPath);
+                }
+
+                if (matched)
+                    break;
+            }
         }
 
         PhDereferenceObjects(serviceList->Items, serviceList->Count);
@@ -347,6 +380,8 @@ BOOLEAN ServiceTreeFilterCallback(
     )
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
+    PPH_STRING serviceFileName = NULL;
+    PPH_STRING serviceBinaryPath = NULL;
 
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
@@ -382,6 +417,38 @@ BOOLEAN ServiceTreeFilterCallback(
         PhPrintUInt32(processIdString, HandleToUlong(serviceNode->ServiceItem->ProcessId));
 
         if (WordMatchStringZ(processIdString))
+            return TRUE;
+    }
+
+    if (NT_SUCCESS(QueryServiceFileName(
+        &serviceNode->ServiceItem->Name->sr, 
+        &serviceFileName, 
+        &serviceBinaryPath
+        )))
+    {
+        BOOLEAN matched = FALSE;
+
+        if (serviceFileName)
+        {
+            if (WordMatchStringRef(&serviceFileName->sr))
+            {
+                matched = TRUE;
+            }
+
+            PhDereferenceObject(serviceFileName);
+        }
+
+        if (serviceBinaryPath)
+        {
+            if (WordMatchStringRef(&serviceBinaryPath->sr))
+            {
+                matched = TRUE;
+            }
+
+            PhDereferenceObject(serviceBinaryPath);
+        }
+
+        if (matched)
             return TRUE;
     }
 
@@ -464,4 +531,114 @@ BOOLEAN NetworkTreeFilterCallback(
     }
 
     return FALSE;
+}
+
+// NOTE: This function does not use the SCM due to major performance issues.
+// For now we just query this information from the registry but it might be out-of-sync 
+// until the SCM flushes its cache.
+NTSTATUS QueryServiceFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING *ServiceFileName,
+    _Out_ PPH_STRING *ServiceBinaryPath
+    )
+{   
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static PH_STRINGREF typeKeyName = PH_STRINGREF_INIT(L"Type");
+
+    NTSTATUS status;
+    HANDLE keyHandle;
+    ULONG serviceType;
+    PPH_STRING keyName;
+    PPH_STRING binaryPath;
+    PPH_STRING fileName;
+
+    keyName = PhConcatStringRef2(&servicesKeyName, ServiceName);
+    binaryPath = NULL;
+    fileName = NULL;
+
+    if (NT_SUCCESS(status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING serviceImagePath;
+        PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+        if (NT_SUCCESS(status = PhQueryValueKey(
+            keyHandle,
+            &typeKeyName,
+            KeyValuePartialInformation,
+            &buffer
+            )))
+        {
+            if (
+                buffer->Type == REG_DWORD &&
+                buffer->DataLength == sizeof(ULONG)
+                )
+            {
+                serviceType = *(PULONG)buffer->Data;
+            }
+
+            PhFree(buffer);
+        }
+
+        if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&serviceImagePath->sr))
+            {
+                binaryPath = expandedString;
+                PhDereferenceObject(serviceImagePath);
+            }
+            else
+            {
+                binaryPath = serviceImagePath;
+            }
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhGetServiceDllParameter(ServiceName, &fileName);
+
+        if (!fileName)
+        {
+            if (serviceType & SERVICE_WIN32)
+            {
+                PH_STRINGREF dummyFileName;
+                PH_STRINGREF dummyArguments;
+
+                PhParseCommandLineFuzzy(&binaryPath->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                if (!fileName)
+                    PhSwapReference(&fileName, binaryPath);
+            }
+            else
+            {
+                fileName = PhGetFileName(binaryPath);
+            }
+        }
+
+        *ServiceFileName = fileName;
+        *ServiceBinaryPath = binaryPath;
+    }
+    else
+    {
+        if (binaryPath)
+            PhDereferenceObject(binaryPath);
+    }
+   
+    PhDereferenceObject(keyName);
+
+    return status;
 }
