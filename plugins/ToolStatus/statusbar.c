@@ -52,12 +52,10 @@ VOID StatusBarLoadDefault(
     VOID
     )
 {
-    ULONG i;
-
     if (!StatusBarItemList)
         StatusBarItemList = PhCreateList(MAX_DEFAULT_STATUSBAR_ITEMS);
 
-    for (i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
+    for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
         PSTATUSBAR_ITEM statusItem;
 
@@ -134,7 +132,6 @@ VOID StatusBarSaveSettings(
     VOID
     )
 {
-    ULONG buttonIndex = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
@@ -146,9 +143,9 @@ VOID StatusBarSaveSettings(
         StatusBarItemList->Count
         );
 
-    for (buttonIndex = 0; buttonIndex < StatusBarItemList->Count; buttonIndex++)
+    for (ULONG i = 0; i < StatusBarItemList->Count; i++)
     {
-        PSTATUSBAR_ITEM statusItem = StatusBarItemList->Items[buttonIndex];
+        PSTATUSBAR_ITEM statusItem = StatusBarItemList->Items[i];
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
