@@ -81,8 +81,8 @@ typedef struct _LDR_DDAG_NODE32
     LIST_ENTRY32 Modules;
     WOW64_POINTER(PLDR_SERVICE_TAG_RECORD) ServiceTagList;
     ULONG LoadCount;
-    ULONG ReferenceCount;
-    ULONG DependencyCount;
+    ULONG LoadWhileUnloadingCount;
+    ULONG LowestLink;
     union
     {
         LDRP_CSLIST32 Dependencies;
@@ -92,7 +92,6 @@ typedef struct _LDR_DDAG_NODE32
     LDR_DDAG_STATE State;
     SINGLE_LIST_ENTRY32 CondenseLink;
     ULONG PreorderNumber;
-    ULONG LowestLink;
 } LDR_DDAG_NODE32, *PLDR_DDAG_NODE32;
 
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP_32 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode)
@@ -167,6 +166,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     LDR_DLL_LOAD_REASON LoadReason;
     ULONG ImplicitPathOptions;
     ULONG ReferenceCount;
+    ULONG DependentLoadFlags;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
 
 typedef struct _CURDIR32
@@ -238,12 +238,12 @@ typedef struct _PEB32
         {
             BOOLEAN ImageUsesLargePages : 1;
             BOOLEAN IsProtectedProcess : 1;
-            BOOLEAN IsLegacyProcess : 1;
             BOOLEAN IsImageDynamicallyRelocated : 1;
             BOOLEAN SkipPatchingUser32Forwarders : 1;
             BOOLEAN IsPackagedProcess : 1;
             BOOLEAN IsAppContainer : 1;
-            BOOLEAN SpareBits : 1;
+            BOOLEAN IsProtectedProcessLight : 1;
+            BOOLEAN IsLongPathAwareProcess : 1;
         };
     };
     WOW64_POINTER(HANDLE) Mutant;
@@ -314,7 +314,7 @@ typedef struct _PEB32
     ULONG ImageSubsystem;
     ULONG ImageSubsystemMajorVersion;
     ULONG ImageSubsystemMinorVersion;
-    WOW64_POINTER(ULONG_PTR) ImageProcessAffinityMask;
+    WOW64_POINTER(ULONG_PTR) ActiveProcessAffinityMask;
     GDI_HANDLE_BUFFER32 GdiHandleBuffer;
     WOW64_POINTER(PVOID) PostProcessInitRoutine;
 
@@ -359,7 +359,20 @@ typedef struct _PEB32
         };
     };
     ULONGLONG CsrServerReadOnlySharedMemoryBase;
+    WOW64_POINTER(PVOID) TppWorkerpListLock;
+    LIST_ENTRY32 TppWorkerpList;
+    WOW64_POINTER(PVOID) WaitOnAddressHashTable[128];
 } PEB32, *PPEB32;
+
+C_ASSERT(FIELD_OFFSET(PEB32, IFEOKey) == 0x024);
+C_ASSERT(FIELD_OFFSET(PEB32, UnicodeCaseTableData) == 0x060);
+C_ASSERT(FIELD_OFFSET(PEB32, NumberOfHeaps) == 0x088);
+C_ASSERT(FIELD_OFFSET(PEB32, ImageSubsystemMinorVersion) == 0x0bc);
+C_ASSERT(FIELD_OFFSET(PEB32, TlsExpansionBitmapBits) == 0x154);
+C_ASSERT(FIELD_OFFSET(PEB32, SystemAssemblyStorageMap) == 0x204);
+C_ASSERT(FIELD_OFFSET(PEB32, pImageHeaderHash) == 0x23c);
+C_ASSERT(FIELD_OFFSET(PEB32, WaitOnAddressHashTable) == 0x25c);
+C_ASSERT(sizeof(PEB32) == 0x460);
 
 #define GDI_BATCH_BUFFER_SIZE 310
 
@@ -389,10 +402,17 @@ typedef struct _TEB32
     WOW64_POINTER(PVOID) WOW32Reserved;
     LCID CurrentLocale;
     ULONG FpSoftwareStatusRegister;
-    WOW64_POINTER(PVOID) SystemReserved1[54];
+    WOW64_POINTER(PVOID) ReservedForDebuggerInstrumentation[16];
+    WOW64_POINTER(PVOID) SystemReserved1[36];
+    UCHAR WorkingOnBehalfTicket[8];
     NTSTATUS ExceptionCode;
+
     WOW64_POINTER(PVOID) ActivationContextStackPointer;
-    BYTE SpareBytes[36];
+    WOW64_POINTER(ULONG_PTR) InstrumentationCallbackSp;
+    WOW64_POINTER(ULONG_PTR) InstrumentationCallbackPreviousPc;
+    WOW64_POINTER(ULONG_PTR) InstrumentationCallbackPreviousSp;
+    BOOLEAN InstrumentationCallbackDisabled;
+    UCHAR SpareBytes[23];
     ULONG TxFsContext;
 
     GDI_TEB_BATCH32 GdiTebBatch;
@@ -418,7 +438,112 @@ typedef struct _TEB32
     WOW64_POINTER(PVOID) DeallocationStack;
     WOW64_POINTER(PVOID) TlsSlots[64];
     LIST_ENTRY32 TlsLinks;
+
+    WOW64_POINTER(PVOID) Vdm;
+    WOW64_POINTER(PVOID) ReservedForNtRpc;
+    WOW64_POINTER(PVOID) DbgSsReserved[2];
+
+    ULONG HardErrorMode;
+    WOW64_POINTER(PVOID) Instrumentation[9];
+    GUID ActivityId;
+
+    WOW64_POINTER(PVOID) SubProcessTag;
+    WOW64_POINTER(PVOID) PerflibData;
+    WOW64_POINTER(PVOID) EtwTraceData;
+    WOW64_POINTER(PVOID) WinSockData;
+    ULONG GdiBatchCount;
+
+    union
+    {
+        PROCESSOR_NUMBER CurrentIdealProcessor;
+        ULONG IdealProcessorValue;
+        struct
+        {
+            UCHAR ReservedPad0;
+            UCHAR ReservedPad1;
+            UCHAR ReservedPad2;
+            UCHAR IdealProcessor;
+        };
+    };
+
+    ULONG GuaranteedStackBytes;
+    WOW64_POINTER(PVOID) ReservedForPerf;
+    WOW64_POINTER(PVOID) ReservedForOle;
+    ULONG WaitingOnLoaderLock;
+    WOW64_POINTER(PVOID) SavedPriorityState;
+    WOW64_POINTER(ULONG_PTR) ReservedForCodeCoverage;
+    WOW64_POINTER(PVOID) ThreadPoolData;
+    WOW64_POINTER(PVOID *) TlsExpansionSlots;
+
+    ULONG MuiGeneration;
+    ULONG IsImpersonating;
+    WOW64_POINTER(PVOID) NlsCache;
+    WOW64_POINTER(PVOID) pShimData;
+    USHORT HeapVirtualAffinity;
+    USHORT LowFragHeapDataSlot;
+    WOW64_POINTER(HANDLE) CurrentTransactionHandle;
+    WOW64_POINTER(PTEB_ACTIVE_FRAME) ActiveFrame;
+    WOW64_POINTER(PVOID) FlsData;
+
+    WOW64_POINTER(PVOID) PreferredLanguages;
+    WOW64_POINTER(PVOID) UserPrefLanguages;
+    WOW64_POINTER(PVOID) MergedPrefLanguages;
+    ULONG MuiImpersonation;
+
+    union
+    {
+        USHORT CrossTebFlags;
+        USHORT SpareCrossTebBits : 16;
+    };
+    union
+    {
+        USHORT SameTebFlags;
+        struct
+        {
+            USHORT SafeThunkCall : 1;
+            USHORT InDebugPrint : 1;
+            USHORT HasFiberData : 1;
+            USHORT SkipThreadAttach : 1;
+            USHORT WerInShipAssertCode : 1;
+            USHORT RanProcessInit : 1;
+            USHORT ClonedThread : 1;
+            USHORT SuppressDebugMsg : 1;
+            USHORT DisableUserStackWalk : 1;
+            USHORT RtlExceptionAttached : 1;
+            USHORT InitialThread : 1;
+            USHORT SessionAware : 1;
+            USHORT LoadOwner : 1;
+            USHORT LoaderWorker : 1;
+            USHORT SpareSameTebBits : 2;
+        };
+    };
+
+    WOW64_POINTER(PVOID) TxnScopeEnterCallback;
+    WOW64_POINTER(PVOID) TxnScopeExitCallback;
+    WOW64_POINTER(PVOID) TxnScopeContext;
+    ULONG LockCount;
+    LONG WowTebOffset;
+    WOW64_POINTER(PVOID) ResourceRetValue;
+    WOW64_POINTER(PVOID) ReservedForWdf;
+    ULONGLONG ReservedForCrt;
+    GUID EffectiveContainerId;
 } TEB32, *PTEB32;
+
+C_ASSERT(FIELD_OFFSET(TEB32, ProcessEnvironmentBlock) == 0x030);
+C_ASSERT(FIELD_OFFSET(TEB32, ExceptionCode) == 0x1a4);
+C_ASSERT(FIELD_OFFSET(TEB32, TxFsContext) == 0x1d0);
+C_ASSERT(FIELD_OFFSET(TEB32, glContext) == 0xbf0);
+C_ASSERT(FIELD_OFFSET(TEB32, StaticUnicodeBuffer) == 0xc00);
+C_ASSERT(FIELD_OFFSET(TEB32, TlsLinks) == 0xf10);
+C_ASSERT(FIELD_OFFSET(TEB32, DbgSsReserved) == 0xf20);
+C_ASSERT(FIELD_OFFSET(TEB32, ActivityId) == 0xf50);
+C_ASSERT(FIELD_OFFSET(TEB32, GdiBatchCount) == 0xf70);
+C_ASSERT(FIELD_OFFSET(TEB32, TlsExpansionSlots) == 0xf94);
+C_ASSERT(FIELD_OFFSET(TEB32, FlsData) == 0xfb4);
+C_ASSERT(FIELD_OFFSET(TEB32, MuiImpersonation) == 0xfc4);
+C_ASSERT(FIELD_OFFSET(TEB32, ReservedForCrt) == 0xfe8);
+C_ASSERT(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0);
+C_ASSERT(sizeof(TEB32) == 0x1000);
 
 // Conversion
 

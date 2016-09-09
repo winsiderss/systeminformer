@@ -327,27 +327,6 @@ NTSTATUS LoadDb(
     return STATUS_SUCCESS;
 }
 
-char *MxmlSaveCallback(
-    _In_ mxml_node_t *node,
-    _In_ int position
-    )
-{
-    if (PhEqualBytesZ(node->value.element.name, "object", TRUE))
-    {
-        if (position == MXML_WS_BEFORE_OPEN)
-            return "  ";
-        else if (position == MXML_WS_AFTER_CLOSE)
-            return "\r\n";
-    }
-    else if (PhEqualBytesZ(node->value.element.name, "objects", TRUE))
-    {
-        if (position == MXML_WS_AFTER_OPEN)
-            return "\r\n";
-    }
-
-    return NULL;
-}
-
 PPH_BYTES StringRefToUtf8(
     _In_ PPH_STRINGREF String
     )
@@ -460,7 +439,7 @@ NTSTATUS SaveDb(
         return status;
     }
 
-    mxmlSaveFd(topNode, fileHandle, MxmlSaveCallback);
+    mxmlSaveFd(topNode, fileHandle, MXML_NO_CALLBACK);
     mxmlDelete(topNode);
     NtClose(fileHandle);
 
