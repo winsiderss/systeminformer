@@ -22,9 +22,10 @@ typedef struct _PEB
             BOOLEAN IsPackagedProcess : 1;
             BOOLEAN IsAppContainer : 1;
             BOOLEAN IsProtectedProcessLight : 1;
-            BOOLEAN SpareBits : 1;
+            BOOLEAN IsLongPathAwareProcess : 1;
         };
     };
+
     HANDLE Mutant;
 
     PVOID ImageBaseAddress;
@@ -93,7 +94,7 @@ typedef struct _PEB
     ULONG ImageSubsystem;
     ULONG ImageSubsystemMajorVersion;
     ULONG ImageSubsystemMinorVersion;
-    ULONG_PTR ImageProcessAffinityMask;
+    ULONG_PTR ActiveProcessAffinityMask;
     GDI_HANDLE_BUFFER GdiHandleBuffer;
     PVOID PostProcessInitRoutine;
 
@@ -138,6 +139,9 @@ typedef struct _PEB
         };
     };
     ULONGLONG CsrServerReadOnlySharedMemoryBase;
+    PVOID TppWorkerpListLock;
+    LIST_ENTRY TppWorkerpList;
+    PVOID WaitOnAddressHashTable[128];
 } PEB, *PPEB;
 
 #define GDI_BATCH_BUFFER_SIZE 310
@@ -181,16 +185,18 @@ typedef struct _TEB
     PVOID WOW32Reserved;
     LCID CurrentLocale;
     ULONG FpSoftwareStatusRegister;
-    PVOID SystemReserved1[54];
+    PVOID ReservedForDebuggerInstrumentation[16];
+    PVOID SystemReserved1[37];
+    UCHAR WorkingOnBehalfTicket[8];
     NTSTATUS ExceptionCode;
+
     PVOID ActivationContextStackPointer;
-#ifdef _WIN64
-    UCHAR SpareBytes[24];
-#else
-    UCHAR SpareBytes[36];
-#endif
+    ULONG_PTR InstrumentationCallbackSp;
+    ULONG_PTR InstrumentationCallbackPreviousPc;
+    ULONG_PTR InstrumentationCallbackPreviousSp;
     ULONG TxFsContext;
 
+    BOOLEAN InstrumentationCallbackDisabled;
     GDI_TEB_BATCH GdiTebBatch;
     CLIENT_ID RealClientId;
     HANDLE GdiCachedProcessHandle;
@@ -228,7 +234,7 @@ typedef struct _TEB
     GUID ActivityId;
 
     PVOID SubProcessTag;
-    PVOID EtwLocalData;
+    PVOID PerflibData;
     PVOID EtwTraceData;
     PVOID WinSockData;
     ULONG GdiBatchCount;
@@ -251,7 +257,7 @@ typedef struct _TEB
     PVOID ReservedForOle;
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
-    ULONG_PTR SoftPatchPtr1;
+    ULONG_PTR ReservedForCodeCoverage;
     PVOID ThreadPoolData;
     PVOID *TlsExpansionSlots;
 #ifdef _WIN64
@@ -262,7 +268,8 @@ typedef struct _TEB
     ULONG IsImpersonating;
     PVOID NlsCache;
     PVOID pShimData;
-    ULONG HeapVirtualAffinity;
+    USHORT HeapVirtualAffinity;
+    USHORT LowFragHeapDataSlot;
     HANDLE CurrentTransactionHandle;
     PTEB_ACTIVE_FRAME ActiveFrame;
     PVOID FlsData;
@@ -294,7 +301,9 @@ typedef struct _TEB
             USHORT RtlExceptionAttached : 1;
             USHORT InitialThread : 1;
             USHORT SessionAware : 1;
-            USHORT SpareSameTebBits : 4;
+            USHORT LoadOwner : 1;
+            USHORT LoaderWorker : 1;
+            USHORT SpareSameTebBits : 2;
         };
     };
 
@@ -302,9 +311,11 @@ typedef struct _TEB
     PVOID TxnScopeExitCallback;
     PVOID TxnScopeContext;
     ULONG LockCount;
-    ULONG SpareUlong0;
+    LONG WowTebOffset;
     PVOID ResourceRetValue;
     PVOID ReservedForWdf;
+    ULONGLONG ReservedForCrt;
+    GUID EffectiveContainerId;
 } TEB, *PTEB;
 
 #endif

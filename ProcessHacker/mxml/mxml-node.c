@@ -1,9 +1,9 @@
 /*
- * "$Id: mxml-node.c 451 2014-01-04 21:50:06Z msweet $"
+ * "$Id: mxml-node.c 462 2016-06-11 20:51:49Z msweet $"
  *
  * Node support code for Mini-XML, a small XML-like file parsing library.
  *
- * Copyright 2003-2014 by Michael R Sweet.
+ * Copyright 2003-2016 by Michael R Sweet.
  *
  * These coded instructions, statements, and computer programs are the
  * property of Michael R Sweet and are protected by Federal copyright
@@ -17,6 +17,7 @@
 /*
  * Include necessary headers...
  */
+
 #include <phbase.h>
 #include "config.h"
 #include "mxml.h"
@@ -26,6 +27,7 @@
  * Local functions...
  */
 
+static void		mxml_free(mxml_node_t *node);
 static mxml_node_t	*mxml_new(mxml_node_t *parent, mxml_type_t type);
 
 
@@ -177,7 +179,8 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
 void
 mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
 {
-  int	i;				/* Looping var */
+  mxml_node_t	*current,		/* Current node */
+        *next;			/* Next node */
 
 
 #ifdef DEBUG
@@ -201,60 +204,50 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
   * Delete children...
   */
 
-  while (node->child)
-    mxmlDelete(node->child);
-
- /*
-  * Now delete any node data...
-  */
-
-  switch (node->type)
+  for (current = node->child; current; current = next)
   {
-    case MXML_ELEMENT :
-        if (node->value.element.name)
-      PhFree(node->value.element.name);
+   /*
+    * Get the next node...
+    */
 
-    if (node->value.element.num_attrs)
+    if ((next = current->child) != NULL)
     {
-      for (i = 0; i < node->value.element.num_attrs; i ++)
-      {
-        if (node->value.element.attrs[i].name)
-          PhFree(node->value.element.attrs[i].name);
-        if (node->value.element.attrs[i].value)
-          PhFree(node->value.element.attrs[i].value);
-      }
+     /*
+      * Free parent nodes after child nodes have been freed...
+      */
 
-      PhFree(node->value.element.attrs);
+      current->child = NULL;
+      continue;
     }
-        break;
-    case MXML_INTEGER :
-       /* Nothing to do */
-        break;
-    case MXML_OPAQUE :
-        if (node->value.opaque)
-          PhFree(node->value.opaque);
-        break;
-    case MXML_REAL :
-       /* Nothing to do */
-        break;
-    case MXML_TEXT :
-        if (node->value.text.string)
-          PhFree(node->value.text.string);
-        break;
-    case MXML_CUSTOM :
-        if (node->value.custom.data &&
-        node->value.custom.destroy)
-      (*(node->value.custom.destroy))(node->value.custom.data);
-    break;
-    default :
-        break;
+
+    if ((next = current->next) == NULL)
+    {
+      mxml_node_t *temp = current->parent;
+                    /* Pointer to parent node */
+
+      if (temp == node)
+      {
+       /*
+        * Got back to the top node...
+        */
+
+        next = NULL;
+      }
+      else if ((next = temp->next) == NULL)
+      {
+    if ((next = temp->parent) == node)
+      next = NULL;
+      }
+    }
+
+    mxml_free(current);
   }
 
  /*
-  * Free this node...
+  * Then free the memory used by this node...
   */
 
-  PhFree(node);
+  mxml_free(node);
 }
 
 
@@ -679,7 +672,7 @@ mxmlNewXML(const char *version)		/* I - Version number to use */
   char	element[1024];			/* Element text */
 
 
-  _snprintf(element, sizeof(element), "?xml version=\"%s\" encoding=\"utf-8\"?",
+  snprintf(element, sizeof(element), "?xml version=\"%s\" encoding=\"utf-8\"?",
            version ? version : "1.0");
 
   return (mxmlNewElement(NULL, element));
@@ -726,6 +719,68 @@ mxmlRetain(mxml_node_t *node)		/* I - Node */
     return (++ node->ref_count);
   else
     return (-1);
+}
+
+
+/*
+ * 'mxml_free()' - Free the memory used by a node.
+ *
+ * Note: Does not free child nodes, does not remove from parent.
+ */
+
+static void
+mxml_free(mxml_node_t *node)		/* I - Node */
+{
+  int	i;				/* Looping var */
+
+
+  switch (node->type)
+  {
+    case MXML_ELEMENT :
+        if (node->value.element.name)
+      PhFree(node->value.element.name);
+
+    if (node->value.element.num_attrs)
+    {
+      for (i = 0; i < node->value.element.num_attrs; i ++)
+      {
+        if (node->value.element.attrs[i].name)
+          PhFree(node->value.element.attrs[i].name);
+        if (node->value.element.attrs[i].value)
+          PhFree(node->value.element.attrs[i].value);
+      }
+
+          PhFree(node->value.element.attrs);
+    }
+        break;
+    case MXML_INTEGER :
+       /* Nothing to do */
+        break;
+    case MXML_OPAQUE :
+        if (node->value.opaque)
+      PhFree(node->value.opaque);
+        break;
+    case MXML_REAL :
+       /* Nothing to do */
+        break;
+    case MXML_TEXT :
+        if (node->value.text.string)
+      PhFree(node->value.text.string);
+        break;
+    case MXML_CUSTOM :
+        if (node->value.custom.data &&
+        node->value.custom.destroy)
+      (*(node->value.custom.destroy))(node->value.custom.data);
+    break;
+    default :
+        break;
+  }
+
+ /*
+  * Free this node...
+  */
+
+  PhFree(node);
 }
 
 
@@ -784,5 +839,5 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
 
 
 /*
- * End of "$Id: mxml-node.c 451 2014-01-04 21:50:06Z msweet $".
+ * End of "$Id: mxml-node.c 462 2016-06-11 20:51:49Z msweet $".
  */
