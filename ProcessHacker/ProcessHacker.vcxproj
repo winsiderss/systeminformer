@@ -104,7 +104,7 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>update_rev.bat</Command>
+      <Command>..\build\internal\update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
@@ -133,7 +133,7 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>update_rev.bat</Command>
+      <Command>..\build\internal\update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
@@ -169,7 +169,7 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>update_rev.bat</Command>
+      <Command>..\build\internal\update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
@@ -204,7 +204,7 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>update_rev.bat</Command>
+      <Command>..\build\internal\update_rev.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating revision number...</Message>
