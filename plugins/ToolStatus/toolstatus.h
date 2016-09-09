@@ -252,6 +252,12 @@ BOOLEAN NetworkTreeFilterCallback(
     _In_opt_ PVOID Context
     );
 
+NTSTATUS QueryServiceFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING *ServiceFileName,
+    _Out_ PPH_STRING *ServiceBinaryPath
+    );
+
 // searchbox.c
 
 HWND CreateSearchControl(

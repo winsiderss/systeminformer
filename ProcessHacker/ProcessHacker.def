@@ -530,6 +530,7 @@ EXPORTS
 	PhGetServiceConfig
 	PhGetServiceDelayedAutoStart
 	PhGetServiceDescription
+	PhGetServiceDllParameter
 	PhGetServiceErrorControlInteger
 	PhGetServiceErrorControlString
 	PhGetServiceNameFromTag
