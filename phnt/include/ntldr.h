@@ -44,8 +44,8 @@ typedef struct _LDR_DDAG_NODE
     LIST_ENTRY Modules;
     PLDR_SERVICE_TAG_RECORD ServiceTagList;
     ULONG LoadCount;
-    ULONG ReferenceCount;
-    ULONG DependencyCount;
+    ULONG LoadWhileUnloadingCount;
+    ULONG LowestLink;
     union
     {
         LDRP_CSLIST Dependencies;
@@ -55,7 +55,6 @@ typedef struct _LDR_DDAG_NODE
     LDR_DDAG_STATE State;
     SINGLE_LIST_ENTRY CondenseLink;
     ULONG PreorderNumber;
-    ULONG LowestLink;
 } LDR_DDAG_NODE, *PLDR_DDAG_NODE;
 
 // rev
@@ -167,6 +166,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LDR_DLL_LOAD_REASON LoadReason;
     ULONG ImplicitPathOptions;
     ULONG ReferenceCount;
+    ULONG DependentLoadFlags;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(

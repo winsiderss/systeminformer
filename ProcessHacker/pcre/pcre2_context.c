@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
+#include <phbase.h>
+
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -56,14 +58,14 @@ POSSIBILITY OF SUCH DAMAGE.
 static void *default_malloc(size_t size, void *data)
 {
 (void)data;
-return malloc(size);
+return PhAllocateSafe(size);
 }
 
 
 static void default_free(void *block, void *data)
 {
 (void)data;
-free(block);
+PhFree(block);
 }
 
 
