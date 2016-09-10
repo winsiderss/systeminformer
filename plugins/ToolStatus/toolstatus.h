@@ -163,13 +163,6 @@ PTOOLSTATUS_TAB_INFO FindTabInfo(
 
 // toolbar.c
 
-typedef HRESULT (WINAPI *_LoadIconMetric)(
-    _In_ HINSTANCE hinst,
-    _In_ PCWSTR pszName,
-    _In_ int lims,
-    _Out_ HICON *phico
-    );
-
 VOID RebarBandInsert(
     _In_ UINT BandID,
     _In_ HWND HwndChild,
