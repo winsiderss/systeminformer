@@ -428,6 +428,12 @@ function BuildSetup()
     # Set innosetup path
     $innobuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe"
 
+    if (!(Test-Path $innobuild))
+    {
+        Write-Host "`t[SKIPPED] (Inno Setup not installed)" -ForegroundColor Yellow
+        return;
+    }
+
     # Execute the Inno setup
     if ($global:debug_enabled)
     {
@@ -455,6 +461,12 @@ function BuildSdkZip()
 
     # Set 7-Zip executable path
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"
+
+    if (!(Test-Path $7zip))
+    {
+        Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
+        return;
+    }
 
     # Execute the Inno setup
     if ($global:debug_enabled)
@@ -498,6 +510,12 @@ function BuildZip()
     # Set 7-Zip path
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"
     
+    if (!(Test-Path $7zip))
+    {
+        Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
+        return;
+    }
+
     # Execute 7-Zip
     if ($global:debug_enabled)
     {
@@ -533,6 +551,12 @@ function BuildSourceZip()
     # Set git executable path
     $git = "${env:ProgramFiles}\Git\cmd\git.exe"
     
+    if (!(Test-Path $git))
+    {
+        Write-Host "`t[SKIPPED] (Git not installed)" -ForegroundColor Yellow
+        return;
+    }
+
     & $git "--git-dir=.git", 
            "--work-tree=.\", 
            "archive",
@@ -555,15 +579,25 @@ function GenerateHashes()
     # Create Arraylist
     $array = $();
 
-    # Append the result of Get-FileHash to the Arraylist
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe" -Algorithm SHA1 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe" -Algorithm SHA256 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip" -Algorithm SHA1 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip" -Algorithm SHA256 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip" -Algorithm SHA1 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip" -Algorithm SHA256 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" -Algorithm SHA1 -OutVariable +array | Out-Null
-    Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" -Algorithm SHA256 -OutVariable +array | Out-Null
+    $file_names = 
+        "processhacker-nightly-setup.exe",
+        "processhacker-nightly-sdk.zip",
+        "processhacker-nightly-bin.zip",
+        "processhacker-nightly-src.zip";
+
+    foreach ($file in $file_names)
+    {
+        if (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}\$file"))
+        {
+            if ($global:debug_enabled)
+            {
+                Write-Host "`t(SKIPPED: $file)" -NoNewline -ForegroundColor Yellow
+            }
+            continue;
+        }
+
+        Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256 -OutVariable +array | Out-Null
+    }
 
     # Convert the Arraylist to a string
     $data = $array | Out-String
