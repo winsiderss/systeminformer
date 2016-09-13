@@ -308,13 +308,13 @@ typedef struct _PH_VERIFY_FILE_INFO *PPH_VERIFY_FILE_INFO;
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
     _In_ PPH_VERIFY_FILE_INFO Information,
-    _In_opt_ PWSTR PackageFullName,
+    _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName
     );
 
 VERIFY_RESULT PhVerifyFileCached(
     _In_ PPH_STRING FileName,
-    _In_opt_ PWSTR PackageFullName,
+    _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName,
     _In_ BOOLEAN CachedOnly
     );
