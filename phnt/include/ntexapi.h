@@ -1332,7 +1332,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemConsoleInformation, // q: SYSTEM_CONSOLE_INFORMATION
     SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION
     SystemThrottleNotificationInformation,
-    SystemHypervisorProcessorCountInformation,
+    SystemHypervisorProcessorCountInformation, // q: SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
     SystemDeviceDataInformation,
     SystemDeviceDataEnumerationInformation,
     SystemMemoryTopologyInformation, // q: SYSTEM_MEMORY_TOPOLOGY_INFORMATION
@@ -2330,6 +2330,13 @@ typedef struct _PHYSICAL_CHANNEL_RUN
     ULONGLONG PageCount;
     ULONG Flags;
 } PHYSICAL_CHANNEL_RUN, *PPHYSICAL_CHANNEL_RUN;
+
+// private
+typedef struct _SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
+{
+    ULONG NumberOfLogicalProcessors;
+    ULONG NumberOfCores;
+} SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION, *PSYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION;
 
 // private
 typedef struct _SYSTEM_MEMORY_TOPOLOGY_INFORMATION
