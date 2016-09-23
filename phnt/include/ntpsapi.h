@@ -214,9 +214,9 @@ typedef enum _THREADINFOCLASS
     ThreadSuspendCount, // since WINBLUE
     ThreadHeterogeneousCpuPolicy, // q: KHETERO_CPU_POLICY // since THRESHOLD
     ThreadContainerId, // q: GUID
-    ThreadNameInformation, // q: THREAD_NAME_INFORMATION
+    ThreadNameInformation, // qs: THREAD_NAME_INFORMATION
     ThreadSelectedCpuSets,
-    ThreadSystemThreadInformation, // qs: SYSTEM_THREAD_INFORMATION // 40
+    ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // since THRESHOLD2
     ThreadDynamicCodePolicyInfo,
     MaxThreadInfoClass

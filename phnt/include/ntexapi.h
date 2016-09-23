@@ -1333,7 +1333,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION
     SystemThrottleNotificationInformation,
     SystemHypervisorProcessorCountInformation, // q: SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
-    SystemDeviceDataInformation,
+    SystemDeviceDataInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
     SystemDeviceDataEnumerationInformation,
     SystemMemoryTopologyInformation, // q: SYSTEM_MEMORY_TOPOLOGY_INFORMATION
     SystemMemoryChannelInformation, // q: SYSTEM_MEMORY_CHANNEL_INFORMATION
@@ -2337,6 +2337,16 @@ typedef struct _SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
     ULONG NumberOfLogicalProcessors;
     ULONG NumberOfCores;
 } SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION, *PSYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION;
+
+// private
+typedef struct _SYSTEM_DEVICE_DATA_INFORMATION
+{
+    UNICODE_STRING DeviceId;
+    UNICODE_STRING DataName;
+    ULONG DataType;
+    ULONG DataBufferLength;
+    PVOID DataBuffer;
+} SYSTEM_DEVICE_DATA_INFORMATION, *PSYSTEM_DEVICE_DATA_INFORMATION;
 
 // private
 typedef struct _SYSTEM_MEMORY_TOPOLOGY_INFORMATION
