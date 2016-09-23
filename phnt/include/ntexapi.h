@@ -1376,7 +1376,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCpuSetTagInformation, // q: SYSTEM_CPU_SET_TAG_INFORMATION
     SystemWin32WerStartCallout,
     SystemSecureKernelProfileInformation,
-    SystemUnknownInformation179, // since REDSTONE
+    SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // since REDSTONE
     SystemUnknownInformation180, // 180
     SystemUnknownInformation181,
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
@@ -2548,6 +2548,13 @@ typedef struct _SYSTEM_CPU_SET_TAG_INFORMATION
     ULONGLONG Tag;
     ULONGLONG CpuSets[1];
 } SYSTEM_CPU_SET_TAG_INFORMATION, *PSYSTEM_CPU_SET_TAG_INFORMATION;
+
+// private
+typedef struct _SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION
+{
+    ULONG PlatformManifestSize;
+    UCHAR PlatformManifest[1];
+} SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION, *PSYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION;
 
 // private
 typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
