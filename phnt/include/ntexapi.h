@@ -1368,7 +1368,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemAllowedCpuSetsInformation,
     SystemDmaProtectionInformation, // q: SYSTEM_DMA_PROTECTION_INFORMATION
     SystemInterruptCpuSetsInformation, // 170
-    SystemSecureBootPolicyFullInformation,
+    SystemSecureBootPolicyFullInformation, // q: SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
     SystemCodeIntegrityPolicyFullInformation,
     SystemAffinitizedInterruptProcessorInformation,
     SystemRootSiloInformation, // q: SYSTEM_ROOT_SILO_INFORMATION
@@ -2534,6 +2534,14 @@ typedef struct _SYSTEM_SINGLE_MODULE_INFORMATION
     PVOID TargetModuleAddress;
     RTL_PROCESS_MODULE_INFORMATION_EX ExInfo;
 } SYSTEM_SINGLE_MODULE_INFORMATION, *PSYSTEM_SINGLE_MODULE_INFORMATION;
+
+// private
+typedef struct _SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
+{
+    SYSTEM_SECUREBOOT_POLICY_INFORMATION PolicyInformation;
+    ULONG PolicySize;
+    UCHAR Policy[1];
+} SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION, *PSYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION;
 
 // private
 typedef struct _SYSTEM_ROOT_SILO_INFORMATION
