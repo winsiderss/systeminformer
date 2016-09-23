@@ -742,7 +742,7 @@ typedef struct _THREAD_PROFILING_INFORMATION
 typedef struct _RTL_UMS_CONTEXT
 {
     SINGLE_LIST_ENTRY Link;
-    CONTEXT	Context;
+    CONTEXT Context;
     PVOID Teb;
     PVOID UserContext;
     volatile ULONG ScheduledThread;

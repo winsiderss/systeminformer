@@ -1367,7 +1367,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSingleModuleInformation, // q: SYSTEM_SINGLE_MODULE_INFORMATION
     SystemAllowedCpuSetsInformation,
     SystemDmaProtectionInformation, // q: SYSTEM_DMA_PROTECTION_INFORMATION
-    SystemInterruptCpuSetsInformation,
+    SystemInterruptCpuSetsInformation, // 170
     SystemSecureBootPolicyFullInformation,
     SystemCodeIntegrityPolicyFullInformation,
     SystemAffinitizedInterruptProcessorInformation,
@@ -1376,10 +1376,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCpuSetTagInformation, // q: SYSTEM_CPU_SET_TAG_INFORMATION
     SystemWin32WerStartCallout,
     SystemSecureKernelProfileInformation,
-    // 179 // since REDSTONE
-    // 180
-    // 181
-    // 182
+    SystemUnknownInformation179, // since REDSTONE
+    SystemUnknownInformation180, // 180
+    SystemUnknownInformation181,
+    SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2455,7 +2455,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
 typedef struct _SYSTEM_PORTABLE_WORKSPACE_EFI_LAUNCHER_INFORMATION
 {
     BOOLEAN EfiLauncherEnabled;
-} SYSTEM_PORTABLE_WORKSPACE_EFI_LAUNCHER_INFORMATION;
+} SYSTEM_PORTABLE_WORKSPACE_EFI_LAUNCHER_INFORMATION, *PSYSTEM_PORTABLE_WORKSPACE_EFI_LAUNCHER_INFORMATION;
 
 // private
 typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
@@ -2548,6 +2548,18 @@ typedef struct _SYSTEM_CPU_SET_TAG_INFORMATION
     ULONGLONG Tag;
     ULONGLONG CpuSets[1];
 } SYSTEM_CPU_SET_TAG_INFORMATION, *PSYSTEM_CPU_SET_TAG_INFORMATION;
+
+// private
+typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
+{
+    ULONGLONG TotalPhysicalBytes;
+    ULONGLONG AvailableBytes;
+    LONGLONG ResidentAvailableBytes;
+    ULONGLONG CommittedBytes;
+    ULONGLONG SharedCommittedBytes;
+    ULONGLONG CommitLimitBytes;
+    ULONGLONG PeakCommitmentBytes;
+} SYSTEM_MEMORY_USAGE_INFORMATION, *PSYSTEM_MEMORY_USAGE_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
