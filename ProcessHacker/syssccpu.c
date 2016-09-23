@@ -827,14 +827,16 @@ VOID PhSipGetCpuBrandString(
     _Out_writes_(49) PWSTR BrandString
     )
 {
-    ULONG brandString[4 * 3];
+    CHAR brandString[49];
 
-    __cpuid(&brandString[0], 0x80000002);
-    __cpuid(&brandString[4], 0x80000003);
-    __cpuid(&brandString[8], 0x80000004);
+    NtQuerySystemInformation(
+        SystemProcessorBrandString,
+        brandString,
+        sizeof(brandString),
+        NULL
+        );
 
-    PhZeroExtendToUtf16Buffer((PSTR)brandString, 48, BrandString);
-    BrandString[48] = 0;
+    PhZeroExtendToUtf16Buffer(brandString, 48, BrandString);
 }
 
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
