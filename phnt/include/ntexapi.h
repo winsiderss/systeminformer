@@ -1276,7 +1276,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemFirmwareTableInformation, // SYSTEM_FIRMWARE_TABLE_INFORMATION
     SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
     SystemVerifierTriageInformation, // not implemented
-    SystemSuperfetchInformation, // q: SUPERFETCH_INFORMATION; s: SUPERFETCH_INFORMATION // PfQuerySuperfetchInformation
+    SystemSuperfetchInformation, // q; s: SUPERFETCH_INFORMATION // PfQuerySuperfetchInformation
     SystemMemoryListInformation, // q: SYSTEM_MEMORY_LIST_INFORMATION; s: SYSTEM_MEMORY_LIST_COMMAND (requires SeProfileSingleProcessPrivilege) // 80
     SystemFileCacheInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (same as SystemFileCacheInformation)
     SystemThreadPriorityClientIdInformation, // s: SYSTEM_THREAD_CID_PRIORITY_INFORMATION (requires SeIncreaseBasePriorityPrivilege)
