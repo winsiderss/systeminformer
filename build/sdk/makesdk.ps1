@@ -50,7 +50,7 @@ function CheckBaseDirectory()
         if (!(Test-Path "ProcessHacker.sln"))
         {
             Write-Host "Unable to find project directory... Exiting." -ForegroundColor Red
-            exit 5;
+            exit 5
         }
     }
 }
@@ -80,38 +80,42 @@ function BuildSolution([string] $FileName)
     # Debug builds
     & $msBuild  "/m",
                 "/nologo",
+                "/nodemode:1",
+                "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Debug",
                 "/p:Platform=Win32",
-                "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
                 "/target:Rebuild",
                 "$FileName"
 
     & $msBuild  "/m",
                 "/nologo",
+                "/nodemode:1",
+                "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Debug",
                 "/p:Platform=x64",
-                "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
                 "/target:Rebuild",
                 "$FileName"
     
     # Release builds
     & $msBuild  "/m",
                 "/nologo",
+                "/nodemode:1",
+                "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Release",
                 "/p:Platform=Win32",
-                "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
                 "/target:Rebuild",
                 "$FileName"
 
     & $msBuild  "/m",
                 "/nologo",
+                "/nodemode:1",
+                "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Release",
                 "/p:Platform=x64",
-                "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
                 "/target:Rebuild",
                 "$FileName"
 
@@ -122,6 +126,7 @@ function BuildSolution([string] $FileName)
     else
     {
         Write-Host "`t`t[ERROR]" -ForegroundColor Red
+        exit 1
     }
 }
 
@@ -265,6 +270,7 @@ function BuildPublicHeaders()
     else
     {
         Write-Host "`t`t[ERROR]" -ForegroundColor Red
+        exit 1
     }
 }
 
