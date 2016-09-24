@@ -442,7 +442,7 @@ PPH_STRING PhpFormatSizeIfNonZero(
     )
 {
     if (Size != 0)
-        return PhFormatSize(Size, 1);
+        return PhFormatSize(Size, -1);
     else
         return NULL;
 }
@@ -700,7 +700,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 }
                 break;
             case PHMMTLC_SIZE:
-                PhMoveReference(&node->SizeText, PhFormatSize(memoryItem->RegionSize, 1));
+                PhMoveReference(&node->SizeText, PhFormatSize(memoryItem->RegionSize, -1));
                 getCellText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMMTLC_PROTECTION:
