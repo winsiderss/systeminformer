@@ -1380,6 +1380,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemUnknownInformation180, // 180
     SystemUnknownInformation181,
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
+    SystemUnknownInformation183,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2466,6 +2467,8 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
     PROCESS_ENERGY_VALUES EnergyValues; // since THRESHOLD
     ULONG AppIdOffset; // since THRESHOLD
     SIZE_T SharedCommitCharge; // since THRESHOLD2
+    ULONG JobObjectId; // since REDSTONE
+    ULONG SpareUlong; // since REDSTONE
 } SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
 
 // private

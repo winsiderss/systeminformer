@@ -206,6 +206,7 @@ typedef struct _MEMORY_IMAGE_INFORMATION
 #define MMPFNUSE_AWEPAGE 9
 #define MMPFNUSE_DRIVERLOCKPAGE 10
 
+// private
 typedef struct _MEMORY_FRAME_INFORMATION
 {
     ULONGLONG UseDescription : 4; // MMPFNUSE_*
@@ -217,6 +218,7 @@ typedef struct _MEMORY_FRAME_INFORMATION
     ULONGLONG Reserved : 4; // reserved for future expansion
 } MEMORY_FRAME_INFORMATION;
 
+// private
 typedef struct _FILEOFFSET_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
@@ -224,6 +226,7 @@ typedef struct _FILEOFFSET_INFORMATION
     ULONGLONG Reserved : 7; // reserved for future expansion
 } FILEOFFSET_INFORMATION;
 
+// private
 typedef struct _PAGEDIR_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
@@ -231,6 +234,15 @@ typedef struct _PAGEDIR_INFORMATION
     ULONGLONG Reserved : 7; // reserved for future expansion
 } PAGEDIR_INFORMATION;
 
+// private
+typedef struct _UNIQUE_PROCESS_INFORMATION
+{
+    ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ULONGLONG UniqueProcessKey : 48; // ProcessId
+    ULONGLONG Reserved  : 7; // reserved for future expansion
+} UNIQUE_PROCESS_INFORMATION, *PUNIQUE_PROCESS_INFORMATION;
+
+// private
 typedef struct _MMPFN_IDENTITY
 {
     union
@@ -238,12 +250,24 @@ typedef struct _MMPFN_IDENTITY
         MEMORY_FRAME_INFORMATION e1; // all
         FILEOFFSET_INFORMATION e2; // mapped files
         PAGEDIR_INFORMATION e3; // private pages
+        UNIQUE_PROCESS_INFORMATION e4; // owning process
     } u1;
     ULONG_PTR PageFrameIndex; // all
     union
     {
+        struct
+        {
+            ULONG_PTR Image : 1;
+            ULONG_PTR Mismatch : 1;
+        } e1;
+        struct
+        {
+            ULONG_PTR CombinedPage;
+        } e2;
         PVOID FileObject; // mapped files
-        PVOID VirtualAddress; // everything else
+        PVOID UniqueFileObjectKey;
+        PVOID ProtoPteAddress;
+        PVOID VirtualAddress;  // everything else
     } u2;
 } MMPFN_IDENTITY, *PMMPFN_IDENTITY;
 
@@ -258,6 +282,7 @@ typedef enum _SECTION_INFORMATION_CLASS
     SectionBasicInformation,
     SectionImageInformation,
     SectionRelocationInformation, // name:wow64:whNtQuerySection_SectionRelocationInformation
+    SectionOriginalBaseInformation, // PVOID BaseAddress
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
 
@@ -285,7 +310,15 @@ typedef struct _SECTION_IMAGE_INFORMATION
         };
         ULONG SubSystemVersion;
     };
-    ULONG GpValue;
+    union
+    {
+        struct
+        {
+            USHORT MajorOperatingSystemVersion;
+            USHORT MinorOperatingSystemVersion;
+        };
+        ULONG OperatingSystemVersion;
+    };
     USHORT ImageCharacteristics;
     USHORT DllCharacteristics;
     USHORT Machine;
@@ -300,7 +333,8 @@ typedef struct _SECTION_IMAGE_INFORMATION
             UCHAR ImageDynamicallyRelocated : 1;
             UCHAR ImageMappedFlat : 1;
             UCHAR BaseBelow4gb : 1;
-            UCHAR Reserved : 3;
+            UCHAR ComPlusPrefer32bit : 1;
+            UCHAR Reserved : 2;
         };
     };
     ULONG LoaderFlags;
