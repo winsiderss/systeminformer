@@ -588,11 +588,71 @@ NtAreMappedFilesTheSame(
 // private
 typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
 {
-    SystemMemoryPartitionInformation,
-    SystemMemoryPartitionMoveMemory,
-    SystemMemoryPartitionAddPagefile,
-    SystemMemoryPartitionCombineMemory
+    SystemMemoryPartitionInformation, // q: MEMORY_PARTITION_CONFIGURATION_INFORMATION
+    SystemMemoryPartitionMoveMemory, // s: MEMORY_PARTITION_TRANSFER_INFORMATION
+    SystemMemoryPartitionAddPagefile, // s: MEMORY_PARTITION_PAGEFILE_INFORMATION
+    SystemMemoryPartitionCombineMemory, // q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+    SystemMemoryPartitionInitialAddMemory // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
 } MEMORY_PARTITION_INFORMATION_CLASS;
+
+// private
+typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
+{
+    ULONG Flags;
+    ULONG NumaNode;
+    ULONG Channel;
+    ULONG NumberOfNumaNodes;
+    ULONG_PTR ResidentAvailablePages;
+    ULONG_PTR CommittedPages;
+    ULONG_PTR CommitLimit;
+    ULONG_PTR PeakCommitment;
+    ULONG_PTR TotalNumberOfPages;
+    ULONG_PTR AvailablePages;
+    ULONG_PTR ZeroPages;
+    ULONG_PTR FreePages;
+    ULONG_PTR StandbyPages;
+} MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_TRANSFER_INFORMATION
+{
+    ULONG_PTR NumberOfPages;
+    ULONG NumaNode;
+    ULONG Flags;
+} MEMORY_PARTITION_TRANSFER_INFORMATION, *PMEMORY_PARTITION_TRANSFER_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_PAGEFILE_INFORMATION
+{
+    UNICODE_STRING PageFileName;
+    LARGE_INTEGER MinimumSize;
+    LARGE_INTEGER MaximumSize;
+    ULONG Flags;
+} MEMORY_PARTITION_PAGEFILE_INFORMATION, *PMEMORY_PARTITION_PAGEFILE_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+{
+    HANDLE StopHandle;
+    ULONG Flags;
+    ULONG_PTR TotalNumberOfPages;
+} MEMORY_PARTITION_PAGE_COMBINE_INFORMATION, *PMEMORY_PARTITION_PAGE_COMBINE_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_PAGE_RANGE
+{
+    ULONG_PTR StartPage;
+    ULONG_PTR NumberOfPages;
+} MEMORY_PARTITION_PAGE_RANGE, *PMEMORY_PARTITION_PAGE_RANGE;
+
+// private
+typedef struct _MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+{
+    ULONG Flags;
+    ULONG NumberOfRanges;
+    ULONG_PTR NumberOfPagesAdded;
+    MEMORY_PARTITION_PAGE_RANGE PartitionRanges[1];
+} MEMORY_PARTITION_INITIAL_ADD_INFORMATION, *PMEMORY_PARTITION_INITIAL_ADD_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
