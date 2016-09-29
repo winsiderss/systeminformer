@@ -452,12 +452,37 @@ typedef struct _ALPC_CONTEXT_ATTR
 // end_rev
 
 // private
+typedef struct _ALPC_HANDLE_ATTR32
+{
+    ULONG Flags;
+    ULONG Reserved0;
+    ULONG SameAccess;
+    ULONG SameAttributes;
+    ULONG Indirect;
+    ULONG Inherit;
+    ULONG Reserved1;
+    ULONG Handle;
+    ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
+    ULONG DesiredAccess;
+    ULONG GrantedAccess;
+} ALPC_HANDLE_ATTR32, *PALPC_HANDLE_ATTR32;
+
+// private
 typedef struct _ALPC_HANDLE_ATTR
 {
     ULONG Flags;
+    ULONG Reserved0;
+    ULONG SameAccess;
+    ULONG SameAttributes;
+    ULONG Indirect;
+    ULONG Inherit;
+    ULONG Reserved1;
     HANDLE Handle;
+    PALPC_HANDLE_ATTR32 HandleAttrArray;
     ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
+    ULONG HandleCount;
     ACCESS_MASK DesiredAccess;
+    ACCESS_MASK GrantedAccess;
 } ALPC_HANDLE_ATTR, *PALPC_HANDLE_ATTR;
 
 #define ALPC_SECFLG_CREATE_HANDLE 0x20000 // dbg
