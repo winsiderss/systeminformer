@@ -1283,7 +1283,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorIdleCycleTimeInformation, // q: SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION[]
     SystemVerifierCancellationInformation, // not implemented // name:wow64:whNT32QuerySystemVerifierCancellationInformation
     SystemProcessorPowerInformationEx, // not implemented
-    SystemRefTraceInformation, // q; s // ObQueryRefTraceInformation
+    SystemRefTraceInformation, // q; s: SYSTEM_REF_TRACE_INFORMATION // ObQueryRefTraceInformation
     SystemSpecialPoolInformation, // q; s (requires SeDebugPrivilege) // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
     SystemProcessIdInformation, // q: SYSTEM_PROCESS_ID_INFORMATION
     SystemErrorPortInformation, // s (requires SeTcbPrivilege)
