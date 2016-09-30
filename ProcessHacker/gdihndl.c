@@ -236,8 +236,8 @@ VOID PhpRefreshGdiHandles(
 
     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-    ListView_DeleteAllItems(lvHandle);
     ExtendedListView_SetRedraw(lvHandle, FALSE);
+    ListView_DeleteAllItems(lvHandle);
 
     for (i = 0; i < Context->List->Count; i++)
     {
