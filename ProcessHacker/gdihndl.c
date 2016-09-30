@@ -328,6 +328,8 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             PGDI_HANDLES_CONTEXT context = (PGDI_HANDLES_CONTEXT)lParam;
             HWND lvHandle;
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -336,7 +338,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Type");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Handle");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Object");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 102, L"Object");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"Information");
 
             PhSetExtendedListView(lvHandle);
