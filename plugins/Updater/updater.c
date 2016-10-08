@@ -68,18 +68,6 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
 
-    if (Context->IconSmallHandle)
-    {
-        DeleteObject(Context->IconSmallHandle);
-        Context->IconSmallHandle = NULL;
-    }
-
-    if (Context->IconLargeHandle)
-    {
-        DestroyIcon(Context->IconLargeHandle);
-        Context->IconLargeHandle = NULL;
-    }
-
     PhFree(Context);
 }
 
