@@ -221,8 +221,6 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         PhDereferenceObject(ProcessesList);
                     }
 
-                    ListView_DeleteAllItems(PhHiddenProcessesListViewHandle);
-
                     ProcessesList = PhCreateList(40);
 
                     ProcessesMethod =
@@ -233,6 +231,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     NumberOfTerminatedProcesses = 0;
 
                     ExtendedListView_SetRedraw(PhHiddenProcessesListViewHandle, FALSE);
+                    ListView_DeleteAllItems(PhHiddenProcessesListViewHandle);
                     status = PhEnumHiddenProcesses(
                         ProcessesMethod,
                         PhpHiddenProcessesCallback,

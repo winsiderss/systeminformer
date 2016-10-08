@@ -28,12 +28,11 @@
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _OBJECT_INFORMATION_CLASS
 {
-    ObjectBasicInformation,
-    ObjectNameInformation,
-    ObjectTypeInformation,
-    ObjectTypesInformation,
-    ObjectHandleFlagInformation,
-    ObjectSessionInformation,
+    ObjectBasicInformation, // OBJECT_BASIC_INFORMATION
+    ObjectNameInformation, // OBJECT_NAME_INFORMATION
+    ObjectTypeInformation, // OBJECT_TYPE_INFORMATION
+    ObjectTypesInformation, // OBJECT_TYPES_INFORMATION
+    ObjectHandleFlagInformation, // OBJECT_HANDLE_FLAG_INFORMATION
     MaxObjectInfoClass
 } OBJECT_INFORMATION_CLASS;
 #else

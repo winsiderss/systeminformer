@@ -83,9 +83,6 @@ static VOID PhpRefreshProcessList(
 
     lvHandle = Context->ListViewHandle;
 
-    ListView_DeleteAllItems(lvHandle);
-    ImageList_RemoveAll(Context->ImageList);
-
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
     {
         PhShowStatus(hwndDlg, L"Unable to enumerate processes", status, 0);
@@ -93,6 +90,9 @@ static VOID PhpRefreshProcessList(
     }
 
     ExtendedListView_SetRedraw(lvHandle, FALSE);
+
+    ListView_DeleteAllItems(lvHandle);
+    ImageList_RemoveAll(Context->ImageList);
 
     process = PH_FIRST_PROCESS(processes);
 

@@ -80,7 +80,6 @@ function BuildSolution([string] $FileName)
     # Debug builds
     & $msBuild  "/m",
                 "/nologo",
-                "/nodemode:1",
                 "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Debug",
@@ -90,7 +89,6 @@ function BuildSolution([string] $FileName)
 
     & $msBuild  "/m",
                 "/nologo",
-                "/nodemode:1",
                 "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Debug",
@@ -101,7 +99,6 @@ function BuildSolution([string] $FileName)
     # Release builds
     & $msBuild  "/m",
                 "/nologo",
-                "/nodemode:1",
                 "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Release",
@@ -111,7 +108,6 @@ function BuildSolution([string] $FileName)
 
     & $msBuild  "/m",
                 "/nologo",
-                "/nodemode:1",
                 "/nodeReuse:true",
                 "/verbosity:quiet",
                 "/p:Configuration=Release",
