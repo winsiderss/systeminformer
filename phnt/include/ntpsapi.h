@@ -603,6 +603,7 @@ typedef enum _PS_PROTECTED_SIGNER
     PsProtectedSignerLsa,
     PsProtectedSignerWindows,
     PsProtectedSignerWinTcb,
+    PsProtectedSignerWinSystem,
     PsProtectedSignerMax
 } PS_PROTECTED_SIGNER;
 
