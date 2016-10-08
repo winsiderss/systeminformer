@@ -450,8 +450,8 @@ static NTSTATUS PhpRefreshThreadStack(
         ThreadStackContext->List = ThreadStackContext->NewList;
         ThreadStackContext->NewList = PhCreateList(10);
 
-        ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
         SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+        ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
 
         for (i = 0; i < ThreadStackContext->List->Count; i++)
         {
