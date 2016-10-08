@@ -93,7 +93,7 @@ typedef struct _PF_PFN_PRIO_REQUEST
 {
     ULONG Version;
     ULONG RequestFlags;
-    ULONG PfnCount;
+    ULONG_PTR PfnCount;
     SYSTEM_MEMORY_LIST_INFORMATION MemInfo;
     MMPFN_IDENTITY PageData[256];
 } PF_PFN_PRIO_REQUEST, *PPF_PFN_PRIO_REQUEST;
@@ -115,19 +115,15 @@ typedef struct _PFS_PRIVATE_PAGE_SOURCE
         ULONG_PTR ProcessId;
     };
     ULONG ImagePathHash;
-    ULONG UniqueProcessHash;
+    ULONG_PTR UniqueProcessHash;
 } PFS_PRIVATE_PAGE_SOURCE, *PPFS_PRIVATE_PAGE_SOURCE;
 
 typedef struct _PF_PRIVSOURCE_INFO
 {
     PFS_PRIVATE_PAGE_SOURCE DbInfo;
-    union
-    {
-        ULONG_PTR EProcess;
-        ULONG_PTR GlobalVA;
-    };
-    ULONG WsPrivatePages;
-    ULONG TotalPrivatePages;
+    PVOID EProcess;
+    SIZE_T WsPrivatePages;
+    SIZE_T TotalPrivatePages;
     ULONG SessionID;
     CHAR ImageName[16];
 } PF_PRIVSOURCE_INFO, *PPF_PRIVSOURCE_INFO;
@@ -185,8 +181,8 @@ typedef struct _PF_MEMORY_LIST_INFO
 
 typedef struct _PF_PHYSICAL_MEMORY_RANGE
 {
-    ULONG BasePfn;
-    ULONG PageCount;
+    ULONG_PTR BasePfn;
+    ULONG_PTR PageCount;
 } PF_PHYSICAL_MEMORY_RANGE, *PPF_PHYSICAL_MEMORY_RANGE;
 
 #define PF_PHYSICAL_MEMORY_RANGE_INFO_VERSION 1
@@ -240,11 +236,11 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
 
 typedef struct _SUPERFETCH_INFORMATION
 {
-    ULONG Version;
-    ULONG Magic;
-    SUPERFETCH_INFORMATION_CLASS InfoClass;
-    PVOID Data;
-    ULONG Length;
+    _In_ ULONG Version;
+    _In_ ULONG Magic;
+    _In_ SUPERFETCH_INFORMATION_CLASS InfoClass;
+    _Inout_ PVOID Data;
+    _Inout_ ULONG Length;
 } SUPERFETCH_INFORMATION, *PSUPERFETCH_INFORMATION;
 
 // end_private

@@ -207,14 +207,14 @@ typedef enum _THREADINFOCLASS
     ThreadCSwitchPmu,
     ThreadWow64Context, // q: WOW64_CONTEXT
     ThreadGroupInformation, // q: GROUP_AFFINITY // 30
-    ThreadUmsInformation,
+    ThreadUmsInformation, // q: THREAD_UMS_INFORMATION
     ThreadCounterProfiling,
     ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
     ThreadCpuAccountingInformation, // since WIN8
     ThreadSuspendCount, // since WINBLUE
     ThreadHeterogeneousCpuPolicy, // q: KHETERO_CPU_POLICY // since THRESHOLD
     ThreadContainerId, // q: GUID
-    ThreadNameInformation,
+    ThreadNameInformation, // qs: THREAD_NAME_INFORMATION
     ThreadSelectedCpuSets,
     ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // since THRESHOLD2
@@ -737,6 +737,66 @@ typedef struct _THREAD_PROFILING_INFORMATION
     ULONG Enable;
     PTHREAD_PERFORMANCE_DATA PerformanceData;
 } THREAD_PROFILING_INFORMATION, *PTHREAD_PROFILING_INFORMATION;
+
+// private
+typedef struct _RTL_UMS_CONTEXT
+{
+    SINGLE_LIST_ENTRY Link;
+    CONTEXT Context;
+    PVOID Teb;
+    PVOID UserContext;
+    volatile ULONG ScheduledThread;
+    volatile ULONG Suspended;
+    volatile ULONG VolatileContext;
+    volatile ULONG Terminated;
+    volatile ULONG DebugActive;
+    volatile ULONG RunningOnSelfThread;
+    volatile ULONG DenyRunningOnSelfThread;
+    volatile LONG Flags;
+    volatile ULONG64 KernelUpdateLock;
+    volatile ULONG64 PrimaryClientID;
+    volatile ULONG64 ContextLock;
+    struct _RTL_UMS_CONTEXT* PrimaryUmsContext;
+    ULONG SwitchCount;
+    ULONG KernelYieldCount;
+    ULONG MixedYieldCount;
+    ULONG YieldCount;
+} RTL_UMS_CONTEXT, *PRTL_UMS_CONTEXT;
+
+// private
+typedef enum _THREAD_UMS_INFORMATION_COMMAND
+{
+    UmsInformationCommandQuery, // Index might be incorrect.
+    UmsInformationCommandAttach,
+    UmsInformationCommandDetach,
+    UmsInformationCommandInvalid
+} THREAD_UMS_INFORMATION_COMMAND;
+
+// private
+typedef struct _RTL_UMS_COMPLETION_LIST
+{
+    PSINGLE_LIST_ENTRY ThreadListHead;
+    PVOID CompletionEvent;
+    ULONG CompletionFlags;
+    SINGLE_LIST_ENTRY InternalListHead;
+} RTL_UMS_COMPLETION_LIST, *PRTL_UMS_COMPLETION_LIST;
+
+// private
+typedef struct _THREAD_UMS_INFORMATION
+{
+    THREAD_UMS_INFORMATION_COMMAND Command;
+    PRTL_UMS_COMPLETION_LIST CompletionList;
+    PRTL_UMS_CONTEXT UmsContext;
+    ULONG Flags;
+    ULONG IsUmsSchedulerThread;
+    ULONG IsUmsWorkerThread;
+} THREAD_UMS_INFORMATION, *PTHREAD_UMS_INFORMATION;
+
+// private
+typedef struct _THREAD_NAME_INFORMATION
+{
+    UNICODE_STRING ThreadName;
+} THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
 
 // Processes
 

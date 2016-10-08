@@ -205,7 +205,9 @@ typedef struct _MEMORY_IMAGE_INFORMATION
 #define MMPFNUSE_METAFILE 8
 #define MMPFNUSE_AWEPAGE 9
 #define MMPFNUSE_DRIVERLOCKPAGE 10
+#define MMPFNUSE_KERNELSTACK 11
 
+// private
 typedef struct _MEMORY_FRAME_INFORMATION
 {
     ULONGLONG UseDescription : 4; // MMPFNUSE_*
@@ -217,6 +219,7 @@ typedef struct _MEMORY_FRAME_INFORMATION
     ULONGLONG Reserved : 4; // reserved for future expansion
 } MEMORY_FRAME_INFORMATION;
 
+// private
 typedef struct _FILEOFFSET_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
@@ -224,6 +227,7 @@ typedef struct _FILEOFFSET_INFORMATION
     ULONGLONG Reserved : 7; // reserved for future expansion
 } FILEOFFSET_INFORMATION;
 
+// private
 typedef struct _PAGEDIR_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
@@ -231,6 +235,15 @@ typedef struct _PAGEDIR_INFORMATION
     ULONGLONG Reserved : 7; // reserved for future expansion
 } PAGEDIR_INFORMATION;
 
+// private
+typedef struct _UNIQUE_PROCESS_INFORMATION
+{
+    ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ULONGLONG UniqueProcessKey : 48; // ProcessId
+    ULONGLONG Reserved  : 7; // reserved for future expansion
+} UNIQUE_PROCESS_INFORMATION, *PUNIQUE_PROCESS_INFORMATION;
+
+// private
 typedef struct _MMPFN_IDENTITY
 {
     union
@@ -238,12 +251,24 @@ typedef struct _MMPFN_IDENTITY
         MEMORY_FRAME_INFORMATION e1; // all
         FILEOFFSET_INFORMATION e2; // mapped files
         PAGEDIR_INFORMATION e3; // private pages
+        UNIQUE_PROCESS_INFORMATION e4; // owning process
     } u1;
     ULONG_PTR PageFrameIndex; // all
     union
     {
+        struct
+        {
+            ULONG_PTR Image : 1;
+            ULONG_PTR Mismatch : 1;
+        } e1;
+        struct
+        {
+            ULONG_PTR CombinedPage;
+        } e2;
         PVOID FileObject; // mapped files
-        PVOID VirtualAddress; // everything else
+        PVOID UniqueFileObjectKey;
+        PVOID ProtoPteAddress;
+        PVOID VirtualAddress;  // everything else
     } u2;
 } MMPFN_IDENTITY, *PMMPFN_IDENTITY;
 
@@ -258,6 +283,7 @@ typedef enum _SECTION_INFORMATION_CLASS
     SectionBasicInformation,
     SectionImageInformation,
     SectionRelocationInformation, // name:wow64:whNtQuerySection_SectionRelocationInformation
+    SectionOriginalBaseInformation, // PVOID BaseAddress
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
 
@@ -285,7 +311,15 @@ typedef struct _SECTION_IMAGE_INFORMATION
         };
         ULONG SubSystemVersion;
     };
-    ULONG GpValue;
+    union
+    {
+        struct
+        {
+            USHORT MajorOperatingSystemVersion;
+            USHORT MinorOperatingSystemVersion;
+        };
+        ULONG OperatingSystemVersion;
+    };
     USHORT ImageCharacteristics;
     USHORT DllCharacteristics;
     USHORT Machine;
@@ -300,7 +334,8 @@ typedef struct _SECTION_IMAGE_INFORMATION
             UCHAR ImageDynamicallyRelocated : 1;
             UCHAR ImageMappedFlat : 1;
             UCHAR BaseBelow4gb : 1;
-            UCHAR Reserved : 3;
+            UCHAR ComPlusPrefer32bit : 1;
+            UCHAR Reserved : 2;
         };
     };
     ULONG LoaderFlags;
@@ -553,11 +588,71 @@ NtAreMappedFilesTheSame(
 // private
 typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
 {
-    SystemMemoryPartitionInformation,
-    SystemMemoryPartitionMoveMemory,
-    SystemMemoryPartitionAddPagefile,
-    SystemMemoryPartitionCombineMemory
+    SystemMemoryPartitionInformation, // q: MEMORY_PARTITION_CONFIGURATION_INFORMATION
+    SystemMemoryPartitionMoveMemory, // s: MEMORY_PARTITION_TRANSFER_INFORMATION
+    SystemMemoryPartitionAddPagefile, // s: MEMORY_PARTITION_PAGEFILE_INFORMATION
+    SystemMemoryPartitionCombineMemory, // q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+    SystemMemoryPartitionInitialAddMemory // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
 } MEMORY_PARTITION_INFORMATION_CLASS;
+
+// private
+typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
+{
+    ULONG Flags;
+    ULONG NumaNode;
+    ULONG Channel;
+    ULONG NumberOfNumaNodes;
+    ULONG_PTR ResidentAvailablePages;
+    ULONG_PTR CommittedPages;
+    ULONG_PTR CommitLimit;
+    ULONG_PTR PeakCommitment;
+    ULONG_PTR TotalNumberOfPages;
+    ULONG_PTR AvailablePages;
+    ULONG_PTR ZeroPages;
+    ULONG_PTR FreePages;
+    ULONG_PTR StandbyPages;
+} MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_TRANSFER_INFORMATION
+{
+    ULONG_PTR NumberOfPages;
+    ULONG NumaNode;
+    ULONG Flags;
+} MEMORY_PARTITION_TRANSFER_INFORMATION, *PMEMORY_PARTITION_TRANSFER_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_PAGEFILE_INFORMATION
+{
+    UNICODE_STRING PageFileName;
+    LARGE_INTEGER MinimumSize;
+    LARGE_INTEGER MaximumSize;
+    ULONG Flags;
+} MEMORY_PARTITION_PAGEFILE_INFORMATION, *PMEMORY_PARTITION_PAGEFILE_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+{
+    HANDLE StopHandle;
+    ULONG Flags;
+    ULONG_PTR TotalNumberOfPages;
+} MEMORY_PARTITION_PAGE_COMBINE_INFORMATION, *PMEMORY_PARTITION_PAGE_COMBINE_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_PAGE_RANGE
+{
+    ULONG_PTR StartPage;
+    ULONG_PTR NumberOfPages;
+} MEMORY_PARTITION_PAGE_RANGE, *PMEMORY_PARTITION_PAGE_RANGE;
+
+// private
+typedef struct _MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+{
+    ULONG Flags;
+    ULONG NumberOfRanges;
+    ULONG_PTR NumberOfPagesAdded;
+    MEMORY_PARTITION_PAGE_RANGE PartitionRanges[1];
+} MEMORY_PARTITION_INITIAL_ADD_INFORMATION, *PMEMORY_PARTITION_INITIAL_ADD_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
