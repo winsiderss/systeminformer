@@ -366,9 +366,6 @@ typedef struct _PEB32
 
 C_ASSERT(FIELD_OFFSET(PEB32, IFEOKey) == 0x024);
 C_ASSERT(FIELD_OFFSET(PEB32, UnicodeCaseTableData) == 0x060);
-C_ASSERT(FIELD_OFFSET(PEB32, NumberOfHeaps) == 0x088);
-C_ASSERT(FIELD_OFFSET(PEB32, ImageSubsystemMinorVersion) == 0x0bc);
-C_ASSERT(FIELD_OFFSET(PEB32, TlsExpansionBitmapBits) == 0x154);
 C_ASSERT(FIELD_OFFSET(PEB32, SystemAssemblyStorageMap) == 0x204);
 C_ASSERT(FIELD_OFFSET(PEB32, pImageHeaderHash) == 0x23c);
 C_ASSERT(FIELD_OFFSET(PEB32, WaitOnAddressHashTable) == 0x25c);

@@ -174,70 +174,72 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION
 
 typedef enum _FILE_INFORMATION_CLASS
 {
-    FileDirectoryInformation = 1,
-    FileFullDirectoryInformation,
-    FileBothDirectoryInformation,
-    FileBasicInformation,
-    FileStandardInformation,
-    FileInternalInformation,
-    FileEaInformation,
-    FileAccessInformation,
-    FileNameInformation,
-    FileRenameInformation, // 10
-    FileLinkInformation,
-    FileNamesInformation,
-    FileDispositionInformation,
-    FilePositionInformation,
-    FileFullEaInformation,
-    FileModeInformation,
-    FileAlignmentInformation,
-    FileAllInformation,
-    FileAllocationInformation,
-    FileEndOfFileInformation, // 20
-    FileAlternateNameInformation,
-    FileStreamInformation,
-    FilePipeInformation,
-    FilePipeLocalInformation,
-    FilePipeRemoteInformation,
-    FileMailslotQueryInformation,
-    FileMailslotSetInformation,
-    FileCompressionInformation,
-    FileObjectIdInformation,
-    FileCompletionInformation, // 30
-    FileMoveClusterInformation,
-    FileQuotaInformation,
-    FileReparsePointInformation,
-    FileNetworkOpenInformation,
-    FileAttributeTagInformation,
-    FileTrackingInformation,
-    FileIdBothDirectoryInformation,
-    FileIdFullDirectoryInformation,
-    FileValidDataLengthInformation,
-    FileShortNameInformation, // 40
-    FileIoCompletionNotificationInformation,
-    FileIoStatusBlockRangeInformation,
-    FileIoPriorityHintInformation,
-    FileSfioReserveInformation,
-    FileSfioVolumeInformation,
-    FileHardLinkInformation,
-    FileProcessIdsUsingFileInformation,
-    FileNormalizedNameInformation,
-    FileNetworkPhysicalNameInformation,
-    FileIdGlobalTxDirectoryInformation, // 50
-    FileIsRemoteDeviceInformation,
+    FileDirectoryInformation = 1, // FILE_DIRECTORY_INFORMATION
+    FileFullDirectoryInformation, // FILE_FULL_DIR_INFORMATION
+    FileBothDirectoryInformation, // FILE_BOTH_DIR_INFORMATION
+    FileBasicInformation, // FILE_BASIC_INFORMATION
+    FileStandardInformation, // FILE_STANDARD_INFORMATION
+    FileInternalInformation, // FILE_INTERNAL_INFORMATION
+    FileEaInformation, // FILE_EA_INFORMATION
+    FileAccessInformation, // FILE_ACCESS_INFORMATION
+    FileNameInformation, // FILE_NAME_INFORMATION
+    FileRenameInformation, // FILE_RENAME_INFORMATION // 10
+    FileLinkInformation, // FILE_LINK_INFORMATION
+    FileNamesInformation, // FILE_NAMES_INFORMATION
+    FileDispositionInformation, // FILE_DISPOSITION_INFORMATION
+    FilePositionInformation, // FILE_POSITION_INFORMATION
+    FileFullEaInformation, // FILE_FULL_EA_INFORMATION
+    FileModeInformation, // FILE_MODE_INFORMATION
+    FileAlignmentInformation, // FILE_ALIGNMENT_INFORMATION
+    FileAllInformation, // FILE_ALL_INFORMATION
+    FileAllocationInformation, // FILE_ALLOCATION_INFORMATION
+    FileEndOfFileInformation, // FILE_END_OF_FILE_INFORMATION // 20
+    FileAlternateNameInformation, // FILE_NAME_INFORMATION
+    FileStreamInformation, // FILE_STREAM_INFORMATION
+    FilePipeInformation, // FILE_PIPE_INFORMATION
+    FilePipeLocalInformation, // FILE_PIPE_LOCAL_INFORMATION
+    FilePipeRemoteInformation, // FILE_PIPE_REMOTE_INFORMATION
+    FileMailslotQueryInformation, // FILE_MAILSLOT_QUERY_INFORMATION
+    FileMailslotSetInformation, // FILE_MAILSLOT_SET_INFORMATION
+    FileCompressionInformation, // FILE_COMPRESSION_INFORMATION
+    FileObjectIdInformation, // FILE_OBJECTID_INFORMATION
+    FileCompletionInformation, // FILE_COMPLETION_INFORMATION // 30
+    FileMoveClusterInformation, // FILE_MOVE_CLUSTER_INFORMATION
+    FileQuotaInformation, // FILE_QUOTA_INFORMATION
+    FileReparsePointInformation, // FILE_REPARSE_POINT_INFORMATION
+    FileNetworkOpenInformation, // FILE_NETWORK_OPEN_INFORMATION
+    FileAttributeTagInformation, // FILE_ATTRIBUTE_TAG_INFORMATION
+    FileTrackingInformation, // FILE_TRACKING_INFORMATION
+    FileIdBothDirectoryInformation, // FILE_ID_BOTH_DIR_INFORMATION
+    FileIdFullDirectoryInformation, // FILE_ID_FULL_DIR_INFORMATION
+    FileValidDataLengthInformation, // FILE_VALID_DATA_LENGTH_INFORMATION
+    FileShortNameInformation, // FILE_NAME_INFORMATION // 40
+    FileIoCompletionNotificationInformation, // FILE_IO_COMPLETION_NOTIFICATION_INFORMATION // since VISTA
+    FileIoStatusBlockRangeInformation, // FILE_IOSTATUSBLOCK_RANGE_INFORMATION
+    FileIoPriorityHintInformation, // FILE_IO_PRIORITY_HINT_INFORMATION
+    FileSfioReserveInformation, // FILE_SFIO_RESERVE_INFORMATION
+    FileSfioVolumeInformation, // FILE_SFIO_VOLUME_INFORMATION
+    FileHardLinkInformation, // FILE_LINKS_INFORMATION
+    FileProcessIdsUsingFileInformation, // FILE_PROCESS_IDS_USING_FILE_INFORMATION
+    FileNormalizedNameInformation, // FILE_NAME_INFORMATION
+    FileNetworkPhysicalNameInformation, // FILE_NETWORK_PHYSICAL_NAME_INFORMATION
+    FileIdGlobalTxDirectoryInformation, // FILE_ID_GLOBAL_TX_DIR_INFORMATION // since WIN7 // 50
+    FileIsRemoteDeviceInformation, // FILE_IS_REMOTE_DEVICE_INFORMATION
     FileUnusedInformation,
-    FileNumaNodeInformation,
-    FileStandardLinkInformation,
-    FileRemoteProtocolInformation,
-    FileRenameInformationBypassAccessCheck, // (kernel-mode only) // since WIN8
-    FileLinkInformationBypassAccessCheck, // (kernel-mode only)
-    FileIntegrityStreamInformation,
-    FileVolumeNameInformation,
-    FileIdInformation,
-    FileIdExtdDirectoryInformation,
-    FileReplaceCompletionInformation, // since WINBLUE
-    FileHardLinkFullIdInformation,
-    FileIdExtdBothDirectoryInformation, // since THRESHOLD
+    FileNumaNodeInformation, // FILE_NUMA_NODE_INFORMATION
+    FileStandardLinkInformation, // FILE_STANDARD_LINK_INFORMATION
+    FileRemoteProtocolInformation, // FILE_REMOTE_PROTOCOL_INFORMATION
+    FileRenameInformationBypassAccessCheck, // (kernel-mode only); FILE_RENAME_INFORMATION // since WIN8
+    FileLinkInformationBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION
+    FileVolumeNameInformation, // FILE_VOLUME_NAME_INFORMATION
+    FileIdInformation, // FILE_ID_INFORMATION
+    FileIdExtdDirectoryInformation, // FILE_ID_EXTD_DIR_INFORMATION
+    FileReplaceCompletionInformation, // FILE_COMPLETION_INFORMATION // since WINBLUE
+    FileHardLinkFullIdInformation, // FILE_LINK_ENTRY_FULL_ID_INFORMATION
+    FileIdExtdBothDirectoryInformation, // FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
+    FileDispositionInformationEx, // FILE_DISPOSITION_INFO_EX // since REDSTONE
+    FileRenameInformationEx,
+    FileRenameInformationExBypassAccessCheck,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -617,12 +619,63 @@ typedef struct _FILE_INTEGRITY_STREAM_INFORMATION
     ULONG Flags;
 } FILE_INTEGRITY_STREAM_INFORMATION, *PFILE_INTEGRITY_STREAM_INFORMATION;
 
-// private
 typedef struct _FILE_VOLUME_NAME_INFORMATION
 {
     ULONG DeviceNameLength;
     WCHAR DeviceName[1];
 } FILE_VOLUME_NAME_INFORMATION, *PFILE_VOLUME_NAME_INFORMATION;
+
+typedef struct _FILE_ID_INFORMATION
+{
+    ULONGLONG VolumeSerialNumber;
+    FILE_ID_128 FileId;
+} FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
+
+typedef struct _FILE_ID_EXTD_DIR_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG FileIndex;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG FileNameLength;
+    ULONG EaSize;
+    ULONG ReparsePointTag;
+    FILE_ID_128 FileId;
+    WCHAR FileName[1];
+} FILE_ID_EXTD_DIR_INFORMATION, *PFILE_ID_EXTD_DIR_INFORMATION;
+
+typedef struct _FILE_LINK_ENTRY_FULL_ID_INFORMATION
+{
+    ULONG NextEntryOffset;
+    FILE_ID_128 ParentFileId;
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_LINK_ENTRY_FULL_ID_INFORMATION, *PFILE_LINK_ENTRY_FULL_ID_INFORMATION;
+
+typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG FileIndex;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG FileNameLength;
+    ULONG EaSize;
+    ULONG ReparsePointTag;
+    FILE_ID_128 FileId;
+    CCHAR ShortNameLength;
+    WCHAR ShortName[12];
+    WCHAR FileName[1];
+} FILE_ID_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_EXTD_BOTH_DIR_INFORMATION;
 
 // NtQueryDirectoryFile types
 
@@ -797,19 +850,19 @@ typedef struct _FILE_QUOTA_INFORMATION
 
 typedef enum _FSINFOCLASS
 {
-    FileFsVolumeInformation = 1,
-    FileFsLabelInformation,
-    FileFsSizeInformation,
-    FileFsDeviceInformation,
-    FileFsAttributeInformation,
-    FileFsControlInformation,
-    FileFsFullSizeInformation,
-    FileFsObjectIdInformation,
-    FileFsDriverPathInformation,
-    FileFsVolumeFlagsInformation,
-    FileFsSectorSizeInformation, // since WIN8
-    FileFsDataCopyInformation,
-    FileFsMetadataSizeInformation, // since THRESHOLD
+    FileFsVolumeInformation = 1, // FILE_FS_VOLUME_INFORMATION
+    FileFsLabelInformation, // FILE_FS_LABEL_INFORMATION
+    FileFsSizeInformation, // FILE_FS_SIZE_INFORMATION
+    FileFsDeviceInformation, // FILE_FS_DEVICE_INFORMATION
+    FileFsAttributeInformation, // FILE_FS_ATTRIBUTE_INFORMATION
+    FileFsControlInformation, // FILE_FS_CONTROL_INFORMATION
+    FileFsFullSizeInformation, // FILE_FS_FULL_SIZE_INFORMATION
+    FileFsObjectIdInformation, // FILE_FS_OBJECTID_INFORMATION
+    FileFsDriverPathInformation, // FILE_FS_DRIVER_PATH_INFORMATION
+    FileFsVolumeFlagsInformation, // FILE_FS_VOLUME_FLAGS_INFORMATION
+    FileFsSectorSizeInformation, // FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
+    FileFsDataCopyInformation, // FILE_FS_DATA_COPY_INFORMATION
+    FileFsMetadataSizeInformation, // FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 
@@ -837,6 +890,17 @@ typedef struct _FILE_FS_SIZE_INFORMATION
     ULONG SectorsPerAllocationUnit;
     ULONG BytesPerSector;
 } FILE_FS_SIZE_INFORMATION, *PFILE_FS_SIZE_INFORMATION;
+
+// private
+typedef struct _FILE_FS_CONTROL_INFORMATION
+{
+    LARGE_INTEGER FreeSpaceStartFiltering;
+    LARGE_INTEGER FreeSpaceThreshold;
+    LARGE_INTEGER FreeSpaceStopFiltering;
+    LARGE_INTEGER DefaultQuotaThreshold;
+    LARGE_INTEGER DefaultQuotaLimit;
+    ULONG FileSystemControlFlags;
+} FILE_FS_CONTROL_INFORMATION, *PFILE_FS_CONTROL_INFORMATION;
 
 typedef struct _FILE_FS_FULL_SIZE_INFORMATION
 {
@@ -895,6 +959,12 @@ typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION
     ULONG ByteOffsetForSectorAlignment;
     ULONG ByteOffsetForPartitionAlignment;
 } FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
+
+// private
+typedef struct _FILE_FS_DATA_COPY_INFORMATION
+{
+    ULONG NumberOfCopies;
+} FILE_FS_DATA_COPY_INFORMATION, *PFILE_FS_DATA_COPY_INFORMATION;
 
 typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
 {
