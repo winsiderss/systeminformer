@@ -2739,7 +2739,8 @@ typedef enum _SYSDBG_COMMAND
     SysDbgGetUmBreakPid,
     SysDbgClearUmBreakPid,
     SysDbgGetUmAttachPid,
-    SysDbgClearUmAttachPid
+    SysDbgClearUmAttachPid,
+    SysDbgGetLiveKernelDump
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
 typedef struct _SYSDBG_VIRTUAL
