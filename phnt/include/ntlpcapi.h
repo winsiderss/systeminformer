@@ -579,8 +579,19 @@ typedef enum _ALPC_MESSAGE_INFORMATION_CLASS
 {
     AlpcMessageSidInformation, // q: out SID
     AlpcMessageTokenModifiedIdInformation,  // q: out LUID
+    AlpcMessageDirectStatusInformation,
+    AlpcMessageHandleInformation, // ALPC_MESSAGE_HANDLE_INFORMATION
     MaxAlpcMessageInfoClass
 } ALPC_MESSAGE_INFORMATION_CLASS, *PALPC_MESSAGE_INFORMATION_CLASS;
+
+typedef struct _ALPC_MESSAGE_HANDLE_INFORMATION
+{
+    ULONG Index;
+    ULONG Flags;
+    ULONG Handle;
+    ULONG ObjectType;
+    ACCESS_MASK GrantedAccess;
+} ALPC_MESSAGE_HANDLE_INFORMATION, *PALPC_MESSAGE_HANDLE_INFORMATION;
 
 // begin_private
 
