@@ -165,10 +165,13 @@ typedef enum _PROCESSINFOCLASS
     ProcessCommitReleaseInformation, // PROCESS_COMMIT_RELEASE_INFORMATION
     ProcessDefaultCpuSetsInformation,
     ProcessAllowedCpuSetsInformation,
-    ProcessSubsystemProcess, // 68
+    ProcessSubsystemProcess,
     ProcessJobMemoryInformation, // PROCESS_JOB_MEMORY_INFO
-    ProcessInPrivate, // since THRESHOLD2
+    ProcessInPrivate, // since THRESHOLD2 // 70
     ProcessRaiseUMExceptionOnInvalidHandleClose,
+    ProcessIumChallengeResponse,
+    ProcessChildProcessInformation, // PROCESS_CHILD_PROCESS_INFORMATION
+    ProcessHighGraphicsPriorityInformation,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -219,6 +222,8 @@ typedef enum _THREADINFOCLASS
     ThreadSystemThreadInformation, // q: SYSTEM_THREAD_INFORMATION // 40
     ThreadActualGroupAffinity, // since THRESHOLD2
     ThreadDynamicCodePolicyInfo,
+    ThreadExplicitCaseSensitivity,
+    ThreadWorkOnBehalfTicket,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -668,6 +673,12 @@ typedef struct _PROCESS_JOB_MEMORY_INFO
     ULONGLONG TotalCommitLimit;
 } PROCESS_JOB_MEMORY_INFO, *PPROCESS_JOB_MEMORY_INFO;
 
+typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
+{
+    BOOLEAN ProhibitChildProcesses;
+    BOOLEAN EnableAutomaticOverride;
+} PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
+
 // end_private
 
 #endif
@@ -767,10 +778,10 @@ typedef struct _RTL_UMS_CONTEXT
 // private
 typedef enum _THREAD_UMS_INFORMATION_COMMAND
 {
-    UmsInformationCommandQuery, // Index might be incorrect.
+    UmsInformationCommandInvalid,
     UmsInformationCommandAttach,
     UmsInformationCommandDetach,
-    UmsInformationCommandInvalid
+    UmsInformationCommandQuery
 } THREAD_UMS_INFORMATION_COMMAND;
 
 // private
@@ -1176,6 +1187,11 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeSecureProcess, // since THRESHOLD
     PsAttributeJobList,
     PsAttributeChildProcessPolicy, // since THRESHOLD2
+    PsAttributeAllApplicationPackagesPolicy, // since REDSTONE
+    PsAttributeWin32kFilter,
+    PsAttributeSafeOpenPromptOriginClaim,
+    PsAttributeBnoIsolation,
+    PsAttributeDesktopAppPolicy,
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -1226,11 +1242,11 @@ typedef enum _PS_ATTRIBUTE_NUM
 
 typedef struct _PS_ATTRIBUTE
 {
-    ULONG Attribute;
+    ULONG_PTR Attribute;
     SIZE_T Size;
     union
     {
-        ULONG Value;
+        ULONG_PTR Value;
         PVOID ValuePtr;
     };
     PSIZE_T ReturnLength;
