@@ -353,7 +353,6 @@ VOID FindNetworkAdapters(
 
         if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
         {
-            Context->EnumeratingAdapters = TRUE;
             PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
             for (PIP_ADAPTER_ADDRESSES i = buffer; i; i = i->Next)
@@ -376,7 +375,6 @@ VOID FindNetworkAdapters(
             }
 
             PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
-            Context->EnumeratingAdapters = FALSE;
         }
 
         PhFree(buffer);
@@ -472,7 +470,6 @@ VOID FindNetworkAdapters(
         // Sort the entries
         qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), AdapterEntryCompareFunction);
 
-        Context->EnumeratingAdapters = TRUE;
         PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
         for (ULONG i = 0; i < deviceList->Count; i++)
@@ -496,11 +493,9 @@ VOID FindNetworkAdapters(
         }
 
         PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
-        Context->EnumeratingAdapters = FALSE;
     }
 
     // HACK: Show all unknown devices.
-    Context->EnumeratingAdapters = TRUE;
     PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
@@ -552,7 +547,6 @@ VOID FindNetworkAdapters(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
-    Context->EnumeratingAdapters = FALSE;
 }
 
 PPH_STRING FindNetworkDeviceInstance(
@@ -778,7 +772,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             {
                 LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
 
-                if (context->EnumeratingAdapters)
+                if (!PhTryAcquireReleaseQueuedLockExclusive(&NetworkAdaptersListLock))
                     break;
 
                 if (listView->uChanged & LVIF_STATE)
