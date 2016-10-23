@@ -36,14 +36,11 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            HANDLE updateCheckThread = NULL;
-
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
-            // Create the update check thread.
-            if (updateCheckThread = PhCreateThread(0, UpdateCheckThread, context))
-                NtClose(updateCheckThread);
+            PhReferenceObject(context);
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UpdateCheckThread, context);
         }
         break;
     }
