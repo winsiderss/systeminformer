@@ -1174,15 +1174,6 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     return S_OK;
 }
 
-VOID ShowInitialDialog(
-    _In_ PVOID Context
-    )
-{
-
-
-
-}
-
 NTSTATUS ShowUpdateDialogThread(
     _In_ PVOID Parameter
     )
