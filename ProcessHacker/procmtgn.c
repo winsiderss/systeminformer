@@ -208,6 +208,17 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                 result = TRUE;
             }
+
+            if (data->AllowThreadOptOut)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Dynamic code prohibited (per-thread)");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Allows individual threads to opt out of the restrictions on dynamic code generation.\r\n");
+
+                result = TRUE;
+            }
         }
         break;
     case ProcessStrictHandleCheckPolicy:
@@ -348,6 +359,17 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                     *LongDescription = PhFinalStringBuilderString(&sb);
                 }
+
+                result = TRUE;
+            }
+
+            if (data->PreferSystem32Images)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Prefer system32 images");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Forces images to load from the System32 folder in which Windows is installed first, then from the application directory before the standard DLL search order.\r\n");
 
                 result = TRUE;
             }

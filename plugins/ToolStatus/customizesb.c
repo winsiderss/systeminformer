@@ -38,14 +38,12 @@ BOOLEAN CustomizeStatusBarItemExists(
 
     for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
     {
-        PBUTTON_CONTEXT itemContext;
+        PBUTTON_CONTEXT button;
 
-        itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex);
-
-        if (itemContext == NULL)
+        if (!(button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex)))
             continue;
 
-        if (itemContext->IdCommand == IdCommand)
+        if (button->IdCommand == IdCommand)
             return TRUE;
     }
 
@@ -54,17 +52,17 @@ BOOLEAN CustomizeStatusBarItemExists(
 
 VOID CustomizeInsertStatusBarItem(
     _In_ INT Index,
-    _In_ PBUTTON_CONTEXT ItemContext
+    _In_ PBUTTON_CONTEXT Button
     )
 {
-    PSTATUSBAR_ITEM statusItem;
+    PSTATUSBAR_ITEM item;
 
-    statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
-    memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
+    item = PhAllocate(sizeof(STATUSBAR_ITEM));
+    memset(item, 0, sizeof(STATUSBAR_ITEM));
 
-    statusItem->Id = ItemContext->IdCommand;
+    item->Id = Button->IdCommand;
 
-    PhInsertItemList(StatusBarItemList, Index, statusItem);
+    PhInsertItemList(StatusBarItemList, Index, item);
 
     StatusBarUpdate(TRUE);
 }
@@ -76,18 +74,15 @@ VOID CustomizeAddStatusBarItem(
     )
 {
     INT count;
-    PBUTTON_CONTEXT itemContext;
+    PBUTTON_CONTEXT button;
 
-    count = ListBox_GetCount(Context->AvailableListHandle);
-    itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, IndexAvail);
-
-    if (count == LB_ERR)
+    if ((count = ListBox_GetCount(Context->AvailableListHandle)) == LB_ERR)
         return;
 
-    if (itemContext == NULL)
+    if (!(button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, IndexAvail)))
         return;
 
-    if (!itemContext->IsVirtual)
+    if (!button->IsVirtual)
     {
         // remove from 'available' list
         ListBox_DeleteString(Context->AvailableListHandle, IndexAvail);
@@ -102,9 +97,9 @@ VOID CustomizeAddStatusBarItem(
         }
 
         // insert into 'current' list
-        ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, itemContext);
+        ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, button);
 
-        CustomizeInsertStatusBarItem(IndexTo, itemContext);
+        CustomizeInsertStatusBarItem(IndexTo, button);
     }
 
     SendMessage(Context->DialogHandle, WM_COMMAND, MAKEWPARAM(IDC_AVAILABLE, LBN_SELCHANGE), 0);
@@ -115,11 +110,9 @@ VOID CustomizeRemoveStatusBarItem(
     _In_ INT IndexFrom
     )
 {
-    PBUTTON_CONTEXT itemContext;
+    PBUTTON_CONTEXT button;
 
-    itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-
-    if (itemContext == NULL)
+    if (!(button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom)))
         return;
 
     ListBox_DeleteString(Context->CurrentListHandle, IndexFrom);
@@ -127,7 +120,7 @@ VOID CustomizeRemoveStatusBarItem(
 
     PhRemoveItemList(StatusBarItemList, IndexFrom);
 
-    if (!itemContext->IsVirtual)
+    if (!button->IsVirtual)
     {
         INT count;
 
@@ -137,7 +130,7 @@ VOID CustomizeRemoveStatusBarItem(
             count = 1;
 
         // insert into 'available' list
-        ListBox_InsertItemData(Context->AvailableListHandle, count - 1, itemContext);
+        ListBox_InsertItemData(Context->AvailableListHandle, count - 1, button);
     }
 
     SendMessage(Context->DialogHandle, WM_COMMAND, MAKEWPARAM(IDC_CURRENT, LBN_SELCHANGE), 0);
@@ -152,23 +145,19 @@ VOID CustomizeMoveStatusBarItem(
     )
 {
     INT count;
-    PBUTTON_CONTEXT itemContext;
+    PBUTTON_CONTEXT button;
 
     if (IndexFrom == IndexTo)
         return;
 
-    count = ListBox_GetCount(Context->CurrentListHandle);
-
-    if (count == LB_ERR)
+    if ((count = ListBox_GetCount(Context->CurrentListHandle)) == LB_ERR)
         return;
 
-    itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-
-    if (itemContext == NULL)
+    if (!(button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom)))
         return;
 
     ListBox_DeleteString(Context->CurrentListHandle, IndexFrom);
-    ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, itemContext);
+    ListBox_InsertItemData(Context->CurrentListHandle, IndexTo, button);
     ListBox_SetCurSel(Context->CurrentListHandle, IndexTo);
 
     if (IndexTo <= 0)
@@ -192,7 +181,7 @@ VOID CustomizeMoveStatusBarItem(
 
     PhRemoveItemList(StatusBarItemList, IndexFrom);
 
-    CustomizeInsertStatusBarItem(IndexTo, itemContext);
+    CustomizeInsertStatusBarItem(IndexTo, button);
 }
 
 VOID CustomizeFreeStatusBarItems(
@@ -208,11 +197,11 @@ VOID CustomizeFreeStatusBarItems(
     {
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
         {
-            PBUTTON_CONTEXT itemContext;
+            PBUTTON_CONTEXT button;
 
-            if (itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex))
+            if (button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, buttonIndex))
             {
-                PhFree(itemContext);
+                PhFree(button);
             }
         }
     }
@@ -223,11 +212,11 @@ VOID CustomizeFreeStatusBarItems(
     {
         for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
         {
-            PBUTTON_CONTEXT itemContext;
+            PBUTTON_CONTEXT button;
 
-            if (itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex))
+            if (button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, buttonIndex))
             {
-                PhFree(itemContext);
+                PhFree(button);
             }
         }
     }
@@ -238,7 +227,7 @@ VOID CustomizeLoadStatusBarItems(
     )
 {
     ULONG buttonIndex;
-    PBUTTON_CONTEXT itemContext;
+    PBUTTON_CONTEXT button;
 
     CustomizeFreeStatusBarItems(Context);
 
@@ -247,16 +236,16 @@ VOID CustomizeLoadStatusBarItems(
 
     for (buttonIndex = 0; buttonIndex < StatusBarItemList->Count; buttonIndex++)
     {
-        PSTATUSBAR_ITEM statusItem;
+        PSTATUSBAR_ITEM item;
 
-        statusItem = StatusBarItemList->Items[buttonIndex];
+        item = StatusBarItemList->Items[buttonIndex];
 
-        itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
-        memset(itemContext, 0, sizeof(BUTTON_CONTEXT));
+        button = PhAllocate(sizeof(BUTTON_CONTEXT));
+        memset(button, 0, sizeof(BUTTON_CONTEXT));
 
-        itemContext->IdCommand = statusItem->Id;
+        button->IdCommand = item->Id;
 
-        ListBox_AddItemData(Context->CurrentListHandle, itemContext);
+        ListBox_AddItemData(Context->CurrentListHandle, button);
     }
 
     for (buttonIndex = 0; buttonIndex < MAX_STATUSBAR_ITEMS; buttonIndex++)
@@ -266,29 +255,29 @@ VOID CustomizeLoadStatusBarItems(
         if (CustomizeStatusBarItemExists(Context, buttonId))
             continue;
 
-        itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
-        memset(itemContext, 0, sizeof(BUTTON_CONTEXT));
+        button = PhAllocate(sizeof(BUTTON_CONTEXT));
+        memset(button, 0, sizeof(BUTTON_CONTEXT));
 
-        itemContext->IdCommand = buttonId;
+        button->IdCommand = buttonId;
 
-        ListBox_AddItemData(Context->AvailableListHandle, itemContext);
+        ListBox_AddItemData(Context->AvailableListHandle, button);
     }
 
     // Append separator to the last 'current list' position
-    itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
-    memset(itemContext, 0, sizeof(BUTTON_CONTEXT));
-    itemContext->IsVirtual = TRUE;
+    button = PhAllocate(sizeof(BUTTON_CONTEXT));
+    memset(button, 0, sizeof(BUTTON_CONTEXT));
+    button->IsVirtual = TRUE;
 
-    buttonIndex = ListBox_AddItemData(Context->CurrentListHandle, itemContext);
+    buttonIndex = ListBox_AddItemData(Context->CurrentListHandle, button);
     ListBox_SetCurSel(Context->CurrentListHandle, buttonIndex);
     ListBox_SetTopIndex(Context->CurrentListHandle, buttonIndex);
 
     // Append separator to the last 'available list' position
-    itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
-    memset(itemContext, 0, sizeof(BUTTON_CONTEXT));
-    itemContext->IsVirtual = TRUE;
+    button = PhAllocate(sizeof(BUTTON_CONTEXT));
+    memset(button, 0, sizeof(BUTTON_CONTEXT));
+    button->IsVirtual = TRUE;
 
-    buttonIndex = ListBox_AddItemData(Context->AvailableListHandle, itemContext);
+    buttonIndex = ListBox_AddItemData(Context->AvailableListHandle, button);
     ListBox_SetCurSel(Context->AvailableListHandle, buttonIndex);
     ListBox_SetTopIndex(Context->AvailableListHandle, 0); // NOTE: This is intentional.
 
@@ -435,7 +424,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                         {
                             INT count;
                             INT index;
-                            PBUTTON_CONTEXT itemContext;
+                            PBUTTON_CONTEXT button;
 
                             count = ListBox_GetCount(context->CurrentListHandle);
                             index = ListBox_GetCurSel(context->CurrentListHandle);
@@ -446,8 +435,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                             if (index == LB_ERR)
                                 break;
 
-                            itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(context->CurrentListHandle, index);
-                            if (itemContext == NULL)
+                            button = (PBUTTON_CONTEXT)ListBox_GetItemData(context->CurrentListHandle, index);
+                            if (button == NULL)
                                 break;
 
                             if (index == 0 && count == 2)
@@ -480,7 +469,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                                 Button_Enable(context->MoveDownButtonHandle, TRUE);
                             }
 
-                            Button_Enable(context->RemoveButtonHandle, !itemContext->IsVirtual);
+                            Button_Enable(context->RemoveButtonHandle, !button->IsVirtual);
                         }
                         break;
                     case LBN_DBLCLK:
@@ -592,7 +581,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 HDC bufferDc;
                 HBITMAP bufferBitmap;
                 HBITMAP oldBufferBitmap;
-                PBUTTON_CONTEXT itemContext;
+                PBUTTON_CONTEXT button;
                 RECT bufferRect =
                 {
                     0, 0,
@@ -605,8 +594,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 if (drawInfo->itemID == LB_ERR)
                     break;
 
-                itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(drawInfo->hwndItem, drawInfo->itemID);
-                if (itemContext == NULL)
+                if (!(button = (PBUTTON_CONTEXT)ListBox_GetItemData(drawInfo->hwndItem, drawInfo->itemID)))
                     break;
 
                 bufferDc = CreateCompatibleDC(drawInfo->hDC);
@@ -626,15 +614,14 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                     FrameRect(bufferDc, &bufferRect, isFocused ? GetStockBrush(BLACK_BRUSH) : GetSysColorBrush(COLOR_HIGHLIGHTTEXT));
                 }
 
-                if (!itemContext->IsVirtual)
+                if (!button->IsVirtual)
                 {
                     SetTextColor(bufferDc, GetSysColor(isFocused ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
 
                     bufferRect.left += 5;
-
                     DrawText(
                         bufferDc,
-                        StatusBarGetText(itemContext->IdCommand),
+                        StatusBarGetText(button->IdCommand),
                         -1,
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE
