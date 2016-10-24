@@ -147,17 +147,19 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
+                PSOCKADDR_IN ipv4SockAddr;
                 IN_ADDR subnetMask = { 0 };
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
                 WCHAR subnetAddressString[INET_ADDRSTRLEN] = L"";
+            
+                ipv4SockAddr = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
-                ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
-
-                if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
+                if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
                 {
                     PhAppendFormatStringBuilder(IpAddressBuffer, L"%s, ", ipv4AddressString);
                 }
+
+                ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
                 if (RtlIpv4AddressToString(&subnetMask, subnetAddressString))
                 {
@@ -166,10 +168,12 @@ VOID NetAdapterEnumerateAddresses(
             }
             else if (unicastAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
-                PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
+                PSOCKADDR_IN6 ipv6SockAddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
 
-                if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
+                ipv6SockAddr = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
+
+                if (RtlIpv6AddressToString(&ipv6SockAddr->sin6_addr, ipv6AddressString))
                 {
                     PhAppendFormatStringBuilder(IpAddressBuffer, L"%s, ", ipv6AddressString);
                 }
@@ -180,20 +184,24 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
+                PSOCKADDR_IN ipv4SockAddr;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
 
-                if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
+                ipv4SockAddr = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
+
+                if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
                 {
                     PhAppendFormatStringBuilder(GatewayAddressBuffer, L"%s, ", ipv4AddressString);
                 }
             }
             else if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
-                PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
+                PSOCKADDR_IN6 ipv6SockAddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
 
-                if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
+                ipv6SockAddr = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
+
+                if (RtlIpv6AddressToString(&ipv6SockAddr->sin6_addr, ipv6AddressString))
                 {
                     PhAppendFormatStringBuilder(GatewayAddressBuffer, L"%s, ", ipv6AddressString);
                 }
@@ -204,20 +212,24 @@ VOID NetAdapterEnumerateAddresses(
         {
             if (dnsAddress->Address.lpSockaddr->sa_family == AF_INET)
             {
-                PSOCKADDR_IN sockAddrIn = (PSOCKADDR_IN)dnsAddress->Address.lpSockaddr;
+                PSOCKADDR_IN ipv4SockAddr;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
 
-                if (RtlIpv4AddressToString(&sockAddrIn->sin_addr, ipv4AddressString))
+                ipv4SockAddr = (PSOCKADDR_IN)dnsAddress->Address.lpSockaddr;
+
+                if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
                 {
                     PhAppendFormatStringBuilder(DnsAddressBuffer, L"%s, ", ipv4AddressString);
                 }
             }
             else if (dnsAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
-                PSOCKADDR_IN6 sockAddrIn6 = (PSOCKADDR_IN6)dnsAddress->Address.lpSockaddr;
+                PSOCKADDR_IN6 ipv6SockAddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
 
-                if (RtlIpv6AddressToString(&sockAddrIn6->sin6_addr, ipv6AddressString))
+                ipv6SockAddr = (PSOCKADDR_IN6)dnsAddress->Address.lpSockaddr;
+
+                if (RtlIpv6AddressToString(&ipv6SockAddr->sin6_addr, ipv6AddressString))
                 {
                     PhAppendFormatStringBuilder(DnsAddressBuffer, L"%s, ", ipv6AddressString);
                 }
@@ -242,11 +254,11 @@ VOID NetAdapterLookupConfig(
     PH_STRING_BUILDER gatewayAddressBuffer;
     PH_STRING_BUILDER dnsAddressBuffer;
 
-    PhInitializeStringBuilder(&domainBuffer, 64);
-    PhInitializeStringBuilder(&ipAddressBuffer, 64);
-    PhInitializeStringBuilder(&subnetAddressBuffer, 64);
-    PhInitializeStringBuilder(&gatewayAddressBuffer, 64);
-    PhInitializeStringBuilder(&dnsAddressBuffer, 64);
+    PhInitializeStringBuilder(&domainBuffer, 0x100);
+    PhInitializeStringBuilder(&ipAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&subnetAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&gatewayAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&dnsAddressBuffer, 0x100);
 
     if (addressesBuffer = NetAdapterGetAddresses(AF_INET))
     {
@@ -545,15 +557,10 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhUnregisterCallback(
-                &PhProcessesUpdatedEvent,
-                &context->ProcessesUpdatedRegistration
-                );
+            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
 
             if (context->NotifyHandle)
-            {
                 CancelMibChangeNotify2(context->NotifyHandle);
-            }
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PostQuitMessage(0);
@@ -571,9 +578,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         }
         break;
     case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&context->LayoutManager);
-        }
+        PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_SHOWDIALOG:
         {
@@ -586,9 +591,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         }
         break;
     case UPDATE_MSG:
-        {
-            NetAdapterUpdateDetails(context);
-        }
+        NetAdapterUpdateDetails(context);
         break;
     }
 

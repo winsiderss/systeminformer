@@ -49,7 +49,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
 
     // Check this menu is the Help menu
-    if (!menuInfo || menuInfo->u.MainMenu.SubMenuIndex != 4)
+    if (menuInfo->u.MainMenu.SubMenuIndex != 4)
         return;
 
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for updates", NULL), 0);
