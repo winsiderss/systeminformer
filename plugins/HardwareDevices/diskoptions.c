@@ -411,9 +411,7 @@ VOID FindDiskDrives(
     // Sort the entries
     qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), DiskEntryCompareFunction);
 
-    Context->EnumeratingDisks = TRUE;
     PhAcquireQueuedLockShared(&DiskDrivesListLock);
-
     for (ULONG i = 0; i < deviceList->Count; i++)
     {
         PDISK_ENUM_ENTRY entry = deviceList->Items[i];
@@ -433,15 +431,10 @@ VOID FindDiskDrives(
 
         PhFree(entry);
     }
-
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
-    Context->EnumeratingDisks = FALSE;
-
 
     // HACK: Show all unknown devices.
-    Context->EnumeratingDisks = TRUE;
     PhAcquireQueuedLockShared(&DiskDrivesListLock);
-
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
     {
         ULONG index = -1;
@@ -487,9 +480,7 @@ VOID FindDiskDrives(
 
         PhDereferenceObjectDeferDelete(entry);
     }
-
     PhReleaseQueuedLockShared(&DiskDrivesListLock);
-    Context->EnumeratingDisks = FALSE;
 }
 
 PPH_STRING FindDiskDeviceInstance(
@@ -665,7 +656,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             {
                 LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
 
-                if (context->EnumeratingDisks)
+                if (!PhTryAcquireReleaseQueuedLockExclusive(&DiskDrivesListLock))
                     break;
 
                 if (listView->uChanged & LVIF_STATE)

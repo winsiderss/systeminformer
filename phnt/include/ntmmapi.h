@@ -64,7 +64,9 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryRegionInformation, // MEMORY_REGION_INFORMATION
     MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
     MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
-    MemoryImageInformation // MEMORY_IMAGE_INFORMATION
+    MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
+    MemoryRegionInformationEx,
+    MemoryPrivilegedBasicInformation
 } MEMORY_INFORMATION_CLASS;
 
 #if (PHNT_MODE == PHNT_MODE_KERNEL)
@@ -105,8 +107,22 @@ typedef struct _MEMORY_REGION_INFORMATION
 {
     PVOID AllocationBase;
     ULONG AllocationProtect;
-    ULONG RegionType;
+    union
+    {
+        ULONG RegionType;
+        struct
+        {
+            ULONG Private : 1;
+            ULONG MappedDataFile : 1;
+            ULONG MappedImage : 1;
+            ULONG MappedPageFile : 1;
+            ULONG MappedPhysical : 1;
+            ULONG DirectMapped : 1;
+            ULONG Reserved : 26;
+        };
+    };
     SIZE_T RegionSize;
+    SIZE_T CommitSize;
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
 
 // private

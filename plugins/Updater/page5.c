@@ -64,7 +64,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 if (PhIsNullOrEmptyString(context->SetupFilePath))
                     break;
 
-                info.lpFile = context->SetupFilePath->Buffer;
+                info.lpFile = PhGetStringOrEmpty(context->SetupFilePath);
                 info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
