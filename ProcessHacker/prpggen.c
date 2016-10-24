@@ -36,7 +36,7 @@
 #include <settings.h>
 
 static PWSTR ProtectedSignerStrings[] =
-    { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)" };
+    { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)" };
 
 NTSTATUS PhpProcessGeneralOpenProcess(
     _Out_ PHANDLE Handle,

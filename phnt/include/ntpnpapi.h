@@ -95,6 +95,7 @@ typedef enum _PLUGPLAY_CONTROL_CLASS
     PlugPlayControlResetDevice,
     PlugPlayControlHaltDevice,
     PlugPlayControlGetBlockedDriverList,
+    PlugPlayControlGetDeviceInterfaceEnabled,
     MaxPlugPlayControl
 } PLUGPLAY_CONTROL_CLASS, *PPLUGPLAY_CONTROL_CLASS;
 

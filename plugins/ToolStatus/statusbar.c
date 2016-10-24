@@ -33,10 +33,10 @@ ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
     // Default items (displayed)
     { ID_STATUS_CPUUSAGE },
     { ID_STATUS_PHYSICALMEMORY },
-    { ID_STATUS_NUMBEROFPROCESSES },
+    { ID_STATUS_FREEMEMORY },
     // Available items (hidden)
     { ID_STATUS_COMMITCHARGE },
-    { ID_STATUS_FREEMEMORY },
+    { ID_STATUS_NUMBEROFPROCESSES },
     { ID_STATUS_NUMBEROFTHREADS },
     { ID_STATUS_NUMBEROFHANDLES },
     { ID_STATUS_NUMBEROFVISIBLEITEMS,  },
@@ -57,14 +57,14 @@ VOID StatusBarLoadDefault(
 
     for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
-        PSTATUSBAR_ITEM statusItem;
+        PSTATUSBAR_ITEM item;
 
-        statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
-        memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
+        item = PhAllocate(sizeof(STATUSBAR_ITEM));
+        memset(item, 0, sizeof(STATUSBAR_ITEM));
 
-        statusItem->Id = StatusBarItems[i];
+        item->Id = StatusBarItems[i];
 
-        PhAddItemList(StatusBarItemList, statusItem);
+        PhAddItemList(StatusBarItemList, item);
     }
 }
 
@@ -116,14 +116,14 @@ VOID StatusBarLoadSettings(
 
         if (PhStringToInteger64(&idPart, 10, &idInteger))
         {
-            PSTATUSBAR_ITEM statusItem;
+            PSTATUSBAR_ITEM item;
 
-            statusItem = PhAllocate(sizeof(STATUSBAR_ITEM));
-            memset(statusItem, 0, sizeof(STATUSBAR_ITEM));
+            item = PhAllocate(sizeof(STATUSBAR_ITEM));
+            memset(item, 0, sizeof(STATUSBAR_ITEM));
 
-            statusItem->Id = (ULONG)idInteger;
+            item->Id = (ULONG)idInteger;
 
-            PhInsertItemList(StatusBarItemList, i, statusItem);
+            PhInsertItemList(StatusBarItemList, i, item);
         }
     }
 }
@@ -145,12 +145,12 @@ VOID StatusBarSaveSettings(
 
     for (ULONG i = 0; i < StatusBarItemList->Count; i++)
     {
-        PSTATUSBAR_ITEM statusItem = StatusBarItemList->Items[i];
+        PSTATUSBAR_ITEM item = StatusBarItemList->Items[i];
 
         PhAppendFormatStringBuilder(
             &stringBuilder,
             L"%lu|",
-            statusItem->Id
+            item->Id
             );
     }
 
@@ -296,11 +296,11 @@ VOID StatusBarUpdate(
     {
         SIZE size;
         ULONG width;
-        PSTATUSBAR_ITEM statusItem;
+        PSTATUSBAR_ITEM item;
 
-        statusItem = StatusBarItemList->Items[i];
+        item = StatusBarItemList->Items[i];
 
-        switch (statusItem->Id)
+        switch (item->Id)
         {
         case ID_STATUS_CPUUSAGE:
             {
