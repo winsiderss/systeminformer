@@ -111,8 +111,8 @@ typedef struct _PFS_PRIVATE_PAGE_SOURCE
     PFS_PRIVATE_PAGE_SOURCE_TYPE Type;
     union
     {
-        ULONG_PTR SessionId;
-        ULONG_PTR ProcessId;
+        ULONG SessionId;
+        ULONG ProcessId;
     };
     ULONG ImagePathHash;
     ULONG_PTR UniqueProcessHash;

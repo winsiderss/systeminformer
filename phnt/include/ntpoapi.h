@@ -62,9 +62,9 @@ typedef enum
     PowerStateSleeping2 = 1,
     PowerStateSleeping3 = 2,
     PowerStateSleeping4 = 3,
-    PowerStateSleeping4Firmware = 4,
+    PowerStateShutdownOff = 4,
     PowerStateShutdownReset = 5,
-    PowerStateShutdownOff = 6,
+    PowerStateSleeping4Firmware = 6,
     PowerStateMaximum = 7
 } POWER_STATE_HANDLER_TYPE, *PPOWER_STATE_HANDLER_TYPE;
 

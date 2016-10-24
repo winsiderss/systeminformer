@@ -863,7 +863,7 @@ VOID AddSavePriorityMenuItemsAndHook(
 
     if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Affinity", 0))
     {
-        // HACK HACK HACK change Affinity menu-item into a drop-down list. 
+        // Change default Affinity menu-item into a drop-down list
         PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuItem(0, affinityMenuItem->Id, L"Set &affinity", NULL, NULL), -1);
 
         // Insert standard menu-items

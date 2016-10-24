@@ -89,7 +89,7 @@ VOID ShowAvailableDialog(
         Context->MajorVersion,
         Context->MinorVersion,
         Context->RevisionVersion,
-        Context->Size->Buffer
+        PhGetStringOrEmpty(Context->Size)
         )->Buffer;
     config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
 

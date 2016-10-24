@@ -36,14 +36,11 @@ HRESULT CALLBACK ShowProgressCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            HANDLE downloadThreadHandle = NULL;
-
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
-            // Start file download thread
-            if (downloadThreadHandle = PhCreateThread(0, (PUSER_THREAD_START_ROUTINE)UpdateDownloadThread, context))
-                NtClose(downloadThreadHandle);
+            PhReferenceObject(context);
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UpdateDownloadThread, context);
         }
         break;
     case TDN_HYPERLINK_CLICKED:

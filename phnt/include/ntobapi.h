@@ -33,6 +33,8 @@ typedef enum _OBJECT_INFORMATION_CLASS
     ObjectTypeInformation, // OBJECT_TYPE_INFORMATION
     ObjectTypesInformation, // OBJECT_TYPES_INFORMATION
     ObjectHandleFlagInformation, // OBJECT_HANDLE_FLAG_INFORMATION
+    ObjectSessionInformation,
+    ObjectSessionObjectInformation,
     MaxObjectInfoClass
 } OBJECT_INFORMATION_CLASS;
 #else
