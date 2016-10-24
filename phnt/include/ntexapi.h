@@ -1361,13 +1361,13 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVmGenerationCountInformation,
     SystemTrustedPlatformModuleInformation, // q: SYSTEM_TPM_INFORMATION
     SystemKernelDebuggerFlags,
-    SystemCodeIntegrityPolicyInformation,
-    SystemIsolatedUserModeInformation,
+    SystemCodeIntegrityPolicyInformation, // q: SYSTEM_CODEINTEGRITYPOLICY_INFORMATION
+    SystemIsolatedUserModeInformation, // q: SYSTEM_ISOLATED_USER_MODE_INFORMATION
     SystemHardwareSecurityTestInterfaceResultsInformation,
     SystemSingleModuleInformation, // q: SYSTEM_SINGLE_MODULE_INFORMATION
     SystemAllowedCpuSetsInformation,
     SystemDmaProtectionInformation, // q: SYSTEM_DMA_PROTECTION_INFORMATION
-    SystemInterruptCpuSetsInformation, // 170
+    SystemInterruptCpuSetsInformation, // q: SYSTEM_INTERRUPT_CPU_SET_INFORMATION // 170
     SystemSecureBootPolicyFullInformation, // q: SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
     SystemCodeIntegrityPolicyFullInformation,
     SystemAffinitizedInterruptProcessorInformation,
@@ -1375,12 +1375,12 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCpuSetInformation, // q: SYSTEM_CPU_SET_INFORMATION // since THRESHOLD2
     SystemCpuSetTagInformation, // q: SYSTEM_CPU_SET_TAG_INFORMATION
     SystemWin32WerStartCallout,
-    SystemSecureKernelProfileInformation,
+    SystemSecureKernelProfileInformation, // q: SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION
     SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // since REDSTONE
-    SystemUnknownInformation180, // 180
-    SystemUnknownInformation181,
+    SystemInterruptSteeringInformation, // 180
+    SystemSupportedProcessorArchitectures,
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
-    SystemUnknownInformation183,
+    SystemCodeIntegrityCertificateInformation, // q: SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2412,7 +2412,7 @@ typedef struct _SYSTEM_SECUREBOOT_INFORMATION
 {
     BOOLEAN SecureBootEnabled;
     BOOLEAN SecureBootCapable;
-} SYSTEM_SECUREBOOT_INFORMATION;
+} SYSTEM_SECUREBOOT_INFORMATION, *PSYSTEM_SECUREBOOT_INFORMATION;
 
 // private
 typedef struct _PROCESS_DISK_COUNTERS
@@ -2549,11 +2549,43 @@ typedef struct _SYSTEM_DMA_PROTECTION_INFORMATION
 } SYSTEM_DMA_PROTECTION_INFORMATION, *PSYSTEM_DMA_PROTECTION_INFORMATION;
 
 // private
+typedef struct _SYSTEM_CODEINTEGRITYPOLICY_INFORMATION
+{
+    ULONG Options;
+    ULONG HVCIOptions;
+    ULONGLONG Version;
+    GUID PolicyGuid;
+} SYSTEM_CODEINTEGRITYPOLICY_INFORMATION, *PSYSTEM_CODEINTEGRITYPOLICY_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ISOLATED_USER_MODE_INFORMATION
+{
+    BOOLEAN SecureKernelRunning : 1;
+    BOOLEAN HvciEnabled : 1;
+    BOOLEAN HvciStrictMode : 1;
+    BOOLEAN DebugEnabled : 1;
+    BOOLEAN FirmwarePageProtection : 1;
+    BOOLEAN SpareFlags : 1;
+    BOOLEAN TrustletRunning : 1;
+    BOOLEAN SpareFlags2 : 1;
+    BOOLEAN Spare0[6];
+    ULONGLONG Spare1;
+} SYSTEM_ISOLATED_USER_MODE_INFORMATION, *PSYSTEM_ISOLATED_USER_MODE_INFORMATION;
+
+// private
 typedef struct _SYSTEM_SINGLE_MODULE_INFORMATION
 {
     PVOID TargetModuleAddress;
     RTL_PROCESS_MODULE_INFORMATION_EX ExInfo;
 } SYSTEM_SINGLE_MODULE_INFORMATION, *PSYSTEM_SINGLE_MODULE_INFORMATION;
+
+// private
+typedef struct _SYSTEM_INTERRUPT_CPU_SET_INFORMATION
+{
+    ULONG Gsiv;
+    USHORT Group;
+    ULONGLONG CpuSets;
+} SYSTEM_INTERRUPT_CPU_SET_INFORMATION, *PSYSTEM_INTERRUPT_CPU_SET_INFORMATION;
 
 // private
 typedef struct _SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
@@ -2578,6 +2610,35 @@ typedef struct _SYSTEM_CPU_SET_TAG_INFORMATION
 } SYSTEM_CPU_SET_TAG_INFORMATION, *PSYSTEM_CPU_SET_TAG_INFORMATION;
 
 // private
+typedef struct _SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION
+{
+    ULONG ExtentCount;
+    ULONG ValidStructureSize;
+    ULONG NextExtentIndex;
+    ULONG ExtentRestart;
+    ULONG CycleCount;
+    ULONG TimeoutCount;
+    ULONGLONG CycleTime;
+    ULONGLONG CycleTimeMax;
+    ULONGLONG ExtentTime;
+    ULONG ExtentTimeIndex;
+    ULONG ExtentTimeMaxIndex;
+    ULONGLONG ExtentTimeMax;
+    ULONGLONG HyperFlushTimeMax;
+    ULONGLONG TranslateVaTimeMax;
+    ULONGLONG DebugExemptionCount;
+    ULONGLONG TbHitCount;
+    ULONGLONG TbMissCount;
+    ULONGLONG VinaPendingYield;
+    ULONGLONG HashCycles;
+    ULONG HistogramOffset;
+    ULONG HistogramBuckets;
+    ULONG HistogramShift;
+    ULONG Reserved1;
+    ULONGLONG PageNotPresentCount;
+} SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION, *PSYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION;
+
+// private
 typedef struct _SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION
 {
     ULONG PlatformManifestSize;
@@ -2595,6 +2656,12 @@ typedef struct _SYSTEM_MEMORY_USAGE_INFORMATION
     ULONGLONG CommitLimitBytes;
     ULONGLONG PeakCommitmentBytes;
 } SYSTEM_MEMORY_USAGE_INFORMATION, *PSYSTEM_MEMORY_USAGE_INFORMATION;
+
+// private
+typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
+{
+    HANDLE ImageFile;
+} SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION, *PSYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -2672,7 +2739,8 @@ typedef enum _SYSDBG_COMMAND
     SysDbgGetUmBreakPid,
     SysDbgClearUmBreakPid,
     SysDbgGetUmAttachPid,
-    SysDbgClearUmAttachPid
+    SysDbgClearUmAttachPid,
+    SysDbgGetLiveKernelDump
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
 typedef struct _SYSDBG_VIRTUAL
