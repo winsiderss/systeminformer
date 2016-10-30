@@ -37,6 +37,12 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     context = (PPH_UPDATER_CONTEXT)PhCreateAlloc(sizeof(PH_UPDATER_CONTEXT));
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
+    PhGetPhVersionNumbers(
+        &context->CurrentMajorVersion, 
+        &context->CurrentMinorVersion, 
+        NULL, 
+        &context->CurrentRevisionVersion
+        );
     context->StartupCheck = StartupCheck;
 
     return context;
@@ -46,8 +52,6 @@ VOID FreeUpdateContext(
     _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->HaveData = FALSE;
-
     PhClearReference(&Context->Version);
     PhClearReference(&Context->RevVersion);
     PhClearReference(&Context->RelDate);
@@ -156,11 +160,7 @@ BOOLEAN LastUpdateCheckExpired(
         return TRUE;
     }
 
-#ifdef FORCE_UPDATE_CHECK
-    return TRUE;
-#else
     return FALSE;
-#endif
 }
 
 PPH_STRING UpdateVersionString(
@@ -513,66 +513,56 @@ NTSTATUS UpdateCheckSilentThread(
 
     context = CreateUpdateContext(TRUE);
 
-    __try
-    {
-        if (!LastUpdateCheckExpired())
-        {
-            __leave;
-        }
+#ifndef FORCE_UPDATE_CHECK
+    if (!LastUpdateCheckExpired())
+        goto exit;
+#endif
+    if (!QueryUpdateData(context))
+        goto exit;
 
-        if (!QueryUpdateData(context))
-        {
-            __leave;
-        }
-
-        currentVersion = MAKE_VERSION_ULONGLONG(
-            context->CurrentMajorVersion,
-            context->CurrentMinorVersion,
-            context->CurrentRevisionVersion,
-            0
-            );
+    currentVersion = MAKE_VERSION_ULONGLONG(
+        context->CurrentMajorVersion,
+        context->CurrentMinorVersion,
+        context->CurrentRevisionVersion,
+        0
+        );
 
 #ifdef FORCE_UPDATE_CHECK
-        latestVersion = MAKE_VERSION_ULONGLONG(
-            9999,
-            9999,
-            9999,
-            0
-            );
+    latestVersion = MAKE_VERSION_ULONGLONG(
+        9999,
+        9999,
+        9999,
+        0
+        );
 #else
-        latestVersion = MAKE_VERSION_ULONGLONG(
-            context->MajorVersion,
-            context->MinorVersion,
-            context->RevisionVersion,
-            0
-            );
+    latestVersion = MAKE_VERSION_ULONGLONG(
+        context->MajorVersion,
+        context->MinorVersion,
+        context->RevisionVersion,
+        0
+        );
 #endif
 
-        // Compare the current version against the latest available version
-        if (currentVersion < latestVersion)
-        {
-            // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-            //Sleep(3000);
-
-            // Check if the user hasn't already opened the dialog.
-            if (!UpdateDialogHandle)
-            {
-                // We have data we're going to cache and pass into the dialog
-                context->HaveData = TRUE;
-
-                // Show the dialog asynchronously on a new thread.
-                ShowUpdateDialog(context);
-            }
-        }
-    }
-    __finally
+    // Compare the current version against the latest available version
+    if (currentVersion < latestVersion)
     {
-        // Check the dialog doesn't own the window context...
-        if (!context->HaveData)
+        // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
+        //Sleep(3000);
+
+        // Check if the user hasn't already opened the dialog.
+        if (!UpdateDialogHandle)
         {
-            FreeUpdateContext(context);
+            // We have data we're going to cache and pass into the dialog
+            context->HaveData = TRUE;
+
+            // Show the dialog asynchronously on a new thread.
+            ShowUpdateDialog(context);
         }
     }
+
+exit:
+    if (!context->HaveData)
+        FreeUpdateContext(context);
 
     return STATUS_SUCCESS;
 }
@@ -1147,8 +1137,6 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     case TDN_CREATED:
         {
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
-
-            PhGetPhVersionNumbers(&context->CurrentMajorVersion, &context->CurrentMinorVersion, NULL, &context->CurrentRevisionVersion);
 
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
