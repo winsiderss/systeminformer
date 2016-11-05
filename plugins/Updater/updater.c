@@ -62,6 +62,12 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
 
+    if (Context->IconLargeHandle)
+        DestroyIcon(Context->IconLargeHandle);
+
+    if (Context->IconSmallHandle)
+        DestroyIcon(Context->IconSmallHandle);
+
     PhDereferenceObject(Context);
 }
 
@@ -69,21 +75,19 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->IconLargeHandle = (HICON)LoadImage(
+    Context->IconLargeHandle = PhLoadIcon(
         NtCurrentPeb()->ImageBaseAddress,
         MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
+        PH_LOAD_ICON_SIZE_LARGE,
         GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON),
-        LR_SHARED
+        GetSystemMetrics(SM_CYICON)
         );
-    Context->IconSmallHandle = (HICON)LoadImage(
+    Context->IconSmallHandle = PhLoadIcon(
         NtCurrentPeb()->ImageBaseAddress,
         MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON),
-        LR_SHARED
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON)
         );
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
@@ -190,7 +194,7 @@ PPH_STRING UpdateWindowsString(
 {
     static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
 
-    HANDLE keyHandle = NULL;
+    HANDLE keyHandle;
     PPH_STRING buildLabHeader = NULL;
 
     if (NT_SUCCESS(PhOpenKey(
@@ -299,7 +303,7 @@ BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
-    BOOLEAN isSuccess = FALSE;
+    BOOLEAN success = FALSE;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
@@ -310,197 +314,194 @@ BOOLEAN QueryUpdateData(
     PPH_STRING versionHeader = UpdateVersionString();
     PPH_STRING windowsHeader = UpdateWindowsString();
 
-    __try
+    // Query the current system proxy
+    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+
+    // Open the HTTP session with the system proxy configuration if available
+    if (!(httpSessionHandle = WinHttpOpen(
+        NULL,
+        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        proxyConfig.lpszProxy,
+        proxyConfig.lpszProxyBypass,
+        0
+        )))
     {
-        // Query the current system proxy
-        WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+        goto CleanupExit;
+    }
 
-        // Open the HTTP session with the system proxy configuration if available
-        if (!(httpSessionHandle = WinHttpOpen(
-            NULL,
-            proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            proxyConfig.lpszProxy,
-            proxyConfig.lpszProxyBypass,
-            0
-            )))
-        {
-            __leave;
-        }
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
-        if (WindowsVersion >= WINDOWS_8_1)
-        {
-            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
-            ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
-            WinHttpSetOption(
-                httpSessionHandle,
-                WINHTTP_OPTION_DECOMPRESSION,
-                &httpFlags,
-                sizeof(ULONG)
-                );
-        }
-
-        if (!(httpConnectionHandle = WinHttpConnect(
+        WinHttpSetOption(
             httpSessionHandle,
-            L"wj32.org",
-            INTERNET_DEFAULT_HTTPS_PORT,
-            0
-            )))
-        {
-            __leave;
-        }
-
-        if (!(httpRequestHandle = WinHttpOpenRequest(
-            httpConnectionHandle,
-            NULL,
-            L"/processhacker/update.php",
-            NULL,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
-            )))
-        {
-            __leave;
-        }
-
-        if (WindowsVersion >= WINDOWS_7)
-        {
-            ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
-            WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
-        }
-
-        if (versionHeader)
-        {
-            WinHttpAddRequestHeaders(
-                httpRequestHandle,
-                versionHeader->Buffer,
-                (ULONG)versionHeader->Length / sizeof(WCHAR),
-                WINHTTP_ADDREQ_FLAG_ADD
-                );
-        }
-
-        if (windowsHeader)
-        {
-            WinHttpAddRequestHeaders(
-                httpRequestHandle,
-                windowsHeader->Buffer,
-                (ULONG)windowsHeader->Length / sizeof(WCHAR),
-                WINHTTP_ADDREQ_FLAG_ADD
-                );
-        }
-
-        if (!WinHttpSendRequest(
-            httpRequestHandle,
-            WINHTTP_NO_ADDITIONAL_HEADERS,
-            0,
-            WINHTTP_NO_REQUEST_DATA,
-            0,
-            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-            0
-            ))
-        {
-            __leave;
-        }
-
-        if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
-            __leave;
-
-        // Read the resulting xml into our buffer.
-        if (!ReadRequestString(httpRequestHandle, &xmlStringBuffer, &xmlStringBufferLength))
-            __leave;
-
-        // Check the buffer for valid data.
-        if (xmlStringBuffer == NULL || xmlStringBuffer[0] == '\0')
-            __leave;
-
-        // Load our XML
-        xmlNode = mxmlLoadString(NULL, xmlStringBuffer, MXML_OPAQUE_CALLBACK);
-        if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
-            __leave;
-
-        // Find the version node
-        Context->Version = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND)
+            WINHTTP_OPTION_DECOMPRESSION,
+            &httpFlags,
+            sizeof(ULONG)
             );
-        if (PhIsNullOrEmptyString(Context->Version))
-            __leave;
-
-        // Find the revision node
-        Context->RevVersion = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "rev", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->RevVersion))
-            __leave;
-
-        // Find the release date node
-        Context->RelDate = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->RelDate))
-            __leave;
-
-        // Find the size node
-        Context->Size = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "size", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->Size))
-            __leave;
-
-        // Find the Hash node
-        Context->Hash = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->Hash))
-            __leave;
-
-        // Find the signature node
-        Context->Signature = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "sig", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->Signature))
-            __leave;
-
-        // Find the release notes URL
-        Context->ReleaseNotesUrl = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "relnotes", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
-            __leave;
-
-        // Find the installer download URL
-        Context->SetupFileDownloadUrl = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "setupurl", NULL, NULL, MXML_DESCEND)
-            );
-        if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
-            __leave;
-
-        if (!ParseVersionString(Context))
-            __leave;
-
-        isSuccess = TRUE;
     }
-    __finally
+
+    if (!(httpConnectionHandle = WinHttpConnect(
+        httpSessionHandle,
+        L"wj32.org",
+        INTERNET_DEFAULT_HTTPS_PORT,
+        0
+        )))
     {
-        if (httpRequestHandle)
-            WinHttpCloseHandle(httpRequestHandle);
-
-        if (httpConnectionHandle)
-            WinHttpCloseHandle(httpConnectionHandle);
-
-        if (httpSessionHandle)
-            WinHttpCloseHandle(httpSessionHandle);
-
-        if (xmlNode)
-            mxmlDelete(xmlNode);
-
-        if (xmlStringBuffer)
-            PhFree(xmlStringBuffer);
-
-        PhClearReference(&versionHeader);
-        PhClearReference(&windowsHeader);
+        goto CleanupExit;
     }
 
-    return isSuccess;
+    if (!(httpRequestHandle = WinHttpOpenRequest(
+        httpConnectionHandle,
+        NULL,
+        L"/processhacker/update.php",
+        NULL,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (WindowsVersion >= WINDOWS_7)
+    {
+        ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
+        WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
+    }
+
+    if (versionHeader)
+    {
+        WinHttpAddRequestHeaders(
+            httpRequestHandle,
+            versionHeader->Buffer,
+            (ULONG)versionHeader->Length / sizeof(WCHAR),
+            WINHTTP_ADDREQ_FLAG_ADD
+            );
+    }
+
+    if (windowsHeader)
+    {
+        WinHttpAddRequestHeaders(
+            httpRequestHandle,
+            windowsHeader->Buffer,
+            (ULONG)windowsHeader->Length / sizeof(WCHAR),
+            WINHTTP_ADDREQ_FLAG_ADD
+            );
+    }
+
+    if (!WinHttpSendRequest(
+        httpRequestHandle,
+        WINHTTP_NO_ADDITIONAL_HEADERS,
+        0,
+        WINHTTP_NO_REQUEST_DATA,
+        0,
+        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
+        0
+        ))
+    {
+        goto CleanupExit;
+    }
+
+    if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+        goto CleanupExit;
+
+    // Read the resulting xml into our buffer.
+    if (!ReadRequestString(httpRequestHandle, &xmlStringBuffer, &xmlStringBufferLength))
+        goto CleanupExit;
+
+    // Check the buffer for valid data.
+    if (xmlStringBuffer == NULL || xmlStringBuffer[0] == '\0')
+        goto CleanupExit;
+
+    // Load our XML
+    xmlNode = mxmlLoadString(NULL, xmlStringBuffer, MXML_OPAQUE_CALLBACK);
+    if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
+        goto CleanupExit;
+
+    // Find the version node
+    Context->Version = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->Version))
+        goto CleanupExit;
+
+    // Find the revision node
+    Context->RevVersion = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "rev", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->RevVersion))
+        goto CleanupExit;
+
+    // Find the release date node
+    Context->RelDate = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->RelDate))
+        goto CleanupExit;
+
+    // Find the size node
+    Context->Size = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "size", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->Size))
+        goto CleanupExit;
+
+    // Find the Hash node
+    Context->Hash = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->Hash))
+        goto CleanupExit;
+
+    // Find the signature node
+    Context->Signature = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "sig", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->Signature))
+        goto CleanupExit;
+
+    // Find the release notes URL
+    Context->ReleaseNotesUrl = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "relnotes", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
+        goto CleanupExit;
+
+    // Find the installer download URL
+    Context->SetupFileDownloadUrl = UpdaterGetOpaqueXmlNodeText(
+        mxmlFindElement(xmlNode->child, xmlNode, "setupurl", NULL, NULL, MXML_DESCEND)
+        );
+    if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
+        goto CleanupExit;
+
+    // Parse the version information 
+    if (!ParseVersionString(Context))
+        goto CleanupExit;
+
+    success = TRUE;
+
+CleanupExit:
+    if (httpRequestHandle)
+        WinHttpCloseHandle(httpRequestHandle);
+
+    if (httpConnectionHandle)
+        WinHttpCloseHandle(httpConnectionHandle);
+
+    if (httpSessionHandle)
+        WinHttpCloseHandle(httpSessionHandle);
+
+    if (xmlNode)
+        mxmlDelete(xmlNode);
+
+    if (xmlStringBuffer)
+        PhFree(xmlStringBuffer);
+
+    PhClearReference(&versionHeader);
+    PhClearReference(&windowsHeader);
+
+    return success;
 }
 
 NTSTATUS UpdateCheckSilentThread(
@@ -1220,10 +1221,8 @@ VOID StartInitialCheck(
     VOID
     )
 {
-#ifndef DISABLE_STARTUP_CHECK
     HANDLE silentCheckThread = NULL;
 
     if (silentCheckThread = PhCreateThread(0, UpdateCheckSilentThread, NULL))
         NtClose(silentCheckThread);
-#endif
 }

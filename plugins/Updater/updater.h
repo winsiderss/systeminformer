@@ -60,8 +60,6 @@
 //#define FORCE_UPDATE_CHECK
 // Force update check to show the current version as the latest version.
 //#define FORCE_LATEST_VERSION
-// Disable startup update check.
-//#define DISABLE_STARTUP_CHECK
 #endif
 
 extern HWND UpdateDialogHandle;
