@@ -845,11 +845,11 @@ VOID PhGetStockApplicationIcon(
             PhDereferenceObject(dllFileName);
         }
 
-        // Fallback icons - this is bad, because the icon isn't scaled correctly.
+        // Fallback icons
         if (!smallIcon)
-            smallIcon = LoadIcon(NULL, IDI_APPLICATION);
+            smallIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
         if (!largeIcon)
-            largeIcon = LoadIcon(NULL, IDI_APPLICATION);
+            largeIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
 
         PhEndInitOnce(&initOnce);
     }
