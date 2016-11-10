@@ -85,8 +85,40 @@ VOID CustomizeInsertToolbarButton(
     button.idCommand = ItemContext->IdCommand;
     button.iBitmap = I_IMAGECALLBACK;
     button.fsState = TBSTATE_ENABLED;
-    button.fsStyle = ItemContext->IsSeparator ? BTNS_SEP : BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
     button.iString = (INT_PTR)ToolbarGetText(ItemContext->IdCommand);
+
+    if (ItemContext->IsSeparator)
+    {
+        button.fsStyle = BTNS_SEP;
+    }
+    else
+    {
+        switch (DisplayStyle)
+        {
+        case TOOLBAR_DISPLAY_STYLE_IMAGEONLY:
+            button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+            break;
+        case TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT:
+            {
+                switch (button.idCommand)
+                {
+                case PHAPP_ID_VIEW_REFRESH:
+                case PHAPP_ID_HACKER_OPTIONS:
+                case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
+                case PHAPP_ID_VIEW_SYSTEMINFORMATION:
+                    button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+                    break;
+                default:
+                    button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+                    break;
+                }
+            }
+            break;
+        case TOOLBAR_DISPLAY_STYLE_ALLTEXT:
+            button.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+            break;
+        }
+    }
 
     SendMessage(ToolBarHandle, TB_INSERTBUTTON, Index, (LPARAM)&button);
 }
@@ -100,13 +132,10 @@ VOID CustomizeAddToolbarItem(
     INT count;
     PBUTTON_CONTEXT itemContext;
 
-    count = ListBox_GetCount(Context->AvailableListHandle);
-    itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, IndexAvail);
-
-    if (count == LB_ERR)
+    if ((count = ListBox_GetCount(Context->AvailableListHandle)) == LB_ERR)
         return;
 
-    if (itemContext == NULL)
+    if (!(itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, IndexAvail)))
         return;
 
     if (IndexAvail != 0) // index 0 is separator
@@ -145,9 +174,7 @@ VOID CustomizeRemoveToolbarItem(
 {
     PBUTTON_CONTEXT itemContext;
 
-    itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-
-    if (itemContext == NULL)
+    if (!(itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom)))
         return;
 
     ListBox_DeleteString(Context->CurrentListHandle, IndexFrom);
@@ -180,13 +207,10 @@ VOID CustomizeMoveToolbarItem(
     if (IndexFrom == IndexTo)
         return;
 
-    count = ListBox_GetCount(Context->CurrentListHandle);
-    itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom);
-
-    if (count == LB_ERR)
+    if ((count = ListBox_GetCount(Context->CurrentListHandle)) == LB_ERR)
         return;
 
-    if (itemContext == NULL)
+    if (!(itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, IndexFrom)))
         return;
 
     ListBox_DeleteString(Context->CurrentListHandle, IndexFrom);
@@ -259,8 +283,8 @@ VOID CustomizeLoadToolbarItems(
     _In_ PCUSTOMIZE_CONTEXT Context
     )
 {
-    INT buttonIndex = 0;
-    INT buttonCount = 0;
+    INT i = 0;
+    INT count = 0;
     PBUTTON_CONTEXT itemContext;
 
     CustomizeFreeToolbarItems(Context);
@@ -268,15 +292,15 @@ VOID CustomizeLoadToolbarItems(
     ListBox_ResetContent(Context->AvailableListHandle);
     ListBox_ResetContent(Context->CurrentListHandle);
 
-    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    count = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
-    for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+    for (i = 0; i < count; i++)
     {
         TBBUTTON button;
 
         memset(&button, 0, sizeof(TBBUTTON));
 
-        if (SendMessage(ToolBarHandle, TB_GETBUTTON, buttonIndex, (LPARAM)&button))
+        if (SendMessage(ToolBarHandle, TB_GETBUTTON, i, (LPARAM)&button))
         {
             itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
             memset(itemContext, 0, sizeof(BUTTON_CONTEXT));
@@ -309,23 +333,16 @@ VOID CustomizeLoadToolbarItems(
         }
     }
 
-    for (buttonIndex = 0; buttonIndex < MAX_TOOLBAR_ITEMS; buttonIndex++)
+    for (i = 0; i < MAX_TOOLBAR_ITEMS; i++)
     {
         HBITMAP buttonImage;
-        TBBUTTON button = ToolbarButtons[buttonIndex];
+        TBBUTTON button = ToolbarButtons[i];
 
         if (button.idCommand == 0)
             continue;
 
         if (CustomizeToolbarItemExists(Context, button.idCommand))
             continue;
-
-        // HACK and violation of abstraction.
-        // Don't show the 'Show Details for All Processes' button on XP.
-        if (!WINDOWS_HAS_UAC && button.idCommand == PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES)
-        {
-            continue;
-        }
 
         itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
         memset(itemContext, 0, sizeof(BUTTON_CONTEXT));
@@ -353,9 +370,9 @@ VOID CustomizeLoadToolbarItems(
     itemContext->IsVirtual = TRUE;
     itemContext->IsRemovable = FALSE;
 
-    buttonIndex = ListBox_AddItemData(Context->CurrentListHandle, itemContext);
-    ListBox_SetCurSel(Context->CurrentListHandle, buttonIndex);
-    ListBox_SetTopIndex(Context->CurrentListHandle, buttonIndex);
+    i = ListBox_AddItemData(Context->CurrentListHandle, itemContext);
+    ListBox_SetCurSel(Context->CurrentListHandle, i);
+    ListBox_SetTopIndex(Context->CurrentListHandle, i);
 
     // Insert separator into first 'available list' position
     itemContext = PhAllocate(sizeof(BUTTON_CONTEXT));
@@ -364,9 +381,9 @@ VOID CustomizeLoadToolbarItems(
     itemContext->IsVirtual = FALSE;
     itemContext->IsRemovable = FALSE;
 
-    buttonIndex = ListBox_InsertItemData(Context->AvailableListHandle, 0, itemContext);
-    ListBox_SetCurSel(Context->AvailableListHandle, buttonIndex);
-    ListBox_SetTopIndex(Context->AvailableListHandle, buttonIndex);
+    i = ListBox_InsertItemData(Context->AvailableListHandle, 0, itemContext);
+    ListBox_SetCurSel(Context->AvailableListHandle, i);
+    ListBox_SetTopIndex(Context->AvailableListHandle, i);
 
     // Disable buttons
     Button_Enable(Context->MoveUpButtonHandle, FALSE);
