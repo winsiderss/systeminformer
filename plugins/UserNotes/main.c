@@ -1486,6 +1486,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetDlgItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
         }
         break;
     case WM_COMMAND:
