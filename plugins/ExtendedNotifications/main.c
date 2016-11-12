@@ -884,6 +884,8 @@ INT_PTR CALLBACK ProcessesDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+
             EditingProcessFilterList = PhCreateList(ProcessFilterList->Count + 10);
             CopyFilterList(EditingProcessFilterList, ProcessFilterList);
 
