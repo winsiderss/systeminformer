@@ -27,6 +27,7 @@
             <MinimalRebuild>false</MinimalRebuild>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+            <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -59,7 +60,6 @@
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
-            <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
             <OptimizeReferences>true</OptimizeReferences>
