@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Sandboxie Support for Process Hacker"
             VALUE "FileVersion", "1.0"
-            VALUE "InternalName", "SbieSupport"
+            VALUE "InternalName", "ProcessHacker.SbieSupport"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "SbieSupport.dll"
             VALUE "ProductName", "Sandboxie Support for Process Hacker"

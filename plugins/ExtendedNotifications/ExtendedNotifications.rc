@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Notifications for Process Hacker"
             VALUE "FileVersion", "1.3"
-            VALUE "InternalName", "ExtendedNotifications"
+            VALUE "InternalName", "ProcessHacker.ExtendedNotifications"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedNotifications.dll"
             VALUE "ProductName", "Extended Notifications for Process Hacker"

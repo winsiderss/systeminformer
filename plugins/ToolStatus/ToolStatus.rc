@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "ToolStatus plugin for Process Hacker"
             VALUE "FileVersion", "2.4"
-            VALUE "InternalName", "ToolStatus"
+            VALUE "InternalName", "ProcessHacker.ToolStatus"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ToolStatus.dll"
             VALUE "ProductName", "ToolStatus plugin for Process Hacker"

@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Window Explorer plugin for Process Hacker"
             VALUE "FileVersion", "1.5"
-            VALUE "InternalName", "WindowExplorer"
+            VALUE "InternalName", "ProcessHacker.WindowExplorer"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "WindowExplorer.dll"
             VALUE "ProductName", "Window Explorer plugin for Process Hacker"

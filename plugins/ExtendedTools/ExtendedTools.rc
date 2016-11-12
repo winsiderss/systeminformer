@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Tools plugin for Process Hacker"
             VALUE "FileVersion", "1.17"
-            VALUE "InternalName", "ExtendedTools"
+            VALUE "InternalName", "ProcessHacker.ExtendedTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedTools.dll"
             VALUE "ProductName", "Extended Tools plugin for Process Hacker"

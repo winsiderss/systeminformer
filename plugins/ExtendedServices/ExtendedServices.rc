@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Services for Process Hacker"
             VALUE "FileVersion", "1.10"
-            VALUE "InternalName", "ExtendedServices"
+            VALUE "InternalName", "ProcessHacker.ExtendedServices"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedServices.dll"
             VALUE "ProductName", "Extended Services for Process Hacker"

@@ -70,7 +70,7 @@ BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Update checker plugin for Process Hacker"
             VALUE "FileVersion", "2.0"
-            VALUE "InternalName", "Updater"
+            VALUE "InternalName", "ProcessHacker.UpdateChecker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "Updater.dll"
             VALUE "ProductName", "Update checker plugin for Process Hacker"
