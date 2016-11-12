@@ -98,16 +98,18 @@ VOID NcAreaInitializeImageList(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    HBITMAP bitmapActive = NULL;
-    HBITMAP bitmapInactive = NULL;
+    HBITMAP bitmapActive;
+    HBITMAP bitmapInactive;
 
     Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
     Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
-    Context->ImageList = ImageList_Create(32, 32, ILC_COLOR32, 2, 2);
+    Context->ImageList = ImageList_Create(Context->ImageWidth, Context->ImageHeight, ILC_COLOR32, 2, 2);
     ImageList_SetImageCount(Context->ImageList, 2);
 
-    // Add the images to the imagelist
-    if (bitmapActive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
+    bitmapActive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE);
+    bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE);
+
+    if (bitmapActive)
     {
         ImageList_Replace(Context->ImageList, 0, bitmapActive, NULL);
         DeleteObject(bitmapActive);
@@ -117,7 +119,7 @@ VOID NcAreaInitializeImageList(
         PhSetImageListBitmap(Context->ImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
 
-    if (bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
+    if (bitmapInactive)
     {
         ImageList_Replace(Context->ImageList, 1, bitmapInactive, NULL);
         DeleteObject(bitmapInactive);
@@ -178,7 +180,7 @@ VOID NcAreaDrawButton(
     }
 
     // Draw the image centered within the rect.
-    if (SearchboxText->Length > 0)
+    if (Edit_GetTextLength(Context->WindowHandle) > 0)
     {
         ImageList_Draw(
             Context->ImageList,
@@ -404,11 +406,15 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_THEMECHANGED:
         {
             NcAreaFreeTheme(context);
+            NcAreaInitializeImageList(context);
             NcAreaInitializeTheme(context);
             NcAreaInitializeFont(context);
 
             // Reset the client area margins.
             SendMessage(hWnd, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
+
+            // Refresh the non-client area.
+            SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
 
             // Force the edit control to update its non-client area.
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -618,7 +624,7 @@ HBITMAP LoadImageFromResources(
         bitmapInfo.bmiHeader.biBitCount = 32;
         bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        screenHdc = GetDC(NULL);
+        screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
         bufferDc = CreateCompatibleDC(screenHdc);
         bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
 
@@ -695,8 +701,6 @@ HWND CreateSearchControl(
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->CommandID = CommandID;
-
-    // Create the SearchBox window.
     context->WindowHandle = CreateWindowEx(
         WS_EX_CLIENTEDGE,
         WC_EDIT,
@@ -709,21 +713,17 @@ HWND CreateSearchControl(
         NULL
         );
 
-    // TODO: Why does the Edit control require WS_VISIBLE to be correctly initialized under some conditions?
-    //  For now just call ShowWindow with SW_HIDE instead of removing the WS_VISIBLE style passed to CreateWindowEx.
     if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
-    {
         ShowWindow(SearchboxHandle, SW_HIDE);
-    }
-
-    //NcAreaInitializeTheme(context);
-    NcAreaInitializeImageList(context);
 
     // Set initial text
     Edit_SetCueBannerText(context->WindowHandle, L"Search Processes (Ctrl+K)");
 
     // Set our window context data.
     SetProp(context->WindowHandle, L"EditSubclassContext", (HANDLE)context);
+
+    // Create the imagelists
+    NcAreaInitializeImageList(context);
 
     // Subclass the Edit control window procedure.
     SetWindowSubclass(context->WindowHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
