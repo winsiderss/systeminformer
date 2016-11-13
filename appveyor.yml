@@ -17,11 +17,7 @@ skip_tags: true
 clone_folder: C:\projects\processhacker2
 
 # Set clone depth.
-clone_depth: 1
-
-# Do not build on commits, only nightly builds.
-#skip_commits:
-#  message: /^(?!.*(appveyor)).*/
+#clone_depth: 1
   
 # Immediately finish build if something fails.
 matrix:
