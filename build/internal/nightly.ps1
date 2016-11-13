@@ -175,11 +175,11 @@ function BuildSolution([string] $FileName)
 
     if ($LASTEXITCODE -eq 0)
     {
-        Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
+        Write-Host "        [SUCCESS]" -ForegroundColor Green
     }
     else
     {
-        Write-Host "`t`t[ERROR]" -ForegroundColor Red
+        Write-Host "        [ERROR]" -ForegroundColor Red
     }
 }
 
@@ -192,7 +192,7 @@ function CopyTextFiles()
     Copy-Item "COPYRIGHT.txt" "bin\"
     Copy-Item "LICENSE.txt"   "bin\"
 
-    Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "            [SUCCESS]" -ForegroundColor Green
 }
 
 function CopyKProcessHacker()
@@ -201,8 +201,11 @@ function CopyKProcessHacker()
 
     Copy-Item "KProcessHacker\bin-signed\i386\kprocesshacker.sys"  "bin\Release32\"
     Copy-Item "KProcessHacker\bin-signed\amd64\kprocesshacker.sys" "bin\Release64\"
+    
+    New-Item "bin\Release32\ProcessHacker.sig" -ItemType File -ErrorAction SilentlyContinue | Out-Null
+    New-Item "bin\Release64\ProcessHacker.sig" -ItemType File -ErrorAction SilentlyContinue | Out-Null
 
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "     [SUCCESS]" -ForegroundColor Green
 }
 
 function SetupSdkHeaders()
@@ -323,47 +326,32 @@ function SetupSdkHeaders()
         Copy-Item "phlib\include\$file" "sdk\include\"
     }
 
-    Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
-}
-
-function BuildPublicHeaders()
-{
-    Write-Host "Building public headers" -NoNewline -ForegroundColor Cyan
-
-    # Set GenerateHeader path
-    $genheader = "tools\GenerateHeader\GenerateHeader\bin\Release\GenerateHeader.exe"
-
-    if ($global:debug_enabled)
-    {
-        # call the executable
-        & $genheader "build\sdk\phapppub_options.txt"
-    }
-    else
-    {
-        # call the executable (no output)
-        & $genheader "build\sdk\phapppub_options.txt" | Out-Null
-    }    
-
-    if ($LASTEXITCODE -eq 0)
-    {
-        Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
-    }
-    else
-    {
-        Write-Host "`t`t[ERROR]" -ForegroundColor Red
-    }
+    Write-Host "       [SUCCESS]" -ForegroundColor Green
 }
 
 function SetupPublicHeaders()
 {
+    $genheader = "tools\GenerateHeader\GenerateHeader\bin\Release\GenerateHeader.exe" # Set GenerateHeader path
+
     Write-Host "Setting up public headers" -NoNewline -ForegroundColor Cyan
+
+    if ($global:debug_enabled)
+    {
+        # call the executable
+        & "$genheader" "build\sdk\phapppub_options.txt"
+    }
+    else
+    {
+        # call the executable (no output)
+        & "$genheader" "build\sdk\phapppub_options.txt" | Out-Null
+    }
 
     Copy-Item "ProcessHacker\sdk\phapppub.h"  "sdk\include\"
     Copy-Item "ProcessHacker\sdk\phdk.h"      "sdk\include\"
     Copy-Item "ProcessHacker\mxml\mxml.h"     "sdk\include\"
     Copy-Item "ProcessHacker\resource.h"      "sdk\include\phappresource.h"
     
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
 
 function SetupSdkResourceHeaders()
@@ -376,7 +364,7 @@ function SetupSdkResourceHeaders()
     # Replace strings and pipe/save the output
     $phappresource.Replace("#define ID", "#define PHAPP_ID") | Set-Content "sdk\include\phappresource.h"
 
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
 
 function SetupPluginLibFiles()
@@ -386,7 +374,7 @@ function SetupPluginLibFiles()
     Copy-Item "bin\Release32\ProcessHacker.lib" "sdk\lib\i386\"
     Copy-Item "bin\Release64\ProcessHacker.lib" "sdk\lib\amd64\"
 
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
 
 function SetupProcessHackerWow64()
@@ -401,77 +389,62 @@ function SetupProcessHackerWow64()
     Copy-Item "bin\Release32\plugins\DotNetTools.dll"  "bin\Release64\x86\plugins\"
     Copy-Item "bin\Release32\plugins\DotNetTools.pdb"  "bin\Release64\x86\plugins\"
 
-    Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
-}
-
-function SetupSignatures()
-{
-    Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
-
-    New-Item "bin\Release32\ProcessHacker.sig" -ItemType File -ErrorAction SilentlyContinue | Out-Null
-    New-Item "bin\Release64\ProcessHacker.sig" -ItemType File -ErrorAction SilentlyContinue | Out-Null
-
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "        [SUCCESS]" -ForegroundColor Green
 }
 
 function BuildSetup()
-{
+{  
+    $innoBuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe" # Set innosetup path
+    $setupPath = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe"
+
     Write-Host "Building nightly-setup.exe" -NoNewline -ForegroundColor Cyan
+
+    if (!(Test-Path "$innoBuild"))
+    {
+        Write-Host "`t[SKIPPED] (Inno Setup not installed)" -ForegroundColor Yellow
+        return;
+    }
 
     if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
     {
         New-Item "$env:BUILD_OUTPUT_FOLDER" -type directory -ErrorAction SilentlyContinue | Out-Null
     }
 
-    # Set innosetup path
-    $innobuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe"
-
-    if (!(Test-Path $innobuild))
-    {
-        Write-Host "`t[SKIPPED] (Inno Setup not installed)" -ForegroundColor Yellow
-        return;
-    }
-
-    # Execute the Inno setup
     if ($global:debug_enabled)
     {
-        & $innobuild "build\installer\Process_Hacker_installer.iss"
+        & "$innoBuild" "build\installer\Process_Hacker_installer.iss"
     }
     else
     {
-        & $innobuild "build\installer\Process_Hacker_installer.iss" | Out-Null
+        & "$innoBuild" "build\installer\Process_Hacker_installer.iss" | Out-Null
     }
 
-    
-    # Move and rename the setup into the bin directory
-    Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe" -ErrorAction SilentlyContinue
-    Move-Item "build\installer\processhacker-3.0-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe"
+    Remove-Item "$setupPath" -ErrorAction SilentlyContinue
+    Move-Item "build\installer\processhacker-3.0-setup.exe" "$setupPath"
 
     Write-Host "`t[SUCCESS]" -ForegroundColor Green
 }
 
 function BuildSdkZip()
 {
+    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe" # Set 7-Zip executable path
+
     Write-Host "Building nightly-sdk.zip" -NoNewline -ForegroundColor Cyan
-    
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
-    {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
-    }
 
-    # Set 7-Zip executable path
-    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"
-
-    if (!(Test-Path $7zip))
+    if (!(Test-Path "$7zip"))
     {
         Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
         return;
     }
 
-    # Execute the Inno setup
+    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    {
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
+    }
+
     if ($global:debug_enabled)
     {
-        & $7zip "a",
+        & "$7zip" "a",
                 "-tzip",
                 "-mx9",
                 "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip",
@@ -480,7 +453,7 @@ function BuildSdkZip()
     }
     else
     {
-        & $7zip "a",
+        & "$7zip" "a",
                 "-tzip",
                 "-mx9",
                 "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip",
@@ -493,74 +466,81 @@ function BuildSdkZip()
 
 function BuildZip()
 {
+    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"; # Set 7-Zip path
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip";
+
     Write-Host "Building nightly-bin.zip" -NoNewline -ForegroundColor Cyan
     
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
-    {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
-    }
-
-    # Remove junk files
-    Remove-Item "bin\*" -recurse -include "*.iobj", "*.ipdb", "*.exp", "*.lib" -ErrorAction SilentlyContinue
-
-    # Remove the existing directories
-    Remove-Item "x86\*" -recurse -ErrorAction SilentlyContinue
-    Remove-Item "x64\*" -recurse -ErrorAction SilentlyContinue
-    # Rename the directories
-    Copy-Item "bin\Release32" -recurse -Destination "x86" -Force
-    Copy-Item "bin\Release64" -recurse -Destination "x64" -Force
-
-    # Set 7-Zip path
-    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"
-    
-    if (!(Test-Path $7zip))
+    if (!(Test-Path "$7zip"))
     {
         Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
         return;
     }
 
-    # Execute 7-Zip
+    if (Test-Path "$zip_path")
+    {
+        Remove-Item $zip_path -Force -ErrorAction SilentlyContinue
+    }
+
+    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    {
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
+    }
+
     if ($global:debug_enabled)
     {
         & "$7zip" "a",
                   "-tzip",
                   "-mx9",
-                  "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip",
+                  "$zip_path",
                   ".\bin\*",
-                  "-r"
+                  "-r",
+                  "-xr!Debug32", # Ignore junk directories
+                  "-xr!Debug64",
+                  "-x!*.pdb", # Ignore junk files
+                  "-x!*.iobj",
+                  "-x!*.ipdb",
+                  "-x!*.exp",
+                  "-x!*.lib"
     }
     else
     {
         & "$7zip" "a", 
                   "-tzip",
                   "-mx9",
-                  "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip", 
+                  "$zip_path", 
                   ".\bin\*", 
-                  "-r" | Out-Null
+                  "-r",
+                  "-xr!Debug32", # Ignore junk directories
+                  "-xr!Debug64",
+                  "-x!*.pdb", # Ignore junk files
+                  "-x!*.iobj",
+                  "-x!*.ipdb",
+                  "-x!*.exp",
+                  "-x!*.lib" | Out-Null
     }
 
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
 
 function BuildSourceZip()
 {
+    $git = "${env:ProgramFiles}\Git\cmd\git.exe" # Set git executable path
+
     Write-Host "Building nightly-src.zip" -NoNewline -ForegroundColor Cyan
-    
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
-    {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
-    }
-    
-    # Set git executable path
-    $git = "${env:ProgramFiles}\Git\cmd\git.exe"
-    
-    if (!(Test-Path $git))
+
+    if (!(Test-Path "$git"))
     {
         Write-Host "`t[SKIPPED] (Git not installed)" -ForegroundColor Yellow
         return;
     }
 
-    & $git "--git-dir=.git", 
+    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    {
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
+    }
+
+    & "$git" "--git-dir=.git", 
            "--work-tree=.\", 
            "archive",
            "--format", 
@@ -569,24 +549,23 @@ function BuildSourceZip()
            "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip", 
            "${env:APPVEYOR_REPO_BRANCH}"
 
-    Write-Host "`t[SUCCESS]" -ForegroundColor Green
+    Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
 
-function GenerateHashes()
+function BuildChecksumsFile()
 {
-    Write-Host "Generating checksums" -NoNewline -ForegroundColor Cyan
-
-    # Query the full path from the relative path
-    $file_path = Resolve-Path "${env:BUILD_OUTPUT_FOLDER}\";
-
     # Create Arraylist
     $array = $();
-
     $file_names = 
         "processhacker-nightly-setup.exe",
         "processhacker-nightly-sdk.zip",
         "processhacker-nightly-bin.zip",
         "processhacker-nightly-src.zip";
+    
+    Write-Host "Generating checksums" -NoNewline -ForegroundColor Cyan
+
+    # Query the full path from the relative path
+    $file_path = Resolve-Path "${env:BUILD_OUTPUT_FOLDER}\";
 
     foreach ($file in $file_names)
     {
@@ -609,101 +588,131 @@ function GenerateHashes()
     # Save the string
     $data | Out-File "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-checksums.txt"
 
-    if ($global:buildbot)
+    Write-Host "          [SUCCESS]" -ForegroundColor Green
+}
+
+function BuildSignaturesFile()
+{
+    Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
+    Write-Host "    [SUCCESS]" -ForegroundColor Green
+}
+
+function UpdateBuildService()
+{
+    $exe = "bin\Release64\ProcessHacker.exe"
+    $zip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip"
+    $git = "${env:ProgramFiles}\Git\cmd\git.exe"
+
+    Write-Host "Updating build service" -ForegroundColor Cyan
+
+    if (Test-Path "$git")
     {
-        # TODO: This code is disabled while the website API is worked out.
-        # Convert the Arraylist to a json string
-        #$json = $array | ConvertTo-Json | Out-String
-        # Cleanup the string
-        #$json = $json.Replace("\\", "\").Replace($file_path, "").Replace("Path", "File");
-        # Send the json to our internal API and update the website hashes
-        #Invoke-RestMethod -Method Post -Uri "xyz.php" -Body $json -Header @{"X-ApiKey"="123ABC"} -ErrorAction SilentlyContinue
+        $buildMessage = ( & "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
+        $buildMessage = $buildMessage -replace "\r\n\r\n","\r\n"
     }
 
-    Write-Host "`t`t[SUCCESS]" -ForegroundColor Green
+    if (Test-Path "$zip")
+    {
+        $fileInfo = (Get-Item "$zip");
+        $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
+
+        $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
+        $fileSize = $fileInfo.Length;
+    }
+
+    if (Test-Path "$exe")
+    {
+        $buildVersion = (Get-Item "$exe").VersionInfo.FileVersion;
+    }
+
+    if ($global:buildbot -and $buildVersion)
+    {
+        Update-AppveyorBuild -Version $buildVersion
+    }
+
+    if ($buildMessage -and $fileHash -and $fileTime -and $fileSize -and $buildVersion)
+    {
+        $json_headers = @{ "X-ApiKey"="${env:APPVEYOR_BUILD_KEY}" };
+        $json_string = @{
+            version="$buildVersion"
+            file_size="$fileSize"
+            file_hash="$fileHash"
+            file_sig="$file_Hash"
+            forum_url="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
+            setup_url="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-nightly-bin.zip"
+            file_time=$fileTime
+            message="$buildMessage"
+        } | ConvertTo-Json;
+
+        $restResult = Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Body $json_string -Header $json_headers -ErrorVariable $restError -ErrorAction SilentlyContinue
+      
+        if ($restError)
+        {
+            $statusCode = $RestError.ErrorRecord.Exception.Response.StatusCode.value__
+
+            Write-Host "`t[FAILED] ($statusCode)" -ForegroundColor Red
+        }
+        else
+        {
+            Write-Host "`t[SUCCESS]" -ForegroundColor Green
+        }
+    }
+    else
+    {
+        Write-Host "`t[FAILED]" -ForegroundColor Red
+    }
 }
 
 function ShowBuildTime()
 {
-    $TimeEnd = New-TimeSpan -Start $global:TimeStart -End $(Get-Date)
+    $timeEnd = New-TimeSpan -Start $global:TimeStart -End $(Get-Date)
 
     Write-Host "";
-    Write-Host "Elapsed Time: $($TimeEnd.Minutes) minute(s), $($TimeEnd.Seconds) second(s)";
-    Write-Host "";
-}
-
-function main()
-{
-    InitializeScriptEnvironment;
-
-    EnableDebug;
-
-    # Check if the current directory contains the main solution
-    CheckBaseDirectory;
-
-    # Cleanup any previous builds
-    #CleanBuild($false);
-
-    # Build the main solution
-    BuildSolution("ProcessHacker.sln");
-
-    # Copy the text files
-    CopyTextFiles;
-
-    # Copy the signed KPH drivers
-    CopyKProcessHacker;
-
-    # Copy the SDK headers for the plugins
-    SetupSdkHeaders;
-
-    # Build the public headers
-    BuildPublicHeaders;
-
-    # 
-    SetupPublicHeaders;
-
-    # 
-    SetupSdkResourceHeaders;
-
-    # Copy the import library files
-    SetupPluginLibFiles;
-
-    # Build the plugins
-    BuildSolution("plugins\Plugins.sln");
-
-    # 
-    SetupProcessHackerWow64;
-
-    # 
-    SetupSignatures;
-
-    #
-    BuildSetup;
-
-    #
-    BuildSdkZip;
-
-    #
-    BuildZip;
-
-    #
-    BuildSourceZip;
-    
-    #
-    GenerateHashes;
-
-    # Preform final clean-up
-    #CleanBuild($true);
-
-    #
-    ShowBuildTime;
-
-    # Sleep for 10 seconds before exiting (if we're not running on the appveyor buildbot)
-    if (!$global:buildbot)
-    {
-        Start-Sleep 10;
-    }
+    Write-Host "Build Time: $($timeEnd.Minutes) minute(s), $($timeEnd.Seconds) second(s)";
 }
 
 # Entry point
-main;
+InitializeScriptEnvironment;
+
+EnableDebug;
+
+# Check if the current directory contains the main solution
+CheckBaseDirectory;
+
+# Build the main solution
+BuildSolution("ProcessHacker.sln");
+
+# Copy the text files
+CopyTextFiles;
+CopyKProcessHacker;
+
+# Copy the sdk files
+SetupSdkHeaders;
+SetupPublicHeaders;
+SetupSdkResourceHeaders;
+SetupPluginLibFiles;
+
+# Build the plugins
+BuildSolution("plugins\Plugins.sln");
+
+# Setup the x86 plugin files
+SetupProcessHackerWow64;
+
+# Copy the plugin sdk files
+BuildSetup;
+BuildSdkZip;
+BuildZip;
+BuildSourceZip;
+
+# Build the checksums
+BuildChecksumsFile;
+BuildSignaturesFile;
+
+if ((Test-Path Env:\APPVEYOR_BUILD_API) -and (Test-Path Env:\APPVEYOR_BUILD_KEY))
+{
+    # Update the build service
+    UpdateBuildService;
+}
+
+#
+ShowBuildTime;
