@@ -125,7 +125,7 @@ function CleanBuild([bool] $final)
             Remove-Item "sdk" -Recurse -Force
         }
 
-        if ((!$global:buildbot) -and (Test-Path "${env:BUILD_OUTPUT_FOLDER}"))
+        if ((!$global:buildbot) -and (Test-Path Env:\BUILD_OUTPUT_FOLDER))
         {
             Remove-Item "${env:BUILD_OUTPUT_FOLDER}" -Recurse -Force
         }
@@ -405,7 +405,7 @@ function BuildSetup()
         return;
     }
 
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
     {
         New-Item "$env:BUILD_OUTPUT_FOLDER" -type directory -ErrorAction SilentlyContinue | Out-Null
     }
@@ -437,7 +437,7 @@ function BuildSdkZip()
         return;
     }
 
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
     {
         New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
     }
@@ -482,7 +482,7 @@ function BuildZip()
         Remove-Item $zip_path -Force -ErrorAction SilentlyContinue
     }
 
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
     {
         New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
     }
@@ -535,7 +535,7 @@ function BuildSourceZip()
         return;
     }
 
-    if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
+    if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
     {
         New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
     }
@@ -605,17 +605,10 @@ function UpdateBuildService()
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
-    if ($global:buildbot)
+    if (Test-Path "$git")
     {
-        $buildMessage = "${env:APPVEYOR_REPO_COMMIT_MESSAGE}";
-    }
-    else
-    {
-        if (Test-Path "$git")
-        {
-            $buildMessage = ( & "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
-            $buildMessage = $buildMessage -replace "\r\n\r\n","\r\n"
-        }
+        $buildMessage = ( & "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
+        $buildMessage = $buildMessage -replace "\r\n\r\n","\r\n"
     }
 
     if (Test-Path "$zip")
@@ -627,7 +620,7 @@ function UpdateBuildService()
 
     if (Test-Path "$exe")
     {
-        $ver = (Get-Item "$exe").VersionInfo.FileVersion;
+        $fileVer = (Get-Item "$exe").VersionInfo.FileVersion;
     }
 
     if ($array)
@@ -639,17 +632,16 @@ function UpdateBuildService()
         $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
     }
 
-    # Update the Appveyor version
-    if ($global:buildbot -and $ver)
+    if ($global:buildbot -and $fileVer)
     {
-        Update-AppveyorBuild -Version $ver
+        #Update-AppveyorBuild -Version $fileVer
     }
 
-    if ($buildMessage -and $fileHash -and $fileTime -and $fileSize -and $ver)
+    if ($buildMessage -and $fileHash -and $fileTime -and $fileSize -and $fileVer)
     {
         $json_headers = @{ "X-ApiKey"="${env:APPVEYOR_BUILD_KEY}" };
         $json_string = @{
-            version="$ver"
+            version="$fileVer"
             file_size="$fileSize"
             file_hash="$fileHash"
             file_sig="$fileHash"
