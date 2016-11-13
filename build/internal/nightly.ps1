@@ -61,10 +61,7 @@ function InitializeScriptEnvironment()
         # Clear the console (if we're not running on the appveyor buildbot)
         Clear-Host;
     }
-}
 
-function EnableDebug()
-{
     if ($debug)
     {
         # Enable debug if we have a valid argument.
@@ -588,7 +585,7 @@ function BuildChecksumsFile()
     # Save the string
     $data | Out-File "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-checksums.txt"
 
-    Write-Host "          [SUCCESS]" -ForegroundColor Green
+    Write-Host "            [SUCCESS]" -ForegroundColor Green
 }
 
 function BuildSignaturesFile()
@@ -621,8 +618,8 @@ function UpdateBuildService()
     #if (Test-Path "$exe")
     #    $fileVer = (Get-Item "$exe").VersionInfo.FileVersion;
 
-    $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags" ) | Out-String
-    $latestGitCount = (& "$git" "rev-list", "--count", "master" ) | Out-String
+    $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags") | Out-String
+    $latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
     $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
     $fileVer = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
 
@@ -648,19 +645,17 @@ function UpdateBuildService()
             size="$fileSize"
             hash="$fileHash"
             sig="$fileHash"
+            updated="$fileTime"
+            message="$buildMessage"
             forum_url="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
             setup_url="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-nightly-bin.zip"
-            updated=$fileTime
-            message="$buildMessage"
         } | ConvertTo-Json;
 
         $restResult = Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Body $json_string -Header $json_headers -ErrorVariable $restError -ErrorAction SilentlyContinue
       
         if ($restError)
         {
-            $statusCode = $RestError.ErrorRecord.Exception.Response.StatusCode.value__
-
-            Write-Host "`t[FAILED] ($statusCode)" -ForegroundColor Red
+            Write-Host "`t[FAILED]" -ForegroundColor Red
         }
         else
         {
@@ -683,8 +678,6 @@ function ShowBuildTime()
 
 # Entry point
 InitializeScriptEnvironment;
-
-EnableDebug;
 
 # Check if the current directory contains the main solution
 CheckBaseDirectory;
