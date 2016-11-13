@@ -605,39 +605,54 @@ function UpdateBuildService()
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
-    if (Test-Path "$git")
+    if ($global:buildbot)
     {
-        $buildMessage = ( & "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
-        $buildMessage = $buildMessage -replace "\r\n\r\n","\r\n"
+        $buildMessage = "${env:APPVEYOR_REPO_COMMIT_MESSAGE}";
+    }
+    else
+    {
+        if (Test-Path "$git")
+        {
+            $buildMessage = ( & "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
+            $buildMessage = $buildMessage -replace "\r\n\r\n","\r\n"
+        }
     }
 
     if (Test-Path "$zip")
     {
         $fileInfo = (Get-Item "$zip");
-        $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
-
         $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
         $fileSize = $fileInfo.Length;
     }
 
     if (Test-Path "$exe")
     {
-        $buildVersion = (Get-Item "$exe").VersionInfo.FileVersion;
+        $ver = (Get-Item "$exe").VersionInfo.FileVersion;
     }
 
-    if ($global:buildbot -and $buildVersion)
+    if ($array)
     {
-        Update-AppveyorBuild -Version $buildVersion
+        $fileHash = $array[2].Hash;
+    }
+    else
+    {
+        $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
     }
 
-    if ($buildMessage -and $fileHash -and $fileTime -and $fileSize -and $buildVersion)
+    # Update the Appveyor version
+    if ($global:buildbot -and $ver)
+    {
+        Update-AppveyorBuild -Version $ver
+    }
+
+    if ($buildMessage -and $fileHash -and $fileTime -and $fileSize -and $ver)
     {
         $json_headers = @{ "X-ApiKey"="${env:APPVEYOR_BUILD_KEY}" };
         $json_string = @{
-            version="$buildVersion"
+            version="$ver"
             file_size="$fileSize"
             file_hash="$fileHash"
-            file_sig="$file_Hash"
+            file_sig="$fileHash"
             forum_url="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
             setup_url="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-nightly-bin.zip"
             file_time=$fileTime
