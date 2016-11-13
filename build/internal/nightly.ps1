@@ -159,6 +159,7 @@ function BuildSolution([string] $FileName)
                 "/p:Platform=Win32",
                 "/t:Rebuild",
                 "/nodeReuse:true",
+                "/p:DefineConstants=NIGHTLY_BUILD",
                 "$FileName"
 
     & $msBuild  "/m",
@@ -168,6 +169,7 @@ function BuildSolution([string] $FileName)
                 "/p:Platform=x64",
                 "/t:Rebuild",
                 "/nodeReuse:true",
+                "/p:DefineConstants=NIGHTLY_BUILD",
                 "$FileName"
 
     if ($LASTEXITCODE -eq 0)
@@ -612,6 +614,8 @@ function UpdateBuildService()
         $fileInfo = (Get-Item "$zip");
         $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
         $fileSize = $fileInfo.Length;
+
+        $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
     }
 
     #$exe = "bin\Release64\ProcessHacker.exe"
@@ -622,15 +626,6 @@ function UpdateBuildService()
     $latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
     $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
     $fileVer = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
-
-    if ($array)
-    {
-        $fileHash = $array[2].Hash;
-    }
-    else
-    {
-        $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
-    }
 
     if ($global:buildbot -and $fileVer)
     {
