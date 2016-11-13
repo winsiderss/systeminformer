@@ -160,8 +160,7 @@ function BuildSolution([string] $FileName)
                 "/verbosity:$verbose",
                 "/p:Configuration=Release",
                 "/p:Platform=Win32",
-                "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:Rebuild",
+                "/t:Rebuild",
                 "/nodeReuse:true",
                 "$FileName"
 
@@ -170,8 +169,7 @@ function BuildSolution([string] $FileName)
                 "/verbosity:$verbose",
                 "/p:Configuration=Release",
                 "/p:Platform=x64",
-                "/maxcpucount:${env:NUMBER_OF_PROCESSORS}",
-                "/target:Rebuild",
+                "/t:Rebuild",
                 "/nodeReuse:true",
                 "$FileName"
 
@@ -395,8 +393,8 @@ function SetupProcessHackerWow64()
 {
     Write-Host "Setting up Wow64 files" -NoNewline -ForegroundColor Cyan
 
-    New-Item "bin\Release64\x86" -type directory | Out-Null
-    New-Item "bin\Release64\x86\plugins" -type directory | Out-Null
+    New-Item "bin\Release64\x86" -type Directory -ErrorAction SilentlyContinue | Out-Null
+    New-Item "bin\Release64\x86\plugins" -type Directory -ErrorAction SilentlyContinue | Out-Null
 
     Copy-Item "bin\Release32\ProcessHacker.exe"        "bin\Release64\x86\"
     Copy-Item "bin\Release32\ProcessHacker.pdb"        "bin\Release64\x86\"
@@ -410,8 +408,8 @@ function SetupSignatures()
 {
     Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
 
-    New-Item "bin\Release32\ProcessHacker.sig" -ItemType file | Out-Null
-    New-Item "bin\Release64\ProcessHacker.sig" -ItemType file | Out-Null
+    New-Item "bin\Release32\ProcessHacker.sig" -ItemType File -ErrorAction SilentlyContinue | Out-Null
+    New-Item "bin\Release64\ProcessHacker.sig" -ItemType File -ErrorAction SilentlyContinue | Out-Null
 
     Write-Host "`t[SUCCESS]" -ForegroundColor Green
 }
@@ -422,7 +420,7 @@ function BuildSetup()
 
     if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
     {
-        New-Item "$env:BUILD_OUTPUT_FOLDER" -type directory  -ErrorAction SilentlyContinue | Out-Null
+        New-Item "$env:BUILD_OUTPUT_FOLDER" -type directory -ErrorAction SilentlyContinue | Out-Null
     }
 
     # Set innosetup path
@@ -444,7 +442,9 @@ function BuildSetup()
         & $innobuild "build\installer\Process_Hacker_installer.iss" | Out-Null
     }
 
+    
     # Move and rename the setup into the bin directory
+    Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe" -ErrorAction SilentlyContinue
     Move-Item "build\installer\processhacker-3.0-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe"
 
     Write-Host "`t[SUCCESS]" -ForegroundColor Green
@@ -456,7 +456,7 @@ function BuildSdkZip()
     
     if ((!$global:buildbot) -and (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}")))
     {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
     }
 
     # Set 7-Zip executable path
@@ -501,11 +501,14 @@ function BuildZip()
     }
 
     # Remove junk files
-    Remove-Item "bin\*" -recurse -include "*.iobj", "*.ipdb", "*.exp", "*.lib"
+    Remove-Item "bin\*" -recurse -include "*.iobj", "*.ipdb", "*.exp", "*.lib" -ErrorAction SilentlyContinue
 
+    # Remove the existing directories
+    Remove-Item "x86\*" -recurse -ErrorAction SilentlyContinue
+    Remove-Item "x64\*" -recurse -ErrorAction SilentlyContinue
     # Rename the directories
-    Rename-Item "bin\Release32" "x86"
-    Rename-Item "bin\Release64" "x64"
+    Copy-Item "bin\Release32" -recurse -Destination "x86" -Force
+    Copy-Item "bin\Release64" -recurse -Destination "x64" -Force
 
     # Set 7-Zip path
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"
@@ -639,7 +642,7 @@ function main()
     CheckBaseDirectory;
 
     # Cleanup any previous builds
-    CleanBuild($false);
+    #CleanBuild($false);
 
     # Build the main solution
     BuildSolution("ProcessHacker.sln");
@@ -690,7 +693,7 @@ function main()
     GenerateHashes;
 
     # Preform final clean-up
-    CleanBuild($true);
+    #CleanBuild($true);
 
     #
     ShowBuildTime;
