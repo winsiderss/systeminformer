@@ -599,7 +599,6 @@ function BuildSignaturesFile()
 
 function UpdateBuildService()
 {
-    $exe = "bin\Release64\ProcessHacker.exe"
     $zip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip"
     $git = "${env:ProgramFiles}\Git\cmd\git.exe"
 
@@ -618,10 +617,14 @@ function UpdateBuildService()
         $fileSize = $fileInfo.Length;
     }
 
-    if (Test-Path "$exe")
-    {
-        $fileVer = (Get-Item "$exe").VersionInfo.FileVersion;
-    }
+    #$exe = "bin\Release64\ProcessHacker.exe"
+    #if (Test-Path "$exe")
+    #    $fileVer = (Get-Item "$exe").VersionInfo.FileVersion;
+
+    $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags" ) | Out-String
+    $latestGitCount = (& "$git" "rev-list", "--count", "master" ) | Out-String
+    $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
+    $fileVer = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
 
     if ($array)
     {
@@ -642,12 +645,12 @@ function UpdateBuildService()
         $json_headers = @{ "X-ApiKey"="${env:APPVEYOR_BUILD_KEY}" };
         $json_string = @{
             version="$fileVer"
-            file_size="$fileSize"
-            file_hash="$fileHash"
-            file_sig="$fileHash"
+            size="$fileSize"
+            hash="$fileHash"
+            sig="$fileHash"
             forum_url="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
             setup_url="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-nightly-bin.zip"
-            file_time=$fileTime
+            updated=$fileTime
             message="$buildMessage"
         } | ConvertTo-Json;
 
