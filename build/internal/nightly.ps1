@@ -159,7 +159,6 @@ function BuildSolution([string] $FileName)
                 "/p:Platform=Win32",
                 "/t:Rebuild",
                 "/nodeReuse:true",
-                "/p:DefineConstants=NIGHTLY_BUILD",
                 "$FileName"
 
     & $msBuild  "/m",
@@ -169,7 +168,6 @@ function BuildSolution([string] $FileName)
                 "/p:Platform=x64",
                 "/t:Rebuild",
                 "/nodeReuse:true",
-                "/p:DefineConstants=NIGHTLY_BUILD",
                 "$FileName"
 
     if ($LASTEXITCODE -eq 0)
@@ -427,6 +425,7 @@ function BuildSetup()
 function BuildSdkZip()
 {
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe" # Set 7-Zip executable path
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip";
 
     Write-Host "Building nightly-sdk.zip" -NoNewline -ForegroundColor Cyan
 
@@ -446,7 +445,7 @@ function BuildSdkZip()
         & "$7zip" "a",
                 "-tzip",
                 "-mx9",
-                "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip",
+                "$zip_path",
                 ".\sdk\*",
                 "-r"
     }
@@ -455,7 +454,7 @@ function BuildSdkZip()
         & "$7zip" "a",
                 "-tzip",
                 "-mx9",
-                "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip",
+                "$zip_path",
                 ".\sdk\*",
                 "-r" | Out-Null
     }
@@ -622,7 +621,7 @@ function UpdateBuildService()
     #if (Test-Path "$exe")
     #    $fileVer = (Get-Item "$exe").VersionInfo.FileVersion;
 
-    $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags") | Out-String
+    $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
     $latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
     $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
     $fileVer = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
