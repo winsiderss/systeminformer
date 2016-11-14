@@ -23,28 +23,11 @@
 #include "devices.h"
 #include <ntdddisk.h>
 
-// NOTE: Functions in this file can be used on disks, volumes, and partitions,
-// even if they appear to only support one type, they can be used to query different
-// information from other types.
-// TODO: Come up with a better naming scheme to identify these multi-purpose functions.
-
 NTSTATUS DiskDriveCreateHandle(
     _Out_ PHANDLE DeviceHandle,
     _In_ PPH_STRING DevicePath
     )
 {
-    // Some examples of paths that can be used to open the disk device for statistics:
-    // \PhysicalDrive1
-    // \X:
-    // X:\
-    // \HarddiskVolume1
-    // \Harddisk1Partition1
-    // \Harddisk1\Partition1
-    // \Volume{a978c827-cf64-44b4-b09a-57a55ef7f49f}
-    // IOCTL_MOUNTMGR_QUERY_POINTS (used by FindFirstVolume and FindFirstVolumeMountPoint)
-    // HKEY_LOCAL_MACHINE\\SYSTEM\\MountedDevices (contains the DosDevice and path used by the SetupAPI with DetailData->DevicePath)
-    // Other methods??
-
     return PhCreateFileWin32(
         DeviceHandle,
         DevicePath->Buffer,
@@ -68,20 +51,15 @@ ULONG DiskDriveQueryDeviceMap(
 
     memset(&deviceMapInfo, 0, sizeof(deviceMapInfo));
 
-    if (NT_SUCCESS(NtQueryInformationProcess(
+    NtQueryInformationProcess(
         NtCurrentProcess(),
         ProcessDeviceMap,
         &deviceMapInfo,
         sizeof(deviceMapInfo),
         NULL
-        )))
-    {
-        return deviceMapInfo.Query.DriveMap;
-    }
-    else
-    {
-        return GetLogicalDrives();
-    }
+        );
+    
+    return deviceMapInfo.Query.DriveMap;
 }
 
 PPH_STRING DiskDriveQueryDosMountPoints(
@@ -1563,98 +1541,96 @@ PWSTR SmartAttributeGetDescription(
     case SMART_ATTRIBUTE_ID_SOFT_READ_ERROR_RATE:
         return L"Uncorrected read errors reported to the operating system.";
     case SMART_ATTRIBUTE_ID_SATA_DOWNSHIFT_ERROR_COUNT:
-        break;
+        return L"Western Digital, Samsung or Seagate attribute: Total number of data blocks with detected, uncorrectable errors encountered during normal operation.";
     case SMART_ATTRIBUTE_ID_END_TO_END_ERROR:
-        break;
+        return L"This attribute is a part of Hewlett-Packard's SMART IV technology, as well as part of other vendors' IO Error Detection and Correction schemas, and it contains a count of parity errors which occur in the data path to the media via the drive's cache RAM.";
     case SMART_ATTRIBUTE_ID_HEAD_STABILITY:
-        break;
+        return L"Western Digital attribute.";
     case SMART_ATTRIBUTE_ID_INDUCED_OP_VIBRATION_DETECTION:
-        break;
+        return L"Western Digital attribute.";
     case SMART_ATTRIBUTE_ID_REPORTED_UNCORRECTABLE_ERRORS:
-        break;
+        return L"The count of errors that could not be recovered using hardware ECC (see attribute 195).";
     case SMART_ATTRIBUTE_ID_COMMAND_TIMEOUT:
-        break;
+        return L"The count of aborted operations due to HDD timeout. Normally this attribute value should be equal to zero and if the value is far above zero, then most likely there will be some serious problems with power supply or an oxidized data cable.";
     case SMART_ATTRIBUTE_ID_HIGH_FLY_WRITES:
-        break;
+        return L"This attribute indicates the total count of the recording head flying outside its normal operating range. If an unsafe fly height condition is encountered, the write process is stopped, and the information is rewritten or reallocated to a safe region of the hard drive. This attribute indicates the count of these errors detected over the lifetime of the drive.";
     case SMART_ATTRIBUTE_ID_TEMPERATURE_DIFFERENCE_FROM_100:
-        break;
+        return L"Airflow temperature. Value is equal to (100?temp. °C), allowing manufacturer to set a minimum threshold which corresponds to a maximum temperature.";
     case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_POWER_OFF_RETRACT_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_LOAD_CYCLE_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_TEMPERATURE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_HARDWARE_ECC_RECOVERED:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_REALLOCATION_EVENT_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_CURRENT_PENDING_SECTOR_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_UNCORRECTABLE_SECTOR_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_ULTRADMA_CRC_ERROR_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_MULTI_ZONE_ERROR_RATE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_OFFTRACK_SOFT_READ_ERROR_RATE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_DATA_ADDRESS_MARK_ERRORS:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_RUN_OUT_CANCEL:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_SOFT_ECC_CORRECTION:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_THERMAL_ASPERITY_RATE_TAR:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_FLYING_HEIGHT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_SPIN_HIGH_CURRENT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_SPIN_BUZZ:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_OFFLINE_SEEK_PERFORMANCE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_VIBRATION_DURING_WRITE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_SHOCK_DURING_WRITE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_DISK_SHIFT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_GSENSE_ERROR_RATE_ALT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_LOADED_HOURS:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_RETRY_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_LOAD_FRICTION:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_LOAD_UNLOAD_CYCLE_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_LOAD_IN_TIME:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_TORQUE_AMPLIFICATION_COUNT:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_POWER_OFF_RETTRACT_CYCLE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_GMR_HEAD_AMPLITUDE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_TOTAL_LBA_READ:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE:
-        break;
+        return L"";
     case SMART_ATTRIBUTE_ID_FREE_FALL_PROTECTION:
-        break;
+        return L"";
     }
-
-    //TODO: Include more descriptions..
 
     return L"";
 }
