@@ -119,7 +119,13 @@ VOID NcAreaInitializeImageList(
     }
     else
     {
-        //PhSetImageListBitmap(Context->ImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
+        HBITMAP bitmapHandle;
+
+        if (bitmapHandle = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
+        {
+            Context->BitmapActive = CommonBitmapToIcon(bitmapHandle, Context->ImageWidth, Context->ImageHeight);
+            DeleteObject(bitmapHandle);
+        }
     }
 
     if (bitmapInactive)
@@ -129,7 +135,13 @@ VOID NcAreaInitializeImageList(
     }
     else
     {
-        //PhSetImageListBitmap(Context->ImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
+        HBITMAP bitmapHandle;
+
+        if (bitmapHandle = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
+        {
+            Context->BitmapInactive = CommonBitmapToIcon(bitmapHandle, Context->ImageWidth, Context->ImageHeight);
+            DeleteObject(bitmapHandle);
+        }
     }
 }
 

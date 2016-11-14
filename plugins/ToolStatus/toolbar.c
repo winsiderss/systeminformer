@@ -683,18 +683,18 @@ VOID ToolbarLoadButtonSettings(
         {
             if (ToolbarButtons[i].idCommand == buttonArray[index].idCommand)
             {
-                HBITMAP buttonImage;
+                HBITMAP bitmap;
 
-                buttonImage = ToolbarGetImage(ToolbarButtons[i].idCommand);
+                bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand);
 
                 // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
                 buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = ImageList_Add(
                     ToolBarImageList,
-                    buttonImage,
+                    bitmap,
                     NULL
                     );
 
-                DeleteObject(buttonImage);
+                DeleteObject(bitmap);
                 break;
             }
         }
