@@ -597,48 +597,82 @@ function BuildSignaturesFile()
 
 function UpdateBuildService()
 {
-    $zip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip"
     $git = "${env:ProgramFiles}\Git\cmd\git.exe"
+    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe"
+    $sdkZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip"
+    $binZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip"
+    $srcZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" 
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
     if (Test-Path "$git")
     {
-        $buildMessage = ( & "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
-        $buildMessage = $buildMessage -replace "\r\n\r\n","\r\n"
+        $latestGitMessage = (& "$git" "log", "-n 10", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
+        $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
+        #$latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
+        $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
+        
+        $buildMessage = $latestGitMessage -replace "\r\n\r\n","\r\n"
+        $fileVer = "3.0." + $latestGitRevision.Trim();
     }
 
-    if (Test-Path "$zip")
+    if (Test-Path "$binZip")
     {
-        $fileInfo = (Get-Item "$zip");
+        $fileInfo = (Get-Item "$binZip");
         $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
         $fileSize = $fileInfo.Length;
+    }
 
-        $fileHash = (Get-FileHash "$zip" -Algorithm SHA256).Hash;
+    if ($array)
+    {
+        $exeHash = $array[0].Hash;
+        $sdkHash = $array[1].Hash;
+        $binHash = $array[2].Hash;
+        $srcHash = $array[3].Hash;
+    }
+    else
+    {
+        if (Test-Path "$exeSetup")
+        {
+            $exeHash = (Get-FileHash "$exeSetup" -Algorithm SHA256).Hash;
+        }
+
+        if (Test-Path "$sdkZip")
+        {
+            $sdkHash = (Get-FileHash "$sdkZip" -Algorithm SHA256).Hash;
+        }
+
+        if (Test-Path "$binZip")
+        {
+            $binHash = (Get-FileHash "$binZip" -Algorithm SHA256).Hash;
+        }
+        
+        if (Test-Path "$srcZip")
+        {
+            $srcHash = (Get-FileHash "$srcZip" -Algorithm SHA256).Hash;
+        }
     }
 
     #$exe = "bin\Release64\ProcessHacker.exe"
     #if (Test-Path "$exe")
     #    $fileVer = (Get-Item "$exe").VersionInfo.FileVersion;
 
-    $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
-    $latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
-    $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
-    $fileVer = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
-
     if ($global:buildbot -and $fileVer)
     {
         #Update-AppveyorBuild -Version $fileVer
     }
 
-    if ($buildMessage -and $fileHash -and $fileTime -and $fileSize -and $fileVer)
+    if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $fileTime -and $fileSize -and $fileVer)
     {
         $json_headers = @{ "X-ApiKey"="${env:APPVEYOR_BUILD_KEY}" };
         $json_string = @{
             version="$fileVer"
             size="$fileSize"
-            hash="$fileHash"
-            sig="$fileHash"
+            hash_setup="$exeHash"
+            hash_sdk="$sdkHash"
+            hash_bin="$binHash"
+            hash_src="$srcHash"
+            sig=""
             updated="$fileTime"
             message="$buildMessage"
             forum_url="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
