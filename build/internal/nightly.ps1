@@ -101,39 +101,6 @@ function CheckBaseDirectory()
     }
 }
 
-function CleanBuild([bool] $final)
-{
-    if ($final)
-    {
-        if (Test-Path "bin")
-        {
-            Remove-Item "bin" -Recurse -Force
-        }
-    }
-    else
-    {
-        if (Test-Path "bin")
-        {
-            Remove-Item "bin" -Recurse -Force
-        }
-
-        if (Test-Path "sdk")
-        {
-            Remove-Item "sdk" -Recurse -Force
-        }
-
-        if ((!$global:buildbot) -and (Test-Path Env:\BUILD_OUTPUT_FOLDER))
-        {
-            Remove-Item "${env:BUILD_OUTPUT_FOLDER}" -Recurse -Force
-        }
-
-        if (Test-Path "ProcessHacker\sdk\phapppub.h")
-        {
-            Remove-Item "ProcessHacker\sdk\phapppub.h" -Force
-        }
-    }
-}
-
 function BuildSolution([string] $FileName)
 {
     # Set msbuild path (TODO: Do we need the 32bit version of MSBuild for x86 builds?)
@@ -482,7 +449,7 @@ function BuildBinZip()
 
     if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
     {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
     }
 
     if ($global:debug_enabled)
@@ -535,7 +502,7 @@ function BuildSourceZip()
 
     if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
     {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type directory -ErrorAction SilentlyContinue | Out-Null
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
     }
 
     & "$git" "--git-dir=.git", 
@@ -578,7 +545,7 @@ function BuildPdbZip()
         & "$7zip" "a",
                   "-tzip",
                   "-mx9",
-                  $zip_path,
+                  "$zip_path",
                   "-r",
                   "-xr!Debug32", # Ignore junk directories
                   "-xr!Debug64",
@@ -590,7 +557,7 @@ function BuildPdbZip()
         & "$7zip" "a",
                   "-tzip",
                   "-mx9",
-                  $zip_path,
+                  "$zip_path",
                   "-r",
                   "-xr!Debug32", # Ignore junk directories
                   "-xr!Debug64",
@@ -603,7 +570,7 @@ function BuildPdbZip()
 
 function BuildChecksumsFile()
 {
-    $fileHashes = "";
+    $fileHashes = "`r`n";
     $file_names = 
         "processhacker-nightly-setup.exe",
         "processhacker-nightly-sdk.zip",
@@ -624,8 +591,8 @@ function BuildChecksumsFile()
             continue;
         }
 
-        $fileHashes += $file + ": (SHA256) " + (Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256).Hash;
-        $fileHashes += "`r`n";
+        $fileHashes += $file + ": (SHA256)`r`n" + (Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256).Hash;
+        $fileHashes += "`r`n`r`n";
     }
 
     if (Test-Path "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-checksums.txt")
@@ -721,16 +688,9 @@ function UpdateBuildService()
             "message"="$buildMessage"
         } | ConvertTo-Json;
 
-        Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Header $jsonHeaders -Body $jsonString -ErrorVariable $restError -ErrorAction SilentlyContinue | Out-Null
-      
-        if ($restError)
-        {
-            Write-Host "  [FAILED]" -ForegroundColor Red
-        }
-        else
-        {
-            Write-Host "  [SUCCESS]" -ForegroundColor Green
-        }
+        Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Header $jsonHeaders -Body $jsonString -ErrorAction SilentlyContinue | Out-Null
+
+        Write-Host "  [SUCCESS]" -ForegroundColor Green
     }
     else
     {
