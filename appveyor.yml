@@ -1,5 +1,5 @@
 # Version format.
-version: "Build #{build}"
+version: "3.0.0.#{build}"
 
 # Only build the master branch.
 branches:
@@ -15,9 +15,6 @@ skip_tags: true
   
 # Set the clone directory on the buildbot.
 clone_folder: C:\projects\processhacker2
-
-# Set clone depth.
-#clone_depth: 1
   
 # Immediately finish build if something fails.
 matrix:
@@ -54,6 +51,8 @@ artifacts:
   name: processhacker-nightly-sdk.zip
 - path: .\processhacker-nightly-src.zip
   name: processhacker-nightly-src.zip
+- path: .\processhacker-nightly-pdb.zip
+  name: processhacker-nightly-pdb.zip
 - path: .\processhacker-nightly-checksums.txt
   name: processhacker-nightly-checksums.txt
 
