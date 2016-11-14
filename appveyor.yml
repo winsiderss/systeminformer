@@ -1,5 +1,5 @@
 # Version format.
-version: "3.0.0.#{build}"
+version: "3.0.0.{build}"
 
 # Only build the master branch.
 branches:
@@ -31,17 +31,7 @@ test: off
 build_script:
 - ps: .\build\internal\nightly.ps1
 
-# FTP deployment settings.
-deploy:
-- provider: FTP
-  host: wj32.org
-  protocol: sftp
-  username: processhacker
-  password:
-    secure: lWdlTtxnMMQRjUQ8pndOBPBiJPn8b8ssP1qtSPzIj58=
-  folder: /www/rel
-
-# Deploy these files to our ftp.
+# Deploy these files for download.
 artifacts:
 - path: .\processhacker-nightly-setup.exe
   name: processhacker-nightly-setup.exe
