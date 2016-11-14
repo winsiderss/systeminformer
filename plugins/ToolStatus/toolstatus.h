@@ -30,9 +30,10 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <windowsx.h>
-#include <Wincodec.h>
+#include <wincodec.h>
+#include <uxtheme.h>
+#include <vssym32.h>
 #include <toolstatusintf.h>
-
 #include "resource.h"
 
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
@@ -194,6 +195,11 @@ HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     );
 
+HICON CustomizeGetToolbarIcon(
+    _In_ PVOID Context,
+    _In_ INT CommandID
+    );
+
 VOID ToolbarLoadButtonSettings(
     VOID
     );
@@ -267,8 +273,8 @@ typedef struct _EDIT_CONTEXT
 
     HWND WindowHandle;
     HFONT WindowFont;
-    HIMAGELIST ImageList;
-
+    HICON BitmapActive;
+    HICON BitmapInactive;
     HBRUSH BrushNormal;
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
@@ -376,7 +382,7 @@ VOID StatusBarShowCustomizeDialog(
 typedef struct _BUTTON_CONTEXT
 {
     INT IdCommand;
-    INT IdBitmap;
+    HICON IconHandle;
 
     union
     {
@@ -393,6 +399,14 @@ typedef struct _BUTTON_CONTEXT
 
 typedef struct _CUSTOMIZE_CONTEXT
 {
+    HFONT FontHandle;
+    HBRUSH BrushNormal;
+    HBRUSH BrushPushed;
+    HBRUSH BrushHot;
+    INT CXWidth;
+    INT ImageWidth;
+    INT ImageHeight;
+
     HWND DialogHandle;
     HWND AvailableListHandle;
     HWND CurrentListHandle;
@@ -400,10 +414,6 @@ typedef struct _CUSTOMIZE_CONTEXT
     HWND MoveDownButtonHandle;
     HWND AddButtonHandle;
     HWND RemoveButtonHandle;
-
-    INT BitmapWidth;
-    HFONT FontHandle;
-    HIMAGELIST ImageListHandle;
 } CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
 
 #endif

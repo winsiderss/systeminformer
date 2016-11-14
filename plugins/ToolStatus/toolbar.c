@@ -21,6 +21,7 @@
  */
 
 #include "toolstatus.h"
+#include "commonutil.h"
 
 SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
@@ -615,7 +616,7 @@ VOID ToolbarLoadButtonSettings(
     VOID
     )
 {
-    INT buttonCount;
+    INT count;
     ULONG64 countInteger;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
@@ -647,13 +648,13 @@ VOID ToolbarLoadButtonSettings(
         return;
     }
 
-    buttonCount = (INT)countInteger;
+    count = (INT)countInteger;
 
     // Allocate the button array
-    buttonArray = PhAllocate(buttonCount * sizeof(TBBUTTON));
-    memset(buttonArray, 0, buttonCount * sizeof(TBBUTTON));
+    buttonArray = PhAllocate(count * sizeof(TBBUTTON));
+    memset(buttonArray, 0, count * sizeof(TBBUTTON));
 
-    for (INT index = 0; index < buttonCount; index++)
+    for (INT index = 0; index < count; index++)
     {
         ULONG64 commandInteger;
         PH_STRINGREF commandIdPart;
@@ -699,7 +700,7 @@ VOID ToolbarLoadButtonSettings(
         }
     }
 
-    SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);
+    SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 
     PhFree(buttonArray);
 }
@@ -708,22 +709,22 @@ VOID ToolbarSaveButtonSettings(
     VOID
     )
 {
-    INT buttonIndex = 0;
-    INT buttonCount = 0;
+    INT index = 0;
+    INT count = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    count = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
     PhAppendFormatStringBuilder(
         &stringBuilder,
         L"%d|",
-        buttonCount
+        count
         );
 
-    for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+    for (index = 0; index < count; index++)
     {
         TBBUTTONINFO buttonInfo =
         {
@@ -731,8 +732,7 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        // Get button information.
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo) == -1)
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
             break;
 
         PhAppendFormatStringBuilder(
@@ -753,8 +753,8 @@ VOID ReBarLoadLayoutSettings(
     VOID
     )
 {
-    UINT bandIndex = 0;
-    UINT bandCount = 0;
+    UINT index = 0;
+    UINT count = 0;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
@@ -764,9 +764,9 @@ VOID ReBarLoadLayoutSettings(
     if (remaining.Length == 0)
         return;
 
-    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
 
-    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+    for (index = 0; index < count; index++)
     {
         PH_STRINGREF idPart;
         PH_STRINGREF cxPart;
@@ -795,17 +795,17 @@ VOID ReBarLoadLayoutSettings(
         if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == -1)
             break;
 
-        if (oldBandIndex != bandIndex)
+        if (oldBandIndex != index)
         {
-            SendMessage(RebarHandle, RB_MOVEBAND, oldBandIndex, bandIndex);
+            SendMessage(RebarHandle, RB_MOVEBAND, oldBandIndex, index);
         }
 
-        if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
+        if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo))
         {
             rebarBandInfo.cx = (UINT)cxInteger;
             rebarBandInfo.fStyle |= (UINT)styleInteger;
 
-            SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+            SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
         }
     }
 }
@@ -814,16 +814,16 @@ VOID ReBarSaveLayoutSettings(
     VOID
     )
 {
-    UINT bandIndex = 0;
-    UINT bandCount = 0;
+    UINT index = 0;
+    UINT count = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
 
-    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+    for (index = 0; index < count; index++)
     {
         REBARBANDINFO rebarBandInfo =
         {
@@ -831,7 +831,7 @@ VOID ReBarSaveLayoutSettings(
             RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID
         };
 
-        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+        SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
 
         if (rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS)
         {

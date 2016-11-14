@@ -32,12 +32,17 @@ VOID NcAreaFreeTheme(
 {
     if (Context->BrushNormal)
         DeleteObject(Context->BrushNormal);
-
     if (Context->BrushHot)
         DeleteObject(Context->BrushHot);
-
     if (Context->BrushPushed)
         DeleteObject(Context->BrushPushed);
+
+    //if (Context->WindowFont)
+    //    DeleteObject(Context->WindowFont);
+    //if (Context->ActiveIcon)
+    //    DeleteObject(Context->ActiveIcon);
+    //if (Context->InactiveIcon)
+    //    DeleteObject(Context->InactiveIcon);
 }
 
 VOID NcAreaInitializeFont(
@@ -103,30 +108,28 @@ VOID NcAreaInitializeImageList(
 
     Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
     Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
-    Context->ImageList = ImageList_Create(Context->ImageWidth, Context->ImageHeight, ILC_COLOR32, 2, 2);
-    ImageList_SetImageCount(Context->ImageList, 2);
 
     bitmapActive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE);
     bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE);
 
     if (bitmapActive)
     {
-        ImageList_Replace(Context->ImageList, 0, bitmapActive, NULL);
+        Context->BitmapActive = CommonBitmapToIcon(bitmapActive, Context->ImageWidth, Context->ImageHeight);
         DeleteObject(bitmapActive);
     }
     else
     {
-        PhSetImageListBitmap(Context->ImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
+        //PhSetImageListBitmap(Context->ImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
 
     if (bitmapInactive)
     {
-        ImageList_Replace(Context->ImageList, 1, bitmapInactive, NULL);
+        Context->BitmapInactive = CommonBitmapToIcon(bitmapInactive, Context->ImageWidth, Context->ImageHeight);
         DeleteObject(bitmapInactive);
     }
     else
     {
-        PhSetImageListBitmap(Context->ImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
+        //PhSetImageListBitmap(Context->ImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP));
     }
 }
 
@@ -182,25 +185,37 @@ VOID NcAreaDrawButton(
     // Draw the image centered within the rect.
     if (Edit_GetTextLength(Context->WindowHandle) > 0)
     {
-        ImageList_Draw(
-            Context->ImageList,
-            0,
-            bufferDc,
-            bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2,
-            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - Context->ImageHeight) / 2,
-            ILD_NORMAL | ILD_TRANSPARENT
-            );
+        if (Context->BitmapActive)
+        {
+            DrawIconEx(
+                bufferDc,
+                bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2,
+                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - Context->ImageHeight) / 2,
+                Context->BitmapActive,
+                Context->ImageWidth,
+                Context->ImageHeight,
+                0,
+                NULL,
+                DI_NORMAL
+                );
+        }
     }
     else
     {
-        ImageList_Draw(
-            Context->ImageList,
-            1,
-            bufferDc,
-            bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2, // (ImageWidth - 2) offset left by two
-            bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2, // (ImageHeight - 2) offset top by one
-            ILD_NORMAL | ILD_TRANSPARENT
-            );
+        if (Context->BitmapInactive)
+        {
+            DrawIconEx(
+                bufferDc,
+                bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2, // (ImageWidth - 2) offset left by two
+                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2, // (ImageHeight - 2) offset top by one
+                Context->BitmapInactive,
+                Context->ImageWidth,
+                Context->ImageHeight,
+                0,
+                NULL,
+                DI_NORMAL
+                );
+        }
     }
 
     BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
@@ -229,12 +244,6 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_NCDESTROY:
         {
             NcAreaFreeTheme(context);
-
-            if (context->ImageList)
-                ImageList_Destroy(context->ImageList);
-
-            if (context->WindowFont)
-                DeleteObject(context->WindowFont);
 
             RemoveWindowSubclass(hWnd, NcAreaWndSubclassProc, uIdSubclass);
             RemoveProp(hWnd, L"EditSubclassContext");
