@@ -619,12 +619,13 @@ function UpdateBuildService()
     $sdkZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip"
     $binZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip"
     $srcZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" 
+    $pdbZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-pdb.zip" 
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
     if (Test-Path "$git")
     {
-        $latestGitMessage = (& "$git" "log", "-n 3", "--oneline", "--pretty=[%ar] %cn: %B") | Out-String
+        $latestGitMessage = (& "$git" "log", "-n", "5", "--pretty=%B") | Out-String
         $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
         #$latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
         $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
@@ -647,6 +648,7 @@ function UpdateBuildService()
         $sdkHash = $array[1].Hash;
         $binHash = $array[2].Hash;
         $srcHash = $array[3].Hash;
+        $pdbHash = $array[4].Hash;
     }
     else
     {
@@ -669,9 +671,14 @@ function UpdateBuildService()
         {
             $srcHash = (Get-FileHash "$srcZip" -Algorithm SHA256).Hash;
         }
+
+        if (Test-Path "$pdbZip")
+        {
+            $pdbHash = (Get-FileHash "$pdbZip" -Algorithm SHA256).Hash;
+        }
     }
 
-    if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $fileTime -and $fileSize -and $fileVersion)
+    if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
     {
         $jsonHeaders = @{"X-ApiKey"="${env:APPVEYOR_BUILD_KEY}"};
         $jsonString = @{
@@ -685,6 +692,7 @@ function UpdateBuildService()
             "hash_sdk"="$sdkHash"
             "hash_bin"="$binHash"
             "hash_src"="$srcHash"
+            "hash_pdb"="$pdbHash"
             "message"="$buildMessage"
         } | ConvertTo-Json;
 
