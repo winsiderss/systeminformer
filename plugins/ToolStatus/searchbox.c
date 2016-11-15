@@ -31,41 +31,77 @@ VOID NcAreaFreeTheme(
     )
 {
     if (Context->BrushNormal)
+    {
         DeleteObject(Context->BrushNormal);
+        Context->BrushNormal = NULL;
+    }
+
     if (Context->BrushHot)
+    {
         DeleteObject(Context->BrushHot);
+        Context->BrushHot = NULL;
+    }
+
     if (Context->BrushPushed)
+    {
         DeleteObject(Context->BrushPushed);
+        Context->BrushPushed = NULL;
+    }
 
-    //if (Context->WindowFont)
-    //    DeleteObject(Context->WindowFont);
-    //if (Context->ActiveIcon)
-    //    DeleteObject(Context->ActiveIcon);
-    //if (Context->InactiveIcon)
-    //    DeleteObject(Context->InactiveIcon);
-}
-
-VOID NcAreaInitializeFont(
-    _Inout_ PEDIT_CONTEXT Context
-    )
-{
-    // Cleanup existing font handle.
     if (Context->WindowFont)
+    {
         DeleteObject(Context->WindowFont);
+        Context->WindowFont = NULL;
+    }
 
-    Context->WindowFont = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+    if (Context->BitmapActive)
+    {
+        DeleteObject(Context->BitmapActive);
+        Context->BitmapActive = NULL;
+    }
 
-    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
+    if (Context->BitmapInactive)
+    {
+        DeleteObject(Context->BitmapInactive);
+        Context->BitmapInactive = NULL;
+    }
 }
 
 VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
+    HBITMAP bitmap;
+
     Context->CXWidth = PhMultiplyDivide(19, PhGlobalDpi, 96);
+    Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
+    Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
     Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
+    Context->WindowFont = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+
+    if (bitmap = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
+    {
+        Context->BitmapActive = CommonBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        DeleteObject(bitmap);
+    }
+    else if (bitmap = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
+    {
+        Context->BitmapActive = CommonBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        DeleteObject(bitmap);
+    }
+
+    if (bitmap = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
+    {
+        Context->BitmapInactive = CommonBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        DeleteObject(bitmap);
+    }
+    else if (bitmap = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
+    {
+        Context->BitmapInactive = CommonBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        DeleteObject(bitmap);
+    }
 
     if (IsThemeActive())
     {
@@ -73,8 +109,6 @@ VOID NcAreaInitializeTheme(
 
         if (themeDataHandle = OpenThemeData(Context->WindowHandle, VSCLASS_EDIT))
         {
-            //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
-
             if (!SUCCEEDED(GetThemeInt(
                 themeDataHandle,
                 EP_EDITBORDER_NOSCROLL,
@@ -97,52 +131,8 @@ VOID NcAreaInitializeTheme(
     {
         Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
     }
-}
 
-VOID NcAreaInitializeImageList(
-    _Inout_ PEDIT_CONTEXT Context
-    )
-{
-    HBITMAP bitmapActive;
-    HBITMAP bitmapInactive;
-
-    Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
-    Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
-
-    bitmapActive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE);
-    bitmapInactive = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE);
-
-    if (bitmapActive)
-    {
-        Context->BitmapActive = CommonBitmapToIcon(bitmapActive, Context->ImageWidth, Context->ImageHeight);
-        DeleteObject(bitmapActive);
-    }
-    else
-    {
-        HBITMAP bitmapHandle;
-
-        if (bitmapHandle = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
-        {
-            Context->BitmapActive = CommonBitmapToIcon(bitmapHandle, Context->ImageWidth, Context->ImageHeight);
-            DeleteObject(bitmapHandle);
-        }
-    }
-
-    if (bitmapInactive)
-    {
-        Context->BitmapInactive = CommonBitmapToIcon(bitmapInactive, Context->ImageWidth, Context->ImageHeight);
-        DeleteObject(bitmapInactive);
-    }
-    else
-    {
-        HBITMAP bitmapHandle;
-
-        if (bitmapHandle = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
-        {
-            Context->BitmapInactive = CommonBitmapToIcon(bitmapHandle, Context->ImageWidth, Context->ImageHeight);
-            DeleteObject(bitmapHandle);
-        }
-    }
+    SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
 }
 
 VOID NcAreaGetButtonRect(
@@ -194,7 +184,6 @@ VOID NcAreaDrawButton(
         FillRect(bufferDc, &bufferRect, Context->BrushNormal);
     }
 
-    // Draw the image centered within the rect.
     if (Edit_GetTextLength(Context->WindowHandle) > 0)
     {
         if (Context->BitmapActive)
@@ -231,10 +220,10 @@ VOID NcAreaDrawButton(
     }
 
     BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
+
     SelectObject(bufferDc, oldBufferBitmap);
     DeleteObject(bufferBitmap);
     DeleteDC(bufferDc);
-
     ReleaseDC(Context->WindowHandle, hdc);
 }
 
@@ -427,9 +416,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_THEMECHANGED:
         {
             NcAreaFreeTheme(context);
-            NcAreaInitializeImageList(context);
             NcAreaInitializeTheme(context);
-            NcAreaInitializeFont(context);
 
             // Reset the client area margins.
             SendMessage(hWnd, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
@@ -449,7 +436,13 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
             {
                 UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
-                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), height - 2);
+
+                RebarBandInsert(
+                    REBAR_BAND_ID_SEARCHBOX, 
+                    SearchboxHandle, 
+                    PhMultiplyDivide(180, PhGlobalDpi, 96), 
+                    height - 2
+                    );
             }
         }
         break;
@@ -480,9 +473,9 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
 
                 context->Hot = TRUE;
 
-                RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-
                 TrackMouseEvent(&trackMouseEvent);
+
+                RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
             }
         }
         break;
@@ -491,7 +484,6 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             if (context->Hot)
             {
                 context->Hot = FALSE;
-
                 RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
             }
         }
@@ -538,13 +530,11 @@ HBITMAP LoadImageFromResources(
     HGLOBAL resourceHandle = NULL;
     HRSRC resourceHandleSource = NULL;
     WICInProcPointer resourceBuffer = NULL;
-
     HDC screenHdc = NULL;
     HDC bufferDc = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     PBYTE bitmapBuffer = NULL;
-
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
@@ -552,9 +542,7 @@ HBITMAP LoadImageFromResources(
     IWICImagingFactory* wicFactory = NULL;
     IWICBitmapScaler* wicScaler = NULL;
     WICPixelFormatGUID pixelFormat;
-
     WICRect rect = { 0, 0, Width, Height };
-    GUID imagePixelFormat = RGBAImage ? GUID_WICPixelFormat32bppPRGBA : GUID_WICPixelFormat32bppPBGRA;
 
     __try
     {
@@ -603,7 +591,7 @@ HBITMAP LoadImageFromResources(
             __leave;
 
         // Check if the image format is supported:
-        if (IsEqualGUID(&pixelFormat, &imagePixelFormat))
+        if (IsEqualGUID(&pixelFormat, RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA))
         {
             wicBitmapSource = (IWICBitmapSource*)wicFrame;
         }
@@ -617,7 +605,7 @@ HBITMAP LoadImageFromResources(
             if (FAILED(IWICFormatConverter_Initialize(
                 wicFormatConverter,
                 (IWICBitmapSource*)wicFrame,
-                &imagePixelFormat,
+                RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA,
                 WICBitmapDitherTypeNone,
                 NULL,
                 0.0,
@@ -742,9 +730,6 @@ HWND CreateSearchControl(
 
     // Set our window context data.
     SetProp(context->WindowHandle, L"EditSubclassContext", (HANDLE)context);
-
-    // Create the imagelists
-    NcAreaInitializeImageList(context);
 
     // Subclass the Edit control window procedure.
     SetWindowSubclass(context->WindowHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);

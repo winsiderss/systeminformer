@@ -530,7 +530,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             context->CXWidth = 16;
             context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
-            context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
+            context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
             context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
             context->FontHandle = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
 
