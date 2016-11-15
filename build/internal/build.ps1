@@ -642,7 +642,7 @@ function UpdateBuildService()
         $fileSize = $fileInfo.Length;
     }
 
-    if ($global:buildbot -and $array)
+    if ($array)
     {
         $exeHash = $array[0].Hash;
         $sdkHash = $array[1].Hash;
@@ -680,6 +680,18 @@ function UpdateBuildService()
 
     if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
     {
+        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
+        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
+        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
+        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
+        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
+
+        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
+        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
+        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
+        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
+        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
+
         $jsonHeaders = @{"X-ApiKey"="${env:APPVEYOR_BUILD_KEY}"};
         $jsonString = @{
             "version"="$fileVersion"
@@ -696,6 +708,7 @@ function UpdateBuildService()
             "message"="$buildMessage"
         } | ConvertTo-Json;
 
+        # Update the project website
         Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Header $jsonHeaders -Body $jsonString -ErrorAction SilentlyContinue | Out-Null
 
         Write-Host "  [SUCCESS]" -ForegroundColor Green
