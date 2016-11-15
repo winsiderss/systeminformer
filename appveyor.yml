@@ -29,22 +29,22 @@ test: off
 
 # Run custom build script.
 build_script:
-- ps: .\build\internal\nightly.ps1
+- ps: .\build\internal\build.ps1
 
 # Deploy these files for download.
 artifacts:
-- path: .\processhacker-nightly-setup.exe
-  name: processhacker-nightly-setup.exe
-- path: .\processhacker-nightly-bin.zip
-  name: processhacker-nightly-bin.zip
-- path: .\processhacker-nightly-sdk.zip
-  name: processhacker-nightly-sdk.zip
-- path: .\processhacker-nightly-src.zip
-  name: processhacker-nightly-src.zip
-- path: .\processhacker-nightly-pdb.zip
-  name: processhacker-nightly-pdb.zip
-- path: .\processhacker-nightly-checksums.txt
-  name: processhacker-nightly-checksums.txt
+- path: .\processhacker-build-setup.exe
+  name: processhacker-build-setup.exe
+- path: .\processhacker-build-bin.zip
+  name: processhacker-build-bin.zip
+- path: .\processhacker-build-sdk.zip
+  name: processhacker-build-sdk.zip
+- path: .\processhacker-build-src.zip
+  name: processhacker-build-src.zip
+- path: .\processhacker-build-pdb.zip
+  name: processhacker-build-pdb.zip
+- path: .\processhacker-build-checksums.txt
+  name: processhacker-build-checksums.txt
 
 # Setup build notifications.
 notifications:

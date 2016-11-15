@@ -1,6 +1,5 @@
-﻿#
-# Process Hacker Toolchain - 
-#   Nightly release build script
+﻿# Process Hacker Toolchain - 
+#   Build script
 #
 # Copyright (C) 2016 dmex
 #
@@ -46,7 +45,7 @@ function InitializeScriptEnvironment()
         # This directory is excluded by .gitignore and handy for local builds.
         $env:BUILD_OUTPUT_FOLDER = "ClientBin";
 
-        # Set the default branch for the nightly-src.zip.
+        # Set the default branch for the build-src.zip.
         # We only set this when doing a local build, the buildbot sets this variable based on our appveyor.yml.
         $env:APPVEYOR_REPO_BRANCH = "master";
     }
@@ -295,18 +294,19 @@ function SetupSdkHeaders()
 
 function SetupPublicHeaders()
 {
-    $genheader = "tools\GenerateHeader\GenerateHeader\bin\Release\GenerateHeader.exe" # Set GenerateHeader path
+    # Set GenerateHeader path
+    $genheader = "tools\GenerateHeader\GenerateHeader\bin\Release\GenerateHeader.exe"
 
     Write-Host "Setting up public headers" -NoNewline -ForegroundColor Cyan
 
     if ($global:debug_enabled)
     {
-        # call the executable
+        # Call the executable
         & "$genheader" "build\sdk\phapppub_options.txt"
     }
     else
     {
-        # call the executable (no output)
+        # Call the executable (no output)
         & "$genheader" "build\sdk\phapppub_options.txt" | Out-Null
     }
 
@@ -359,9 +359,9 @@ function SetupProcessHackerWow64()
 function BuildSetupExe()
 {  
     $innoBuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe" # Set innosetup path
-    $setupPath = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe"
+    $setupPath = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
 
-    Write-Host "Building nightly-setup.exe" -NoNewline -ForegroundColor Cyan
+    Write-Host "Building build-setup.exe" -NoNewline -ForegroundColor Cyan
 
     if (!(Test-Path "$innoBuild"))
     {
@@ -392,9 +392,9 @@ function BuildSetupExe()
 function BuildSdkZip()
 {
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe" # Set 7-Zip executable path
-    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip";
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip";
 
-    Write-Host "Building nightly-sdk.zip" -NoNewline -ForegroundColor Cyan
+    Write-Host "Building build-sdk.zip" -NoNewline -ForegroundColor Cyan
 
     if (!(Test-Path "$7zip"))
     {
@@ -432,9 +432,9 @@ function BuildSdkZip()
 function BuildBinZip()
 {
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"; # Set 7-Zip path
-    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip";
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip";
 
-    Write-Host "Building nightly-bin.zip" -NoNewline -ForegroundColor Cyan
+    Write-Host "Building build-bin.zip" -NoNewline -ForegroundColor Cyan
     
     if (!(Test-Path "$7zip"))
     {
@@ -492,7 +492,7 @@ function BuildSourceZip()
 {
     $git = "${env:ProgramFiles}\Git\cmd\git.exe" # Set git executable path
 
-    Write-Host "Building nightly-src.zip" -NoNewline -ForegroundColor Cyan
+    Write-Host "Building build-src.zip" -NoNewline -ForegroundColor Cyan
 
     if (!(Test-Path "$git"))
     {
@@ -511,7 +511,7 @@ function BuildSourceZip()
            "--format", 
            "zip", 
            "--output", 
-           "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip", 
+           "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-src.zip", 
            "${env:APPVEYOR_REPO_BRANCH}"
 
     Write-Host "      [SUCCESS]" -ForegroundColor Green
@@ -520,9 +520,9 @@ function BuildSourceZip()
 function BuildPdbZip()
 {
     $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"; # Set 7-Zip path
-    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-pdb.zip";
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip";
 
-    Write-Host "Building nightly-pdb.zip" -NoNewline -ForegroundColor Cyan
+    Write-Host "Building build-pdb.zip" -NoNewline -ForegroundColor Cyan
     
     if (!(Test-Path "$7zip"))
     {
@@ -572,11 +572,11 @@ function BuildChecksumsFile()
 {
     $fileHashes = "`r`n";
     $file_names = 
-        "processhacker-nightly-setup.exe",
-        "processhacker-nightly-sdk.zip",
-        "processhacker-nightly-bin.zip",
-        "processhacker-nightly-src.zip",
-        "processhacker-nightly-pdb.zip";  
+        "processhacker-build-setup.exe",
+        "processhacker-build-sdk.zip",
+        "processhacker-build-bin.zip",
+        "processhacker-build-src.zip",
+        "processhacker-build-pdb.zip";  
 
     Write-Host "Generating checksums" -NoNewline -ForegroundColor Cyan
 
@@ -595,13 +595,13 @@ function BuildChecksumsFile()
         $fileHashes += "`r`n`r`n";
     }
 
-    if (Test-Path "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-checksums.txt")
+    if (Test-Path "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt")
     {
-        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-checksums.txt" -Force -ErrorAction SilentlyContinue
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt" -Force -ErrorAction SilentlyContinue
     }
 
     # Convert the Arraylist to a string and save the string
-    $fileHashes | Out-String | Out-File "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-checksums.txt"
+    $fileHashes | Out-String | Out-File "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt"
 
     Write-Host "          [SUCCESS]" -ForegroundColor Green
 }
@@ -615,11 +615,11 @@ function BuildSignaturesFile()
 function UpdateBuildService()
 {
     $git = "${env:ProgramFiles}\Git\cmd\git.exe"
-    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-setup.exe"
-    $sdkZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-sdk.zip"
-    $binZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-bin.zip"
-    $srcZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-src.zip" 
-    $pdbZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-nightly-pdb.zip" 
+    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
+    $sdkZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip"
+    $binZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip"
+    $srcZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-src.zip" 
+    $pdbZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip" 
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
@@ -686,8 +686,8 @@ function UpdateBuildService()
             "size"="$fileSize"
             "updated"="$fileTime"
             "forum_url"="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
-            "bin_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-nightly-bin.zip"
-            "setup_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-nightly-setup.exe"
+            "bin_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-build-bin.zip"
+            "setup_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-build-setup.exe"
             "hash_setup"="$exeHash"
             "hash_sdk"="$sdkHash"
             "hash_bin"="$binHash"
