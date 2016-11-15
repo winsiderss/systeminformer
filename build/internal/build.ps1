@@ -617,12 +617,13 @@ function BuildChecksumsFile()
 function BuildSignaturesFile()
 {
     Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
+
     Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
 
 function UpdateBuildService()
 {
-    $git =      "${env:ProgramFiles}\Git\cmd\git.exe"
+    $git = "${env:ProgramFiles}\Git\cmd\git.exe"
     $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
     $sdkZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip"
     $binZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip"
@@ -689,22 +690,6 @@ function UpdateBuildService()
 
     if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
     {
-        Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe"
-        Rename-Item "$sdkZip"    "processhacker-$fileVersion-sdk.zip"
-        Rename-Item "$binZip"    "processhacker-$fileVersion-bin.zip"
-        Rename-Item "$srcZip"    "processhacker-$fileVersion-src.zip"
-        Rename-Item "$pdbZip"    "processhacker-$fileVersion-pdb.zip"
-        Rename-Item "$checksums" "processhacker-$fileVersion-checksums.txt"
-
-        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
-        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
-        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
-        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
-        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
-        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-checksums.txt"
-        
-        # Build the http headers and post data
-        $jsonHeaders = @{"X-ApiKey"="${env:APPVEYOR_BUILD_KEY}"};
         $jsonString = @{
             "version"="$fileVersion"
             "size"="$fileSize"
@@ -720,10 +705,31 @@ function UpdateBuildService()
             "message"="$buildMessage"
         } | ConvertTo-Json | Out-String;
 
-        # Update the project website
-        Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Header $jsonHeaders -Body $jsonString -ErrorAction SilentlyContinue | Out-Null
+        Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe" -Force
+        Rename-Item "$sdkZip"    "processhacker-$fileVersion-sdk.zip" -Force
+        Rename-Item "$binZip"    "processhacker-$fileVersion-bin.zip" -Force
+        Rename-Item "$srcZip"    "processhacker-$fileVersion-src.zip" -Force
+        Rename-Item "$pdbZip"    "processhacker-$fileVersion-pdb.zip" -Force
+        Rename-Item "$checksums" "processhacker-$fileVersion-checksums.txt" -Force
 
-        Write-Host "  [SUCCESS]" -ForegroundColor Green
+        if ($global:buildbot)
+        {
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-checksums.txt"
+        }
+
+        if ((Test-Path Env:\APPVEYOR_BUILD_API) -and (Test-Path Env:\APPVEYOR_BUILD_KEY))
+        {
+            # Build the http headers
+            $jsonHeaders = @{"X-ApiKey"="${env:APPVEYOR_BUILD_KEY}"};
+
+            # Update the build service
+            Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Header $jsonHeaders -Body $jsonString -ErrorAction SilentlyContinue
+        }
     }
     else
     {
@@ -775,11 +781,8 @@ BuildPdbZip;
 BuildChecksumsFile;
 BuildSignaturesFile;
 
-if ((Test-Path Env:\APPVEYOR_BUILD_API) -and (Test-Path Env:\APPVEYOR_BUILD_KEY))
-{
-    # Update the build service
-    UpdateBuildService;
-}
+# Update the build service
+UpdateBuildService;
 
 #
 ShowBuildTime;
