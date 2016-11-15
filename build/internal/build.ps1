@@ -642,7 +642,7 @@ function UpdateBuildService()
         
         $buildMessage = $latestGitMessage -Replace "`r`n`r`n", "`r`n"
         #fileVersion = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
-        $fileVersion = "3.0.0." + $latestGitRevision.Trim();
+        $fileVersion = "3.0." + $latestGitRevision.Trim();
     }
 
     if (Test-Path "$binZip")
