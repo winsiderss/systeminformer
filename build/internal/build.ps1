@@ -680,12 +680,12 @@ function UpdateBuildService()
 
     if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
     {
-        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
-        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
-        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
-        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
-        Rename-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe" "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
-
+        Rename-Item "$exeSetup" "processhacker-$fileVersion-setup.exe"
+        Rename-Item "$sdkZip" "processhacker-$fileVersion-sdk.zip"
+        Rename-Item "$binZip" "processhacker-$fileVersion-bin.zip"
+        Rename-Item "$srcZip" "processhacker-$fileVersion-src.zip"
+        Rename-Item "$pdbZip" "processhacker-$fileVersion-pdb.zip"
+        
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
