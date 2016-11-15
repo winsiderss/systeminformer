@@ -173,40 +173,6 @@ function CopyKProcessHacker()
 
 function SetupSdkHeaders()
 {
-    Write-Host "Building SDK headers" -NoNewline -ForegroundColor Cyan
-
-    if (Test-Path "sdk")
-    {
-        # Remove the existing SDK directory
-        Remove-Item "sdk" -Recurse -Force
-    }
-
-    # Create the SDK directories
-    New-Item "sdk\include\" -type directory | Out-Null
-    New-Item "sdk\dbg\amd64\" -type directory | Out-Null
-    New-Item "sdk\dbg\i386\" -type directory | Out-Null
-    New-Item "sdk\lib\amd64\" -type directory | Out-Null
-    New-Item "sdk\lib\i386\" -type directory | Out-Null
-    New-Item "sdk\samples\SamplePlugin\" -type directory | Out-Null
-    New-Item "sdk\samples\SamplePlugin\bin\Release32\" -type directory | Out-Null
-
-    # Copy SDK readme.txt
-    Copy-Item "ProcessHacker\sdk\readme.txt"                         "sdk\"
-    # Copy symbols
-    Copy-Item "bin\Release32\ProcessHacker.pdb"                      "sdk\dbg\i386\"
-    Copy-Item "bin\Release64\ProcessHacker.pdb"                      "sdk\dbg\amd64\"
-    Copy-Item "KProcessHacker\bin\i386\kprocesshacker.pdb"           "sdk\dbg\i386\"
-    Copy-Item "KProcessHacker\bin\amd64\kprocesshacker.pdb"          "sdk\dbg\amd64\"
-    # Copy lib objects
-    Copy-Item "bin\Release32\ProcessHacker.lib"                      "sdk\lib\i386\"
-    Copy-Item "bin\Release64\ProcessHacker.lib"                      "sdk\lib\amd64\"
-    # Copy sample plugin files
-    Copy-Item "plugins\SamplePlugin\main.c"                          "sdk\samples\SamplePlugin\"
-    Copy-Item "plugins\SamplePlugin\SamplePlugin.sln"                "sdk\samples\SamplePlugin\"
-    Copy-Item "plugins\SamplePlugin\SamplePlugin.vcxproj"            "sdk\samples\SamplePlugin\"
-    Copy-Item "plugins\SamplePlugin\SamplePlugin.vcxproj.filters"    "sdk\samples\SamplePlugin\"
-    Copy-Item "plugins\SamplePlugin\bin\Release32\SamplePlugin.dll"  "sdk\samples\SamplePlugin\bin\Release32\"
-
     # The array of PHNT headers we need to copy.
     $phnt_headers = 
         "ntdbg.h",
@@ -278,6 +244,40 @@ function SetupSdkHeaders()
         "treenew.h",
         "verify.h",
         "workqueue.h";
+
+    Write-Host "Building SDK headers" -NoNewline -ForegroundColor Cyan
+
+    if (Test-Path "sdk")
+    {
+        # Remove the existing SDK directory
+        Remove-Item "sdk" -Recurse -Force
+    }
+
+    # Create the SDK directories
+    New-Item "sdk\include\" -type directory | Out-Null
+    New-Item "sdk\dbg\amd64\" -type directory | Out-Null
+    New-Item "sdk\dbg\i386\" -type directory | Out-Null
+    New-Item "sdk\lib\amd64\" -type directory | Out-Null
+    New-Item "sdk\lib\i386\" -type directory | Out-Null
+    New-Item "sdk\samples\SamplePlugin\" -type directory | Out-Null
+    New-Item "sdk\samples\SamplePlugin\bin\Release32\" -type directory | Out-Null
+
+    # Copy SDK readme.txt
+    Copy-Item "ProcessHacker\sdk\readme.txt"                         "sdk\"
+    # Copy symbols
+    Copy-Item "bin\Release32\ProcessHacker.pdb"                      "sdk\dbg\i386\"
+    Copy-Item "bin\Release64\ProcessHacker.pdb"                      "sdk\dbg\amd64\"
+    Copy-Item "KProcessHacker\bin\i386\kprocesshacker.pdb"           "sdk\dbg\i386\"
+    Copy-Item "KProcessHacker\bin\amd64\kprocesshacker.pdb"          "sdk\dbg\amd64\"
+    # Copy lib objects
+    Copy-Item "bin\Release32\ProcessHacker.lib"                      "sdk\lib\i386\"
+    Copy-Item "bin\Release64\ProcessHacker.lib"                      "sdk\lib\amd64\"
+    # Copy sample plugin files
+    Copy-Item "plugins\SamplePlugin\main.c"                          "sdk\samples\SamplePlugin\"
+    Copy-Item "plugins\SamplePlugin\SamplePlugin.sln"                "sdk\samples\SamplePlugin\"
+    Copy-Item "plugins\SamplePlugin\SamplePlugin.vcxproj"            "sdk\samples\SamplePlugin\"
+    Copy-Item "plugins\SamplePlugin\SamplePlugin.vcxproj.filters"    "sdk\samples\SamplePlugin\"
+    Copy-Item "plugins\SamplePlugin\bin\Release32\SamplePlugin.dll"  "sdk\samples\SamplePlugin\bin\Release32\"
 
     foreach ($file in $phnt_headers)
     {
@@ -358,7 +358,7 @@ function SetupProcessHackerWow64()
 
 function BuildSetupExe()
 {  
-    $innoBuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe" # Set innosetup path
+    $innoBuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe"
     $setupPath = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
 
     Write-Host "Building build-setup.exe" -NoNewline -ForegroundColor Cyan
@@ -376,14 +376,17 @@ function BuildSetupExe()
 
     if ($global:debug_enabled)
     {
+        # Call the executable
         & "$innoBuild" "build\installer\Process_Hacker_installer.iss"
     }
     else
     {
+        # Call the executable (no output)
         & "$innoBuild" "build\installer\Process_Hacker_installer.iss" | Out-Null
     }
 
     Remove-Item "$setupPath" -ErrorAction SilentlyContinue
+
     Move-Item "build\installer\processhacker-3.0-setup.exe" $setupPath
 
     Write-Host "    [SUCCESS]" -ForegroundColor Green
@@ -391,7 +394,7 @@ function BuildSetupExe()
 
 function BuildSdkZip()
 {
-    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe" # Set 7-Zip executable path
+    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe"
     $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip";
 
     Write-Host "Building build-sdk.zip" -NoNewline -ForegroundColor Cyan
@@ -409,6 +412,7 @@ function BuildSdkZip()
 
     if ($global:debug_enabled)
     {
+        # Call the executable
         & "$7zip" "a",
                 "-tzip",
                 "-mx9",
@@ -418,6 +422,7 @@ function BuildSdkZip()
     }
     else
     {
+        # Call the executable (no output)
         & "$7zip" "a",
                 "-tzip",
                 "-mx9",
@@ -431,7 +436,7 @@ function BuildSdkZip()
 
 function BuildBinZip()
 {
-    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"; # Set 7-Zip path
+    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe";
     $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip";
 
     Write-Host "Building build-bin.zip" -NoNewline -ForegroundColor Cyan
@@ -454,6 +459,7 @@ function BuildBinZip()
 
     if ($global:debug_enabled)
     {
+        # Call the executable
         & "$7zip" "a",
                   "-tzip",
                   "-mx9",
@@ -470,6 +476,7 @@ function BuildBinZip()
     }
     else
     {
+        # Call the executable (no output)
         & "$7zip" "a", 
                   "-tzip",
                   "-mx9",
@@ -490,7 +497,7 @@ function BuildBinZip()
 
 function BuildSourceZip()
 {
-    $git = "${env:ProgramFiles}\Git\cmd\git.exe" # Set git executable path
+    $git = "${env:ProgramFiles}\Git\cmd\git.exe"
 
     Write-Host "Building build-src.zip" -NoNewline -ForegroundColor Cyan
 
@@ -505,6 +512,7 @@ function BuildSourceZip()
         New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
     }
 
+    # Call the executable
     & "$git" "--git-dir=.git", 
            "--work-tree=.\", 
            "archive",
@@ -519,7 +527,7 @@ function BuildSourceZip()
 
 function BuildPdbZip()
 {
-    $7zip = "${env:ProgramFiles}\7-Zip\7z.exe"; # Set 7-Zip path
+    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe";
     $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip";
 
     Write-Host "Building build-pdb.zip" -NoNewline -ForegroundColor Cyan
@@ -614,20 +622,21 @@ function BuildSignaturesFile()
 
 function UpdateBuildService()
 {
-    $git = "${env:ProgramFiles}\Git\cmd\git.exe"
+    $git =      "${env:ProgramFiles}\Git\cmd\git.exe"
     $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
-    $sdkZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip"
-    $binZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip"
-    $srcZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-src.zip" 
-    $pdbZip = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip" 
+    $sdkZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip"
+    $binZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip"
+    $srcZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-src.zip" 
+    $pdbZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip" 
+    $checksums ="${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt"
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
     if (Test-Path "$git")
     {
-        $latestGitMessage = (& "$git" "log", "-n", "5", "--pretty=%B") | Out-String
-        $latestGitTag = (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
-        #$latestGitCount = (& "$git" "rev-list", "--count", "master") | Out-String
+        $latestGitMessage =  (& "$git" "log", "-n", "5", "--pretty=%B") | Out-String
+        $latestGitTag =      (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
+        #$latestGitCount =   (& "$git" "rev-list", "--count", "master") | Out-String
         $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
         
         $buildMessage = $latestGitMessage -Replace "`r`n`r`n", "`r`n"
@@ -680,18 +689,21 @@ function UpdateBuildService()
 
     if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
     {
-        Rename-Item "$exeSetup" "processhacker-$fileVersion-setup.exe"
-        Rename-Item "$sdkZip" "processhacker-$fileVersion-sdk.zip"
-        Rename-Item "$binZip" "processhacker-$fileVersion-bin.zip"
-        Rename-Item "$srcZip" "processhacker-$fileVersion-src.zip"
-        Rename-Item "$pdbZip" "processhacker-$fileVersion-pdb.zip"
-        
+        Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe"
+        Rename-Item "$sdkZip"    "processhacker-$fileVersion-sdk.zip"
+        Rename-Item "$binZip"    "processhacker-$fileVersion-bin.zip"
+        Rename-Item "$srcZip"    "processhacker-$fileVersion-src.zip"
+        Rename-Item "$pdbZip"    "processhacker-$fileVersion-pdb.zip"
+        Rename-Item "$checksums" "processhacker-$fileVersion-checksums.txt"
+
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
         Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
-
+        Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-checksums.txt"
+        
+        # Build the http headers and post data
         $jsonHeaders = @{"X-ApiKey"="${env:APPVEYOR_BUILD_KEY}"};
         $jsonString = @{
             "version"="$fileVersion"
@@ -706,7 +718,7 @@ function UpdateBuildService()
             "hash_src"="$srcHash"
             "hash_pdb"="$pdbHash"
             "message"="$buildMessage"
-        } | ConvertTo-Json;
+        } | ConvertTo-Json | Out-String;
 
         # Update the project website
         Invoke-RestMethod -Method Post -Uri ${env:APPVEYOR_BUILD_API} -Header $jsonHeaders -Body $jsonString -ErrorAction SilentlyContinue | Out-Null
