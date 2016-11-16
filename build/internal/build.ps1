@@ -599,8 +599,7 @@ function BuildChecksumsFile()
             continue;
         }
 
-        $fileHashes += $file + ": (SHA256)`r`n" + (Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256).Hash;
-        $fileHashes += "`r`n`r`n";
+        $fileHashes += $file + ": (SHA256)`r`n" + (Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256).Hash + "`r`n`r`n";
     }
 
     if (Test-Path "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt")
@@ -641,8 +640,7 @@ function UpdateBuildService()
         $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
         
         $buildMessage = $latestGitMessage -Replace "`r`n`r`n", "`r`n"
-        #fileVersion = "3.0." + $latestGitCount.Trim() + "." + $latestGitRevision.Trim();
-        $fileVersion = "3.0." + $latestGitRevision.Trim();
+        $fileVersion = "3.0.0." + $latestGitRevision.Trim();
     }
 
     if (Test-Path "$binZip")
@@ -695,8 +693,8 @@ function UpdateBuildService()
             "size"="$fileSize"
             "updated"="$fileTime"
             "forum_url"="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
-            "bin_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-build-bin.zip"
-            "setup_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-build-setup.exe"
+            "bin_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-$fileVersion-bin.zip"
+            "setup_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-$fileVersion-setup.exe"
             "hash_setup"="$exeHash"
             "hash_sdk"="$sdkHash"
             "hash_bin"="$binHash"
