@@ -387,7 +387,7 @@ function BuildSetupExe()
 
     Remove-Item "$setupPath" -ErrorAction SilentlyContinue
 
-    Move-Item "build\installer\processhacker-3.0-setup.exe" $setupPath
+    Move-Item "build\installer\processhacker-3.0-setup.exe" "$setupPath" -ErrorAction SilentlyContinue
 
     Write-Host "    [SUCCESS]" -ForegroundColor Green
 }
@@ -703,7 +703,7 @@ function UpdateBuildService()
             "message"="$buildMessage"
         } | ConvertTo-Json | Out-String;
 
-        Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe" -Force
+        Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe" -Force -ErrorAction SilentlyContinue
         Rename-Item "$sdkZip"    "processhacker-$fileVersion-sdk.zip" -Force
         Rename-Item "$binZip"    "processhacker-$fileVersion-bin.zip" -Force
         Rename-Item "$srcZip"    "processhacker-$fileVersion-src.zip" -Force
@@ -712,7 +712,7 @@ function UpdateBuildService()
 
         if ($global:buildbot)
         {
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe" -ErrorAction SilentlyContinue
             Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
             Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
             Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
