@@ -640,7 +640,7 @@ function UpdateBuildService()
         $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
         
         $buildMessage = $latestGitMessage -Replace "`r`n`r`n", "`r`n"
-        $fileVersion = "3.0.0." + $latestGitRevision.Trim();
+        $fileVersion = "3.0." + $latestGitRevision.Trim() #${env:APPVEYOR_BUILD_VERSION}
     }
 
     if (Test-Path "$binZip")
