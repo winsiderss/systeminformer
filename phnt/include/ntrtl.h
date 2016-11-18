@@ -2786,6 +2786,7 @@ typedef struct _DYNAMIC_FUNCTION_TABLE
     PWSTR OutOfProcessCallbackDll;
     FUNCTION_TABLE_TYPE Type;
     ULONG EntryCount;
+    RTL_BALANCED_NODE TreeNode;
 } DYNAMIC_FUNCTION_TABLE, *PDYNAMIC_FUNCTION_TABLE;
 
 // rev
