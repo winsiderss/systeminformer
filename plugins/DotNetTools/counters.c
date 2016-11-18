@@ -133,7 +133,7 @@ PVOID GetPerfIpcBlock_V4(
     }
 }
 
-PPH_LIST EnumAppDomainIpcBlock(
+PPH_LIST EnumerateAppDomainIpcBlock(
     _In_ HANDLE ProcessHandle,
     _In_ AppDomainEnumerationIPCBlock* AppDomainIpcBlock
     )
@@ -145,160 +145,156 @@ PPH_LIST EnumAppDomainIpcBlock(
     AppDomainInfo* appDomainInfoBlock = NULL;
     PPH_LIST appDomainsList = PhCreateList(1);
 
-    __try
+    // If the mutex isn't filled in, the CLR is either starting up or shutting down
+    if (!AppDomainIpcBlock->Mutex)
     {
-        // If the mutex isn't filled in, the CLR is either starting up or shutting down
+        goto CleanupExit;
+    }
+
+    // Dup the valid mutex handle into this process.
+    if (!NT_SUCCESS(NtDuplicateObject(
+        ProcessHandle,
+        AppDomainIpcBlock->Mutex,
+        NtCurrentProcess(),
+        &legacyPrivateBlockMutexHandle,
+        GENERIC_ALL,
+        0,
+        DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    // Acquire the mutex, only waiting two seconds.
+    // We can't actually gaurantee that the target put a mutex object in here.
+    if (NtWaitForSingleObject(
+        legacyPrivateBlockMutexHandle,
+        FALSE,
+        PhTimeoutFromMilliseconds(&timeout, 2000)
+        ) == STATUS_WAIT_0)
+    {
+        // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
         if (!AppDomainIpcBlock->Mutex)
         {
-            __leave;
+            goto CleanupExit;
         }
+    }
+    else
+    {
+        // Again, landing here is most probably a shutdown race.
+        goto CleanupExit;
+    }
 
-        // Dup the valid mutex handle into this process.
-        if (!NT_SUCCESS(NtDuplicateObject(
-            ProcessHandle,
-            AppDomainIpcBlock->Mutex,
-            NtCurrentProcess(),
-            &legacyPrivateBlockMutexHandle,
-            GENERIC_ALL,
-            0,
-            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
-            )))
-        {
-            __leave;
-        }
+    // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
+    // If we get here, then hMutex is held by this process.
 
-        // Acquire the mutex, only waiting two seconds.
-        // We can't actually gaurantee that the target put a mutex object in here.
-        if (NtWaitForSingleObject(
-            legacyPrivateBlockMutexHandle,
-            FALSE,
-            PhTimeoutFromMilliseconds(&timeout, 2000)
-            ) == STATUS_WAIT_0)
-        {
-            // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
-            if (!AppDomainIpcBlock->Mutex)
-            {
-                __leave;
-            }
-        }
-        else
-        {
-            // Again, landing here is most probably a shutdown race.
-            __leave;
-        }
+    // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
+    memcpy(&tempBlock, AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock));
 
-        // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
-        // If we get here, then hMutex is held by this process.
+    // It's possible the process will not have any appdomains.
+    if ((tempBlock.ListOfAppDomains == NULL) != (tempBlock.SizeInBytes == 0))
+    {
+        goto CleanupExit;
+    }
 
-        // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
-        memcpy(&tempBlock, AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock));
+    // All the data in the IPC block is signed integers. They should never be negative,
+    // so check that now.
+    if ((tempBlock.TotalSlots < 0) ||
+        (tempBlock.NumOfUsedSlots < 0) ||
+        (tempBlock.LastFreedSlot < 0) ||
+        (tempBlock.SizeInBytes < 0) ||
+        (tempBlock.ProcessNameLengthInBytes < 0))
+    {
+        goto CleanupExit;
+    }
 
-        // It's possible the process will not have any appdomains.
-        if ((tempBlock.ListOfAppDomains == NULL) != (tempBlock.SizeInBytes == 0))
-        {
-            __leave;
-        }
+    // Allocate memory to read the remote process' memory into
+    appDomainInfoBlockLength = tempBlock.SizeInBytes;
 
-        // All the data in the IPC block is signed integers. They should never be negative,
-        // so check that now.
-        if ((tempBlock.TotalSlots < 0) ||
-            (tempBlock.NumOfUsedSlots < 0) ||
-            (tempBlock.LastFreedSlot < 0) ||
-            (tempBlock.SizeInBytes < 0) ||
-            (tempBlock.ProcessNameLengthInBytes < 0))
-        {
-            __leave;
-        }
+    // Check other invariants.
+    if (appDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo))
+    {
+        goto CleanupExit;
+    }
 
-        // Allocate memory to read the remote process' memory into
-        appDomainInfoBlockLength = tempBlock.SizeInBytes;
+    appDomainInfoBlock = (AppDomainInfo*)PhAllocate(appDomainInfoBlockLength);
+    memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
-        // Check other invariants.
-        if (appDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo))
-        {
-            __leave;
-        }
+    if (!NT_SUCCESS(NtReadVirtualMemory(
+        ProcessHandle,
+        tempBlock.ListOfAppDomains,
+        appDomainInfoBlock,
+        appDomainInfoBlockLength,
+        NULL
+        )))
+    {
+        PhFree(appDomainInfoBlock);
+        goto CleanupExit;
+    }
 
-        appDomainInfoBlock = (AppDomainInfo*)PhAllocate(appDomainInfoBlockLength);
-        memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
+    // Collect all the AppDomain names into a list of strings.
+    for (INT i = 0; i < tempBlock.NumOfUsedSlots; i++)
+    {
+        SIZE_T appDomainNameLength;
+        PVOID appDomainName;
+
+        if (!appDomainInfoBlock[i].AppDomainName)
+            continue;
+
+        // Should be positive, and at least have a null-terminator character.
+        if (appDomainInfoBlock[i].NameLengthInBytes <= 1)
+            continue;
+
+        // Make sure buffer has right geometry.
+        if (appDomainInfoBlock[i].NameLengthInBytes < 0)
+            continue;
+
+        // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
+        appDomainNameLength = appDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+
+        if ((appDomainNameLength * sizeof(WCHAR)) != appDomainInfoBlock[i].NameLengthInBytes)
+            continue;
+
+        // It should at least have 1 char for the null terminator.
+        if (appDomainNameLength < 1)
+            continue;
+
+        // We know the string is a well-formed null-terminated string,
+        // but beyond that, we can't verify that the data is actually truthful.
+        appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
+        memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
 
         if (!NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
-            tempBlock.ListOfAppDomains,
-            appDomainInfoBlock,
-            appDomainInfoBlockLength,
+            appDomainInfoBlock[i].AppDomainName,
+            appDomainName,
+            appDomainInfoBlock[i].NameLengthInBytes,
             NULL
             )))
         {
-            PhFree(appDomainInfoBlock);
-            __leave;
+            PhFree(appDomainName);
+            continue;
         }
 
-        // Collect all the AppDomain names into a list of strings.
-        for (INT i = 0; i < tempBlock.NumOfUsedSlots; i++)
-        {
-            SIZE_T appDomainNameLength;
-            PVOID appDomainName;
-
-            if (!appDomainInfoBlock[i].AppDomainName)
-                continue;
-
-            // Should be positive, and at least have a null-terminator character.
-            if (appDomainInfoBlock[i].NameLengthInBytes <= 1)
-                continue;
-
-            // Make sure buffer has right geometry.
-            if (appDomainInfoBlock[i].NameLengthInBytes < 0)
-                continue;
-
-            // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-            appDomainNameLength = appDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
-
-            if ((appDomainNameLength * sizeof(WCHAR)) != appDomainInfoBlock[i].NameLengthInBytes)
-                continue;
-
-            // It should at least have 1 char for the null terminator.
-            if (appDomainNameLength < 1)
-                continue;
-
-            // We know the string is a well-formed null-terminated string,
-            // but beyond that, we can't verify that the data is actually truthful.
-            appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
-            memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
-
-            if (!NT_SUCCESS(NtReadVirtualMemory(
-                ProcessHandle,
-                appDomainInfoBlock[i].AppDomainName,
-                appDomainName,
-                appDomainInfoBlock[i].NameLengthInBytes,
-                NULL
-                )))
-            {
-                PhFree(appDomainName);
-                continue;
-            }
-
-            PhAddItemList(appDomainsList, appDomainName);
-        }
+        PhAddItemList(appDomainsList, appDomainName);
     }
-    __finally
-    {
-        if (appDomainInfoBlock)
-        {
-            PhFree(appDomainInfoBlock);
-        }
 
-        if (legacyPrivateBlockMutexHandle)
-        {
-            NtReleaseMutant(legacyPrivateBlockMutexHandle, NULL);
-            NtClose(legacyPrivateBlockMutexHandle);
-        }
+CleanupExit:
+    if (appDomainInfoBlock)
+    {
+        PhFree(appDomainInfoBlock);
+    }
+
+    if (legacyPrivateBlockMutexHandle)
+    {
+        NtReleaseMutant(legacyPrivateBlockMutexHandle, NULL);
+        NtClose(legacyPrivateBlockMutexHandle);
     }
 
     return appDomainsList;
 }
 
-PPH_LIST EnumAppDomainIpcBlockWow64(
+PPH_LIST EnumerateAppDomainIpcBlockWow64(
     _In_ HANDLE ProcessHandle,
     _In_ AppDomainEnumerationIPCBlock_Wow64* AppDomainIpcBlock
     )
@@ -310,154 +306,150 @@ PPH_LIST EnumAppDomainIpcBlockWow64(
     AppDomainInfo_Wow64* appDomainInfoBlock = NULL;
     PPH_LIST appDomainsList = PhCreateList(1);
 
-    __try
+    // If the mutex isn't filled in, the CLR is either starting up or shutting down
+    if (!AppDomainIpcBlock->Mutex)
     {
-        // If the mutex isn't filled in, the CLR is either starting up or shutting down
+        goto CleanupExit;
+    }
+
+    // Dup the valid mutex handle into this process.
+    if (!NT_SUCCESS(NtDuplicateObject(
+        ProcessHandle,
+        UlongToHandle(AppDomainIpcBlock->Mutex),
+        NtCurrentProcess(),
+        &legacyPrivateBlockMutexHandle,
+        GENERIC_ALL,
+        0,
+        DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    // Acquire the mutex, only waiting two seconds.
+    // We can't actually gaurantee that the target put a mutex object in here.
+    if (NtWaitForSingleObject(
+        legacyPrivateBlockMutexHandle,
+        FALSE,
+        PhTimeoutFromMilliseconds(&timeout, 2000)
+        ) == STATUS_WAIT_0)
+    {
+        // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
         if (!AppDomainIpcBlock->Mutex)
         {
-            __leave;
+            goto CleanupExit;
         }
+    }
+    else
+    {
+        // Again, landing here is most probably a shutdown race.
+        goto CleanupExit;
+    }
 
-        // Dup the valid mutex handle into this process.
-        if (!NT_SUCCESS(NtDuplicateObject(
-            ProcessHandle,
-            UlongToHandle(AppDomainIpcBlock->Mutex),
-            NtCurrentProcess(),
-            &legacyPrivateBlockMutexHandle,
-            GENERIC_ALL,
-            0,
-            DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
-            )))
-        {
-            __leave;
-        }
+    // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
+    // If we get here, then hMutex is held by this process.
 
-        // Acquire the mutex, only waiting two seconds.
-        // We can't actually gaurantee that the target put a mutex object in here.
-        if (NtWaitForSingleObject(
-            legacyPrivateBlockMutexHandle,
-            FALSE,
-            PhTimeoutFromMilliseconds(&timeout, 2000)
-            ) == STATUS_WAIT_0)
-        {
-            // Make sure the mutex handle is still valid. If its not, then we lost a shutdown race.
-            if (!AppDomainIpcBlock->Mutex)
-            {
-                __leave;
-            }
-        }
-        else
-        {
-            // Again, landing here is most probably a shutdown race.
-            __leave;
-        }
+    // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
+    memcpy(&tempBlock, AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock_Wow64));
 
-        // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
-        // If we get here, then hMutex is held by this process.
+    // It's possible the process will not have any appdomains.
+    if ((tempBlock.ListOfAppDomains == 0) != (tempBlock.SizeInBytes == 0))
+    {
+        goto CleanupExit;
+    }
 
-        // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
-        memcpy(&tempBlock, AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock_Wow64));
+    // All the data in the IPC block is signed integers. They should never be negative,
+    // so check that now.
+    if ((tempBlock.TotalSlots < 0) ||
+        (tempBlock.NumOfUsedSlots < 0) ||
+        (tempBlock.LastFreedSlot < 0) ||
+        (tempBlock.SizeInBytes < 0) ||
+        (tempBlock.ProcessNameLengthInBytes < 0))
+    {
+        goto CleanupExit;
+    }
 
-        // It's possible the process will not have any appdomains.
-        if ((tempBlock.ListOfAppDomains == 0) != (tempBlock.SizeInBytes == 0))
-        {
-            __leave;
-        }
+    // Allocate memory to read the remote process' memory into
+    appDomainInfoBlockLength = tempBlock.SizeInBytes;
 
-        // All the data in the IPC block is signed integers. They should never be negative,
-        // so check that now.
-        if ((tempBlock.TotalSlots < 0) ||
-            (tempBlock.NumOfUsedSlots < 0) ||
-            (tempBlock.LastFreedSlot < 0) ||
-            (tempBlock.SizeInBytes < 0) ||
-            (tempBlock.ProcessNameLengthInBytes < 0))
-        {
-            __leave;
-        }
+    // Check other invariants.
+    if (appDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo_Wow64))
+    {
+        goto CleanupExit;
+    }
 
-        // Allocate memory to read the remote process' memory into
-        appDomainInfoBlockLength = tempBlock.SizeInBytes;
+    appDomainInfoBlock = (AppDomainInfo_Wow64*)PhAllocate(appDomainInfoBlockLength);
+    memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
 
-        // Check other invariants.
-        if (appDomainInfoBlockLength != tempBlock.TotalSlots * sizeof(AppDomainInfo_Wow64))
-        {
-            __leave;
-        }
+    if (!NT_SUCCESS(NtReadVirtualMemory(
+        ProcessHandle,
+        UlongToPtr(tempBlock.ListOfAppDomains),
+        appDomainInfoBlock,
+        appDomainInfoBlockLength,
+        NULL
+        )))
+    {
+        PhFree(appDomainInfoBlock);
+        goto CleanupExit;
+    }
 
-        appDomainInfoBlock = (AppDomainInfo_Wow64*)PhAllocate(appDomainInfoBlockLength);
-        memset(appDomainInfoBlock, 0, appDomainInfoBlockLength);
+    // Collect all the AppDomain names into a list of strings.
+    for (INT i = 0; i < tempBlock.NumOfUsedSlots; i++)
+    {
+        SIZE_T appDomainNameLength;
+        PVOID appDomainName;
+
+        if (!appDomainInfoBlock[i].AppDomainName)
+            continue;
+
+        // Should be positive, and at least have a null-terminator character.
+        if (appDomainInfoBlock[i].NameLengthInBytes <= 1)
+            continue;
+
+        // Make sure buffer has right geometry.
+        if (appDomainInfoBlock[i].NameLengthInBytes < 0)
+            continue;
+
+        // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
+        appDomainNameLength = appDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
+
+        if ((appDomainNameLength * sizeof(WCHAR)) != appDomainInfoBlock[i].NameLengthInBytes)
+            continue;
+
+        // It should at least have 1 char for the null terminator.
+        if (appDomainNameLength < 1)
+            continue;
+
+        // We know the string is a well-formed null-terminated string,
+        // but beyond that, we can't verify that the data is actually truthful.
+        appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
+        memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
 
         if (!NT_SUCCESS(NtReadVirtualMemory(
             ProcessHandle,
-            UlongToPtr(tempBlock.ListOfAppDomains),
-            appDomainInfoBlock,
-            appDomainInfoBlockLength,
+            UlongToPtr(appDomainInfoBlock[i].AppDomainName),
+            appDomainName,
+            appDomainInfoBlock[i].NameLengthInBytes,
             NULL
             )))
         {
-            PhFree(appDomainInfoBlock);
-            __leave;
+            PhFree(appDomainName);
+            continue;
         }
 
-        // Collect all the AppDomain names into a list of strings.
-        for (INT i = 0; i < tempBlock.NumOfUsedSlots; i++)
-        {
-            SIZE_T appDomainNameLength;
-            PVOID appDomainName;
-
-            if (!appDomainInfoBlock[i].AppDomainName)
-                continue;
-
-            // Should be positive, and at least have a null-terminator character.
-            if (appDomainInfoBlock[i].NameLengthInBytes <= 1)
-                continue;
-
-            // Make sure buffer has right geometry.
-            if (appDomainInfoBlock[i].NameLengthInBytes < 0)
-                continue;
-
-            // If it's not on a WCHAR boundary, then we may have a 1-byte buffer-overflow.
-            appDomainNameLength = appDomainInfoBlock[i].NameLengthInBytes / sizeof(WCHAR);
-
-            if ((appDomainNameLength * sizeof(WCHAR)) != appDomainInfoBlock[i].NameLengthInBytes)
-                continue;
-
-            // It should at least have 1 char for the null terminator.
-            if (appDomainNameLength < 1)
-                continue;
-
-            // We know the string is a well-formed null-terminated string,
-            // but beyond that, we can't verify that the data is actually truthful.
-            appDomainName = PhAllocate(appDomainInfoBlock[i].NameLengthInBytes + 1);
-            memset(appDomainName, 0, appDomainInfoBlock[i].NameLengthInBytes + 1);
-
-            if (!NT_SUCCESS(NtReadVirtualMemory(
-                ProcessHandle,
-                UlongToPtr(appDomainInfoBlock[i].AppDomainName),
-                appDomainName,
-                appDomainInfoBlock[i].NameLengthInBytes,
-                NULL
-                )))
-            {
-                PhFree(appDomainName);
-                continue;
-            }
-
-            PhAddItemList(appDomainsList, appDomainName);
-        }
+        PhAddItemList(appDomainsList, appDomainName);
     }
-    __finally
-    {
-        if (appDomainInfoBlock)
-        {
-            PhFree(appDomainInfoBlock);
-        }
 
-        if (legacyPrivateBlockMutexHandle)
-        {
-            NtReleaseMutant(legacyPrivateBlockMutexHandle, NULL);
-            NtClose(legacyPrivateBlockMutexHandle);
-        }
+CleanupExit:
+    if (appDomainInfoBlock)
+    {
+        PhFree(appDomainInfoBlock);
+    }
+
+    if (legacyPrivateBlockMutexHandle)
+    {
+        NtReleaseMutant(legacyPrivateBlockMutexHandle, NULL);
+        NtClose(legacyPrivateBlockMutexHandle);
     }
 
     return appDomainsList;
@@ -477,69 +469,52 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
 
-    __try
+    if (!PhStringRefToUnicodeString(&GenerateLegacyPublicName(ProcessId)->sr, &sectionNameUs))
+        return FALSE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &sectionNameUs,
+        0,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenSection(
+        &blockTableHandle,
+        SECTION_MAP_READ,
+        &objectAttributes
+        )))
     {
-        if (!PhStringRefToUnicodeString(&GenerateLegacyPublicName(ProcessId)->sr, &sectionNameUs))
-            __leave;
+        return FALSE;
+    }
 
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &sectionNameUs,
-            0,
-            NULL,
-            NULL
-            );
-
-        if (!NT_SUCCESS(NtOpenSection(
-            &blockTableHandle,
-            SECTION_MAP_READ,
-            &objectAttributes
-            )))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(NtMapViewOfSection(
-            blockTableHandle,
-            NtCurrentProcess(),
-            &blockTableAddress,
-            0,
-            viewSize,
-            &sectionOffset,
-            &viewSize,
-            ViewShare,
-            0,
-            PAGE_READONLY
-            )))
-        {
-            __leave;
-        }
-
+    if (NT_SUCCESS(NtMapViewOfSection(
+        blockTableHandle,
+        NtCurrentProcess(),
+        &blockTableAddress,
+        0,
+        viewSize,
+        &sectionOffset,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        )))
+    {
         *BlockTableHandle = blockTableHandle;
         *BlockTableAddress = blockTableAddress;
 
-        result = TRUE;
-    }
-    __finally
-    {
-        if (!result)
-        {
-            if (blockTableHandle)
-            {
-                NtClose(blockTableHandle);
-            }
-
-            if (blockTableAddress)
-            {
-                NtUnmapViewOfSection(NtCurrentProcess(), blockTableAddress);
-            }
-
-            *BlockTableHandle = NULL;
-            *BlockTableAddress = NULL;
-        }
+        return TRUE;
     }
 
-    return result;
+    if (blockTableHandle)
+        NtClose(blockTableHandle);
+
+    if (blockTableAddress)
+        NtUnmapViewOfSection(NtCurrentProcess(), blockTableAddress);
+
+    return FALSE;
 }
 
 BOOLEAN OpenDotNetPublicControlBlock_V4(
@@ -796,7 +771,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                 eLegacyPrivateIPC_AppDomain
                 );
 
-            appDomainsList = EnumAppDomainIpcBlockWow64(
+            appDomainsList = EnumerateAppDomainIpcBlockWow64(
                 ProcessHandle,
                 appDomainEnumBlock
                 );
@@ -822,7 +797,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
                 eLegacyPrivateIPC_AppDomain
                 );
 
-            appDomainsList = EnumAppDomainIpcBlock(
+            appDomainsList = EnumerateAppDomainIpcBlock(
                 ProcessHandle,
                 appDomainEnumBlock
                 );
@@ -916,7 +891,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                 __leave;
             }
 
-            appDomainsList = EnumAppDomainIpcBlockWow64(
+            appDomainsList = EnumerateAppDomainIpcBlockWow64(
                 ProcessHandle,
                 appDomainEnumBlock
                 );
@@ -941,7 +916,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
                 __leave;
             }
 
-            appDomainsList = EnumAppDomainIpcBlock(
+            appDomainsList = EnumerateAppDomainIpcBlock(
                 ProcessHandle,
                 appDomainEnumBlock
                 );

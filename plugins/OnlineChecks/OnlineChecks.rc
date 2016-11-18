@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Online Checks plugin for Process Hacker"
             VALUE "FileVersion", "1.7"
-            VALUE "InternalName", "OnlineChecks"
+            VALUE "InternalName", "ProcessHacker.OnlineChecks"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "OnlineChecks.dll"
             VALUE "ProductName", "Online Checks plugin for Process Hacker"

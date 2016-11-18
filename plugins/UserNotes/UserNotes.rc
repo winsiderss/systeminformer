@@ -141,7 +141,7 @@ BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "User Notes plugin for Process Hacker"
             VALUE "FileVersion", "1.7"
-            VALUE "InternalName", "UserNotes"
+            VALUE "InternalName", "ProcessHacker.UserNotes"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "UserNotes.dll"
             VALUE "ProductName", "User Notes plugin for Process Hacker"

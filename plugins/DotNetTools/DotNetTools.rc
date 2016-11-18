@@ -68,7 +68,7 @@ BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", ".NET tools plugin for Process Hacker"
             VALUE "FileVersion", "1.6"
-            VALUE "InternalName", "DotNetTools"
+            VALUE "InternalName", "ProcessHacker.DotNetTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "DotNetTools.dll"
             VALUE "ProductName", ".NET tools plugin for Process Hacker"

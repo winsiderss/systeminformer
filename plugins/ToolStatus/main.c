@@ -43,13 +43,13 @@ HWND NetworkTreeNewHandle = NULL;
 INT SelectedTabIndex;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
-TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
+HWND SearchEditHandle = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
@@ -406,19 +406,19 @@ VOID NTAPI TabPageUpdatedCallback(
 
     SelectedTabIndex = tabIndex;
 
-    if (!SearchboxHandle)
+    if (!SearchEditHandle)
         return;
 
     switch (tabIndex)
     {
     case 0:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Processes (Ctrl+K)");
+        Edit_SetCueBannerText(SearchEditHandle, L"Search Processes (Ctrl+K)");
         break;
     case 1:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Services (Ctrl+K)");
+        Edit_SetCueBannerText(SearchEditHandle, L"Search Services (Ctrl+K)");
         break;
     case 2:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+K)");
+        Edit_SetCueBannerText(SearchEditHandle, L"Search Network (Ctrl+K)");
         break;
     default:
         {
@@ -426,12 +426,12 @@ VOID NTAPI TabPageUpdatedCallback(
 
             if ((tabInfo = FindTabInfo(tabIndex)) && tabInfo->BannerText)
             {
-                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+K)")->Buffer);
+                Edit_SetCueBannerText(SearchEditHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+K)")->Buffer);
             }
             else
             {
                 // Disable the textbox if we're on an unsupported tab.
-                Edit_SetCueBannerText(SearchboxHandle, L"Search disabled");
+                Edit_SetCueBannerText(SearchEditHandle, L"Search disabled");
             }
         }
         break;
@@ -637,13 +637,15 @@ LRESULT CALLBACK MainWndSubclassProc(
             switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case EN_CHANGE:
+            case CBN_EDITUPDATE:
+            case CBN_EDITCHANGE:
                 {
                     PPH_STRING newSearchboxText;
 
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchboxHandle));
+                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchEditHandle));
 
                     if (!PhEqualString(SearchboxText, newSearchboxText, FALSE))
                     {
@@ -668,6 +670,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     goto DefaultWndProc;
                 }
                 break;
+            case CBN_KILLFOCUS:
             case EN_KILLFOCUS:
                 {
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
@@ -681,6 +684,16 @@ LRESULT CALLBACK MainWndSubclassProc(
                         if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                             RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
                     }
+
+                    goto DefaultWndProc;
+                }
+                break;
+            case CBN_SELCHANGE:
+                {
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
+                        break;
+
+                    PostMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
                 }
                 break;
             }
@@ -703,10 +716,10 @@ LRESULT CALLBACK MainWndSubclassProc(
             case ID_SEARCH:
                 {
                     // handle keybind Ctrl + K
-                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
+                    if (SearchEditHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        SetFocus(SearchboxHandle);
-                        Edit_SetSel(SearchboxHandle, 0, -1);
+                        SetFocus(SearchEditHandle);
+                        Edit_SetSel(SearchEditHandle, 0, -1);
                     }
 
                     goto DefaultWndProc;
@@ -714,11 +727,13 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case ID_SEARCH_CLEAR:
                 {
-                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
+                    if (SearchEditHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        SetFocus(SearchboxHandle);
-                        Static_SetText(SearchboxHandle, L"");
+                        SetFocus(SearchEditHandle);
+                        Static_SetText(SearchEditHandle, L"");
                     }
+
+                    SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
 
                     goto DefaultWndProc;
                 }
@@ -1247,7 +1262,7 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SETTINGCHANGE:
         // Forward to the Searchbox so we can reinitialize the settings...
-        SendMessage(SearchboxHandle, WM_SETTINGCHANGE, 0, 0);
+        SendMessage(SearchEditHandle, WM_SETTINGCHANGE, 0, 0);
         break;
     case WM_SHOWWINDOW:
         {
@@ -1331,7 +1346,6 @@ VOID NTAPI LoadCallback(
     )
 {
     ToolStatusConfig.Flags = PhGetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG);
-    ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
@@ -1358,7 +1372,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_TOOLSTATUS_CONFIG, L"1F" },
+                { IntegerSettingType, SETTING_NAME_TOOLSTATUS_CONFIG, L"3F" },
                 { IntegerSettingType, SETTING_NAME_TOOLBAR_THEME, L"0" },
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
