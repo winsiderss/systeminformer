@@ -92,16 +92,31 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     PWSTR IntegrityString;
 
     PPH_STRING JobName;
-    BOOLEAN IsInJob;
-    BOOLEAN IsInSignificantJob;
-
     HANDLE ConsoleHostProcessId;
     PPH_STRING PackageFullName;
 
-    BOOLEAN IsDotNet;
-    BOOLEAN IsWow64;
-    BOOLEAN IsWow64Valid;
-    BOOLEAN IsPicoProcess;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG IsInJob : 1;
+            ULONG IsInSignificantJob : 1;
+
+            ULONG IsDotNet : 1;
+            ULONG IsWow64 : 1;
+            ULONG IsWow64Valid : 1;
+
+            ULONG IsProtectedProcess : 1;
+            ULONG IsSecureProcess : 1;
+            ULONG IsPicoProcess : 1;
+            ULONG IsFrozen : 1;
+            ULONG IsBackground : 1;
+
+            ULONG Spare : 22;
+        };
+    };
+
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
 typedef struct _PH_PROCESS_QUERY_S2_DATA
@@ -983,16 +998,23 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-#ifdef _WIN64
-    // WOW64
+    // Process flags
     if (processHandleLimited)
     {
-        if (NT_SUCCESS(PhGetProcessIsWow64(processHandleLimited, &Data->IsWow64)))
-            Data->IsWow64Valid = TRUE;
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &basicInfo)))
+        {
+            if (Data->IsWow64 = basicInfo.IsWow64Process)
+                Data->IsWow64Valid = TRUE;
+
+            Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
+            Data->IsSecureProcess = basicInfo.IsSecureProcess;
+            Data->IsPicoProcess = basicInfo.IsPicoProcess;
+            Data->IsBackground = basicInfo.IsBackground;
+            Data->IsFrozen = basicInfo.IsFrozen;
+        }
     }
-#else
-    Data->IsWow64Valid = TRUE;
-#endif
 
     // Command line, .NET
     {
@@ -1153,17 +1175,6 @@ VOID PhpProcessQueryStage1(
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
 
-    // Subsystem for Linux
-    if (processHandleLimited && WindowsVersion >= WINDOWS_10)
-    {
-        PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
-
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &extendedBasicInfo)))
-        {
-            Data->IsPicoProcess = !!extendedBasicInfo.IsPicoProcess;
-        }
-    }
-
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
@@ -1311,6 +1322,10 @@ VOID PhpFillProcessItemStage1(
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsWow64 = Data->IsWow64;
     processItem->IsWow64Valid = Data->IsWow64Valid;
+    processItem->IsProtectedProcess = Data->IsProtectedProcess;
+    processItem->IsFrozen = Data->IsFrozen;
+    processItem->IsBackground = Data->IsBackground;
+    processItem->IsSecureProcess = Data->IsSecureProcess;
     processItem->IsPicoProcess = Data->IsPicoProcess;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
