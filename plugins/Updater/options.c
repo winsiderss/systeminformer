@@ -33,6 +33,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
         }

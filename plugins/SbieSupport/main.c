@@ -498,8 +498,12 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             PPH_STRING sbieDllPath;
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             sbieDllPath = PhaGetStringSetting(SETTING_NAME_SBIE_DLL_PATH);
             SetDlgItemText(hwndDlg, IDC_SBIEDLLPATH, sbieDllPath->Buffer);
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
         }
         break;
     case WM_COMMAND:

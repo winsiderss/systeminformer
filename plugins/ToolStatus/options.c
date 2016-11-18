@@ -47,6 +47,9 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU),
                 ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOCOMPLETE),
+                ToolStatusConfig.AutoComplete ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -62,6 +65,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     ToolStatusConfig.StatusBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED;
                     ToolStatusConfig.ResolveGhostWindows = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED;
                     ToolStatusConfig.AutoHideMenu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU)) == BST_CHECKED;
+                    ToolStatusConfig.AutoComplete = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOCOMPLETE)) == BST_CHECKED;
 
                     PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 

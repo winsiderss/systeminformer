@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   search filter callbacks
  *
- * Copyright (C) 2011-2015 dmex
+ * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
@@ -33,11 +33,11 @@ BOOLEAN WordMatchStringRef(
 
     remainingPart = SearchboxText->sr;
 
-    while (remainingPart.Length != 0)
+    while (remainingPart.Length)
     {
         PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
 
-        if (part.Length != 0)
+        if (part.Length)
         {
             if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
                 return TRUE;
@@ -133,19 +133,19 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    if (processNode->ProcessItem->ProcessIdString[0] != 0)
+    if (processNode->ProcessItem->ProcessIdString[0])
     {
         if (WordMatchStringZ(processNode->ProcessItem->ProcessIdString))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->ParentProcessIdString[0] != 0)
+    if (processNode->ProcessItem->ParentProcessIdString[0])
     {
         if (WordMatchStringZ(processNode->ProcessItem->ParentProcessIdString))
             return TRUE;
     }
 
-    if (processNode->ProcessItem->SessionIdString[0] != 0)
+    if (processNode->ProcessItem->SessionIdString[0])
     {
         if (WordMatchStringZ(processNode->ProcessItem->SessionIdString))
             return TRUE;
@@ -220,11 +220,6 @@ BOOLEAN ProcessTreeFilterCallback(
         }
     }
 
-    if (WordMatchStringZ(L"UpdateIsDotNet") && processNode->ProcessItem->UpdateIsDotNet)
-    {
-        return TRUE;
-    }
-
     if (WordMatchStringZ(L"IsBeingDebugged") && processNode->ProcessItem->IsBeingDebugged)
     {
         return TRUE;
@@ -270,7 +265,7 @@ BOOLEAN ProcessTreeFilterCallback(
         return TRUE;
     }
 
-    if (processNode->ProcessItem->ServiceList && processNode->ProcessItem->ServiceList->Count != 0)
+    if (processNode->ProcessItem->ServiceList && processNode->ProcessItem->ServiceList->Count)
     {
         ULONG enumerationKey = 0;
         PPH_SERVICE_ITEM serviceItem;
@@ -412,12 +407,20 @@ BOOLEAN ServiceTreeFilterCallback(
 
     if (serviceNode->ServiceItem->ProcessId)
     {
+        PPH_PROCESS_NODE processNode;
         WCHAR processIdString[PH_INT32_STR_LEN_1];
 
         PhPrintUInt32(processIdString, HandleToUlong(serviceNode->ServiceItem->ProcessId));
 
         if (WordMatchStringZ(processIdString))
             return TRUE;
+
+        // Search the process node
+        if (processNode = PhFindProcessNode(serviceNode->ServiceItem->ProcessId))
+        {
+            if (ProcessTreeFilterCallback(&processNode->Node, NULL))
+                return TRUE;
+        }
     }
 
     if (NT_SUCCESS(QueryServiceFileName(
@@ -477,13 +480,13 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->LocalAddressString[0] != 0)
+    if (networkNode->NetworkItem->LocalAddressString[0])
     {
         if (WordMatchStringZ(networkNode->NetworkItem->LocalAddressString))
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->LocalPortString[0] != 0)
+    if (networkNode->NetworkItem->LocalPortString[0])
     {
         if (WordMatchStringZ(networkNode->NetworkItem->LocalPortString))
             return TRUE;
@@ -495,13 +498,13 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->RemoteAddressString[0] != 0)
+    if (networkNode->NetworkItem->RemoteAddressString[0])
     {
         if (WordMatchStringZ(networkNode->NetworkItem->RemoteAddressString))
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->RemotePortString[0] != 0)
+    if (networkNode->NetworkItem->RemotePortString[0])
     {
         if (WordMatchStringZ(networkNode->NetworkItem->RemotePortString))
             return TRUE;
@@ -522,12 +525,20 @@ BOOLEAN NetworkTreeFilterCallback(
 
     if (networkNode->NetworkItem->ProcessId)
     {
+        PPH_PROCESS_NODE processNode;
         WCHAR processIdString[PH_INT32_STR_LEN_1];
 
         PhPrintUInt32(processIdString, HandleToUlong(networkNode->NetworkItem->ProcessId));
 
         if (WordMatchStringZ(processIdString))
             return TRUE;
+
+        // Search the process node
+        if (processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId))
+        {
+            if (ProcessTreeFilterCallback(&processNode->Node, NULL))
+                return TRUE;
+        }
     }
 
     return FALSE;

@@ -30,9 +30,10 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <windowsx.h>
-#include <Wincodec.h>
+#include <wincodec.h>
+#include <uxtheme.h>
+#include <vssym32.h>
 #include <toolstatusintf.h>
-
 #include "resource.h"
 
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
@@ -74,12 +75,12 @@ typedef enum _TOOLBAR_COMMAND_ID
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
 } TOOLBAR_COMMAND_ID;
 
-typedef enum _TOOLBAR_THEME
-{
-    TOOLBAR_THEME_NONE,
-    TOOLBAR_THEME_BLACK,
-    TOOLBAR_THEME_BLUE
-} TOOLBAR_THEME;
+//typedef enum _TOOLBAR_THEME
+//{
+//    TOOLBAR_THEME_NONE,
+//    TOOLBAR_THEME_BLACK,
+//    TOOLBAR_THEME_BLUE
+//} TOOLBAR_THEME;
 
 typedef enum _SEARCHBOX_DISPLAY_MODE
 {
@@ -123,8 +124,9 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG MemGraphEnabled : 1;
         ULONG CommitGraphEnabled : 1;
         ULONG IoGraphEnabled : 1;
+        ULONG AutoComplete : 1;
 
-        ULONG Spare : 21;
+        ULONG Spare : 20;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -135,7 +137,6 @@ extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
-extern TOOLBAR_THEME ToolBarTheme;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -143,6 +144,7 @@ extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 extern HWND RebarHandle;
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
+extern HWND SearchEditHandle;
 
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
@@ -191,6 +193,11 @@ PWSTR ToolbarGetText(
     );
 
 HBITMAP ToolbarGetImage(
+    _In_ INT CommandID
+    );
+
+HICON CustomizeGetToolbarIcon(
+    _In_ PVOID Context,
     _In_ INT CommandID
     );
 
@@ -253,10 +260,6 @@ NTSTATUS QueryServiceFileName(
 
 // searchbox.c
 
-HWND CreateSearchControl(
-    _In_ UINT CmdId
-    );
-
 typedef struct _EDIT_CONTEXT
 {
     UINT CommandID;
@@ -264,11 +267,9 @@ typedef struct _EDIT_CONTEXT
     INT CXBorder;
     INT ImageWidth;
     INT ImageHeight;
-
-    HWND WindowHandle;
     HFONT WindowFont;
-    HIMAGELIST ImageList;
-
+    HICON BitmapActive;
+    HICON BitmapInactive;
     HBRUSH BrushNormal;
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
@@ -285,6 +286,10 @@ typedef struct _EDIT_CONTEXT
         };
     };
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
+
+PEDIT_CONTEXT CreateSearchControl(
+    _In_ UINT CmdId
+    );
 
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,
@@ -376,7 +381,7 @@ VOID StatusBarShowCustomizeDialog(
 typedef struct _BUTTON_CONTEXT
 {
     INT IdCommand;
-    INT IdBitmap;
+    HICON IconHandle;
 
     union
     {
@@ -393,6 +398,14 @@ typedef struct _BUTTON_CONTEXT
 
 typedef struct _CUSTOMIZE_CONTEXT
 {
+    HFONT FontHandle;
+    HBRUSH BrushNormal;
+    HBRUSH BrushPushed;
+    HBRUSH BrushHot;
+    INT CXWidth;
+    INT ImageWidth;
+    INT ImageHeight;
+
     HWND DialogHandle;
     HWND AvailableListHandle;
     HWND CurrentListHandle;
@@ -400,10 +413,6 @@ typedef struct _CUSTOMIZE_CONTEXT
     HWND MoveDownButtonHandle;
     HWND AddButtonHandle;
     HWND RemoveButtonHandle;
-
-    INT BitmapWidth;
-    HFONT FontHandle;
-    HIMAGELIST ImageListHandle;
 } CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
 
 #endif

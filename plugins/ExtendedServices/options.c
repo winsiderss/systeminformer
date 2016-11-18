@@ -33,6 +33,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESERVICESMENU), PhGetIntegerSetting(SETTING_NAME_ENABLE_SERVICES_MENU) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;

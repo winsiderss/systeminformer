@@ -202,7 +202,7 @@ VOID ShowUpdateFailedDialog(
     config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"An error was encountered while downloading the update.";
+    config.pszMainInstruction = L"Error while downloading the update";
 
     if (SignatureFailed)
     {
