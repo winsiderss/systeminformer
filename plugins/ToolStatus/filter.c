@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   search filter callbacks
  *
- * Copyright (C) 2011-2015 dmex
+ * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2013 wj32
  *
  * This file is part of Process Hacker.
@@ -407,12 +407,20 @@ BOOLEAN ServiceTreeFilterCallback(
 
     if (serviceNode->ServiceItem->ProcessId)
     {
+        PPH_PROCESS_NODE processNode;
         WCHAR processIdString[PH_INT32_STR_LEN_1];
 
         PhPrintUInt32(processIdString, HandleToUlong(serviceNode->ServiceItem->ProcessId));
 
         if (WordMatchStringZ(processIdString))
             return TRUE;
+
+        // Search the process node
+        if (processNode = PhFindProcessNode(serviceNode->ServiceItem->ProcessId))
+        {
+            if (ProcessTreeFilterCallback(&processNode->Node, NULL))
+                return TRUE;
+        }
     }
 
     if (NT_SUCCESS(QueryServiceFileName(
@@ -517,12 +525,20 @@ BOOLEAN NetworkTreeFilterCallback(
 
     if (networkNode->NetworkItem->ProcessId)
     {
+        PPH_PROCESS_NODE processNode;
         WCHAR processIdString[PH_INT32_STR_LEN_1];
 
         PhPrintUInt32(processIdString, HandleToUlong(networkNode->NetworkItem->ProcessId));
 
         if (WordMatchStringZ(processIdString))
             return TRUE;
+
+        // Search the process node
+        if (processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId))
+        {
+            if (ProcessTreeFilterCallback(&processNode->Node, NULL))
+                return TRUE;
+        }
     }
 
     return FALSE;

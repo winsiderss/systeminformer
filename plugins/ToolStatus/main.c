@@ -43,7 +43,6 @@ HWND NetworkTreeNewHandle = NULL;
 INT SelectedTabIndex;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
-TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -1347,7 +1346,6 @@ VOID NTAPI LoadCallback(
     )
 {
     ToolStatusConfig.Flags = PhGetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG);
-    ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");

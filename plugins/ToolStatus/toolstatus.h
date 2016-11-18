@@ -75,12 +75,12 @@ typedef enum _TOOLBAR_COMMAND_ID
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
 } TOOLBAR_COMMAND_ID;
 
-typedef enum _TOOLBAR_THEME
-{
-    TOOLBAR_THEME_NONE,
-    TOOLBAR_THEME_BLACK,
-    TOOLBAR_THEME_BLUE
-} TOOLBAR_THEME;
+//typedef enum _TOOLBAR_THEME
+//{
+//    TOOLBAR_THEME_NONE,
+//    TOOLBAR_THEME_BLACK,
+//    TOOLBAR_THEME_BLUE
+//} TOOLBAR_THEME;
 
 typedef enum _SEARCHBOX_DISPLAY_MODE
 {
@@ -124,8 +124,9 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG MemGraphEnabled : 1;
         ULONG CommitGraphEnabled : 1;
         ULONG IoGraphEnabled : 1;
+        ULONG AutoComplete : 1;
 
-        ULONG Spare : 21;
+        ULONG Spare : 20;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -136,7 +137,6 @@ extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
-extern TOOLBAR_THEME ToolBarTheme;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -267,8 +267,6 @@ typedef struct _EDIT_CONTEXT
     INT CXBorder;
     INT ImageWidth;
     INT ImageHeight;
-
-    RECT SearchEditRect;
     HFONT WindowFont;
     HICON BitmapActive;
     HICON BitmapInactive;

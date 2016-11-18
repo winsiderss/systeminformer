@@ -374,7 +374,6 @@ VOID CustomizeLoadToolbarSettings(
 {
     HWND toolbarCombo = GetDlgItem(Context->DialogHandle, IDC_TEXTOPTIONS);
     HWND searchboxCombo = GetDlgItem(Context->DialogHandle, IDC_SEARCHOPTIONS);
-    HWND themeCombo = GetDlgItem(Context->DialogHandle, IDC_THEMEOPTIONS);
 
     PhAddComboBoxStrings(
         toolbarCombo,
@@ -386,14 +385,8 @@ VOID CustomizeLoadToolbarSettings(
         CustomizeSearchDisplayStrings,
         ARRAYSIZE(CustomizeSearchDisplayStrings)
         );
-    PhAddComboBoxStrings(
-        themeCombo,
-        CustomizeThemeOptionsStrings,
-        ARRAYSIZE(CustomizeThemeOptionsStrings)
-        );
     ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
     ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
-    ComboBox_SetCurSel(themeCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME));
 
     Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_MODERN),
         ToolStatusConfig.ModernIcons ? BST_CHECKED : BST_UNCHECKED);
@@ -404,8 +397,6 @@ VOID CustomizeLoadToolbarSettings(
     {
         ComboBox_Enable(searchboxCombo, FALSE);
     }
-
-    ComboBox_Enable(themeCombo, FALSE);
 }
 
 VOID CustomizeResetImages(
@@ -736,37 +727,37 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                     }
                 }
                 break;
-            case IDC_THEMEOPTIONS:
-                {
-                    if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
-                    {
-                        PhSetIntegerSetting(SETTING_NAME_TOOLBAR_THEME,
-                            (ToolBarTheme = (TOOLBAR_THEME)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
-
-                        switch (ToolBarTheme)
-                        {
-                        case TOOLBAR_THEME_NONE:
-                            {
-                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"");
-                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"");
-                            }
-                            break;
-                        case TOOLBAR_THEME_BLACK:
-                            {
-                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media");
-                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media");
-                            }
-                            break;
-                        case TOOLBAR_THEME_BLUE:
-                            {
-                                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
-                                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
-                            }
-                            break;
-                        }
-                    }
-                }
-                break;
+            //case IDC_THEMEOPTIONS:
+            //    {
+            //        if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
+            //        {
+            //            PhSetIntegerSetting(SETTING_NAME_TOOLBAR_THEME,
+            //                (ToolBarTheme = (TOOLBAR_THEME)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
+            //
+            //            switch (ToolBarTheme)
+            //            {
+            //            case TOOLBAR_THEME_NONE:
+            //                {
+            //                    SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"");
+            //                    SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"");
+            //                }
+            //                break;
+            //            case TOOLBAR_THEME_BLACK:
+            //                {
+            //                    SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media");
+            //                    SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media");
+            //                }
+            //                break;
+            //            case TOOLBAR_THEME_BLUE:
+            //                {
+            //                    SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
+            //                    SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
+            //                }
+            //                break;
+            //            }
+            //        }
+            //    }
+            //    break;
             case IDC_ENABLE_MODERN:
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == BN_CLICKED)

@@ -25,6 +25,7 @@
 #include "commonutil.h"
 #include <uxtheme.h>
 #include <vssym32.h>
+#include <shlwapi.h>
 
 VOID NcAreaFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
@@ -719,6 +720,7 @@ PEDIT_CONTEXT CreateSearchControl(
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->CommandID = CommandID;
+    
     SearchboxHandle = CreateWindowEx(
         0,
         WC_COMBOBOX,
@@ -733,10 +735,13 @@ PEDIT_CONTEXT CreateSearchControl(
 
     if (GetComboBoxInfo(SearchboxHandle, &comboInfo))
     {
-        context->SearchEditRect = comboInfo.rcItem;
-
-
         SearchEditHandle = comboInfo.hwndItem;
+
+        if (ToolStatusConfig.AutoComplete)
+        {      
+            if (SHAutoComplete)
+                SHAutoComplete(comboInfo.hwndItem, SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_URLMRU);
+        }
 
         // Set initial text
         Edit_SetCueBannerText(SearchEditHandle, L"Search Processes (Ctrl+K)");
