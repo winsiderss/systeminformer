@@ -268,8 +268,7 @@ typedef struct _EDIT_CONTEXT
     INT ImageWidth;
     INT ImageHeight;
 
-    HWND WindowHandle;
-    HWND SearchEditHandle;
+    RECT SearchEditRect;
     HFONT WindowFont;
     HICON BitmapActive;
     HICON BitmapInactive;

@@ -646,7 +646,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchboxHandle));
+                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchEditHandle));
 
                     if (!PhEqualString(SearchboxText, newSearchboxText, FALSE))
                     {
@@ -695,8 +695,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                         break;
 
                     PostMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
-
-                    goto DefaultWndProc;
                 }
                 break;
             }

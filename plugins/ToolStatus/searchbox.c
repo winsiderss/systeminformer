@@ -72,6 +72,7 @@ VOID NcAreaInitializeTheme(
     )
 {
     HBITMAP bitmap;
+    LOGFONT logFont;
 
     Context->CXWidth = PhMultiplyDivide(20, PhGlobalDpi, 96);
     Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
@@ -79,7 +80,14 @@ VOID NcAreaInitializeTheme(
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
     Context->BrushHot = CreateSolidBrush(RGB(205, 232, 255));
     Context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-    Context->WindowFont = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+
+    if (GetObject((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0), sizeof(LOGFONT), &logFont))
+    {
+        logFont.lfHeight = -11;
+
+        Context->WindowFont = CreateFontIndirect(&logFont);
+        SendMessage(SearchboxHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
+    }
 
     if (bitmap = LoadImageFromResources(Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {
@@ -107,7 +115,7 @@ VOID NcAreaInitializeTheme(
     {
         HTHEME themeDataHandle;
 
-        if (themeDataHandle = OpenThemeData(Context->WindowHandle, VSCLASS_COMBOBOX))
+        if (themeDataHandle = OpenThemeData(SearchboxHandle, VSCLASS_COMBOBOX))
         {
             if (!SUCCEEDED(GetThemeInt(
                 themeDataHandle,
@@ -131,18 +139,6 @@ VOID NcAreaInitializeTheme(
     {
         Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
     }
-
-
-    LOGFONT logFont;
-
-    if (GetObject((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0), sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfHeight = -11;
-
-        Context->WindowFont = CreateFontIndirect(&logFont);
-
-        SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
-    } 
 }
 
 VOID NcAreaGetButtonRect(
@@ -150,14 +146,15 @@ VOID NcAreaGetButtonRect(
     _Inout_ PRECT ButtonRect
     )
 {
-    ButtonRect->left = (ButtonRect->right - Context->CXWidth - 2) - Context->CXBorder + 6; // offset left border by 1
+    ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder + 6; // offset left border by 1
     ButtonRect->bottom -= Context->CXBorder - 6;
     ButtonRect->right -= Context->CXBorder - 6;
     ButtonRect->top += Context->CXBorder;
 }
 
 VOID NcAreaDrawButton(
-    _Inout_ PEDIT_CONTEXT Context,
+    _Inout_ PEDIT_CONTEXT Context, 
+    _In_ HWND WindowHandle,
     _In_ RECT ButtonRect
     )
 {
@@ -172,7 +169,7 @@ VOID NcAreaDrawButton(
         ButtonRect.bottom - ButtonRect.top
     };
 
-    if (!(hdc = GetWindowDC(Context->WindowHandle)))
+    if (!(hdc = GetWindowDC(SearchboxHandle)))
         return;
 
     bufferDc = CreateCompatibleDC(hdc);
@@ -195,7 +192,7 @@ VOID NcAreaDrawButton(
         //FrameRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOWTEXT));
     }
 
-    if (Edit_GetTextLength(Context->WindowHandle) > 0)
+    if (Edit_GetTextLength(WindowHandle) > 0)
     {
         if (Context->BitmapActive)
         {
@@ -235,7 +232,7 @@ VOID NcAreaDrawButton(
     SelectObject(bufferDc, oldBufferBitmap);
     DeleteObject(bufferBitmap);
     DeleteDC(bufferDc);
-    ReleaseDC(Context->WindowHandle, hdc);
+    ReleaseDC(SearchboxHandle, hdc);
 }
 
 LRESULT CALLBACK NcAreaWndSubclassProc(
@@ -292,7 +289,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             NcAreaGetButtonRect(context, &windowRect);
 
             // Draw the button.
-            NcAreaDrawButton(context, windowRect);
+            NcAreaDrawButton(context, hWnd, windowRect);
         }
         return 0;
     case WM_NCHITTEST:
@@ -716,17 +713,17 @@ PEDIT_CONTEXT CreateSearchControl(
     )
 {
     PEDIT_CONTEXT context;
-    COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+    COMBOBOXINFO comboInfo = { sizeof(COMBOBOXINFO) };
 
     context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->CommandID = CommandID;
-    context->WindowHandle = CreateWindowEx(
-        WS_EX_CLIENTEDGE,
+    SearchboxHandle = CreateWindowEx(
+        0,
         WC_COMBOBOX,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CBS_DROPDOWN | CBS_HASSTRINGS,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CBS_DROPDOWN | CBS_HASSTRINGS | CBS_AUTOHSCROLL,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
@@ -734,29 +731,32 @@ PEDIT_CONTEXT CreateSearchControl(
         NULL
         );
 
-    if (GetComboBoxInfo(context->WindowHandle, &info))
+    if (GetComboBoxInfo(SearchboxHandle, &comboInfo))
     {
-        context->SearchEditHandle = info.hwndItem;
+        context->SearchEditRect = comboInfo.rcItem;
+
+
+        SearchEditHandle = comboInfo.hwndItem;
 
         // Set initial text
-        Edit_SetCueBannerText(context->SearchEditHandle, L"Search Processes (Ctrl+K)");
+        Edit_SetCueBannerText(SearchEditHandle, L"Search Processes (Ctrl+K)");
 
         // Set our window context data.
-        SetProp(context->SearchEditHandle, L"EditSubclassContext", (HANDLE)context);
+        SetProp(SearchEditHandle, L"EditSubclassContext", (HANDLE)context);
 
         // Subclass the Edit control window procedure.
-        SetWindowSubclass(context->SearchEditHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
+        SetWindowSubclass(SearchEditHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
 
         // Initialize the theme parameters.
-        SendMessage(context->SearchEditHandle, WM_THEMECHANGED, 0, 0);
+        SendMessage(SearchEditHandle, WM_THEMECHANGED, 0, 0);
     }
     else
     {
-        ShowWindow(context->WindowHandle, SW_HIDE);
+        ShowWindow(SearchboxHandle, SW_HIDE);
     }
 
     if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
-        ShowWindow(context->WindowHandle, SW_HIDE);
+        ShowWindow(SearchboxHandle, SW_HIDE);
 
     return context;
 }

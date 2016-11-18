@@ -180,37 +180,34 @@ VOID RebarLoadSettings(
 
     if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
     {
-        PEDIT_CONTEXT edit;
-
         SearchboxText = PhReferenceEmptyString();
         ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-        edit = CreateSearchControl(ID_SEARCH_CLEAR);
-        SearchboxHandle = edit->WindowHandle;
-        SearchEditHandle = edit->SearchEditHandle;
-
-        //ComboBox_AddString(SearchboxHandle, L"");
-        ComboBox_AddString(SearchboxHandle, L"NoSignature");
-        ComboBox_AddString(SearchboxHandle, L"Trusted");
-        ComboBox_AddString(SearchboxHandle, L"Expired");
-        ComboBox_AddString(SearchboxHandle, L"Revoked");
-        ComboBox_AddString(SearchboxHandle, L"Distrust");
-        ComboBox_AddString(SearchboxHandle, L"BadSignature");
-        ComboBox_AddString(SearchboxHandle, L"Unknown");
-        ComboBox_AddString(SearchboxHandle, L"Limited");
-        ComboBox_AddString(SearchboxHandle, L"Full");
-        ComboBox_AddString(SearchboxHandle, L"IsBeingDebugged");
-        ComboBox_AddString(SearchboxHandle, L"IsDotNet");
-        ComboBox_AddString(SearchboxHandle, L"IsElevated");
-        ComboBox_AddString(SearchboxHandle, L"IsInJob");
-        ComboBox_AddString(SearchboxHandle, L"IsInSignificantJob");
-        ComboBox_AddString(SearchboxHandle, L"IsPacked");
-        ComboBox_AddString(SearchboxHandle, L"IsSuspended");
-        ComboBox_AddString(SearchboxHandle, L"IsWow64");
-        ComboBox_AddString(SearchboxHandle, L"IsImmersive");
-        PhSelectComboBoxString(SearchboxHandle, L"", FALSE);
+        if (CreateSearchControl(ID_SEARCH_CLEAR))
+        {
+            //ComboBox_AddString(SearchboxHandle, L"");
+            ComboBox_AddString(SearchboxHandle, L"NoSignature");
+            ComboBox_AddString(SearchboxHandle, L"Trusted");
+            ComboBox_AddString(SearchboxHandle, L"Expired");
+            ComboBox_AddString(SearchboxHandle, L"Revoked");
+            ComboBox_AddString(SearchboxHandle, L"Distrust");
+            ComboBox_AddString(SearchboxHandle, L"BadSignature");
+            ComboBox_AddString(SearchboxHandle, L"Unknown");
+            ComboBox_AddString(SearchboxHandle, L"Limited");
+            ComboBox_AddString(SearchboxHandle, L"Full");
+            ComboBox_AddString(SearchboxHandle, L"IsBeingDebugged");
+            ComboBox_AddString(SearchboxHandle, L"IsDotNet");
+            ComboBox_AddString(SearchboxHandle, L"IsElevated");
+            ComboBox_AddString(SearchboxHandle, L"IsInJob");
+            ComboBox_AddString(SearchboxHandle, L"IsInSignificantJob");
+            ComboBox_AddString(SearchboxHandle, L"IsPacked");
+            ComboBox_AddString(SearchboxHandle, L"IsSuspended");
+            ComboBox_AddString(SearchboxHandle, L"IsWow64");
+            ComboBox_AddString(SearchboxHandle, L"IsImmersive");
+            PhSelectComboBoxString(SearchboxHandle, L"", FALSE);
+        }
     }
 
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
