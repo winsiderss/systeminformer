@@ -220,11 +220,6 @@ BOOLEAN ProcessTreeFilterCallback(
         }
     }
 
-    if (WordMatchStringZ(L"UpdateIsDotNet") && processNode->ProcessItem->UpdateIsDotNet)
-    {
-        return TRUE;
-    }
-
     if (WordMatchStringZ(L"IsBeingDebugged") && processNode->ProcessItem->IsBeingDebugged)
     {
         return TRUE;

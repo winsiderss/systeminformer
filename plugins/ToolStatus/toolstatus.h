@@ -144,6 +144,7 @@ extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 extern HWND RebarHandle;
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
+extern HWND SearchEditHandle;
 
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
@@ -259,10 +260,6 @@ NTSTATUS QueryServiceFileName(
 
 // searchbox.c
 
-HWND CreateSearchControl(
-    _In_ UINT CmdId
-    );
-
 typedef struct _EDIT_CONTEXT
 {
     UINT CommandID;
@@ -272,6 +269,7 @@ typedef struct _EDIT_CONTEXT
     INT ImageHeight;
 
     HWND WindowHandle;
+    HWND SearchEditHandle;
     HFONT WindowFont;
     HICON BitmapActive;
     HICON BitmapInactive;
@@ -291,6 +289,10 @@ typedef struct _EDIT_CONTEXT
         };
     };
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
+
+PEDIT_CONTEXT CreateSearchControl(
+    _In_ UINT CmdId
+    );
 
 HBITMAP LoadImageFromResources(
     _In_ UINT Width,
