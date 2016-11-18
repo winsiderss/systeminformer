@@ -158,21 +158,8 @@ VOID RebarLoadSettings(
         toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
         // Enable theming
-        //switch (ToolBarTheme)
-        //{
-        //case TOOLBAR_THEME_BLACK:
-        //    {
-        //        SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-        //        SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-        //    }
-        //    break;
-        //case TOOLBAR_THEME_BLUE:
-        //    {
-        //        SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
-        //        SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
-        //    }
-        //    break;
-        //}
+        // SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+        // SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
         // Inset the toolbar into the rebar control.
         RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), HIWORD(toolbarButtonSize));
