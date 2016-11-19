@@ -265,6 +265,21 @@ BOOLEAN ProcessTreeFilterCallback(
         return TRUE;
     }
 
+    if (WordMatchStringZ(L"IsProtectedProcess") && processNode->ProcessItem->IsProtectedProcess)
+    {
+        return TRUE;
+    }
+
+    if (WordMatchStringZ(L"IsSecureProcess") && processNode->ProcessItem->IsSecureProcess)
+    {
+        return TRUE;
+    }
+
+    if (WordMatchStringZ(L"IsPicoProcess") && processNode->ProcessItem->IsPicoProcess)
+    {
+        return TRUE;
+    }
+
     if (processNode->ProcessItem->ServiceList && processNode->ProcessItem->ServiceList->Count)
     {
         ULONG enumerationKey = 0;

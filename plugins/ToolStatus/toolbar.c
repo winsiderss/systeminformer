@@ -176,26 +176,28 @@ VOID RebarLoadSettings(
         {
             static WCHAR *SearchTypeStrings[] = 
             { 
-                L"IsBeingDebugged", 
-                L"IsDotNet", 
-                L"IsElevated", 
+                L"IsBeingDebugged",
+                L"IsDotNet",
+                L"IsElevated",
                 L"IsImmersive",
-                L"IsInJob", 
-                L"IsInSignificantJob", 
-                L"IsPacked", 
+                L"IsInJob",
+                L"IsInSignificantJob",
+                L"IsPacked",
                 L"IsSuspended",
-                L"IsWow64", 
+                L"IsWow64",
+                L"IsProtectedProcess",
+                L"IsSecureProcess",
+                L"IsPicoProcess",
                 L"Limited",
                 L"Full",
                 L"BadSignature ",
                 L"Distrust ",
                 L"Expired",
-                L"NoSignature", 
+                L"NoSignature",
                 L"Revoked",
-                L"Trusted", 
+                L"Trusted",
                 L"Unknown", 
-                // L"Critical"
-                //L""
+                //L"" // L"Critical"
             };
 
             PhAddComboBoxStrings(SearchboxHandle, SearchTypeStrings,
