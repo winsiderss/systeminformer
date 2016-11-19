@@ -110,10 +110,8 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsPicoProcess : 1;
-            ULONG IsFrozen : 1;
-            ULONG IsBackground : 1;
 
-            ULONG Spare : 22;
+            ULONG Spare : 24;
         };
     };
 
@@ -1011,8 +1009,6 @@ VOID PhpProcessQueryStage1(
             Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
             Data->IsSecureProcess = basicInfo.IsSecureProcess;
             Data->IsPicoProcess = basicInfo.IsPicoProcess;
-            Data->IsBackground = basicInfo.IsBackground;
-            Data->IsFrozen = basicInfo.IsFrozen;
         }
     }
 
@@ -1323,8 +1319,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IsWow64 = Data->IsWow64;
     processItem->IsWow64Valid = Data->IsWow64Valid;
     processItem->IsProtectedProcess = Data->IsProtectedProcess;
-    processItem->IsFrozen = Data->IsFrozen;
-    processItem->IsBackground = Data->IsBackground;
     processItem->IsSecureProcess = Data->IsSecureProcess;
     processItem->IsPicoProcess = Data->IsPicoProcess;
 
