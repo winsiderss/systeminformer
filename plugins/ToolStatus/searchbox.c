@@ -170,7 +170,7 @@ VOID NcAreaDrawButton(
         ButtonRect.bottom - ButtonRect.top
     };
 
-    if (!(hdc = GetWindowDC(SearchboxHandle)))
+    if (!(hdc = GetWindowDC(GetParent(WindowHandle)))) // Window DC of the parent combobox
         return;
 
     bufferDc = CreateCompatibleDC(hdc);
@@ -217,7 +217,7 @@ VOID NcAreaDrawButton(
             DrawIconEx(
                 bufferDc,
                 bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2,
-                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 4)) / 2, // (ImageHeight - 4) offset image
+                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2, // (ImageHeight - 2) offset image
                 Context->BitmapInactive,
                 Context->ImageWidth,
                 Context->ImageHeight,
@@ -233,7 +233,7 @@ VOID NcAreaDrawButton(
     SelectObject(bufferDc, oldBufferBitmap);
     DeleteObject(bufferBitmap);
     DeleteDC(bufferDc);
-    ReleaseDC(SearchboxHandle, hdc);
+    ReleaseDC(GetParent(WindowHandle), hdc);
 }
 
 LRESULT CALLBACK NcAreaWndSubclassProc(
@@ -725,7 +725,7 @@ PEDIT_CONTEXT CreateSearchControl(
         0,
         WC_COMBOBOX,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CBS_DROPDOWN | CBS_HASSTRINGS | CBS_AUTOHSCROLL,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CBS_DROPDOWN | CBS_HASSTRINGS | CBS_AUTOHSCROLL | CBS_OWNERDRAWFIXED,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         RebarHandle,
         NULL,
@@ -737,10 +737,12 @@ PEDIT_CONTEXT CreateSearchControl(
     {
         SearchEditHandle = comboInfo.hwndItem;
 
+        ListBox_SetItemHeight(comboInfo.hwndList, 0, 18);
+
         if (ToolStatusConfig.AutoComplete)
         {      
             if (SHAutoComplete)
-                SHAutoComplete(comboInfo.hwndItem, SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_URLMRU);
+                SHAutoComplete(SearchEditHandle, SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_URLMRU);
         }
 
         // Set initial text

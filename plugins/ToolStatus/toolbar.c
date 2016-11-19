@@ -174,25 +174,33 @@ VOID RebarLoadSettings(
 
         if (CreateSearchControl(ID_SEARCH_CLEAR))
         {
-            //ComboBox_AddString(SearchboxHandle, L"");
-            ComboBox_AddString(SearchboxHandle, L"NoSignature");
-            ComboBox_AddString(SearchboxHandle, L"Trusted");
-            ComboBox_AddString(SearchboxHandle, L"Expired");
-            ComboBox_AddString(SearchboxHandle, L"Revoked");
-            ComboBox_AddString(SearchboxHandle, L"Distrust");
-            ComboBox_AddString(SearchboxHandle, L"BadSignature");
-            ComboBox_AddString(SearchboxHandle, L"Unknown");
-            ComboBox_AddString(SearchboxHandle, L"Limited");
-            ComboBox_AddString(SearchboxHandle, L"Full");
-            ComboBox_AddString(SearchboxHandle, L"IsBeingDebugged");
-            ComboBox_AddString(SearchboxHandle, L"IsDotNet");
-            ComboBox_AddString(SearchboxHandle, L"IsElevated");
-            ComboBox_AddString(SearchboxHandle, L"IsInJob");
-            ComboBox_AddString(SearchboxHandle, L"IsInSignificantJob");
-            ComboBox_AddString(SearchboxHandle, L"IsPacked");
-            ComboBox_AddString(SearchboxHandle, L"IsSuspended");
-            ComboBox_AddString(SearchboxHandle, L"IsWow64");
-            ComboBox_AddString(SearchboxHandle, L"IsImmersive");
+            static WCHAR *SearchTypeStrings[] = 
+            { 
+                L"IsBeingDebugged", 
+                L"IsDotNet", 
+                L"IsElevated", 
+                L"IsImmersive",
+                L"IsInJob", 
+                L"IsInSignificantJob", 
+                L"IsPacked", 
+                L"IsSuspended",
+                L"IsWow64", 
+                L"Limited",
+                L"Full",
+                L"BadSignature ",
+                L"Distrust ",
+                L"Expired",
+                L"NoSignature", 
+                L"Revoked",
+                L"Trusted", 
+                L"Unknown", 
+                // L"Critical"
+                //L""
+            };
+
+            PhAddComboBoxStrings(SearchboxHandle, SearchTypeStrings,
+                sizeof(SearchTypeStrings) / sizeof(WCHAR *));
+            
             PhSelectComboBoxString(SearchboxHandle, L"", FALSE);
         }
     }
