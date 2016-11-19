@@ -87,7 +87,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     PH_IMAGE_VERSION_INFO VersionInfo;
 
     TOKEN_ELEVATION_TYPE ElevationType;
-    BOOLEAN IsElevated;
     MANDATORY_LEVEL IntegrityLevel;
     PWSTR IntegrityString;
 
@@ -100,21 +99,19 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
         ULONG Flags;
         struct
         {
+            ULONG IsDotNet : 1;
+            ULONG IsElevated : 1;
             ULONG IsInJob : 1;
             ULONG IsInSignificantJob : 1;
-
-            ULONG IsDotNet : 1;
             ULONG IsWow64 : 1;
-            ULONG IsWow64Valid : 1;
-
+            ULONG IsWow64Valid : 1;       
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsPicoProcess : 1;
 
-            ULONG Spare : 24;
+            ULONG Spare : 23;
         };
     };
-
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
 typedef struct _PH_PROCESS_QUERY_S2_DATA
@@ -1003,9 +1000,7 @@ VOID PhpProcessQueryStage1(
 
         if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &basicInfo)))
         {
-            if (Data->IsWow64 = basicInfo.IsWow64Process)
-                Data->IsWow64Valid = TRUE;
-
+            Data->IsWow64Valid = Data->IsWow64 = basicInfo.IsWow64Process;
             Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
             Data->IsSecureProcess = basicInfo.IsSecureProcess;
             Data->IsPicoProcess = basicInfo.IsPicoProcess;
