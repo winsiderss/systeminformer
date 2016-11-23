@@ -109,7 +109,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
         last;			/* Last entity in search */
 
 
-#ifdef DEBUG
+#if DEBUG > 1
   printf("mxmlIndexFind(ind=%p, element=\"%s\", value=\"%s\")\n",
          ind, element ? element : "(null)", value ? value : "(null)");
 #endif /* DEBUG */
@@ -120,7 +120,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
   if (!ind || (!ind->attr && value))
   {
-#ifdef DEBUG
+#if DEBUG > 1
     puts("    returning NULL...");
     printf("    ind->attr=\"%s\"\n", ind->attr ? ind->attr : "(null)");
 #endif /* DEBUG */
@@ -142,7 +142,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
   if (!ind->num_nodes)
   {
-#ifdef DEBUG
+#if DEBUG > 1
     puts("    returning NULL...");
     puts("    no nodes!");
 #endif /* DEBUG */
@@ -163,7 +163,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     first = 0;
     last  = ind->num_nodes - 1;
 
-#ifdef DEBUG
+#if DEBUG > 1
     printf("    find first time, num_nodes=%d...\n", ind->num_nodes);
 #endif /* DEBUG */
 
@@ -171,7 +171,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     {
       current = (first + last) / 2;
 
-#ifdef DEBUG
+#if DEBUG > 1
       printf("    first=%d, last=%d, current=%d\n", first, last, current);
 #endif /* DEBUG */
 
@@ -181,7 +181,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
         * Found a match, move back to find the first...
     */
 
-#ifdef DEBUG
+#if DEBUG > 1
         puts("    match!");
 #endif /* DEBUG */
 
@@ -189,7 +189,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
            !index_find(ind, element, value, ind->nodes[current - 1]))
       current --;
 
-#ifdef DEBUG
+#if DEBUG > 1
         printf("    returning first match=%d\n", current);
 #endif /* DEBUG */
 
@@ -206,7 +206,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
       else
     first = current;
 
-#ifdef DEBUG
+#if DEBUG > 1
       printf("    diff=%d\n", diff);
 #endif /* DEBUG */
     }
@@ -222,7 +222,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     * Found exactly one (or possibly two) match...
     */
 
-#ifdef DEBUG
+#if DEBUG > 1
     printf("    returning only match %d...\n", current);
 #endif /* DEBUG */
 
@@ -237,7 +237,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
     ind->cur_node = ind->num_nodes;
 
-#ifdef DEBUG
+#if DEBUG > 1
     puts("    returning NULL...");
 #endif /* DEBUG */
 
@@ -250,7 +250,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     * Return the next matching node...
     */
 
-#ifdef DEBUG
+#if DEBUG > 1
     printf("    returning next match %d...\n", ind->cur_node);
 #endif /* DEBUG */
 
@@ -263,7 +263,7 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
   ind->cur_node = ind->num_nodes;
 
-#ifdef DEBUG
+#if DEBUG > 1
   puts("    returning NULL...");
 #endif /* DEBUG */
 
@@ -319,7 +319,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Range check input...
   */
 
-#ifdef DEBUG
+#if DEBUG > 1
   printf("mxmlIndexNew(node=%p, element=\"%s\", attr=\"%s\")\n",
          node, element ? element : "(null)", attr ? attr : "(null)");
 #endif /* DEBUG */
@@ -382,7 +382,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Sort nodes based upon the search criteria...
   */
 
-#ifdef DEBUG
+#if DEBUG > 1
   {
     int i;				/* Looping var */
 
@@ -416,7 +416,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   if (ind->num_nodes > 1)
     index_sort(ind, 0, ind->num_nodes - 1);
 
-#ifdef DEBUG
+#if DEBUG > 1
   {
     int i;				/* Looping var */
 
@@ -466,7 +466,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 mxml_node_t *				/* O - First node or NULL if there is none */
 mxmlIndexReset(mxml_index_t *ind)	/* I - Index to reset */
 {
-#ifdef DEBUG
+#if DEBUG > 1
   printf("mxmlIndexReset(ind=%p)\n", ind);
 #endif /* DEBUG */
 
