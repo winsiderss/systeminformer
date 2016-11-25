@@ -1000,10 +1000,11 @@ VOID PhpProcessQueryStage1(
 
         if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &basicInfo)))
         {
-            Data->IsWow64Valid = Data->IsWow64 = basicInfo.IsWow64Process;
             Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
             Data->IsSecureProcess = basicInfo.IsSecureProcess;
             Data->IsPicoProcess = basicInfo.IsPicoProcess;
+            Data->IsWow64 = basicInfo.IsWow64Process;
+            Data->IsWow64Valid = TRUE;
         }
     }
 
