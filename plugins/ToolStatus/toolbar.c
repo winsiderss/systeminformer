@@ -172,7 +172,7 @@ VOID RebarLoadSettings(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-        if (CreateSearchControl(ID_SEARCH_CLEAR))
+        if (CreateSearchControl(TIDC_SEARCH_CLEAR))
         {
             static WCHAR *SearchTypeStrings[] = 
             { 
@@ -190,14 +190,14 @@ VOID RebarLoadSettings(
                 L"IsPicoProcess",
                 L"Limited",
                 L"Full",
-                L"BadSignature ",
-                L"Distrust ",
+                L"BadSignature",
+                L"Distrust",
                 L"Expired",
                 L"NoSignature",
                 L"Revoked",
                 L"Trusted",
                 L"Unknown", 
-                //L"" // L"Critical"
+                //L"Critical"
             };
 
             PhAddComboBoxStrings(SearchboxHandle, SearchTypeStrings,

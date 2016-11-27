@@ -25,48 +25,6 @@
 #include "commonutil.h"
 #include <uxtheme.h>
 #include <vssym32.h>
-#include <shlwapi.h>
-
-VOID NcAreaFreeTheme(
-    _Inout_ PEDIT_CONTEXT Context
-    )
-{
-    if (Context->BrushNormal)
-    {
-        DeleteObject(Context->BrushNormal);
-        Context->BrushNormal = NULL;
-    }
-
-    if (Context->BrushHot)
-    {
-        DeleteObject(Context->BrushHot);
-        Context->BrushHot = NULL;
-    }
-
-    if (Context->BrushPushed)
-    {
-        DeleteObject(Context->BrushPushed);
-        Context->BrushPushed = NULL;
-    }
-
-    if (Context->WindowFont)
-    {
-        DeleteObject(Context->WindowFont);
-        Context->WindowFont = NULL;
-    }
-
-    if (Context->BitmapActive)
-    {
-        DeleteObject(Context->BitmapActive);
-        Context->BitmapActive = NULL;
-    }
-
-    if (Context->BitmapInactive)
-    {
-        DeleteObject(Context->BitmapInactive);
-        Context->BitmapInactive = NULL;
-    }
-}
 
 VOID NcAreaInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
@@ -139,6 +97,47 @@ VOID NcAreaInitializeTheme(
     else
     {
         Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+    }
+}
+
+VOID NcAreaFreeTheme(
+    _Inout_ PEDIT_CONTEXT Context
+    )
+{
+    if (Context->BrushNormal)
+    {
+        DeleteObject(Context->BrushNormal);
+        Context->BrushNormal = NULL;
+    }
+
+    if (Context->BrushHot)
+    {
+        DeleteObject(Context->BrushHot);
+        Context->BrushHot = NULL;
+    }
+
+    if (Context->BrushPushed)
+    {
+        DeleteObject(Context->BrushPushed);
+        Context->BrushPushed = NULL;
+    }
+
+    if (Context->WindowFont)
+    {
+        DeleteObject(Context->WindowFont);
+        Context->WindowFont = NULL;
+    }
+
+    if (Context->BitmapActive)
+    {
+        DeleteObject(Context->BitmapActive);
+        Context->BitmapActive = NULL;
+    }
+
+    if (Context->BitmapInactive)
+    {
+        DeleteObject(Context->BitmapInactive);
+        Context->BitmapInactive = NULL;
     }
 }
 
@@ -257,7 +256,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
 
             RemoveWindowSubclass(hWnd, NcAreaWndSubclassProc, uIdSubclass);
             RemoveProp(hWnd, L"EditSubclassContext");
-            PhFree(context);
+            PhDereferenceObject(context);
         }
         break;
     case WM_ERASEBKGND:
@@ -374,6 +373,12 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
         break;
     case WM_KEYDOWN:
         {
+            if (wParam == VK_RETURN)
+            {
+                SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)GetParent(hWnd));
+                return FALSE;
+            }
+
             if (wParam == '\t' || wParam == '\r')
             {
                 HWND tnHandle;
@@ -406,10 +411,6 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
                 return FALSE;
             }
         }
-        break;
-    case WM_CHAR:
-        if (wParam == '\t' || wParam == '\r')
-            return FALSE;
         break;
     case WM_CUT:
     case WM_CLEAR:
@@ -521,6 +522,62 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             }
         }
         break;
+    case WM_CHAR:
+        { 
+            if (wParam == '\t' || wParam == '\r')
+                return FALSE;
+
+            if (!ToolStatusConfig.AutoComplete)
+                break;
+
+            if (GetKeyState(VK_LCONTROL) & 0x8000)
+                break;
+            if (GetKeyState(VK_BACK) & 0x8000)
+                break;
+            if (GetKeyState(VK_RETURN) & 0x8000)
+                break;
+
+            PostMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(TIDC_SEARCH_STRING, EN_CHANGE), (LPARAM)SearchboxHandle);
+
+            if (!iswcntrl((WCHAR)wParam))
+            {
+                int index;
+                WCHAR buffer[DOS_MAX_PATH_LENGTH];
+                PPH_STRING string;
+
+                //if (GetWindowLongPtr(SearchboxHandle, GWL_STYLE) & CBS_DROPDOWN)
+                //{  
+                //    ComboBox_ShowDropdown(SearchboxHandle, TRUE);
+                //}
+
+                // Get the substring from 0 to start of selection
+                ComboBox_GetText(SearchboxHandle, buffer, ARRAYSIZE(buffer));
+                buffer[LOWORD(ComboBox_GetEditSel(SearchboxHandle))] = 0;
+
+                string = PhFormatString(
+                    L"%ls%lc",
+                    buffer,
+                    (WCHAR)wParam
+                    );
+
+                if ((index = ComboBox_FindStringExact(SearchboxHandle, -1, string->Buffer)) == CB_ERR)
+                    index = ComboBox_FindString(SearchboxHandle, -1, string->Buffer);
+
+                if (index != CB_ERR)
+                {
+                    ComboBox_SetCurSel(SearchboxHandle, index);
+                    ComboBox_SetEditSel(SearchboxHandle, string->Length / 2, -1);
+                }
+                else
+                {
+                    ComboBox_SetText(SearchboxHandle, string->Buffer);
+                    ComboBox_SetEditSel(SearchboxHandle, string->Length / 2, -1);
+                }
+
+                PhDereferenceObject(string);
+                return FALSE;
+            }
+        }
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
@@ -533,8 +590,8 @@ HBITMAP LoadImageFromResources(
     _In_ BOOLEAN RGBAImage
     )
 {
+    BOOLEAN success = FALSE;
     UINT frameCount = 0;
-    BOOLEAN isSuccess = FALSE;
     ULONG resourceLength = 0;
     HGLOBAL resourceHandle = NULL;
     HRSRC resourceHandleSource = NULL;
@@ -543,7 +600,7 @@ HBITMAP LoadImageFromResources(
     HDC bufferDc = NULL;
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
-    PBYTE bitmapBuffer = NULL;
+    PVOID bitmapBuffer = NULL;
     IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
@@ -553,160 +610,143 @@ HBITMAP LoadImageFromResources(
     WICPixelFormatGUID pixelFormat;
     WICRect rect = { 0, 0, Width, Height };
 
-    __try
+    // Create the ImagingFactory
+    if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
+        goto CleanupExit;
+
+    // Find the resource
+    if ((resourceHandleSource = FindResource(PluginInstance->DllBase, Name, L"PNG")) == NULL)
+        goto CleanupExit;
+
+    // Get the resource length
+    resourceLength = SizeofResource(PluginInstance->DllBase, resourceHandleSource);
+
+    // Load the resource
+    if ((resourceHandle = LoadResource(PluginInstance->DllBase, resourceHandleSource)) == NULL)
+        goto CleanupExit;
+
+    if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
+        goto CleanupExit;
+
+    // Create the Stream
+    if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
+        goto CleanupExit;
+
+    // Initialize the Stream from Memory
+    if (FAILED(IWICStream_InitializeFromMemory(wicStream, resourceBuffer, resourceLength)))
+        goto CleanupExit;
+
+    if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
+        goto CleanupExit;
+
+    if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+        goto CleanupExit;
+
+    // Get the Frame count
+    if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
+        goto CleanupExit;
+
+    // Get the Frame
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
+        goto CleanupExit;
+
+    // Get the WicFrame image format
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    // Check if the image format is supported:
+    if (IsEqualGUID(&pixelFormat, RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA))
     {
-        // Create the ImagingFactory
-        if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
-            __leave;
+        wicBitmapSource = (IWICBitmapSource*)wicFrame;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
 
-        // Find the resource
-        if ((resourceHandleSource = FindResource(PluginInstance->DllBase, Name, L"PNG")) == NULL)
-            __leave;
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
+            goto CleanupExit;
 
-        // Get the resource length
-        resourceLength = SizeofResource(PluginInstance->DllBase, resourceHandleSource);
-
-        // Load the resource
-        if ((resourceHandle = LoadResource(PluginInstance->DllBase, resourceHandleSource)) == NULL)
-            __leave;
-
-        if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
-            __leave;
-
-        // Create the Stream
-        if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
-            __leave;
-
-        // Initialize the Stream from Memory
-        if (FAILED(IWICStream_InitializeFromMemory(wicStream, resourceBuffer, resourceLength)))
-            __leave;
-
-        if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
-            __leave;
-
-        if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
-            __leave;
-
-        // Get the Frame count
-        if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
-            __leave;
-
-        // Get the Frame
-        if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
-            __leave;
-
-        // Get the WicFrame image format
-        if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
-            __leave;
-
-        // Check if the image format is supported:
-        if (IsEqualGUID(&pixelFormat, RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA))
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicFrame,
+            RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0,
+            WICBitmapPaletteTypeCustom
+            )))
         {
-            wicBitmapSource = (IWICBitmapSource*)wicFrame;
-        }
-        else
-        {
-            IWICFormatConverter* wicFormatConverter = NULL;
-
-            if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
-                __leave;
-
-            if (FAILED(IWICFormatConverter_Initialize(
-                wicFormatConverter,
-                (IWICBitmapSource*)wicFrame,
-                RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA,
-                WICBitmapDitherTypeNone,
-                NULL,
-                0.0,
-                WICBitmapPaletteTypeCustom
-                )))
-            {
-                IWICFormatConverter_Release(wicFormatConverter);
-                __leave;
-            }
-
-            // Convert the image to the correct format:
-            IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource);
-
-            // Cleanup the converter.
             IWICFormatConverter_Release(wicFormatConverter);
-
-            // Dispose the old frame now that the converted frame is in wicBitmapSource.
-            IWICBitmapFrameDecode_Release(wicFrame);
+            goto CleanupExit;
         }
 
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biWidth = rect.Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biBitCount = 32;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+        // Convert the image to the correct format:
+        IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource);
 
-        screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
-        bufferDc = CreateCompatibleDC(screenHdc);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, (PVOID*)&bitmapBuffer, NULL, 0);
+        // Cleanup the converter.
+        IWICFormatConverter_Release(wicFormatConverter);
 
-        // Check if it's the same rect as the requested size.
-        //if (width != rect.Width || height != rect.Height)
-        if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
-            __leave;
-        if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
-            __leave;
-        if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, bitmapBuffer)))
-            __leave;
-
-        isSuccess = TRUE;
+        // Dispose the old frame now that the converted frame is in wicBitmapSource.
+        IWICBitmapFrameDecode_Release(wicFrame);
     }
-    __finally
+
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = rect.Width;
+    bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    bufferDc = CreateCompatibleDC(screenHdc);
+    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+
+    // Check if it's the same rect as the requested size.
+    //if (width != rect.Width || height != rect.Height)
+    if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, (PBYTE)bitmapBuffer)))
+        goto CleanupExit;
+
+    success = TRUE;
+
+CleanupExit:
+
+    if (wicScaler)
+        IWICBitmapScaler_Release(wicScaler);
+
+    if (bufferDc)
+        DeleteDC(bufferDc);
+
+    if (screenHdc)
+        DeleteDC(screenHdc);
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+
+    if (wicStream)
+        IWICStream_Release(wicStream);
+
+    if (wicDecoder)
+        IWICBitmapDecoder_Release(wicDecoder);
+
+    if (wicFactory)
+        IWICImagingFactory_Release(wicFactory);
+
+    if (resourceHandle)
+        FreeResource(resourceHandle);
+
+    if (success)
     {
-        // Cleanup resources in the same order they were created.
-
-        if (wicScaler)
-        {
-            IWICBitmapScaler_Release(wicScaler);
-        }
-
-        if (bufferDc)
-        {
-            DeleteDC(bufferDc);
-        }
-
-        if (screenHdc)
-        {
-            DeleteDC(screenHdc);
-        }
-
-        if (wicBitmapSource)
-        {
-            IWICBitmapSource_Release(wicBitmapSource);
-        }
-
-        if (wicStream)
-        {
-            IWICStream_Release(wicStream);
-        }
-
-        if (wicDecoder)
-        {
-            IWICBitmapDecoder_Release(wicDecoder);
-        }
-
-        if (wicFactory)
-        {
-            IWICImagingFactory_Release(wicFactory);
-        }
-
-        if (resourceHandle)
-        {
-            FreeResource(resourceHandle);
-        }
-    }
-
-    if (isSuccess)
         return bitmapHandle;
-
-    DeleteObject(bitmapHandle);
-    return NULL;
+    }
+    else
+    {
+        DeleteObject(bitmapHandle);
+        return NULL;
+    }
 }
 
 PEDIT_CONTEXT CreateSearchControl(
@@ -716,7 +756,7 @@ PEDIT_CONTEXT CreateSearchControl(
     PEDIT_CONTEXT context;
     COMBOBOXINFO comboInfo = { sizeof(COMBOBOXINFO) };
 
-    context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
+    context = (PEDIT_CONTEXT)PhCreateAlloc(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->CommandID = CommandID;
@@ -735,15 +775,10 @@ PEDIT_CONTEXT CreateSearchControl(
 
     if (GetComboBoxInfo(SearchboxHandle, &comboInfo))
     {
-        SearchEditHandle = comboInfo.hwndItem;
-
+        // Set initial height
         ListBox_SetItemHeight(comboInfo.hwndList, 0, 18);
 
-        if (ToolStatusConfig.AutoComplete)
-        {      
-            if (SHAutoComplete)
-                SHAutoComplete(SearchEditHandle, SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_URLMRU);
-        }
+        SearchEditHandle = comboInfo.hwndItem;
 
         // Set initial text
         Edit_SetCueBannerText(SearchEditHandle, L"Search Processes (Ctrl+K)");
@@ -756,10 +791,6 @@ PEDIT_CONTEXT CreateSearchControl(
 
         // Initialize the theme parameters.
         SendMessage(SearchEditHandle, WM_THEMECHANGED, 0, 0);
-    }
-    else
-    {
-        ShowWindow(SearchboxHandle, SW_HIDE);
     }
 
     if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)

@@ -725,7 +725,14 @@ LRESULT CALLBACK MainWndSubclassProc(
                     goto DefaultWndProc;
                 }
                 break;
-            case ID_SEARCH_CLEAR:
+            case TIDC_SEARCH_STRING:
+                {
+                    PostMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
+
+                    goto DefaultWndProc;
+                }
+                break;
+            case TIDC_SEARCH_CLEAR:
                 {
                     if (SearchEditHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
