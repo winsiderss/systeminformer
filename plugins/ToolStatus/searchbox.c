@@ -578,12 +578,11 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
                 PPH_STRING string;
                 WCHAR buffer[DOS_MAX_PATH_LENGTH];
 
-                // Get the substring from 0 to start of selection
                 ComboBox_GetText(SearchboxHandle, buffer, ARRAYSIZE(buffer));
 
                 buffer[LOWORD(ComboBox_GetEditSel(SearchboxHandle))] = 0;
 
-                string = PhFormatString(
+                string = PhaFormatString(
                     L"%ls%lc",
                     buffer,
                     c
@@ -596,15 +595,12 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
                 {
                     ComboBox_SetCurSel(SearchboxHandle, index);
                     ComboBox_SetEditSel(SearchboxHandle, string->Length / 2, -1);
-                }
-                else
-                {
-                    ComboBox_SetText(SearchboxHandle, string->Buffer);
-                    ComboBox_SetEditSel(SearchboxHandle, string->Length / 2, -1);
+                    return FALSE;
                 }
 
-                PhDereferenceObject(string);
-                return FALSE;
+                //ComboBox_SetText(SearchboxHandle, string->Buffer);
+                //ComboBox_SetEditSel(SearchboxHandle, string->Length / 2, -1);
+                //return FALSE;
             }
         }
     }
