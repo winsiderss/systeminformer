@@ -28,17 +28,6 @@
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
-VOID NetworkPingUpdateGraph(
-    _In_ PNETWORK_OUTPUT_CONTEXT Context)
-{
-    Context->PingGraphState.Valid = FALSE;
-    Context->PingGraphState.TooltipIndex = -1;
-    Graph_MoveGrid(Context->PingGraphHandle, 1);
-    Graph_Draw(Context->PingGraphHandle);
-    Graph_UpdateTooltip(Context->PingGraphHandle);
-    InvalidateRect(Context->PingGraphHandle, NULL, FALSE);
-}
-
 NTSTATUS NetworkPingThreadStart(
     _In_ PVOID Parameter
     )
@@ -262,6 +251,18 @@ VOID NTAPI NetworkPingUpdateHandler(
         NetworkPingThreadStart,
         (PVOID)context
         );
+}
+
+VOID NetworkPingUpdateGraph(
+    _In_ PNETWORK_OUTPUT_CONTEXT Context
+    )
+{
+    Context->PingGraphState.Valid = FALSE;
+    Context->PingGraphState.TooltipIndex = -1;
+    Graph_MoveGrid(Context->PingGraphHandle, 1);
+    Graph_Draw(Context->PingGraphHandle);
+    Graph_UpdateTooltip(Context->PingGraphHandle);
+    InvalidateRect(Context->PingGraphHandle, NULL, FALSE);
 }
 
 INT_PTR CALLBACK NetworkPingWndProc(
@@ -544,7 +545,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
     return FALSE;
 }
 
-NTSTATUS PhNetworkPingDialogThreadStart(
+NTSTATUS NetworkPingDialogThreadStart(
     _In_ PVOID Parameter
     )
 {

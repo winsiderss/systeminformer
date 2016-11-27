@@ -301,9 +301,6 @@ VOID TracertQueueHostLookup(
     }
 }
 
-
-
-
 NTSTATUS NetworkTracertThreadStart(
     _In_ PVOID Parameter
     )
@@ -568,6 +565,8 @@ NTSTATUS NetworkTracertThreadStart(
 
     return STATUS_SUCCESS;
 }
+
+
 INT_PTR CALLBACK TracertDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

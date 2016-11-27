@@ -1,5 +1,6 @@
 1.8
  * Added custom tracert and whois support
+ * Added geoip lookup for country name and image
 
 1.7
  * Added option to specify ping buffer length

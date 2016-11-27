@@ -18,9 +18,6 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="output.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ping.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -33,12 +30,27 @@
     <ClCompile Include="whois.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="maxminddb\maxminddb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="country.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nettools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb-compat-util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -49,5 +61,753 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\ad.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\wf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\wales.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\vu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ws.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ye.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\yt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\za.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\zm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\zw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\vn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\td.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\th.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tj.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\to.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tv.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\tz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ua.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ug.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\um.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\us.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\uy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\uz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\va.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\vc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ve.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\vg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\vi.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sv.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pa.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pe.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ph.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ps.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\pw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\py.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\qa.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\re.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ro.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\rs.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ru.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\rw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sa.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sb.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\scotland.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sd.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\se.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\si.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sj.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\so.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\sr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\st.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\om.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ls.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lv.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ly.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ma.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\md.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\me.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ml.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mp.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mq.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ms.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mv.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mx.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\my.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\na.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\nc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ne.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\nf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ng.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ni.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\nl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\no.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\np.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\nr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\nu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\nz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\la.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lb.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\lc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\li.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\dm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\do.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\dz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ec.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ee.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\eg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\eh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\england.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\er.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\es.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\et.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\europeanunion.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fam.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fi.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fj.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\fr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ga.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gb.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gd.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ge.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gi.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gp.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gq.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gs.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\gy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\hk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\hm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\hn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\hr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ht.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\hu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\id.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ie.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\il.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\in.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\io.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\iq.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ir.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\is.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\it.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\jm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\jo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\jp.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ke.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ki.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\km.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kp.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\kw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ky.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\dk.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ae.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\af.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ag.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ai.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\al.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\am.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\an.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ao.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ar.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\as.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\at.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\au.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\aw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ax.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\az.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ba.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bb.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bd.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\be.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bh.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bi.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bj.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bo.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\br.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bs.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bv.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bw.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\by.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\bz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ca.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\catalonia.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cc.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cd.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cf.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cg.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ch.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ci.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\ck.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cl.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cm.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cn.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\co.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cr.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cs.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cu.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cv.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cx.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\cz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\de.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\dj.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\licence.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

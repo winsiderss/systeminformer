@@ -51,6 +51,10 @@
 #define SETTING_NAME_OUTPUT_WINDOW_POSITION (PLUGIN_NAME L".OutputWindowPosition")
 #define SETTING_NAME_OUTPUT_WINDOW_SIZE (PLUGIN_NAME L".OutputWindowSize")
 
+extern PPH_PLUGIN PluginInstance;
+extern BOOLEAN GeoDbLoaded;
+extern BOOLEAN GeoDbExpired;
+
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
 // The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure
 //       + the number of bytes of data specified in the RequestSize parameter.
@@ -72,8 +76,6 @@ typedef struct _ICMPV6_ECHO_REPLY2
     BYTE Data[ANYSIZE_ARRAY]; // custom
 } ICMPV6_ECHO_REPLY2, *PICMPV6_ECHO_REPLY2;
 
-extern PPH_PLUGIN PluginInstance;
-
 typedef enum _PH_NETWORK_ACTION
 {
     NETWORK_ACTION_PING = 1,
@@ -87,13 +89,10 @@ typedef enum _PH_NETWORK_ACTION
     MAINMENU_ACTION_WHOIS,
 } PH_NETWORK_ACTION;
 
-// output
 #define NTM_RECEIVEDTRACE (WM_APP + NETWORK_ACTION_TRACEROUTE)
 #define NTM_RECEIVEDWHOIS (WM_APP + NETWORK_ACTION_WHOIS)
 #define NTM_RECEIVEDFINISH (WM_APP + NETWORK_ACTION_FINISH)
-
 #define WM_TRACERT_ERROR (WM_APP + NETWORK_ACTION_TRACEROUTE + 1001)
-
 
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
@@ -125,24 +124,15 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
-NTSTATUS PhNetworkPingDialogThreadStart(
-    _In_ PVOID Parameter
-    );
-
 VOID PerformNetworkAction(
     _In_ PH_NETWORK_ACTION Action,
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
-NTSTATUS NetworkPingThreadStart(
+NTSTATUS NetworkWhoisDialogThreadStart(
     _In_ PVOID Parameter
     );
-
-NTSTATUS NetworkTracertThreadStart(
-    _In_ PVOID Parameter
-    );
-
-NTSTATUS NetworkWhoisThreadStart(
+NTSTATUS NetworkPingDialogThreadStart(
     _In_ PVOID Parameter
     );
 
@@ -165,12 +155,6 @@ VOID ShowTracertWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
-VOID PerformTracertAction(
-    _In_ PH_NETWORK_ACTION Action,
-    _In_ PH_IP_ENDPOINT RemoteEndpoint
-    );
-
-
 typedef struct _NETWORK_TRACERT_CONTEXT
 {
     HWND WindowHandle;
@@ -183,6 +167,54 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
+// country.c
+typedef struct _NETWORK_EXTENSION
+{
+    BOOLEAN CountryValid;
+    HICON CountryIcon;
+    PPH_STRING RemoteCountryCode;
+    PPH_STRING RemoteCountryName;
+} NETWORK_EXTENSION, *PNETWORK_EXTENSION;
+
+typedef enum _NETWORK_COLUMN_ID
+{
+    NETWORK_COLUMN_ID_REMOTE_COUNTRY = 1,
+} NETWORK_COLUMN_ID;
+
+// country.c
+VOID LoadGeoLiteDb(VOID);
+VOID FreeGeoLiteDb(VOID);
+
+BOOLEAN LookupCountryCode(
+    _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_ PPH_STRING *CountryCode,
+    _Out_ PPH_STRING *CountryName
+    );
+
+INT LookupResourceCode(
+    _In_ PPH_STRING Name
+    );
+
+// Copied from mstcpip.h (due to PH-SDK conflicts).
+// Note: Ipv6 versions are already available from ws2ipdef.h and did not need copying.
+
+#define INADDR_ANY (ULONG)0x00000000
+#define INADDR_LOOPBACK 0x7f000001
+
+FORCEINLINE
+BOOLEAN
+IN4_IS_ADDR_UNSPECIFIED(_In_ CONST IN_ADDR *a)
+{
+    return (BOOLEAN)(a->s_addr == INADDR_ANY);
+}
+
+FORCEINLINE
+BOOLEAN
+IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
+{
+    return (BOOLEAN)(*((PUCHAR)a) == 0x7f); // 127/8
+}
+// end copy from mstcpip.h
 
 
 #endif
