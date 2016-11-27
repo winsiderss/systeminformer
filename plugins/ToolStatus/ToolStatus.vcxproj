@@ -53,26 +53,22 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>shlwapi.lib;windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>shlwapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>shlwapi.lib;windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>shlwapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>shlwapi.lib;windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>shlwapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>shlwapi.lib;windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>shlwapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>windowscodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
