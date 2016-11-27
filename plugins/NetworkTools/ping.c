@@ -29,8 +29,7 @@ static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
 VOID NetworkPingUpdateGraph(
-    _In_ PNETWORK_OUTPUT_CONTEXT Context
-    )
+    _In_ PNETWORK_OUTPUT_CONTEXT Context)
 {
     Context->PingGraphState.Valid = FALSE;
     Context->PingGraphState.TooltipIndex = -1;
@@ -44,12 +43,14 @@ NTSTATUS NetworkPingThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     ULONG icmpCurrentPingMs = 0;
     ULONG icmpReplyCount = 0;
     ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
     PPH_BYTES icmpEchoBuffer = NULL;
+    PPH_STRING icmpRandString = NULL;
     IP_OPTION_INFORMATION pingOptions =
     {
         255,         // Time To Live
@@ -57,39 +58,19 @@ NTSTATUS NetworkPingThreadStart(
         IP_FLAG_DF,  // IP header flags
         0            // Size of options data
     };
+    //pingOptions.Flags |= IP_FLAG_REVERSE;
 
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
+    if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
+    {
+        PhGenerateRandomAlphaString(icmpRandString->Buffer, (ULONG)icmpRandString->Length / sizeof(WCHAR));
+
+        icmpEchoBuffer = PhConvertUtf16ToMultiByte(icmpRandString->Buffer);
+        PhDereferenceObject(icmpRandString);
+    }
 
     __try
     {
-        // Create ICMP echo buffer.
-        if (context->PingSize > 0 && context->PingSize != 32)
-        {
-            PPH_STRING randString;
-
-            randString = PhCreateStringEx(NULL, context->PingSize * 2 + 2);
-
-            // Create a random string to fill the buffer.
-            PhGenerateRandomAlphaString(randString->Buffer, (ULONG)randString->Length / sizeof(WCHAR));
-
-            icmpEchoBuffer = PhConvertUtf16ToMultiByte(randString->Buffer);
-            PhDereferenceObject(randString);
-        }
-        else
-        {
-            PPH_STRING version;
-
-            // We're using a default length, query the PH version and use the previous buffer format.
-            version = PhGetPhVersion();
-
-            if (version)
-            {
-                icmpEchoBuffer = FormatAnsiString("processhacker_%S_0x0D06F00D_x1", version->Buffer);
-                PhDereferenceObject(version);
-            }
-        }
-
-        if (context->IpAddress.Type == PH_IPV6_NETWORK_TYPE)
+        if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
         {
             SOCKADDR_IN6 icmp6LocalAddr = { 0 };
             SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
@@ -104,8 +85,8 @@ NTSTATUS NetworkPingThreadStart(
             icmp6LocalAddr.sin6_family = AF_INET6;
 
             // Set Remote IPv6 address.
-            icmp6RemoteAddr.sin6_addr = context->IpAddress.In6Addr;
-            icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
+            icmp6RemoteAddr.sin6_addr = context->RemoteEndpoint.Address.In6Addr;
+            //icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
 
             // Allocate ICMPv6 message.
             icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
@@ -131,46 +112,43 @@ NTSTATUS NetworkPingThreadStart(
                 );
 
             icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
-            if (icmpReplyCount > 0 && icmp6ReplyStruct)
+
+            if (icmp6ReplyStruct->Status == IP_SUCCESS)
             {
                 BOOLEAN icmpPacketSignature = FALSE;
 
-                if (icmp6ReplyStruct->Status != IP_SUCCESS)
-                {
-                    InterlockedIncrement(&context->PingLossCount);
-                }
-
-                if (_memicmp(
+                if (!RtlEqualMemory(
                     icmp6ReplyStruct->Address.sin6_addr,
-                    context->IpAddress.In6Addr.u.Word,
+                    context->RemoteEndpoint.Address.In6Addr.u.Word,
                     sizeof(icmp6ReplyStruct->Address.sin6_addr)
-                    ) != 0)
+                    ))
                 {
                     InterlockedIncrement(&context->UnknownAddrCount);
                 }
 
-                icmpPacketSignature = _memicmp(
+                icmpPacketSignature = RtlEqualMemory(
                     icmpEchoBuffer->Buffer,
                     icmp6ReplyStruct->Data,
                     icmpEchoBuffer->Length
-                    ) == 0;
+                    );
 
                 if (!icmpPacketSignature)
                 {
                     InterlockedIncrement(&context->HashFailCount);
                 }
-
-                icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
             }
             else
             {
                 InterlockedIncrement(&context->PingLossCount);
             }
+
+            icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
         }
         else
         {
             IPAddr icmpLocalAddr = 0;
             IPAddr icmpRemoteAddr = 0;
+            BOOLEAN icmpPacketSignature = FALSE;
             PICMP_ECHO_REPLY icmpReplyStruct = NULL;
 
             // Create ICMPv4 handle.
@@ -181,7 +159,7 @@ NTSTATUS NetworkPingThreadStart(
             icmpLocalAddr = in4addr_any.s_addr;
 
             // Set Remote IPv4 address.
-            icmpRemoteAddr = context->IpAddress.InAddr.s_addr;
+            icmpRemoteAddr = context->RemoteEndpoint.Address.InAddr.s_addr;
 
             // Allocate ICMPv4 message.
             icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
@@ -190,6 +168,7 @@ NTSTATUS NetworkPingThreadStart(
 
             InterlockedIncrement(&context->PingSentCount);
 
+            // First ping with no data...
             // Send ICMPv4 ping...
             icmpReplyCount = IcmpSendEcho2Ex(
                 icmpHandle,
@@ -198,8 +177,8 @@ NTSTATUS NetworkPingThreadStart(
                 NULL,
                 icmpLocalAddr,
                 icmpRemoteAddr,
-                icmpEchoBuffer->Buffer,
-                (USHORT)icmpEchoBuffer->Length,
+                NULL,
+                0,
                 &pingOptions,
                 icmpReplyBuffer,
                 icmpReplyLength,
@@ -208,30 +187,20 @@ NTSTATUS NetworkPingThreadStart(
 
             icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
-            if (icmpReplyStruct && icmpReplyCount > 0)
+            if (icmpReplyStruct->Status == IP_SUCCESS)
             {
-                BOOLEAN icmpPacketSignature = FALSE;
-
-                if (icmpReplyStruct->Status != IP_SUCCESS)
-                {
-                    InterlockedIncrement(&context->PingLossCount);
-                }
-
-                if (icmpReplyStruct->Address != context->IpAddress.InAddr.s_addr)
+                if (icmpReplyStruct->Address != context->RemoteEndpoint.Address.InAddr.s_addr)
                 {
                     InterlockedIncrement(&context->UnknownAddrCount);
                 }
 
                 if (icmpReplyStruct->DataSize == icmpEchoBuffer->Length)
                 {
-                    icmpPacketSignature = _memicmp(
+                    icmpPacketSignature = RtlEqualMemory(
                         icmpEchoBuffer->Buffer,
                         icmpReplyStruct->Data,
-                        icmpReplyStruct->DataSize
-                        ) == 0;
+                        icmpReplyStruct->DataSize);
                 }
-
-                icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
 
                 if (!icmpPacketSignature)
                 {
@@ -242,6 +211,8 @@ NTSTATUS NetworkPingThreadStart(
             {
                 InterlockedIncrement(&context->PingLossCount);
             }
+
+            icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
         }
 
         InterlockedIncrement(&context->PingRecvCount);
@@ -331,7 +302,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
             context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
-            context->PingSize = PhGetIntegerSetting(SETTING_NAME_PING_SIZE);
 
             windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION);
             windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE, TRUE).Pair;
@@ -355,20 +325,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 );
             Graph_SetTooltip(context->PingGraphHandle, TRUE);
 
-            // Load the Process Hacker icon.
-            context->IconHandle = (HICON)LoadImage(
-                NtCurrentPeb()->ImageBaseAddress,
-                MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-                IMAGE_ICON,
-                GetSystemMetrics(SM_CXICON),
-                GetSystemMetrics(SM_CYICON),
-                LR_SHARED
-                );
-            // Set window icon.
-            if (context->IconHandle)
-                SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconHandle);
-
-            // Initialize the WorkQueue with a maximum of 20 threads (fix pinging slow-links with a high interval update).
+            // Initialize the WorkQueue with a maximum of 20 threads (fixes pinging slow-links when the refresh interval is 'very slow').
             PhInitializeWorkQueue(&context->PingWorkQueue, 0, 20, 5000);
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -382,7 +339,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_LOST), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
 
@@ -398,17 +355,17 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhLayoutManagerLayout(&context->LayoutManager);
 
             // Convert IP Address to string format.
-            if (context->IpAddress.Type == PH_IPV4_NETWORK_TYPE)
+            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
             {
-                RtlIpv4AddressToString(&context->IpAddress.InAddr, context->IpAddressString);
+                RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
             }
             else
             {
-                RtlIpv6AddressToString(&context->IpAddress.In6Addr, context->IpAddressString);
+                RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
             }
 
             SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
-            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data:", context->IpAddressString, context->PingSize)->Buffer);
+            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data...", context->IpAddressString, PhGetIntegerSetting(SETTING_NAME_PING_SIZE))->Buffer);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -445,9 +402,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
             if (context->PingGraphHandle)
                 DestroyWindow(context->PingGraphHandle);
 
-            if (context->IconHandle)
-                DestroyIcon(context->IconHandle);
-
             if (context->FontHandle)
                 DeleteObject(context->FontHandle);
 
@@ -467,35 +421,14 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_SIZING:
         PhResizingMinimumSize((PRECT)lParam, wParam, 420, 250);
         break;
-    case WM_CTLCOLORBTN:
-    case WM_CTLCOLORDLG:
-    case WM_CTLCOLORSTATIC:
-        {
-            HDC hDC = (HDC)wParam;
-            HWND hwndChild = (HWND)lParam;
-
-            // Check for our static label and change the color.
-            if (GetDlgCtrlID(hwndChild) == IDC_MAINTEXT)
-            {
-                SetTextColor(hDC, RGB(19, 112, 171));
-            }
-
-            // Set a transparent background for the control backcolor.
-            SetBkMode(hDC, TRANSPARENT);
-
-            // set window background color.
-            return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
-        }
-        break;
     case WM_PING_UPDATE:
         {
-            ULONG i = 0;
             ULONG maxGraphHeight = 0;
             ULONG pingAvgValue = 0;
 
             NetworkPingUpdateGraph(context);
 
-            for (i = 0; i < context->PingHistory.Count; i++)
+            for (ULONG i = 0; i < context->PingHistory.Count; i++)
             {
                 maxGraphHeight = maxGraphHeight + PhGetItemCircularBuffer_ULONG(&context->PingHistory, i);
                 pingAvgValue = maxGraphHeight / context->PingHistory.Count;
@@ -512,11 +445,10 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 L"Pings sent: %lu", context->PingSentCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_PINGS_LOST, PhaFormatString(
                 L"Pings lost: %lu (%.0f%%)", context->PingLossCount,
-                ((FLOAT)context->PingLossCount / context->PingSentCount * 100)
-                )->Buffer);
+                ((FLOAT)context->PingLossCount / context->PingSentCount * 100))->Buffer);
 
-            SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
-                L"Bad hashes: %lu", context->HashFailCount)->Buffer);
+            //SetDlgItemText(hwndDlg, IDC_BAD_HASH, PhaFormatString(
+            //    L"Bad hashes: %lu", context->HashFailCount)->Buffer);
             SetDlgItemText(hwndDlg, IDC_ANON_ADDR, PhaFormatString(
                 L"Anon replies: %lu", context->UnknownAddrCount)->Buffer);
         }
@@ -558,7 +490,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                         if (!context->PingGraphState.Valid)
                         {
                             ULONG i;
-                            FLOAT max = 0;
+                            FLOAT max = (FLOAT)context->MaxPingTimeout; // minimum scaling (1000ms)
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
@@ -569,10 +501,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
                                 if (max < data1)
                                     max = data1;
                             }
-
-                            // Minimum scaling of timeout (1000ms default).
-                            if (max < (FLOAT)context->MaxPingTimeout)
-                                max = (FLOAT)context->MaxPingTimeout;
 
                             // Scale the data.
                             PhDivideSinglesBySingle(

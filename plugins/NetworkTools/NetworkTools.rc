@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,7,0,0
- PRODUCTVERSION 1,7,0,0
+ FILEVERSION 1,8,0,0
+ PRODUCTVERSION 1,8,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Network Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.7"
+            VALUE "FileVersion", "1.8"
             VALUE "InternalName", "ProcessHacker.NetworkTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "NetworkTools.dll"
             VALUE "ProductName", "Network Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.7"
+            VALUE "ProductVersion", "1.8"
         END
     END
     BLOCK "VarFileInfo"
@@ -93,41 +93,48 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "Network Tools"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_NETOUTPUTEDIT,7,7,305,152,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER | WS_VSCROLL,WS_EX_CLIENTEDGE
-    CONTROL         "<a>More information</a>",IDC_MORE_INFO,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,7,163,77,12
-    PUSHBUTTON      "Close",IDOK,263,162,50,14
+    PUSHBUTTON      "Close",IDCANCEL,260,162,50,14
+    CONTROL         "",IDC_NETOUTPUTEDIT,"RICHEDIT50W",WS_VSCROLL | WS_HSCROLL | 0xc4,0,0,319,159
 END
 
-IDD_OPTIONS DIALOGEX 0, 0, 215, 79
+IDD_OPTIONS DIALOGEX 0, 0, 185, 57
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Ping packet length:",IDC_STATIC,9,7,62,8
     EDITTEXT        IDC_PINGPACKETLENGTH,7,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
-    DEFPUSHBUTTON   "OK",IDOK,104,58,50,14
-    LTEXT           "Minimum graph scaling:",IDC_STATIC,101,7,74,8
-    EDITTEXT        IDC_MINSCALING,99,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
-    PUSHBUTTON      "Cancel",IDCANCEL,158,58,50,14
+    PUSHBUTTON      "Close",IDOK,129,36,50,14
+    EDITTEXT        IDC_MAXHOPS,99,17,79,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Max Tracert Hops:",IDC_STATIC,101,7,60,8
 END
 
-IDD_PINGDIALOG DIALOGEX 0, 0, 269, 131
+IDD_PINGDIALOG DIALOGEX 0, 0, 329, 151
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,255,16
-    LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,255,27,NOT WS_VISIBLE | WS_BORDER
-    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,56,254,52,0,WS_EX_TRANSPARENT
-    LTEXT           "Average: 0ms",IDC_ICMP_AVG,13,69,73,8
-    LTEXT           "Pings sent: 0",IDC_PINGS_SENT,92,69,88,8
-    LTEXT           "Bad hashes: 0",IDC_BAD_HASH,186,69,72,8
-    LTEXT           "Minimum: 0ms",IDC_ICMP_MIN,13,81,73,8
-    LTEXT           "Pings lost: 0 (0%)",IDC_PINGS_LOST,92,81,88,8
-    LTEXT           "Anon replies: 0",IDC_ANON_ADDR,186,81,72,8
-    LTEXT           "Maximum: 0ms",IDC_ICMP_MAX,13,93,73,8
-    DEFPUSHBUTTON   "Close",IDOK,212,110,50,14
+    LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,315,16
+    LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,315,64,NOT WS_VISIBLE | WS_BORDER
+    GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,92,315,52,0,WS_EX_TRANSPARENT
+    LTEXT           "Average: 0ms",IDC_ICMP_AVG,13,104,73,8
+    LTEXT           "Pings sent: 0",IDC_PINGS_SENT,91,104,88,8
+    LTEXT           "Bad replies: 0",IDC_BAD_HASH,187,104,90,8
+    LTEXT           "Minimum: 0ms",IDC_ICMP_MIN,13,116,73,8
+    LTEXT           "Pings lost: 0 (0%)",IDC_PINGS_LOST,91,116,88,8
+    LTEXT           "Anon replies: 0",IDC_ANON_ADDR,188,116,87,8
+    LTEXT           "Maximum: 0ms",IDC_ICMP_MAX,13,129,73,8
+END
+
+IDD_TRACERT DIALOGEX 0, 0, 389, 212
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST_TRACERT,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,23,375,165
+    LTEXT           "Tracing route to xyz...",IDC_STATUS,7,5,375,12
+    DEFPUSHBUTTON   "Close",IDCANCEL,333,191,50,14
 END
 
 
@@ -141,26 +148,31 @@ GUIDELINES DESIGNINFO
 BEGIN
     IDD_OUTPUT, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 312
-        TOPMARGIN, 7
         BOTTOMMARGIN, 176
     END
 
     IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 208
+        RIGHTMARGIN, 178
         TOPMARGIN, 7
-        BOTTOMMARGIN, 72
+        BOTTOMMARGIN, 50
     END
 
     IDD_PINGDIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 262
+        RIGHTMARGIN, 322
         TOPMARGIN, 7
-        BOTTOMMARGIN, 124
+        BOTTOMMARGIN, 144
+    END
+
+    IDD_TRACERT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 382
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 205
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -177,6 +189,16 @@ BEGIN
 END
 
 IDD_OPTIONS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_TRACERT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PINGDIALOG AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

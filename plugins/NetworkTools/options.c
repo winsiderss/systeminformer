@@ -37,7 +37,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, PhGetIntegerSetting(SETTING_NAME_PING_SIZE), FALSE);
-            SetDlgItemInt(hwndDlg, IDC_MINSCALING, PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING), FALSE);
+            SetDlgItemInt(hwndDlg, IDC_MAXHOPS, PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS), FALSE);
         }
         break;
     case WM_COMMAND:
@@ -50,10 +50,10 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDOK:
                 {
                     ULONG pingPacketLength = GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE);
-                    ULONG minGraphScaling = GetDlgItemInt(hwndDlg, IDC_MINSCALING, NULL, FALSE);
+                    ULONG minGraphScaling = GetDlgItemInt(hwndDlg, IDC_MAXHOPS, NULL, FALSE);
 
                     PhSetIntegerSetting(SETTING_NAME_PING_SIZE, pingPacketLength);
-                    PhSetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING, minGraphScaling);
+                    PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, minGraphScaling);
 
                     EndDialog(hwndDlg, IDOK);
                 }

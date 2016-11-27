@@ -54,13 +54,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
       <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
