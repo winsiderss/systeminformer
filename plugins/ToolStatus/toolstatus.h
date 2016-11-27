@@ -30,11 +30,13 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <windowsx.h>
-#include <wincodec.h>
 #include <uxtheme.h>
 #include <vssym32.h>
-#include <toolstatusintf.h>
+
 #include "resource.h"
+
+#define _WIC_IMAGE_CODECS_
+#include <toolstatusintf.h>
 
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
