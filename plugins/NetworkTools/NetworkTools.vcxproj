@@ -56,6 +56,7 @@
       <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
@@ -81,8 +82,37 @@
     <ClCompile Include="maxminddb\maxminddb.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="ping.c" />
+    <ClCompile Include="setup\page1.c" />
+    <ClCompile Include="setup\page2.c" />
+    <ClCompile Include="setup\page3.c" />
+    <ClCompile Include="setup\page4.c" />
+    <ClCompile Include="setup\page5.c" />
+    <ClCompile Include="setup\uninstall.c" />
     <ClCompile Include="tracert.c" />
+    <ClCompile Include="setup\update.c" />
     <ClCompile Include="whois.c" />
+    <ClCompile Include="zlib\adler32.c" />
+    <ClCompile Include="zlib\compress.c" />
+    <ClCompile Include="zlib\crc32.c" />
+    <ClCompile Include="zlib\deflate.c" />
+    <ClCompile Include="zlib\gzclose.c" />
+    <ClCompile Include="zlib\gzlib.c" />
+    <ClCompile Include="zlib\gzread.c" />
+    <ClCompile Include="zlib\gzwrite.c" />
+    <ClCompile Include="zlib\infback.c" />
+    <ClCompile Include="zlib\inffast.c" />
+    <ClCompile Include="zlib\inflate.c" />
+    <ClCompile Include="zlib\inftrees.c" />
+    <ClCompile Include="zlib\ioapi.c" />
+    <ClCompile Include="zlib\iowin32.c" />
+    <ClCompile Include="zlib\miniunz.c" />
+    <ClCompile Include="zlib\minizip.c" />
+    <ClCompile Include="zlib\mztools.c" />
+    <ClCompile Include="zlib\trees.c" />
+    <ClCompile Include="zlib\uncompr.c" />
+    <ClCompile Include="zlib\unzip.c" />
+    <ClCompile Include="zlib\zip.c" />
+    <ClCompile Include="zlib\zutil.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
@@ -90,6 +120,23 @@
     <ClInclude Include="maxminddb\maxminddb_config.h" />
     <ClInclude Include="nettools.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="zlib\crc32.h" />
+    <ClInclude Include="zlib\crypt.h" />
+    <ClInclude Include="zlib\deflate.h" />
+    <ClInclude Include="zlib\gzguts.h" />
+    <ClInclude Include="zlib\inffast.h" />
+    <ClInclude Include="zlib\inffixed.h" />
+    <ClInclude Include="zlib\inflate.h" />
+    <ClInclude Include="zlib\inftrees.h" />
+    <ClInclude Include="zlib\ioapi.h" />
+    <ClInclude Include="zlib\iowin32.h" />
+    <ClInclude Include="zlib\mztools.h" />
+    <ClInclude Include="zlib\trees.h" />
+    <ClInclude Include="zlib\unzip.h" />
+    <ClInclude Include="zlib\zconf.h" />
+    <ClInclude Include="zlib\zip.h" />
+    <ClInclude Include="zlib\zlib.h" />
+    <ClInclude Include="zlib\zutil.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NetworkTools.rc" />

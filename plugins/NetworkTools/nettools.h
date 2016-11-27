@@ -87,12 +87,22 @@ typedef enum _PH_NETWORK_ACTION
     MAINMENU_ACTION_PING,
     MAINMENU_ACTION_TRACERT,
     MAINMENU_ACTION_WHOIS,
+    MAINMENU_ACTION_GEOIP_UPDATE,
 } PH_NETWORK_ACTION;
 
 #define NTM_RECEIVEDTRACE (WM_APP + NETWORK_ACTION_TRACEROUTE)
 #define NTM_RECEIVEDWHOIS (WM_APP + NETWORK_ACTION_WHOIS)
 #define NTM_RECEIVEDFINISH (WM_APP + NETWORK_ACTION_FINISH)
 #define WM_TRACERT_ERROR (WM_APP + NETWORK_ACTION_TRACEROUTE + 1001)
+
+#define UPDATE_MENUITEM    1005
+#define PH_UPDATEISERRORED (WM_APP + 501)
+#define PH_UPDATEAVAILABLE (WM_APP + 502)
+#define PH_UPDATEISCURRENT (WM_APP + 503)
+#define PH_UPDATENEWER     (WM_APP + 504)
+#define PH_UPDATESUCCESS   (WM_APP + 505)
+#define PH_UPDATEFAILURE   (WM_APP + 506)
+#define WM_SHOWDIALOG      (WM_APP + 550)
 
 typedef struct _NETWORK_OUTPUT_CONTEXT
 {
@@ -195,26 +205,62 @@ INT LookupResourceCode(
     _In_ PPH_STRING Name
     );
 
-// Copied from mstcpip.h (due to PH-SDK conflicts).
-// Note: Ipv6 versions are already available from ws2ipdef.h and did not need copying.
 
+
+typedef struct _PH_UPDATER_CONTEXT
+{
+    BOOLEAN FixedWindowStyles;
+    HWND DialogHandle;
+    HICON IconSmallHandle;
+    HICON IconLargeHandle;
+
+    PPH_STRING FileDownloadUrl;
+    PPH_STRING RevVersion;
+    PPH_STRING Size;
+    PPH_STRING SetupFilePath;
+} PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
+
+NTSTATUS GeoIPUpdateThread(
+    _In_ PVOID Parameter
+    );
+
+VOID ShowUpdateDialog(
+    _In_opt_ HWND Parent
+    );
+
+// page1.c
+VOID ShowCheckForUpdatesDialog(
+    _In_ PPH_UPDATER_CONTEXT Context
+    );
+
+// page2.c
+VOID ShowCheckingForUpdatesDialog(
+    _In_ PPH_UPDATER_CONTEXT Context
+    );
+
+// page3.c
+VOID ShowAvailableDialog(
+    _In_ PPH_UPDATER_CONTEXT Context
+    );
+
+// page5.c
+VOID ShowInstallRestartDialog(
+    _In_ PPH_UPDATER_CONTEXT Context
+    );
+
+
+// Note: Ipv6 versions are already available from ws2ipdef.h
 #define INADDR_ANY (ULONG)0x00000000
 #define INADDR_LOOPBACK 0x7f000001
 
-FORCEINLINE
-BOOLEAN
-IN4_IS_ADDR_UNSPECIFIED(_In_ CONST IN_ADDR *a)
+FORCEINLINE BOOLEAN IN4_IS_ADDR_UNSPECIFIED(_In_ CONST IN_ADDR *a)
 {
     return (BOOLEAN)(a->s_addr == INADDR_ANY);
 }
 
-FORCEINLINE
-BOOLEAN
-IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
+FORCEINLINE BOOLEAN IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
 {
     return (BOOLEAN)(*((PUCHAR)a) == 0x7f); // 127/8
 }
-// end copy from mstcpip.h
-
 
 #endif

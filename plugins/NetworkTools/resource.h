@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by NetworkTools.rc
 //
-
 #define AD_PNG                          101
 #define AE_PNG                          102
 #define AF_PNG                          103
@@ -52,9 +51,13 @@
 #define CN_PNG                          147
 #define CO_PNG                          148
 #define CR_PNG                          149
+#define IDD_WHOIS                       149
 #define CS_PNG                          150
+#define IDD_PING                        150
 #define CU_PNG                          151
+#define IDD_OPTIONS                     151
 #define CV_PNG                          152
+#define IDD_TRACERT                     152
 #define CX_PNG                          153
 #define CY_PNG                          154
 #define CZ_PNG                          155
@@ -250,11 +253,6 @@
 #define ZM_PNG                          346
 #define ZW_PNG                          347
 #define HU_PNG                          348
-#define IDD_WHOIS                       149
-#define IDD_PINGDIALOG                  150
-#define IDD_OPTIONS                     151
-#define IDD_TRACERT                     152
-
 #define IDC_PINGPACKETLENGTH            1008
 #define IDC_NETOUTPUTEDIT               1009
 #define IDC_MAXHOPS                     1009
@@ -270,6 +268,7 @@
 #define IDC_BAD_HASH                    1022
 #define IDC_STATUS                      1023
 #define IDC_LIST_TRACERT                1024
+#define IDC_GEOIP                       1028
 
 // Next default values for new objects
 // 
@@ -277,7 +276,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        107
 #define _APS_NEXT_COMMAND_VALUE         40006
-#define _APS_NEXT_CONTROL_VALUE         1028
+#define _APS_NEXT_CONTROL_VALUE         1030
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

@@ -557,8 +557,8 @@ NTSTATUS NetworkPingDialogThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     windowHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_PINGDIALOG),
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_PING),
         NULL,
         NetworkPingWndProc,
         (LPARAM)Parameter

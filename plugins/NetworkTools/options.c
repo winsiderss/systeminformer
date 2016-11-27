@@ -58,6 +58,11 @@ INT_PTR CALLBACK OptionsDlgProc(
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
+            case IDC_GEOIP:
+                {
+                    ShowUpdateDialog(NULL);
+                }
+                break;
             }
         }
         break;
