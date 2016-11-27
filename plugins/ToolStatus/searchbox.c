@@ -523,41 +523,70 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
         }
         break;
     case WM_CHAR:
-        { 
-            if (wParam == '\t' || wParam == '\r')
+        {
+            WCHAR c = (WCHAR)wParam;
+
+            if (c == VK_RETURN)
+            {
+                INT index;
+                WCHAR buffer[DOS_MAX_PATH_LENGTH];
+
+                ComboBox_GetText(SearchboxHandle, buffer, ARRAYSIZE(buffer));
+
+                index = ComboBox_FindStringExact(SearchboxHandle, -1, buffer);
+
+                if (index != CB_ERR)
+                {
+                    // Remove the current Searchbox text from the dropdown list
+                    ComboBox_DeleteString(SearchboxHandle, index);
+                }
+                else
+                {
+                    PPH_STRING newSearchboxText;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchEditHandle));
+
+                    if (newSearchboxText->Length >= 4)
+                    {
+                        // Add the current Searchbox text to the dropdown list
+                        ComboBox_AddString(SearchboxHandle, PhGetString(newSearchboxText));
+                    }
+                }
+
                 return FALSE;
+            }
+            else if (c == VK_TAB)
+            {
+                return FALSE;
+            }
+            else if (c == VK_BACK)
+            {
+                break;
+            }
 
             if (!ToolStatusConfig.AutoComplete)
                 break;
 
             if (GetKeyState(VK_LCONTROL) & 0x8000)
                 break;
-            if (GetKeyState(VK_BACK) & 0x8000)
-                break;
-            if (GetKeyState(VK_RETURN) & 0x8000)
-                break;
 
             PostMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(TIDC_SEARCH_STRING, EN_CHANGE), (LPARAM)SearchboxHandle);
-
-            if (!iswcntrl((WCHAR)wParam))
+            
+            if (!iswcntrl(c))
             {
-                int index;
-                WCHAR buffer[DOS_MAX_PATH_LENGTH];
+                INT index;
                 PPH_STRING string;
-
-                //if (GetWindowLongPtr(SearchboxHandle, GWL_STYLE) & CBS_DROPDOWN)
-                //{  
-                //    ComboBox_ShowDropdown(SearchboxHandle, TRUE);
-                //}
+                WCHAR buffer[DOS_MAX_PATH_LENGTH];
 
                 // Get the substring from 0 to start of selection
                 ComboBox_GetText(SearchboxHandle, buffer, ARRAYSIZE(buffer));
+
                 buffer[LOWORD(ComboBox_GetEditSel(SearchboxHandle))] = 0;
 
                 string = PhFormatString(
                     L"%ls%lc",
                     buffer,
-                    (WCHAR)wParam
+                    c
                     );
 
                 if ((index = ComboBox_FindStringExact(SearchboxHandle, -1, string->Buffer)) == CB_ERR)
