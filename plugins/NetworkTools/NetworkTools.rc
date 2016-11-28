@@ -93,7 +93,7 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "Network Tools"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Close",IDCANCEL,332,193,50,14
+    PUSHBUTTON      "Close",IDCANCEL,333,193,50,14
     CONTROL         "",IDC_NETOUTPUTEDIT,"RICHEDIT50W",WS_VSCROLL | WS_TABSTOP | 0x4,7,23,375,168
     LTEXT           "whois.iana.org found the following authoritative answer from:",IDC_STATUS,7,5,375,12
 END
