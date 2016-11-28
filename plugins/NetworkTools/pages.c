@@ -146,6 +146,9 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
         }
         break;
     case TDN_BUTTON_CLICKED:
+        {
+
+        }
         break;
     }
 
@@ -222,13 +225,12 @@ VOID ShowInstallRestartDialog(
     config.pszMainInstruction = L"The GeoIP database has been installed";
     config.pszContent = L"You need to restart Process Hacker for the changes to take effect...";
 
-    //SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 VOID ShowUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context,
-    _In_ BOOLEAN HashFailed,
-    _In_ BOOLEAN SignatureFailed
+    _In_ BOOLEAN HashFailed
     )
 {
     TASKDIALOGCONFIG config;
@@ -245,15 +247,15 @@ VOID ShowUpdateFailedDialog(
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
-    config.pszMainInstruction = L"Error downloading plugin files.";
+    config.pszMainInstruction = L"Error downloading GeoIP database.";
 
     if (HashFailed)
     {
-        config.pszContent = L"Hash check failed. Click Retry to download the plugin again.";
+        config.pszContent = L"Hash check failed. Click Retry to download the database again.";
     }
     else
     {
-        config.pszContent = L"Click Retry to download the plugin again.";
+        config.pszContent = L"Click Retry to download the database again.";
     }
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);

@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015 dmex
+ * Copyright (C) 2015-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -48,8 +48,6 @@ typedef struct _TRACERT_RESOLVE_WORKITEM
     SOCKADDR_STORAGE SocketAddress;
     WCHAR SocketAddressHostname[NI_MAXHOST];
 } TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
-
-
 
 PPH_STRING TracertGetErrorMessage(
     _In_ IP_STATUS Result
@@ -134,7 +132,7 @@ VOID TracertAppendText(
     }
 }
 
-static VOID TracertUpdateTime(
+VOID TracertUpdateTime(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ INT Index,
     _In_ INT SubIndex,
@@ -151,31 +149,31 @@ static VOID TracertUpdateTime(
     } 
 } 
 
-static NTSTATUS TracertHostnameLookupCallback(
+NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
 {
     WSADATA wsa;
-    PTRACERT_RESOLVE_WORKITEM work = Parameter;
+    PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
 
     if (WSAStartup(WINSOCK_VERSION, &wsa) != ERROR_SUCCESS)
     {
         return STATUS_UNEXPECTED_NETWORK_ERROR;
     }
 
-    if (work->Type == PH_IPV4_NETWORK_TYPE)
+    if (resolve->Type == PH_IPV4_NETWORK_TYPE)
     {
         if (!GetNameInfo(
-            (PSOCKADDR)&work->SocketAddress,
+            (PSOCKADDR)&resolve->SocketAddress,
             sizeof(SOCKADDR_IN),
-            work->SocketAddressHostname,
-            sizeof(work->SocketAddressHostname),
+            resolve->SocketAddressHostname,
+            sizeof(resolve->SocketAddressHostname),
             NULL,
             0,
             NI_NAMEREQD
             ))
         {
-            PostMessage(work->WindowHandle, NTM_RECEIVEDTRACE, 0, (LPARAM)work);
+            PostMessage(resolve->WindowHandle, NTM_RECEIVEDTRACE, 0, (LPARAM)resolve);
         }
         else
         {
@@ -188,22 +186,22 @@ static NTSTATUS TracertHostnameLookupCallback(
                 //PhDereferenceObject(errorMessage);
             }
 
-            PhFree(work);
+            PhDereferenceObject(resolve);
         }
     }
-    else if (work->Type == PH_IPV6_NETWORK_TYPE)
+    else if (resolve->Type == PH_IPV6_NETWORK_TYPE)
     {
         if (!GetNameInfo(
-            (PSOCKADDR)&work->SocketAddress,
+            (PSOCKADDR)&resolve->SocketAddress,
             sizeof(SOCKADDR_IN6),
-            work->SocketAddressHostname,
-            sizeof(work->SocketAddressHostname),
+            resolve->SocketAddressHostname,
+            sizeof(resolve->SocketAddressHostname),
             NULL,
             0,
             NI_NAMEREQD
             ))
         {
-            PostMessage(work->WindowHandle, NTM_RECEIVEDTRACE, 0, (LPARAM)work);
+            PostMessage(resolve->WindowHandle, NTM_RECEIVEDTRACE, 0, (LPARAM)resolve);
         }
         else
         {
@@ -216,7 +214,7 @@ static NTSTATUS TracertHostnameLookupCallback(
                 //PhDereferenceObject(errorMessage);
             }
 
-            PhFree(work);
+            PhDereferenceObject(resolve);
         }
     }
 
@@ -234,9 +232,9 @@ VOID TracertQueueHostLookup(
     if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
         IN_ADDR sockAddrIn;
-        PTRACERT_RESOLVE_WORKITEM work;
-        ULONG addressStringLength = INET6_ADDRSTRLEN;
-        WCHAR addressString[INET6_ADDRSTRLEN] = L"";
+        PTRACERT_RESOLVE_WORKITEM resolve;
+        ULONG addressStringLength = INET_ADDRSTRLEN;
+        WCHAR addressString[INET_ADDRSTRLEN] = L"";
 
         memset(&sockAddrIn, 0, sizeof(IN_ADDR));
         memcpy(&sockAddrIn, SocketAddress, sizeof(IN_ADDR));
@@ -251,29 +249,28 @@ VOID TracertQueueHostLookup(
                 );
         }
 
-        work = PhAllocate(sizeof(TRACERT_RESOLVE_WORKITEM));
-        memset(work, 0, sizeof(TRACERT_RESOLVE_WORKITEM));
+        resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
+        memset(resolve, 0, sizeof(TRACERT_RESOLVE_WORKITEM));
 
-        work->Type = PH_IPV4_NETWORK_TYPE;
-        work->WindowHandle = Context->WindowHandle;
-        work->LvItemIndex = LvItemIndex;
+        resolve->Type = PH_IPV4_NETWORK_TYPE;
+        resolve->WindowHandle = Context->WindowHandle;
+        resolve->LvItemIndex = LvItemIndex;
 
-        ((PSOCKADDR_IN)&work->SocketAddress)->sin_family = AF_INET;
-        ((PSOCKADDR_IN)&work->SocketAddress)->sin_addr = sockAddrIn;
+        ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
+        ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
 
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, work);
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, resolve);
     }
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
         IN6_ADDR sockAddrIn6;
-        PTRACERT_RESOLVE_WORKITEM work;
+        PTRACERT_RESOLVE_WORKITEM resolve;
         ULONG addressStringLength = INET6_ADDRSTRLEN;
         WCHAR addressString[INET6_ADDRSTRLEN] = L"";
 
         memset(&sockAddrIn6, 0, sizeof(IN6_ADDR));
         memcpy(&sockAddrIn6, SocketAddress, sizeof(IN6_ADDR));
        
-        //RtlIpv6AddressToString(&sockAddrIn6, addressString);
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
             TracertAppendText(
@@ -287,17 +284,17 @@ VOID TracertQueueHostLookup(
             //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, HOSTNAME_COLUMN, L"Resolving address...");
         }
 
-        work = PhAllocate(sizeof(TRACERT_RESOLVE_WORKITEM));
-        memset(work, 0, sizeof(TRACERT_RESOLVE_WORKITEM));
+        resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
+        memset(resolve, 0, sizeof(TRACERT_RESOLVE_WORKITEM));
 
-        work->Type = PH_IPV6_NETWORK_TYPE;
-        work->WindowHandle = Context->WindowHandle;
-        work->LvItemIndex = LvItemIndex;
+        resolve->Type = PH_IPV6_NETWORK_TYPE;
+        resolve->WindowHandle = Context->WindowHandle;
+        resolve->LvItemIndex = LvItemIndex;
 
-        ((PSOCKADDR_IN6)&work->SocketAddress)->sin6_family = AF_INET6;
-        ((PSOCKADDR_IN6)&work->SocketAddress)->sin6_addr = sockAddrIn6;
+        ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_family = AF_INET6;
+        ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
 
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, work);
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, resolve);
     }
 }
 
@@ -596,9 +593,7 @@ INT_PTR CALLBACK TracertDlgProc(
                 DeleteObject(context->FontHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-
             RemoveProp(hwndDlg, L"Context");
-
             PhDereferenceObject(context);
 
             PostQuitMessage(0);
@@ -686,14 +681,15 @@ INT_PTR CALLBACK TracertDlgProc(
             {
                 PPH_STRING errorMessage;
 
-                errorMessage = PH_AUTO(TracertGetErrorMessage(error->LastErrorCode));
-
-                TracertAppendText(
-                    context, 
-                    error->LvItemIndex, 
-                    IP_ADDRESS_COLUMN, 
-                    errorMessage->Buffer
-                    );
+                if (errorMessage = PH_AUTO(TracertGetErrorMessage(error->LastErrorCode)))
+                {
+                    TracertAppendText(
+                        context, 
+                        error->LvItemIndex, 
+                        IP_ADDRESS_COLUMN, 
+                        errorMessage->Buffer
+                        );
+                }
             }
 
             PhFree(error);
@@ -701,16 +697,16 @@ INT_PTR CALLBACK TracertDlgProc(
         break;
     case NTM_RECEIVEDTRACE:
         {
-            PTRACERT_RESOLVE_WORKITEM workItem = (PTRACERT_RESOLVE_WORKITEM)lParam;
+            PTRACERT_RESOLVE_WORKITEM resolve = (PTRACERT_RESOLVE_WORKITEM)lParam;
 
             TracertAppendText(
                 context,
-                workItem->LvItemIndex,
+                resolve->LvItemIndex,
                 HOSTNAME_COLUMN,
-                workItem->SocketAddressHostname
+                resolve->SocketAddressHostname
                 );
 
-            PhFree(workItem);
+            PhDereferenceObject(resolve);
         }
         break;
     case NTM_RECEIVEDFINISH:

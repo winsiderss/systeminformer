@@ -256,22 +256,22 @@ BOOLEAN WhoisQueryServer(
     return FALSE;
 }
 
-BOOLEAN WhoisQueryLookup(
-    _In_ PWSTR IpAddress, 
-    _Out_ PPH_STRING *WhoisQueryResult
+NTSTATUS NetworkWhoisThreadStart(
+    _In_ PVOID Parameter
     )
 {
+    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
     BOOLEAN success = FALSE;
+    PH_STRING_BUILDER sb;
     PPH_STRING whoisResponse = NULL;
     PPH_STRING whoisReferralResponse = NULL;
     PPH_STRING whoisServerName = NULL;
     PPH_STRING whoisReferralServerName = NULL;
     PPH_STRING whoisReferralServerPort = NULL;
-    PH_STRING_BUILDER sb;
-
+    
     PhInitializeStringBuilder(&sb, 0x100);
 
-    if (!WhoisQueryServer(L"whois.iana.org", L"43", IpAddress, &whoisResponse))
+    if (!WhoisQueryServer(L"whois.iana.org", L"43", context->IpAddressString, &whoisResponse))
     {
         PhAppendFormatStringBuilder(&sb, L"Connection to whois.iana.org failed.\n");
         goto CleanupExit;
@@ -283,12 +283,12 @@ BOOLEAN WhoisQueryLookup(
         goto CleanupExit;
     }
 
-    PhAppendFormatStringBuilder(&sb, L"%s\n", whoisServerName->Buffer);
+    PostMessage(context->WindowHandle, WM_TRACERT_UPDATE, (WPARAM)PhDuplicateString(whoisServerName), 0);
 
     if (WhoisQueryServer(
         whoisServerName->Buffer,
         L"43",
-        IpAddress,
+        context->IpAddressString,
         &whoisResponse
         ))
     {
@@ -303,7 +303,7 @@ BOOLEAN WhoisQueryLookup(
             if (WhoisQueryServer(
                 whoisReferralServerName->Buffer,
                 whoisReferralServerPort->Buffer,
-                IpAddress,
+                context->IpAddressString,
                 &whoisReferralResponse
                 ))
             {
@@ -325,26 +325,13 @@ CleanupExit:
     PhClearReference(&whoisServerName);
     PhClearReference(&whoisReferralServerName);
     PhClearReference(&whoisReferralServerPort);
-
-    *WhoisQueryResult = PhFinalStringBuilderString(&sb);
-
-    return success;
-}
-
-NTSTATUS NetworkWhoisThreadStart(
-    _In_ PVOID Parameter
-    )
-{
-    PNETWORK_OUTPUT_CONTEXT context = NULL;
-    PPH_STRING whoisReply = NULL;
-
-    context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
-
-    WhoisQueryLookup(context->IpAddressString, &whoisReply);
-
-    PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)whoisReply);
+    
+    if (success)
+    {
+        PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
+    }
+    
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
-
     return STATUS_SUCCESS;
 }
 
@@ -388,7 +375,15 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             HANDLE dialogThread;
 
             context->WindowHandle = hwndDlg;
+            context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->WhoisHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+
+            // Reset the border style for richedit uxtheme borders
+            PhSetWindowStyle(context->WhoisHandle, WS_BORDER, WS_BORDER);
+            PhSetWindowExStyle(context->WhoisHandle, WS_EX_CLIENTEDGE, ~WS_EX_CLIENTEDGE);
+
+            context->FontHandle = CommonCreateFont(-15, context->StatusHandle);
+            context->FontHandle = CommonCreateFont(-11, context->WhoisHandle);
 
             //SendMessage(context->OutputHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->WhoisHandle, EM_SETEVENTMASK, 0, SendMessage(context->WhoisHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
@@ -412,7 +407,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                 RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
 
             SetWindowText(context->WindowHandle, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
-            RichEditAppendText(context->WhoisHandle, L"whois.iana.org found the following authoritative answer from: ");
 
             if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                 NtClose(dialogThread);
@@ -455,6 +449,10 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                         PhAppendStringBuilder2(&receivedString, L"\r\n");
                     }
                 }
+                else if (convertedString->Buffer[i] == '\n')
+                {
+                    PhAppendStringBuilder2(&receivedString, L"\r\n");
+                }
                 else
                 {
                     PhAppendCharStringBuilder(&receivedString, convertedString->Buffer[i]);
@@ -462,7 +460,14 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             }
 
             if (receivedString.String->Length >= 2 * 2 &&
-                receivedString.String->Buffer[0] == '\n' &&
+                receivedString.String->Buffer[0] == '\r' &&
+                receivedString.String->Buffer[1] == '\n')
+            {
+                PhRemoveStringBuilder(&receivedString, 0, 2);
+            }
+
+            if (receivedString.String->Length >= 2 * 2 &&
+                receivedString.String->Buffer[0] == '\r' &&
                 receivedString.String->Buffer[1] == '\n')
             {
                 PhRemoveStringBuilder(&receivedString, 0, 2);
@@ -480,10 +485,19 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
             if (windowText)
             {
-                Static_SetText(
-                    context->WindowHandle,
-                    PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer
-                    );
+                Static_SetText(context->WindowHandle, 
+                    PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
+            }
+        }
+        break;
+    case WM_TRACERT_UPDATE:
+        {
+            PPH_STRING serverText = PH_AUTO((PPH_STRING)wParam);
+
+            if (serverText)
+            {
+                Static_SetText(context->StatusHandle, 
+                    PhaFormatString(L"whois.iana.org found the following authoritative answer from: %s", serverText->Buffer)->Buffer);
             }
         }
         break;
@@ -514,7 +528,7 @@ NTSTATUS NetworkWhoisDialogThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     windowHandle = CreateDialogParam(
-        (HINSTANCE)PluginInstance->DllBase,
+        PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WHOIS),
         NULL,
         NetworkOutputDlgProc,
