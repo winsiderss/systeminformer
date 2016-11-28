@@ -96,12 +96,6 @@ typedef INT (WSAAPI *_GetNameInfoW)(
     _In_ INT Flags
     );
 
-typedef struct hostent *(WSAAPI *_gethostbyaddr)(
-    _In_reads_bytes_(len) const char *addr,
-    _In_ int len,
-    _In_ int type
-    );
-
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -155,7 +149,6 @@ static _GetExtendedUdpTable GetExtendedUdpTable_I;
 static _WSAStartup WSAStartup_I;
 static _WSAGetLastError WSAGetLastError_I;
 static _GetNameInfoW GetNameInfoW_I;
-static _gethostbyaddr gethostbyaddr_I;
 
 BOOLEAN PhNetworkProviderInitialization(
     VOID
@@ -527,18 +520,17 @@ VOID PhNetworkProviderUpdate(
         HMODULE ws2_32;
 
         iphlpapi = LoadLibrary(L"iphlpapi.dll");
-        GetExtendedTcpTable_I = (PVOID)GetProcAddress(iphlpapi, "GetExtendedTcpTable");
-        GetExtendedUdpTable_I = (PVOID)GetProcAddress(iphlpapi, "GetExtendedUdpTable");
+        GetExtendedTcpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
+        GetExtendedUdpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
         ws2_32 = LoadLibrary(L"ws2_32.dll");
-        WSAStartup_I = (PVOID)GetProcAddress(ws2_32, "WSAStartup");
-        WSAGetLastError_I = (PVOID)GetProcAddress(ws2_32, "WSAGetLastError");
-        GetNameInfoW_I = (PVOID)GetProcAddress(ws2_32, "GetNameInfoW");
-        gethostbyaddr_I = (PVOID)GetProcAddress(ws2_32, "gethostbyaddr");
+        WSAStartup_I = PhGetProcedureAddress(ws2_32, "WSAStartup", 0);
+        WSAGetLastError_I = PhGetProcedureAddress(ws2_32, "WSAGetLastError", 0);
+        GetNameInfoW_I = PhGetProcedureAddress(ws2_32, "GetNameInfoW", 0);
 
         // Make sure WSA is initialized.
         if (WSAStartup_I)
         {
-            WSAStartup_I(MAKEWORD(2, 2), &wsaData);
+            WSAStartup_I(WINSOCK_VERSION, &wsaData);
         }
 
         NetworkImportDone = TRUE;
