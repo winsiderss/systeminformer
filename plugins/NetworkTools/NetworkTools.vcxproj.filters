@@ -105,25 +105,10 @@
     <ClCompile Include="zlib\zutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="setup\page1.c">
+    <ClCompile Include="pages.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="setup\page2.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="setup\page3.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="setup\page4.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="setup\page5.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="setup\uninstall.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="setup\update.c">
+    <ClCompile Include="update.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

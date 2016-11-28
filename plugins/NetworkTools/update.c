@@ -1,6 +1,6 @@
 /*
  * Process Hacker Network Tools -
- *   GeoIP Database Updater
+ *   GeoIP database updater
  *
  * Copyright (C) 2016 dmex
  *
@@ -20,10 +20,10 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "..\nettools.h"
+#include "nettools.h"
+#include "zlib\zlib.h"
+#include "zlib\gzguts.h"
 #include <commonutil.h>
-#include <shlobj.h>
-#include <winhttp.h>
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -79,38 +79,8 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    //if (!PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
-    //{
-    //    PhShellExecute(Context->DialogHandle, PhGetStringOrEmpty(Context->ReleaseNotesUrl), NULL);
-    //}
+    PhShellExecute(Context->DialogHandle, L"https://www.maxmind.com", NULL);
 }
-
-//BOOLEAN LastUpdateCheckExpired(
-//    VOID
-//    )
-//{
-//    ULONG64 lastUpdateTimeTicks = 0;
-//    LARGE_INTEGER currentUpdateTimeTicks;
-//    PPH_STRING lastUpdateTimeString;
-//
-//    PhQuerySystemTime(&currentUpdateTimeTicks);
-//
-//    lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
-//    PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks);
-//    PhDereferenceObject(lastUpdateTimeString);
-//
-//    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
-//    {
-//        PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
-//
-//        PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
-//
-//        PhDereferenceObject(currentUpdateTimeString);     
-//        return TRUE;
-//    }
-//
-//    return FALSE;
-//}
 
 PPH_STRING UpdateVersionString(
     _In_ PWSTR UserAgent
@@ -328,13 +298,12 @@ NTSTATUS GeoIPUpdateThread(
     _In_ PVOID Parameter
     )
 {
-    BOOLEAN downloadSuccess = FALSE;
-    BOOLEAN hashSuccess = FALSE;
-    BOOLEAN signatureSuccess = FALSE;
+    BOOLEAN success = FALSE;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
+    PPH_STRING fwLinkUrl = NULL;
     PPH_STRING setupTempPath = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
@@ -349,14 +318,13 @@ NTSTATUS GeoIPUpdateThread(
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
-    PPH_STRING downloadUrl;
     PPH_STRING userAgentString = UpdateVersionString(L"ProcessHacker_");
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
     __try
     {
-        if (!(downloadUrl = QueryFwLinkUrl(context)))
+        if (!(fwLinkUrl = QueryFwLinkUrl(context)))
             __leave;
 
         setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
@@ -419,7 +387,7 @@ NTSTATUS GeoIPUpdateThread(
         httpUrlComponents.dwUrlPathLength = (ULONG)-1;
 
         if (!WinHttpCrackUrl(
-            PhGetStringOrEmpty(downloadUrl),
+            fwLinkUrl->Buffer,
             0,
             0,
             &httpUrlComponents
@@ -551,13 +519,13 @@ NTSTATUS GeoIPUpdateThread(
 
             while (WinHttpReadData(httpRequestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
             {
-                // If we get zero bytes, the file was uploaded or there was an error
+                // If we get zero bytes, the file was uploaded or there was an error.
                 if (bytesDownloaded == 0)
                     break;
 
-                // If the dialog was closed, just cleanup and exit
-                //if (!UpdateDialogThreadHandle)
-               //     __leave;
+                // If the dialog was closed; cleanup and exit.
+                if (!context->DialogHandle)
+                    __leave;
 
                 if (!NT_SUCCESS(NtWriteFile(
                     tempFileHandle,
@@ -612,27 +580,7 @@ NTSTATUS GeoIPUpdateThread(
                 }
             }
 
-            downloadSuccess = TRUE;
-
-
-
-
-            PPH_STRING path;
-            PPH_STRING directory;
- 
-            directory = PH_AUTO(PhGetApplicationDirectory());
-            path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
-
-
-            //if (UpdaterVerifyHash(hashContext, context->Hash))
-            //{
-                hashSuccess = TRUE;
-            //}
-
-            //if (UpdaterVerifySignature(hashContext, context->Signature))
-            //{
-                signatureSuccess = TRUE;
-            //}
+            success = TRUE;
         }
     }
     __finally
@@ -655,20 +603,58 @@ NTSTATUS GeoIPUpdateThread(
         PhClearReference(&userAgentString);
     }
 
-    if (context->DialogHandle)
+    if (success)
     {
-        if (downloadSuccess && hashSuccess && signatureSuccess)
+        PPH_STRING path;
+        PPH_STRING directory;
+        PPH_BYTES str = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
+
+        directory = PH_AUTO(PhGetApplicationDirectory());
+        path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
+       
+        if (RtlDoesFileExists_U(PhGetString(path)))
         {
+            if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(path))))
+            {
+                OutputDebugString(L"");
+            }
+        }
+
+        gzFile file = gzopen(str->Buffer, "rb");
+        FILE* new_file = _wfopen(PhGetString(path), L"wb");
+        char buffer[PAGE_SIZE];
+
+        if (!file)
+        {
+            fprintf(stderr, "gzopen failed: %s.\n", strerror(errno));
+            success = FALSE;
+        }
+
+        if (!new_file)
+        {
+            fprintf(stderr, "_wfopen failed: %s.\n", strerror(errno));
+            success = FALSE;
+        }
+
+        while (!gzeof(file))
+        {
+            int bytes = gzread(file, buffer, sizeof(buffer));
+            fwrite(buffer, 1, bytes, new_file);
+        }
+
+        gzclose(file);
+        fclose(new_file);
+    }
+
+    if (success)
+    {
+        if (context->DialogHandle)
             PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
-        }
-        else if (downloadSuccess)
-        {
-            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, signatureSuccess, hashSuccess);
-        }
-        else
-        {
+    }
+    else
+    {
+        if (context->DialogHandle)
             PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
-        }
     }
 
     PhDereferenceObject(context);
@@ -703,11 +689,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case PH_UPDATEAVAILABLE:
-        {
-            ShowAvailableDialog(context);
-        }
-        break;
     case PH_UPDATESUCCESS:
         {
             ShowInstallRestartDialog(context);
@@ -728,46 +709,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             //ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         break;
-    //case WM_PARENTNOTIFY:
-    //    {
-    //        if (wParam == WM_CREATE)
-    //        {
-    //            // uMsg == 49251 for expand/collapse button click
-    //            HWND hwndEdit = CreateWindowEx(
-    //                WS_EX_CLIENTEDGE,
-    //                L"EDIT",
-    //                NULL,
-    //                WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL,
-    //                5,
-    //                5,
-    //                390,
-    //                85,
-    //                (HWND)lParam, // parent window
-    //                0,
-    //                NULL,
-    //                NULL
-    //            );
-    //
-    //            CommonCreateFont(-11, hwndEdit);
-    //
-    //            // Add text to the window.
-    //            SendMessage(hwndEdit, WM_SETTEXT, 0, (LPARAM)L"TEST");
-    //        }
-    //    }
-    //    break;
-    //case WM_NCACTIVATE:
-    //    {
-    //        if (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle))
-    //        {
-    //            if (!context->FixedWindowStyles)
-    //            {
-    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWndHandle);
-    //                PhSetWindowExStyle(hwndDlg, WS_EX_APPWINDOW, WS_EX_APPWINDOW);
-    //                context->FixedWindowStyles = TRUE;
-    //            }
-    //        }
-    //    }
-    //    break;
     }
 
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);

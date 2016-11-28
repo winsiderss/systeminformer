@@ -1,9 +1,9 @@
 /*
- * Process Hacker ToolStatus -
- *   toolstatus header
+ * Process Hacker Network Tools -
+ *   Main header
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2013 dmex
+ * Copyright (C) 2012-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,8 +21,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NETTOOLS_H
-#define NETTOOLS_H
+#ifndef _NET_TOOLS_H_
+#define _NET_TOOLS_H_
 
 #define CINTERFACE
 #define COBJMACROS
@@ -35,6 +35,8 @@
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <icmpapi.h>
+#include <winhttp.h>
+#include <shlobj.h>
 
 #include "resource.h"
 
@@ -97,7 +99,6 @@ typedef enum _PH_NETWORK_ACTION
 
 #define UPDATE_MENUITEM    1005
 #define PH_UPDATEISERRORED (WM_APP + 501)
-#define PH_UPDATEAVAILABLE (WM_APP + 502)
 #define PH_UPDATEISCURRENT (WM_APP + 503)
 #define PH_UPDATENEWER     (WM_APP + 504)
 #define PH_UPDATESUCCESS   (WM_APP + 505)
@@ -129,7 +130,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PH_CIRCULAR_BUFFER_ULONG PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
-    //PPH_NETWORK_ITEM NetworkItem;
     PH_IP_ENDPOINT RemoteEndpoint;
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
@@ -205,8 +205,6 @@ INT LookupResourceCode(
     _In_ PPH_STRING Name
     );
 
-
-
 typedef struct _PH_UPDATER_CONTEXT
 {
     BOOLEAN FixedWindowStyles;
@@ -219,6 +217,10 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING Size;
     PPH_STRING SetupFilePath;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
+
+VOID TaskDialogLinkClicked(
+    _In_ PPH_UPDATER_CONTEXT Context
+    );
 
 NTSTATUS GeoIPUpdateThread(
     _In_ PVOID Parameter
@@ -238,10 +240,6 @@ VOID ShowCheckingForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
-// page3.c
-VOID ShowAvailableDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
-    );
 
 // page5.c
 VOID ShowInstallRestartDialog(

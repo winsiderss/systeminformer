@@ -1,9 +1,9 @@
 /*
  * Process Hacker Network Tools -
- *   main program
+ *   Main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2013 dmex
+ * Copyright (C) 2013-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -47,9 +47,6 @@ LONG NTAPI NetworkServiceSortFunction(
     PNETWORK_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->NetworkItem, EmNetworkItemType);
     PNETWORK_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->NetworkItem, EmNetworkItemType);
 
-    //UpdateNetworkNode(SubId, node1, extension1);
-    //UpdateNetworkNode(SubId, node2, extension2);
-
     switch (SubId)
     {
     case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
@@ -64,6 +61,19 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_LIST pluginArgvList = Parameter;
+
+    if (pluginArgvList)
+    {
+        for (ULONG i = 0; i < pluginArgvList->Count; i++)
+        {
+            if (PhEqualString2(pluginArgvList->Items[i], L"UPDATE", TRUE))
+            {
+                //ShowUpdateDialog(PhMainWndHandle);
+            }
+        }
+    }
+
     LoadGeoLiteDb();
 }
 
@@ -247,10 +257,11 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_PING, L"Ping IP address...", NULL), -1);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_TRACERT, L"Traceroute IP address...", NULL), -1);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_WHOIS, L"Whois IP address...", NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, -1);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"GeoIP database update...", NULL), -1);
 
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"GeoIP database update...", NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, -1);
 }
 
 VOID NTAPI NetworkMenuInitializingCallback(
@@ -344,7 +355,6 @@ VOID NTAPI NetworkNodeCreateCallback(
     PPH_NETWORK_NODE networkNode = Object;
     PNETWORK_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, networkNode->NetworkItem, EmNetworkItemType);
 
-    // Update the country data for this connection
     if (!extension->CountryValid)
     {
         PPH_STRING remoteCountryCode;
