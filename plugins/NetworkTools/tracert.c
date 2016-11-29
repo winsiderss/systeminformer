@@ -26,6 +26,7 @@
 #define MAX_PINGS  4
 #define IP_ADDRESS_COLUMN (MAX_PINGS + 1)
 #define HOSTNAME_COLUMN (MAX_PINGS + 2)
+#define COUNTRY_COLUMN (MAX_PINGS + 3)
 
 #define DEFAULT_MAXIMUM_HOPS        30 
 #define DEFAULT_SEND_SIZE           64 
@@ -629,6 +630,7 @@ INT_PTR CALLBACK TracertDlgProc(
                 PhAddListViewColumn(context->ListviewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
             PhAddListViewColumn(context->ListviewHandle, IP_ADDRESS_COLUMN, IP_ADDRESS_COLUMN, IP_ADDRESS_COLUMN, LVCFMT_LEFT, 180, L"IP Address");
             PhAddListViewColumn(context->ListviewHandle, HOSTNAME_COLUMN, HOSTNAME_COLUMN, HOSTNAME_COLUMN, LVCFMT_LEFT, 300, L"Hostname");
+            PhAddListViewColumn(context->ListviewHandle, COUNTRY_COLUMN, COUNTRY_COLUMN, COUNTRY_COLUMN, LVCFMT_LEFT, 80, L"Country");
             PhLoadListViewColumnsFromSetting(SETTING_NAME_TRACERT_COLUMNS, context->ListviewHandle);
             PhSetExtendedListView(context->ListviewHandle);
 
@@ -642,6 +644,8 @@ INT_PTR CALLBACK TracertDlgProc(
 
             if (tracertThread = PhCreateThread(0, NetworkTracertThreadStart, (PVOID)context))
                 NtClose(tracertThread);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_COMMAND:
@@ -656,6 +660,145 @@ INT_PTR CALLBACK TracertDlgProc(
         break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case NM_RCLICK:
+                {
+                    if (header->hwndFrom == context->ListviewHandle)
+                    {
+                        POINT cursorPos;
+                        PPH_EMENU menu;
+                        PPH_EMENU_ITEM selectedItem;
+
+                        GetCursorPos(&cursorPos);
+
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_WHOIS, L"Whois", NULL, NULL), -1);
+               
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hwndDlg,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            cursorPos.x,
+                            cursorPos.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != -1)
+                        {
+                            switch (selectedItem->Id)
+                            {
+                            case MAINMENU_ACTION_PING:
+                                {
+
+                                }
+                                break;
+                            case NETWORK_ACTION_TRACEROUTE:
+                                {
+                                    BOOLEAN success = FALSE;
+                                    PH_IP_ENDPOINT RemoteEndpoint;
+                                    PWSTR terminator = NULL;
+                                    INT lvItemIndex;
+
+                                    lvItemIndex = ListView_GetNextItem(context->ListviewHandle, -1, LVNI_SELECTED);
+
+                                    if (lvItemIndex != -1)
+                                    {
+                                        WCHAR itemText[MAX_PATH] = L"";
+
+                                        ListView_GetItemText(
+                                            context->ListviewHandle,
+                                            lvItemIndex,
+                                            5,
+                                            itemText,
+                                            ARRAYSIZE(itemText)
+                                            );
+
+                                        if (NT_SUCCESS(RtlIpv4StringToAddress(itemText, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                                        {
+                                            RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                                            success = TRUE;
+                                        }
+
+                                        if (NT_SUCCESS(RtlIpv6StringToAddress(itemText, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                                        {
+                                            RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                                            success = TRUE;
+                                        }
+
+                                        if (success)
+                                        {
+                                            ShowTracertWindowFromAddress(RemoteEndpoint);
+                                        }
+                                    }
+                                }
+                                break;
+                            case NETWORK_ACTION_WHOIS:
+                                {
+                                    BOOLEAN success = FALSE;
+                                    PH_IP_ENDPOINT RemoteEndpoint;
+                                    PWSTR terminator = NULL;
+                                    INT lvItemIndex;
+
+                                    lvItemIndex = ListView_GetNextItem(context->ListviewHandle, -1, LVNI_SELECTED);
+
+                                    if (lvItemIndex != -1)
+                                    {
+                                        WCHAR itemText[MAX_PATH] = L"";
+
+                                        ListView_GetItemText(
+                                            context->ListviewHandle,
+                                            lvItemIndex,
+                                            5,
+                                            itemText,
+                                            ARRAYSIZE(itemText)
+                                            );
+
+                                        if (NT_SUCCESS(RtlIpv4StringToAddress(itemText, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                                        {
+                                            RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                                            success = TRUE;
+                                        }
+
+                                        if (NT_SUCCESS(RtlIpv6StringToAddress(itemText, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                                        {
+                                            RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                                            success = TRUE;
+                                        }
+
+                                        if (success)
+                                        {
+                                            HANDLE dialogThread = INVALID_HANDLE_VALUE;
+                                            PNETWORK_OUTPUT_CONTEXT context;
+
+                                            context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
+                                            memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+                                            context->Action = NETWORK_ACTION_WHOIS;
+                                            context->RemoteEndpoint = RemoteEndpoint;
+
+                                            if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
+                                            {
+                                                NtClose(dialogThread);
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
         break;
     case WM_TRACERT_ERROR:
         {

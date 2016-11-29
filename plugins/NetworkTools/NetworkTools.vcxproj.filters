@@ -16,6 +16,18 @@
     <Filter Include="Resource Files\Images">
       <UniqueIdentifier>{6099dd18-02c5-4fb6-8255-5e01760f7094}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\gzip">
+      <UniqueIdentifier>{aa70b032-eb9d-4862-a0f5-623a5f07b372}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\maxmind">
+      <UniqueIdentifier>{b113823f-bc5f-4bcd-94ae-51239acd7bef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zlib">
+      <UniqueIdentifier>{2ea2b670-4d6b-4d66-9781-f6d7e85bf503}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\maxminddb">
+      <UniqueIdentifier>{22e662d3-973a-47d1-ac55-5596950c1a6e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -33,76 +45,7 @@
     <ClCompile Include="whois.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="maxminddb\maxminddb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="country.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\adler32.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\compress.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\crc32.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\deflate.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\gzclose.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\gzlib.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\gzread.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\gzwrite.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\infback.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\inffast.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\inflate.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\inftrees.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\ioapi.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\iowin32.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\miniunz.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\minizip.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\mztools.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\trees.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\uncompr.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\unzip.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\zip.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zlib\zutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pages.c">
@@ -110,6 +53,75 @@
     </ClCompile>
     <ClCompile Include="update.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\compress.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\adler32.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\crc32.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\deflate.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\gzclose.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\gzlib.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\gzread.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\gzwrite.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\infback.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\inflate.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\inffast.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\zutil.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\uncompr.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\minizip.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\miniunz.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\iowin32.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\ioapi.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\inftrees.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="maxminddb\maxminddb.c">
+      <Filter>Source Files\maxmind</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\zip.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\mztools.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\trees.c">
+      <Filter>Source Files\gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="zlib\unzip.c">
+      <Filter>Source Files\gzip</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -119,65 +131,65 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="maxminddb\maxminddb.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="maxminddb\maxminddb_config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="maxminddb\maxminddb-compat-util.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="zlib\crc32.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\crypt.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\deflate.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\gzguts.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\inffast.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\inffixed.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\inflate.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\inftrees.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\ioapi.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\iowin32.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="zlib\mztools.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\trees.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="zlib\mztools.h">
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\unzip.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\zconf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="zlib\zip.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\zlib.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
     </ClInclude>
     <ClInclude Include="zlib\zutil.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="zlib\zip.h">
+      <Filter>Header Files\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb.h">
+      <Filter>Header Files\maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb_config.h">
+      <Filter>Header Files\maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb-compat-util.h">
+      <Filter>Header Files\maxminddb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

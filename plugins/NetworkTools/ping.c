@@ -374,6 +374,8 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         return TRUE;
     case WM_COMMAND:

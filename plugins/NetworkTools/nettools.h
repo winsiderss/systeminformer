@@ -37,6 +37,7 @@
 #include <icmpapi.h>
 #include <winhttp.h>
 #include <shlobj.h>
+#include <uxtheme.h>
 
 #include "resource.h"
 

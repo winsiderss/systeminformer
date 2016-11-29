@@ -51,6 +51,16 @@ PPH_STRING TrimString(
     return PhCreateString2(&sr);
 }
 
+PPH_STRING TrimString2(
+    _In_ PPH_STRING String
+    )
+{
+    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L"\n\n");
+    PH_STRINGREF sr = String->sr;
+    PhTrimStringRef(&sr, &whitespace, 0);
+    return PhCreateString2(&sr);
+}
+
 BOOLEAN ReadSocketString(
     _In_ SOCKET Handle,
     _Out_ _Deref_post_z_cap_(*DataLength) PSTR *Data,
@@ -168,7 +178,11 @@ BOOLEAN WhoisExtractReferralServer(
         ))
     {
         *WhoisServerAddress = PhCreateString(urlHost);
-        *WhoisServerPort = PhCreateString(urlPort);
+
+        if (PhCountStringZ(urlPort) > 2)
+        {
+            *WhoisServerPort = PhCreateString(urlPort);
+        }
 
         PhDereferenceObject(whoisServerName);
         PhDereferenceObject(whoisServerHostname);
@@ -194,6 +208,9 @@ BOOLEAN WhoisQueryServer(
     ULONG whoisResponceLength = 0;
     PSTR whoisResponce = NULL;
     CHAR whoisQuery[PAGE_SIZE] = "";
+
+    if (!WhoisServerPort)
+        WhoisServerPort = L"43";
 
     if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
     {
@@ -286,7 +303,7 @@ NTSTATUS NetworkWhoisThreadStart(
     PostMessage(context->WindowHandle, WM_TRACERT_UPDATE, (WPARAM)PhDuplicateString(whoisServerName), 0);
 
     if (WhoisQueryServer(
-        whoisServerName->Buffer,
+        PhGetString(whoisServerName),
         L"43",
         context->IpAddressString,
         &whoisResponse
@@ -301,8 +318,8 @@ NTSTATUS NetworkWhoisThreadStart(
             PhAppendFormatStringBuilder(&sb, L"%s referred the request to: %s\n", whoisServerName->Buffer, whoisReferralServerName->Buffer);
 
             if (WhoisQueryServer(
-                whoisReferralServerName->Buffer,
-                whoisReferralServerPort->Buffer,
+                PhGetString(whoisReferralServerName),
+                PhGetString(whoisReferralServerPort),
                 context->IpAddressString,
                 &whoisReferralResponse
                 ))
@@ -410,6 +427,8 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
             if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                 NtClose(dialogThread);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_COMMAND:
@@ -465,56 +484,11 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         }
         break;
     case NTM_RECEIVEDWHOIS:
-        {
-            PH_STRING_BUILDER receivedString;
-            PPH_STRING convertedString = (PPH_STRING)lParam;
+        {           
+            PPH_STRING whoisString = PH_AUTO((PPH_STRING)lParam);
+            PPH_STRING trimString = PH_AUTO(TrimString2(whoisString));
 
-            PhInitializeStringBuilder(&receivedString, PAGE_SIZE);
-
-            for (SIZE_T i = 0; i < convertedString->Length / sizeof(WCHAR); i++)
-            {
-                if (convertedString->Buffer[i] == '\n' && convertedString->Buffer[i + 1] == '\n')
-                {
-                    if (i < convertedString->Length - 2 &&
-                        convertedString->Buffer[i] == '\n' &&
-                        convertedString->Buffer[i + 1] == '\n' &&
-                        convertedString->Buffer[i + 2] == '\n')
-                    {
-                        NOTHING;
-                    }
-                    else
-                    {
-                        PhAppendStringBuilder2(&receivedString, L"\r\n");
-                    }
-                }
-                else if (convertedString->Buffer[i] == '\n')
-                {
-                    PhAppendStringBuilder2(&receivedString, L"\r\n");
-                }
-                else
-                {
-                    PhAppendCharStringBuilder(&receivedString, convertedString->Buffer[i]);
-                }
-            }
-
-            if (receivedString.String->Length >= 2 * 2 &&
-                receivedString.String->Buffer[0] == '\r' &&
-                receivedString.String->Buffer[1] == '\n')
-            {
-                PhRemoveStringBuilder(&receivedString, 0, 2);
-            }
-
-            if (receivedString.String->Length >= 2 * 2 &&
-                receivedString.String->Buffer[0] == '\r' &&
-                receivedString.String->Buffer[1] == '\n')
-            {
-                PhRemoveStringBuilder(&receivedString, 0, 2);
-            }
-
-            RichEditAppendText(context->WhoisHandle, receivedString.String->Buffer);
-
-            PhDeleteStringBuilder(&receivedString);
-            PhDereferenceObject(convertedString);
+            RichEditAppendText(context->WhoisHandle, trimString->Buffer);
         }
         break;
     case NTM_RECEIVEDFINISH:
@@ -535,7 +509,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             if (serverText)
             {
                 Static_SetText(context->StatusHandle, 
-                    PhaFormatString(L"whois.iana.org found the following authoritative answer from: %s", serverText->Buffer)->Buffer);
+                    PhaFormatString(L"Authoritative answer from: %s", serverText->Buffer)->Buffer);
             }
         }
         break;
