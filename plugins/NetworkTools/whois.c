@@ -426,6 +426,44 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case EN_LINK:
+                {
+                    ENLINK* link = (ENLINK*)lParam;
+
+                    if (link->msg == WM_LBUTTONUP) 
+                    {
+                        ULONG length;
+                        PWSTR buffer;
+                        TEXTRANGE textRange;
+
+                        length = (link->chrg.cpMax - link->chrg.cpMin) * sizeof(WCHAR);
+                        buffer = PhAllocate(length);
+                        memset(buffer, 0, length);
+
+                        textRange.chrg = link->chrg;
+                        textRange.lpstrText = buffer;
+
+                        if (SendMessage(context->WhoisHandle, EM_GETTEXTRANGE, 0, (LPARAM)&textRange))
+                        {
+                            if (PhCountStringZ(buffer) > 4)
+                            {
+                                PhShellExecute(context->WindowHandle, buffer, NULL);
+                            }
+                        }
+
+                        PhFree(buffer);
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case NTM_RECEIVEDWHOIS:
         {
             PH_STRING_BUILDER receivedString;
