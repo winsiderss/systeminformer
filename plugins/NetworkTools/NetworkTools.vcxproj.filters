@@ -123,6 +123,9 @@
     <ClCompile Include="zlib\unzip.c">
       <Filter>Source Files\gzip</Filter>
     </ClCompile>
+    <ClCompile Include="tracertlist.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nettools.h">
@@ -190,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="maxminddb\maxminddb-compat-util.h">
       <Filter>Header Files\maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="tracert.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

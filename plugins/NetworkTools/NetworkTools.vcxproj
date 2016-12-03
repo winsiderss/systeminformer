@@ -84,6 +84,7 @@
     <ClCompile Include="ping.c" />
     <ClCompile Include="pages.c" />
     <ClCompile Include="tracert.c" />
+    <ClCompile Include="tracertlist.c" />
     <ClCompile Include="update.c" />
     <ClCompile Include="whois.c" />
     <ClCompile Include="zlib\adler32.c" />
@@ -115,6 +116,7 @@
     <ClInclude Include="maxminddb\maxminddb_config.h" />
     <ClInclude Include="nettools.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="tracert.h" />
     <ClInclude Include="zlib\crc32.h" />
     <ClInclude Include="zlib\crypt.h" />
     <ClInclude Include="zlib\deflate.h" />

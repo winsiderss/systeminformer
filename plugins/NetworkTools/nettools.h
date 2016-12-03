@@ -98,6 +98,7 @@ typedef enum _PH_NETWORK_ACTION
 #define NTM_RECEIVEDFINISH (WM_APP + NETWORK_ACTION_FINISH)
 #define WM_TRACERT_ERROR (WM_APP + NETWORK_ACTION_TRACEROUTE + 1001)
 #define WM_TRACERT_UPDATE (WM_APP + NETWORK_ACTION_TRACEROUTE + 1002)
+#define WM_TRACERT_COUNTRY (WM_APP + NETWORK_ACTION_TRACEROUTE)
 
 #define UPDATE_MENUITEM    1005
 #define PH_UPDATEISERRORED (WM_APP + 501)
@@ -114,6 +115,9 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HWND PingGraphHandle;
     HWND WhoisHandle;
     HFONT FontHandle;
+
+    PH_IP_ENDPOINT RemoteEndpoint;
+    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 
     ULONG CurrentPingMs;
     ULONG MaxPingTimeout;
@@ -132,21 +136,30 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PH_CIRCULAR_BUFFER_ULONG PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
-    PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
+
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
-VOID PerformNetworkAction(
-    _In_ PH_NETWORK_ACTION Action,
+// ping.c
+
+VOID ShowPingWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
-NTSTATUS NetworkWhoisDialogThreadStart(
-    _In_ PVOID Parameter
+VOID ShowPingWindowFromAddress(
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
-NTSTATUS NetworkPingDialogThreadStart(
-    _In_ PVOID Parameter
+
+// whois.c
+
+VOID ShowWhoisWindow(
+    _In_ PPH_NETWORK_ITEM NetworkItem
     );
+
+VOID ShowWhoisWindowFromAddress(
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
+    );
+
+//
 
 VOID ShowOptionsDialog(
     _In_opt_ HWND Parent
@@ -170,13 +183,25 @@ VOID ShowTracertWindowFromAddress(
 typedef struct _NETWORK_TRACERT_CONTEXT
 {
     HWND WindowHandle;
-    HWND ListviewHandle;
+    HWND SearchboxHandle;
+    HWND TreeNewHandle;
     HFONT FontHandle;
-    PH_LAYOUT_MANAGER LayoutManager;
+
     BOOLEAN Cancel;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_LAYOUT_MANAGER LayoutManager;
 
     PH_IP_ENDPOINT RemoteEndpoint;
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
+
+    PPH_STRING SearchboxText;
+    PH_TN_FILTER_SUPPORT FilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
 // country.c
@@ -199,6 +224,12 @@ VOID FreeGeoLiteDb(VOID);
 
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
+    _Out_ PPH_STRING *CountryCode,
+    _Out_ PPH_STRING *CountryName
+    );
+
+BOOLEAN LookupSockAddrCountryCode(
+    _In_ IN_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
     _Out_ PPH_STRING *CountryName
     );
@@ -242,12 +273,10 @@ VOID ShowCheckingForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
-
 // page5.c
 VOID ShowInstallRestartDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
-
 
 // Note: Ipv6 versions are already available from ws2ipdef.h
 #define INADDR_ANY (ULONG)0x00000000

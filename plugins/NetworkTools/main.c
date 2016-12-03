@@ -85,32 +85,6 @@ VOID NTAPI ShowOptionsCallback(
     ShowOptionsDialog((HWND)Parameter);
 }
 
-VOID PerformNetworkAction(
-    _In_ PH_NETWORK_ACTION Action,
-    _In_ PPH_NETWORK_ITEM NetworkItem
-    )
-{
-    HANDLE dialogThread = INVALID_HANDLE_VALUE;
-    PNETWORK_OUTPUT_CONTEXT context;
-
-    context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
-
-    context->Action = Action;
-    context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
-
-    if (context->Action == NETWORK_ACTION_PING)
-    {
-        if (dialogThread = PhCreateThread(0, NetworkPingDialogThreadStart, (PVOID)context))
-            NtClose(dialogThread);
-    }
-    else
-    {
-        if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
-            NtClose(dialogThread);
-    }
-}
-
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -122,32 +96,23 @@ VOID NTAPI MenuItemCallback(
     switch (menuItem->Id)
     {
     case NETWORK_ACTION_PING:
-        PerformNetworkAction(NETWORK_ACTION_PING, networkItem);
+        ShowPingWindow(networkItem);
         break;
     case NETWORK_ACTION_TRACEROUTE:
         ShowTracertWindow(networkItem);
         break;
     case NETWORK_ACTION_WHOIS:
-        PerformNetworkAction(NETWORK_ACTION_WHOIS, networkItem);
-        break;
-    case NETWORK_ACTION_PATHPING:
-        PerformNetworkAction(NETWORK_ACTION_PATHPING, networkItem);
+        ShowWhoisWindow(networkItem);
         break;
     case MAINMENU_ACTION_PING:
         {
-
-        }
-        break;
-    case MAINMENU_ACTION_TRACERT:
-        {
-            BOOLEAN success = FALSE;
             PH_IP_ENDPOINT RemoteEndpoint;
             PPH_STRING selectedChoice = NULL;
 
             while (PhaChoiceDialog(
                 menuItem->OwnerWindow,
-                L"Tracert",
-                L"IP address for trace:",
+                L"Ping",
+                L"IP address:",
                 NULL,
                 0,
                 NULL,
@@ -162,27 +127,57 @@ VOID NTAPI MenuItemCallback(
                 if (NT_SUCCESS(RtlIpv4StringToAddress(selectedChoice->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                    success = TRUE;
+                    ShowPingWindowFromAddress(RemoteEndpoint);
                     break;
                 }
 
                 if (NT_SUCCESS(RtlIpv6StringToAddress(selectedChoice->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                    success = TRUE;
+                    ShowPingWindowFromAddress(RemoteEndpoint);
                     break;
                 }
             }
+        }
+        break;
+    case MAINMENU_ACTION_TRACERT:
+        {
+            PH_IP_ENDPOINT RemoteEndpoint;
+            PPH_STRING selectedChoice = NULL;
 
-            if (success)
+            while (PhaChoiceDialog(
+                menuItem->OwnerWindow,
+                L"Tracert",
+                L"IP address:",
+                NULL,
+                0,
+                NULL,
+                PH_CHOICE_DIALOG_USER_CHOICE,
+                &selectedChoice,
+                NULL,
+                SETTING_NAME_TRACERT_HISTORY
+                ))
             {
-                ShowTracertWindowFromAddress(RemoteEndpoint);
+                PWSTR terminator = NULL;
+
+                if (NT_SUCCESS(RtlIpv4StringToAddress(selectedChoice->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    ShowTracertWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+
+                if (NT_SUCCESS(RtlIpv6StringToAddress(selectedChoice->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    ShowTracertWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
             }
         }
         break;
     case MAINMENU_ACTION_WHOIS:
         {
-            BOOLEAN success = FALSE;
             PH_IP_ENDPOINT RemoteEndpoint;
             PPH_STRING selectedChoice = NULL;
 
@@ -204,32 +199,15 @@ VOID NTAPI MenuItemCallback(
                 if (NT_SUCCESS(RtlIpv4StringToAddress(selectedChoice->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                    success = TRUE;
+                    ShowWhoisWindowFromAddress(RemoteEndpoint);
                     break;
                 }
 
                 if (NT_SUCCESS(RtlIpv6StringToAddress(selectedChoice->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                    success = TRUE;
+                    ShowWhoisWindowFromAddress(RemoteEndpoint);
                     break;
-                }
-            }
-
-            if (success)
-            {
-                HANDLE dialogThread = INVALID_HANDLE_VALUE;
-                PNETWORK_OUTPUT_CONTEXT context;
-
-                context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
-                memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
-
-                context->Action = NETWORK_ACTION_WHOIS;
-                context->RemoteEndpoint = RemoteEndpoint;
-
-                if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
-                {
-                    NtClose(dialogThread);
                 }
             }
         }
@@ -259,7 +237,6 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_WHOIS, L"Whois IP address...", NULL), -1);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"GeoIP database update...", NULL), -1);
-
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, -1);
 }
@@ -271,31 +248,31 @@ VOID NTAPI NetworkMenuInitializingCallback(
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
     PPH_NETWORK_ITEM networkItem;
-    PPH_EMENU_ITEM toolsMenu;
-    PPH_EMENU_ITEM closeMenuItem;
+    PPH_EMENU_ITEM whoisMenu;
+    PPH_EMENU_ITEM traceMenu;
+    PPH_EMENU_ITEM pingMenu;
 
     if (menuInfo->u.Network.NumberOfNetworkItems == 1)
         networkItem = menuInfo->u.Network.NetworkItems[0];
     else
         networkItem = NULL;
 
-    // Create the Tools menu.
-    toolsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Tools", NULL);
-    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PING, L"Ping", networkItem), -1);
-    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", networkItem), -1);
-    PhInsertEMenuItem(toolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"Whois", networkItem), -1);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), 0);
+    PhInsertEMenuItem(menuInfo->Menu, whoisMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_WHOIS, L"Whois", networkItem), 0);
+    PhInsertEMenuItem(menuInfo->Menu, traceMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", networkItem), 0);
+    PhInsertEMenuItem(menuInfo->Menu, pingMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PING, L"Ping", networkItem), 0);
 
-    // Insert the Tools menu into the network menu.
-    closeMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Close", 0);
-    PhInsertEMenuItem(menuInfo->Menu, toolsMenu, closeMenuItem ? PhIndexOfEMenuItem(menuInfo->Menu, closeMenuItem) : 1);
-
-    toolsMenu->Flags |= PH_EMENU_DISABLED;
+    whoisMenu->Flags |= PH_EMENU_DISABLED;
+    traceMenu->Flags |= PH_EMENU_DISABLED;
+    pingMenu->Flags |= PH_EMENU_DISABLED;
 
     if (networkItem)
     {
         if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
         {
-            toolsMenu->Flags &= ~PH_EMENU_DISABLED;
+            whoisMenu->Flags &= ~PH_EMENU_DISABLED;
+            traceMenu->Flags &= ~PH_EMENU_DISABLED;
+            pingMenu->Flags &= ~PH_EMENU_DISABLED;
         }
     }
 }

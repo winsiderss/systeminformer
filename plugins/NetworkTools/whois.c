@@ -27,18 +27,10 @@
 VOID RichEditAppendText(
     _In_ HWND RichEditHandle,
     _In_ PWSTR Text
-)
+    )
 {
-    //CHARFORMAT2 cf;
-    //memset(&cf, 0, sizeof(CHARFORMAT2));
-    //cf.cbSize = sizeof(CHARFORMAT2);
-    //cf.dwMask = CFM_COLOR | CFM_EFFECTS;
-    //cf.dwEffects = CFE_BOLD;
-    //cf.crTextColor = RGB(0xff, 0xff, 0xff);
-    //cf.crBackColor = RGB(0, 0, 0);
-
-    //SendMessage(RichEditHandle, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
     SendMessage(RichEditHandle, EM_REPLACESEL, FALSE, (LPARAM)Text);
+    SendMessage(RichEditHandle, EM_LINESCROLL, 0, -1000);
 }
 
 PPH_STRING TrimString(
@@ -168,13 +160,17 @@ BOOLEAN WhoisExtractReferralServer(
 
     whoisServerHostname = TrimString(whoisServerName);
     
-    if (swscanf(
+    if (swscanf_s(
         whoisServerHostname->Buffer,
-        L"%[^:]://%[^:]:%[^/]/%s",
-        urlProtocal,
+        L"%256[^:]://%256[^:]:%256[^/]/%256s",
+        urlProtocal, 
+        (UINT)ARRAYSIZE(urlProtocal),
         urlHost,
+        (UINT)ARRAYSIZE(urlHost),
         urlPort,
-        urlPath
+        (UINT)ARRAYSIZE(urlPort),
+        urlPath,
+        (UINT)ARRAYSIZE(urlPath)
         ))
     {
         *WhoisServerAddress = PhCreateString(urlHost);
@@ -278,7 +274,6 @@ NTSTATUS NetworkWhoisThreadStart(
     )
 {
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
-    BOOLEAN success = FALSE;
     PH_STRING_BUILDER sb;
     PPH_STRING whoisResponse = NULL;
     PPH_STRING whoisReferralResponse = NULL;
@@ -326,7 +321,7 @@ NTSTATUS NetworkWhoisThreadStart(
             {
                 PhAppendFormatStringBuilder(&sb, L"\n%s\n", whoisReferralResponse->Buffer);
                 PhAppendFormatStringBuilder(&sb, L"\nOriginal request to %s:\n%s\n", whoisServerName->Buffer, whoisResponse->Buffer);
-                success = TRUE;
+                PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
                 goto CleanupExit;
             }
         }
@@ -334,7 +329,7 @@ NTSTATUS NetworkWhoisThreadStart(
 
     PhAppendFormatStringBuilder(&sb, L"\n%s", whoisResponse->Buffer);
 
-    success = TRUE;
+    PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
 
 CleanupExit:
     PhClearReference(&whoisResponse);
@@ -342,11 +337,6 @@ CleanupExit:
     PhClearReference(&whoisServerName);
     PhClearReference(&whoisReferralServerName);
     PhClearReference(&whoisReferralServerPort);
-    
-    if (success)
-    {
-        PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
-    }
     
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
     return STATUS_SUCCESS;
@@ -375,7 +365,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION, SETTING_NAME_OUTPUT_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
-            PhFree(context);
+            //PhFree(context);
 
             PostQuitMessage(0);
         }
@@ -388,12 +378,14 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PH_RECTANGLE windowRectangle;
+//            PH_RECTANGLE windowRectangle;
             HANDLE dialogThread;
 
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
             context->WhoisHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+
+            SetWindowText(context->WindowHandle, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
 
             // Reset the border style for richedit uxtheme borders
             PhSetWindowStyle(context->WhoisHandle, WS_BORDER, WS_BORDER);
@@ -409,21 +401,19 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->WhoisHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION);
-            windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_OUTPUT_WINDOW_SIZE, TRUE).Pair;
-            if (windowRectangle.Position.X != 0 || windowRectangle.Position.Y != 0)
+            //windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION);
+            //windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_OUTPUT_WINDOW_SIZE, TRUE).Pair;
+            //if (windowRectangle.Position.X != 0 || windowRectangle.Position.Y != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION, SETTING_NAME_OUTPUT_WINDOW_SIZE, hwndDlg);
-            else
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            //else
+            //    PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-                RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
-            else
-                RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
+            //if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            //    RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
+            //else
+            //    RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
 
-            SetWindowText(context->WindowHandle, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
 
             if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                 NtClose(dialogThread);
@@ -567,4 +557,59 @@ NTSTATUS NetworkWhoisDialogThreadStart(
     PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
+}
+
+
+VOID ShowWhoisWindow(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    HANDLE dialogThread;
+    PNETWORK_OUTPUT_CONTEXT context;
+
+    context = (PNETWORK_OUTPUT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_OUTPUT_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+    context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
+
+    if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    {
+        RtlIpv4AddressToString(&NetworkItem->RemoteEndpoint.Address.InAddr, context->IpAddressString);
+    }
+    else if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+    {
+        RtlIpv6AddressToString(&NetworkItem->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
+    }
+
+    if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
+    {
+        NtClose(dialogThread);
+    }
+}
+
+VOID ShowWhoisWindowFromAddress(
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
+    )
+{
+    HANDLE dialogThread;
+    PNETWORK_OUTPUT_CONTEXT context;
+
+    context = (PNETWORK_OUTPUT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_OUTPUT_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+    context->RemoteEndpoint = RemoteEndpoint;
+
+    if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    {
+        RtlIpv4AddressToString(&RemoteEndpoint.Address.InAddr, context->IpAddressString);
+    }
+    else if (RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+    {
+        RtlIpv6AddressToString(&RemoteEndpoint.Address.In6Addr, context->IpAddressString);
+    }
+
+    if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
+    {
+        NtClose(dialogThread);
+    }
 }

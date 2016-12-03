@@ -57,180 +57,177 @@ NTSTATUS NetworkPingThreadStart(
         PhDereferenceObject(icmpRandString);
     }
 
-    __try
+    if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
-        if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+        SOCKADDR_IN6 icmp6LocalAddr = { 0 };
+        SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
+        PICMPV6_ECHO_REPLY2 icmp6ReplyStruct = NULL;
+
+        // Create ICMPv6 handle.
+        if ((icmpHandle = Icmp6CreateFile()) == INVALID_HANDLE_VALUE)
+            goto CleanupExit;
+
+        // Set Local IPv6-ANY address.
+        icmp6LocalAddr.sin6_addr = in6addr_any;
+        icmp6LocalAddr.sin6_family = AF_INET6;
+
+        // Set Remote IPv6 address.
+        icmp6RemoteAddr.sin6_addr = context->RemoteEndpoint.Address.In6Addr;
+        //icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
+
+        // Allocate ICMPv6 message.
+        icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
+        icmpReplyBuffer = PhAllocate(icmpReplyLength);
+        memset(icmpReplyBuffer, 0, icmpReplyLength);
+
+        InterlockedIncrement(&context->PingSentCount);
+
+        // Send ICMPv6 ping...
+        icmpReplyCount = Icmp6SendEcho2(
+            icmpHandle,
+            NULL,
+            NULL,
+            NULL,
+            &icmp6LocalAddr,
+            &icmp6RemoteAddr,
+            icmpEchoBuffer->Buffer,
+            (USHORT)icmpEchoBuffer->Length,
+            &pingOptions,
+            icmpReplyBuffer,
+            icmpReplyLength,
+            context->MaxPingTimeout
+            );
+
+        icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
+
+        if (icmp6ReplyStruct->Status == IP_SUCCESS)
         {
-            SOCKADDR_IN6 icmp6LocalAddr = { 0 };
-            SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
-            PICMPV6_ECHO_REPLY2 icmp6ReplyStruct = NULL;
+            BOOLEAN icmpPacketSignature = FALSE;
 
-            // Create ICMPv6 handle.
-            if ((icmpHandle = Icmp6CreateFile()) == INVALID_HANDLE_VALUE)
-                __leave;
+            if (!RtlEqualMemory(
+                icmp6ReplyStruct->Address.sin6_addr,
+                context->RemoteEndpoint.Address.In6Addr.u.Word,
+                sizeof(icmp6ReplyStruct->Address.sin6_addr)
+                ))
+            {
+                InterlockedIncrement(&context->UnknownAddrCount);
+            }
 
-            // Set Local IPv6-ANY address.
-            icmp6LocalAddr.sin6_addr = in6addr_any;
-            icmp6LocalAddr.sin6_family = AF_INET6;
-
-            // Set Remote IPv6 address.
-            icmp6RemoteAddr.sin6_addr = context->RemoteEndpoint.Address.In6Addr;
-            //icmp6RemoteAddr.sin6_port = _byteswap_ushort((USHORT)context->NetworkItem->RemoteEndpoint.Port);
-
-            // Allocate ICMPv6 message.
-            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
-            icmpReplyBuffer = PhAllocate(icmpReplyLength);
-            memset(icmpReplyBuffer, 0, icmpReplyLength);
-
-            InterlockedIncrement(&context->PingSentCount);
-
-            // Send ICMPv6 ping...
-            icmpReplyCount = Icmp6SendEcho2(
-                icmpHandle,
-                NULL,
-                NULL,
-                NULL,
-                &icmp6LocalAddr,
-                &icmp6RemoteAddr,
+            icmpPacketSignature = RtlEqualMemory(
                 icmpEchoBuffer->Buffer,
-                (USHORT)icmpEchoBuffer->Length,
-                &pingOptions,
-                icmpReplyBuffer,
-                icmpReplyLength,
-                context->MaxPingTimeout
+                icmp6ReplyStruct->Data,
+                icmpEchoBuffer->Length
                 );
 
-            icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
-
-            if (icmp6ReplyStruct->Status == IP_SUCCESS)
+            if (!icmpPacketSignature)
             {
-                BOOLEAN icmpPacketSignature = FALSE;
-
-                if (!RtlEqualMemory(
-                    icmp6ReplyStruct->Address.sin6_addr,
-                    context->RemoteEndpoint.Address.In6Addr.u.Word,
-                    sizeof(icmp6ReplyStruct->Address.sin6_addr)
-                    ))
-                {
-                    InterlockedIncrement(&context->UnknownAddrCount);
-                }
-
-                icmpPacketSignature = RtlEqualMemory(
-                    icmpEchoBuffer->Buffer,
-                    icmp6ReplyStruct->Data,
-                    icmpEchoBuffer->Length
-                    );
-
-                if (!icmpPacketSignature)
-                {
-                    InterlockedIncrement(&context->HashFailCount);
-                }
+                InterlockedIncrement(&context->HashFailCount);
             }
-            else
-            {
-                InterlockedIncrement(&context->PingLossCount);
-            }
-
-            icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
         }
         else
         {
-            IPAddr icmpLocalAddr = 0;
-            IPAddr icmpRemoteAddr = 0;
-            BOOLEAN icmpPacketSignature = FALSE;
-            PICMP_ECHO_REPLY icmpReplyStruct = NULL;
-
-            // Create ICMPv4 handle.
-            if ((icmpHandle = IcmpCreateFile()) == INVALID_HANDLE_VALUE)
-                __leave;
-
-            // Set Local IPv4-ANY address.
-            icmpLocalAddr = in4addr_any.s_addr;
-
-            // Set Remote IPv4 address.
-            icmpRemoteAddr = context->RemoteEndpoint.Address.InAddr.s_addr;
-
-            // Allocate ICMPv4 message.
-            icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
-            icmpReplyBuffer = PhAllocate(icmpReplyLength);
-            memset(icmpReplyBuffer, 0, icmpReplyLength);
-
-            InterlockedIncrement(&context->PingSentCount);
-
-            // First ping with no data...
-            // Send ICMPv4 ping...
-            icmpReplyCount = IcmpSendEcho2Ex(
-                icmpHandle,
-                NULL,
-                NULL,
-                NULL,
-                icmpLocalAddr,
-                icmpRemoteAddr,
-                NULL,
-                0,
-                &pingOptions,
-                icmpReplyBuffer,
-                icmpReplyLength,
-                context->MaxPingTimeout
-                );
-
-            icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
-
-            if (icmpReplyStruct->Status == IP_SUCCESS)
-            {
-                if (icmpReplyStruct->Address != context->RemoteEndpoint.Address.InAddr.s_addr)
-                {
-                    InterlockedIncrement(&context->UnknownAddrCount);
-                }
-
-                if (icmpReplyStruct->DataSize == icmpEchoBuffer->Length)
-                {
-                    icmpPacketSignature = RtlEqualMemory(
-                        icmpEchoBuffer->Buffer,
-                        icmpReplyStruct->Data,
-                        icmpReplyStruct->DataSize);
-                }
-
-                if (!icmpPacketSignature)
-                {
-                    InterlockedIncrement(&context->HashFailCount);
-                }
-            }
-            else
-            {
-                InterlockedIncrement(&context->PingLossCount);
-            }
-
-            icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
+            InterlockedIncrement(&context->PingLossCount);
         }
 
-        InterlockedIncrement(&context->PingRecvCount);
-
-        if (context->PingMinMs == 0 || icmpCurrentPingMs < context->PingMinMs)
-            context->PingMinMs = icmpCurrentPingMs;
-        if (icmpCurrentPingMs > context->PingMaxMs)
-            context->PingMaxMs = icmpCurrentPingMs;
-
-        context->CurrentPingMs = icmpCurrentPingMs;
-
-        PhAddItemCircularBuffer_ULONG(&context->PingHistory, icmpCurrentPingMs);
+        icmpCurrentPingMs = icmp6ReplyStruct->RoundTripTime;
     }
-    __finally
+    else
     {
-        if (icmpEchoBuffer)
+        IPAddr icmpLocalAddr = 0;
+        IPAddr icmpRemoteAddr = 0;
+        BOOLEAN icmpPacketSignature = FALSE;
+        PICMP_ECHO_REPLY icmpReplyStruct = NULL;
+
+        // Create ICMPv4 handle.
+        if ((icmpHandle = IcmpCreateFile()) == INVALID_HANDLE_VALUE)
+            goto CleanupExit;
+
+        // Set Local IPv4-ANY address.
+        icmpLocalAddr = in4addr_any.s_addr;
+
+        // Set Remote IPv4 address.
+        icmpRemoteAddr = context->RemoteEndpoint.Address.InAddr.s_addr;
+
+        // Allocate ICMPv4 message.
+        icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
+        icmpReplyBuffer = PhAllocate(icmpReplyLength);
+        memset(icmpReplyBuffer, 0, icmpReplyLength);
+
+        InterlockedIncrement(&context->PingSentCount);
+
+        // First ping with no data...
+        // Send ICMPv4 ping...
+        icmpReplyCount = IcmpSendEcho2Ex(
+            icmpHandle,
+            NULL,
+            NULL,
+            NULL,
+            icmpLocalAddr,
+            icmpRemoteAddr,
+            NULL,
+            0,
+            &pingOptions,
+            icmpReplyBuffer,
+            icmpReplyLength,
+            context->MaxPingTimeout
+            );
+
+        icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
+
+        if (icmpReplyStruct->Status == IP_SUCCESS)
         {
-            PhDereferenceObject(icmpEchoBuffer);
+            if (icmpReplyStruct->Address != context->RemoteEndpoint.Address.InAddr.s_addr)
+            {
+                InterlockedIncrement(&context->UnknownAddrCount);
+            }
+
+            if (icmpReplyStruct->DataSize == icmpEchoBuffer->Length)
+            {
+                icmpPacketSignature = RtlEqualMemory(
+                    icmpEchoBuffer->Buffer,
+                    icmpReplyStruct->Data,
+                    icmpReplyStruct->DataSize);
+            }
+
+            if (!icmpPacketSignature)
+            {
+                InterlockedIncrement(&context->HashFailCount);
+            }
+        }
+        else
+        {
+            InterlockedIncrement(&context->PingLossCount);
         }
 
-        if (icmpHandle != INVALID_HANDLE_VALUE)
-        {
-            IcmpCloseHandle(icmpHandle);
-        }
+        icmpCurrentPingMs = icmpReplyStruct->RoundTripTime;
+    }  
 
-        if (icmpReplyBuffer)
-        {
-            PhFree(icmpReplyBuffer);
-        }
+    if (context->PingMinMs == 0 || icmpCurrentPingMs < context->PingMinMs)
+        context->PingMinMs = icmpCurrentPingMs;
+    if (icmpCurrentPingMs > context->PingMaxMs)
+        context->PingMaxMs = icmpCurrentPingMs;
+
+    context->CurrentPingMs = icmpCurrentPingMs;
+
+    InterlockedIncrement(&context->PingRecvCount);
+
+    PhAddItemCircularBuffer_ULONG(&context->PingHistory, icmpCurrentPingMs);
+
+CleanupExit:
+
+    if (icmpEchoBuffer)
+    {
+        PhDereferenceObject(icmpEchoBuffer);
+    }
+
+    if (icmpHandle != INVALID_HANDLE_VALUE)
+    {
+        IcmpCloseHandle(icmpHandle);
+    }
+
+    if (icmpReplyBuffer)
+    {
+        PhFree(icmpReplyBuffer);
     }
 
     PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
@@ -245,12 +242,8 @@ VOID NTAPI NetworkPingUpdateHandler(
 {
     PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Context;
 
-    // Queue up the next ping into our work queue...
-    PhQueueItemWorkQueue(
-        &context->PingWorkQueue,
-        NetworkPingThreadStart,
-        (PVOID)context
-        );
+    // Queue up the next ping request
+    PhQueueItemWorkQueue(&context->PingWorkQueue, NetworkPingThreadStart, (PVOID)context);
 }
 
 VOID NetworkPingUpdateGraph(
@@ -291,7 +284,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
     {
     case WM_INITDIALOG:
         {
-            PH_RECTANGLE windowRectangle;
             PPH_LAYOUT_ITEM panelItem;
 
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
@@ -303,14 +295,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
             context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
-
-            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION);
-            windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_PING_WINDOW_SIZE, TRUE).Pair;
-
-            // Create the font handle.
             context->FontHandle = CommonCreateFont(-15, context->StatusHandle);
-
-            // Create the graph control.
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
@@ -326,7 +311,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 );
             Graph_SetTooltip(context->PingGraphHandle, TRUE);
 
-            // Initialize the WorkQueue with a maximum of 20 threads (fixes pinging slow-links when the refresh interval is 'very slow').
             PhInitializeWorkQueue(&context->PingWorkQueue, 0, 20, 5000);
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -340,33 +324,15 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PINGS_LOST), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BAD_HASH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, panelItem->Margin);
-
-            // Load window settings.
-            if (windowRectangle.Position.X == 0 || windowRectangle.Position.Y == 0)
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            else
-            {
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION, SETTING_NAME_PING_WINDOW_SIZE, hwndDlg);
-            }
-
-            // Initialize window layout.
-            PhLayoutManagerLayout(&context->LayoutManager);
-
-            // Convert IP Address to string format.
-            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-            {
-                RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
-            }
-            else
-            {
-                RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
-            }
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION, SETTING_NAME_PING_WINDOW_SIZE, hwndDlg);
 
             SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
-            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data...", context->IpAddressString, PhGetIntegerSetting(SETTING_NAME_PING_SIZE))->Buffer);
+            SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data...",
+                context->IpAddressString,
+                PhGetIntegerSetting(SETTING_NAME_PING_SIZE))->Buffer
+                );
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -422,7 +388,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_SIZING:
-        PhResizingMinimumSize((PRECT)lParam, wParam, 420, 250);
+        //PhResizingMinimumSize((PRECT)lParam, wParam, 420, 250);
         break;
     case WM_PING_UPDATE:
         {
@@ -586,4 +552,54 @@ NTSTATUS NetworkPingDialogThreadStart(
     PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
+}
+
+VOID ShowPingWindow(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    HANDLE dialogThread;
+    PNETWORK_OUTPUT_CONTEXT context;
+
+    context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+    if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+        RtlIpv4AddressToString(&NetworkItem->RemoteEndpoint.Address.InAddr, context->IpAddressString);
+    else
+        RtlIpv6AddressToString(&NetworkItem->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
+
+    context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
+
+    if (dialogThread = PhCreateThread(0, NetworkPingDialogThreadStart, (PVOID)context))
+    {
+        NtClose(dialogThread);
+    }
+}
+    
+VOID ShowPingWindowFromAddress(
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
+    )
+{
+    HANDLE dialogThread;
+    PNETWORK_OUTPUT_CONTEXT context;
+
+    context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+
+    if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    {
+        RtlIpv4AddressToString(&RemoteEndpoint.Address.InAddr, context->IpAddressString);
+    }
+    else
+    {
+        RtlIpv6AddressToString(&RemoteEndpoint.Address.In6Addr, context->IpAddressString);
+    }
+
+    context->RemoteEndpoint = RemoteEndpoint;
+
+    if (dialogThread = PhCreateThread(0, NetworkPingDialogThreadStart, (PVOID)context))
+    {
+        NtClose(dialogThread);
+    }
 }

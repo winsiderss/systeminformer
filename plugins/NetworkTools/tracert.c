@@ -21,14 +21,11 @@
  */
 
 #include "nettools.h"
+#include "tracert.h"
 #include <commonutil.h>
 
 #define MAX_PINGS  4
-#define IP_ADDRESS_COLUMN (MAX_PINGS + 1)
-#define HOSTNAME_COLUMN (MAX_PINGS + 2)
-#define COUNTRY_COLUMN (MAX_PINGS + 3)
-
-#define DEFAULT_MAXIMUM_HOPS        30 
+#define DEFAULT_MAXIMUM_HOPS        40 
 #define DEFAULT_SEND_SIZE           64 
 #define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
 #define DEFAULT_TIMEOUT 5000
@@ -36,18 +33,21 @@
 
 typedef struct _TRACERT_ERROR
 {
-    INT LvItemIndex;
+    PPOOLTAG_ROOT_NODE Node;
     INT lvSubItemIndex;
     ULONG LastErrorCode;
 } TRACERT_ERROR, *PTRACERT_ERROR;
 
 typedef struct _TRACERT_RESOLVE_WORKITEM
 {
-    HWND WindowHandle;
-    INT LvItemIndex;
     ULONG Type;
     SOCKADDR_STORAGE SocketAddress;
+
+    HWND WindowHandle;
+    PPOOLTAG_ROOT_NODE Node;
+
     WCHAR SocketAddressHostname[NI_MAXHOST];
+
 } TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
 
 PPH_STRING TracertGetErrorMessage(
@@ -79,74 +79,132 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
-VOID TracertDelayExecution(
-    _In_ ULONG Milliseconds
-    )
-{
-    LARGE_INTEGER interval;
-
-    NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, Milliseconds));
-}
-
 VOID TracertAppendText(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ INT Index,
+    _In_ PPOOLTAG_ROOT_NODE Node,
     _In_ INT SubItemIndex,
     _In_ PWSTR Text
     )
 {
-    WCHAR itemText[MAX_PATH] = L"";
+    //WCHAR itemText[MAX_PATH] = L"";
 
-    ListView_GetItemText(
-        Context->ListviewHandle,
-        Index, 
-        SubItemIndex,
-        itemText,
-        ARRAYSIZE(itemText)
-        );
+    //ListView_GetItemText(
+    //    Context->TreeNewHandle,
+    //    Index, 
+    //    SubItemIndex,
+    //    itemText,
+    //    ARRAYSIZE(itemText)
+    //    );
 
-    if (PhCountStringZ(itemText) > 0)
+    //if (PhCountStringZ(itemText) > 0)
+    //{
+        //if (!wcsstr(itemText, Text))
+      //  {
+           // PPH_STRING string;
+
+           // string = PhFormatString(L"%s, %s", itemText, Text);
+
+    //        switch (SubItemIndex)
+    //        {
+    //        case TREE_COLUMN_ITEM_TTL:
+    //            //PhMoveReference(&node->TtlString, PhFormatUInt64(node->TTL, TRUE));
+    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->TtlString));
+    //            break;
+    //        case TREE_COLUMN_ITEM_PING1:
+    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping1String));
+    //            break;
+    //        case TREE_COLUMN_ITEM_PING2:
+    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping2String));
+    //            break;
+    //        case TREE_COLUMN_ITEM_PING3:
+    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping3String));
+    //            break;
+    //        case TREE_COLUMN_ITEM_PING4:
+    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping4String));
+    //            break;
+    //}
+    //else
+    //{
+    switch (SubItemIndex)
     {
-        if (!wcsstr(itemText, Text))
-        {
-            PPH_STRING string;
-
-            string = PhFormatString(L"%s, %s", itemText, Text);
-
-            PhSetListViewSubItem(
-                Context->ListviewHandle,
-                Index,
-                SubItemIndex,
-                string->Buffer
-                );
-            PhDereferenceObject(string);
-        }
-    }
-    else
-    {
-        PhSetListViewSubItem(
-            Context->ListviewHandle,
-            Index,
-            SubItemIndex,
-            Text
-            );
+    case TREE_COLUMN_ITEM_TTL:
+        //PhMoveReference(&node->TtlString, PhFormatUInt64(node->TTL, TRUE));
+        //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->TtlString));
+        break;
+    case TREE_COLUMN_ITEM_PING1:
+        Node->Ping1String = PhCreateString(Text);
+        break;
+    case TREE_COLUMN_ITEM_PING2:
+        Node->Ping2String = PhCreateString(Text);
+        break;
+    case TREE_COLUMN_ITEM_PING3:
+        Node->Ping3String = PhCreateString(Text);
+        break;
+    case TREE_COLUMN_ITEM_PING4:
+        Node->Ping4String = PhCreateString(Text);
+        break;
+    case TREE_COLUMN_ITEM_COUNTRY:
+        Node->CountryString = PhCreateString(Text);
+        break;
+    case TREE_COLUMN_ITEM_IPADDR:
+        Node->IpAddressString = PhCreateString(Text);
+        break;
+    case TREE_COLUMN_ITEM_HOSTNAME:
+        Node->HostnameString = PhCreateString(Text);
+        break;
     }
 }
 
 VOID TracertUpdateTime(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ INT Index,
+    _In_ PPOOLTAG_ROOT_NODE Node,
     _In_ INT SubIndex,
     _In_ ULONG RoundTripTime
     ) 
 { 
     if (RoundTripTime)
-    { 
-        PhSetListViewSubItem(Context->ListviewHandle, Index, SubIndex, PhaFormatString(L"%lu ms", RoundTripTime)->Buffer);
+    {
+        switch (SubIndex)
+        {
+        case 0:
+            Node->Ping1String = PhFormatString(L"%lu ms", RoundTripTime);
+            break;
+        case 1:
+            Node->Ping2String = PhFormatString(L"%lu ms", RoundTripTime);
+            break;
+        case 2:
+            Node->Ping3String = PhFormatString(L"%lu ms", RoundTripTime);
+            break;
+        case 3:
+            Node->Ping4String = PhFormatString(L"%lu ms", RoundTripTime);
+            break;
+        }
+
+        PmUpdatePoolTagNode(Context, Node);
+
+        //PhSetListViewSubItem(Context->TreeNewHandle, Index, SubIndex, PhaFormatString(L"%lu ms", RoundTripTime)->Buffer);
     } 
     else 
     { 
-        PhSetListViewSubItem(Context->ListviewHandle, Index, SubIndex, PhaFormatString(L"<1 ms", RoundTripTime)->Buffer);
+        switch (SubIndex)
+        {
+        case 0:
+            Node->Ping1String = PhFormatString(L"<1 ms");
+            break;
+        case 1:
+            Node->Ping2String = PhFormatString(L"<1 ms");
+            break;
+        case 2:
+            Node->Ping3String = PhFormatString(L"<1 ms");
+            break;
+        case 3:
+            Node->Ping4String = PhFormatString(L"<1 ms");
+            break;
+        }
+
+        PmUpdatePoolTagNode(Context, Node);
+
+        //PhSetListViewSubItem(Context->TreeNewHandle, Index, SubIndex, PhaFormatString(L"<1 ms")->Buffer);
     } 
 } 
 
@@ -226,7 +284,7 @@ NTSTATUS TracertHostnameLookupCallback(
 
 VOID TracertQueueHostLookup(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ INT LvItemIndex,
+    _In_ PPOOLTAG_ROOT_NODE Node,
     _In_ PVOID SocketAddress
     ) 
 {
@@ -244,8 +302,8 @@ VOID TracertQueueHostLookup(
         {
             TracertAppendText(
                 Context, 
-                LvItemIndex, 
-                IP_ADDRESS_COLUMN, 
+                Node, 
+                TREE_COLUMN_ITEM_IPADDR,
                 addressString
                 );
         }
@@ -255,10 +313,35 @@ VOID TracertQueueHostLookup(
 
         resolve->Type = PH_IPV4_NETWORK_TYPE;
         resolve->WindowHandle = Context->WindowHandle;
-        resolve->LvItemIndex = LvItemIndex;
+        resolve->Node = Node;
 
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
+
+
+        PPH_STRING remoteCountryCode;
+        PPH_STRING remoteCountryName;
+
+        if (LookupSockAddrCountryCode(
+            sockAddrIn,
+            &remoteCountryCode,
+            &remoteCountryName
+            ))
+        {
+            TracertAppendText(
+                Context,
+                Node,
+                TREE_COLUMN_ITEM_COUNTRY,
+                remoteCountryName->Buffer
+                );
+
+            //PhSwapReference(&extension->RemoteCountryCode, remoteCountryCode);
+            //PhSwapReference(&extension->RemoteCountryName, remoteCountryName);
+
+            PhClearReference(&remoteCountryCode);
+            PhClearReference(&remoteCountryName);
+        }
+
 
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, resolve);
     }
@@ -276,12 +359,12 @@ VOID TracertQueueHostLookup(
         {
             TracertAppendText(
                 Context,
-                LvItemIndex,
-                IP_ADDRESS_COLUMN,
+                Node,
+                TREE_COLUMN_ITEM_IPADDR,
                 addressString
                 );
 
-            //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, IP_ADDRESS_COLUMN, addressString);
+            //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, TREE_COLUMN_ITEM_IPADDR, addressString);
             //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, HOSTNAME_COLUMN, L"Resolving address...");
         }
 
@@ -290,7 +373,7 @@ VOID TracertQueueHostLookup(
 
         resolve->Type = PH_IPV6_NETWORK_TYPE;
         resolve->WindowHandle = Context->WindowHandle;
-        resolve->LvItemIndex = LvItemIndex;
+        resolve->Node = Node;
 
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_family = AF_INET6;
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
@@ -298,6 +381,8 @@ VOID TracertQueueHostLookup(
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, resolve);
     }
 }
+
+
 
 NTSTATUS NetworkTracertThreadStart(
     _In_ PVOID Parameter
@@ -342,228 +427,308 @@ NTSTATUS NetworkTracertThreadStart(
         break;
     }
 
-    __try
+    if (icmpHandle == INVALID_HANDLE_VALUE)
+        goto CleanupExit;
+
+    if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
-        if (icmpHandle == INVALID_HANDLE_VALUE)
-            __leave;
+        ((PSOCKADDR_IN)&destinationAddress)->sin_family = AF_INET;
+        ((PSOCKADDR_IN)&destinationAddress)->sin_addr = context->RemoteEndpoint.Address.InAddr;
+        //((PSOCKADDR_IN)&destinationAddress)->sin_port = (USHORT)context->RemoteEndpoint.Port;//_byteswap_ushort((USHORT)Context->RemoteEndpoint.Port);
+    }
+    else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+    {
+        ((PSOCKADDR_IN6)&destinationAddress)->sin6_family = AF_INET6;
+        ((PSOCKADDR_IN6)&destinationAddress)->sin6_addr = context->RemoteEndpoint.Address.In6Addr;
+        //((PSOCKADDR_IN6)&destinationAddress)->sin6_port = (USHORT)context->RemoteEndpoint.Port;//_byteswap_ushort((USHORT)Context->RemoteEndpoint.Port);
+    }
 
-        if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-        {
-            ((PSOCKADDR_IN)&destinationAddress)->sin_family = AF_INET;
-            ((PSOCKADDR_IN)&destinationAddress)->sin_addr = context->RemoteEndpoint.Address.InAddr;
-            //((PSOCKADDR_IN)&destinationAddress)->sin_port = (USHORT)context->RemoteEndpoint.Port;//_byteswap_ushort((USHORT)Context->RemoteEndpoint.Port);
-        }
-        else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
-        {
-            ((PSOCKADDR_IN6)&destinationAddress)->sin6_family = AF_INET6;
-            ((PSOCKADDR_IN6)&destinationAddress)->sin6_addr = context->RemoteEndpoint.Address.In6Addr;
-            //((PSOCKADDR_IN6)&destinationAddress)->sin6_port = (USHORT)context->RemoteEndpoint.Port;//_byteswap_ushort((USHORT)Context->RemoteEndpoint.Port);
-        }
+    for (INT i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
+    {
+        IN_ADDR last4ReplyAddress = in4addr_any;
+        IN6_ADDR last6ReplyAddress = in6addr_any;
 
-        for (INT i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
-        {
-            IN_ADDR last4ReplyAddress = in4addr_any;
-            IN6_ADDR last6ReplyAddress = in6addr_any;
-            INT lvItemIndex;
+        if (context->Cancel)
+            break;
 
+        PPOOLTAG_ROOT_NODE node = PmAddPoolTagNode(context, pingOptions.Ttl);
+
+        for (INT ii = 0; ii < MAX_PINGS; ii++)
+        {
             if (context->Cancel)
                 break;
 
-            lvItemIndex = PhAddListViewItem(
-                context->ListviewHandle,
-                MAXINT,
-                PhaFormatString(L"%u", (UINT)pingOptions.Ttl)->Buffer,
-                NULL
-                );
-
-            for (INT ii = 0; ii < MAX_PINGS; ii++)
+            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
             {
-                if (context->Cancel)
-                    break;
+                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
+                icmpReplyBuffer = PhAllocate(icmpReplyLength);
+                memset(icmpReplyBuffer, 0, icmpReplyLength);
 
-                if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+                if (!IcmpSendEcho2Ex(
+                    icmpHandle,
+                    0,
+                    NULL,
+                    NULL,
+                    ((PSOCKADDR_IN)&sourceAddress)->sin_addr.s_addr,
+                    ((PSOCKADDR_IN)&destinationAddress)->sin_addr.s_addr,
+                    icmpEchoBuffer->Buffer,
+                    (USHORT)icmpEchoBuffer->Length,
+                    &pingOptions,
+                    icmpReplyBuffer,
+                    icmpReplyLength,
+                    DEFAULT_TIMEOUT
+                    ))
                 {
-                    icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
-                    icmpReplyBuffer = PhAllocate(icmpReplyLength);
-                    memset(icmpReplyBuffer, 0, icmpReplyLength);
+                    PTRACERT_ERROR error;
 
-                    if (!IcmpSendEcho2Ex(
-                        icmpHandle,
-                        0,
-                        NULL,
-                        NULL,
-                        ((PSOCKADDR_IN)&sourceAddress)->sin_addr.s_addr,
-                        ((PSOCKADDR_IN)&destinationAddress)->sin_addr.s_addr,
-                        icmpEchoBuffer->Buffer,
-                        (USHORT)icmpEchoBuffer->Length,
-                        &pingOptions,
-                        icmpReplyBuffer,
-                        icmpReplyLength,
-                        DEFAULT_TIMEOUT
-                        ))
-                    {
-                        PTRACERT_ERROR error;
-                        
-                        error = PhAllocate(sizeof(TRACERT_ERROR));
-                        memset(error, 0, sizeof(TRACERT_ERROR));
+                    error = PhAllocate(sizeof(TRACERT_ERROR));
+                    memset(error, 0, sizeof(TRACERT_ERROR));
 
-                        error->LastErrorCode = GetLastError();
-                        error->LvItemIndex = lvItemIndex;
-                        error->lvSubItemIndex = ii + 1;
+                    error->LastErrorCode = GetLastError();
+                    error->Node = node;
+                    error->lvSubItemIndex = ii;
 
-                        PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
-                    }
-                    else
-                    {
-                        PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
-
-                        TracertUpdateTime(
-                            context, 
-                            lvItemIndex, 
-                            ii + 1, 
-                            reply4->RoundTripTime
-                            );
-
-                        TracertQueueHostLookup(
-                            context,
-                            lvItemIndex,
-                            &reply4->Address
-                            );
-
-                        memcpy(&last4ReplyAddress, &reply4->Address, sizeof(IN_ADDR));
-
-                        if (reply4->Status == IP_HOP_LIMIT_EXCEEDED)
-                        {
-                            if (reply4->RoundTripTime < MIN_INTERVAL)
-                            {
-                                TracertDelayExecution(MIN_INTERVAL - reply4->RoundTripTime);
-                            }
-                        }
-                        else if (reply4->Status != IP_SUCCESS)
-                        {
-                            PTRACERT_ERROR error;
-
-                            error = PhAllocate(sizeof(TRACERT_ERROR));
-                            memset(error, 0, sizeof(TRACERT_ERROR));
-
-                            error->LastErrorCode = reply4->Status;
-                            error->LvItemIndex = lvItemIndex;
-                            error->lvSubItemIndex = ii + 1;
-
-                            PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
-                        }
-                    }
-
-                    PhFree(icmpReplyBuffer);
+                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
                 }
                 else
                 {
-                    icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
-                    icmpReplyBuffer = PhAllocate(icmpReplyLength);
-                    memset(icmpReplyBuffer, 0, icmpReplyLength);
+                    PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
-                    if (!Icmp6SendEcho2(
-                        icmpHandle,
-                        0,
-                        NULL,
-                        NULL,
-                        ((PSOCKADDR_IN6)&sourceAddress),
-                        ((PSOCKADDR_IN6)&destinationAddress),
-                        icmpEchoBuffer->Buffer,
-                        (USHORT)icmpEchoBuffer->Length,
-                        &pingOptions,
-                        icmpReplyBuffer,
-                        icmpReplyLength,
-                        DEFAULT_TIMEOUT
-                        ))
+                    TracertUpdateTime(
+                        context,
+                        node,
+                        ii,
+                        reply4->RoundTripTime
+                        );
+
+                    TracertQueueHostLookup(
+                        context,
+                        node,
+                        &reply4->Address
+                        );
+
+                    memcpy(&last4ReplyAddress, &reply4->Address, sizeof(IN_ADDR));
+
+                    if (reply4->Status == IP_HOP_LIMIT_EXCEEDED)
+                    {
+                        if (reply4->RoundTripTime < MIN_INTERVAL)
+                        {
+                            LARGE_INTEGER interval;
+
+                            NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply4->RoundTripTime));
+                        }
+                    }
+                    else if (reply4->Status != IP_SUCCESS)
                     {
                         PTRACERT_ERROR error;
 
                         error = PhAllocate(sizeof(TRACERT_ERROR));
                         memset(error, 0, sizeof(TRACERT_ERROR));
 
-                        error->LastErrorCode = GetLastError();
-                        error->LvItemIndex = lvItemIndex;
-                        error->lvSubItemIndex = ii + 1;
+                        error->LastErrorCode = reply4->Status;
+                        error->Node = node;
+                        error->lvSubItemIndex = ii;
 
                         PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
                     }
-                    else
+                }
+
+                PhFree(icmpReplyBuffer);
+            }
+            else
+            {
+                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
+                icmpReplyBuffer = PhAllocate(icmpReplyLength);
+                memset(icmpReplyBuffer, 0, icmpReplyLength);
+
+                if (!Icmp6SendEcho2(
+                    icmpHandle,
+                    0,
+                    NULL,
+                    NULL,
+                    ((PSOCKADDR_IN6)&sourceAddress),
+                    ((PSOCKADDR_IN6)&destinationAddress),
+                    icmpEchoBuffer->Buffer,
+                    (USHORT)icmpEchoBuffer->Length,
+                    &pingOptions,
+                    icmpReplyBuffer,
+                    icmpReplyLength,
+                    DEFAULT_TIMEOUT
+                    ))
+                {
+                    PTRACERT_ERROR error;
+
+                    error = PhAllocate(sizeof(TRACERT_ERROR));
+                    memset(error, 0, sizeof(TRACERT_ERROR));
+
+                    error->LastErrorCode = GetLastError();
+                    error->Node = node;
+                    error->lvSubItemIndex = ii;
+
+                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                }
+                else
+                {
+                    PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
+
+                    TracertUpdateTime(
+                        context,
+                        node,
+                        ii,
+                        reply6->RoundTripTime
+                        );
+
+                    TracertQueueHostLookup(
+                        context,
+                        node,
+                        &reply6->Address.sin6_addr
+                        );
+
+                    memcpy(&last6ReplyAddress, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
+
+                    if (reply6->Status == IP_HOP_LIMIT_EXCEEDED)
                     {
-                        PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
-
-                        TracertUpdateTime(
-                            context, 
-                            lvItemIndex, 
-                            ii + 1, 
-                            reply6->RoundTripTime
-                            );
-
-                        TracertQueueHostLookup(
-                            context,
-                            lvItemIndex,
-                            &reply6->Address.sin6_addr
-                            );
-
-                        memcpy(&last6ReplyAddress, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
-
-                        if (reply6->Status == IP_HOP_LIMIT_EXCEEDED)
+                        if (reply6->RoundTripTime < MIN_INTERVAL)
                         {
-                            if (reply6->RoundTripTime < MIN_INTERVAL)
-                            {
-                                TracertDelayExecution(MIN_INTERVAL - reply6->RoundTripTime);
-                            }
-                        }
-                        else if (reply6->Status != IP_SUCCESS)
-                        {
-                            PTRACERT_ERROR error;
+                            LARGE_INTEGER interval;
 
-                            error = PhAllocate(sizeof(TRACERT_ERROR));
-                            memset(error, 0, sizeof(TRACERT_ERROR));
-
-                            error->LastErrorCode = reply6->Status;
-                            error->LvItemIndex = lvItemIndex;
-                            error->lvSubItemIndex = ii + 1;
-
-                            PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                            NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply6->RoundTripTime));
                         }
                     }
+                    else if (reply6->Status != IP_SUCCESS)
+                    {
+                        PTRACERT_ERROR error;
 
-                    PhFree(icmpReplyBuffer);
+                        error = PhAllocate(sizeof(TRACERT_ERROR));
+                        memset(error, 0, sizeof(TRACERT_ERROR));
+
+                        error->LastErrorCode = reply6->Status;
+                        error->Node = node;
+                        error->lvSubItemIndex = ii;
+
+                        PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                    }
                 }
+
+                PhFree(icmpReplyBuffer);
             }
 
-            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-            {
-                if (!memcmp(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
-                    break;
-            }
-            else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
-            {
-                if (!memcmp(&last6ReplyAddress, &((PSOCKADDR_IN6)&destinationAddress)->sin6_addr, sizeof(IN6_ADDR)))
-                    break;
-            }
-
-            pingOptions.Ttl++;
+            TreeNew_NodesStructured(context->TreeNewHandle);
         }
-    }
-    __finally
-    {
-        if (icmpHandle != INVALID_HANDLE_VALUE)
+
+        if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
-            IcmpCloseHandle(icmpHandle);
+            if (!memcmp(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
+                break;
         }
+        else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
+        {
+            if (!memcmp(&last6ReplyAddress, &((PSOCKADDR_IN6)&destinationAddress)->sin6_addr, sizeof(IN6_ADDR)))
+                break;
+        }
+
+        pingOptions.Ttl++;
+
+        TreeNew_NodesStructured(context->TreeNewHandle);
+    }
+
+CleanupExit:
+
+    if (icmpHandle != INVALID_HANDLE_VALUE)
+    {
+        IcmpCloseHandle(icmpHandle);
     }
 
     PhDeleteAutoPool(&autoPool);
+    PhDereferenceObject(context);
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
-
-    PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
 }
 
+
+VOID ShowMenu(
+    _In_ PNETWORK_TRACERT_CONTEXT Context, 
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case MAINMENU_ACTION_PING:
+        {
+            PH_IP_ENDPOINT RemoteEndpoint;
+            PWSTR terminator = NULL;
+            PPOOLTAG_ROOT_NODE node;
+
+            if (node = PmGetSelectedPoolTagNode(Context))
+            {
+                if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    ShowPingWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+
+                if (NT_SUCCESS(RtlIpv6StringToAddress(node->IpAddressString->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    ShowPingWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+            }
+        }
+        break;
+    case NETWORK_ACTION_TRACEROUTE:
+        {
+            PH_IP_ENDPOINT RemoteEndpoint;
+            PWSTR terminator = NULL;
+            PPOOLTAG_ROOT_NODE node;
+
+            if (node = PmGetSelectedPoolTagNode(Context))
+            {
+                if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    ShowTracertWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+    
+                if (NT_SUCCESS(RtlIpv6StringToAddress(node->IpAddressString->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    ShowTracertWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+            }
+        }
+        break;
+    case NETWORK_ACTION_WHOIS:
+        {
+            PH_IP_ENDPOINT RemoteEndpoint;
+            PWSTR terminator = NULL;
+            PPOOLTAG_ROOT_NODE node;
+
+            if (node = PmGetSelectedPoolTagNode(Context))
+            {
+                if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                    ShowWhoisWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+    
+                if (NT_SUCCESS(RtlIpv6StringToAddress(node->IpAddressString->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                {
+                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                    ShowWhoisWindowFromAddress(RemoteEndpoint);
+                    break;
+                }
+            }
+        }
+        break;
+    }
+}
 
 INT_PTR CALLBACK TracertDlgProc(
     _In_ HWND hwndDlg,
@@ -587,7 +752,7 @@ INT_PTR CALLBACK TracertDlgProc(
         {
             context->Cancel = TRUE;
 
-            PhSaveListViewColumnsToSetting(SETTING_NAME_TRACERT_COLUMNS, context->ListviewHandle);
+            //PhSaveListViewColumnsToSetting(SETTING_NAME_TRACERT_COLUMNS, context->ListviewHandle);
             PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
 
             if (context->FontHandle)
@@ -620,23 +785,14 @@ INT_PTR CALLBACK TracertDlgProc(
                 );
 
             context->WindowHandle = hwndDlg;
-            context->ListviewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
             context->FontHandle = CommonCreateFont(-15, GetDlgItem(hwndDlg, IDC_STATUS));
 
-            PhSetListViewStyle(context->ListviewHandle, FALSE, TRUE);
-            PhSetControlTheme(context->ListviewHandle, L"explorer");
-            PhAddListViewColumn(context->ListviewHandle, 0, 0, 0, LVCFMT_RIGHT, 30, L"TTL");
-            for (INT i = 0; i < MAX_PINGS; i++)
-                PhAddListViewColumn(context->ListviewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
-            PhAddListViewColumn(context->ListviewHandle, IP_ADDRESS_COLUMN, IP_ADDRESS_COLUMN, IP_ADDRESS_COLUMN, LVCFMT_LEFT, 180, L"IP Address");
-            PhAddListViewColumn(context->ListviewHandle, HOSTNAME_COLUMN, HOSTNAME_COLUMN, HOSTNAME_COLUMN, LVCFMT_LEFT, 300, L"Hostname");
-            PhAddListViewColumn(context->ListviewHandle, COUNTRY_COLUMN, COUNTRY_COLUMN, COUNTRY_COLUMN, LVCFMT_LEFT, 80, L"Country");
-            PhLoadListViewColumnsFromSetting(SETTING_NAME_TRACERT_COLUMNS, context->ListviewHandle);
-            PhSetExtendedListView(context->ListviewHandle);
+            PmInitializePoolTagTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATUS), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&context->LayoutManager, context->ListviewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
 
@@ -655,150 +811,44 @@ INT_PTR CALLBACK TracertDlgProc(
             case IDCANCEL:
                 DestroyWindow(hwndDlg);
                 break;
-            }
-        }
-        break;
-    case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case NM_RCLICK:
+            case POOL_TABLE_SHOWCONTEXTMENU:
                 {
-                    if (header->hwndFrom == context->ListviewHandle)
+                    PPH_EMENU menu;
+                    PPOOLTAG_ROOT_NODE selectedNode;
+                    PPH_EMENU_ITEM selectedItem;
+                    PPH_TREENEW_MOUSE_EVENT mouseEvent = (PPH_TREENEW_MOUSE_EVENT)lParam;
+
+                    if (selectedNode = PmGetSelectedPoolTagNode(context))
                     {
-                        POINT cursorPos;
-                        PPH_EMENU menu;
-                        PPH_EMENU_ITEM selectedItem;
-
-                        GetCursorPos(&cursorPos);
-
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_WHOIS, L"Whois", NULL, NULL), -1);
-               
+
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
                             PH_EMENU_SHOW_LEFTRIGHT,
                             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                            cursorPos.x,
-                            cursorPos.y
+                            mouseEvent->Location.x,
+                            mouseEvent->Location.y
                             );
 
                         if (selectedItem && selectedItem->Id != -1)
                         {
-                            switch (selectedItem->Id)
-                            {
-                            case MAINMENU_ACTION_PING:
-                                {
-
-                                }
-                                break;
-                            case NETWORK_ACTION_TRACEROUTE:
-                                {
-                                    BOOLEAN success = FALSE;
-                                    PH_IP_ENDPOINT RemoteEndpoint;
-                                    PWSTR terminator = NULL;
-                                    INT lvItemIndex;
-
-                                    lvItemIndex = ListView_GetNextItem(context->ListviewHandle, -1, LVNI_SELECTED);
-
-                                    if (lvItemIndex != -1)
-                                    {
-                                        WCHAR itemText[MAX_PATH] = L"";
-
-                                        ListView_GetItemText(
-                                            context->ListviewHandle,
-                                            lvItemIndex,
-                                            5,
-                                            itemText,
-                                            ARRAYSIZE(itemText)
-                                            );
-
-                                        if (NT_SUCCESS(RtlIpv4StringToAddress(itemText, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
-                                        {
-                                            RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                                            success = TRUE;
-                                        }
-
-                                        if (NT_SUCCESS(RtlIpv6StringToAddress(itemText, &terminator, &RemoteEndpoint.Address.In6Addr)))
-                                        {
-                                            RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                                            success = TRUE;
-                                        }
-
-                                        if (success)
-                                        {
-                                            ShowTracertWindowFromAddress(RemoteEndpoint);
-                                        }
-                                    }
-                                }
-                                break;
-                            case NETWORK_ACTION_WHOIS:
-                                {
-                                    BOOLEAN success = FALSE;
-                                    PH_IP_ENDPOINT RemoteEndpoint;
-                                    PWSTR terminator = NULL;
-                                    INT lvItemIndex;
-
-                                    lvItemIndex = ListView_GetNextItem(context->ListviewHandle, -1, LVNI_SELECTED);
-
-                                    if (lvItemIndex != -1)
-                                    {
-                                        WCHAR itemText[MAX_PATH] = L"";
-
-                                        ListView_GetItemText(
-                                            context->ListviewHandle,
-                                            lvItemIndex,
-                                            5,
-                                            itemText,
-                                            ARRAYSIZE(itemText)
-                                            );
-
-                                        if (NT_SUCCESS(RtlIpv4StringToAddress(itemText, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
-                                        {
-                                            RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                                            success = TRUE;
-                                        }
-
-                                        if (NT_SUCCESS(RtlIpv6StringToAddress(itemText, &terminator, &RemoteEndpoint.Address.In6Addr)))
-                                        {
-                                            RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                                            success = TRUE;
-                                        }
-
-                                        if (success)
-                                        {
-                                            HANDLE dialogThread = INVALID_HANDLE_VALUE;
-                                            PNETWORK_OUTPUT_CONTEXT context;
-
-                                            context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
-                                            memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
-
-                                            context->Action = NETWORK_ACTION_WHOIS;
-                                            context->RemoteEndpoint = RemoteEndpoint;
-
-                                            if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
-                                            {
-                                                NtClose(dialogThread);
-                                            }
-                                        }
-                                    }
-                                }
-                                break;
-                            }
+                            ShowMenu(context, selectedItem->Id);
                         }
+
+                        PhDestroyEMenu(menu);
                     }
                 }
                 break;
             }
         }
+        break;
+    case WM_SIZE:
+        PhLayoutManagerLayout(&context->LayoutManager);
+        TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TN_AUTOSIZE_REMAINING_SPACE);
         break;
     case WM_TRACERT_ERROR:
         {
@@ -806,17 +856,29 @@ INT_PTR CALLBACK TracertDlgProc(
 
             if (error->LastErrorCode == IP_REQ_TIMED_OUT)
             {
-                PhSetListViewSubItem(
-                    context->ListviewHandle,
-                    error->LvItemIndex, 
-                    error->lvSubItemIndex, 
-                    L"*"
-                    );
+                switch (error->lvSubItemIndex)
+                {
+                case 0:
+                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING1, L"*");
+                    break;
+                case 1:
+                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING2, L"*");
+                    break;
+                case 2:
+                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING3, L"*");
+                    break;
+                case 3:
+                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING4, L"*");
+                    break;
+                }
+
+                PmUpdatePoolTagNode(context, error->Node);
+                //TreeNew_NodesStructured(context->TreeNewHandle);
 
                 //TracertAppendText(
                 //    context, 
-                //    error->LvItemIndex, 
-                //    IP_ADDRESS_COLUMN, 
+                //    error->Node, 
+                //    TREE_COLUMN_ITEM_IPADDR, 
                 //    TracertGetErrorMessage(error->LastErrorCode)->Buffer
                 //    );
             }
@@ -828,8 +890,8 @@ INT_PTR CALLBACK TracertDlgProc(
                 {
                     TracertAppendText(
                         context, 
-                        error->LvItemIndex, 
-                        IP_ADDRESS_COLUMN, 
+                        error->Node,
+                        TREE_COLUMN_ITEM_IPADDR,
                         errorMessage->Buffer
                         );
                 }
@@ -844,14 +906,14 @@ INT_PTR CALLBACK TracertDlgProc(
 
             TracertAppendText(
                 context,
-                resolve->LvItemIndex,
-                HOSTNAME_COLUMN,
+                resolve->Node,
+                TREE_COLUMN_ITEM_HOSTNAME,
                 resolve->SocketAddressHostname
                 );
 
             PhDereferenceObject(resolve);
         }
-        break;
+        break;  
     case NTM_RECEIVEDFINISH:
         {
             PPH_STRING windowText;
