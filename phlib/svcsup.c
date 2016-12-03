@@ -92,7 +92,20 @@ PVOID PhEnumServices(
     ULONG servicesReturned;
 
     if (!Type)
-        Type = WindowsVersion >= WINDOWS_10 ? SERVICE_TYPE_ALL : (SERVICE_DRIVER | SERVICE_WIN32);
+    {
+        if (PhOsVersion.dwBuildNumber < 14393)
+        {
+            Type = WindowsVersion >= WINDOWS_10 ? SERVICE_WIN32 | 
+                SERVICE_ADAPTER |  SERVICE_DRIVER | 
+                SERVICE_INTERACTIVE_PROCESS |  SERVICE_USER_SERVICE | 
+                SERVICE_USERSERVICE_INSTANCE : (SERVICE_DRIVER | SERVICE_WIN32);
+        }
+        else
+        {
+            Type = WindowsVersion >= WINDOWS_10 ? SERVICE_TYPE_ALL : (SERVICE_DRIVER | SERVICE_WIN32);
+        }
+    }
+
     if (!State)
         State = SERVICE_STATE_ALL;
 
