@@ -162,7 +162,7 @@ BOOLEAN WhoisExtractReferralServer(
     
     if (swscanf_s(
         whoisServerHostname->Buffer,
-        L"%256[^:]://%256[^:]:%256[^/]/%256s",
+        L"%[^:]://%[^:]:%[^/]/%s",
         urlProtocal, 
         (UINT)ARRAYSIZE(urlProtocal),
         urlHost,
@@ -365,7 +365,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION, SETTING_NAME_OUTPUT_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
-            //PhFree(context);
+            PhDereferenceObject(context);
 
             PostQuitMessage(0);
         }
@@ -513,13 +513,10 @@ NTSTATUS NetworkWhoisDialogThreadStart(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    PNETWORK_OUTPUT_CONTEXT context;
     BOOL result;
     MSG message;
     HWND windowHandle;
     PH_AUTO_POOL autoPool;
-
-    context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -545,7 +542,7 @@ NTSTATUS NetworkWhoisDialogThreadStart(
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(context->WindowHandle, &message))
+        if (!IsDialogMessage(windowHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);

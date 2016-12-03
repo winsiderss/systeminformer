@@ -86,7 +86,6 @@ typedef enum _PH_NETWORK_ACTION
     NETWORK_ACTION_WHOIS,
     NETWORK_ACTION_FINISH,
     NETWORK_ACTION_PATHPING,
-
     MAINMENU_ACTION_PING,
     MAINMENU_ACTION_TRACERT,
     MAINMENU_ACTION_WHOIS,
@@ -116,9 +115,6 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     HWND WhoisHandle;
     HFONT FontHandle;
 
-    PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
-
     ULONG CurrentPingMs;
     ULONG MaxPingTimeout;
     ULONG HashFailCount;
@@ -136,7 +132,8 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
     PH_CIRCULAR_BUFFER_ULONG PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
-
+    PH_IP_ENDPOINT RemoteEndpoint;
+    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
 
 // ping.c
@@ -159,18 +156,7 @@ VOID ShowWhoisWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
-//
-
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
-    );
-
-INT_PTR CALLBACK NetworkOutputDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
+// tracert.c
 
 VOID ShowTracertWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
@@ -178,6 +164,12 @@ VOID ShowTracertWindow(
 
 VOID ShowTracertWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
+    );
+
+// options.c
+
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
     );
 
 typedef struct _NETWORK_TRACERT_CONTEXT
@@ -191,17 +183,13 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_LAYOUT_MANAGER LayoutManager;
-
-    PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
-
-    PPH_STRING SearchboxText;
-    PH_TN_FILTER_SUPPORT FilterSupport;
-    PPH_TN_FILTER_ENTRY TreeFilterEntry;
-
+    PH_WORK_QUEUE WorkQueue;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
+
+    PH_IP_ENDPOINT RemoteEndpoint;
+    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
 // country.c

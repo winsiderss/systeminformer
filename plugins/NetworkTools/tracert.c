@@ -153,6 +153,8 @@ VOID TracertAppendText(
         Node->HostnameString = PhCreateString(Text);
         break;
     }
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID TracertUpdateTime(
@@ -167,16 +169,16 @@ VOID TracertUpdateTime(
         switch (SubIndex)
         {
         case 0:
-            Node->Ping1String = PhFormatString(L"%lu ms", RoundTripTime);
+            Node->Ping1 = RoundTripTime;
             break;
         case 1:
-            Node->Ping2String = PhFormatString(L"%lu ms", RoundTripTime);
+            Node->Ping2 = RoundTripTime;
             break;
         case 2:
-            Node->Ping3String = PhFormatString(L"%lu ms", RoundTripTime);
+            Node->Ping3 = RoundTripTime;
             break;
         case 3:
-            Node->Ping4String = PhFormatString(L"%lu ms", RoundTripTime);
+            Node->Ping4 = RoundTripTime;
             break;
         }
 
@@ -186,6 +188,22 @@ VOID TracertUpdateTime(
     } 
     else 
     { 
+        switch (SubIndex)
+        {
+        case 0:
+            Node->Ping1 = ULONG_MAX;
+            break;
+        case 1:
+            Node->Ping2 = ULONG_MAX;
+            break;
+        case 2:
+            Node->Ping3 = ULONG_MAX;
+            break;
+        case 3:
+            Node->Ping4 = ULONG_MAX;
+            break;
+        }
+
         switch (SubIndex)
         {
         case 0:
@@ -328,22 +346,18 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            TracertAppendText(
-                Context,
-                Node,
-                TREE_COLUMN_ITEM_COUNTRY,
-                remoteCountryName->Buffer
-                );
+            //TracertAppendText(
+            //    Context,
+            //    Node,
+            //    TREE_COLUMN_ITEM_COUNTRY,
+            //    remoteCountryName->Buffer
+            //    );
 
-            //PhSwapReference(&extension->RemoteCountryCode, remoteCountryCode);
-            //PhSwapReference(&extension->RemoteCountryName, remoteCountryName);
-
-            PhClearReference(&remoteCountryCode);
-            PhClearReference(&remoteCountryName);
+            PhSwapReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhSwapReference(&Node->RemoteCountryName, remoteCountryName);
         }
 
-
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, resolve);
+        PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
     }
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
@@ -378,11 +392,9 @@ VOID TracertQueueHostLookup(
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_family = AF_INET6;
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
 
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), TracertHostnameLookupCallback, resolve);
+        PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
     }
 }
-
-
 
 NTSTATUS NetworkTracertThreadStart(
     _In_ PVOID Parameter
@@ -452,6 +464,7 @@ NTSTATUS NetworkTracertThreadStart(
             break;
 
         PPOOLTAG_ROOT_NODE node = PmAddPoolTagNode(context, pingOptions.Ttl);
+        TreeNew_NodesStructured(context->TreeNewHandle);
 
         for (INT ii = 0; ii < MAX_PINGS; ii++)
         {
@@ -464,7 +477,7 @@ NTSTATUS NetworkTracertThreadStart(
                 icmpReplyBuffer = PhAllocate(icmpReplyLength);
                 memset(icmpReplyBuffer, 0, icmpReplyLength);
 
-                if (!IcmpSendEcho2Ex(
+                if (IcmpSendEcho2Ex(
                     icmpHandle,
                     0,
                     NULL,
@@ -478,19 +491,6 @@ NTSTATUS NetworkTracertThreadStart(
                     icmpReplyLength,
                     DEFAULT_TIMEOUT
                     ))
-                {
-                    PTRACERT_ERROR error;
-
-                    error = PhAllocate(sizeof(TRACERT_ERROR));
-                    memset(error, 0, sizeof(TRACERT_ERROR));
-
-                    error->LastErrorCode = GetLastError();
-                    error->Node = node;
-                    error->lvSubItemIndex = ii;
-
-                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
-                }
-                else
                 {
                     PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
@@ -513,9 +513,8 @@ NTSTATUS NetworkTracertThreadStart(
                     {
                         if (reply4->RoundTripTime < MIN_INTERVAL)
                         {
-                            LARGE_INTEGER interval;
-
-                            NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply4->RoundTripTime));
+                            //LARGE_INTEGER interval;
+                            //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply4->RoundTripTime));
                         }
                     }
                     else if (reply4->Status != IP_SUCCESS)
@@ -532,6 +531,19 @@ NTSTATUS NetworkTracertThreadStart(
                         PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
                     }
                 }
+                else
+                {
+                    PTRACERT_ERROR error;
+
+                    error = PhAllocate(sizeof(TRACERT_ERROR));
+                    memset(error, 0, sizeof(TRACERT_ERROR));
+
+                    error->LastErrorCode = GetLastError();
+                    error->Node = node;
+                    error->lvSubItemIndex = ii;
+
+                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                }
 
                 PhFree(icmpReplyBuffer);
             }
@@ -541,7 +553,7 @@ NTSTATUS NetworkTracertThreadStart(
                 icmpReplyBuffer = PhAllocate(icmpReplyLength);
                 memset(icmpReplyBuffer, 0, icmpReplyLength);
 
-                if (!Icmp6SendEcho2(
+                if (Icmp6SendEcho2(
                     icmpHandle,
                     0,
                     NULL,
@@ -555,19 +567,6 @@ NTSTATUS NetworkTracertThreadStart(
                     icmpReplyLength,
                     DEFAULT_TIMEOUT
                     ))
-                {
-                    PTRACERT_ERROR error;
-
-                    error = PhAllocate(sizeof(TRACERT_ERROR));
-                    memset(error, 0, sizeof(TRACERT_ERROR));
-
-                    error->LastErrorCode = GetLastError();
-                    error->Node = node;
-                    error->lvSubItemIndex = ii;
-
-                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
-                }
-                else
                 {
                     PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
 
@@ -590,9 +589,8 @@ NTSTATUS NetworkTracertThreadStart(
                     {
                         if (reply6->RoundTripTime < MIN_INTERVAL)
                         {
-                            LARGE_INTEGER interval;
-
-                            NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply6->RoundTripTime));
+                            //LARGE_INTEGER interval;
+                            //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply6->RoundTripTime));
                         }
                     }
                     else if (reply6->Status != IP_SUCCESS)
@@ -609,12 +607,27 @@ NTSTATUS NetworkTracertThreadStart(
                         PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
                     }
                 }
+                else
+                {
+                    PTRACERT_ERROR error;
+
+                    error = PhAllocate(sizeof(TRACERT_ERROR));
+                    memset(error, 0, sizeof(TRACERT_ERROR));
+
+                    error->LastErrorCode = GetLastError();
+                    error->Node = node;
+                    error->lvSubItemIndex = ii;
+
+                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                }
 
                 PhFree(icmpReplyBuffer);
             }
 
             TreeNew_NodesStructured(context->TreeNewHandle);
         }
+
+        TreeNew_NodesStructured(context->TreeNewHandle);
 
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
@@ -628,8 +641,6 @@ NTSTATUS NetworkTracertThreadStart(
         }
 
         pingOptions.Ttl++;
-
-        TreeNew_NodesStructured(context->TreeNewHandle);
     }
 
 CleanupExit:
@@ -646,7 +657,6 @@ CleanupExit:
 
     return STATUS_SUCCESS;
 }
-
 
 VOID ShowMenu(
     _In_ PNETWORK_TRACERT_CONTEXT Context, 
@@ -752,12 +762,12 @@ INT_PTR CALLBACK TracertDlgProc(
         {
             context->Cancel = TRUE;
 
-            //PhSaveListViewColumnsToSetting(SETTING_NAME_TRACERT_COLUMNS, context->ListviewHandle);
             PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
 
             if (context->FontHandle)
                 DeleteObject(context->FontHandle);
 
+            PhDeleteWorkQueue(&context->WorkQueue);
             PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
             PhDereferenceObject(context);
@@ -790,6 +800,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
             PmInitializePoolTagTree(context);
 
+            PhInitializeWorkQueue(&context->WorkQueue, 0, 40, 5000);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_STATUS), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
@@ -859,21 +870,38 @@ INT_PTR CALLBACK TracertDlgProc(
                 switch (error->lvSubItemIndex)
                 {
                 case 0:
-                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING1, L"*");
+                    error->Node->Ping1 = ULONG_MAX;
                     break;
                 case 1:
-                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING2, L"*");
+                    error->Node->Ping2 = ULONG_MAX;
                     break;
                 case 2:
-                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING3, L"*");
+                    error->Node->Ping3 = ULONG_MAX;
                     break;
                 case 3:
-                    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING4, L"*");
+                    error->Node->Ping4 = ULONG_MAX;
                     break;
                 }
 
+                //switch (error->lvSubItemIndex)
+                //{
+                //case 0:
+
+                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING1, L"*");
+                //    break;
+                //case 1:
+                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING2, L"*");
+                //    break;
+                //case 2:
+                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING3, L"*");
+                //    break;
+                //case 3:
+                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING4, L"*");
+                //    break;
+                //}
+
                 PmUpdatePoolTagNode(context, error->Node);
-                //TreeNew_NodesStructured(context->TreeNewHandle);
+                TreeNew_NodesStructured(context->TreeNewHandle);
 
                 //TracertAppendText(
                 //    context, 
@@ -922,7 +950,7 @@ INT_PTR CALLBACK TracertDlgProc(
             {
                 Static_SetText(
                     context->WindowHandle,
-                    PhaFormatString(L"%s complete.", windowText->Buffer)->Buffer
+                    PhaFormatString(L"%s complete", windowText->Buffer)->Buffer
                     );
             }
 
@@ -930,9 +958,11 @@ INT_PTR CALLBACK TracertDlgProc(
             {
                 Static_SetText(
                     GetDlgItem(hwndDlg, IDC_STATUS),
-                    PhaFormatString(L"%s complete.", windowText->Buffer)->Buffer
+                    PhaFormatString(L"%s complete", windowText->Buffer)->Buffer
                     );
             }
+            
+            TreeNew_NodesStructured(context->TreeNewHandle);
         }
         break;
     }
