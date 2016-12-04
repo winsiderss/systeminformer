@@ -84,8 +84,6 @@ typedef int (WSAAPI *_WSAStartup)(
     _Out_ LPWSADATA lpWSAData
     );
 
-typedef int (WSAAPI *_WSAGetLastError)();
-
 typedef INT (WSAAPI *_GetNameInfoW)(
     _In_reads_bytes_(SockaddrLength) const SOCKADDR *pSockaddr,
     _In_ socklen_t SockaddrLength,
@@ -147,7 +145,6 @@ static BOOLEAN NetworkImportDone = FALSE;
 static _GetExtendedTcpTable GetExtendedTcpTable_I;
 static _GetExtendedUdpTable GetExtendedUdpTable_I;
 static _WSAStartup WSAStartup_I;
-static _WSAGetLastError WSAGetLastError_I;
 static _GetNameInfoW GetNameInfoW_I;
 
 BOOLEAN PhNetworkProviderInitialization(
@@ -439,10 +436,6 @@ NTSTATUS PhpNetworkItemQueryWorker(
 
             PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
         }
-        else
-        {
-            dprintf("resolve failed, error %u\n", WSAGetLastError_I());
-        }
     }
     else
     {
@@ -524,7 +517,6 @@ VOID PhNetworkProviderUpdate(
         GetExtendedUdpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
         ws2_32 = LoadLibrary(L"ws2_32.dll");
         WSAStartup_I = PhGetProcedureAddress(ws2_32, "WSAStartup", 0);
-        WSAGetLastError_I = PhGetProcedureAddress(ws2_32, "WSAGetLastError", 0);
         GetNameInfoW_I = PhGetProcedureAddress(ws2_32, "GetNameInfoW", 0);
 
         // Make sure WSA is initialized.
