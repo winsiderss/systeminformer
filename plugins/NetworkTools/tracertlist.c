@@ -144,7 +144,7 @@ VOID PmDestroyPoolTagNode(
    PhDereferenceObject(PoolTagNode);
 }
 
-PPOOLTAG_ROOT_NODE PmAddPoolTagNode(
+PPOOLTAG_ROOT_NODE AddTracertNode(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG TTL
     )
@@ -168,7 +168,7 @@ PPOOLTAG_ROOT_NODE PmAddPoolTagNode(
     return poolTagNode;
 }
 
-PPOOLTAG_ROOT_NODE PmFindPoolTagNode(
+PPOOLTAG_ROOT_NODE FindTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG TTL
     )
@@ -190,7 +190,7 @@ PPOOLTAG_ROOT_NODE PmFindPoolTagNode(
         return NULL;
 }
 
-VOID PmRemovePoolTagNode(
+VOID RemoveTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ PPOOLTAG_ROOT_NODE PoolTagNode
     )
@@ -209,7 +209,7 @@ VOID PmRemovePoolTagNode(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-VOID PmUpdatePoolTagNode(
+VOID UpdateTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ PPOOLTAG_ROOT_NODE PoolTagNode
     )
@@ -567,7 +567,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     return FALSE;
 }
 
-VOID PmClearPoolTagTree(
+VOID ClearTracertTree(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
@@ -580,7 +580,7 @@ VOID PmClearPoolTagTree(
     PhClearList(Context->NodeList);
 }
 
-PPOOLTAG_ROOT_NODE PmGetSelectedPoolTagNode(
+PPOOLTAG_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
@@ -598,7 +598,7 @@ PPOOLTAG_ROOT_NODE PmGetSelectedPoolTagNode(
     return NULL;
 }
 
-VOID PmGetSelectedPoolTagNodes(
+VOID GetSelectedTracertNodes(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _Out_ PPOOLTAG_ROOT_NODE **PoolTags,
     _Out_ PULONG NumberOfPoolTags
@@ -625,7 +625,7 @@ VOID PmGetSelectedPoolTagNodes(
     PhDereferenceObject(list);
 }
 
-VOID PmInitializePoolTagTree(
+VOID InitializeTracertTree(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
@@ -647,8 +647,8 @@ VOID PmInitializePoolTagTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING2, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING2, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING3, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING3, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_IPADDR, TRUE, L"IP Address", 100, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_IPADDR, DT_RIGHT);   
-    PhAddTreeNewColumnEx2(Context->TreeNewHandle, TREE_COLUMN_ITEM_COUNTRY, TRUE, L"Country", 110, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_IPADDR, TRUE, L"IP Address", 120, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_IPADDR, 0);
+    PhAddTreeNewColumnEx2(Context->TreeNewHandle, TREE_COLUMN_ITEM_COUNTRY, TRUE, L"Country", 130, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
 
     //for (INT i = 0; i < MAX_PINGS; i++)
     //    PhAddTreeNewColumn(context->TreeNewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
@@ -659,7 +659,7 @@ VOID PmInitializePoolTagTree(
     PmLoadSettingsTreeList(Context);
 }
 
-VOID PmDeletePoolTagTree(
+VOID DeleteTracertTree(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {

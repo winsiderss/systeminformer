@@ -28,7 +28,7 @@
 #define DEFAULT_MAXIMUM_HOPS        40 
 #define DEFAULT_SEND_SIZE           64 
 #define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
-#define DEFAULT_TIMEOUT 5000
+#define DEFAULT_TIMEOUT 1000
 #define MIN_INTERVAL    500 //1000
 
 typedef struct _TRACERT_ERROR
@@ -42,12 +42,9 @@ typedef struct _TRACERT_RESOLVE_WORKITEM
 {
     ULONG Type;
     SOCKADDR_STORAGE SocketAddress;
-
     HWND WindowHandle;
     PPOOLTAG_ROOT_NODE Node;
-
     WCHAR SocketAddressHostname[NI_MAXHOST];
-
 } TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
 
 PPH_STRING TracertGetErrorMessage(
@@ -79,84 +76,6 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
-VOID TracertAppendText(
-    _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE Node,
-    _In_ INT SubItemIndex,
-    _In_ PWSTR Text
-    )
-{
-    //WCHAR itemText[MAX_PATH] = L"";
-
-    //ListView_GetItemText(
-    //    Context->TreeNewHandle,
-    //    Index, 
-    //    SubItemIndex,
-    //    itemText,
-    //    ARRAYSIZE(itemText)
-    //    );
-
-    //if (PhCountStringZ(itemText) > 0)
-    //{
-        //if (!wcsstr(itemText, Text))
-      //  {
-           // PPH_STRING string;
-
-           // string = PhFormatString(L"%s, %s", itemText, Text);
-
-    //        switch (SubItemIndex)
-    //        {
-    //        case TREE_COLUMN_ITEM_TTL:
-    //            //PhMoveReference(&node->TtlString, PhFormatUInt64(node->TTL, TRUE));
-    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->TtlString));
-    //            break;
-    //        case TREE_COLUMN_ITEM_PING1:
-    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping1String));
-    //            break;
-    //        case TREE_COLUMN_ITEM_PING2:
-    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping2String));
-    //            break;
-    //        case TREE_COLUMN_ITEM_PING3:
-    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping3String));
-    //            break;
-    //        case TREE_COLUMN_ITEM_PING4:
-    //            //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->Ping4String));
-    //            break;
-    //}
-    //else
-    //{
-    switch (SubItemIndex)
-    {
-    case TREE_COLUMN_ITEM_TTL:
-        //PhMoveReference(&node->TtlString, PhFormatUInt64(node->TTL, TRUE));
-        //PhInitializeStringRefLongHint(&getCellText->Text, PhGetStringOrEmpty(node->TtlString));
-        break;
-    case TREE_COLUMN_ITEM_PING1:
-        Node->Ping1String = PhCreateString(Text);
-        break;
-    case TREE_COLUMN_ITEM_PING2:
-        Node->Ping2String = PhCreateString(Text);
-        break;
-    case TREE_COLUMN_ITEM_PING3:
-        Node->Ping3String = PhCreateString(Text);
-        break;
-    case TREE_COLUMN_ITEM_PING4:
-        Node->Ping4String = PhCreateString(Text);
-        break;
-    case TREE_COLUMN_ITEM_COUNTRY:
-        Node->CountryString = PhCreateString(Text);
-        break;
-    case TREE_COLUMN_ITEM_IPADDR:
-        Node->IpAddressString = PhCreateString(Text);
-        break;
-    case TREE_COLUMN_ITEM_HOSTNAME:
-        Node->HostnameString = PhCreateString(Text);
-        break;
-    }
-
-    TreeNew_NodesStructured(Context->TreeNewHandle);
-}
-
 VOID TracertUpdateTime(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ PPOOLTAG_ROOT_NODE Node,
@@ -182,9 +101,7 @@ VOID TracertUpdateTime(
             break;
         }
 
-        PmUpdatePoolTagNode(Context, Node);
-
-        //PhSetListViewSubItem(Context->TreeNewHandle, Index, SubIndex, PhaFormatString(L"%lu ms", RoundTripTime)->Buffer);
+        UpdateTracertNode(Context, Node);
     } 
     else 
     { 
@@ -220,9 +137,7 @@ VOID TracertUpdateTime(
             break;
         }
 
-        PmUpdatePoolTagNode(Context, Node);
-
-        //PhSetListViewSubItem(Context->TreeNewHandle, Index, SubIndex, PhaFormatString(L"<1 ms")->Buffer);
+        UpdateTracertNode(Context, Node);
     } 
 } 
 
@@ -230,13 +145,7 @@ NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
 {
-    WSADATA wsa;
     PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
-
-    if (WSAStartup(WINSOCK_VERSION, &wsa) != ERROR_SUCCESS)
-    {
-        return STATUS_UNEXPECTED_NETWORK_ERROR;
-    }
 
     if (resolve->Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -250,7 +159,7 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            PostMessage(resolve->WindowHandle, NTM_RECEIVEDTRACE, 0, (LPARAM)resolve);
+            resolve->Node->HostnameString = PhCreateString(resolve->SocketAddressHostname);
         }
         else
         {
@@ -278,7 +187,7 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            PostMessage(resolve->WindowHandle, NTM_RECEIVEDTRACE, 0, (LPARAM)resolve);
+            resolve->Node->HostnameString = PhCreateString(resolve->SocketAddressHostname);
         }
         else
         {
@@ -295,8 +204,6 @@ NTSTATUS TracertHostnameLookupCallback(
         }
     }
 
-    WSACleanup();
-
     return STATUS_SUCCESS;
 }
 
@@ -310,6 +217,8 @@ VOID TracertQueueHostLookup(
     {
         IN_ADDR sockAddrIn;
         PTRACERT_RESOLVE_WORKITEM resolve;
+        PPH_STRING remoteCountryCode;
+        PPH_STRING remoteCountryName;
         ULONG addressStringLength = INET_ADDRSTRLEN;
         WCHAR addressString[INET_ADDRSTRLEN] = L"";
 
@@ -318,12 +227,7 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv4AddressToStringEx(&sockAddrIn, 0, addressString, &addressStringLength)))
         {
-            TracertAppendText(
-                Context, 
-                Node, 
-                TREE_COLUMN_ITEM_IPADDR,
-                addressString
-                );
+            Node->IpAddressString = PhCreateString(addressString);
         }
 
         resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
@@ -336,23 +240,12 @@ VOID TracertQueueHostLookup(
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
 
-
-        PPH_STRING remoteCountryCode;
-        PPH_STRING remoteCountryName;
-
         if (LookupSockAddrCountryCode(
             sockAddrIn,
             &remoteCountryCode,
             &remoteCountryName
             ))
         {
-            //TracertAppendText(
-            //    Context,
-            //    Node,
-            //    TREE_COLUMN_ITEM_COUNTRY,
-            //    remoteCountryName->Buffer
-            //    );
-
             PhSwapReference(&Node->RemoteCountryCode, remoteCountryCode);
             PhSwapReference(&Node->RemoteCountryName, remoteCountryName);
         }
@@ -371,12 +264,7 @@ VOID TracertQueueHostLookup(
        
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
-            TracertAppendText(
-                Context,
-                Node,
-                TREE_COLUMN_ITEM_IPADDR,
-                addressString
-                );
+            Node->IpAddressString = PhCreateString(addressString);
 
             //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, TREE_COLUMN_ITEM_IPADDR, addressString);
             //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, HOSTNAME_COLUMN, L"Resolving address...");
@@ -400,8 +288,7 @@ NTSTATUS NetworkTracertThreadStart(
     _In_ PVOID Parameter
     )
 {
-    PNETWORK_TRACERT_CONTEXT context;
-    PH_AUTO_POOL autoPool;
+    PNETWORK_TRACERT_CONTEXT context = (PNETWORK_TRACERT_CONTEXT)Parameter;
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     SOCKADDR_STORAGE sourceAddress = { 0 };
     SOCKADDR_STORAGE destinationAddress = { 0 };
@@ -416,10 +303,6 @@ NTSTATUS NetworkTracertThreadStart(
         IP_FLAG_DF,
         0
     };
-
-    context = (PNETWORK_TRACERT_CONTEXT)Parameter;
-
-    PhInitializeAutoPool(&autoPool);
 
     if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
     {
@@ -463,8 +346,10 @@ NTSTATUS NetworkTracertThreadStart(
         if (context->Cancel)
             break;
 
-        PPOOLTAG_ROOT_NODE node = PmAddPoolTagNode(context, pingOptions.Ttl);
+        PPOOLTAG_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
+
         TreeNew_NodesStructured(context->TreeNewHandle);
+        TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TN_AUTOSIZE_REMAINING_SPACE);
 
         for (INT ii = 0; ii < MAX_PINGS; ii++)
         {
@@ -650,11 +535,9 @@ CleanupExit:
         IcmpCloseHandle(icmpHandle);
     }
 
-    PhDeleteAutoPool(&autoPool);
     PhDereferenceObject(context);
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
-
     return STATUS_SUCCESS;
 }
 
@@ -671,7 +554,7 @@ VOID ShowMenu(
             PWSTR terminator = NULL;
             PPOOLTAG_ROOT_NODE node;
 
-            if (node = PmGetSelectedPoolTagNode(Context))
+            if (node = GetSelectedTracertNode(Context))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
                 {
@@ -695,7 +578,7 @@ VOID ShowMenu(
             PWSTR terminator = NULL;
             PPOOLTAG_ROOT_NODE node;
 
-            if (node = PmGetSelectedPoolTagNode(Context))
+            if (node = GetSelectedTracertNode(Context))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
                 {
@@ -719,7 +602,7 @@ VOID ShowMenu(
             PWSTR terminator = NULL;
             PPOOLTAG_ROOT_NODE node;
 
-            if (node = PmGetSelectedPoolTagNode(Context))
+            if (node = GetSelectedTracertNode(Context))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
                 {
@@ -798,7 +681,7 @@ INT_PTR CALLBACK TracertDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
             context->FontHandle = CommonCreateFont(-15, GetDlgItem(hwndDlg, IDC_STATUS));
 
-            PmInitializePoolTagTree(context);
+            InitializeTracertTree(context);
 
             PhInitializeWorkQueue(&context->WorkQueue, 0, 40, 5000);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -829,7 +712,7 @@ INT_PTR CALLBACK TracertDlgProc(
                     PPH_EMENU_ITEM selectedItem;
                     PPH_TREENEW_MOUSE_EVENT mouseEvent = (PPH_TREENEW_MOUSE_EVENT)lParam;
 
-                    if (selectedNode = PmGetSelectedPoolTagNode(context))
+                    if (selectedNode = GetSelectedTracertNode(context))
                     {
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), -1);
@@ -900,8 +783,8 @@ INT_PTR CALLBACK TracertDlgProc(
                 //    break;
                 //}
 
-                PmUpdatePoolTagNode(context, error->Node);
-                TreeNew_NodesStructured(context->TreeNewHandle);
+                //UpdateTracertNode(context, error->Node);
+                //TreeNew_NodesStructured(context->TreeNewHandle);
 
                 //TracertAppendText(
                 //    context, 
@@ -916,32 +799,20 @@ INT_PTR CALLBACK TracertDlgProc(
 
                 if (errorMessage = PH_AUTO(TracertGetErrorMessage(error->LastErrorCode)))
                 {
-                    TracertAppendText(
-                        context, 
-                        error->Node,
-                        TREE_COLUMN_ITEM_IPADDR,
-                        errorMessage->Buffer
-                        );
+                    error->Node->IpAddressString = errorMessage;
+
+                    //TracertAppendText(
+                    //    context, 
+                    //    error->Node,
+                    //    TREE_COLUMN_ITEM_IPADDR,
+                    //    errorMessage->Buffer
+                    //    );
                 }
             }
 
             PhFree(error);
         }
         break;
-    case NTM_RECEIVEDTRACE:
-        {
-            PTRACERT_RESOLVE_WORKITEM resolve = (PTRACERT_RESOLVE_WORKITEM)lParam;
-
-            TracertAppendText(
-                context,
-                resolve->Node,
-                TREE_COLUMN_ITEM_HOSTNAME,
-                resolve->SocketAddressHostname
-                );
-
-            PhDereferenceObject(resolve);
-        }
-        break;  
     case NTM_RECEIVEDFINISH:
         {
             PPH_STRING windowText;

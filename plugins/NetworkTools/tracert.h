@@ -72,25 +72,25 @@ VOID PmSaveSettingsTreeList(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context
     );
 
-VOID PmInitializePoolTagTree(
+VOID InitializeTracertTree(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context
     );
 
-VOID PmDeletePoolTagTree(
+VOID DeleteTracertTree(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     );
 
-PPOOLTAG_ROOT_NODE PmFindPoolTagNode(
+PPOOLTAG_ROOT_NODE FindTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG PoolTag
     );
 
-PPOOLTAG_ROOT_NODE PmAddPoolTagNode(
+PPOOLTAG_ROOT_NODE AddTracertNode(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG TTL
     );
 
-VOID PmUpdatePoolTagNode(
+VOID UpdateTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ PPOOLTAG_ROOT_NODE WindowNode
     );
@@ -101,7 +101,7 @@ PmGetFilterSupportTreeList(
     VOID
     );
 
-PPOOLTAG_ROOT_NODE PmGetSelectedPoolTagNode(
+PPOOLTAG_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     );
 
