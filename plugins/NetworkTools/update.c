@@ -607,43 +607,77 @@ NTSTATUS GeoIPUpdateThread(
     {
         PPH_STRING path;
         PPH_STRING directory;
-        PPH_BYTES str = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
+        PPH_STRING fullSetupPath;
+        PPH_BYTES mmdbGzPath;
+        gzFile file;
 
         directory = PH_AUTO(PhGetApplicationDirectory());
         path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
-       
+        mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
+
         if (RtlDoesFileExists_U(PhGetString(path)))
         {
             if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(path))))
             {
-                OutputDebugString(L"");
+                
             }
         }
 
-        gzFile file = gzopen(str->Buffer, "rb");
-        FILE* new_file = _wfopen(PhGetString(path), L"wb");
-        char buffer[PAGE_SIZE];
-
-        if (!file)
+        if (fullSetupPath = PhGetFullPath(PhGetString(path), &indexOfFileName))
         {
-            fprintf(stderr, "gzopen failed: %s.\n", strerror(errno));
-            success = FALSE;
+            PPH_STRING directoryPath;
+
+            if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
+            {
+                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
+                PhDereferenceObject(directoryPath);
+            }
         }
 
-        if (!new_file)
+        if (file = gzopen(PhGetString(mmdbGzPath), "rb"))
         {
-            fprintf(stderr, "_wfopen failed: %s.\n", strerror(errno));
-            success = FALSE;
-        }
+            HANDLE tempFileHandle;
+            IO_STATUS_BLOCK isb;
+            BYTE buffer[PAGE_SIZE];
 
-        while (!gzeof(file))
-        {
-            int bytes = gzread(file, buffer, sizeof(buffer));
-            fwrite(buffer, 1, bytes, new_file);
-        }
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &tempFileHandle,
+                PhGetStringOrEmpty(path),
+                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OVERWRITE_IF,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
+            {
+                while (!gzeof(file))
+                {
+                    int bytes = gzread(file, buffer, sizeof(buffer));
 
-        gzclose(file);
-        fclose(new_file);
+                    if (bytes == -1)
+                        break;
+
+                    if (!NT_SUCCESS(NtWriteFile(
+                        tempFileHandle,
+                        NULL,
+                        NULL,
+                        NULL,
+                        &isb,
+                        buffer,
+                        bytes,
+                        NULL,
+                        NULL
+                        )))
+                    {
+                        break;
+                    }
+                }
+
+                NtClose(tempFileHandle);
+            }
+
+            gzclose(file);
+        }
     }
 
     if (success)

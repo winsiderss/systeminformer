@@ -67,9 +67,9 @@ VOID NTAPI LoadCallback(
     {
         for (ULONG i = 0; i < pluginArgvList->Count; i++)
         {
-            if (PhEqualString2(pluginArgvList->Items[i], L"UPDATE", TRUE))
+            if (PhEqualString2(pluginArgvList->Items[i], L"UpdateGeoIp", TRUE))
             {
-                //ShowUpdateDialog(PhMainWndHandle);
+                ShowUpdateDialog(PhMainWndHandle);
             }
         }
     }
@@ -214,7 +214,24 @@ VOID NTAPI MenuItemCallback(
         break;
     case MAINMENU_ACTION_GEOIP_UPDATE:
         {
-            ShowUpdateDialog(PhMainWndHandle);
+            if (PhGetOwnTokenAttributes().Elevated)
+            {
+                ShowUpdateDialog(PhMainWndHandle);
+            }
+            else
+            {
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                PhShellProcessHacker(
+                    PhMainWndHandle,
+                    L"-plugin " PLUGIN_NAME L":UpdateGeoIp",
+                    SW_SHOW,
+                    PH_SHELL_EXECUTE_ADMIN,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                    0,
+                    NULL
+                    );
+                ProcessHacker_Destroy(PhMainWndHandle);
+            }
         }
         break;
     }

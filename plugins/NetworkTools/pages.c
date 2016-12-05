@@ -106,17 +106,7 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDYES)
             {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-                PhShellProcessHacker(
-                    PhMainWndHandle,
-                    L"-plugin " PLUGIN_NAME L":UPDATE",
-                    SW_SHOW,
-                    0,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                    0,
-                    NULL
-                    );
-                ProcessHacker_Destroy(PhMainWndHandle);
+
             }
         }
         break;
