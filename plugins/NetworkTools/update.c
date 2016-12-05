@@ -634,7 +634,7 @@ NTSTATUS GeoIPUpdateThread(
             }
         }
 
-        if (file = gzopen(PhGetString(mmdbGzPath), "rb"))
+        if (file = gzopen(mmdbGzPath->Buffer, "rb"))
         {
             HANDLE tempFileHandle;
             IO_STATUS_BLOCK isb;
