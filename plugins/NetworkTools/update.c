@@ -347,7 +347,7 @@ NTSTATUS GeoIPUpdateThread(
         context->SetupFilePath = PhFormatString(
             L"%s\\%s\\GeoLite2-Country.mmdb.gz",
             PhGetStringOrEmpty(setupTempPath),
-            PhGetStringOrEmpty(randomGuidString)
+            PhGetStringOrDefault(randomGuidString, L"NetworkTools")
             );
 
         // Create the directory if it does not exist
@@ -580,7 +580,82 @@ NTSTATUS GeoIPUpdateThread(
                 }
             }
 
-            success = TRUE;
+            PPH_STRING path;
+            PPH_STRING directory;
+            PPH_STRING fullSetupPath;
+            PPH_BYTES mmdbGzPath;
+            gzFile file;
+
+            directory = PH_AUTO(PhGetApplicationDirectory());
+            path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
+            mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
+
+            if (RtlDoesFileExists_U(PhGetString(path)))
+            {
+                if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(path))))
+                {
+                    __leave;
+                }
+            }
+
+            if (fullSetupPath = PhGetFullPath(PhGetString(path), &indexOfFileName))
+            {
+                PPH_STRING directoryPath;
+
+                if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
+                {
+                    SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
+                    PhDereferenceObject(directoryPath);
+                }
+            }
+
+            if (file = gzopen(mmdbGzPath->Buffer, "rb"))
+            {
+                HANDLE mmdbFileHandle;
+
+                if (NT_SUCCESS(PhCreateFileWin32(
+                    &mmdbFileHandle,
+                    PhGetStringOrEmpty(path),
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    FILE_OVERWRITE_IF,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                    )))
+                {
+                    IO_STATUS_BLOCK isb;
+                    BYTE buffer[PAGE_SIZE];
+
+                    while (!gzeof(file))
+                    {
+                        int bytes = gzread(file, buffer, sizeof(buffer));
+
+                        if (bytes == -1)
+                            __leave;
+
+                        if (!NT_SUCCESS(NtWriteFile(
+                            mmdbFileHandle,
+                            NULL,
+                            NULL,
+                            NULL,
+                            &isb,
+                            buffer,
+                            bytes,
+                            NULL,
+                            NULL
+                            )))
+                        {
+                            __leave;
+                        }
+                    }
+
+                    success = TRUE;
+
+                    NtClose(mmdbFileHandle);
+                }
+
+                gzclose(file);
+            }  
         }
     }
     __finally
@@ -601,83 +676,6 @@ NTSTATUS GeoIPUpdateThread(
         PhClearReference(&fullSetupPath);
         PhClearReference(&setupTempPath);
         PhClearReference(&userAgentString);
-    }
-
-    if (success)
-    {
-        PPH_STRING path;
-        PPH_STRING directory;
-        PPH_STRING fullSetupPath;
-        PPH_BYTES mmdbGzPath;
-        gzFile file;
-
-        directory = PH_AUTO(PhGetApplicationDirectory());
-        path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
-        mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
-
-        if (RtlDoesFileExists_U(PhGetString(path)))
-        {
-            if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(path))))
-            {
-                
-            }
-        }
-
-        if (fullSetupPath = PhGetFullPath(PhGetString(path), &indexOfFileName))
-        {
-            PPH_STRING directoryPath;
-
-            if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-            {
-                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
-                PhDereferenceObject(directoryPath);
-            }
-        }
-
-        if (file = gzopen(mmdbGzPath->Buffer, "rb"))
-        {
-            HANDLE tempFileHandle;
-            IO_STATUS_BLOCK isb;
-            BYTE buffer[PAGE_SIZE];
-
-            if (NT_SUCCESS(PhCreateFileWin32(
-                &tempFileHandle,
-                PhGetStringOrEmpty(path),
-                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-                FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_OVERWRITE_IF,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                )))
-            {
-                while (!gzeof(file))
-                {
-                    int bytes = gzread(file, buffer, sizeof(buffer));
-
-                    if (bytes == -1)
-                        break;
-
-                    if (!NT_SUCCESS(NtWriteFile(
-                        tempFileHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &isb,
-                        buffer,
-                        bytes,
-                        NULL,
-                        NULL
-                        )))
-                    {
-                        break;
-                    }
-                }
-
-                NtClose(tempFileHandle);
-            }
-
-            gzclose(file);
-        }
     }
 
     if (success)

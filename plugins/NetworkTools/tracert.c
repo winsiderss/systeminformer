@@ -26,17 +26,10 @@
 
 #define MAX_PINGS  4
 #define DEFAULT_MAXIMUM_HOPS        40 
-#define DEFAULT_SEND_SIZE           64 
+#define DEFAULT_SEND_SIZE           64
 #define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
 #define DEFAULT_TIMEOUT 1000
 #define MIN_INTERVAL    500 //1000
-
-typedef struct _TRACERT_ERROR
-{
-    PPOOLTAG_ROOT_NODE Node;
-    INT lvSubItemIndex;
-    ULONG LastErrorCode;
-} TRACERT_ERROR, *PTRACERT_ERROR;
 
 typedef struct _TRACERT_RESOLVE_WORKITEM
 {
@@ -404,30 +397,40 @@ NTSTATUS NetworkTracertThreadStart(
                     }
                     else if (reply4->Status != IP_SUCCESS)
                     {
-                        PTRACERT_ERROR error;
-
-                        error = PhAllocate(sizeof(TRACERT_ERROR));
-                        memset(error, 0, sizeof(TRACERT_ERROR));
-
-                        error->LastErrorCode = reply4->Status;
-                        error->Node = node;
-                        error->lvSubItemIndex = ii;
-
-                        PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                        switch (ii)
+                        {
+                        case 0:
+                            node->Ping1 = ULONG_MAX;
+                            break;
+                        case 1:
+                            node->Ping2 = ULONG_MAX;
+                            break;
+                        case 2:
+                            node->Ping3 = ULONG_MAX;
+                            break;
+                        case 3:
+                            node->Ping4 = ULONG_MAX;
+                            break;
+                        }
                     }
                 }
                 else
                 {
-                    PTRACERT_ERROR error;
-
-                    error = PhAllocate(sizeof(TRACERT_ERROR));
-                    memset(error, 0, sizeof(TRACERT_ERROR));
-
-                    error->LastErrorCode = GetLastError();
-                    error->Node = node;
-                    error->lvSubItemIndex = ii;
-
-                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                    switch (ii)
+                    {
+                    case 0:
+                        node->Ping1 = ULONG_MAX;
+                        break;
+                    case 1:
+                        node->Ping2 = ULONG_MAX;
+                        break;
+                    case 2:
+                        node->Ping3 = ULONG_MAX;
+                        break;
+                    case 3:
+                        node->Ping4 = ULONG_MAX;
+                        break;
+                    }
                 }
 
                 PhFree(icmpReplyBuffer);
@@ -480,30 +483,62 @@ NTSTATUS NetworkTracertThreadStart(
                     }
                     else if (reply6->Status != IP_SUCCESS)
                     {
-                        PTRACERT_ERROR error;
+                        if (reply6->Status != IP_REQ_TIMED_OUT)
+                        {
+                            PPH_STRING errorMessage;
 
-                        error = PhAllocate(sizeof(TRACERT_ERROR));
-                        memset(error, 0, sizeof(TRACERT_ERROR));
+                            if (errorMessage = PH_AUTO(TracertGetErrorMessage(reply6->Status)))
+                            {
+                                node->IpAddressString = errorMessage;
+                            }
+                        }
 
-                        error->LastErrorCode = reply6->Status;
-                        error->Node = node;
-                        error->lvSubItemIndex = ii;
-
-                        PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                        switch (ii)
+                        {
+                        case 0:
+                            node->Ping1 = ULONG_MAX;
+                            break;
+                        case 1:
+                            node->Ping2 = ULONG_MAX;
+                            break;
+                        case 2:
+                            node->Ping3 = ULONG_MAX;
+                            break;
+                        case 3:
+                            node->Ping4 = ULONG_MAX;
+                            break;
+                        }
                     }
                 }
                 else
                 {
-                    PTRACERT_ERROR error;
+                    ULONG errorCode = GetLastError();
 
-                    error = PhAllocate(sizeof(TRACERT_ERROR));
-                    memset(error, 0, sizeof(TRACERT_ERROR));
+                    if (errorCode != IP_REQ_TIMED_OUT)
+                    {
+                        PPH_STRING errorMessage;
 
-                    error->LastErrorCode = GetLastError();
-                    error->Node = node;
-                    error->lvSubItemIndex = ii;
+                        if (errorMessage = PH_AUTO(TracertGetErrorMessage(errorCode)))
+                        {
+                            node->IpAddressString = errorMessage;
+                        }
+                    }
 
-                    PostMessage(context->WindowHandle, WM_TRACERT_ERROR, 0, (LPARAM)error);
+                    switch (ii)
+                    {
+                    case 0:
+                        node->Ping1 = ULONG_MAX;
+                        break;
+                    case 1:
+                        node->Ping2 = ULONG_MAX;
+                        break;
+                    case 2:
+                        node->Ping3 = ULONG_MAX;
+                        break;
+                    case 3:
+                        node->Ping4 = ULONG_MAX;
+                        break;
+                    }
                 }
 
                 PhFree(icmpReplyBuffer);
@@ -743,75 +778,6 @@ INT_PTR CALLBACK TracertDlgProc(
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
         TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TN_AUTOSIZE_REMAINING_SPACE);
-        break;
-    case WM_TRACERT_ERROR:
-        {
-            PTRACERT_ERROR error = (PTRACERT_ERROR)lParam;
-
-            if (error->LastErrorCode == IP_REQ_TIMED_OUT)
-            {
-                switch (error->lvSubItemIndex)
-                {
-                case 0:
-                    error->Node->Ping1 = ULONG_MAX;
-                    break;
-                case 1:
-                    error->Node->Ping2 = ULONG_MAX;
-                    break;
-                case 2:
-                    error->Node->Ping3 = ULONG_MAX;
-                    break;
-                case 3:
-                    error->Node->Ping4 = ULONG_MAX;
-                    break;
-                }
-
-                //switch (error->lvSubItemIndex)
-                //{
-                //case 0:
-
-                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING1, L"*");
-                //    break;
-                //case 1:
-                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING2, L"*");
-                //    break;
-                //case 2:
-                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING3, L"*");
-                //    break;
-                //case 3:
-                //    TracertAppendText(context, error->Node, TREE_COLUMN_ITEM_PING4, L"*");
-                //    break;
-                //}
-
-                //UpdateTracertNode(context, error->Node);
-                //TreeNew_NodesStructured(context->TreeNewHandle);
-
-                //TracertAppendText(
-                //    context, 
-                //    error->Node, 
-                //    TREE_COLUMN_ITEM_IPADDR, 
-                //    TracertGetErrorMessage(error->LastErrorCode)->Buffer
-                //    );
-            }
-            else
-            {
-                PPH_STRING errorMessage;
-
-                if (errorMessage = PH_AUTO(TracertGetErrorMessage(error->LastErrorCode)))
-                {
-                    error->Node->IpAddressString = errorMessage;
-
-                    //TracertAppendText(
-                    //    context, 
-                    //    error->Node,
-                    //    TREE_COLUMN_ITEM_IPADDR,
-                    //    errorMessage->Buffer
-                    //    );
-                }
-            }
-
-            PhFree(error);
-        }
         break;
     case NTM_RECEIVEDFINISH:
         {

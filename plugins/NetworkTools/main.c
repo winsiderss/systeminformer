@@ -283,14 +283,11 @@ VOID NTAPI NetworkMenuInitializingCallback(
     traceMenu->Flags |= PH_EMENU_DISABLED;
     pingMenu->Flags |= PH_EMENU_DISABLED;
 
-    if (networkItem)
-    {
-        if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
-        {
-            whoisMenu->Flags &= ~PH_EMENU_DISABLED;
-            traceMenu->Flags &= ~PH_EMENU_DISABLED;
-            pingMenu->Flags &= ~PH_EMENU_DISABLED;
-        }
+    if (networkItem && !PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
+    { 
+        whoisMenu->Flags &= ~PH_EMENU_DISABLED;
+        traceMenu->Flags &= ~PH_EMENU_DISABLED;
+        pingMenu->Flags &= ~PH_EMENU_DISABLED;     
     }
 }
 
