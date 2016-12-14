@@ -1434,6 +1434,7 @@ ULONG PhGetObjectTypeNumber(
 {
     POBJECT_TYPES_INFORMATION objectTypes;
     POBJECT_TYPE_INFORMATION objectType;
+    ULONG objectIndex = -1;
     ULONG i;
 
     if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
@@ -1445,11 +1446,20 @@ ULONG PhGetObjectTypeNumber(
             if (RtlEqualUnicodeString(&objectType->TypeName, TypeName, TRUE))
             {
                 if (WindowsVersion >= WINDOWS_8_1)
-                    return objectType->TypeIndex;
+                {
+                    objectIndex = objectType->TypeIndex;
+                    break;
+                }
                 else if (WindowsVersion >= WINDOWS_7)
-                    return i + 2;
+                {
+                    objectIndex = i + 2;
+                    break;
+                }
                 else
-                    return i + 1;
+                {
+                    objectIndex = i + 1;
+                    break;
+                }
             }
 
             objectType = PH_NEXT_OBJECT_TYPE(objectType);
@@ -1458,7 +1468,7 @@ ULONG PhGetObjectTypeNumber(
         PhFree(objectTypes);
     }
 
-    return -1;
+    return objectIndex;
 }
 
 PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
