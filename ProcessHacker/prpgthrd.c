@@ -24,6 +24,9 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <uxtheme.h>
+#include <windowsx.h>
+
 #include <cpysave.h>
 #include <emenu.h>
 #include <secedit.h>
@@ -507,6 +510,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhRegisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
 
             SET_BUTTON_ICON(IDC_OPENSTARTMODULE, PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_FOLDER)));
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -563,7 +568,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                 dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STATUS), dialogItem, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
                 PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
