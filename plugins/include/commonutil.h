@@ -1,5 +1,73 @@
+/*
+ * Process Hacker Plugins - 
+ *   CommonUtil Plugin
+ *
+ * Copyright (C) 2016 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #ifndef _COMMONUTIL_H
 #define _COMMONUTIL_H
+
+#define COMMONUTIL_PLUGIN_NAME L"ProcessHacker.CommonUtil"
+#define COMMONUTIL_INTERFACE_VERSION 1
+
+typedef VOID (NTAPI *PUTIL_CREATE_SEARCHBOX_CONTROL)(
+    _In_ HWND Parent,
+    _In_ HWND WindowHandle,
+    _In_ UINT CommandID
+    );
+
+typedef struct _COMMONUTIL_INTERFACE
+{
+    ULONG Version;
+    PUTIL_CREATE_SEARCHBOX_CONTROL CreateSearchControl;
+} COMMONUTIL_INTERFACE, *P_COMMONUTIL_INTERFACE;
+
+/**
+ * Creates a Ansi string using format specifiers.
+ *
+ * \param Format The format-control string.
+ * \param ArgPtr A pointer to the list of arguments.
+ */
+FORCEINLINE
+VOID 
+UtilCreateSearchControl(
+    _In_ HWND Parent,
+    _In_ HWND WindowHandle,
+    _In_ UINT CommandID
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                Interface->CreateSearchControl(Parent, WindowHandle, CommandID);
+            }
+        }
+    }
+}
 
 /**
  * Creates a Ansi string using format specifiers.
