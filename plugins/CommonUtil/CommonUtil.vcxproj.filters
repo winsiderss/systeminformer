@@ -11,6 +11,9 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{8483492d-4b7d-408b-95ac-d47900bfb245}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Images">
+      <UniqueIdentifier>{31d3c520-6bf5-4720-8800-1f420d2e41e8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -30,16 +33,16 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\active_search.bmp">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\Images</Filter>
     </Image>
     <Image Include="resources\active_search.png">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\Images</Filter>
     </Image>
     <Image Include="resources\inactive_search.bmp">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\Images</Filter>
     </Image>
     <Image Include="resources\inactive_search.png">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files\Images</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>

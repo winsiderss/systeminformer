@@ -257,7 +257,7 @@ NTSTATUS QueryServiceFileName(
 
 // searchbox.c
 
-BOOLEAN CreateSearchControl(
+BOOLEAN CreateSearchboxControl(
     _In_ UINT CmdId
     );
 

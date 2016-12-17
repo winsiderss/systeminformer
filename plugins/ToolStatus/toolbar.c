@@ -172,7 +172,7 @@ VOID RebarLoadSettings(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-        if (CreateSearchControl(TIDC_SEARCH_CLEAR))
+        if (CreateSearchboxControl(TIDC_SEARCH_CLEAR))
         {
             static WCHAR *SearchTypeStrings[] = 
             { 

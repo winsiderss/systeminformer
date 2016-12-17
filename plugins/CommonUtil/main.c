@@ -27,7 +27,7 @@ PPH_PLUGIN PluginInstance;
 COMMONUTIL_INTERFACE PluginInterface =
 {
     COMMONUTIL_INTERFACE_VERSION,
-    CreateSearchControl,
+    UtilCreateSearchControl,
 };
 
 LOGICAL DllMain(

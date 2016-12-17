@@ -24,7 +24,7 @@
 #include "toolstatus.h"
 #include "commonutil.h"
 
-BOOLEAN CreateSearchControl(
+BOOLEAN CreateSearchboxControl(
     _In_ UINT CommandID
     )
 {
@@ -40,7 +40,7 @@ BOOLEAN CreateSearchControl(
         NULL
         ))
     {
-        UtilCreateSearchControl(RebarHandle, SearchboxHandle, CommandID);
+        CreateSearchControl(RebarHandle, SearchboxHandle, CommandID);
         return TRUE;
     }
 

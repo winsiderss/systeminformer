@@ -72,7 +72,7 @@ typedef struct _EDIT_CONTEXT
     HBRUSH BrushHot;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
-VOID CreateSearchControl(
+VOID UtilCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
     _In_ UINT CommandID
