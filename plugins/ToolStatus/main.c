@@ -49,7 +49,6 @@ REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
-HWND SearchEditHandle = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
@@ -406,19 +405,19 @@ VOID NTAPI TabPageUpdatedCallback(
 
     SelectedTabIndex = tabIndex;
 
-    if (!SearchEditHandle)
+    if (!SearchboxHandle)
         return;
 
     switch (tabIndex)
     {
     case 0:
-        Edit_SetCueBannerText(SearchEditHandle, L"Search Processes (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Processes (Ctrl+K)");
         break;
     case 1:
-        Edit_SetCueBannerText(SearchEditHandle, L"Search Services (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Services (Ctrl+K)");
         break;
     case 2:
-        Edit_SetCueBannerText(SearchEditHandle, L"Search Network (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+K)");
         break;
     default:
         {
@@ -426,12 +425,12 @@ VOID NTAPI TabPageUpdatedCallback(
 
             if ((tabInfo = FindTabInfo(tabIndex)) && tabInfo->BannerText)
             {
-                Edit_SetCueBannerText(SearchEditHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+K)")->Buffer);
+                Edit_SetCueBannerText(SearchboxHandle, PhaConcatStrings2(tabInfo->BannerText, L" (Ctrl+K)")->Buffer);
             }
             else
             {
                 // Disable the textbox if we're on an unsupported tab.
-                Edit_SetCueBannerText(SearchEditHandle, L"Search disabled");
+                Edit_SetCueBannerText(SearchboxHandle, L"Search disabled");
             }
         }
         break;
@@ -642,10 +641,13 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                     PPH_STRING newSearchboxText;
 
+                    if (!SearchboxHandle)
+                        break;
+
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchEditHandle));
+                    newSearchboxText = PH_AUTO(PhGetWindowText(SearchboxHandle));
 
                     if (!PhEqualString(SearchboxText, newSearchboxText, FALSE))
                     {
@@ -716,10 +718,10 @@ LRESULT CALLBACK MainWndSubclassProc(
             case ID_SEARCH:
                 {
                     // handle keybind Ctrl + K
-                    if (SearchEditHandle && ToolStatusConfig.SearchBoxEnabled)
+                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        SetFocus(SearchEditHandle);
-                        Edit_SetSel(SearchEditHandle, 0, -1);
+                        SetFocus(SearchboxHandle);
+                        Edit_SetSel(SearchboxHandle, 0, -1);
                     }
 
                     goto DefaultWndProc;
@@ -734,10 +736,10 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case TIDC_SEARCH_CLEAR:
                 {
-                    if (SearchEditHandle && ToolStatusConfig.SearchBoxEnabled)
+                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        SetFocus(SearchEditHandle);
-                        Static_SetText(SearchEditHandle, L"");
+                        SetFocus(SearchboxHandle);
+                        Static_SetText(SearchboxHandle, L"");
                     }
 
                     SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
@@ -1269,7 +1271,7 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SETTINGCHANGE:
         // Forward to the Searchbox so we can reinitialize the settings...
-        SendMessage(SearchEditHandle, WM_SETTINGCHANGE, 0, 0);
+        SendMessage(SearchboxHandle, WM_SETTINGCHANGE, 0, 0);
         break;
     case WM_SHOWWINDOW:
         {

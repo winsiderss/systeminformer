@@ -93,8 +93,6 @@
     <ResourceCompile Include="ToolStatus.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\active_search.bmp" />
-    <Image Include="resources\active_search.png" />
     <Image Include="resources\application.ico" />
     <Image Include="resources\application_get.ico" />
     <Image Include="resources\application_get_modern.png" />
@@ -111,8 +109,6 @@
     <Image Include="resources\cross_modern.png" />
     <Image Include="resources\find.ico" />
     <Image Include="resources\find_modern.png" />
-    <Image Include="resources\inactive_search.bmp" />
-    <Image Include="resources\inactive_search.png" />
     <Image Include="resources\lightbulb_off.ico" />
     <Image Include="resources\lightbulb_off_modern.png" />
   </ItemGroup>

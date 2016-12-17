@@ -197,10 +197,6 @@ END
 // PNG
 //
 
-IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
-
-IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
-
 IDB_APPLICATION_GET_MODERN PNG                     "resources\\application_get_modern.png"
 
 IDB_APPLICATION_GO_MODERN PNG                     "resources\\application_go_modern.png"
@@ -218,17 +214,6 @@ IDB_CROSS_MODERN        PNG                     "resources\\cross_modern.png"
 IDB_FIND_MODERN         PNG                     "resources\\find_modern.png"
 
 IDB_POWER_MODERN        PNG                     "resources\\lightbulb_off_modern.png"
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
-
-IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //

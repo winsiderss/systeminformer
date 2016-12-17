@@ -147,7 +147,6 @@ extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 extern HWND RebarHandle;
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
-extern HWND SearchEditHandle;
 
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
@@ -196,11 +195,6 @@ PWSTR ToolbarGetText(
     );
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID
-    );
-
-HICON CustomizeGetToolbarIcon(
-    _In_ PVOID Context,
     _In_ INT CommandID
     );
 
@@ -263,34 +257,7 @@ NTSTATUS QueryServiceFileName(
 
 // searchbox.c
 
-typedef struct _EDIT_CONTEXT
-{
-    UINT CommandID;
-    LONG CXWidth;
-    INT CXBorder;
-    INT ImageWidth;
-    INT ImageHeight;
-    HFONT WindowFont;
-    HICON BitmapActive;
-    HICON BitmapInactive;
-    HBRUSH BrushNormal;
-    HBRUSH BrushPushed;
-    HBRUSH BrushHot;
-    //COLORREF BackgroundColorRef;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Hot : 1;
-            ULONG Pushed : 1;
-            ULONG Spare : 30;
-        };
-    };
-} EDIT_CONTEXT, *PEDIT_CONTEXT;
-
-PEDIT_CONTEXT CreateSearchControl(
+BOOLEAN CreateSearchControl(
     _In_ UINT CmdId
     );
 
@@ -417,5 +384,10 @@ typedef struct _CUSTOMIZE_CONTEXT
     HWND AddButtonHandle;
     HWND RemoveButtonHandle;
 } CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
+
+HICON CustomizeGetToolbarIcon(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ INT CommandID
+    );
 
 #endif

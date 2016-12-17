@@ -261,8 +261,8 @@ VOID RebarLoadSettings(
         if (SearchboxHandle)
         {
             // Clear search text and reset search filters.
-            SetFocus(SearchEditHandle);
-            Static_SetText(SearchEditHandle, L"");
+            SetFocus(SearchboxHandle);
+            Static_SetText(SearchboxHandle, L"");
 
             if (IsWindowVisible(SearchboxHandle))
                 ShowWindow(SearchboxHandle, SW_HIDE);

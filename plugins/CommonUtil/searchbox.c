@@ -52,7 +52,7 @@ VOID NcAreaInitializeFont(
     if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
     {
         Context->WindowFont = CreateFont(
-            -PhMultiplyDivideSigned(-14, PhGlobalDpi, 72),
+            -PhMultiplyDivideSigned(10, PhGlobalDpi, 72),
             0,
             0,
             0,
@@ -196,37 +196,31 @@ VOID NcAreaDrawButton(
 
     if (Edit_GetTextLength(Context->WindowHandle) > 0)
     {
-        if (Context->BitmapActive)
-        {
-            DrawIconEx(
-                bufferDc,
-                bufferRect.left + ((bufferRect.right - bufferRect.left) - Context->ImageWidth) / 2 + 1,
-                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - Context->ImageHeight) / 2 + 1,
-                Context->BitmapActive,
-                Context->ImageWidth,
-                Context->ImageHeight,
-                0,
-                NULL,
-                DI_NORMAL
-                );
-        }
+        DrawIconEx(
+            bufferDc,
+            bufferRect.left + 1, // offset
+            bufferRect.top,
+            Context->BitmapActive,
+            Context->ImageWidth,
+            Context->ImageHeight,
+            0,
+            NULL,
+            DI_NORMAL
+            );
     }
     else
     {
-        if (Context->BitmapInactive)
-        {
-            DrawIconEx(
-                bufferDc,
-                bufferRect.left + ((bufferRect.right - bufferRect.left) - (Context->ImageWidth - 2)) / 2, // offset by one
-                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - (Context->ImageHeight - 2)) / 2 + 1, // offset by one
-                Context->BitmapInactive,
-                Context->ImageWidth,
-                Context->ImageHeight,
-                0,
-                NULL,
-                DI_NORMAL
-                );
-        }
+        DrawIconEx(
+            bufferDc,
+            bufferRect.left + 2, // offset
+            bufferRect.top + 1, // offset
+            Context->BitmapInactive,
+            Context->ImageWidth,
+            Context->ImageHeight,
+            0,
+            NULL,
+            DI_NORMAL
+            );
     }
 
     BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
