@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *

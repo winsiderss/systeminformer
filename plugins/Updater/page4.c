@@ -72,8 +72,16 @@ VOID ShowProgressDialog(
         Context->RevisionVersion
         )->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
-    config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";   
-    
+
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD) && !PhIsNullOrEmptyString(Context->BuildMessage))
+    {
+        config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+    }
+    else
+    {
+        config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+    }
+
     config.cxWidth = 200;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowProgressCallbackProc;

@@ -79,19 +79,41 @@ VOID ShowAvailableDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_EXPANDED_BY_DEFAULT;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"An update for Process Hacker is available";
-    config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
-        Context->MajorVersion,
-        Context->MinorVersion,
-        Context->RevisionVersion,
-        PhGetStringOrEmpty(Context->Size)
-        )->Buffer;
-    config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
+        config.pszMainInstruction = PhaFormatString(L"Process Hacker Nightly Build %lu.%lu.%lu",
+            Context->MajorVersion,
+            Context->MinorVersion,
+            Context->RevisionVersion
+            )->Buffer;
+        config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
+            Context->MajorVersion,
+            Context->MinorVersion,
+            Context->RevisionVersion,
+            PhGetStringOrEmpty(Context->Size)
+            )->Buffer;
+
+        if (!PhIsNullOrEmptyString(Context->BuildMessage))
+            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+        else
+            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+    }
+    else
+    {
+        config.pszMainInstruction = L"An update for Process Hacker is available";
+        config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
+            Context->MajorVersion,
+            Context->MinorVersion,
+            Context->RevisionVersion,
+            PhGetStringOrEmpty(Context->Size)
+            )->Buffer;
+        config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+    }
 
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
