@@ -44,6 +44,10 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
 
+    PPH_STRING SearchboxText;
+    PH_TN_FILTER_SUPPORT FilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
@@ -85,6 +89,11 @@ VOID WeGetSelectedWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _Out_ PWE_WINDOW_NODE **Windows,
     _Out_ PULONG NumberOfWindows
+    );
+
+VOID WeExpandAllWindowNodes(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ BOOLEAN Expand
     );
 
 #endif

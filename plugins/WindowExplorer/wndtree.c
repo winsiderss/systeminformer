@@ -44,6 +44,80 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
+BOOLEAN WordMatchStringRef(
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = Context->SearchboxText->sr;
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+
+        if (part.Length != 0)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN WordMatchStringZ(
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return WordMatchStringRef(Context, &text);
+}
+
+BOOLEAN WeWindowTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PWE_WINDOW_TREE_CONTEXT context = Context;
+    PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)Node;
+
+    if (PhIsNullOrEmptyString(context->SearchboxText))
+        return TRUE;
+
+    if (windowNode->WindowClass[0])
+    {
+        if (WordMatchStringZ(context, windowNode->WindowClass))
+            return TRUE;
+    }
+
+    if (windowNode->WindowHandleString[0])
+    {
+        if (WordMatchStringZ(context, windowNode->WindowHandleString))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(windowNode->WindowText))
+    {
+        if (WordMatchStringRef(context, &windowNode->WindowText->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(windowNode->ThreadString))
+    {
+        if (WordMatchStringRef(context, &windowNode->ThreadString->sr))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID WeInitializeWindowTree(
     _In_ HWND ParentWindowHandle,
     _In_ HWND TreeNewHandle,
@@ -82,6 +156,20 @@ VOID WeInitializeWindowTree(
     settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
     PhCmLoadSettings(hwnd, &settings->sr);
     PhDereferenceObject(settings);
+
+    Context->SearchboxText = PhReferenceEmptyString();
+
+    PhInitializeTreeNewFilterSupport(
+        &Context->FilterSupport, 
+        Context->TreeNewHandle, 
+        Context->NodeList
+        );
+
+    Context->TreeFilterEntry = PhAddTreeNewFilter(
+        &Context->FilterSupport,
+        WeWindowTreeFilterCallback,
+        Context
+        );
 }
 
 VOID WeDeleteWindowTree(
@@ -90,6 +178,8 @@ VOID WeDeleteWindowTree(
 {
     PPH_STRING settings;
     ULONG i;
+
+    PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, &settings->sr);
@@ -139,6 +229,9 @@ PWE_WINDOW_NODE WeAddWindowNode(
 
     PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
     PhAddItemList(Context->NodeList, windowNode);
+
+    if (Context->FilterSupport.FilterList)
+        windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
 
     TreeNew_NodesStructured(Context->TreeNewHandle);
 
@@ -458,4 +551,27 @@ VOID WeGetSelectedWindowNodes(
     *NumberOfWindows = list->Count;
 
     PhDereferenceObject(list);
+}
+
+VOID WeExpandAllWindowNodes(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ BOOLEAN Expand
+    )
+{
+    ULONG i;
+    BOOLEAN needsRestructure = FALSE;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        PWE_WINDOW_NODE node = Context->NodeList->Items[i];
+
+        if (node->Children->Count != 0 && node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
 }
