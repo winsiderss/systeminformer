@@ -42,13 +42,14 @@
 #include "resource.h"
 
 #define PLUGIN_NAME L"ProcessHacker.NetworkTools"
+#define SETTING_NAME_DB_TYPE (PLUGIN_NAME L".GeoIpType")
 #define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")
 #define SETTING_NAME_PING_MINIMUM_SCALING (PLUGIN_NAME L".PingMinScaling")
 #define SETTING_NAME_PING_SIZE (PLUGIN_NAME L".PingSize")
 #define SETTING_NAME_TRACERT_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
 #define SETTING_NAME_TRACERT_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
-#define SETTING_NAME_TRACERT_COLUMNS (PLUGIN_NAME L".TracertColumns")
+#define SETTING_NAME_TRACERT_LIST_COLUMNS (PLUGIN_NAME L".TracertListColumns")
 #define SETTING_NAME_TRACERT_HISTORY (PLUGIN_NAME L".TracertAddresses")
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
 #define SETTING_NAME_OUTPUT_WINDOW_POSITION (PLUGIN_NAME L".OutputWindowPosition")
@@ -57,6 +58,7 @@
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbLoaded;
 extern BOOLEAN GeoDbExpired;
+extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
 // The buffer must be large enough to hold at least one ICMP_ECHO_REPLY or ICMPV6_ECHO_REPLY structure
@@ -194,31 +196,56 @@ typedef struct _NETWORK_TRACERT_CONTEXT
 // country.c
 typedef struct _NETWORK_EXTENSION
 {
-    BOOLEAN CountryValid;
+    BOOLEAN Flags;
+    struct
+    {
+        BOOLEAN CountryValid : 1;
+        BOOLEAN LocalValid : 1;
+        BOOLEAN RemoteValid : 1;
+        BOOLEAN Spare : 5;
+    };
+
     HICON CountryIcon;
+    PPH_STRING LocalServiceName;
+    PPH_STRING RemoteServiceName;
     PPH_STRING RemoteCountryCode;
     PPH_STRING RemoteCountryName;
+    PPH_STRING RemoteCityDistance;
 } NETWORK_EXTENSION, *PNETWORK_EXTENSION;
 
 typedef enum _NETWORK_COLUMN_ID
 {
     NETWORK_COLUMN_ID_REMOTE_COUNTRY = 1,
+    NETWORK_COLUMN_ID_LOCAL_SERVICE = 2,
+    NETWORK_COLUMN_ID_REMOTE_SERVICE = 3,
+    NETWORK_COLUMN_ID_REMOTE_DISTANCE = 4,
 } NETWORK_COLUMN_ID;
 
 // country.c
 VOID LoadGeoLiteDb(VOID);
 VOID FreeGeoLiteDb(VOID);
 
+PPH_STRING GeoLookupCityDistance(
+    _In_ DOUBLE Latitude,
+    _In_ DOUBLE Longitude,
+    _In_ DOUBLE CompareLatitude,
+    _In_ DOUBLE CompareLongitude
+    );
+
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
-    _Out_ PPH_STRING *CountryName
+    _Out_ PPH_STRING *CountryName,
+    _Out_opt_ DOUBLE *CityLatitude,
+    _Out_opt_ DOUBLE *CityLongitude
     );
 
 BOOLEAN LookupSockAddrCountryCode(
     _In_ IN_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
-    _Out_ PPH_STRING *CountryName
+    _Out_ PPH_STRING *CountryName,
+    _Out_opt_ DOUBLE *CityLatitude,
+    _Out_opt_ DOUBLE *CityLongitude
     );
 
 INT LookupResourceCode(
@@ -278,5 +305,19 @@ FORCEINLINE BOOLEAN IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
 {
     return (BOOLEAN)(*((PUCHAR)a) == 0x7f); // 127/8
 }
+
+// ports.c
+typedef struct _RESOLVED_PORT
+{
+    PWSTR Name;
+    USHORT Port;
+} RESOLVED_PORT;
+
+RESOLVED_PORT ResolvedPortsTable[6265];
+
+VOID LookupGeoIpCurrentCity(
+    _Out_ DOUBLE *CurrentLatitude,
+    _Out_ DOUBLE *CurrentLongitude
+    );
 
 #endif

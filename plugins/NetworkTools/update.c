@@ -342,10 +342,10 @@ NTSTATUS GeoIPUpdateThread(
             PhSwapReference(&randomGuidString, PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2));
         }
 
-        // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-Country.mmdb.gz
-        // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\GeoLite2-Country.mmdb.gz
+        // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-City.mmdb.gz
+        // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\GeoLite2-City.mmdb.gz
         context->SetupFilePath = PhFormatString(
-            L"%s\\%s\\GeoLite2-Country.mmdb.gz",
+            L"%s\\%s\\GeoLite2-City.mmdb.gz",
             PhGetStringOrEmpty(setupTempPath),
             PhGetStringOrDefault(randomGuidString, L"NetworkTools")
             );
@@ -498,7 +498,7 @@ NTSTATUS GeoIPUpdateThread(
 
             memset(buffer, 0, PAGE_SIZE);
 
-            status = PhFormatString(L"Downloading GeoLite2-Country.mmdb...");
+            status = PhFormatString(L"Downloading GeoLite2-City.mmdb...");
             SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
             SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
             PhDereferenceObject(status);
@@ -587,7 +587,7 @@ NTSTATUS GeoIPUpdateThread(
             gzFile file;
 
             directory = PH_AUTO(PhGetApplicationDirectory());
-            path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
+            path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-City.mmdb");
             mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
 
             if (RtlDoesFileExists_U(PhGetString(path)))

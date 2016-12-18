@@ -22,6 +22,7 @@
  */
 
 #include "nettools.h"
+#include "tracert.h"
 #include <commonutil.h>
 
 PPH_PLUGIN PluginInstance;
@@ -306,6 +307,24 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     column.Alignment = PH_ALIGN_LEFT;
     column.CustomDraw = TRUE; // Owner-draw this column to show country flags
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_COUNTRY, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Local Service";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_LOCAL_SERVICE, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Remote Service";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_SERVICE, NULL, NetworkServiceSortFunction);
+       
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Distance (est)";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_DISTANCE, NULL, NetworkServiceSortFunction);
 }
 
 VOID NTAPI NetworkItemCreateCallback(
@@ -336,6 +355,27 @@ VOID NTAPI NetworkItemDeleteCallback(
         DestroyIcon(extension->CountryIcon);
 }
 
+NTSTATUS NetworkGeoIpLookupCallback(
+    _In_ PVOID Parameter
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PTRACERT_NETWORK_WORKITEM resolve = Parameter;
+    DOUBLE currentLatitude = 0.0;
+    DOUBLE currentLongitude = 0.0;
+
+    LookupGeoIpCurrentCity(&currentLatitude, &currentLongitude);
+
+    PhSwapReference(&resolve->Node->RemoteCityDistance, GeoLookupCityDistance(
+        resolve->CityLatitude,
+        resolve->CityLongitude,
+        currentLatitude,
+        currentLongitude
+        ));
+
+    return STATUS_SUCCESS;
+}
+
 VOID NTAPI NetworkNodeCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -349,18 +389,83 @@ VOID NTAPI NetworkNodeCreateCallback(
     {
         PPH_STRING remoteCountryCode;
         PPH_STRING remoteCountryName;
+        DOUBLE remoteCityLatitude = 0.0;
+        DOUBLE remoteCityLongitude = 0.0;
 
         if (LookupCountryCode(
             networkNode->NetworkItem->RemoteEndpoint.Address, 
             &remoteCountryCode, 
-            &remoteCountryName
+            &remoteCountryName,
+            &remoteCityLatitude,
+            &remoteCityLongitude
             ))
         {
             PhSwapReference(&extension->RemoteCountryCode, remoteCountryCode);
             PhSwapReference(&extension->RemoteCountryName, remoteCountryName);
+
+            if (remoteCityLatitude != 0.0 && remoteCityLongitude != 0.0)
+            {
+                PTRACERT_NETWORK_WORKITEM resolve;
+
+                resolve = PhCreateAlloc(sizeof(TRACERT_NETWORK_WORKITEM));
+                memset(resolve, 0, sizeof(TRACERT_NETWORK_WORKITEM));
+
+                resolve->Node = extension;
+                resolve->CityLatitude = remoteCityLatitude;
+                resolve->CityLongitude = remoteCityLongitude;
+
+                PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), NetworkGeoIpLookupCallback, resolve);
+            }
         }
 
         extension->CountryValid = TRUE;
+    }
+}
+
+VOID UpdateNetworkNode(
+    _In_ NETWORK_COLUMN_ID ColumnID,
+    _In_ PPH_NETWORK_NODE Node,
+    _In_ PNETWORK_EXTENSION Extension
+    )
+{
+    switch (ColumnID)
+    {
+    case NETWORK_COLUMN_ID_LOCAL_SERVICE:
+        {
+            if (!Extension->LocalValid)
+            {
+                for (ULONG x = 0; x < ARRAYSIZE(ResolvedPortsTable); x++)
+                {
+                    if (Node->NetworkItem->LocalEndpoint.Port == ResolvedPortsTable[x].Port)
+                    {
+                        //PhAppendFormatStringBuilder(&stringBuilder, L"%s,", ResolvedPortsTable[x].Name);
+                        PhSwapReference(&Extension->LocalServiceName, PhCreateString(ResolvedPortsTable[x].Name));
+                        break;
+                    }
+                }
+
+                Extension->LocalValid = TRUE;
+            }
+        }
+        break;
+    case NETWORK_COLUMN_ID_REMOTE_SERVICE:
+        {
+            if (!Extension->RemoteValid)
+            {
+                for (ULONG x = 0; x < ARRAYSIZE(ResolvedPortsTable); x++)
+                {
+                    if (Node->NetworkItem->RemoteEndpoint.Port == ResolvedPortsTable[x].Port)
+                    {
+                        //PhAppendFormatStringBuilder(&stringBuilder, L"%s,", ResolvedPortsTable[x].Name);
+                        PhSwapReference(&Extension->RemoteServiceName, PhCreateString(ResolvedPortsTable[x].Name));
+                        break;
+                    }
+                }
+
+                Extension->RemoteValid = TRUE;
+            }
+        }
+        break;
     }
 }
 
@@ -380,11 +485,22 @@ VOID NTAPI TreeNewMessageCallback(
                 PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
                 PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)getCellText->Node;
                 PNETWORK_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, networkNode->NetworkItem, EmNetworkItemType);
+                
+                UpdateNetworkNode(message->SubId, networkNode, extension);
 
                 switch (message->SubId)
                 {
                 case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
                     getCellText->Text = PhGetStringRef(extension->RemoteCountryName);
+                    break;
+                case NETWORK_COLUMN_ID_LOCAL_SERVICE:
+                    getCellText->Text = PhGetStringRef(extension->LocalServiceName);
+                    break;
+                case NETWORK_COLUMN_ID_REMOTE_SERVICE:
+                    getCellText->Text = PhGetStringRef(extension->RemoteServiceName);
+                    break;
+                case NETWORK_COLUMN_ID_REMOTE_DISTANCE:
+                    getCellText->Text = PhGetStringRef(extension->RemoteCityDistance);
                     break;
                 }
             }
@@ -489,7 +605,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_PING_SIZE, L"20" }, // 32 byte packet
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|600,365" },
-                { StringSettingType, SETTING_NAME_TRACERT_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_TRACERT_LIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_TRACERT_HISTORY, L"" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"30" },
                 { IntegerPairSettingType, SETTING_NAME_OUTPUT_WINDOW_POSITION, L"0,0" },

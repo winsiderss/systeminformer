@@ -23,6 +23,12 @@
 #ifndef _TRACERT_H_
 #define _TRACERT_H_
 
+#define MAX_PINGS  4
+#define DEFAULT_MAXIMUM_HOPS        40 
+#define DEFAULT_SEND_SIZE           64
+#define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
+#define DEFAULT_TIMEOUT 1000
+#define MIN_INTERVAL    500 //1000
 #define POOL_TABLE_SHOWCONTEXTMENU (WM_APP + 9849)
 
 typedef enum _POOLTAG_TREE_COLUMN_ITEM_NAME
@@ -35,42 +41,61 @@ typedef enum _POOLTAG_TREE_COLUMN_ITEM_NAME
     TREE_COLUMN_ITEM_PING4,
     TREE_COLUMN_ITEM_IPADDR,
     TREE_COLUMN_ITEM_COUNTRY,
+    TREE_COLUMN_ITEM_DISTANCE,
     TREE_COLUMN_ITEM_MAXIMUM
 } POOLTAG_TREE_COLUMN_ITEM_NAME;
 
 typedef struct _POOLTAG_ROOT_NODE
 {
     PH_TREENEW_NODE Node;
-    HICON CountryIcon;
 
+    BOOLEAN HostnameValid;
     ULONG TTL;
-    ULONG Ping1;
-    ULONG Ping2;
-    ULONG Ping3;
-    ULONG Ping4;
+    ULONG PingList[10];
+
+    HICON CountryIcon;
 
     PPH_STRING TtlString;
     PPH_STRING Ping1String;
     PPH_STRING Ping2String;
     PPH_STRING Ping3String;
     PPH_STRING Ping4String;
-    PPH_STRING CountryString;
+    PPH_STRING CountryString; 
     PPH_STRING HostnameString;
     PPH_STRING IpAddressString;
-
     PPH_STRING RemoteCountryCode;
     PPH_STRING RemoteCountryName;
-
+    PPH_STRING RemoteCityName;
+    PPH_STRING RemoteCityDistance;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } POOLTAG_ROOT_NODE, *PPOOLTAG_ROOT_NODE;
 
-VOID PmLoadSettingsTreeList(
-    _Inout_ PNETWORK_TRACERT_CONTEXT Context
-    );
+typedef struct _TRACERT_RESOLVE_WORKITEM
+{
+    ULONG Type;
+    SOCKADDR_STORAGE SocketAddress;
+    HWND WindowHandle;
 
-VOID PmSaveSettingsTreeList(
-    _Inout_ PNETWORK_TRACERT_CONTEXT Context
-    );
+    PPOOLTAG_ROOT_NODE Node;
+
+    DOUBLE CityLatitude;
+    DOUBLE CityLongitude;
+    WCHAR SocketAddressHostname[NI_MAXHOST];
+} TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
+
+typedef struct _TRACERT_NETWORK_WORKITEM
+{
+    ULONG Type;
+    SOCKADDR_STORAGE SocketAddress;
+    HWND WindowHandle;
+
+    PNETWORK_EXTENSION Node;
+
+    DOUBLE CityLatitude;
+    DOUBLE CityLongitude;
+    WCHAR SocketAddressHostname[NI_MAXHOST];
+} TRACERT_NETWORK_WORKITEM, *PTRACERT_NETWORK_WORKITEM;
+
 
 VOID InitializeTracertTree(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context
@@ -97,7 +122,7 @@ VOID UpdateTracertNode(
 
 struct _PH_TN_FILTER_SUPPORT*
 NTAPI
-PmGetFilterSupportTreeList(
+TracertGetFilterSupportTreeList(
     VOID
     );
 

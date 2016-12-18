@@ -23,18 +23,48 @@
 #include "nettools.h"
 #include "maxminddb\maxminddb.h"
 #include <shlobj.h>
+#include <locale.h>
+#include <math.h>
 
 BOOLEAN GeoDbLoaded = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
 static MMDB_s GeoDb = { 0 };
 
-VOID LoadGeoLiteDb(VOID)
+/*  Definitions:                                                           */
+/*    South latitudes are negative, east longitudes are positive           */
+/*                                                                         */
+/*  Passed to function:                                                    */
+/*    lat1, lon1 = Latitude and Longitude of point 1 (in decimal degrees)  */
+/*    lat2, lon2 = Latitude and Longitude of point 2 (in decimal degrees)  */
+/*    unit = the unit you desire for results                               */
+/*           where: 'M' is statute miles                                   */
+/*                  'K' is kilometers (default)                            */
+/*                  'N' is nautical miles   (distance = distance * 0.8684) */
+#define pi 3.14159265358979323846
+
+/* decimal degrees to radians */
+FORCEINLINE
+DOUBLE deg2rad(DOUBLE deg)
+{
+    return (deg * pi / 180);
+}
+
+/* radians to decimal degrees */
+FORCEINLINE
+DOUBLE rad2deg(DOUBLE rad)
+{
+    return (rad * 180 / pi);
+}
+
+VOID LoadGeoLiteDb(
+    VOID
+    )
 {
     PPH_STRING path;
     PPH_STRING directory;
 
     directory = PH_AUTO(PhGetApplicationDirectory());
-    path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
+    path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-City.mmdb");
 
     if (MMDB_open(PhGetString(path), MMDB_MODE_MMAP, &GeoDb) == MMDB_SUCCESS)
     {
@@ -58,7 +88,9 @@ VOID LoadGeoLiteDb(VOID)
     }
 }
 
-VOID FreeGeoLiteDb(VOID)
+VOID FreeGeoLiteDb(
+    VOID
+    )
 {
     if (GeoDbLoaded)
     {
@@ -66,16 +98,69 @@ VOID FreeGeoLiteDb(VOID)
     }
 }
 
+BOOLEAN GeoLocaleIsMetric(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN localeIsMetric = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        WCHAR buffer[4] = L"";
+
+        if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IMEASURE, buffer, ARRAYSIZE(buffer)))
+        {
+            if (PhEqualStringZ(buffer, L"1", TRUE))
+            {
+                localeIsMetric = TRUE;
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return localeIsMetric;
+}
+
+PPH_STRING GeoLookupCityDistance(
+    _In_ DOUBLE Latitude,
+    _In_ DOUBLE Longitude,
+    _In_ DOUBLE CompareLatitude,
+    _In_ DOUBLE CompareLongitude
+    )
+{
+    DOUBLE theta = 0;
+    DOUBLE distance = 0;
+
+    theta = Longitude - CompareLongitude;
+    distance = sin(deg2rad(Latitude)) * sin(deg2rad(CompareLatitude)) + cos(deg2rad(Latitude)) * cos(deg2rad(CompareLatitude)) * cos(deg2rad(theta));
+    distance = acos(distance);
+    distance = rad2deg(distance);
+    distance = distance * 60 * 1.1515;
+
+    if (GeoLocaleIsMetric())
+    {
+        return PhFormatString(L"%.2f mi", distance);
+    }
+    else
+    {
+        return PhFormatString(L"%.2f km", distance * 1.609344);
+    }
+}
+
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
-    _Out_ PPH_STRING *CountryName
-)
+    _Out_ PPH_STRING *CountryName,
+    _Out_opt_ DOUBLE *CityLatitude,
+    _Out_opt_ DOUBLE *CityLongitude
+    )
 {
     PPH_STRING countryCode = NULL;
     PPH_STRING countryName = NULL;
     MMDB_entry_data_s mmdb_entry;
-    MMDB_lookup_result_s mmdb_lookup;
+    MMDB_lookup_result_s mmdb_result;
     INT mmdb_error = 0;
 
     if (!GeoDbLoaded)
@@ -92,12 +177,12 @@ BOOLEAN LookupCountryCode(
             return FALSE;
 
         memset(&ipv4SockAddr, 0, sizeof(SOCKADDR_IN));
-        memset(&mmdb_lookup, 0, sizeof(MMDB_lookup_result_s));
+        memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
 
         ipv4SockAddr.sin_family = AF_INET;
         ipv4SockAddr.sin_addr = RemoteAddress.InAddr;
 
-        mmdb_lookup = MMDB_lookup_sockaddr(
+        mmdb_result = MMDB_lookup_sockaddr(
             &GeoDb,
             (struct sockaddr*)&ipv4SockAddr,
             &mmdb_error
@@ -114,23 +199,23 @@ BOOLEAN LookupCountryCode(
             return FALSE;
 
         memset(&ipv6SockAddr, 0, sizeof(SOCKADDR_IN6));
-        memset(&mmdb_lookup, 0, sizeof(MMDB_lookup_result_s));
+        memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
 
         ipv6SockAddr.sin6_family = AF_INET6;
         ipv6SockAddr.sin6_addr = RemoteAddress.In6Addr;
 
-        mmdb_lookup = MMDB_lookup_sockaddr(
+        mmdb_result = MMDB_lookup_sockaddr(
             &GeoDb,
             (struct sockaddr*)&ipv6SockAddr,
             &mmdb_error
             );
     }
 
-    if (mmdb_error == 0 && mmdb_lookup.found_entry)
+    if (mmdb_error == 0 && mmdb_result.found_entry)
     {
         memset(&mmdb_entry, 0, sizeof(MMDB_entry_data_s));
 
-        if (MMDB_get_value(&mmdb_lookup.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
         {
             if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
             {
@@ -138,11 +223,27 @@ BOOLEAN LookupCountryCode(
             }
         }
 
-        if (MMDB_get_value(&mmdb_lookup.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
         {
             if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
             {
                 countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+            }
+        }
+
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
+        {
+            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+            {
+                *CityLatitude = mmdb_entry.double_value;
+            }
+        }
+
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
+        {
+            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+            {
+                *CityLongitude = mmdb_entry.double_value;
             }
         }
     }
@@ -170,13 +271,15 @@ BOOLEAN LookupCountryCode(
 BOOLEAN LookupSockAddrCountryCode(
     _In_ IN_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
-    _Out_ PPH_STRING *CountryName
+    _Out_ PPH_STRING *CountryName,
+    _Out_opt_ DOUBLE *CityLatitude,
+    _Out_opt_ DOUBLE *CityLongitude
     )
 {
     PPH_STRING countryCode = NULL;
     PPH_STRING countryName = NULL;
     MMDB_entry_data_s mmdb_entry;
-    MMDB_lookup_result_s mmdb_lookup;
+    MMDB_lookup_result_s mmdb_result;
     SOCKADDR_IN ipv4SockAddr;
     INT mmdb_error = 0;
 
@@ -190,22 +293,22 @@ BOOLEAN LookupSockAddrCountryCode(
         return FALSE;
 
     memset(&ipv4SockAddr, 0, sizeof(SOCKADDR_IN));
-    memset(&mmdb_lookup, 0, sizeof(MMDB_lookup_result_s));
+    memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
 
     ipv4SockAddr.sin_family = AF_INET;
     ipv4SockAddr.sin_addr = RemoteAddress;
 
-    mmdb_lookup = MMDB_lookup_sockaddr(
+    mmdb_result = MMDB_lookup_sockaddr(
         &GeoDb,
         (PSOCKADDR)&ipv4SockAddr,
         &mmdb_error
         );
 
-    if (mmdb_error == 0 && mmdb_lookup.found_entry)
+    if (mmdb_error == 0 && mmdb_result.found_entry)
     {
         memset(&mmdb_entry, 0, sizeof(MMDB_entry_data_s));
 
-        if (MMDB_get_value(&mmdb_lookup.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
         {
             if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
             {
@@ -213,11 +316,27 @@ BOOLEAN LookupSockAddrCountryCode(
             }
         }
 
-        if (MMDB_get_value(&mmdb_lookup.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
         {
             if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
             {
                 countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+            }
+        }
+
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
+        {
+            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+            {
+                *CityLatitude = mmdb_entry.double_value;
+            }
+        }
+
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
+        {
+            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+            {
+                *CityLongitude = mmdb_entry.double_value;
             }
         }
     }
@@ -241,7 +360,6 @@ BOOLEAN LookupSockAddrCountryCode(
 
     return FALSE;
 }
-
 
 struct
 {
@@ -335,4 +453,211 @@ INT LookupResourceCode(
     }
 
     return 0;
+}
+
+
+VOID LookupGeoIpCurrentCity(
+    _Out_ DOUBLE *CurrentLatitude, 
+    _Out_ DOUBLE *CurrentLongitude
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static DOUBLE currentLatitude = 0.0;
+    static DOUBLE currentLongitude = 0.0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HINTERNET httpSessionHandle = NULL;
+        HINTERNET httpConnectionHandle = NULL;
+        HINTERNET httpRequestHandle = NULL;
+        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
+        ULONG xmlStringBufferLength = 0;
+        PSTR xmlStringBuffer = NULL;
+        //PPH_STRING versionHeader = UpdateVersionString();
+        //PPH_STRING windowsHeader = UpdateWindowsString();
+
+        // Query the current system proxy
+        WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+
+        // Open the HTTP session
+        if (!(httpSessionHandle = WinHttpOpen(
+            NULL,
+            proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+            proxyConfig.lpszProxy,
+            proxyConfig.lpszProxyBypass,
+            0
+        )))
+        {
+            goto CleanupExit;
+        }
+
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+            ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+
+            WinHttpSetOption(
+                httpSessionHandle,
+                WINHTTP_OPTION_DECOMPRESSION,
+                &httpFlags,
+                sizeof(ULONG)
+            );
+        }
+
+        if (!(httpConnectionHandle = WinHttpConnect(
+            httpSessionHandle,
+            L"wj32.org",
+            INTERNET_DEFAULT_HTTPS_PORT,
+            0
+        )))
+        {
+            goto CleanupExit;
+        }
+
+        if (!(httpRequestHandle = WinHttpOpenRequest(
+            httpConnectionHandle,
+            NULL,
+            L"/processhacker/fwlink/myaddr.php",
+            NULL,
+            WINHTTP_NO_REFERER,
+            WINHTTP_DEFAULT_ACCEPT_TYPES,
+            WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
+        )))
+        {
+            goto CleanupExit;
+        }
+
+        if (WindowsVersion >= WINDOWS_7)
+        {
+            ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
+            WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
+        }
+
+        //if (versionHeader)
+        //{
+        //    WinHttpAddRequestHeaders(
+        //        httpRequestHandle,
+        //        versionHeader->Buffer,
+        //        (ULONG)versionHeader->Length / sizeof(WCHAR),
+        //        WINHTTP_ADDREQ_FLAG_ADD
+        //        );
+        //}
+
+        //if (windowsHeader)
+        //{
+        //    WinHttpAddRequestHeaders(
+        //        httpRequestHandle,
+        //        windowsHeader->Buffer,
+        //        (ULONG)windowsHeader->Length / sizeof(WCHAR),
+        //        WINHTTP_ADDREQ_FLAG_ADD
+        //        );
+        //}
+
+        if (!WinHttpSendRequest(
+            httpRequestHandle,
+            WINHTTP_NO_ADDITIONAL_HEADERS,
+            0,
+            WINHTTP_NO_REQUEST_DATA,
+            0,
+            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
+            0
+        ))
+        {
+            goto CleanupExit;
+        }
+
+        if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+            goto CleanupExit;
+
+        PSTR data;
+        ULONG allocatedLength;
+        ULONG dataLength;
+        ULONG returnLength;
+        BYTE buffer[PAGE_SIZE];
+
+        allocatedLength = sizeof(buffer);
+        data = (PSTR)PhAllocate(allocatedLength);
+        dataLength = 0;
+
+        memset(buffer, 0, PAGE_SIZE);
+        memset(data, 0, allocatedLength);
+
+        while (WinHttpReadData(httpRequestHandle, buffer, PAGE_SIZE, &returnLength))
+        {
+            if (returnLength == 0)
+                break;
+
+            if (allocatedLength < dataLength + returnLength)
+            {
+                allocatedLength *= 2;
+                data = (PSTR)PhReAllocate(data, allocatedLength);
+            }
+
+            memcpy(data + dataLength, buffer, returnLength);
+
+            dataLength += returnLength;
+        }
+
+        if (allocatedLength < dataLength + 1)
+        {
+            allocatedLength++;
+            data = (PSTR)PhReAllocate(data, allocatedLength);
+        }
+
+        data[dataLength] = 0;
+
+        xmlStringBufferLength = dataLength;
+        xmlStringBuffer = data;
+
+        // Check the buffer for valid data.
+        if (xmlStringBuffer == NULL || xmlStringBuffer[0] == '\0')
+            goto CleanupExit;
+
+
+        PH_IP_ENDPOINT remoteEndpoint = { 0 };
+        PPH_STRING currentAddress = PhConvertUtf8ToUtf16Ex(xmlStringBuffer, xmlStringBufferLength);
+        PWSTR terminator = NULL;
+
+        if (NT_SUCCESS(RtlIpv4StringToAddress(currentAddress->Buffer, TRUE, &terminator, &remoteEndpoint.Address.InAddr)))
+        {
+            remoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+        }
+
+        if (NT_SUCCESS(RtlIpv6StringToAddress(currentAddress->Buffer, &terminator, &remoteEndpoint.Address.In6Addr)))
+        {
+            remoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+        }
+
+        PPH_STRING remoteCountryCode;
+        PPH_STRING remoteCountryName;
+
+        LookupCountryCode(
+            remoteEndpoint.Address,
+            &remoteCountryCode,
+            &remoteCountryName,
+            &currentLatitude,
+            &currentLongitude
+        );
+
+    CleanupExit:
+        if (httpRequestHandle)
+            WinHttpCloseHandle(httpRequestHandle);
+
+        if (httpConnectionHandle)
+            WinHttpCloseHandle(httpConnectionHandle);
+
+        if (httpSessionHandle)
+            WinHttpCloseHandle(httpSessionHandle);
+
+        if (xmlStringBuffer)
+            PhFree(xmlStringBuffer);
+
+        //PhClearReference(&versionHeader);
+        //PhClearReference(&windowsHeader);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    *CurrentLatitude = currentLatitude;
+    *CurrentLongitude = currentLongitude;
 }

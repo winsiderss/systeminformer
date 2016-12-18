@@ -23,22 +23,7 @@
 #include "nettools.h"
 #include "tracert.h"
 #include <commonutil.h>
-
-#define MAX_PINGS  4
-#define DEFAULT_MAXIMUM_HOPS        40 
-#define DEFAULT_SEND_SIZE           64
-#define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
-#define DEFAULT_TIMEOUT 1000
-#define MIN_INTERVAL    500 //1000
-
-typedef struct _TRACERT_RESOLVE_WORKITEM
-{
-    ULONG Type;
-    SOCKADDR_STORAGE SocketAddress;
-    HWND WindowHandle;
-    PPOOLTAG_ROOT_NODE Node;
-    WCHAR SocketAddressHostname[NI_MAXHOST];
-} TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
+#include <math.h>
 
 PPH_STRING TracertGetErrorMessage(
     _In_ IP_STATUS Result
@@ -78,41 +63,13 @@ VOID TracertUpdateTime(
 { 
     if (RoundTripTime)
     {
-        switch (SubIndex)
-        {
-        case 0:
-            Node->Ping1 = RoundTripTime;
-            break;
-        case 1:
-            Node->Ping2 = RoundTripTime;
-            break;
-        case 2:
-            Node->Ping3 = RoundTripTime;
-            break;
-        case 3:
-            Node->Ping4 = RoundTripTime;
-            break;
-        }
+        Node->PingList[SubIndex] = RoundTripTime;
 
         UpdateTracertNode(Context, Node);
     } 
     else 
     { 
-        switch (SubIndex)
-        {
-        case 0:
-            Node->Ping1 = ULONG_MAX;
-            break;
-        case 1:
-            Node->Ping2 = ULONG_MAX;
-            break;
-        case 2:
-            Node->Ping3 = ULONG_MAX;
-            break;
-        case 3:
-            Node->Ping4 = ULONG_MAX;
-            break;
-        }
+        Node->PingList[SubIndex] = ULONG_MAX;
 
         switch (SubIndex)
         {
@@ -153,6 +110,7 @@ NTSTATUS TracertHostnameLookupCallback(
             ))
         {
             resolve->Node->HostnameString = PhCreateString(resolve->SocketAddressHostname);
+            resolve->Node->HostnameValid = TRUE;
         }
         else
         {
@@ -181,6 +139,7 @@ NTSTATUS TracertHostnameLookupCallback(
             ))
         {
             resolve->Node->HostnameString = PhCreateString(resolve->SocketAddressHostname);
+            resolve->Node->HostnameValid = TRUE;
         }
         else
         {
@@ -196,6 +155,26 @@ NTSTATUS TracertHostnameLookupCallback(
             PhDereferenceObject(resolve);
         }
     }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS TracertGeoIpLookupCallback(
+    _In_ PVOID Parameter
+    )
+{
+    PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
+    DOUBLE currentLatitude = 0.0;
+    DOUBLE currentLongitude = 0.0;
+
+    LookupGeoIpCurrentCity(&currentLatitude, &currentLongitude);
+
+    PhSwapReference(&resolve->Node->RemoteCityDistance, GeoLookupCityDistance(
+        resolve->CityLatitude,
+        resolve->CityLongitude,
+        currentLatitude,
+        currentLongitude
+        ));
 
     return STATUS_SUCCESS;
 }
@@ -236,11 +215,18 @@ VOID TracertQueueHostLookup(
         if (LookupSockAddrCountryCode(
             sockAddrIn,
             &remoteCountryCode,
-            &remoteCountryName
+            &remoteCountryName,
+            &resolve->CityLatitude,
+            &resolve->CityLongitude
             ))
         {
             PhSwapReference(&Node->RemoteCountryCode, remoteCountryCode);
             PhSwapReference(&Node->RemoteCountryName, remoteCountryName);
+
+            if (resolve->CityLatitude != 0.0 && resolve->CityLongitude != 0.0)
+            {
+                PhQueueItemWorkQueue(&Context->WorkQueue, TracertGeoIpLookupCallback, resolve);
+            }
         }
 
         PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
@@ -258,9 +244,6 @@ VOID TracertQueueHostLookup(
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
             Node->IpAddressString = PhCreateString(addressString);
-
-            //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, TREE_COLUMN_ITEM_IPADDR, addressString);
-            //PhSetListViewSubItem(Context->OutputHandle, LvItemIndex, HOSTNAME_COLUMN, L"Resolving address...");
         }
 
         resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
@@ -342,7 +325,6 @@ NTSTATUS NetworkTracertThreadStart(
         PPOOLTAG_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
 
         TreeNew_NodesStructured(context->TreeNewHandle);
-        TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TN_AUTOSIZE_REMAINING_SPACE);
 
         for (INT ii = 0; ii < MAX_PINGS; ii++)
         {
@@ -397,40 +379,12 @@ NTSTATUS NetworkTracertThreadStart(
                     }
                     else if (reply4->Status != IP_SUCCESS)
                     {
-                        switch (ii)
-                        {
-                        case 0:
-                            node->Ping1 = ULONG_MAX;
-                            break;
-                        case 1:
-                            node->Ping2 = ULONG_MAX;
-                            break;
-                        case 2:
-                            node->Ping3 = ULONG_MAX;
-                            break;
-                        case 3:
-                            node->Ping4 = ULONG_MAX;
-                            break;
-                        }
+                        node->PingList[ii] = ULONG_MAX;
                     }
                 }
                 else
                 {
-                    switch (ii)
-                    {
-                    case 0:
-                        node->Ping1 = ULONG_MAX;
-                        break;
-                    case 1:
-                        node->Ping2 = ULONG_MAX;
-                        break;
-                    case 2:
-                        node->Ping3 = ULONG_MAX;
-                        break;
-                    case 3:
-                        node->Ping4 = ULONG_MAX;
-                        break;
-                    }
+                    node->PingList[ii] = ULONG_MAX;
                 }
 
                 PhFree(icmpReplyBuffer);
@@ -483,6 +437,8 @@ NTSTATUS NetworkTracertThreadStart(
                     }
                     else if (reply6->Status != IP_SUCCESS)
                     {
+                        node->PingList[ii] = ULONG_MAX;
+
                         if (reply6->Status != IP_REQ_TIMED_OUT)
                         {
                             PPH_STRING errorMessage;
@@ -492,27 +448,13 @@ NTSTATUS NetworkTracertThreadStart(
                                 node->IpAddressString = errorMessage;
                             }
                         }
-
-                        switch (ii)
-                        {
-                        case 0:
-                            node->Ping1 = ULONG_MAX;
-                            break;
-                        case 1:
-                            node->Ping2 = ULONG_MAX;
-                            break;
-                        case 2:
-                            node->Ping3 = ULONG_MAX;
-                            break;
-                        case 3:
-                            node->Ping4 = ULONG_MAX;
-                            break;
-                        }
                     }
                 }
                 else
                 {
                     ULONG errorCode = GetLastError();
+
+                    node->PingList[ii] = ULONG_MAX;
 
                     if (errorCode != IP_REQ_TIMED_OUT)
                     {
@@ -523,31 +465,11 @@ NTSTATUS NetworkTracertThreadStart(
                             node->IpAddressString = errorMessage;
                         }
                     }
-
-                    switch (ii)
-                    {
-                    case 0:
-                        node->Ping1 = ULONG_MAX;
-                        break;
-                    case 1:
-                        node->Ping2 = ULONG_MAX;
-                        break;
-                    case 2:
-                        node->Ping3 = ULONG_MAX;
-                        break;
-                    case 3:
-                        node->Ping4 = ULONG_MAX;
-                        break;
-                    }
                 }
 
                 PhFree(icmpReplyBuffer);
             }
-
-            TreeNew_NodesStructured(context->TreeNewHandle);
         }
-
-        TreeNew_NodesStructured(context->TreeNewHandle);
 
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
@@ -685,6 +607,8 @@ INT_PTR CALLBACK TracertDlgProc(
             if (context->FontHandle)
                 DeleteObject(context->FontHandle);
 
+            DeleteTracertTree(context);
+
             PhDeleteWorkQueue(&context->WorkQueue);
             PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
@@ -777,7 +701,6 @@ INT_PTR CALLBACK TracertDlgProc(
         break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
-        TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TN_AUTOSIZE_REMAINING_SPACE);
         break;
     case NTM_RECEIVEDFINISH:
         {

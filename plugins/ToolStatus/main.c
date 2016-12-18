@@ -636,8 +636,6 @@ LRESULT CALLBACK MainWndSubclassProc(
             switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case EN_CHANGE:
-            case CBN_EDITUPDATE:
-            case CBN_EDITCHANGE:
                 {
                     PPH_STRING newSearchboxText;
 
