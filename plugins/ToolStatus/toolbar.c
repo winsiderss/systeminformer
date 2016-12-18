@@ -172,10 +172,7 @@ VOID RebarLoadSettings(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-        if (CreateSearchboxControl(TIDC_SEARCH_CLEAR))
-        {
-
-        }
+        CreateSearchboxControl();
     }
 
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)

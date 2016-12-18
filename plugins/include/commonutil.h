@@ -30,7 +30,7 @@
 typedef VOID (NTAPI *PUTIL_CREATE_SEARCHBOX_CONTROL)(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ UINT CommandID
+    _In_ PWSTR BannerText
     );
 
 typedef HBITMAP (NTAPI *PUTIL_CREATE_IMAGE_FROM_RESOURCE)(
@@ -48,18 +48,12 @@ typedef struct _COMMONUTIL_INTERFACE
     PUTIL_CREATE_IMAGE_FROM_RESOURCE CreateImageFromResource;
 } COMMONUTIL_INTERFACE, *P_COMMONUTIL_INTERFACE;
 
-/**
- * Creates a Ansi string using format specifiers.
- *
- * \param Format The format-control string.
- * \param ArgPtr A pointer to the list of arguments.
- */
 FORCEINLINE
 VOID 
 CreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ UINT CommandID
+    _In_ PWSTR BannerText
     )
 {
     PPH_PLUGIN toolStatusPlugin;
@@ -72,10 +66,73 @@ CreateSearchControl(
         {
             if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
             {
-                Interface->CreateSearchControl(Parent, WindowHandle, CommandID);
+                Interface->CreateSearchControl(Parent, WindowHandle, BannerText);
             }
         }
     }
+}
+
+FORCEINLINE
+HBITMAP LoadImageFromResources(
+    _In_ PVOID DllBase,
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN RGBAImage
+    )
+{
+    static PUTIL_CREATE_IMAGE_FROM_RESOURCE createImageFromResource = NULL;
+
+    if (!createImageFromResource)
+    {
+        PPH_PLUGIN toolStatusPlugin;
+
+        if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+        {
+            P_COMMONUTIL_INTERFACE Interface;
+
+            if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+            {
+                if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+                {
+                    createImageFromResource = Interface->CreateImageFromResource;
+                }
+            }
+        }
+    }
+
+    if (createImageFromResource)
+        return createImageFromResource(DllBase, Width, Height, Name, RGBAImage);
+    else
+        return NULL;
+}
+
+FORCEINLINE
+HICON
+CommonBitmapToIcon(
+    _In_ HBITMAP BitmapHandle,
+    _In_ INT Width,
+    _In_ INT Height
+    )
+{
+    HICON icon;
+    HDC screenDc;
+    HBITMAP screenBitmap;
+    ICONINFO iconInfo = { 0 };
+
+    screenDc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
+
+    iconInfo.fIcon = TRUE;
+    iconInfo.hbmColor = BitmapHandle;
+    iconInfo.hbmMask = screenBitmap;
+
+    icon = CreateIconIndirect(&iconInfo);
+
+    DeleteObject(screenBitmap);
+    DeleteDC(screenDc);
+
+    return icon;
 }
 
 /**
@@ -178,71 +235,6 @@ CommonDuplicateFont(
         return CreateFontIndirect(&logFont);
     else
         return NULL;
-}
-
-FORCEINLINE
-HICON
-CommonBitmapToIcon(
-    _In_ HBITMAP BitmapHandle,
-    _In_ INT Width,
-    _In_ INT Height
-    )
-{
-    HICON icon;
-    HDC screenDc;
-    HBITMAP screenBitmap;
-    ICONINFO iconInfo = { 0 };
-
-    screenDc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
-    screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
-
-    iconInfo.fIcon = TRUE;
-    iconInfo.hbmColor = BitmapHandle;
-    iconInfo.hbmMask = screenBitmap;
-
-    icon = CreateIconIndirect(&iconInfo);
-
-    DeleteObject(screenBitmap);
-    DeleteDC(screenDc);
-
-    return icon;
-}
-
-FORCEINLINE
-HBITMAP LoadImageFromResources(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    )
-{
-    PUTIL_CREATE_IMAGE_FROM_RESOURCE createImageFromResourcePtr = NULL;
-
-    if (!createImageFromResourcePtr)
-    {
-        PPH_PLUGIN toolStatusPlugin;
-
-        if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
-        {
-            P_COMMONUTIL_INTERFACE Interface;
-
-            if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
-            {
-                if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
-                {
-                    createImageFromResourcePtr = Interface->CreateImageFromResource;
-                }
-            }
-        }
-    }
-
-    if (createImageFromResourcePtr)
-    {
-        return createImageFromResourcePtr(DllBase, Width, Height, Name, RGBAImage);
-    }
-
-    return NULL;
 }
 
 #endif

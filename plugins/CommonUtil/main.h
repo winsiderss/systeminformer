@@ -46,8 +46,6 @@ extern PPH_PLUGIN PluginInstance;
 
 typedef struct _EDIT_CONTEXT
 {
-    UINT CommandID;
-
     union
     {
         ULONG Flags;
@@ -75,7 +73,7 @@ typedef struct _EDIT_CONTEXT
 VOID UtilCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ UINT CommandID
+    _In_ PWSTR BannerText
     );
 
 HBITMAP UtilLoadImageFromResources(

@@ -690,14 +690,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                     goto DefaultWndProc;
                 }
                 break;
-            case CBN_SELCHANGE:
-                {
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
-                        break;
-
-                    PostMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
-                }
-                break;
             }
 
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -720,29 +712,18 @@ LRESULT CALLBACK MainWndSubclassProc(
                     // handle keybind Ctrl + K
                     if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
+                        if (SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                        {
+                            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), 22);
+
+                            if (!IsWindowVisible(SearchboxHandle))
+                                ShowWindow(SearchboxHandle, SW_SHOW);
+                        }
+
                         SetFocus(SearchboxHandle);
                         Edit_SetSel(SearchboxHandle, 0, -1);
                     }
-
-                    goto DefaultWndProc;
-                }
-                break;
-            case TIDC_SEARCH_STRING:
-                {
-                    PostMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
-
-                    goto DefaultWndProc;
-                }
-                break;
-            case TIDC_SEARCH_CLEAR:
-                {
-                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
-                    {
-                        SetFocus(SearchboxHandle);
-                        Static_SetText(SearchboxHandle, L"");
-                    }
-
-                    SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(0, EN_CHANGE), (LPARAM)SearchboxHandle);
 
                     goto DefaultWndProc;
                 }

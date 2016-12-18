@@ -358,7 +358,10 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             if (PtInRect(&windowRect, windowPoint))
             {
                 // Forward click notification.
-                SendMessage(GetParent(context->WindowHandle), WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
+                //SendMessage(GetParent(context->WindowHandle), WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
+
+                SetFocus(hWnd);
+                Static_SetText(hWnd, L"");
             }
 
             if (GetCapture() == hWnd)
@@ -497,7 +500,7 @@ HICON BitmapToIcon(
 VOID UtilCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ UINT CommandID
+    _In_ PWSTR BannerText
     )
 {
     PEDIT_CONTEXT context;
@@ -505,14 +508,13 @@ VOID UtilCreateSearchControl(
     context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
-    context->CommandID = CommandID;
     context->WindowHandle = WindowHandle;
 
     //NcAreaInitializeTheme(context);
     NcAreaInitializeImages(context);
 
     // Set initial text
-    Edit_SetCueBannerText(context->WindowHandle, L"Search Plugins (Ctrl+K)");
+    Edit_SetCueBannerText(context->WindowHandle, BannerText);
 
     // Set our window context data.
     SetProp(context->WindowHandle, L"SearchBoxContext", (HANDLE)context);

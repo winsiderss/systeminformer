@@ -50,12 +50,10 @@
 #define MAX_TOOLBAR_ITEMS 12
 #define MAX_STATUSBAR_ITEMS 14
 
-#define TIDC_SEARCH_CLEAR (WM_APP + 1)
-#define TIDC_FINDWINDOW (WM_APP + 2)
-#define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
-#define TIDC_FINDWINDOWKILL (WM_APP + 4)
-#define TIDC_POWERMENUDROPDOWN (WM_APP + 5)
-#define TIDC_SEARCH_STRING (WM_APP + 6)
+#define TIDC_FINDWINDOW (WM_APP + 1)
+#define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
+#define TIDC_FINDWINDOWKILL (WM_APP + 3)
+#define TIDC_POWERMENUDROPDOWN (WM_APP + 4)
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -378,7 +376,7 @@ HICON CustomizeGetToolbarIcon(
 // searchbox.c
 
 BOOLEAN CreateSearchboxControl(
-    _In_ UINT CmdId
+    VOID
     );
 
 #endif

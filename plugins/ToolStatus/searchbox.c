@@ -25,7 +25,7 @@
 #include "commonutil.h"
 
 BOOLEAN CreateSearchboxControl(
-    _In_ UINT CommandID
+    VOID
     )
 {
     if (SearchboxHandle = CreateWindowEx(
@@ -40,7 +40,7 @@ BOOLEAN CreateSearchboxControl(
         NULL
         ))
     {
-        CreateSearchControl(RebarHandle, SearchboxHandle, CommandID);
+        CreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
         return TRUE;
     }
 
