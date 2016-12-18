@@ -28,6 +28,7 @@ COMMONUTIL_INTERFACE PluginInterface =
 {
     COMMONUTIL_INTERFACE_VERSION,
     UtilCreateSearchControl,
+    UtilLoadImageFromResources
 };
 
 LOGICAL DllMain(
@@ -47,9 +48,9 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"";
-            info->Author = L"";
-            info->Description = L"";
+            info->DisplayName = L"CommonUtil Plugin";
+            info->Author = L"dmex";
+            info->Description = L"Common Plugin Extensions";
             info->HasOptions = FALSE;
             info->Interface = &PluginInterface;
         }

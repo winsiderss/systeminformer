@@ -33,9 +33,6 @@
     <ClCompile Include="filter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="searchbox.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="toolbar.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -46,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="customizesb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

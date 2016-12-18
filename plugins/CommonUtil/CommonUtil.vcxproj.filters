@@ -22,6 +22,9 @@
     <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="png.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">

@@ -22,7 +22,6 @@
  */
 
 #include "nettools.h"
-#define _WIC_IMAGE_CODECS_
 #include <commonutil.h>
 
 PPH_PLUGIN PluginInstance;
@@ -424,7 +423,7 @@ VOID NTAPI TreeNewMessageCallback(
                     {
                         HBITMAP countryBitmap;
 
-                        if (countryBitmap = LoadImageFromResources(16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
+                        if (countryBitmap = LoadImageFromResources(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             extension->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
                         }

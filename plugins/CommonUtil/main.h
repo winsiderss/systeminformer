@@ -78,7 +78,8 @@ VOID UtilCreateSearchControl(
     _In_ UINT CommandID
     );
 
-HBITMAP LoadImageFromResources(
+HBITMAP UtilLoadImageFromResources(
+    _In_ PVOID DllBase,
     _In_ UINT Width,
     _In_ UINT Height,
     _In_ PCWSTR Name,

@@ -22,7 +22,6 @@
 
 #include "nettools.h"
 #include "tracert.h"
-#define _WIC_IMAGE_CODECS_
 #include <commonutil.h>
 
 #define SORT_FUNCTION(Column) PmPoolTreeNewCompare##Column
@@ -518,7 +517,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
                     {
                         HBITMAP countryBitmap;
 
-                        if (countryBitmap = LoadImageFromResources(16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
+                        if (countryBitmap = LoadImageFromResources(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             node->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
                         }

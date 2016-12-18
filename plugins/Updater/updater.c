@@ -415,68 +415,54 @@ BOOLEAN QueryUpdateData(
     if (xmlStringBuffer == NULL || xmlStringBuffer[0] == '\0')
         goto CleanupExit;
 
-    // Load our XML
+    // Load the string
     xmlNode = mxmlLoadString(NULL, xmlStringBuffer, MXML_OPAQUE_CALLBACK);
     if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
         goto CleanupExit;
 
-    // Find the version node
+    // Find the xml nodes
     Context->Version = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->Version))
-        goto CleanupExit;
-
-    // Find the revision node
     Context->RevVersion = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "rev", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->RevVersion))
-        goto CleanupExit;
-
-    // Find the release date node
     Context->RelDate = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->RelDate))
-        goto CleanupExit;
-
-    // Find the size node
     Context->Size = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "size", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->Size))
-        goto CleanupExit;
-
-    // Find the Hash node
     Context->Hash = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->Hash))
-        goto CleanupExit;
-
-    // Find the signature node
     Context->Signature = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "sig", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->Signature))
-        goto CleanupExit;
-
-    // Find the release notes URL
     Context->ReleaseNotesUrl = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "relnotes", NULL, NULL, MXML_DESCEND)
         );
-    if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
-        goto CleanupExit;
-
-    // Find the installer download URL
     Context->SetupFileDownloadUrl = UpdaterGetOpaqueXmlNodeText(
         mxmlFindElement(xmlNode->child, xmlNode, "setupurl", NULL, NULL, MXML_DESCEND)
         );
+
+    if (PhIsNullOrEmptyString(Context->Version))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->RevVersion))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->RelDate))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->Size))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->Hash))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->Signature))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
+        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
         goto CleanupExit;
 
-    // Parse the version information 
     if (!ParseVersionString(Context))
         goto CleanupExit;
 

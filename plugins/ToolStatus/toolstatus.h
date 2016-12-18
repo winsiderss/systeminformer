@@ -34,8 +34,6 @@
 #include <vssym32.h>
 
 #include "resource.h"
-
-#define _WIC_IMAGE_CODECS_
 #include <toolstatusintf.h>
 
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
@@ -255,19 +253,6 @@ NTSTATUS QueryServiceFileName(
     _Out_ PPH_STRING *ServiceBinaryPath
     );
 
-// searchbox.c
-
-BOOLEAN CreateSearchboxControl(
-    _In_ UINT CmdId
-    );
-
-HBITMAP LoadImageFromResources(
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    );
-
 // graph.c
 
 extern HWND CpuGraphHandle;
@@ -388,6 +373,12 @@ typedef struct _CUSTOMIZE_CONTEXT
 HICON CustomizeGetToolbarIcon(
     _In_ PCUSTOMIZE_CONTEXT Context,
     _In_ INT CommandID
+    );
+
+// searchbox.c
+
+BOOLEAN CreateSearchboxControl(
+    _In_ UINT CmdId
     );
 
 #endif

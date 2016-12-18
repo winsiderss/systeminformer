@@ -515,16 +515,6 @@ BOOLEAN DiskDriveQueryImminentFailure(
     _Out_ PPH_LIST* DiskSmartAttributes
     );
 
-typedef struct _DISK_HANDLE_ENTRY
-{
-    WCHAR DeviceLetter;
-    HANDLE DeviceHandle;
-} DISK_HANDLE_ENTRY, *PDISK_HANDLE_ENTRY;
-
-PPH_LIST DiskDriveQueryMountPointHandles(
-    _In_ ULONG DeviceNumber
-    );
-
 typedef struct _NTFS_FILESYSTEM_STATISTICS
 {
     FILESYSTEM_STATISTICS FileSystemStatistics;

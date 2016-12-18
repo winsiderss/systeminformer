@@ -419,9 +419,9 @@ NTSTATUS UploadFileThreadStart(
         }
 
         // Create and POST data.
-        PhInitializeStringBuilder(&httpRequestHeaders, MAX_PATH);
-        PhInitializeStringBuilder(&httpPostHeader, MAX_PATH);
-        PhInitializeStringBuilder(&httpPostFooter, MAX_PATH);
+        PhInitializeStringBuilder(&httpRequestHeaders, DOS_MAX_PATH_LENGTH);
+        PhInitializeStringBuilder(&httpPostHeader, DOS_MAX_PATH_LENGTH);
+        PhInitializeStringBuilder(&httpPostFooter, DOS_MAX_PATH_LENGTH);
 
         // build request boundary string
         postBoundary = PhFormatString(
