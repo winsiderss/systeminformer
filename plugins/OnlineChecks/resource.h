@@ -5,7 +5,6 @@
 #define ID_SENDTO_SERVICE1              101
 #define IDD_PROGRESS                    101
 #define ID_SENDTO_SERVICE2              102
-#define ID_SENDTO_SERVICE3              103
 #define ID_SENDTO_SERVICE4              104
 #define ID_SENDTO_SERVICE5              105
 #define ID_SENDTO_SERVICE6              106

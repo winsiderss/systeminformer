@@ -171,13 +171,27 @@ VOID ShowNewerVersionDialog(
     config.hMainIcon = context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"You're running a pre-release version!";
-    config.pszContent = PhaFormatString(
-        L"Pre-release build: v%lu.%lu.%lu\r\n",
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion
-        )->Buffer;
+
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
+        config.pszMainInstruction = L"You're running the latest nightly build";
+        config.pszContent = PhaFormatString(
+            L"Pre-release build: v%lu.%lu.%lu\r\n",
+            context->CurrentMajorVersion,
+            context->CurrentMinorVersion,
+            context->CurrentRevisionVersion
+            )->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = L"You're running a pre-release version!";
+        config.pszContent = PhaFormatString(
+            L"Pre-release build: v%lu.%lu.%lu\r\n",
+            context->CurrentMajorVersion,
+            context->CurrentMinorVersion,
+            context->CurrentRevisionVersion
+            )->Buffer;
+    }
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;

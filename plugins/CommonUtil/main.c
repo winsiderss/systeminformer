@@ -28,7 +28,10 @@ COMMONUTIL_INTERFACE PluginInterface =
 {
     COMMONUTIL_INTERFACE_VERSION,
     UtilCreateSearchControl,
-    UtilLoadImageFromResources
+    UtilLoadImageFromResources,
+    UtilCreateJsonParser,
+    UtilCleanupJsonParser,
+    UtilGetJsonValueAsString
 };
 
 LOGICAL DllMain(

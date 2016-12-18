@@ -48,6 +48,7 @@
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_NIGHTLY_BUILD (PLUGIN_NAME L".NightlyBuilds")
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
@@ -92,6 +93,9 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
+
+    // Nightly builds only
+    PPH_STRING BuildMessage;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID TaskDialogLinkClicked(

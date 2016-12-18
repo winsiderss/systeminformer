@@ -45,9 +45,6 @@ INT_PTR CALLBACK OptionsDlgProc(
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
                 {
                     ULONG pingPacketLength = GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE);
                     ULONG minGraphScaling = GetDlgItemInt(hwndDlg, IDC_MAXHOPS, NULL, FALSE);
@@ -55,7 +52,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     PhSetIntegerSetting(SETTING_NAME_PING_SIZE, pingPacketLength);
                     PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, minGraphScaling);
 
-                    EndDialog(hwndDlg, IDOK);
+                    EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
             case IDC_GEOIP:

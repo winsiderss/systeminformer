@@ -23,26 +23,13 @@
 
 #include "onlnchk.h"
 #include <commonutil.h>
-#include "json-c/json.h"
 
-static SERVICE_INFO UploadServiceInfo[] =
+SERVICE_INFO UploadServiceInfo[] =
 {
     { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
     { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
-    { UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
+    //{ UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
-
-json_object_ptr json_get_object(json_object_ptr rootObj, const char* key)
-{
-    json_object_ptr returnObj;
-
-    if (json_object_object_get_ex(rootObj, key, &returnObj))
-    {
-        return returnObj;
-    }
-
-    return NULL;
-}
 
 BOOL ReadRequestString(
     _In_ HINTERNET Handle,
@@ -663,7 +650,7 @@ NTSTATUS UploadFileThreadStart(
                     PSTR quote = NULL;
                     PSTR buffer = NULL;
                     ULONG bufferLength = 0;
-                    json_object_ptr rootJsonObject;
+                    PVOID rootJsonObject;
 
                     //This service returns some json that redirects the user to the new location.
                     if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
@@ -672,53 +659,53 @@ NTSTATUS UploadFileThreadStart(
                         __leave;
                     }
 
-                    if (rootJsonObject = json_tokener_parse(buffer))
+                    if (rootJsonObject = CreateJsonParser(buffer))
                     {
-                        PSTR redirectUrl = json_object_get_string(json_get_object(rootJsonObject, "redirecturl"));
+                        PSTR redirectUrl = GetJsonValueAsString(rootJsonObject, "redirecturl");
 
                         context->LaunchCommand = PhFormatString(
                             L"http://virusscan.jotti.org%hs",
                             redirectUrl
                             );
 
-                        json_object_put(rootJsonObject);
+                        CleanupJsonParser(rootJsonObject);
                     }
                 }
                 break;
-            case UPLOAD_SERVICE_CIMA:
-                {
-                    PSTR urlEquals = NULL;
-                    PSTR quote = NULL;
-                    PSTR buffer = NULL;
-                    ULONG bufferLength = 0;
-
-                    // This service returns some HTML that redirects the user to the new location.
-                    if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
-                    {
-                        RaiseUploadError(context, L"Unable to complete the CIMA request", GetLastError());
-                        __leave;
-                    }
-
-                    // The HTML looks like this:
-                    // <META http-equiv="Refresh" content="0; url=...">
-                    urlEquals = strstr(buffer, "url=");
-
-                    if (urlEquals)
-                    {
-                        urlEquals += 4;
-                        quote = strchr(urlEquals, '"');
-
-                        if (quote)
-                        {
-                            context->LaunchCommand = PhFormatString(
-                                L"http://camas.comodo.com%.*S",
-                                quote - urlEquals,
-                                urlEquals
-                                );
-                        }
-                    }
-                }
-                break;
+            //case UPLOAD_SERVICE_CIMA:
+            //    {
+            //        PSTR urlEquals = NULL;
+            //        PSTR quote = NULL;
+            //        PSTR buffer = NULL;
+            //        ULONG bufferLength = 0;
+            //
+            //        // This service returns some HTML that redirects the user to the new location.
+            //        if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
+            //        {
+            //            RaiseUploadError(context, L"Unable to complete the CIMA request", GetLastError());
+            //            __leave;
+            //        }
+            //
+            //        // The HTML looks like this:
+            //        // <META http-equiv="Refresh" content="0; url=...">
+            //        urlEquals = strstr(buffer, "url=");
+            //
+            //        if (urlEquals)
+            //        {
+            //            urlEquals += 4;
+            //            quote = strchr(urlEquals, '"');
+            //
+            //            if (quote)
+            //            {
+            //                context->LaunchCommand = PhFormatString(
+            //                    L"http://camas.comodo.com%.*S",
+            //                    quote - urlEquals,
+            //                    urlEquals
+            //                    );
+            //            }
+            //        }
+            //    }
+            //    break;
             }
         }
         else
@@ -888,7 +875,7 @@ NTSTATUS UploadCheckThreadStart(
                 PSTR quote = NULL;
                 ULONG bufferLength = 0;
                 UCHAR hash[32];
-                json_object_ptr rootJsonObject;
+                PVOID rootJsonObject;
 
                 if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
                 {
@@ -913,13 +900,13 @@ NTSTATUS UploadCheckThreadStart(
                     __leave;
                 }
 
-                if (rootJsonObject = json_tokener_parse(subRequestBuffer))
+                if (rootJsonObject = CreateJsonParser(subRequestBuffer))
                 {
-                    json_bool file_Exists;
+                    BOOL file_Exists = FALSE;
                     PSTR uploadUrl;
 
-                    file_Exists  = json_object_get_boolean(json_get_object(rootJsonObject, "file_exists"));
-                    uploadUrl = json_object_get_string(json_get_object(rootJsonObject, "upload_url"));
+                    //file_Exists  = json_object_get_boolean(json_get_object(rootJsonObject, "file_exists"));
+                    uploadUrl = GetJsonValueAsString(rootJsonObject, "upload_url");
 
                     if (file_Exists)
                     {
@@ -928,7 +915,7 @@ NTSTATUS UploadCheckThreadStart(
 
                     context->ObjectName = PhZeroExtendToUtf16(uploadUrl + strlen("https://www.virustotal.com"));
 
-                    json_object_put(rootJsonObject);
+                    CleanupJsonParser(rootJsonObject);
                 }
 
                 // Create the default upload URL
@@ -943,94 +930,94 @@ NTSTATUS UploadCheckThreadStart(
                     context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
             }
             break;
-        case UPLOAD_SERVICE_CIMA:
-            {
-                PSTR quote = NULL;
-                ULONG bufferLength = 0;
-                UCHAR hash[32];
-                ULONG status = 0;
-                ULONG statusLength = sizeof(statusLength);
+        //case UPLOAD_SERVICE_CIMA:
+        //    {
+        //        PSTR quote = NULL;
+        //        ULONG bufferLength = 0;
+        //        UCHAR hash[32];
+        //        ULONG status = 0;
+        //        ULONG statusLength = sizeof(statusLength);
 
-                if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
-                {
-                    RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
-                    __leave;
-                }
+        //        if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
+        //        {
+        //            RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+        //            __leave;
+        //        }
 
-                hashString = PhBufferToHexString(hash, 32);
-                subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
-                context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
+        //        hashString = PhBufferToHexString(hash, 32);
+        //        subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
+        //        context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
 
-                // Connect to the CIMA online service.
-                if (!(connectHandle = WinHttpConnect(
-                    context->HttpHandle,
-                    serviceInfo->HostName,
-                    INTERNET_DEFAULT_HTTP_PORT,
-                    0
-                    )))
-                {
-                    RaiseUploadError(context, L"Unable to connect to the CIMA service", GetLastError());
-                    __leave;
-                }
+        //        // Connect to the CIMA online service.
+        //        if (!(connectHandle = WinHttpConnect(
+        //            context->HttpHandle,
+        //            serviceInfo->HostName,
+        //            INTERNET_DEFAULT_HTTP_PORT,
+        //            0
+        //            )))
+        //        {
+        //            RaiseUploadError(context, L"Unable to connect to the CIMA service", GetLastError());
+        //            __leave;
+        //        }
 
-                // Create the request.
-                if (!(requestHandle = WinHttpOpenRequest(
-                    connectHandle,
-                    NULL,
-                    subObjectName->Buffer,
-                    NULL,
-                    WINHTTP_NO_REFERER,
-                    WINHTTP_DEFAULT_ACCEPT_TYPES,
-                    WINHTTP_FLAG_REFRESH
-                    )))
-                {
-                    RaiseUploadError(context, L"Unable to create the CIMA request", GetLastError());
-                    __leave;
-                }
+        //        // Create the request.
+        //        if (!(requestHandle = WinHttpOpenRequest(
+        //            connectHandle,
+        //            NULL,
+        //            subObjectName->Buffer,
+        //            NULL,
+        //            WINHTTP_NO_REFERER,
+        //            WINHTTP_DEFAULT_ACCEPT_TYPES,
+        //            WINHTTP_FLAG_REFRESH
+        //            )))
+        //        {
+        //            RaiseUploadError(context, L"Unable to create the CIMA request", GetLastError());
+        //            __leave;
+        //        }
 
-                // Send the request.
-                if (!WinHttpSendRequest(
-                    requestHandle,
-                    WINHTTP_NO_ADDITIONAL_HEADERS,
-                    0,
-                    WINHTTP_NO_REQUEST_DATA,
-                    0,
-                    WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-                    0
-                    ))
-                {
-                    RaiseUploadError(context, L"Unable to send the CIMA request", GetLastError());
-                    __leave;
-                }
+        //        // Send the request.
+        //        if (!WinHttpSendRequest(
+        //            requestHandle,
+        //            WINHTTP_NO_ADDITIONAL_HEADERS,
+        //            0,
+        //            WINHTTP_NO_REQUEST_DATA,
+        //            0,
+        //            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
+        //            0
+        //            ))
+        //        {
+        //            RaiseUploadError(context, L"Unable to send the CIMA request", GetLastError());
+        //            __leave;
+        //        }
 
-                // Wait for the send request to complete and receive the response.
-                if (!WinHttpReceiveResponse(requestHandle, NULL))
-                {
-                    RaiseUploadError(context, L"Unable to receive the CIMA response", GetLastError());
-                    __leave;
-                }
+        //        // Wait for the send request to complete and receive the response.
+        //        if (!WinHttpReceiveResponse(requestHandle, NULL))
+        //        {
+        //            RaiseUploadError(context, L"Unable to receive the CIMA response", GetLastError());
+        //            __leave;
+        //        }
 
-                WinHttpQueryHeaders(
-                    requestHandle,
-                    WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-                    NULL,
-                    &status,
-                    &statusLength,
-                    NULL
-                    );
+        //        WinHttpQueryHeaders(
+        //            requestHandle,
+        //            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+        //            NULL,
+        //            &status,
+        //            &statusLength,
+        //            NULL
+        //            );
 
-                if (status == HTTP_STATUS_OK)
-                {
-                    fileExists = TRUE;
-                }
+        //        if (status == HTTP_STATUS_OK)
+        //        {
+        //            fileExists = TRUE;
+        //        }
 
-                if (!context->ObjectName)
-                {
-                    // Create the default upload URL
-                    context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-                }
-            }
-            break;
+        //        if (!context->ObjectName)
+        //        {
+        //            // Create the default upload URL
+        //            context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
+        //        }
+        //    }
+        //    break;
         }
 
         // Do we need to prompt the user?
@@ -1138,9 +1125,9 @@ INT_PTR CALLBACK UploadDlgProc(
             case UPLOAD_SERVICE_JOTTI:
                 Static_SetText(hwndDlg, L"Uploading to Jotti...");
                 break;
-            case UPLOAD_SERVICE_CIMA:
-                Static_SetText(hwndDlg, L"Uploading to Comodo...");
-                break;
+            //case UPLOAD_SERVICE_CIMA:
+            //    Static_SetText(hwndDlg, L"Uploading to Comodo...");
+            //    break;
             }
 
             if (dialogThread = PhCreateThread(0, UploadCheckThreadStart, (PVOID)context))

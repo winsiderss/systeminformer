@@ -4,6 +4,7 @@
 //
 #define IDD_OPTIONS                     103
 #define IDC_AUTOCHECKBOX                1002
+#define IDC_NIGHTLY                     1003
 
 // Next default values for new objects
 // 

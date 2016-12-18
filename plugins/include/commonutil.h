@@ -41,11 +41,29 @@ typedef HBITMAP (NTAPI *PUTIL_CREATE_IMAGE_FROM_RESOURCE)(
     _In_ BOOLEAN RGBAImage
     );
 
+typedef PVOID (NTAPI *PUTIL_CREATE_JSON_PARSER)(
+    _In_ PSTR JsonString
+    );
+
+typedef VOID (NTAPI *PUTIL_CLEANUP_JSON_PARSER)(
+    _In_ PVOID Object
+    );
+
+typedef PSTR (NTAPI *PUTIL_GET_JSON_VALUE_STRING)(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
 typedef struct _COMMONUTIL_INTERFACE
 {
     ULONG Version;
+
     PUTIL_CREATE_SEARCHBOX_CONTROL CreateSearchControl;
     PUTIL_CREATE_IMAGE_FROM_RESOURCE CreateImageFromResource;
+
+    PUTIL_CREATE_JSON_PARSER CreateJsonParser;
+    PUTIL_CLEANUP_JSON_PARSER CleanupJsonParser;
+    PUTIL_GET_JSON_VALUE_STRING GetJsonValueAsString;
 } COMMONUTIL_INTERFACE, *P_COMMONUTIL_INTERFACE;
 
 FORCEINLINE
@@ -106,6 +124,78 @@ HBITMAP LoadImageFromResources(
     else
         return NULL;
 }
+
+FORCEINLINE
+PVOID
+CreateJsonParser(
+    _In_ PSTR JsonString
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->CreateJsonParser(JsonString);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+VOID 
+CleanupJsonParser(
+    _In_ PVOID Object
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                Interface->CleanupJsonParser(Object);
+            }
+        }
+    }
+}
+
+FORCEINLINE
+PSTR 
+GetJsonValueAsString(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->GetJsonValueAsString(Object, Key);
+            }
+        }
+    }
+
+    return NULL;
+}
+
 
 FORCEINLINE
 HICON

@@ -89,7 +89,6 @@ extern PPH_PLUGIN PluginInstance;
 // upload
 #define UPLOAD_SERVICE_VIRUSTOTAL 101
 #define UPLOAD_SERVICE_JOTTI 102
-#define UPLOAD_SERVICE_CIMA 103
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,

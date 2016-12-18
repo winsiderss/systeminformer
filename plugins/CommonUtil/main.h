@@ -90,4 +90,17 @@ HICON BitmapToIcon(
     _In_ INT Height
     );
 
+PVOID UtilCreateJsonParser(
+    _In_ PSTR JsonString
+    );
+
+VOID UtilCleanupJsonParser(
+    _In_ PVOID Object
+    );
+
+PSTR UtilGetJsonValueAsString(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
 #endif

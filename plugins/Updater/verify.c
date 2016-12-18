@@ -198,6 +198,9 @@ BOOLEAN UpdaterVerifySignature(
     ULONG signatureLength;
     PUCHAR signatureBuffer;
 
+    if (!HexSignature)
+        return FALSE;
+
     signatureLength = (ULONG)HexSignature->Length / sizeof(WCHAR) / 2;
     signatureBuffer = PhAllocate(signatureLength);
 
