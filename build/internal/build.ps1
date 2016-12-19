@@ -30,20 +30,20 @@ function InitializeScriptEnvironment()
     # Stop script execution after any errors.
     $global:ErrorActionPreference = "Stop";
 
+    # This directory is excluded by .gitignore and handy for local builds.
+    $env:BUILD_OUTPUT_FOLDER = "ClientBin";
+
     if (Test-Path Env:\APPVEYOR)
     {
         $global:buildbot = $true;
 
         # AppVeyor preseves the directory structure during deployment.
         # So, we need to output into the current directory to upload into the correct FTP directory.
-        $env:BUILD_OUTPUT_FOLDER = ".";
+        #$env:BUILD_OUTPUT_FOLDER = ".";
     }
     else
     {
         $global:buildbot = $false;
-
-        # This directory is excluded by .gitignore and handy for local builds.
-        $env:BUILD_OUTPUT_FOLDER = "ClientBin";
 
         # Set the default branch for the build-src.zip.
         # We only set this when doing a local build, the buildbot sets this variable based on our appveyor.yml.
@@ -58,7 +58,7 @@ function InitializeScriptEnvironment()
     else
     {
         # Clear the console (if we're not running on the appveyor buildbot)
-        Clear-Host;
+        #Clear-Host;
     }
 
     if ($debug)
@@ -71,7 +71,7 @@ function InitializeScriptEnvironment()
     {
         # Always enable debug when the build was executed by the "RE-BUILD COMMIT" button on the AppVeyor web interface.
         # This way we can get debug output without having to commit changes to our yml on github after a build fails.
-        $global:debug_enabled = $true;
+        #$global:debug_enabled = $true;
     }
 
     if ($global:debug_enabled)
@@ -118,23 +118,72 @@ function BuildSolution([string] $FileName)
         $verbose = "quiet";
     }
 
-    & $msBuild  "/m",
-                "/nologo",
-                "/verbosity:$verbose",
-                "/p:Configuration=Release",
-                "/p:Platform=Win32",
-                "/t:Rebuild",
-                "/nodeReuse:true",
-                "$FileName"
+    if (($global:buildbot) -and (Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
+    {
+       $msbuild_output += & $msBuild  "/m",
+                    "/nologo",
+                    "/verbosity:$verbose",
+                    "/p:Configuration=Release",
+                    "/p:Platform=Win32",
+                    "/p:ExternalCompilerOptions=VIRUSTOTAL_API",
+                    "/t:Rebuild",        
+                    "/nodeReuse:true",
+                    "$FileName";
 
-    & $msBuild  "/m",
-                "/nologo",
-                "/verbosity:$verbose",
-                "/p:Configuration=Release",
-                "/p:Platform=x64",
-                "/t:Rebuild",
-                "/nodeReuse:true",
-                "$FileName"
+       $msbuild_output += & $msBuild  "/m",
+                    "/nologo",
+                    "/verbosity:$verbose",
+                    "/p:Configuration=Release",
+                    "/p:Platform=x64",
+                    "/p:ExternalCompilerOptions=VIRUSTOTAL_API",
+                    "/t:Rebuild",
+                    "/nodeReuse:true",
+                    "$FileName";
+    }
+    else
+    {
+        if ($global:debug_enabled)
+        {
+           $msbuild_output += & $msBuild  "/m",
+                        "/nologo",
+                        "/verbosity:$verbose",
+                        "/p:Configuration=Release",
+                        "/p:Platform=Win32",
+                        "/t:Rebuild",        
+                        "/nodeReuse:true",
+                        "$FileName";
+
+           $msbuild_output += & $msBuild  "/m",
+                        "/nologo",
+                        "/verbosity:$verbose",
+                        "/p:Configuration=Release",
+                        "/p:Platform=x64",
+                        "/t:Rebuild",
+                        "/nodeReuse:true",
+                        "$FileName";
+        }
+        else
+        {
+            $msbuild_output += & $msBuild  "/m",
+                        "/nologo",
+                        "/verbosity:$verbose",
+                        "/p:Configuration=Release",
+                        "/p:Platform=Win32",
+                        "/t:Rebuild",        
+                        "/nodeReuse:true",
+                        "$FileName" | Out-String;
+
+           $msbuild_output += & $msBuild  "/m",
+                        "/nologo",
+                        "/verbosity:$verbose",
+                        "/p:Configuration=Release",
+                        "/p:Platform=x64",
+                        "/t:Rebuild",
+                        "/nodeReuse:true",
+                        "$FileName" | Out-String;
+        }
+
+    }
 
     if ($LASTEXITCODE -eq 0)
     {
@@ -142,7 +191,8 @@ function BuildSolution([string] $FileName)
     }
     else
     {
-        Write-Host "        [ERROR]" -ForegroundColor Red
+        Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
+        exit 2;
     }
 }
 
@@ -363,7 +413,7 @@ function BuildSetupExe()
 
     Write-Host "Building build-setup.exe" -NoNewline -ForegroundColor Cyan
 
-    if (!(Test-Path "$innoBuild"))
+    if (!(Test-Path $innoBuild))
     {
         Write-Host "`t[SKIPPED] (Inno Setup not installed)" -ForegroundColor Yellow
         return;
@@ -615,9 +665,49 @@ function BuildChecksumsFile()
 
 function BuildSignaturesFile()
 {
+    $secure_file = "tools\SecureBuildTool\secure-file.exe";
+    
     Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
+    
+    if ((!$global:buildbot) -and !(Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
+    {
+        Write-Host " [SKIPPED] (VirusTotal build key)" -ForegroundColor Yellow
+        return
+    }
+    
+    if (!(Test-Path $secure_file))
+    {
+        Write-Host " [SKIPPED] (secure-file not installed)" -ForegroundColor Yellow
+        return;
+    }
 
-    Write-Host "    [SUCCESS]" -ForegroundColor Green
+    if ($global:debug_enabled)
+    {
+        & "$secure_file" "-decrypt",
+                "plugins\OnlineChecks\virustotal.s",
+                "-secret",
+                "${env:VIRUSTOTAL_BUILD_KEY}",
+                "-out",
+                "plugins\OnlineChecks\virustotal.h"
+    }
+    else
+    {
+        & "$secure_file" "-decrypt",
+                "plugins\OnlineChecks\virustotal.s",
+                "-secret",
+                "${env:VIRUSTOTAL_BUILD_KEY}",
+                "-out",
+                "plugins\OnlineChecks\virustotal.h" | Out-Null
+    }
+
+    if ($LASTEXITCODE -eq 0)
+    {
+        Write-Host "        [SUCCESS]" -ForegroundColor Green
+    }
+    else
+    {
+        Write-Host "        [ERROR]" -ForegroundColor Red
+    }
 }
 
 function UpdateBuildService()
@@ -632,7 +722,13 @@ function UpdateBuildService()
 
     Write-Host "Updating build service" -ForegroundColor Cyan
 
-    if (Test-Path "$git")
+    if ((!(Test-Path Env:\APPVEYOR_BUILD_API)) -and (!(Test-Path Env:\APPVEYOR_BUILD_KEY)))
+    {
+        Write-Host " [SKIPPED] (Build service key)" -ForegroundColor Yellow
+        return;
+    }
+
+    if (Test-Path $git)
     {
         $latestGitMessage =  (& "$git" "log", "-n", "5", "--pretty=%B") | Out-String
         $latestGitTag =      (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
@@ -643,14 +739,14 @@ function UpdateBuildService()
         $fileVersion = "3.0." + $latestGitRevision.Trim() #${env:APPVEYOR_BUILD_VERSION}
     }
 
-    if (Test-Path "$binZip")
+    if (Test-Path $binZip)
     {
         $fileInfo = (Get-Item "$binZip");
         $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
         $fileSize = $fileInfo.Length;
     }
 
-    if ($array)
+    if ($array) 
     {
         $exeHash = $array[0].Hash;
         $sdkHash = $array[1].Hash;
@@ -660,7 +756,7 @@ function UpdateBuildService()
     }
     else
     {
-        if (Test-Path "$exeSetup")
+        if (Test-Path $exeSetup)
         {
             $exeHash = (Get-FileHash "$exeSetup" -Algorithm SHA256).Hash;
         }
@@ -746,6 +842,9 @@ function ShowBuildTime()
 # Entry point
 InitializeScriptEnvironment;
 
+# Decrypt build files
+BuildSignaturesFile;
+
 # Check if the current directory contains the main solution
 CheckBaseDirectory;
 
@@ -777,7 +876,6 @@ BuildPdbZip;
 
 # Build the checksums
 BuildChecksumsFile;
-BuildSignaturesFile;
 
 # Update the build service
 UpdateBuildService;
