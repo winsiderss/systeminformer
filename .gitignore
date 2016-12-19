@@ -122,6 +122,7 @@ plugins/SamplePlugin/bin/Release32/*
 !plugins/SamplePlugin/bin/Release32/SamplePlugin.dll
 plugins/SamplePlugin/bin/Release64/*
 !plugins/SamplePlugin/bin/Release64/SamplePlugin.dll
+plugins/OnlineChecks/virustotal.h
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/

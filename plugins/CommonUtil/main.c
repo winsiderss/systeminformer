@@ -27,11 +27,26 @@ PPH_PLUGIN PluginInstance;
 COMMONUTIL_INTERFACE PluginInterface =
 {
     COMMONUTIL_INTERFACE_VERSION,
+
     UtilCreateSearchControl,
     UtilLoadImageFromResources,
+
     UtilCreateJsonParser,
     UtilCleanupJsonParser,
-    UtilGetJsonValueAsString
+
+    UtilGetJsonValueAsString,
+    UtilGetJsonValueAsUlong,
+
+    UtilCreateJsonArray,
+    UtilAddJsonArray,
+
+    UtilCreateJsonObject,
+    UtilGetJsonObject,
+    UtilJsonAddObject,
+
+    UtilGetJsonArrayString,
+    UtilGetArrayLength,
+    UtilGetObjectArrayIndex
 };
 
 LOGICAL DllMain(

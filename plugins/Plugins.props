@@ -19,6 +19,7 @@
     <!-- Global -->
     <ItemDefinitionGroup>
         <ClCompile>
+            <AdditionalOptions>$(ExternalCompilerOptions)</AdditionalOptions>
             <AdditionalIncludeDirectories>..\include;..\..\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
             <TreatWarningAsError>true</TreatWarningAsError>
             <WarningLevel>Level3</WarningLevel>

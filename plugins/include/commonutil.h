@@ -54,6 +54,48 @@ typedef PSTR (NTAPI *PUTIL_GET_JSON_VALUE_STRING)(
     _In_ PSTR Key
     );
 
+typedef INT64 (NTAPI *PUTIL_GET_JSON_VALUE_INT64)(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
+typedef PVOID (NTAPI *PUTIL_CREATE_JSON_OBJECT)(
+    VOID
+    );
+
+typedef PVOID (NTAPI *PUTIL_GET_JSON_OBJECT)(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
+typedef VOID (NTAPI *PUTIL_ADD_JSON_OBJECT_VALUE)(
+    _In_ PVOID Object,
+    _In_ PVOID Entry
+    );
+
+typedef PVOID (NTAPI *PUTIL_CREATE_JSON_ARRAY)(
+    VOID
+    );
+
+typedef VOID (NTAPI *PUTIL_ADD_JSON_ARRAY_VALUE)(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PSTR Value
+    );
+
+typedef PSTR (NTAPI *PUTIL_GET_JSON_ARRAY_STRING)(
+    _In_ PVOID Object
+    );
+
+typedef INT (NTAPI *PUTIL_GET_JSON_ARRAY_LENGTH)(
+    _In_ PVOID Object
+    );
+
+typedef PVOID (NTAPI *PUTIL_GET_JSON_OBJECT_ARRAY_INDEX)(
+    _In_ PVOID Object,
+    _In_ INT Index
+    );
+
 typedef struct _COMMONUTIL_INTERFACE
 {
     ULONG Version;
@@ -63,7 +105,20 @@ typedef struct _COMMONUTIL_INTERFACE
 
     PUTIL_CREATE_JSON_PARSER CreateJsonParser;
     PUTIL_CLEANUP_JSON_PARSER CleanupJsonParser;
+
     PUTIL_GET_JSON_VALUE_STRING GetJsonValueAsString;
+    PUTIL_GET_JSON_VALUE_INT64 GetJsonValueAsUlong;
+
+    PUTIL_CREATE_JSON_ARRAY CreateJsonArray;
+    PUTIL_ADD_JSON_OBJECT_VALUE JsonArrayAddObject;
+
+    PUTIL_CREATE_JSON_OBJECT CreateJsonObject;
+    PUTIL_GET_JSON_OBJECT GetJsonObject;
+    PUTIL_ADD_JSON_ARRAY_VALUE JsonAddObject;
+
+    PUTIL_GET_JSON_ARRAY_STRING GetJsonArrayString;
+    PUTIL_GET_JSON_ARRAY_LENGTH JsonGetArrayLength;
+    PUTIL_GET_JSON_OBJECT_ARRAY_INDEX JsonGetObjectArrayIndex;
 } COMMONUTIL_INTERFACE, *P_COMMONUTIL_INTERFACE;
 
 FORCEINLINE
@@ -195,6 +250,226 @@ GetJsonValueAsString(
 
     return NULL;
 }
+
+FORCEINLINE
+INT64
+GetJsonValueAsUlong(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->GetJsonValueAsUlong(Object, Key);
+            }
+        }
+    }
+
+    return 0;
+}
+FORCEINLINE
+PVOID 
+CreateJsonArray(
+    VOID
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->CreateJsonArray();
+            }
+        }
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+PSTR 
+GetJsonArrayString(
+    _In_ PVOID Object
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->GetJsonArrayString(Object);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+INT 
+JsonGetArrayLength(
+    _In_ PVOID Object
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->JsonGetArrayLength(Object);
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+FORCEINLINE
+PVOID
+JsonGetObjectArrayIndex(
+    _In_ PVOID Object,
+    _In_ INT Index
+)
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->JsonGetObjectArrayIndex(Object, Index);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+PVOID 
+CreateJsonObject(
+    VOID
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->CreateJsonObject();
+            }
+        }
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+PVOID 
+JsonGetObject(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->GetJsonObject(Object, Key);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+FORCEINLINE
+VOID
+JsonArrayAddObject(
+    _In_ PVOID Object,
+    _In_ PVOID Entry
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                Interface->JsonArrayAddObject(Object, Entry);
+            }
+        }
+    }
+}
+
+FORCEINLINE
+VOID
+JsonAddObject(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PSTR Value
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                Interface->JsonAddObject(Object, Key, Value);
+            }
+        }
+    }
+}
+
+
 
 
 FORCEINLINE

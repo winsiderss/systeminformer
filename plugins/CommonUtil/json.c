@@ -60,3 +60,72 @@ PSTR UtilGetJsonValueAsString(
 {
     return json_object_get_string(json_get_object(Object, Key));
 }
+
+int64_t UtilGetJsonValueAsUlong(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    return json_object_get_int64(json_get_object(Object, Key));
+}
+
+PVOID UtilCreateJsonObject(
+    VOID
+    )
+{
+    return json_object_new_object();
+}
+
+PVOID UtilGetJsonObject(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    return json_get_object(Object, Key);
+}
+
+VOID UtilJsonAddObject(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PSTR Value
+    )
+{
+    json_object_object_add(Object, Key, json_object_new_string(Value));
+}
+
+PVOID UtilCreateJsonArray(
+    VOID
+    )
+{
+    return json_object_new_array();
+}
+
+VOID UtilAddJsonArray(
+    _In_ PVOID Object,
+    _In_ PVOID jsonEntry
+    )
+{
+    json_object_array_add(Object, jsonEntry);
+}
+
+PSTR UtilGetJsonArrayString(
+    _In_ PVOID Object
+    )
+{
+    return _strdup(json_object_to_json_string(Object));
+}
+
+INT UtilGetArrayLength(
+    _In_ PVOID Object
+    )
+{
+    return json_object_array_length(Object);
+}
+
+PVOID UtilGetObjectArrayIndex(
+    _In_ PVOID Object,
+    _In_ INT Index
+    )
+{
+    return json_object_array_get_idx(Object, Index);
+}
