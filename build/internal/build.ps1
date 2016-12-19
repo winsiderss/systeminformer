@@ -403,7 +403,7 @@ function SetupProcessHackerWow64()
     Copy-Item "bin\Release32\plugins\DotNetTools.dll"  "bin\Release64\x86\plugins\"
     Copy-Item "bin\Release32\plugins\DotNetTools.pdb"  "bin\Release64\x86\plugins\"
 
-    Write-Host "        [SUCCESS]" -ForegroundColor Green
+    Write-Host "       [SUCCESS]" -ForegroundColor Green
 }
 
 function BuildSetupExe()
@@ -660,7 +660,7 @@ function BuildChecksumsFile()
     # Convert the Arraylist to a string and save the string
     $fileHashes | Out-String | Out-File "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt"
 
-    Write-Host "          [SUCCESS]" -ForegroundColor Green
+    Write-Host "        [SUCCESS]" -ForegroundColor Green
 }
 
 function BuildSignaturesFile()
@@ -702,11 +702,11 @@ function BuildSignaturesFile()
 
     if ($LASTEXITCODE -eq 0)
     {
-        Write-Host "        [SUCCESS]" -ForegroundColor Green
+        Write-Host "     [SUCCESS]" -ForegroundColor Green
     }
     else
     {
-        Write-Host "        [ERROR]" -ForegroundColor Red
+        Write-Host "     [ERROR]" -ForegroundColor Red
     }
 }
 
@@ -720,11 +720,11 @@ function UpdateBuildService()
     $pdbZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip" 
     $checksums ="${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt"
 
-    Write-Host "Updating build service" -ForegroundColor Cyan
+    Write-Host "Updating build service" -NoNewline -ForegroundColor Cyan
 
     if ((!(Test-Path Env:\APPVEYOR_BUILD_API)) -and (!(Test-Path Env:\APPVEYOR_BUILD_KEY)))
     {
-        Write-Host " [SKIPPED] (Build service key)" -ForegroundColor Yellow
+        Write-Host "      [SKIPPED] (Build service key)" -ForegroundColor Yellow
         return;
     }
 
