@@ -756,7 +756,7 @@ function SetupSignatureFiles()
 
 function BuildSignatureFiles()
 {
-    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
+    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe"
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
     $rootPath = (Get-Location).Path;
 
@@ -770,7 +770,7 @@ function BuildSignatureFiles()
 
     if (!(Test-Path "$exeSetup"))
     {
-        Write-Host " [SKIPPED] (private.key)" -ForegroundColor Yellow
+        Write-Host " [SKIPPED] (processhacker-setup.exe)" -ForegroundColor Yellow
         return
     }
 
