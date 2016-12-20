@@ -453,11 +453,22 @@ function BuildSetupExe()
         & "$innoBuild" "build\installer\Process_Hacker_installer.iss" | Out-Null
     }
 
-    Remove-Item "$setupPath" -ErrorAction SilentlyContinue
 
-    Move-Item "build\installer\processhacker-3.0-setup.exe" "$setupPath" -ErrorAction SilentlyContinue
+    Remove-Item "$setupPath" -Force -ErrorAction SilentlyContinue
 
-    Write-Host "    [SUCCESS]" -ForegroundColor Green
+
+    Move-Item "build\installer\processhacker-3.0-setup.exe" "$setupPath"
+
+    
+    if ($LASTEXITCODE -eq 0)
+    {
+        Write-Host "    [SUCCESS]" -ForegroundColor Green
+    }
+    else
+    {
+        Write-Host "     [ERROR]" -ForegroundColor Red
+        exit 4
+    }
 }
 
 function BuildSdkZip()
