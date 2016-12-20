@@ -116,6 +116,11 @@ function InitializeBuildEnvironment()
 
         Write-Host "$global:fileVersion ($global:buildMessage)" -ForegroundColor White
     }
+
+    if (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}"))
+    {
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
+    }
 }
 
 function BuildSolution([string] $FileName)
@@ -435,11 +440,6 @@ function BuildSetupExe()
     {
         Write-Host "`t[SKIPPED] (Inno Setup not installed)" -ForegroundColor Yellow
         return
-    }
-
-    if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
-    {
-        New-Item "$env:BUILD_OUTPUT_FOLDER" -type Directory -ErrorAction SilentlyContinue | Out-Null
     }
 
     if ($global:debug_enabled)
