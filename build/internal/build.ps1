@@ -756,6 +756,7 @@ function SetupSignatureFiles()
 
 function BuildSignatureFiles()
 {
+    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
     $rootPath = (Get-Location).Path;
 
@@ -769,8 +770,8 @@ function BuildSignatureFiles()
 
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
-        "`"$rootPath\build\internal\private.key`"", 
-        "`"$rootPath\ClientBin\processhacker-build-setup.exe`"", 
+        "$rootPath\build\internal\private.key", 
+        "$exeSetup", 
         "-h" | Out-String) -replace "`n|`r"
 
     if ($LASTEXITCODE -eq 0)
@@ -918,8 +919,11 @@ function BuildCleanup()
 {
     Write-Host "Cleaning up..." -ForegroundColor Cyan
 
-    Remove-Item "build\internal\private.key" -Force -ErrorAction SilentlyContinue
-    Remove-Item "plugins\OnlineChecks\virustotal.h" -Force -ErrorAction SilentlyContinue
+    if ($global:buildbot)
+    {
+        Remove-Item "build\internal\private.key" -Force -ErrorAction SilentlyContinue
+        Remove-Item "plugins\OnlineChecks\virustotal.h" -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # Setup the build script environment
