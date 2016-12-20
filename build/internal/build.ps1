@@ -770,7 +770,7 @@ function BuildSignatureFiles()
         return
     }
 
-    $global:signature_output = (& "$sign_file" "sign", 
+    $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
         "$rootPath\build\internal\private.key", 
         "$rootPath\ClientBin\processhacker-build-setup.exe", 
@@ -778,11 +778,11 @@ function BuildSignatureFiles()
 
     if ($LASTEXITCODE -eq 0)
     {
-        Write-Host "     [SUCCESS]" -ForegroundColor Green
+        Write-Host "     [SUCCESS] ($global:signature_output)" -ForegroundColor Green
     }
     else
     {
-        Write-Host "     [ERROR] $global:signature_output" -ForegroundColor Red
+        Write-Host "     [ERROR] ($global:signature_output)" -ForegroundColor Red
         exit 4
     }
 }
