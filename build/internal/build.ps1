@@ -768,6 +768,12 @@ function BuildSignatureFiles()
         return
     }
 
+    if (!(Test-Path "$exeSetup"))
+    {
+        Write-Host " [SKIPPED] (private.key)" -ForegroundColor Yellow
+        return
+    }
+
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
         "$rootPath\build\internal\private.key", 
