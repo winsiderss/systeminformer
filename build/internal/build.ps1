@@ -749,11 +749,11 @@ function BuildSignatureFiles()
         return
     }
 
-    $global:signature_output = & "$sign_file" "sign", 
+    $global:signature_output = (& "$sign_file" "sign", 
         "-k", 
         "$rootPath\build\internal\private.key", 
         "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
-        "-h" | Out-String
+        "-h" | Out-String) -replace "`n|`r"
 
     if ($LASTEXITCODE -eq 0)
     {
