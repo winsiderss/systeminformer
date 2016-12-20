@@ -756,7 +756,7 @@ function SetupSignatureFiles()
 
 function BuildSignatureFiles()
 {
-    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe"
+    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
     $rootPath = (Get-Location).Path;
 
