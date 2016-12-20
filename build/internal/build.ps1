@@ -739,7 +739,8 @@ function SetupSignatureFiles()
 function BuildSignatureFiles()
 {
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
-    
+    $rootPath = (Get-Location).Path;
+
     Write-Host "Update build signatures" -NoNewline -ForegroundColor Cyan
     
     if ((!$global:buildbot) -and !(Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
@@ -750,7 +751,7 @@ function BuildSignatureFiles()
 
     $global:signature_output = & $sign_file "sign", 
         "-k", 
-        "build\internal\private.key", 
+        "$rootPath\build\internal\private.key", 
         "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
         "-h" | Out-String
 
