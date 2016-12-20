@@ -43,7 +43,7 @@ function InitializeScriptEnvironment()
     }
     else
     {
-        $global:buildbot = $false;
+        #$global:buildbot = $false;
 
         # Set the default branch for the build-src.zip.
         # We only set this when doing a local build, the buildbot sets this variable based on our appveyor.yml.
@@ -53,7 +53,7 @@ function InitializeScriptEnvironment()
     if ($global:buildbot)
     {
         # intentionally empty
-        Write-Host;
+        Write-Host
     }
     else
     {
@@ -77,6 +77,27 @@ function InitializeScriptEnvironment()
     if ($global:debug_enabled)
     {
         Write-Host "[DEBUG MODE]" -ForegroundColor Red
+    }
+}
+
+function InitializeBuildEnvironment()
+{
+    $git = "${env:ProgramFiles}\Git\cmd\git.exe"
+
+    if (Test-Path $git)
+    {
+        Write-Host "Getting build information...  " -NoNewline -ForegroundColor Cyan
+
+        $global:latestGitMessage =  (& "$git" "log", "-n", "5", "--pretty=%B") | Out-String
+        $global:latestGitTag =      (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
+        #$global:latestGitCount =   (& "$git" "rev-list", "--count", "master") | Out-String
+        $global:latestGitRevision = (& "$git" "rev-list", "--count", ($global:latestGitTag.Trim() + "..master")) | Out-String
+        
+        $global:buildMessage = $global:latestGitMessage -Replace "`r`n`r`n", "`r`n"
+        $global:buildMessage = ($global:buildMessage -split '\r\n')[0]
+        $global:fileVersion = "3.0." + $global:latestGitRevision.Trim() #${env:APPVEYOR_BUILD_VERSION}
+
+        Write-Host "$global:fileVersion ($global:buildMessage)" -ForegroundColor White
     }
 }
 
@@ -120,7 +141,7 @@ function BuildSolution([string] $FileName)
 
     if (($global:buildbot) -and (Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
     {
-       $msbuild_output += & $msBuild  "/m",
+       $msbuild_output += & "$msBuild"  "/m",
                     "/nologo",
                     "/verbosity:$verbose",
                     "/p:Configuration=Release",
@@ -130,7 +151,7 @@ function BuildSolution([string] $FileName)
                     "/nodeReuse:true",
                     "$FileName";
 
-       $msbuild_output += & $msBuild  "/m",
+       $msbuild_output += & "$msBuild"  "/m",
                     "/nologo",
                     "/verbosity:$verbose",
                     "/p:Configuration=Release",
@@ -144,7 +165,7 @@ function BuildSolution([string] $FileName)
     {
         if ($global:debug_enabled)
         {
-           $msbuild_output += & $msBuild  "/m",
+           $msbuild_output += & "$msBuild"  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
                         "/p:Configuration=Release",
@@ -164,7 +185,7 @@ function BuildSolution([string] $FileName)
         }
         else
         {
-            $msbuild_output += & $msBuild  "/m",
+            $msbuild_output += & "$msBuild"  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
                         "/p:Configuration=Release",
@@ -173,7 +194,7 @@ function BuildSolution([string] $FileName)
                         "/nodeReuse:true",
                         "$FileName" | Out-String;
 
-           $msbuild_output += & $msBuild  "/m",
+           $msbuild_output += & "$msBuild"  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
                         "/p:Configuration=Release",
@@ -192,7 +213,7 @@ function BuildSolution([string] $FileName)
     else
     {
         Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
-        exit 2;
+        exit 2
     }
 }
 
@@ -416,7 +437,7 @@ function BuildSetupExe()
     if (!(Test-Path $innoBuild))
     {
         Write-Host "`t[SKIPPED] (Inno Setup not installed)" -ForegroundColor Yellow
-        return;
+        return
     }
 
     if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
@@ -452,7 +473,7 @@ function BuildSdkZip()
     if (!(Test-Path "$7zip"))
     {
         Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
-        return;
+        return
     }
 
     if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
@@ -494,7 +515,7 @@ function BuildBinZip()
     if (!(Test-Path "$7zip"))
     {
         Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
-        return;
+        return
     }
 
     if (Test-Path "$zip_path")
@@ -554,7 +575,7 @@ function BuildSourceZip()
     if (!(Test-Path "$git"))
     {
         Write-Host "`t[SKIPPED] (Git not installed)" -ForegroundColor Yellow
-        return;
+        return
     }
 
     if ((!$global:buildbot) -and (!(Test-Path Env:\BUILD_OUTPUT_FOLDER)))
@@ -585,7 +606,7 @@ function BuildPdbZip()
     if (!(Test-Path "$7zip"))
     {
         Write-Host "`t[SKIPPED] (7-Zip not installed)" -ForegroundColor Yellow
-        return;
+        return
     }
 
     if (Test-Path "$zip_path")
@@ -678,7 +699,7 @@ function SetupSignatureFiles()
     if (!(Test-Path "$secure_file"))
     {
         Write-Host " [SKIPPED] (secure-file not installed)" -ForegroundColor Yellow
-        return;
+        return
     }
 
     if ($global:debug_enabled)
@@ -703,7 +724,7 @@ function SetupSignatureFiles()
     if (!($LASTEXITCODE -eq 0))
     {
         Write-Host "     [ERROR] (virustotal)" -ForegroundColor Red
-        exit 5;
+        exit 5
     }
 
     if ($global:debug_enabled)
@@ -732,7 +753,7 @@ function SetupSignatureFiles()
     else
     {
         Write-Host "     [ERROR] (private)" -ForegroundColor Red
-        exit 5;
+        exit 5
     }
 }
 
@@ -781,18 +802,7 @@ function UpdateBuildService()
     if ((!(Test-Path Env:\APPVEYOR_BUILD_API)) -and (!(Test-Path Env:\APPVEYOR_BUILD_KEY)))
     {
         Write-Host "      [SKIPPED] (Build service key)" -ForegroundColor Yellow
-        return;
-    }
-
-    if (Test-Path $git)
-    {
-        $latestGitMessage =  (& "$git" "log", "-n", "5", "--pretty=%B") | Out-String
-        $latestGitTag =      (& "$git" "describe", "--abbrev=0", "--tags", "--always") | Out-String
-        #$latestGitCount =   (& "$git" "rev-list", "--count", "master") | Out-String
-        $latestGitRevision = (& "$git" "rev-list", "--count", ($latestGitTag.Trim() + "..master")) | Out-String
-        
-        $buildMessage = $latestGitMessage -Replace "`r`n`r`n", "`r`n"
-        $fileVersion = "3.0." + $latestGitRevision.Trim() #${env:APPVEYOR_BUILD_VERSION}
+        return
     }
 
     if (Test-Path $binZip)
@@ -838,39 +848,39 @@ function UpdateBuildService()
         }
     }
 
-    if ($global:signature_output -and $buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
+    if ($global:signature_output -and $global:buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $global:fileVersion)
     {
         $jsonString = @{
-            "version"="$fileVersion"
+            "version"="$global:fileVersion"
             "size"="$fileSize"
             "updated"="$fileTime"
             "forum_url"="https://wj32.org/processhacker/forums/viewtopic.php?t=2315"
-            "bin_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-$fileVersion-bin.zip"
-            "setup_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-$fileVersion-setup.exe"
+            "bin_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-$global:fileVersion-bin.zip"
+            "setup_url"="https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-$global:fileVersion-setup.exe"
             "hash_setup"="$exeHash"
             "hash_sdk"="$sdkHash"
             "hash_bin"="$binHash"
             "hash_src"="$srcHash"
             "hash_pdb"="$pdbHash"
-            "message"="$buildMessage"
+            "message"="$global:buildMessage"
             "sig"="$global:signature_output"
         } | ConvertTo-Json | Out-String;
 
-        Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe" -Force -ErrorAction SilentlyContinue
-        Rename-Item "$sdkZip"    "processhacker-$fileVersion-sdk.zip" -Force
-        Rename-Item "$binZip"    "processhacker-$fileVersion-bin.zip" -Force
-        Rename-Item "$srcZip"    "processhacker-$fileVersion-src.zip" -Force
-        Rename-Item "$pdbZip"    "processhacker-$fileVersion-pdb.zip" -Force
-        Rename-Item "$checksums" "processhacker-$fileVersion-checksums.txt" -Force
+        Rename-Item "$exeSetup"  "processhacker-$global:fileVersion-setup.exe" -Force
+        Rename-Item "$sdkZip"    "processhacker-$global:fileVersion-sdk.zip" -Force
+        Rename-Item "$binZip"    "processhacker-$global:fileVersion-bin.zip" -Force
+        Rename-Item "$srcZip"    "processhacker-$global:fileVersion-src.zip" -Force
+        Rename-Item "$pdbZip"    "processhacker-$global:fileVersion-pdb.zip" -Force
+        Rename-Item "$checksums" "processhacker-$global:fileVersion-checksums.txt" -Force
 
         if (($global:buildbot) -and (Test-Path Env:\APPVEYOR_BUILD_API))
         {
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe" -ErrorAction SilentlyContinue
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-bin.zip"
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-src.zip"
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-pdb.zip"
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-checksums.txt"
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe" -ErrorAction SilentlyContinue
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -ErrorAction SilentlyContinue
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-bin.zip" -ErrorAction SilentlyContinue
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-src.zip" -ErrorAction SilentlyContinue
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -ErrorAction SilentlyContinue
+            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-checksums.txt" -ErrorAction SilentlyContinue
         }
 
         if ((Test-Path Env:\APPVEYOR_BUILD_API) -and (Test-Path Env:\APPVEYOR_BUILD_KEY))
@@ -896,8 +906,11 @@ function ShowBuildTime()
     Write-Host "Build Time: $($timeEnd.Minutes) minute(s), $($timeEnd.Seconds) second(s)";
 }
 
-# Entry point
+# Setup the build script environment
 InitializeScriptEnvironment;
+
+# Setup the build version
+InitializeBuildEnvironment;
 
 # Decrypt build files
 SetupSignatureFiles;
