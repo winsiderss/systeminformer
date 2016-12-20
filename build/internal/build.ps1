@@ -752,7 +752,7 @@ function BuildSignatureFiles()
     $global:signature_output = (& "$sign_file" "sign", 
         "-k", 
         "$rootPath\build\internal\private.key", 
-        "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
+        "$rootPath\ClientBin\processhacker-build-setup.exe", 
         "-h" | Out-String) -replace "`n|`r"
 
     if ($LASTEXITCODE -eq 0)
@@ -762,7 +762,7 @@ function BuildSignatureFiles()
     else
     {
         Write-Host "     [ERROR] $global:signature_output" -ForegroundColor Red
-        exit 4;
+        exit 4
     }
 }
 
