@@ -30,8 +30,22 @@ function InitializeScriptEnvironment()
     # Stop script execution after any errors.
     $global:ErrorActionPreference = "Stop";
 
-    # This directory is excluded by .gitignore and handy for local builds.
-    $env:BUILD_OUTPUT_FOLDER = "ClientBin";
+    # Check if the current directory contains the main solution
+    if (!(Test-Path "ProcessHacker.sln"))
+    {
+        # Change root directory to the \build\internal\ directory (where this script is located).
+        Set-Location $PSScriptRoot;
+
+        # Set the current location to the base repository directory.
+        Set-Location "..\..\";
+
+        # Re-check if the current directory
+        if (!(Test-Path "ProcessHacker.sln"))
+        {
+            Write-Host "Unable to find project directory... Exiting." -ForegroundColor Red
+            exit 5
+        }
+    }
 
     if (Test-Path Env:\APPVEYOR)
     {
@@ -40,6 +54,8 @@ function InitializeScriptEnvironment()
         # AppVeyor preseves the directory structure during deployment.
         # So, we need to output into the current directory to upload into the correct FTP directory.
         #$env:BUILD_OUTPUT_FOLDER = ".";
+        $env:APPVEYOR_REPO_BRANCH = "master";
+        $env:BUILD_OUTPUT_FOLDER = "ClientBin";
     }
     else
     {
@@ -48,6 +64,7 @@ function InitializeScriptEnvironment()
         # Set the default branch for the build-src.zip.
         # We only set this when doing a local build, the buildbot sets this variable based on our appveyor.yml.
         $env:APPVEYOR_REPO_BRANCH = "master";
+        $env:BUILD_OUTPUT_FOLDER = "ClientBin";
     }
 
     if ($global:buildbot)
@@ -98,26 +115,6 @@ function InitializeBuildEnvironment()
         $global:fileVersion = "3.0." + $global:latestGitRevision.Trim() #${env:APPVEYOR_BUILD_VERSION}
 
         Write-Host "$global:fileVersion ($global:buildMessage)" -ForegroundColor White
-    }
-}
-
-function CheckBaseDirectory()
-{
-    # Check if the current directory contains the main solution
-    if (!(Test-Path "ProcessHacker.sln"))
-    {
-        # Change root directory to the \build\internal\ directory (where this script is located).
-        Set-Location $PSScriptRoot;
-
-        # Set the current location to the base repository directory.
-        Set-Location "..\..\";
-
-        # Re-check if the current directory
-        if (!(Test-Path "ProcessHacker.sln"))
-        {
-            Write-Host "Unable to find project directory... Exiting." -ForegroundColor Red
-            exit 5
-        }
     }
 }
 
@@ -772,8 +769,8 @@ function BuildSignatureFiles()
 
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
-        "$rootPath\build\internal\private.key", 
-        "$rootPath\ClientBin\processhacker-build-setup.exe", 
+        "`"$rootPath\build\internal\private.key`"", 
+        "`"$rootPath\ClientBin\processhacker-build-setup.exe`"", 
         "-h" | Out-String) -replace "`n|`r"
 
     if ($LASTEXITCODE -eq 0)
@@ -866,7 +863,15 @@ function UpdateBuildService()
             "sig"="$global:signature_output"
         } | ConvertTo-Json | Out-String;
 
-        Rename-Item "$exeSetup"  "processhacker-$global:fileVersion-setup.exe" -Force
+
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe" -Force -ErrorAction SilentlyContinue
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -Force -ErrorAction SilentlyContinue
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-bin.zip" -Force -ErrorAction SilentlyContinue
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-src.zip" -Force -ErrorAction SilentlyContinue
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -Force -ErrorAction SilentlyContinue
+        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-checksums.txt" -Force -ErrorAction SilentlyContinue
+
+        Rename-Item "$exeSetup"  "processhacker-$global:fileVersion-setup.exe" -Force 
         Rename-Item "$sdkZip"    "processhacker-$global:fileVersion-sdk.zip" -Force
         Rename-Item "$binZip"    "processhacker-$global:fileVersion-bin.zip" -Force
         Rename-Item "$srcZip"    "processhacker-$global:fileVersion-src.zip" -Force
@@ -875,12 +880,15 @@ function UpdateBuildService()
 
         if (($global:buildbot) -and (Test-Path Env:\APPVEYOR_BUILD_API))
         {
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe" -ErrorAction SilentlyContinue
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -ErrorAction SilentlyContinue
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-bin.zip" -ErrorAction SilentlyContinue
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-src.zip" -ErrorAction SilentlyContinue
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -ErrorAction SilentlyContinue
-            Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-checksums.txt" -ErrorAction SilentlyContinue
+            if (Get-Command "Push-AppveyorArtifact" -ErrorAction SilentlyContinue)
+            {
+                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe" -ErrorAction SilentlyContinue
+                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -ErrorAction SilentlyContinue
+                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-bin.zip" -ErrorAction SilentlyContinue
+                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-src.zip" -ErrorAction SilentlyContinue
+                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -ErrorAction SilentlyContinue
+                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-checksums.txt" -ErrorAction SilentlyContinue
+            }
         }
 
         if ((Test-Path Env:\APPVEYOR_BUILD_API) -and (Test-Path Env:\APPVEYOR_BUILD_KEY))
@@ -906,6 +914,14 @@ function ShowBuildTime()
     Write-Host "Build Time: $($timeEnd.Minutes) minute(s), $($timeEnd.Seconds) second(s)";
 }
 
+function BuildCleanup()
+{
+    Write-Host "Cleaning up..." -ForegroundColor Cyan
+
+    Remove-Item "build\internal\private.key" -Force -ErrorAction SilentlyContinue
+    Remove-Item "plugins\OnlineChecks\virustotal.h" -Force -ErrorAction SilentlyContinue
+}
+
 # Setup the build script environment
 InitializeScriptEnvironment;
 
@@ -914,9 +930,6 @@ InitializeBuildEnvironment;
 
 # Decrypt build files
 SetupSignatureFiles;
-
-# Check if the current directory contains the main solution
-CheckBaseDirectory;
 
 # Build the main solution
 BuildSolution("ProcessHacker.sln");
@@ -952,6 +965,9 @@ BuildSignatureFiles;
 
 # Update the build service
 UpdateBuildService;
+
+# Clean up sensitive files
+BuildCleanup;
 
 # Show the total build time
 ShowBuildTime;
