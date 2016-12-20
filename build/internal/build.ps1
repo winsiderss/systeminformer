@@ -663,7 +663,7 @@ function BuildChecksumsFile()
     Write-Host "        [SUCCESS]" -ForegroundColor Green
 }
 
-function BuildSignaturesFile()
+function SetupSignatureFiles()
 {
     $secure_file = "tools\SecureBuildTool\secure-file.exe";
     
@@ -675,7 +675,7 @@ function BuildSignaturesFile()
         return
     }
     
-    if (!(Test-Path $secure_file))
+    if (!(Test-Path "$secure_file"))
     {
         Write-Host " [SKIPPED] (secure-file not installed)" -ForegroundColor Yellow
         return;
@@ -697,7 +697,32 @@ function BuildSignaturesFile()
                 "-secret",
                 "${env:VIRUSTOTAL_BUILD_KEY}",
                 "-out",
-                "plugins\OnlineChecks\virustotal.h" | Out-Null
+                "plugins\OnlineChecks\virustotal.h"
+    }
+
+    if (!($LASTEXITCODE -eq 0))
+    {
+        Write-Host "     [ERROR] (virustotal)" -ForegroundColor Red
+        exit 5;
+    }
+
+    if ($global:debug_enabled)
+    {
+        & "$secure_file" "-decrypt",
+                "build\internal\private.s",
+                "-secret",
+                "${env:VIRUSTOTAL_BUILD_KEY}",
+                "-out",
+                "build\internal\private.key"
+    }
+    else
+    {
+        & "$secure_file" "-decrypt",
+                "build\internal\private.s",
+                "-secret",
+                "${env:VIRUSTOTAL_BUILD_KEY}",
+                "-out",
+                "build\internal\private.key"
     }
 
     if ($LASTEXITCODE -eq 0)
@@ -706,7 +731,37 @@ function BuildSignaturesFile()
     }
     else
     {
-        Write-Host "     [ERROR]" -ForegroundColor Red
+        Write-Host "     [ERROR] (private)" -ForegroundColor Red
+        exit 5;
+    }
+}
+
+function BuildSignatureFiles()
+{
+    $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
+    
+    Write-Host "Update build signatures" -NoNewline -ForegroundColor Cyan
+    
+    if ((!$global:buildbot) -and !(Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
+    {
+        Write-Host " [SKIPPED] (VirusTotal build key)" -ForegroundColor Yellow
+        return
+    }
+
+    $global:signature_output = & $sign_file "sign", 
+        "-k", 
+        "build\internal\private.key", 
+        "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
+        "-h" | Out-String
+
+    if ($LASTEXITCODE -eq 0)
+    {
+        Write-Host "     [SUCCESS]" -ForegroundColor Green
+    }
+    else
+    {
+        Write-Host "     [ERROR] $global:signature_output" -ForegroundColor Red
+        exit 4;
     }
 }
 
@@ -782,7 +837,7 @@ function UpdateBuildService()
         }
     }
 
-    if ($buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
+    if ($global:signature_output -and $buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $fileVersion)
     {
         $jsonString = @{
             "version"="$fileVersion"
@@ -797,6 +852,7 @@ function UpdateBuildService()
             "hash_src"="$srcHash"
             "hash_pdb"="$pdbHash"
             "message"="$buildMessage"
+            "sig"="$global:signature_output"
         } | ConvertTo-Json | Out-String;
 
         Rename-Item "$exeSetup"  "processhacker-$fileVersion-setup.exe" -Force -ErrorAction SilentlyContinue
@@ -806,7 +862,7 @@ function UpdateBuildService()
         Rename-Item "$pdbZip"    "processhacker-$fileVersion-pdb.zip" -Force
         Rename-Item "$checksums" "processhacker-$fileVersion-checksums.txt" -Force
 
-        if ($global:buildbot)
+        if (($global:buildbot) -and (Test-Path Env:\APPVEYOR_BUILD_API))
         {
             Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-setup.exe" -ErrorAction SilentlyContinue
             Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$fileVersion-sdk.zip"
@@ -843,7 +899,7 @@ function ShowBuildTime()
 InitializeScriptEnvironment;
 
 # Decrypt build files
-BuildSignaturesFile;
+SetupSignatureFiles;
 
 # Check if the current directory contains the main solution
 CheckBaseDirectory;
@@ -877,8 +933,11 @@ BuildPdbZip;
 # Build the checksums
 BuildChecksumsFile;
 
+# Create signature files
+BuildSignatureFiles;
+
 # Update the build service
 UpdateBuildService;
 
-#
+# Show the total build time
 ShowBuildTime;
