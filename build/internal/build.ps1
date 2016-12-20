@@ -793,7 +793,7 @@ function BuildSignatureFiles()
 
     if ($LASTEXITCODE -eq 0)
     {
-        Write-Host "     [SUCCESS] ($global:signature_output)" -ForegroundColor Green
+        Write-Host "     [SUCCESS]" -ForegroundColor Green
     }
     else
     {

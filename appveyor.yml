@@ -24,9 +24,6 @@ matrix:
 install:
   - choco install -y InnoSetup
 
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  
 # Disable running any test assemblies.
 test: off
 
