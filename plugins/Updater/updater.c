@@ -460,7 +460,7 @@ BOOLEAN QueryUpdateData(
         Context->RelDate = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "updated"));
         Context->Size = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "size"));
         Context->Hash = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "hash_setup"));
-        //Context->Signature = PhConvertUtf8ToUtf16(hash_setup);
+        Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
         Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
         Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
         //PSTR bin_url = GetJsonValueAsString(jsonObject, "bin_url");
@@ -990,7 +990,7 @@ NTSTATUS UpdateDownloadThread(
                     PhGetStringOrEmpty(totalLength),
                     percent,
                     PhGetStringOrEmpty(totalSpeed)
-                );
+                    );
 
                 SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
                 SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
@@ -1015,8 +1015,8 @@ NTSTATUS UpdateDownloadThread(
         }
     }
 
-
 CleanupExit:
+
     if (hashContext)
         UpdaterDestroyHash(hashContext);
 
@@ -1041,12 +1041,6 @@ CleanupExit:
 
     if (UpdateDialogThreadHandle)
     {
-        if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-        {
-            // HACK: TODO: Add buildbot signature checking.
-            signatureSuccess = TRUE;
-        }
-
         if (downloadSuccess && hashSuccess && signatureSuccess)
         {
             PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);

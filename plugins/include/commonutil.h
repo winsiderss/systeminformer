@@ -68,6 +68,11 @@ typedef PVOID (NTAPI *PUTIL_GET_JSON_OBJECT)(
     _In_ PSTR Key
     );
 
+typedef BOOL (NTAPI *PUTIL_GET_JSON_OBJECT_BOOL)(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
 typedef VOID (NTAPI *PUTIL_ADD_JSON_OBJECT_VALUE)(
     _In_ PVOID Object,
     _In_ PVOID Entry
@@ -114,6 +119,9 @@ typedef struct _COMMONUTIL_INTERFACE
 
     PUTIL_CREATE_JSON_OBJECT CreateJsonObject;
     PUTIL_GET_JSON_OBJECT GetJsonObject;
+
+    PUTIL_GET_JSON_OBJECT_BOOL GetJsonValueAsBool;
+
     PUTIL_ADD_JSON_ARRAY_VALUE JsonAddObject;
 
     PUTIL_GET_JSON_ARRAY_STRING GetJsonArrayString;
@@ -275,6 +283,32 @@ GetJsonValueAsUlong(
 
     return 0;
 }
+
+FORCEINLINE
+BOOL
+GetJsonValueAsBool(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->GetJsonValueAsBool(Object, Key);
+            }
+        }
+    }
+
+    return FALSE;
+}
+
 FORCEINLINE
 PVOID 
 CreateJsonArray(
@@ -555,12 +589,12 @@ FORCEINLINE
 HFONT
 CommonCreateFont(
     _In_ LONG Size,
-    _In_ HWND hwnd
+    _In_ INT Weight,
+    _In_opt_ HWND hwnd
     )
 {
     LOGFONT logFont;
 
-    // Create the font handle
     if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
     {
         HFONT fontHandle = CreateFont(
@@ -568,7 +602,7 @@ CommonCreateFont(
             0,
             0,
             0,
-            FW_MEDIUM,
+            Weight,
             FALSE,
             FALSE,
             FALSE,
@@ -579,8 +613,11 @@ CommonCreateFont(
             DEFAULT_PITCH,
             logFont.lfFaceName
             );
-
-        SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
+        
+        if (hwnd)
+        {
+            SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
+        }
 
         return fontHandle;
     }

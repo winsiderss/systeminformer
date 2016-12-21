@@ -84,6 +84,14 @@ PVOID UtilGetJsonObject(
     return json_get_object(Object, Key);
 }
 
+BOOL UtilGetJsonObjectBool(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    return json_object_get_boolean(json_get_object(Object, Key));
+}
+
 VOID UtilJsonAddObject(
     _In_ PVOID Object,
     _In_ PSTR Key,

@@ -140,13 +140,27 @@ VOID ShowLatestVersionDialog(
     config.hMainIcon = context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"You're running the latest version.";
+    
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
+        config.pszMainInstruction = L"You're running the latest nightly build.";
         config.pszContent = PhaFormatString(
-        L"Stable release build: v%lu.%lu.%lu\r\n\r\n<A HREF=\"executablestring\">View Changelog</A>",
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion
-        )->Buffer;
+            L"Alpha build: v%lu.%lu.%lu",
+            context->CurrentMajorVersion,
+            context->CurrentMinorVersion,
+            context->CurrentRevisionVersion
+            )->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = L"You're running the latest version.";
+        config.pszContent = PhaFormatString(
+            L"Stable release build: v%lu.%lu.%lu\r\n\r\n<A HREF=\"executablestring\">View Changelog</A>",
+            context->CurrentMajorVersion,
+            context->CurrentMinorVersion,
+            context->CurrentRevisionVersion
+            )->Buffer;
+    }
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;

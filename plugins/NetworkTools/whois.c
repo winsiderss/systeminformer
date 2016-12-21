@@ -391,8 +391,8 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PhSetWindowStyle(context->WhoisHandle, WS_BORDER, WS_BORDER);
             PhSetWindowExStyle(context->WhoisHandle, WS_EX_CLIENTEDGE, ~WS_EX_CLIENTEDGE);
 
-            context->FontHandle = CommonCreateFont(-15, context->StatusHandle);
-            context->FontHandle = CommonCreateFont(-11, context->WhoisHandle);
+            context->FontHandle = CommonCreateFont(-15, FW_MEDIUM, context->StatusHandle);
+            context->FontHandle = CommonCreateFont(-11, FW_MEDIUM, context->WhoisHandle);
 
             //SendMessage(context->OutputHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->WhoisHandle, EM_SETEVENTMASK, 0, SendMessage(context->WhoisHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);

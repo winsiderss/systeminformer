@@ -126,6 +126,11 @@ PVOID UtilGetJsonObject(
     _In_ PSTR Key
     );
 
+BOOL UtilGetJsonObjectBool(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
 VOID UtilJsonAddObject(
     _In_ PVOID Object,
     _In_ PSTR Key,

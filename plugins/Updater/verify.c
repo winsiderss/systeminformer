@@ -35,6 +35,19 @@ static UCHAR UpdaterTrustedPublicKey[] =
     0x74, 0xEB, 0x64, 0x29, 0x02, 0xF9, 0xB3, 0xD3,
 };
 
+static UCHAR UpdaterTrustedNightlyPublicKey[] =
+{
+    0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+    0x99, 0xCA, 0xBD, 0x8E, 0xBC, 0x27, 0x39, 0x7B, 
+    0x99, 0xE9, 0x5B, 0x19, 0x70, 0x59, 0xFD, 0x0B, 
+    0x28, 0x24, 0x9F, 0xF8, 0xCF, 0x36, 0xA5, 0x61, 
+    0x82, 0x58, 0x00, 0xC7, 0xE7, 0xD8, 0xF8, 0x9E, 
+    0x73, 0x75, 0x38, 0x61, 0xB1, 0x88, 0xC1, 0x13, 
+    0xE8, 0x38, 0x85, 0x92, 0x4C, 0x82, 0xF0, 0xBE, 
+    0xE5, 0x8B, 0x5E, 0x47, 0x95, 0x90, 0x13, 0xD4, 
+    0xBF, 0xA2, 0xC0, 0x4D, 0xB0, 0xA9, 0x72, 0xEB,
+};
+
 BOOLEAN UpdaterInitializeHash(
     _Out_ PUPDATER_HASH_CONTEXT *Context
     )
@@ -46,104 +59,116 @@ BOOLEAN UpdaterInitializeHash(
     hashContext = PhAllocate(sizeof(UPDATER_HASH_CONTEXT));
     memset(hashContext, 0, sizeof(UPDATER_HASH_CONTEXT));
 
-    __try
+
+    // Import the trusted public key.
+    if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
+        &hashContext->SignAlgHandle,
+        BCRYPT_ECDSA_P256_ALGORITHM,
+        NULL,
+        0
+        )))
     {
-        // Import the trusted public key.
+        goto CleanupExit;
+    }
 
-        if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
-            &hashContext->SignAlgHandle, 
-            BCRYPT_ECDSA_P256_ALGORITHM, 
-            NULL, 
-            0
-            )))
-        {
-            __leave;
-        }
-
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
         if (!NT_SUCCESS(BCryptImportKeyPair(
-            hashContext->SignAlgHandle, 
-            NULL, 
-            BCRYPT_ECCPUBLIC_BLOB, 
-            &hashContext->KeyHandle, 
-            UpdaterTrustedPublicKey, 
-            sizeof(UpdaterTrustedPublicKey), 
+            hashContext->SignAlgHandle,
+            NULL,
+            BCRYPT_ECCPUBLIC_BLOB,
+            &hashContext->KeyHandle,
+            UpdaterTrustedNightlyPublicKey,
+            sizeof(UpdaterTrustedNightlyPublicKey),
             0
             )))
         {
-            __leave;
+            goto CleanupExit;
         }
-
-        // Open the hash algorithm and allocate memory for the hash object.
-
-        if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
-            &hashContext->HashAlgHandle,
-            BCRYPT_SHA256_ALGORITHM, 
-            NULL, 
-            0
-            )))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(BCryptGetProperty(
-            hashContext->HashAlgHandle, 
-            BCRYPT_OBJECT_LENGTH, 
-            (PUCHAR)&hashContext->HashObjectSize,
-            sizeof(ULONG),
-            &querySize, 
-            0
-            )))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(BCryptGetProperty(
-            hashContext->HashAlgHandle, 
-            BCRYPT_HASH_LENGTH, 
-            (PUCHAR)&hashContext->HashSize,
-            sizeof(ULONG), 
-            &querySize, 
-            0
-            )))
-        {
-            __leave;
-        }
-
-        if (!(hashContext->HashObject = PhAllocate(hashContext->HashObjectSize)))
-        {
-            __leave;
-        }
-
-        if (!(hashContext->Hash = PhAllocate(hashContext->HashSize)))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(BCryptCreateHash(
-            hashContext->HashAlgHandle, 
-            &hashContext->HashHandle, 
-            hashContext->HashObject,
-            hashContext->HashObjectSize,
-            NULL, 
-            0, 
-            0
-            )))
-        {
-            __leave;
-        }
-
-        success = TRUE;
     }
-    __finally
+    else
     {
-        if (!success)
+        if (!NT_SUCCESS(BCryptImportKeyPair(
+            hashContext->SignAlgHandle,
+            NULL,
+            BCRYPT_ECCPUBLIC_BLOB,
+            &hashContext->KeyHandle,
+            UpdaterTrustedPublicKey,
+            sizeof(UpdaterTrustedPublicKey),
+            0
+            )))
         {
-            UpdaterDestroyHash(hashContext);
+            goto CleanupExit;
         }
     }
+
+    // Open the hash algorithm and allocate memory for the hash object.
+
+    if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
+        &hashContext->HashAlgHandle,
+        BCRYPT_SHA256_ALGORITHM,
+        NULL,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(BCryptGetProperty(
+        hashContext->HashAlgHandle,
+        BCRYPT_OBJECT_LENGTH,
+        (PUCHAR)&hashContext->HashObjectSize,
+        sizeof(ULONG),
+        &querySize,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(BCryptGetProperty(
+        hashContext->HashAlgHandle,
+        BCRYPT_HASH_LENGTH,
+        (PUCHAR)&hashContext->HashSize,
+        sizeof(ULONG),
+        &querySize,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!(hashContext->HashObject = PhAllocate(hashContext->HashObjectSize)))
+    {
+        goto CleanupExit;
+    }
+
+    if (!(hashContext->Hash = PhAllocate(hashContext->HashSize)))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(BCryptCreateHash(
+        hashContext->HashAlgHandle,
+        &hashContext->HashHandle,
+        hashContext->HashObject,
+        hashContext->HashObjectSize,
+        NULL,
+        0,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    success = TRUE;
+
+CleanupExit:
 
     if (success)
         *Context = hashContext;
+    else
+        UpdaterDestroyHash(hashContext);
 
     return success;
 }
