@@ -252,12 +252,15 @@ PSTR VirusTotalSendHttpRequest(
     HINTERNET connectHandle = NULL;
     HINTERNET requestHandle = NULL;
     PSTR subRequestBuffer = NULL;
+    PPH_STRING tokenVersion = NULL;
     PPH_STRING phVersion = NULL;
     PPH_STRING userAgent = NULL;
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
+    tokenVersion = PhConcatStrings2(VIRUSTOTAL_URLPATH, VIRUSTOTAL_APIKEY);
+
     WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
     if (!(httpSessionHandle = WinHttpOpen(
@@ -293,7 +296,7 @@ PSTR VirusTotalSendHttpRequest(
     if (!(requestHandle = WinHttpOpenRequest(
         connectHandle,
         L"POST",
-        VIRUSTOTAL_URLPATH VIRUSTOTAL_APIKEY,
+        tokenVersion->Buffer,
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
@@ -376,6 +379,9 @@ CleanupExit:
     if (httpSessionHandle)
         WinHttpCloseHandle(httpSessionHandle);
 
+    if (tokenVersion)
+        PhDereferenceObject(tokenVersion);
+
     return subRequestBuffer;
 }
 
@@ -402,7 +408,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
         PSTR jsonArrayToSendString;
         PSTR jsonApiResult = NULL;
         PVOID jsonArray;
-        PVOID rootJsonObject;
+        PVOID rootJsonObject = NULL;
         PVOID dataJsonObject;
         PPH_LIST resultTempList = NULL;
         PPH_LIST virusTotalResults = NULL;
@@ -504,6 +510,11 @@ CleanupExit:
             PhDereferenceObject(virusTotalResults);
         }
         
+        if (rootJsonObject)
+        {
+            CleanupJsonParser(rootJsonObject);
+        }
+
         if (jsonArray)
         {
             CleanupJsonParser(jsonArray);
