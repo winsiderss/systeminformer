@@ -458,13 +458,11 @@ BOOLEAN QueryUpdateData(
         Context->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
         Context->RevVersion = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
         Context->RelDate = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "updated"));
-        Context->Size = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "size"));
+        Context->Size = PhFormatSize(GetJsonValueAsUlong(jsonObject, "size"), 2);
         Context->Hash = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "hash_setup"));
         Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
         Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
         Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
-        //PSTR bin_url = GetJsonValueAsString(jsonObject, "bin_url");
-        //PSTR hash_bin = GetJsonValueAsString(jsonObject, "hash_bin");
         Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
 
         CleanupJsonParser(jsonObject);
