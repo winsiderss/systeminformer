@@ -383,9 +383,17 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
     _In_ PVOID Parameter
     )
 {
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
+    LONG increment;
+    IO_PRIORITY_HINT ioPriority;
 
-    Sleep(5 / PH_TICKS_PER_SEC);
+    // TODO: Workqueue support.
+    increment = THREAD_PRIORITY_LOWEST;
+    ioPriority = IoPriorityVeryLow;
+
+    NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &increment, sizeof(LONG));
+    NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT));
+
+    Sleep(5 * PH_TICKS_PER_SEC);
 
     do
     {
@@ -529,7 +537,7 @@ CleanupExit:
         }
 
         // Wait 15 seconds before checking list again
-        Sleep(10 / PH_TICKS_PER_SEC);
+        Sleep(15 * PH_TICKS_PER_MS);
 
     } while (VirusTotalHandle);
 

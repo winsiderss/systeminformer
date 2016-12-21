@@ -139,6 +139,7 @@ VOID NTAPI MenuItemCallback(
                 config.cbSize = sizeof(TASKDIALOGCONFIG);
                 config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
                 config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
+                config.hwndParent = menuItem->OwnerWindow;
                 config.hMainIcon = PhLoadIcon(
                     NtCurrentPeb()->ImageBaseAddress,
                     MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
