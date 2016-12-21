@@ -768,7 +768,6 @@ function SetupSignatureFiles()
 function BuildSignatureFiles()
 {
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
-    $rootPath = (Get-Location).Path;
 
     Write-Host "Update build signatures" -NoNewline -ForegroundColor Cyan
     
@@ -778,7 +777,13 @@ function BuildSignatureFiles()
         return
     }
 
-    if (!(Test-Path "$exeSetup"))
+    if (!(Test-Path "build\internal\private.key"))
+    {
+        Write-Host " [SKIPPED] (private.key)" -ForegroundColor Yellow
+        return
+    }
+
+    if (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"))
     {
         Write-Host " [SKIPPED] (processhacker-setup.exe)" -ForegroundColor Yellow
         return
@@ -786,7 +791,7 @@ function BuildSignatureFiles()
 
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
-        "$rootPath\build\internal\private.key", 
+        "build\internal\private.key", 
         "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
         "-h" | Out-String) -replace "`n|`r"
 
