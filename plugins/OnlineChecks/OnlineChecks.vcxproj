@@ -76,10 +76,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="db.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="upload.c" />
+    <ClCompile Include="virustotal.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="db.h" />
     <ClInclude Include="onlnchk.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

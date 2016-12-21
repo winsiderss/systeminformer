@@ -22,20 +22,88 @@
  */
 
 #include "onlnchk.h"
+#include "db.h"
 
 PPH_PLUGIN PluginInstance;
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+
+BOOLEAN VirusTotalScanningEnabled = FALSE;
+HWND ProcessTreeNewHandle = NULL;
+ULONG ProcessesUpdatedCount = 0;
+LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
+PH_QUEUED_LOCK ProcessesListLock = PH_QUEUED_LOCK_INIT;
+
+VOID ProcessesUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+#ifdef VIRUSTOTAL_API
+    PLIST_ENTRY listEntry;
+
+    if (!VirusTotalScanningEnabled)
+        return;
+
+    listEntry = ProcessListHead.Flink;
+
+    while (listEntry != &ProcessListHead)
+    {
+        PPROCESS_EXTENSION extension;
+        PPH_PROCESS_ITEM processItem;
+
+        extension = CONTAINING_RECORD(listEntry, PROCESS_EXTENSION, ListEntry);
+        processItem = extension->ProcessItem;
+
+        if (!PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) && !PhIsNullOrEmptyString(processItem->FileName))
+        {
+            if (!extension->ResultValid)
+            {
+                PPROCESS_DB_OBJECT object;
+
+                if (object = FindProcessDbObject(&processItem->FileName->sr))
+                {
+                    extension->Stage1 = TRUE;
+                    extension->ResultValid = TRUE;
+
+                    extension->Positives = object->Positives;
+                    PhSwapReference(&extension->VirusTotalResult, PhDuplicateString(object->Result));
+                }
+            }
+
+            if (!extension->Stage1)
+            {
+                if (!VirusTotalGetCachedResult(processItem->FileName))
+                {
+                    VirusTotalAddCacheResult(processItem, extension);
+                }
+
+                extension->Stage1 = TRUE;
+            }
+        }
+
+        listEntry = listEntry->Flink;
+    }
+#endif
+}
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    if (VirusTotalScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED))
+    {
+        InitializeProcessDb();
+        InitializeVirusTotalProcessMonitor();
+    }
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -56,6 +124,52 @@ VOID NTAPI MenuItemCallback(
 
     switch (menuItem->Id)
     {
+    case ENABLE_SERVICE_VIRUSTOTAL:
+        {
+            ULONG scanningEnabled = !VirusTotalScanningEnabled;
+
+            PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, scanningEnabled);
+
+            if (VirusTotalScanningEnabled != scanningEnabled)
+            {
+                INT result = IDOK;
+                TASKDIALOGCONFIG config;
+
+                memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+                config.cbSize = sizeof(TASKDIALOGCONFIG);
+                config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
+                config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
+                config.hMainIcon = PhLoadIcon(
+                    NtCurrentPeb()->ImageBaseAddress,
+                    MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+                    PH_LOAD_ICON_SIZE_LARGE,
+                    GetSystemMetrics(SM_CXICON),
+                    GetSystemMetrics(SM_CYICON)
+                    );
+                config.cxWidth = 180;
+                config.pszWindowTitle = L"Process Hacker - VirusTotal";
+                config.pszMainInstruction = L"VirusTotal scanning requires a restart of Process Hacker.";
+                config.pszContent = L"Do you want to restart Process Hacker now?";
+
+                if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDYES)
+                {
+                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                    PhShellProcessHacker(
+                        PhMainWndHandle,
+                        L"-v",
+                        SW_SHOW,
+                        0,
+                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                        0,
+                        NULL
+                        );
+                    ProcessHacker_Destroy(PhMainWndHandle);
+                }
+
+                DestroyIcon(config.hMainIcon);
+            }
+        }
+        break;
     case ID_SENDTO_SERVICE1:
         fileName = menuItem->Context;
         UploadToOnlineService(fileName, UPLOAD_SERVICE_VIRUSTOTAL);
@@ -65,6 +179,25 @@ VOID NTAPI MenuItemCallback(
         UploadToOnlineService(fileName, UPLOAD_SERVICE_JOTTI);
         break;
     }
+}
+
+VOID NTAPI MainMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM menuItem;
+
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
+        return;
+
+    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem, -1);
+
+    if (VirusTotalScanningEnabled)
+        menuItem->Flags |= PH_EMENU_CHECKED;
 }
 
 PPH_EMENU_ITEM CreateSendToMenu(
@@ -112,7 +245,6 @@ VOID NTAPI ProcessMenuInitializingCallback(
     sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search online", processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
-
     if (!processItem || !processItem->FileName)
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
@@ -141,6 +273,172 @@ VOID NTAPI ModuleMenuInitializingCallback(
     }
 }
 
+
+LONG NTAPI VirusTotalNodeSortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
+    )
+{
+    PPH_PROCESS_NODE node1 = Node1;
+    PPH_PROCESS_NODE node2 = Node2;
+    PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ProcessItem, EmProcessItemType);
+    PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ProcessItem, EmProcessItemType);
+
+    return PhCompareStringWithNull(extension1->VirusTotalResult, extension2->VirusTotalResult, TRUE);
+}
+
+VOID NTAPI ProcessTreeNewInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
+    PH_TREENEW_COLUMN column;
+
+    *(HWND*)Context = info->TreeNewHandle;
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"VirusTotal";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_CENTER;
+    column.CustomDraw = TRUE;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_VIUSTOTAL, NULL, VirusTotalNodeSortFunction);
+}
+
+VOID NTAPI TreeNewMessageCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
+
+    switch (message->Message)
+    {
+    case TreeNewGetCellText:
+        {
+            if (message->TreeNewHandle == ProcessTreeNewHandle)
+            {
+                PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
+                PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
+                PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
+
+                switch (message->SubId)
+                {
+                case NETWORK_COLUMN_ID_VIUSTOTAL:
+                    {
+                        getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
+                    }
+                    break;
+                }
+            }
+        }
+        break;
+    case TreeNewCustomDraw:
+        {
+            if (message->TreeNewHandle == ProcessTreeNewHandle)
+            {
+                PPH_TREENEW_CUSTOM_DRAW customDraw = message->Parameter1;
+                PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)customDraw->Node;
+                PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
+                PH_STRINGREF text;
+                SIZE textSize;
+
+                if (!VirusTotalScanningEnabled)
+                {
+                    static PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"VirusTotal disabled");
+
+                    GetTextExtentPoint32(
+                        customDraw->Dc, 
+                        disabledText.Buffer, 
+                        (ULONG)disabledText.Length / 2, 
+                        &textSize
+                        );
+
+                    DrawText(
+                        customDraw->Dc,
+                        disabledText.Buffer,
+                        (ULONG)disabledText.Length / 2,
+                        &customDraw->CellRect,
+                        DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
+                        );
+
+                    return;
+                }
+
+                if (extension->Positives)
+                {
+                    //fontHandle = CommonCreateFont(-14, FW_BOLD, NULL);  
+                    SetTextColor(customDraw->Dc, RGB(0xff, 0, 0));
+                }
+                else
+                {
+                    //fontHandle = CommonDuplicateFont((HFONT)SendMessage(ProcessTreeNewHandle, WM_GETFONT, 0, 0));
+                    SetTextColor(customDraw->Dc, RGB(0x64, 0x64, 0x64));
+                }
+
+                // originalFont = SelectObject(customDraw->Dc, fontHandle);
+                text = PhGetStringRef(extension->VirusTotalResult);
+
+                GetTextExtentPoint32(
+                    customDraw->Dc, 
+                    text.Buffer, 
+                    (ULONG)text.Length / 2, 
+                    &textSize
+                    );
+
+                DrawText(
+                    customDraw->Dc,
+                    text.Buffer,
+                    (ULONG)text.Length / 2,
+                    &customDraw->CellRect,
+                    DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
+                    );
+
+                //SelectObject(customDraw->Dc, originalFont);
+                //DeleteObject(fontHandle);
+            }
+        }
+        break;
+    }
+}
+
+VOID NTAPI ProcessItemCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_ITEM processItem = Object;
+    PPROCESS_EXTENSION extension = Extension;
+
+    memset(extension, 0, sizeof(PROCESS_EXTENSION));
+
+    extension->ProcessItem = processItem;
+    extension->VirusTotalResult = PhReferenceEmptyString();
+
+    PhAcquireQueuedLockExclusive(&ProcessesListLock);
+    InsertTailList(&ProcessListHead, &extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ProcessesListLock);
+}
+
+VOID NTAPI ProcessItemDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_ITEM processItem = Object;
+    PPROCESS_EXTENSION extension = Extension;
+
+    PhClearReference(&extension->VirusTotalResult);
+
+    PhAcquireQueuedLockExclusive(&ProcessesListLock);
+    RemoveEntryList(&extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ProcessesListLock);
+}
+
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,
@@ -152,6 +450,10 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, L"0" },
+            };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
 
@@ -183,6 +485,12 @@ LOGICAL DllMain(
                 &PluginMenuItemCallbackRegistration
                 );
             PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+                MainMenuInitializingCallback,
+                NULL,
+                &MainMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
                 ProcessMenuInitializingCallback,
                 NULL,
@@ -194,6 +502,36 @@ LOGICAL DllMain(
                 NULL,
                 &ModuleMenuInitializingCallbackRegistration
                 );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
+                ProcessTreeNewInitializingCallback,
+                &ProcessTreeNewHandle,
+                &ProcessTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
+                TreeNewMessageCallback,
+                NULL,
+                &TreeNewMessageCallbackRegistration
+                );
+
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmProcessItemType,
+                sizeof(PROCESS_EXTENSION),
+                ProcessItemCreateCallback,
+                ProcessItemDeleteCallback
+                );
+
+            PhAddSettings(settings, ARRAYSIZE(settings));
         }
         break;
     }
