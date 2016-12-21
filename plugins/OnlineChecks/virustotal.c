@@ -393,7 +393,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
     NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &increment, sizeof(LONG));
     NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT));
 
-    Sleep(5 * PH_TICKS_PER_SEC);
+    Sleep(5 * 1000);
 
     do
     {
@@ -536,8 +536,8 @@ CleanupExit:
             PhDereferenceObject(resultTempList);
         }
 
-        // Wait 15 seconds before checking list again
-        Sleep(15 * PH_TICKS_PER_MS);
+        // Wait 10 seconds before checking list again
+        Sleep(10 * 1000);
 
     } while (VirusTotalHandle);
 
