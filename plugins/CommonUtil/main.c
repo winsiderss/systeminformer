@@ -33,18 +33,14 @@ COMMONUTIL_INTERFACE PluginInterface =
 
     UtilCreateJsonParser,
     UtilCleanupJsonParser,
-
     UtilGetJsonValueAsString,
     UtilGetJsonValueAsUlong,
-
-    UtilCreateJsonArray,
-    UtilAddJsonArray,
-
+    UtilGetJsonObjectBool,
     UtilCreateJsonObject,
     UtilGetJsonObject,
-    UtilGetJsonObjectBool,
     UtilJsonAddObject,
-
+    UtilCreateJsonArray,
+    UtilAddJsonArray,
     UtilGetJsonArrayString,
     UtilGetArrayLength,
     UtilGetObjectArrayIndex

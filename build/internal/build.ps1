@@ -119,7 +119,7 @@ function InitializeBuildEnvironment()
 
     if (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}"))
     {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory  -Force | Out-Null
     }
 }
 
@@ -196,7 +196,7 @@ function BuildSolution([string] $FileName)
                         "/nodeReuse:true",
                         "$FileName" | Out-String;
 
-           $msbuild_output += & "$msBuild"  "/m",
+            $msbuild_output += & "$msBuild"  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
                         "/p:Configuration=Release",
@@ -878,7 +878,6 @@ function UpdateBuildService()
             "message"="$global:buildMessage"
             "sig"="$global:signature_output"
         } | ConvertTo-Json | Out-String;
-
 
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe" -Force -ErrorAction SilentlyContinue
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -Force -ErrorAction SilentlyContinue

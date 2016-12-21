@@ -110,20 +110,14 @@ typedef struct _COMMONUTIL_INTERFACE
 
     PUTIL_CREATE_JSON_PARSER CreateJsonParser;
     PUTIL_CLEANUP_JSON_PARSER CleanupJsonParser;
-
     PUTIL_GET_JSON_VALUE_STRING GetJsonValueAsString;
     PUTIL_GET_JSON_VALUE_INT64 GetJsonValueAsUlong;
-
-    PUTIL_CREATE_JSON_ARRAY CreateJsonArray;
-    PUTIL_ADD_JSON_OBJECT_VALUE JsonArrayAddObject;
-
+    PUTIL_GET_JSON_OBJECT_BOOL GetJsonValueAsBool;
     PUTIL_CREATE_JSON_OBJECT CreateJsonObject;
     PUTIL_GET_JSON_OBJECT GetJsonObject;
-
-    PUTIL_GET_JSON_OBJECT_BOOL GetJsonValueAsBool;
-
     PUTIL_ADD_JSON_ARRAY_VALUE JsonAddObject;
-
+    PUTIL_CREATE_JSON_ARRAY CreateJsonArray;
+    PUTIL_ADD_JSON_OBJECT_VALUE JsonArrayAddObject;
     PUTIL_GET_JSON_ARRAY_STRING GetJsonArrayString;
     PUTIL_GET_JSON_ARRAY_LENGTH JsonGetArrayLength;
     PUTIL_GET_JSON_OBJECT_ARRAY_INDEX JsonGetObjectArrayIndex;
@@ -145,7 +139,7 @@ CreateSearchControl(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 Interface->CreateSearchControl(Parent, WindowHandle, BannerText);
             }
@@ -174,7 +168,7 @@ HBITMAP LoadImageFromResources(
 
             if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
             {
-                if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+                if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
                 {
                     createImageFromResource = Interface->CreateImageFromResource;
                 }
@@ -202,7 +196,7 @@ CreateJsonParser(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->CreateJsonParser(JsonString);
             }
@@ -226,7 +220,7 @@ CleanupJsonParser(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 Interface->CleanupJsonParser(Object);
             }
@@ -249,7 +243,7 @@ GetJsonValueAsString(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->GetJsonValueAsString(Object, Key);
             }
@@ -274,7 +268,7 @@ GetJsonValueAsUlong(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->GetJsonValueAsUlong(Object, Key);
             }
@@ -299,7 +293,7 @@ GetJsonValueAsBool(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->GetJsonValueAsBool(Object, Key);
             }
@@ -323,7 +317,7 @@ CreateJsonArray(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->CreateJsonArray();
             }
@@ -347,7 +341,7 @@ GetJsonArrayString(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->GetJsonArrayString(Object);
             }
@@ -371,7 +365,7 @@ JsonGetArrayLength(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->JsonGetArrayLength(Object);
             }
@@ -397,7 +391,7 @@ JsonGetObjectArrayIndex(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->JsonGetObjectArrayIndex(Object, Index);
             }
@@ -421,7 +415,7 @@ CreateJsonObject(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->CreateJsonObject();
             }
@@ -446,7 +440,7 @@ JsonGetObject(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 return Interface->GetJsonObject(Object, Key);
             }
@@ -471,7 +465,7 @@ JsonArrayAddObject(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 Interface->JsonArrayAddObject(Object, Entry);
             }
@@ -495,7 +489,7 @@ JsonAddObject(
 
         if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
         {
-            if (Interface->Version == COMMONUTIL_INTERFACE_VERSION)
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
             {
                 Interface->JsonAddObject(Object, Key, Value);
             }
