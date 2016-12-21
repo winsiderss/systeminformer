@@ -111,10 +111,10 @@ function InitializeBuildEnvironment()
         $global:latestGitRevision = (& "$git" "rev-list", "--count", ($global:latestGitTag.Trim() + "..master")) | Out-String
         
         $global:buildMessage = $global:latestGitMessage -Replace "`r`n`r`n", "`r`n"
-        $global:buildMessage = ($global:buildMessage -split '\r\n')[0]
+        $global:buildMessageLine = ($global:buildMessage -split '\r\n')[0]
         $global:fileVersion = "3.0." + $global:latestGitRevision.Trim() #${env:APPVEYOR_BUILD_VERSION}
 
-        Write-Host "$global:fileVersion ($global:buildMessage)" -ForegroundColor White
+        Write-Host "$global:fileVersion ($global:buildMessageLine)" -ForegroundColor White
     }
 
     if (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}"))
@@ -768,6 +768,7 @@ function SetupSignatureFiles()
 function BuildSignatureFiles()
 {
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
+    $rootPath = (Get-Location).Path;
 
     Write-Host "Update build signatures" -NoNewline -ForegroundColor Cyan
     
@@ -785,7 +786,7 @@ function BuildSignatureFiles()
 
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
-        "build\internal\private.key", 
+        "$rootPath\build\internal\private.key", 
         "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
         "-h" | Out-String) -replace "`n|`r"
 
