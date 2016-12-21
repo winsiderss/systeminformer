@@ -119,7 +119,7 @@ function InitializeBuildEnvironment()
 
     if (!(Test-Path "${env:BUILD_OUTPUT_FOLDER}"))
     {
-        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory -ErrorAction SilentlyContinue | Out-Null
+        New-Item "${env:BUILD_OUTPUT_FOLDER}" -type Directory
     }
 }
 
@@ -767,9 +767,7 @@ function SetupSignatureFiles()
 
 function BuildSignatureFiles()
 {
-    $exeSetup = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe"
     $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
-    $rootPath = (Get-Location).Path;
 
     Write-Host "Update build signatures" -NoNewline -ForegroundColor Cyan
     
@@ -787,8 +785,8 @@ function BuildSignatureFiles()
 
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
-        "$rootPath\build\internal\private.key", 
-        "$exeSetup", 
+        "build\internal\private.key", 
+        "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
         "-h" | Out-String) -replace "`n|`r"
 
     if ($LASTEXITCODE -eq 0)
