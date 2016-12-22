@@ -134,6 +134,9 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResultFromHash(
     {
         PVIRUSTOTAL_FILE_HASH_ENTRY extension = VirusTotalList->Items[i];
 
+        if (PhIsNullOrEmptyString(extension->FileHash))
+            continue;
+
         if (PhEqualString(extension->FileHash, FileHash, TRUE))
         {
             PhReleaseQueuedLockExclusive(&ProcessListLock);
