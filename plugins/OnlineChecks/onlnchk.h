@@ -124,13 +124,15 @@ typedef struct _PROCESS_EXTENSION
     INT64 Retries;
     INT64 Positives;
     PPH_STRING VirusTotalResult;
+
     PPH_PROCESS_ITEM ProcessItem;
+    PPH_MODULE_ITEM ModuleItem;
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
 
 typedef enum _NETWORK_COLUMN_ID
 {
     NETWORK_COLUMN_ID_VIUSTOTAL = 1,
-    NETWORK_COLUMN_ID_LOCAL_SERVICE = 2,
+    NETWORK_COLUMN_ID_VIUSTOTAL_MODULE = 2,
 } NETWORK_COLUMN_ID;
 
 NTSTATUS HashFileAndResetPosition(
@@ -177,7 +179,7 @@ extern PPH_LIST VirusTotalList;
 extern BOOLEAN VirusTotalScanningEnabled;
 
 PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
-    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STRING FileName,
     _In_ PPROCESS_EXTENSION Extension
     );
 

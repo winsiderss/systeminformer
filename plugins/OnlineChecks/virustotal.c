@@ -53,7 +53,7 @@ PPH_BYTES VirusTotalTimeString(
 }
 
 PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
-    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STRING FileName,
     _In_ PPROCESS_EXTENSION Extension
     )
 {
@@ -63,7 +63,7 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
     memset(result, 0, sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
 
     result->Extension = Extension;
-    result->FileName = PhDuplicateString(ProcessItem->FileName);
+    result->FileName = PhDuplicateString(FileName);
 
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     PhAddItemList(VirusTotalList, result);
@@ -235,9 +235,9 @@ VOID VirusTotalBuildJsonArray(
             entry = CreateJsonObject();
             JsonAddObject(entry, "autostart_location", "");
             JsonAddObject(entry, "autostart_entry", "");
-            JsonAddObject(entry, "hash", Entry->FileHashAnsi->Buffer);
-            JsonAddObject(entry, "image_path", Entry->FileNameAnsi->Buffer);
-            JsonAddObject(entry, "creation_datetime", Entry->CreationTime->Buffer);
+            JsonAddObject(entry, "hash", Entry->FileHashAnsi ? Entry->FileHashAnsi->Buffer : "");
+            JsonAddObject(entry, "image_path", Entry->FileNameAnsi ? Entry->FileNameAnsi->Buffer : "");
+            JsonAddObject(entry, "creation_datetime", Entry->CreationTime ? Entry->CreationTime->Buffer : "");
             JsonArrayAddObject(JsonArray, entry);
         }
 
@@ -550,8 +550,8 @@ CleanupExit:
             PhDereferenceObject(resultTempList);
         }
 
-        // Wait 10 seconds before checking list again
-        Sleep(10 * 1000);
+        // Wait 5 seconds before checking list again
+        Sleep(5 * 1000);
 
     } while (VirusTotalHandle);
 
