@@ -670,7 +670,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                     goto DefaultWndProc;
                 }
                 break;
-            case CBN_KILLFOCUS:
             case EN_KILLFOCUS:
                 {
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
@@ -710,7 +709,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     // handle keybind Ctrl + K
                     if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        if (SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
                         {
                             if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                                 RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), 22);
