@@ -271,7 +271,7 @@ function KPHServiceCheck(): Boolean;
 var
   dwStart: DWORD;
 begin
-  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dwStart) then begin
+  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker3', 'Start', dwStart) then begin
     if dwStart = 1 then
       Result := True;
   end else
@@ -328,16 +328,16 @@ var
   iResultCode: Integer;
 begin
   if CurStep = ssInstall then begin
-    if IsServiceRunning('KProcessHacker2') then
-      StopService('KProcessHacker2');
+    if IsServiceRunning('KProcessHacker3') then
+      StopService('KProcessHacker3');
     if IsTaskSelected('delete_KPH_service') then
-      RemoveService('KProcessHacker2');
+      RemoveService('KProcessHacker3');
   end;
 
   if CurStep = ssPostInstall then begin
     if (KPHServiceCheck() and not IsTaskSelected('delete_KPH_service') or (IsTaskSelected('create_KPH_service'))) then begin
-      StopService('KProcessHacker2');
-      RemoveService('KProcessHacker2');
+      StopService('KProcessHacker3');
+      RemoveService('KProcessHacker3');
 
       if not Exec(ExpandConstant('{app}\ProcessHacker.exe'), '-installkph -s', '', SW_HIDE, ewWaitUntilTerminated, iResultCode) then begin
         // handle failure if necessary; iResultCode contains the error code
@@ -365,8 +365,8 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then begin
-    StopService('KProcessHacker2');
-    RemoveService('KProcessHacker2');
+    StopService('KProcessHacker3');
+    RemoveService('KProcessHacker3');
 
     // When uninstalling ask user to delete Process Hacker's settings
     // based on whether the settings file exists only
