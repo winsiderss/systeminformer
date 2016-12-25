@@ -467,6 +467,9 @@ BOOLEAN QueryUpdateData(
 
         CleanupJsonParser(jsonObject);
 
+        if (PhIsNullOrEmptyString(Context->Signature))
+            goto CleanupExit;
+
         if (!ParseVersionString(Context))
             goto CleanupExit;
     }
@@ -822,7 +825,7 @@ NTSTATUS UpdateDownloadThread(
     // Open the HTTP session with the system proxy configuration if available
     if (!(httpSessionHandle = WinHttpOpen(
         PhGetStringOrEmpty(userAgentString),
-        proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         proxyConfig.lpszProxy,
         proxyConfig.lpszProxyBypass,
         0
@@ -833,9 +836,9 @@ NTSTATUS UpdateDownloadThread(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
+        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         WinHttpSetOption(
             httpSessionHandle,
             WINHTTP_OPTION_DECOMPRESSION,
