@@ -662,8 +662,7 @@ function BuildChecksumsFile()
         "processhacker-build-setup.exe",
         "processhacker-build-sdk.zip",
         "processhacker-build-bin.zip",
-        "processhacker-build-src.zip",
-        "processhacker-build-pdb.zip";  
+        "processhacker-build-src.zip"; # processhacker-build-pdb.zip 
 
     Write-Host "Generating checksums" -NoNewline -ForegroundColor Cyan
 
@@ -813,7 +812,7 @@ function UpdateBuildService()
     $sdkZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip"
     $binZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip"
     $srcZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-src.zip" 
-    $pdbZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip" 
+    #$pdbZip =   "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip" 
     $checksums ="${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt"
 
     Write-Host "Updating build service" -NoNewline -ForegroundColor Cyan
@@ -837,7 +836,7 @@ function UpdateBuildService()
         $sdkHash = $array[1].Hash;
         $binHash = $array[2].Hash;
         $srcHash = $array[3].Hash;
-        $pdbHash = $array[4].Hash;
+        #$pdbHash = $array[4].Hash;
     }
     else
     {
@@ -861,13 +860,11 @@ function UpdateBuildService()
             $srcHash = (Get-FileHash "$srcZip" -Algorithm SHA256).Hash;
         }
 
-        if (Test-Path "$pdbZip")
-        {
-            $pdbHash = (Get-FileHash "$pdbZip" -Algorithm SHA256).Hash;
-        }
+        #if (Test-Path "$pdbZip")
+        #$pdbHash = (Get-FileHash "$pdbZip" -Algorithm SHA256).Hash;
     }
 
-    if ($global:signature_output -and $global:buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $pdbHash -and $fileTime -and $fileSize -and $global:fileVersion)
+    if ($global:signature_output -and $global:buildMessage -and $exeHash -and $sdkHash -and $binHash -and $srcHash -and $fileTime -and $fileSize -and $global:fileVersion)
     {
         $jsonString = @{
             "version"="$global:fileVersion"
@@ -880,7 +877,6 @@ function UpdateBuildService()
             "hash_sdk"="$sdkHash"
             "hash_bin"="$binHash"
             "hash_src"="$srcHash"
-            "hash_pdb"="$pdbHash"
             "message"="$global:buildMessage"
             "sig"="$global:signature_output"
         } | ConvertTo-Json | Out-String;
@@ -889,14 +885,14 @@ function UpdateBuildService()
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -Force -ErrorAction SilentlyContinue
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-bin.zip" -Force -ErrorAction SilentlyContinue
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-src.zip" -Force -ErrorAction SilentlyContinue
-        Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -Force -ErrorAction SilentlyContinue
+        #Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -Force -ErrorAction SilentlyContinue
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-checksums.txt" -Force -ErrorAction SilentlyContinue
 
         Rename-Item "$exeSetup"  "processhacker-$global:fileVersion-setup.exe" -Force 
         Rename-Item "$sdkZip"    "processhacker-$global:fileVersion-sdk.zip" -Force
         Rename-Item "$binZip"    "processhacker-$global:fileVersion-bin.zip" -Force
         Rename-Item "$srcZip"    "processhacker-$global:fileVersion-src.zip" -Force
-        Rename-Item "$pdbZip"    "processhacker-$global:fileVersion-pdb.zip" -Force
+        #Rename-Item "$pdbZip"    "processhacker-$global:fileVersion-pdb.zip" -Force
         Rename-Item "$checksums" "processhacker-$global:fileVersion-checksums.txt" -Force
 
         if (($global:buildbot) -and (Test-Path Env:\APPVEYOR_BUILD_API))
@@ -907,7 +903,7 @@ function UpdateBuildService()
                 Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -ErrorAction SilentlyContinue
                 Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-bin.zip" -ErrorAction SilentlyContinue
                 Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-src.zip" -ErrorAction SilentlyContinue
-                Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -ErrorAction SilentlyContinue
+                #Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-pdb.zip" -ErrorAction SilentlyContinue
                 Push-AppveyorArtifact "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-checksums.txt" -ErrorAction SilentlyContinue
             }
         }
@@ -979,7 +975,7 @@ BuildSetupExe;
 BuildSdkZip;
 BuildBinZip;
 BuildSourceZip;
-BuildPdbZip;
+#BuildPdbZip;
 
 # Build the checksums
 BuildChecksumsFile;
