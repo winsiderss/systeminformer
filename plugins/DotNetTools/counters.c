@@ -441,6 +441,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
     }
 
 CleanupExit:
+
     if (appDomainInfoBlock)
     {
         PhFree(appDomainInfoBlock);
@@ -542,157 +543,152 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     PTOKEN_APPCONTAINER_INFORMATION appContainerInfo = NULL;
     SID_IDENTIFIER_AUTHORITY SIDWorldAuth = SECURITY_WORLD_SID_AUTHORITY;
 
-    __try
+    if (!PhStringRefToUnicodeString(&GenerateBoundaryDescriptorName(ProcessId)->sr, &boundaryNameUs))
+        goto CleanupExit;
+
+    if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor(&boundaryNameUs, 0)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(RtlAllocateAndInitializeSid(&SIDWorldAuth, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &everyoneSIDHandle)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, everyoneSIDHandle)))
+        goto CleanupExit;
+
+    if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
     {
-        if (!PhStringRefToUnicodeString(&GenerateBoundaryDescriptorName(ProcessId)->sr, &boundaryNameUs))
-            __leave;
-
-        if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor(&boundaryNameUs, 0)))
-            __leave;
-
-        if (!NT_SUCCESS(RtlAllocateAndInitializeSid(&SIDWorldAuth, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &everyoneSIDHandle)))
-            __leave;
-
-        if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, everyoneSIDHandle)))
-            __leave;
-
-        if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
+        if (NT_SUCCESS(NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, ProcessHandle)))
         {
-            if (NT_SUCCESS(NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, ProcessHandle)))
+            ULONG returnLength = 0;
+
+            if (NtQueryInformationToken(
+                tokenHandle,
+                TokenAppContainerSid,
+                NULL,
+                0,
+                &returnLength
+                ) != STATUS_BUFFER_TOO_SMALL)
             {
-                ULONG returnLength = 0;
-
-                if (NtQueryInformationToken(
-                    tokenHandle,
-                    TokenAppContainerSid,
-                    NULL,
-                    0,
-                    &returnLength
-                    ) != STATUS_BUFFER_TOO_SMALL)
-                {
-                    __leave;
-                }
-
-                appContainerInfo = PhAllocate(returnLength);
-
-                if (!NT_SUCCESS(NtQueryInformationToken(
-                    tokenHandle,
-                    TokenAppContainerSid,
-                    appContainerInfo,
-                    returnLength,
-                    &returnLength
-                    )))
-                {
-                    __leave;
-                }
-
-                if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
-                    __leave;
+                goto CleanupExit;
             }
+
+            appContainerInfo = PhAllocate(returnLength);
+
+            if (!NT_SUCCESS(NtQueryInformationToken(
+                tokenHandle,
+                TokenAppContainerSid,
+                appContainerInfo,
+                returnLength,
+                &returnLength
+                )))
+            {
+                goto CleanupExit;
+            }
+
+            if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, appContainerInfo->TokenAppContainer)))
+                goto CleanupExit;
         }
-
-        RtlInitUnicodeString(&prefixNameUs, CorSxSReaderPrivateNamespacePrefix);
-
-        InitializeObjectAttributes(
-            &namespaceObjectAttributes,
-            &prefixNameUs,
-            OBJ_CASE_INSENSITIVE,
-            boundaryDescriptorHandle,
-            NULL
-            );
-
-        if (!NT_SUCCESS(NtOpenPrivateNamespace(
-            &privateNamespaceHandle,
-            MAXIMUM_ALLOWED,
-            &namespaceObjectAttributes,
-            boundaryDescriptorHandle
-            )))
-        {
-            __leave;
-        }
-
-        RtlInitUnicodeString(&sectionNameUs, CorSxSVistaPublicIPCBlock);
-
-        InitializeObjectAttributes(
-            &sectionObjectAttributes,
-            &sectionNameUs,
-            OBJ_CASE_INSENSITIVE,
-            privateNamespaceHandle,
-            NULL
-            );
-
-        if (!NT_SUCCESS(NtOpenSection(
-            &blockTableHandle,
-            SECTION_MAP_READ,
-            &sectionObjectAttributes
-            )))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(NtMapViewOfSection(
-            blockTableHandle,
-            NtCurrentProcess(),
-            &blockTableAddress,
-            0,
-            viewSize,
-            &sectionOffset,
-            &viewSize,
-            ViewShare,
-            0,
-            PAGE_READONLY
-            )))
-        {
-            __leave;
-        }
-
-        *BlockTableHandle = blockTableHandle;
-        *BlockTableAddress = blockTableAddress;
-
-        result = TRUE;
     }
-    __finally
+
+    RtlInitUnicodeString(&prefixNameUs, CorSxSReaderPrivateNamespacePrefix);
+    InitializeObjectAttributes(
+        &namespaceObjectAttributes,
+        &prefixNameUs,
+        OBJ_CASE_INSENSITIVE,
+        boundaryDescriptorHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenPrivateNamespace(
+        &privateNamespaceHandle,
+        MAXIMUM_ALLOWED,
+        &namespaceObjectAttributes,
+        boundaryDescriptorHandle
+        )))
     {
-        if (!result)
+        goto CleanupExit;
+    }
+
+    RtlInitUnicodeString(&sectionNameUs, CorSxSVistaPublicIPCBlock);
+    InitializeObjectAttributes(
+        &sectionObjectAttributes,
+        &sectionNameUs,
+        OBJ_CASE_INSENSITIVE,
+        privateNamespaceHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenSection(
+        &blockTableHandle,
+        SECTION_MAP_READ,
+        &sectionObjectAttributes
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(NtMapViewOfSection(
+        blockTableHandle,
+        NtCurrentProcess(),
+        &blockTableAddress,
+        0,
+        viewSize,
+        &sectionOffset,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    *BlockTableHandle = blockTableHandle;
+    *BlockTableAddress = blockTableAddress;
+
+    result = TRUE;
+
+CleanupExit:
+
+    if (!result)
+    {
+        if (blockTableHandle)
         {
-            if (blockTableHandle)
-            {
-                NtClose(blockTableHandle);
-            }
-
-            if (blockTableAddress)
-            {
-                NtUnmapViewOfSection(NtCurrentProcess(), blockTableAddress);
-            }
-
-            *BlockTableHandle = NULL;
-            *BlockTableAddress = NULL;
+            NtClose(blockTableHandle);
         }
 
-        if (tokenHandle)
+        if (blockTableAddress)
         {
-            NtClose(tokenHandle);
+            NtUnmapViewOfSection(NtCurrentProcess(), blockTableAddress);
         }
 
-        if (appContainerInfo)
-        {
-            PhFree(appContainerInfo);
-        }
+        *BlockTableHandle = NULL;
+        *BlockTableAddress = NULL;
+    }
 
-        if (privateNamespaceHandle)
-        {
-            NtClose(privateNamespaceHandle);
-        }
+    if (tokenHandle)
+    {
+        NtClose(tokenHandle);
+    }
 
-        if (everyoneSIDHandle)
-        {
-            RtlFreeSid(everyoneSIDHandle);
-        }
+    if (appContainerInfo)
+    {
+        PhFree(appContainerInfo);
+    }
 
-        if (boundaryDescriptorHandle)
-        {
-            RtlDeleteBoundaryDescriptor(boundaryDescriptorHandle);
-        }
+    if (privateNamespaceHandle)
+    {
+        NtClose(privateNamespaceHandle);
+    }
+
+    if (everyoneSIDHandle)
+    {
+        RtlFreeSid(everyoneSIDHandle);
+    }
+
+    if (boundaryDescriptorHandle)
+    {
+        RtlDeleteBoundaryDescriptor(boundaryDescriptorHandle);
     }
 
     return result;
@@ -712,108 +708,105 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
     PVOID ipcControlBlockTable = NULL;
     PPH_LIST appDomainsList = NULL;
 
-    __try
-    {
-        if (!PhStringRefToUnicodeString(&GeneratePrivateName(ProcessId)->sr, &sectionNameUs))
-            __leave;
+    if (!PhStringRefToUnicodeString(&GeneratePrivateName(ProcessId)->sr, &sectionNameUs))
+        goto CleanupExit;
 
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &sectionNameUs,
-            0,
-            NULL,
-            NULL
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &sectionNameUs,
+        0,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenSection(
+        &legacyPrivateBlockHandle,
+        SECTION_MAP_READ,
+        &objectAttributes
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(NtMapViewOfSection(
+        legacyPrivateBlockHandle,
+        NtCurrentProcess(),
+        &ipcControlBlockTable,
+        0,
+        viewSize,
+        &sectionOffset,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (Wow64)
+    {
+        LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock;
+        AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock;
+
+        legacyPrivateBlock = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
+
+        // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
+
+        // Check the IPCControlBlock version is valid.
+        if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
+        {
+            goto CleanupExit;
+        }
+
+        appDomainEnumBlock = GetLegacyBlockTableEntry(
+            Wow64,
+            ipcControlBlockTable,
+            eLegacyPrivateIPC_AppDomain
             );
 
-        if (!NT_SUCCESS(NtOpenSection(
-            &legacyPrivateBlockHandle,
-            SECTION_MAP_READ,
-            &objectAttributes
-            )))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(NtMapViewOfSection(
-            legacyPrivateBlockHandle,
-            NtCurrentProcess(),
-            &ipcControlBlockTable,
-            0,
-            viewSize,
-            &sectionOffset,
-            &viewSize,
-            ViewShare,
-            0,
-            PAGE_READONLY
-            )))
-        {
-            __leave;
-        }
-
-        if (Wow64)
-        {
-            LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock;
-            AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock;
-
-            legacyPrivateBlock = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
-
-            // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
-
-            // Check the IPCControlBlock version is valid.
-            if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
-            {
-                __leave;
-            }
-
-            appDomainEnumBlock = GetLegacyBlockTableEntry(
-                Wow64,
-                ipcControlBlockTable,
-                eLegacyPrivateIPC_AppDomain
-                );
-
-            appDomainsList = EnumerateAppDomainIpcBlockWow64(
-                ProcessHandle,
-                appDomainEnumBlock
-                );
-        }
-        else
-        {
-            LegacyPrivateIPCControlBlock* legacyPrivateBlock;
-            AppDomainEnumerationIPCBlock* appDomainEnumBlock;
-
-            legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
-
-            // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
-
-            // Check the IPCControlBlock version is valid.
-            if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
-            {
-                __leave;
-            }
-
-            appDomainEnumBlock = GetLegacyBlockTableEntry(
-                Wow64,
-                ipcControlBlockTable,
-                eLegacyPrivateIPC_AppDomain
-                );
-
-            appDomainsList = EnumerateAppDomainIpcBlock(
-                ProcessHandle,
-                appDomainEnumBlock
-                );
-        }
+        appDomainsList = EnumerateAppDomainIpcBlockWow64(
+            ProcessHandle,
+            appDomainEnumBlock
+            );
     }
-    __finally
+    else
     {
-        if (ipcControlBlockTable)
+        LegacyPrivateIPCControlBlock* legacyPrivateBlock;
+        AppDomainEnumerationIPCBlock* appDomainEnumBlock;
+
+        legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
+
+        // NOTE: .NET 2.0 processes do not have the IPC_FLAG_INITIALIZED flag.
+
+        // Check the IPCControlBlock version is valid.
+        if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
         {
-            NtUnmapViewOfSection(NtCurrentProcess(), ipcControlBlockTable);
+            goto CleanupExit;
         }
 
-        if (legacyPrivateBlockHandle)
-        {
-            NtClose(legacyPrivateBlockHandle);
-        }
+        appDomainEnumBlock = GetLegacyBlockTableEntry(
+            Wow64,
+            ipcControlBlockTable,
+            eLegacyPrivateIPC_AppDomain
+            );
+
+        appDomainsList = EnumerateAppDomainIpcBlock(
+            ProcessHandle,
+            appDomainEnumBlock
+            );
+    }
+
+CleanupExit:
+
+    if (ipcControlBlockTable)
+    {
+        NtUnmapViewOfSection(NtCurrentProcess(), ipcControlBlockTable);
+    }
+
+    if (legacyPrivateBlockHandle)
+    {
+        NtClose(legacyPrivateBlockHandle);
     }
 
     return appDomainsList;
@@ -833,106 +826,103 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     UNICODE_STRING sectionNameUs;
     PPH_LIST appDomainsList = NULL;
 
-    __try
+    if (!PhStringRefToUnicodeString(&GeneratePrivateNameV4(ProcessId)->sr, &sectionNameUs))
+        goto CleanupExit;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &sectionNameUs,
+        0,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenSection(
+        &legacyPrivateBlockHandle,
+        SECTION_MAP_READ,
+        &objectAttributes
+        )))
     {
-        if (!PhStringRefToUnicodeString(&GeneratePrivateNameV4(ProcessId)->sr, &sectionNameUs))
-            __leave;
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &sectionNameUs,
-            0,
-            NULL,
-            NULL
-            );
-
-        if (!NT_SUCCESS(NtOpenSection(
-            &legacyPrivateBlockHandle,
-            SECTION_MAP_READ,
-            &objectAttributes
-            )))
-        {
-            __leave;
-        }
-
-        if (!NT_SUCCESS(NtMapViewOfSection(
-            legacyPrivateBlockHandle,
-            NtCurrentProcess(),
-            &ipcControlBlockTable,
-            0,
-            viewSize,
-            &sectionOffset,
-            &viewSize,
-            ViewShare,
-            0,
-            PAGE_READONLY
-            )))
-        {
-            __leave;
-        }
-
-        if (Wow64)
-        {
-            LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock;
-            AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock;
-
-            legacyPrivateBlock = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
-            appDomainEnumBlock = &legacyPrivateBlock->AppDomainBlock;
-
-            // Check the IPCControlBlock is initialized.
-            if ((legacyPrivateBlock->FullIPCHeader.Header.Flags & IPC_FLAG_INITIALIZED) != IPC_FLAG_INITIALIZED)
-            {
-                __leave;
-            }
-
-            // Check the IPCControlBlock version is valid.
-            if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
-            {
-                __leave;
-            }
-
-            appDomainsList = EnumerateAppDomainIpcBlockWow64(
-                ProcessHandle,
-                appDomainEnumBlock
-                );
-        }
-        else
-        {
-            LegacyPrivateIPCControlBlock* legacyPrivateBlock;
-            AppDomainEnumerationIPCBlock* appDomainEnumBlock;
-
-            legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
-            appDomainEnumBlock = &legacyPrivateBlock->AppDomainBlock;
-
-            // Check the IPCControlBlock is initialized.
-            if ((legacyPrivateBlock->FullIPCHeader.Header.Flags & IPC_FLAG_INITIALIZED) != IPC_FLAG_INITIALIZED)
-            {
-                __leave;
-            }
-
-            // Check the IPCControlBlock version is valid.
-            if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
-            {
-                __leave;
-            }
-
-            appDomainsList = EnumerateAppDomainIpcBlock(
-                ProcessHandle,
-                appDomainEnumBlock
-                );
-        }
+        goto CleanupExit;
     }
-    __finally
+
+    if (!NT_SUCCESS(NtMapViewOfSection(
+        legacyPrivateBlockHandle,
+        NtCurrentProcess(),
+        &ipcControlBlockTable,
+        0,
+        viewSize,
+        &sectionOffset,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        )))
     {
-        if (ipcControlBlockTable)
+        goto CleanupExit;
+    }
+
+    if (Wow64)
+    {
+        LegacyPrivateIPCControlBlock_Wow64* legacyPrivateBlock;
+        AppDomainEnumerationIPCBlock_Wow64* appDomainEnumBlock;
+
+        legacyPrivateBlock = (LegacyPrivateIPCControlBlock_Wow64*)ipcControlBlockTable;
+        appDomainEnumBlock = &legacyPrivateBlock->AppDomainBlock;
+
+        // Check the IPCControlBlock is initialized.
+        if ((legacyPrivateBlock->FullIPCHeader.Header.Flags & IPC_FLAG_INITIALIZED) != IPC_FLAG_INITIALIZED)
         {
-            NtUnmapViewOfSection(NtCurrentProcess(), ipcControlBlockTable);
+            goto CleanupExit;
         }
 
-        if (legacyPrivateBlockHandle)
+        // Check the IPCControlBlock version is valid.
+        if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
         {
-            NtClose(legacyPrivateBlockHandle);
+            goto CleanupExit;
         }
+
+        appDomainsList = EnumerateAppDomainIpcBlockWow64(
+            ProcessHandle,
+            appDomainEnumBlock
+            );
+    }
+    else
+    {
+        LegacyPrivateIPCControlBlock* legacyPrivateBlock;
+        AppDomainEnumerationIPCBlock* appDomainEnumBlock;
+
+        legacyPrivateBlock = (LegacyPrivateIPCControlBlock*)ipcControlBlockTable;
+        appDomainEnumBlock = &legacyPrivateBlock->AppDomainBlock;
+
+        // Check the IPCControlBlock is initialized.
+        if ((legacyPrivateBlock->FullIPCHeader.Header.Flags & IPC_FLAG_INITIALIZED) != IPC_FLAG_INITIALIZED)
+        {
+            goto CleanupExit;
+        }
+
+        // Check the IPCControlBlock version is valid.
+        if (legacyPrivateBlock->FullIPCHeader.Header.Version > VER_LEGACYPRIVATE_IPC_BLOCK)
+        {
+            goto CleanupExit;
+        }
+
+        appDomainsList = EnumerateAppDomainIpcBlock(
+            ProcessHandle,
+            appDomainEnumBlock
+            );
+    }
+
+CleanupExit:
+
+    if (ipcControlBlockTable)
+    {
+        NtUnmapViewOfSection(NtCurrentProcess(), ipcControlBlockTable);
+    }
+
+    if (legacyPrivateBlockHandle)
+    {
+        NtClose(legacyPrivateBlockHandle);
     }
 
     return appDomainsList;

@@ -274,7 +274,6 @@ PSTR VirusTotalSendHttpRequest(
         0
         )))
     {
-        dprintf("WinHttpOpen: %lu", GetLastError());
         goto CleanupExit;
     }
 
@@ -292,7 +291,6 @@ PSTR VirusTotalSendHttpRequest(
         0
         )))
     {
-        dprintf("WinHttpConnect: %lu", GetLastError());
         goto CleanupExit;
     }
 
@@ -306,13 +304,11 @@ PSTR VirusTotalSendHttpRequest(
         WINHTTP_FLAG_SECURE
         )))
     {
-        dprintf("WinHttpOpenRequest: %lu", GetLastError());
         goto CleanupExit;
     }
 
     if (!WinHttpAddRequestHeaders(requestHandle, L"Content-Type: application/json", -1L, 0))
     {
-        dprintf("WinHttpAddRequestHeaders: %lu", GetLastError());
         goto CleanupExit;
     }
 
@@ -326,13 +322,11 @@ PSTR VirusTotalSendHttpRequest(
         0
         ))
     {
-        dprintf("WinHttpSendRequest: %lu", GetLastError());
         goto CleanupExit;
     }
 
     if (!WinHttpReceiveResponse(requestHandle, NULL))
     {
-        PhFormatString(L"WinHttpReceiveResponse: %lu", GetLastError());
         goto CleanupExit;
     }
     else
@@ -384,6 +378,9 @@ CleanupExit:
 
     if (tokenVersion)
         PhDereferenceObject(tokenVersion);
+
+    if (JsonArray)
+        PhDereferenceObject(JsonArray);
 
     return subRequestBuffer;
 }

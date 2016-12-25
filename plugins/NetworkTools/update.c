@@ -322,41 +322,277 @@ NTSTATUS GeoIPUpdateThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
-    __try
+    if (!(fwLinkUrl = QueryFwLinkUrl(context)))
+        goto CleanupExit;
+
+    setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
+    if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(setupTempPath))
+        goto CleanupExit;
+
+    // Generate random guid for our directory path
+    PhGenerateGuid(&randomGuid);
+
+    if (randomGuidString = PhFormatGuid(&randomGuid))
     {
-        if (!(fwLinkUrl = QueryFwLinkUrl(context)))
-            __leave;
+        PhSwapReference(&randomGuidString, PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2));
+    }
 
-        setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
+    // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-City.mmdb.gz
+    // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\GeoLite2-City.mmdb.gz
+    context->SetupFilePath = PhFormatString(
+        L"%s\\%s\\GeoLite2-City.mmdb.gz",
+        PhGetStringOrEmpty(setupTempPath),
+        PhGetStringOrDefault(randomGuidString, L"NetworkTools")
+        );
 
-        if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
-            __leave;
-        if (PhIsNullOrEmptyString(setupTempPath))
-            __leave;
+    // Create the directory if it does not exist
+    if (fullSetupPath = PhGetFullPath(PhGetString(context->SetupFilePath), &indexOfFileName))
+    {
+        PPH_STRING directoryPath;
 
-        // Generate random guid for our directory path
-        PhGenerateGuid(&randomGuid);
+        if (indexOfFileName == -1)
+            goto CleanupExit;
 
-        if (randomGuidString = PhFormatGuid(&randomGuid))
+        if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
         {
-            PhSwapReference(&randomGuidString, PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2));
+            SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
+            PhDereferenceObject(directoryPath);
+        }
+    }
+
+    // Create output file
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &tempFileHandle,
+        PhGetString(context->SetupFilePath),
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
+
+    // Set lengths to non-zero enabling these params to be cracked.
+    httpUrlComponents.dwSchemeLength = (ULONG)-1;
+    httpUrlComponents.dwHostNameLength = (ULONG)-1;
+    httpUrlComponents.dwUrlPathLength = (ULONG)-1;
+
+    if (!WinHttpCrackUrl(
+        fwLinkUrl->Buffer,
+        0,
+        0,
+        &httpUrlComponents
+        ))
+    {
+        goto CleanupExit;
+    }
+
+    // Create the Host string.
+    downloadHostPath = PhCreateStringEx(
+        httpUrlComponents.lpszHostName,
+        httpUrlComponents.dwHostNameLength * sizeof(WCHAR)
+        );
+    if (PhIsNullOrEmptyString(downloadHostPath))
+        goto CleanupExit;
+
+    // Create the Path string.
+    downloadUrlPath = PhCreateStringEx(
+        httpUrlComponents.lpszUrlPath,
+        httpUrlComponents.dwUrlPathLength * sizeof(WCHAR)
+        );
+    if (PhIsNullOrEmptyString(downloadUrlPath))
+        goto CleanupExit;
+
+    // Query the current system proxy
+    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+
+    // Open the HTTP session with the system proxy configuration if available
+    if (!(httpSessionHandle = WinHttpOpen(
+        PhGetStringOrEmpty(userAgentString),
+        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        proxyConfig.lpszProxy,
+        proxyConfig.lpszProxyBypass,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+
+        WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
+    }
+
+    if (!(httpConnectionHandle = WinHttpConnect(
+        httpSessionHandle,
+        PhGetStringOrEmpty(downloadHostPath),
+        httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!(httpRequestHandle = WinHttpOpenRequest(
+        httpConnectionHandle,
+        NULL,
+        PhGetStringOrEmpty(downloadUrlPath),
+        NULL,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (WindowsVersion >= WINDOWS_7)
+    {
+        ULONG option = WINHTTP_DISABLE_KEEP_ALIVE;
+        WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
+    }
+
+    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
+
+    if (!WinHttpSendRequest(
+        httpRequestHandle,
+        WINHTTP_NO_ADDITIONAL_HEADERS,
+        0,
+        WINHTTP_NO_REQUEST_DATA,
+        0,
+        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
+        0
+        ))
+    {
+        goto CleanupExit;
+    }
+
+    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
+
+    if (WinHttpReceiveResponse(httpRequestHandle, NULL))
+    {
+        ULONG bytesDownloaded = 0;
+        ULONG downloadedBytes = 0;
+        ULONG contentLengthSize = sizeof(ULONG);
+        ULONG contentLength = 0;
+        PPH_STRING status;
+        IO_STATUS_BLOCK isb;
+        BYTE buffer[PAGE_SIZE];
+
+        memset(buffer, 0, PAGE_SIZE);
+
+        status = PhFormatString(L"Downloading GeoLite2-City.mmdb...");
+        SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
+        PhDereferenceObject(status);
+
+        if (!WinHttpQueryHeaders(
+            httpRequestHandle,
+            WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
+            WINHTTP_HEADER_NAME_BY_INDEX,
+            &contentLength,
+            &contentLengthSize,
+            0
+            ))
+        {
+            goto CleanupExit;
         }
 
-        // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-City.mmdb.gz
-        // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\GeoLite2-City.mmdb.gz
-        context->SetupFilePath = PhFormatString(
-            L"%s\\%s\\GeoLite2-City.mmdb.gz",
-            PhGetStringOrEmpty(setupTempPath),
-            PhGetStringOrDefault(randomGuidString, L"NetworkTools")
-            );
+        PhQuerySystemTime(&timeStart);
 
-        // Create the directory if it does not exist
-        if (fullSetupPath = PhGetFullPath(PhGetString(context->SetupFilePath), &indexOfFileName))
+        while (WinHttpReadData(httpRequestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+        {
+            // If we get zero bytes, the file was uploaded or there was an error.
+            if (bytesDownloaded == 0)
+                break;
+
+            // If the dialog was closed; cleanup and exit.
+            if (!context->DialogHandle)
+                goto CleanupExit;
+
+            if (!NT_SUCCESS(NtWriteFile(
+                tempFileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &isb,
+                buffer,
+                bytesDownloaded,
+                NULL,
+                NULL
+                )))
+            {
+                goto CleanupExit;
+            }
+
+            downloadedBytes += (DWORD)isb.Information;
+
+            // Check the number of bytes written are the same we downloaded.
+            if (bytesDownloaded != isb.Information)
+                goto CleanupExit;
+
+            // Query the current time
+            PhQuerySystemTime(&timeNow);
+
+            // Calculate the number of ticks
+            timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+            timeBitsPerSecond = downloadedBytes / __max(timeTicks, 1);
+
+            // TODO: Update on timer callback.
+            {
+                FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
+                PPH_STRING totalLength = PhFormatSize(contentLength, -1);
+                PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
+                PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
+
+                PPH_STRING statusMessage = PhFormatString(
+                    L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
+                    PhGetStringOrEmpty(totalDownloaded),
+                    PhGetStringOrEmpty(totalLength),
+                    percent,
+                    PhGetStringOrEmpty(totalSpeed)
+                    );
+
+                SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
+                SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
+
+                PhDereferenceObject(statusMessage);
+                PhDereferenceObject(totalSpeed);
+                PhDereferenceObject(totalLength);
+                PhDereferenceObject(totalDownloaded);
+            }
+        }
+
+        PPH_STRING path;
+        PPH_STRING directory;
+        PPH_STRING fullSetupPath;
+        PPH_BYTES mmdbGzPath;
+        gzFile file;
+
+        directory = PH_AUTO(PhGetApplicationDirectory());
+        path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-City.mmdb");
+        mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
+
+        if (RtlDoesFileExists_U(PhGetString(path)))
+        {
+            if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(path))))
+            {
+                goto CleanupExit;
+            }
+        }
+
+        if (fullSetupPath = PhGetFullPath(PhGetString(path), &indexOfFileName))
         {
             PPH_STRING directoryPath;
-
-            if (indexOfFileName == -1)
-                __leave;
 
             if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
             {
@@ -365,318 +601,73 @@ NTSTATUS GeoIPUpdateThread(
             }
         }
 
-        // Create output file
-        if (!NT_SUCCESS(PhCreateFileWin32(
-            &tempFileHandle,
-            PhGetString(context->SetupFilePath),
-            FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-            FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OVERWRITE_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            )))
+        if (file = gzopen(mmdbGzPath->Buffer, "rb"))
         {
-            __leave;
-        }
+            HANDLE mmdbFileHandle;
 
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
-
-        // Set lengths to non-zero enabling these params to be cracked.
-        httpUrlComponents.dwSchemeLength = (ULONG)-1;
-        httpUrlComponents.dwHostNameLength = (ULONG)-1;
-        httpUrlComponents.dwUrlPathLength = (ULONG)-1;
-
-        if (!WinHttpCrackUrl(
-            fwLinkUrl->Buffer,
-            0,
-            0,
-            &httpUrlComponents
-            ))
-        {
-            __leave;
-        }
-
-        // Create the Host string.
-        downloadHostPath = PhCreateStringEx(
-            httpUrlComponents.lpszHostName,
-            httpUrlComponents.dwHostNameLength * sizeof(WCHAR)
-            );
-        if (PhIsNullOrEmptyString(downloadHostPath))
-            __leave;
-
-        // Create the Path string.
-        downloadUrlPath = PhCreateStringEx(
-            httpUrlComponents.lpszUrlPath,
-            httpUrlComponents.dwUrlPathLength * sizeof(WCHAR)
-            );
-        if (PhIsNullOrEmptyString(downloadUrlPath))
-            __leave;
-
-        // Query the current system proxy
-        WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
-        // Open the HTTP session with the system proxy configuration if available
-        if (!(httpSessionHandle = WinHttpOpen(
-            PhGetStringOrEmpty(userAgentString),
-            proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            proxyConfig.lpszProxy,
-            proxyConfig.lpszProxyBypass,
-            0
-            )))
-        {
-            __leave;
-        }
-
-        if (WindowsVersion >= WINDOWS_8_1)
-        {
-            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
-            ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
-            WinHttpSetOption(
-                httpSessionHandle,
-                WINHTTP_OPTION_DECOMPRESSION,
-                &httpFlags,
-                sizeof(ULONG)
-                );
-        }
-
-        if (!(httpConnectionHandle = WinHttpConnect(
-            httpSessionHandle,
-            PhGetStringOrEmpty(downloadHostPath),
-            httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
-            0
-            )))
-        {
-            __leave;
-        }
-
-        if (!(httpRequestHandle = WinHttpOpenRequest(
-            httpConnectionHandle,
-            NULL,
-            PhGetStringOrEmpty(downloadUrlPath),
-            NULL,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
-            )))
-        {
-            __leave;
-        }
-
-        if (WindowsVersion >= WINDOWS_7)
-        {
-            ULONG option = WINHTTP_DISABLE_KEEP_ALIVE;
-            WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
-        }
-
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
-
-        if (!WinHttpSendRequest(
-            httpRequestHandle,
-            WINHTTP_NO_ADDITIONAL_HEADERS,
-            0,
-            WINHTTP_NO_REQUEST_DATA,
-            0,
-            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-            0
-            ))
-        {
-            __leave;
-        }
-
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
-
-        if (WinHttpReceiveResponse(httpRequestHandle, NULL))
-        {
-            ULONG bytesDownloaded = 0;
-            ULONG downloadedBytes = 0;
-            ULONG contentLengthSize = sizeof(ULONG);
-            ULONG contentLength = 0;
-            PPH_STRING status;
-            IO_STATUS_BLOCK isb;
-            BYTE buffer[PAGE_SIZE];
-
-            memset(buffer, 0, PAGE_SIZE);
-
-            status = PhFormatString(L"Downloading GeoLite2-City.mmdb...");
-            SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-            SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
-            PhDereferenceObject(status);
-
-            if (!WinHttpQueryHeaders(
-                httpRequestHandle,
-                WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
-                WINHTTP_HEADER_NAME_BY_INDEX,
-                &contentLength,
-                &contentLengthSize,
-                0
-                ))
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &mmdbFileHandle,
+                PhGetStringOrEmpty(path),
+                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OVERWRITE_IF,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
             {
-                __leave;
-            }
+                IO_STATUS_BLOCK isb;
+                BYTE buffer[PAGE_SIZE];
 
-            PhQuerySystemTime(&timeStart);
-
-            while (WinHttpReadData(httpRequestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
-            {
-                // If we get zero bytes, the file was uploaded or there was an error.
-                if (bytesDownloaded == 0)
-                    break;
-
-                // If the dialog was closed; cleanup and exit.
-                if (!context->DialogHandle)
-                    __leave;
-
-                if (!NT_SUCCESS(NtWriteFile(
-                    tempFileHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
-                    buffer,
-                    bytesDownloaded,
-                    NULL,
-                    NULL
-                    )))
+                while (!gzeof(file))
                 {
-                    __leave;
-                }
+                    int bytes = gzread(file, buffer, sizeof(buffer));
 
-                downloadedBytes += (DWORD)isb.Information;
+                    if (bytes == -1)
+                        goto CleanupExit;
 
-                // Check the number of bytes written are the same we downloaded.
-                if (bytesDownloaded != isb.Information)
-                    __leave;
-
-                // Query the current time
-                PhQuerySystemTime(&timeNow);
-
-                // Calculate the number of ticks
-                timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
-                timeBitsPerSecond = downloadedBytes / __max(timeTicks, 1);
-
-                // TODO: Update on timer callback.
-                {
-                    FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
-                    PPH_STRING totalLength = PhFormatSize(contentLength, -1);
-                    PPH_STRING totalDownloaded = PhFormatSize(downloadedBytes, -1);
-                    PPH_STRING totalSpeed = PhFormatSize(timeBitsPerSecond, -1);
-
-                    PPH_STRING statusMessage = PhFormatString(
-                        L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s",
-                        PhGetStringOrEmpty(totalDownloaded),
-                        PhGetStringOrEmpty(totalLength),
-                        percent,
-                        PhGetStringOrEmpty(totalSpeed)
-                        );
-
-                    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)statusMessage->Buffer);
-                    SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
-
-                    PhDereferenceObject(statusMessage);
-                    PhDereferenceObject(totalSpeed);
-                    PhDereferenceObject(totalLength);
-                    PhDereferenceObject(totalDownloaded);
-                }
-            }
-
-            PPH_STRING path;
-            PPH_STRING directory;
-            PPH_STRING fullSetupPath;
-            PPH_BYTES mmdbGzPath;
-            gzFile file;
-
-            directory = PH_AUTO(PhGetApplicationDirectory());
-            path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-City.mmdb");
-            mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
-
-            if (RtlDoesFileExists_U(PhGetString(path)))
-            {
-                if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(path))))
-                {
-                    __leave;
-                }
-            }
-
-            if (fullSetupPath = PhGetFullPath(PhGetString(path), &indexOfFileName))
-            {
-                PPH_STRING directoryPath;
-
-                if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-                {
-                    SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
-                    PhDereferenceObject(directoryPath);
-                }
-            }
-
-            if (file = gzopen(mmdbGzPath->Buffer, "rb"))
-            {
-                HANDLE mmdbFileHandle;
-
-                if (NT_SUCCESS(PhCreateFileWin32(
-                    &mmdbFileHandle,
-                    PhGetStringOrEmpty(path),
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-                    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                    FILE_OVERWRITE_IF,
-                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                    )))
-                {
-                    IO_STATUS_BLOCK isb;
-                    BYTE buffer[PAGE_SIZE];
-
-                    while (!gzeof(file))
+                    if (!NT_SUCCESS(NtWriteFile(
+                        mmdbFileHandle,
+                        NULL,
+                        NULL,
+                        NULL,
+                        &isb,
+                        buffer,
+                        bytes,
+                        NULL,
+                        NULL
+                        )))
                     {
-                        int bytes = gzread(file, buffer, sizeof(buffer));
-
-                        if (bytes == -1)
-                            __leave;
-
-                        if (!NT_SUCCESS(NtWriteFile(
-                            mmdbFileHandle,
-                            NULL,
-                            NULL,
-                            NULL,
-                            &isb,
-                            buffer,
-                            bytes,
-                            NULL,
-                            NULL
-                            )))
-                        {
-                            __leave;
-                        }
+                        goto CleanupExit;
                     }
-
-                    success = TRUE;
-
-                    NtClose(mmdbFileHandle);
                 }
 
-                gzclose(file);
-            }  
+                success = TRUE;
+
+                NtClose(mmdbFileHandle);
+            }
+
+            gzclose(file);
         }
     }
-    __finally
-    {
-        if (tempFileHandle)
-            NtClose(tempFileHandle);
 
-        if (httpRequestHandle)
-            WinHttpCloseHandle(httpRequestHandle);
+CleanupExit:
 
-        if (httpConnectionHandle)
-            WinHttpCloseHandle(httpConnectionHandle);
+    if (tempFileHandle)
+        NtClose(tempFileHandle);
 
-        if (httpSessionHandle)
-            WinHttpCloseHandle(httpSessionHandle);
+    if (httpRequestHandle)
+        WinHttpCloseHandle(httpRequestHandle);
 
-        PhClearReference(&randomGuidString);
-        PhClearReference(&fullSetupPath);
-        PhClearReference(&setupTempPath);
-        PhClearReference(&userAgentString);
-    }
+    if (httpConnectionHandle)
+        WinHttpCloseHandle(httpConnectionHandle);
+
+    if (httpSessionHandle)
+        WinHttpCloseHandle(httpSessionHandle);
+
+    PhClearReference(&randomGuidString);
+    PhClearReference(&fullSetupPath);
+    PhClearReference(&setupTempPath);
+    PhClearReference(&userAgentString);
 
     if (success)
     {
@@ -792,7 +783,6 @@ BOOLEAN ShowInitialDialog(
     config.pfCallback = TaskDialogBootstrapCallback;
     config.hwndParent = Parent;
 
-    // Start the TaskDialog bootstrap
     TaskDialogIndirect(&config, &result, NULL, NULL);
 
     return result == IDOK;
