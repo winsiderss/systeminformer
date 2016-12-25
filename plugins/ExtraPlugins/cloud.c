@@ -44,21 +44,6 @@ ULONGLONG ParseVersionString(
     return MAKE_VERSION_ULONGLONG(majorInteger, minorInteger, reservedInteger, revisionInteger);
 }
 
-json_object_ptr json_get_object(
-    _In_ json_object_ptr Object, 
-    _In_ PCSTR Key
-    )
-{
-    json_object_ptr returnObj;
-
-    if (json_object_object_get_ex(Object, Key, &returnObj))
-    {
-        return returnObj;
-    }
-
-    return NULL;
-}
-
 HICON PluginDownloadImageThread(
     _In_ PPH_STRING ImageDownloadUrl
     )
@@ -197,7 +182,7 @@ NTSTATUS QueryPluginsCallbackThread(
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
     ULONG xmlStringBufferLength = 0;
     PSTR xmlStringBuffer = NULL;
-    json_object_ptr rootJsonObject;
+    PVOID rootJsonObject;
     PWCT_CONTEXT context = Parameter;
 
     WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
@@ -255,12 +240,12 @@ NTSTATUS QueryPluginsCallbackThread(
     if (!ReadRequestString(httpRequestHandle, &xmlStringBuffer, &xmlStringBufferLength))
         goto CleanupExit;
 
-    if (!(rootJsonObject = json_tokener_parse(xmlStringBuffer)))
+    if (!(rootJsonObject = CreateJsonParser(xmlStringBuffer)))
         goto CleanupExit;
 
-    for (INT i = 0; i < json_object_array_length(rootJsonObject); i++)
+    for (INT i = 0; i < JsonGetArrayLength(rootJsonObject); i++)
     {
-        json_object_ptr jvalue;
+        PVOID jvalue;
         PPLUGIN_NODE entry;
         SYSTEMTIME time = { 0 };
         SYSTEMTIME localTime = { 0 };
@@ -270,28 +255,28 @@ NTSTATUS QueryPluginsCallbackThread(
         entry = PhCreateAlloc(sizeof(PLUGIN_NODE));
         memset(entry, 0, sizeof(PLUGIN_NODE));
 
-        jvalue = json_object_array_get_idx(rootJsonObject, i);
-        entry->Id = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_id")));
-        entry->Visible = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_visible")));
-        entry->InternalName = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_internal_name")));
-        entry->Name = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_name")));
-        entry->Version = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_version")));
-        entry->Author = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_author")));
-        entry->Description = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_description")));
-        entry->IconUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_icon")));
-        entry->Requirements = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_requirements")));
-        entry->FeedbackUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_feedback")));
-        entry->Screenshots = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_screenshots")));
-        entry->AddedTime = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_datetime_added")));
-        entry->UpdatedTime = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_datetime_updated")));
-        entry->Download_count = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_download_count")));
-        entry->Download_link_32 = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_download_link_32")));
-        entry->Download_link_64 = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_download_link_64")));
-        entry->SHA2_32 = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_hash_32")));
-        entry->SHA2_64 = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_hash_64")));
-        entry->HASH_32 = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_signed_32")));
-        entry->HASH_64 = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_signed_64")));
-        entry->FileName = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jvalue, "plugin_filename")));
+        jvalue = JsonGetObjectArrayIndex(rootJsonObject, i);
+        entry->Id = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_id"));
+        entry->Visible = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_visible"));
+        entry->InternalName = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_internal_name"));
+        entry->Name = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_name"));
+        entry->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_version"));
+        entry->Author = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_author"));
+        entry->Description = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_description"));
+        entry->IconUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_icon"));
+        entry->Requirements = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_requirements"));
+        entry->FeedbackUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_feedback"));
+        entry->Screenshots = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_screenshots"));
+        entry->AddedTime = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_datetime_added"));
+        entry->UpdatedTime = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_datetime_updated"));
+        entry->Download_count = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_download_count"));
+        entry->Download_link_32 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_download_link_32"));
+        entry->Download_link_64 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_download_link_64"));
+        entry->SHA2_32 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_hash_32"));
+        entry->SHA2_64 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_hash_64"));
+        entry->HASH_32 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_signed_32"));
+        entry->HASH_64 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_signed_64"));
+        entry->FileName = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_filename"));
 
         swscanf(
             PhGetString(entry->UpdatedTime),
@@ -347,7 +332,7 @@ NTSTATUS QueryPluginsCallbackThread(
                             (info->dwFileVersionMS >> 0) & 0xffff,
                             (info->dwFileVersionLS >> 16) & 0xffff,
                             (info->dwFileVersionLS >> 0) & 0xffff
-                        );
+                            );
                     }
                 }
 
@@ -357,7 +342,7 @@ NTSTATUS QueryPluginsCallbackThread(
                         L"\\StringFileInfo\\%04x%04x\\InternalName",
                         languageInfo[0],
                         languageInfo[1]
-                    );
+                        );
 
                     if (VerQueryValue(versionInfo, PhGetStringOrEmpty(internalNameString), &buffer, &bufferSize))
                     {

@@ -119,6 +119,7 @@ BOOLEAN PluginsCleanupDirectoryCallback(
             )))
         {
             dispositionInfo.DeleteFile = TRUE;
+
             NtSetInformationFile(
                 fileHandle,
                 &isb,
@@ -342,7 +343,6 @@ LOGICAL DllMain(
                 );
 
             PhAddSettings(settings, ARRAYSIZE(settings));
-
         }
         break;
     }

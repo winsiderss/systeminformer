@@ -159,22 +159,8 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Bitmap
-//
-
-IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
-
-IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // PNG
 //
-
-IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
-
-IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 
 IDB_SETTINGS_PNG        PNG                     "resources\\cog_edit_modern.png"
 

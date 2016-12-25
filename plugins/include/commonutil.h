@@ -375,13 +375,12 @@ JsonGetArrayLength(
     return 0;
 }
 
-
 FORCEINLINE
 PVOID
 JsonGetObjectArrayIndex(
     _In_ PVOID Object,
     _In_ INT Index
-)
+    )
 {
     PPH_PLUGIN toolStatusPlugin;
 
@@ -496,9 +495,6 @@ JsonAddObject(
         }
     }
 }
-
-
-
 
 FORCEINLINE
 HICON

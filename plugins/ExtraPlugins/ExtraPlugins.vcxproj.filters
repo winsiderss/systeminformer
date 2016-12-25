@@ -39,39 +39,6 @@
     <ClCompile Include="cloud.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="json-c\arraylist.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\json_c_version.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\json_object.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\json_object_iterator.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\json_tokener.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\json_util.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\linkhash.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\random_seed.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\debug.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\libjson.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
-    <ClCompile Include="json-c\printbuf.c">
-      <Filter>Source Files\json-c</Filter>
-    </ClCompile>
     <ClCompile Include="miniz\miniz.c">
       <Filter>Source Files\zip</Filter>
     </ClCompile>
@@ -116,57 +83,6 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="json-c\json_config.h">
-      <Filter>Source Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json.h">
-      <Filter>Source Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\arraylist.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_c_version.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_inttypes.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_object.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_object_iterator.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_object_private.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_tokener.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\json_util.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\linkhash.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\math_compat.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\printbuf.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\random_seed.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\bits.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\config.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
-    <ClInclude Include="json-c\debug.h">
-      <Filter>Header Files\json-c</Filter>
-    </ClInclude>
     <ClInclude Include="miniz\miniz.h">
       <Filter>Header Files\zip</Filter>
     </ClInclude>
@@ -177,18 +93,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\inactive_search.bmp">
-      <Filter>Resource Files\Images</Filter>
-    </Image>
-    <Image Include="resources\inactive_search.png">
-      <Filter>Resource Files\Images</Filter>
-    </Image>
-    <Image Include="resources\active_search.png">
-      <Filter>Resource Files\Images</Filter>
-    </Image>
-    <Image Include="resources\active_search.bmp">
-      <Filter>Resource Files\Images</Filter>
-    </Image>
     <Image Include="resources\cog_edit_modern.png">
       <Filter>Resource Files\Images</Filter>
     </Image>

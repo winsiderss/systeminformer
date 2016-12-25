@@ -36,10 +36,8 @@
 #include <winhttp.h>
 #include <windowsx.h>
 #include <uxtheme.h>
-
+#include <commonutil.h>
 #include "resource.h"
-#include "json-c/json.h"
-#include "..\..\plugins\include\commonutil.h"
 
 #define IDD_WCT_MENUITEM 1000
 #define PH_UPDATEISERRORED (WM_APP + 501)
