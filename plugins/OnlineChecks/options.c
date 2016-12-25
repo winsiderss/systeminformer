@@ -47,8 +47,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
             case IDCANCEL:
                 {
-                    PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_VIRUSTOTAL)) == BST_CHECKED ? 1 : 0);
-                    //PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT)) == BST_CHECKED ? 1 : 0);
+                    PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, 
+                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_VIRUSTOTAL)) == BST_CHECKED ? 1 : 0);
 
                     EndDialog(hwndDlg, IDCANCEL);
                 }

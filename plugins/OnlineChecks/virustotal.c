@@ -402,7 +402,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
     NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &increment, sizeof(LONG));
     NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT));
 
-    Sleep(5 * 1000);
+    Sleep(10 * 1000);
 
     do
     {
@@ -440,7 +440,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
 
         if (resultTempList->Count == 0)
         {
-            Sleep(20 * 1000); // Wait 20 seconds
+            Sleep(30 * 1000); // Wait 20 seconds
             goto CleanupExit;
         }
 

@@ -303,27 +303,27 @@ VOID ProcessHighlightingColorCallback(
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
-    PPROCESS_DB_OBJECT object;
+    //PPROCESS_DB_OBJECT object;
 
     if (getHighlightingColor->Handled)
         return;
 
-    if (!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS))
-        return;
+    //if (!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS))
+    //    return;
 
-    LockProcessDb();
+    //LockProcessDb();
 
-    if (PhIsNullOrEmptyString(processItem->FileName))
-        return;
+    //if (PhIsNullOrEmptyString(processItem->FileName))
+    //    return;
 
-    if ((object = FindProcessDbObject(&processItem->FileName->sr)) && object->Positives)
-    {
-        getHighlightingColor->BackColor = RGB(255, 0, 0);
-        getHighlightingColor->Cache = TRUE;
-        getHighlightingColor->Handled = TRUE;
-    }
+    //if ((object = FindProcessDbObject(&processItem->FileName->sr)) && object->Positives)
+    //{
+    //    getHighlightingColor->BackColor = RGB(255, 0, 0);
+    //    getHighlightingColor->Cache = TRUE;
+    //    getHighlightingColor->Handled = TRUE;
+    //}
 
-    UnlockProcessDb();
+    //UnlockProcessDb();
 }
 
 LONG NTAPI VirusTotalProcessNodeSortFunction(
