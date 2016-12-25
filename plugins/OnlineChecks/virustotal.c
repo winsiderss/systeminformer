@@ -439,7 +439,10 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
         PhReleaseQueuedLockExclusive(&ProcessListLock);
 
         if (resultTempList->Count == 0)
+        {
+            Sleep(20 * 1000); // Wait 20 seconds
             goto CleanupExit;
+        }
 
         for (i = 0; i < resultTempList->Count; i++)
         {
@@ -473,6 +476,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
  
                 if (entry && !entry->Processed)
                 {
+                    entry->Processed = TRUE;
                     entry->Positives = result->Positives;
 
                     PhSwapReference(
@@ -488,9 +492,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
                             result->FileHash, 
                             entry->FileResult
                             );
-                    }
-
-                    entry->Processed = TRUE;
+                    } 
                 }
             }
         }
@@ -531,27 +533,26 @@ CleanupExit:
         if (resultTempList)
         {
             // Re-queue items without any results from VirusTotal.
-            for (i = 0; i < resultTempList->Count; i++)
-            {
-                PVIRUSTOTAL_FILE_HASH_ENTRY result = resultTempList->Items[i];
-                PPROCESS_EXTENSION extension = result->Extension;
-
-                if (extension->Retries > 3)
-                    continue;
-
-                if (PhIsNullOrEmptyString(result->FileResult))
-                {
-                    extension->Stage1 = FALSE;
-                }
-
-                extension->Retries++;
-            }
+            //for (i = 0; i < resultTempList->Count; i++)
+            //{
+            //    PVIRUSTOTAL_FILE_HASH_ENTRY result = resultTempList->Items[i];
+            //    PPROCESS_EXTENSION extension = result->Extension;
+            //
+            //    if (extension->Retries > 3)
+            //        continue;
+            //
+            //    if (PhIsNullOrEmptyString(result->FileResult))
+            //    {
+            //        extension->Stage1 = FALSE;
+            //    }
+            //
+            //    extension->Retries++;
+            //}
 
             PhDereferenceObject(resultTempList);
         }
 
-        // Wait 5 seconds before checking list again
-        Sleep(5 * 1000);
+        Sleep(10 * 1000); // Wait 10 seconds
 
     } while (VirusTotalHandle);
 

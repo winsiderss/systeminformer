@@ -100,6 +100,18 @@ BEGIN
     DEFPUSHBUTTON   "Cancel",IDNO,185,37,50,14
 END
 
+IDD_OPTIONS DIALOGEX 0, 0, 201, 57
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Enable VirusTotal scanning",IDC_ENABLE_VIRUSTOTAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
+    CONTROL         "Enable VirusTotal detection highlighting",IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT,
+                    "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,7,19,141,10
+    PUSHBUTTON      "Close",IDCANCEL,145,36,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -116,6 +128,14 @@ BEGIN
         TOPMARGIN, 5
         BOTTOMMARGIN, 51
     END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 195
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 50
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -126,6 +146,11 @@ END
 //
 
 IDD_PROGRESS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_OPTIONS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

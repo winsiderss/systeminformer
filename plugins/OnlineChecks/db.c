@@ -87,7 +87,7 @@ VOID UnlockProcessDb(
 
 PPROCESS_DB_OBJECT FindProcessDbObject(
     _In_ PPH_STRINGREF FileName
-)
+    )
 {
     PROCESS_DB_OBJECT lookupObject;
     PPROCESS_DB_OBJECT lookupObjectPtr;

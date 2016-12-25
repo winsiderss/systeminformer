@@ -40,6 +40,14 @@ VOID CleanupProcessDb(
     VOID
     );
 
+VOID LockProcessDb(
+    VOID
+    );
+
+VOID UnlockProcessDb(
+    VOID
+    );
+
 PPROCESS_DB_OBJECT FindProcessDbObject(
     _In_ PPH_STRINGREF Hash
     );

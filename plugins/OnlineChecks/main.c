@@ -30,6 +30,7 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
@@ -128,7 +129,7 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    ShowOptionsDialog((HWND)Parameter);
 }
 
 VOID NTAPI MenuItemCallback(
@@ -188,13 +189,13 @@ VOID NTAPI MenuItemCallback(
             }
         }
         break;
-    case ID_SENDTO_SERVICE1:
+    case MENUITEM_VIRUSTOTAL_UPLOAD:
         fileName = menuItem->Context;
-        UploadToOnlineService(fileName, UPLOAD_SERVICE_VIRUSTOTAL);
+        UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
         break;
-    case ID_SENDTO_SERVICE2:
+    case MENUITEM_JOTTI_UPLOAD:
         fileName = menuItem->Context;
-        UploadToOnlineService(fileName, UPLOAD_SERVICE_JOTTI);
+        UploadToOnlineService(fileName, MENUITEM_JOTTI_UPLOAD);
         break;
     }
 }
@@ -205,17 +206,20 @@ VOID NTAPI MainMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-    PPH_EMENU_ITEM menuItem;
+    PPH_EMENU_ITEM enableMenuItem;
+    PPH_EMENU_ITEM detectMenuItem;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
         return;
 
-    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL);
+    enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL);
+    detectMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"VirusTotal detections", NULL);
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, menuItem, -1);
+    PhInsertEMenuItem(menuInfo->Menu, enableMenuItem, -1);
+    PhInsertEMenuItem(menuInfo->Menu, detectMenuItem, -1);
 
     if (VirusTotalScanningEnabled)
-        menuItem->Flags |= PH_EMENU_CHECKED;
+        enableMenuItem->Flags |= PH_EMENU_CHECKED;
 }
 
 PPH_EMENU_ITEM CreateSendToMenu(
@@ -230,8 +234,8 @@ PPH_EMENU_ITEM CreateSendToMenu(
 
     // Create the Send To menu.
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"virustotal.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", FileName), -1);
     //PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE3, L"camas.comodo.com", FileName), -1);
 
     menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, InsertAfter, 0);
@@ -242,6 +246,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
         insertIndex = -1;
 
     PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
+    PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), insertIndex + 2);
 
     return sendToMenu;
 }
@@ -291,6 +296,36 @@ VOID NTAPI ModuleMenuInitializingCallback(
     }
 }
 
+VOID ProcessHighlightingColorCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)getHighlightingColor->Parameter;
+    PPROCESS_DB_OBJECT object;
+
+    if (getHighlightingColor->Handled)
+        return;
+
+    if (!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS))
+        return;
+
+    LockProcessDb();
+
+    if (PhIsNullOrEmptyString(processItem->FileName))
+        return;
+
+    if ((object = FindProcessDbObject(&processItem->FileName->sr)) && object->Positives)
+    {
+        getHighlightingColor->BackColor = RGB(255, 0, 0);
+        getHighlightingColor->Cache = TRUE;
+        getHighlightingColor->Handled = TRUE;
+    }
+
+    UnlockProcessDb();
+}
+
 LONG NTAPI VirusTotalProcessNodeSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -329,13 +364,13 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
-    //*(HWND*)Context = info->TreeNewHandle;
-
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"VirusTotal";
     column.Width = 140;
     column.Alignment = PH_ALIGN_CENTER;
     column.CustomDraw = TRUE;
+    column.Context = info->TreeNewHandle; // Context
+
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_VIUSTOTAL, NULL, VirusTotalProcessNodeSortFunction);
 }
 
@@ -347,13 +382,13 @@ VOID NTAPI ModuleTreeNewInitializingCallback(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
-    //*(HWND*)Context = info->TreeNewHandle;
-
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"VirusTotal";
     column.Width = 140;
     column.Alignment = PH_ALIGN_CENTER;
     column.CustomDraw = TRUE;
+    column.Context = info->TreeNewHandle; // Context
+
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_VIUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
 }
 
@@ -382,8 +417,8 @@ VOID NTAPI TreeNewMessageCallback(
                 break;
             case NETWORK_COLUMN_ID_VIUSTOTAL_MODULE:
                 {
-                    PPH_MODULE_NODE processNode = (PPH_MODULE_NODE)getCellText->Node;
-                    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processNode->ModuleItem, EmModuleItemType);
+                    PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)getCellText->Node;
+                    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
 
                     getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
                 }
@@ -425,15 +460,15 @@ VOID NTAPI TreeNewMessageCallback(
             case NETWORK_COLUMN_ID_VIUSTOTAL:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)customDraw->Node;
-                    
+
                     extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
                 }
                 break;
             case NETWORK_COLUMN_ID_VIUSTOTAL_MODULE:
                 {
-                    PPH_MODULE_NODE processNode = (PPH_MODULE_NODE)customDraw->Node;
+                    PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)customDraw->Node;
 
-                    extension = PhPluginGetObjectExtension(PluginInstance, processNode->ModuleItem, EmModuleItemType);
+                    extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
                 }
                 break;
             }
@@ -441,20 +476,7 @@ VOID NTAPI TreeNewMessageCallback(
             if (!extension)
                 break;
 
-            if (extension->Positives)
-            {
-                //fontHandle = CommonCreateFont(-14, FW_BOLD, NULL);  
-                SetTextColor(customDraw->Dc, RGB(0xff, 0, 0));
-            }
-            else
-            {
-                //fontHandle = CommonDuplicateFont((HFONT)SendMessage(ProcessTreeNewHandle, WM_GETFONT, 0, 0));
-                SetTextColor(customDraw->Dc, RGB(0x64, 0x64, 0x64));
-            }
-
-            // originalFont = SelectObject(customDraw->Dc, fontHandle);
             text = PhGetStringRef(extension->VirusTotalResult);
-
             GetTextExtentPoint32(
                 customDraw->Dc,
                 text.Buffer,
@@ -469,9 +491,6 @@ VOID NTAPI TreeNewMessageCallback(
                 &customDraw->CellRect,
                 DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                 );
-
-            //SelectObject(customDraw->Dc, originalFont);
-            //DeleteObject(fontHandle);
         }
         break;
     }
@@ -561,6 +580,7 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -572,7 +592,7 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1118";
-            info->HasOptions = FALSE;
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
@@ -616,6 +636,13 @@ LOGICAL DllMain(
                 ProcessesUpdatedCallback,
                 NULL,
                 &ProcessesUpdatedCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor),
+                ProcessHighlightingColorCallback,
+                NULL,
+                &ProcessHighlightingColorCallbackRegistration
                 );
 
             PhRegisterCallback(

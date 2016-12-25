@@ -40,6 +40,7 @@
 
 #define PLUGIN_NAME L"ProcessHacker.OnlineChecks"
 #define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
+#define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
 
 #ifdef VIRUSTOTAL_API
 #include "virustotal.h"
@@ -56,6 +57,10 @@
     ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
 
 extern PPH_PLUGIN PluginInstance;
+
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
+    );
 
 typedef enum _PH_UPLOAD_SERVICE_STATE
 {
@@ -101,8 +106,9 @@ typedef struct _UPLOAD_CONTEXT
 
 // upload
 #define ENABLE_SERVICE_VIRUSTOTAL 100
-#define UPLOAD_SERVICE_VIRUSTOTAL 101
-#define UPLOAD_SERVICE_JOTTI 102
+#define MENUITEM_VIRUSTOTAL_QUEUE 101
+#define MENUITEM_VIRUSTOTAL_UPLOAD 102
+#define MENUITEM_JOTTI_UPLOAD 103
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,

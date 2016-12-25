@@ -26,8 +26,8 @@
 
 SERVICE_INFO UploadServiceInfo[] =
 {
-    { UPLOAD_SERVICE_VIRUSTOTAL, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
-    { UPLOAD_SERVICE_JOTTI, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
+    { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
+    { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
     //{ UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
 
@@ -382,7 +382,7 @@ NTSTATUS UploadFileThreadStart(
         goto CleanupExit;
     }
 
-    if (context->Service == UPLOAD_SERVICE_JOTTI)
+    if (context->Service == MENUITEM_JOTTI_UPLOAD)
     {
         PPH_STRING ajaxHeader;
 
@@ -415,7 +415,7 @@ NTSTATUS UploadFileThreadStart(
         postBoundary->Buffer
         );
 
-    if (context->Service == UPLOAD_SERVICE_JOTTI)
+    if (context->Service == MENUITEM_JOTTI_UPLOAD)
     {
         // POST boundary header
         PhAppendFormatStringBuilder(
@@ -617,7 +617,7 @@ NTSTATUS UploadFileThreadStart(
     {
         switch (context->Service)
         {
-        case UPLOAD_SERVICE_VIRUSTOTAL:
+        case MENUITEM_VIRUSTOTAL_UPLOAD:
             {
                 ULONG bufferLength = 0;
 
@@ -637,7 +637,7 @@ NTSTATUS UploadFileThreadStart(
                 }
             }
             break;
-        case UPLOAD_SERVICE_JOTTI:
+        case MENUITEM_JOTTI_UPLOAD:
             {
                 PSTR hrefEquals = NULL;
                 PSTR quote = NULL;
@@ -771,277 +771,264 @@ NTSTATUS UploadCheckThreadStart(
     PPH_STRING hashString = NULL;
     PPH_STRING subObjectName = NULL;
     HANDLE fileHandle = INVALID_HANDLE_VALUE;
-
+    PPH_STRING phVersion = NULL;
+    PPH_STRING userAgent = NULL;
+    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
     serviceInfo = GetUploadServiceInfo(context->Service);
 
-    __try
+    // Open the file and check its size.
+    status = PhCreateFileWin32(
+        &fileHandle,
+        context->FileName->Buffer,
+        FILE_GENERIC_READ,
+        0,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
     {
-        // Open the file and check its size.
-        status = PhCreateFileWin32(
-            &fileHandle,
-            context->FileName->Buffer,
-            FILE_GENERIC_READ,
-            0,
-            FILE_SHARE_READ | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            );
-
-        if (!NT_SUCCESS(status))
-        {
-            RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
-            __leave;
-        }
-
-        if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
-        {
-            if (context->Service == UPLOAD_SERVICE_VIRUSTOTAL)
-            {
-                if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
-                {
-                    RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
-                    __leave;
-                }
-            }
-            else
-            {
-                if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
-                {
-                    RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
-                    __leave;
-                }
-            }
-
-            context->TotalFileLength = fileSize64.LowPart;
-        }
-
-        // Get proxy configuration and create winhttp handle (used for all winhttp sessions + requests).
-        {
-            PPH_STRING phVersion = NULL;
-            PPH_STRING userAgent = NULL;
-            WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-
-            // Create a user agent string.
-            phVersion = PhGetPhVersion();
-            userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
-
-            // Query the current system proxy
-            WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
-            // Open the HTTP session with the system proxy configuration if available
-            context->HttpHandle = WinHttpOpen(
-                userAgent->Buffer,
-                proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-                proxyConfig.lpszProxy,
-                proxyConfig.lpszProxyBypass,
-                0
-                );
-
-            PhClearReference(&phVersion);
-            PhClearReference(&userAgent);
-
-            if (!context->HttpHandle)
-                __leave;
-
-            if (WindowsVersion >= WINDOWS_8_1)
-            {
-                // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
-                ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
-                WinHttpSetOption(
-                    context->HttpHandle,
-                    WINHTTP_OPTION_DECOMPRESSION,
-                    &httpFlags,
-                    sizeof(ULONG)
-                    );
-            }
-        }
-
-        switch (context->Service)
-        {
-        case UPLOAD_SERVICE_VIRUSTOTAL:
-            {
-                PSTR uploadUrl = NULL;
-                PSTR quote = NULL;
-                ULONG bufferLength = 0;
-                UCHAR hash[32];
-                PVOID rootJsonObject;
-
-                if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
-                {
-                    RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
-                    __leave;
-                }
-
-                hashString = PhBufferToHexString(hash, 32);
-                subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
-                context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/en/file/%s/analysis/", hashString->Buffer);
-
-                if (!PerformSubRequest(
-                    context,
-                    serviceInfo->HostName,
-                    serviceInfo->HostPort,
-                    serviceInfo->HostFlags,
-                    subObjectName->Buffer,
-                    &subRequestBuffer,
-                    &bufferLength
-                    ))
-                {
-                    __leave;
-                }
-
-                if (rootJsonObject = CreateJsonParser(subRequestBuffer))
-                {
-                    BOOL file_Exists = FALSE;
-                    PSTR uploadUrl;
-
-                    file_Exists = GetJsonValueAsBool(rootJsonObject, "file_exists");
-                    uploadUrl = GetJsonValueAsString(rootJsonObject, "upload_url");
-
-                    if (file_Exists)
-                    {
-                        fileExists = TRUE;
-                    }
-
-                    context->ObjectName = PhZeroExtendToUtf16(uploadUrl + strlen("https://www.virustotal.com"));
-
-                    CleanupJsonParser(rootJsonObject);
-                }
-
-                // Create the default upload URL
-                if (!context->ObjectName)
-                    context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-            }
-            break;
-        case UPLOAD_SERVICE_JOTTI:
-            {
-                // Create the default upload URL
-                if (!context->ObjectName)
-                    context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-            }
-            break;
-        //case UPLOAD_SERVICE_CIMA:
-        //    {
-        //        PSTR quote = NULL;
-        //        ULONG bufferLength = 0;
-        //        UCHAR hash[32];
-        //        ULONG status = 0;
-        //        ULONG statusLength = sizeof(statusLength);
-
-        //        if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
-        //        {
-        //            RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
-        //            __leave;
-        //        }
-
-        //        hashString = PhBufferToHexString(hash, 32);
-        //        subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
-        //        context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
-
-        //        // Connect to the CIMA online service.
-        //        if (!(connectHandle = WinHttpConnect(
-        //            context->HttpHandle,
-        //            serviceInfo->HostName,
-        //            INTERNET_DEFAULT_HTTP_PORT,
-        //            0
-        //            )))
-        //        {
-        //            RaiseUploadError(context, L"Unable to connect to the CIMA service", GetLastError());
-        //            __leave;
-        //        }
-
-        //        // Create the request.
-        //        if (!(requestHandle = WinHttpOpenRequest(
-        //            connectHandle,
-        //            NULL,
-        //            subObjectName->Buffer,
-        //            NULL,
-        //            WINHTTP_NO_REFERER,
-        //            WINHTTP_DEFAULT_ACCEPT_TYPES,
-        //            WINHTTP_FLAG_REFRESH
-        //            )))
-        //        {
-        //            RaiseUploadError(context, L"Unable to create the CIMA request", GetLastError());
-        //            __leave;
-        //        }
-
-        //        // Send the request.
-        //        if (!WinHttpSendRequest(
-        //            requestHandle,
-        //            WINHTTP_NO_ADDITIONAL_HEADERS,
-        //            0,
-        //            WINHTTP_NO_REQUEST_DATA,
-        //            0,
-        //            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        //            0
-        //            ))
-        //        {
-        //            RaiseUploadError(context, L"Unable to send the CIMA request", GetLastError());
-        //            __leave;
-        //        }
-
-        //        // Wait for the send request to complete and receive the response.
-        //        if (!WinHttpReceiveResponse(requestHandle, NULL))
-        //        {
-        //            RaiseUploadError(context, L"Unable to receive the CIMA response", GetLastError());
-        //            __leave;
-        //        }
-
-        //        WinHttpQueryHeaders(
-        //            requestHandle,
-        //            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-        //            NULL,
-        //            &status,
-        //            &statusLength,
-        //            NULL
-        //            );
-
-        //        if (status == HTTP_STATUS_OK)
-        //        {
-        //            fileExists = TRUE;
-        //        }
-
-        //        if (!context->ObjectName)
-        //        {
-        //            // Create the default upload URL
-        //            context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-        //        }
-        //    }
-        //    break;
-        }
-
-        // Do we need to prompt the user?
-        if (fileExists && !PhIsNullOrEmptyString(context->LaunchCommand))
-        {
-            PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
-            __leave;
-        }
-
-        // No existing file found... Start the upload.
-        if (!NT_SUCCESS(UploadFileThreadStart(context)))
-            __leave;
+        RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
+        goto CleanupExit;
     }
-    __finally
+
+    if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
     {
-        PhClearReference(&hashString);
-        PhClearReference(&subObjectName);
-
-        if (requestHandle)
+        if (context->Service == MENUITEM_VIRUSTOTAL_UPLOAD)
         {
-            WinHttpCloseHandle(requestHandle);
+            if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
+            {
+                RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
+                goto CleanupExit;
+            }
+        }
+        else
+        {
+            if (fileSize64.QuadPart > 20 * 1024 * 1024) // 20 MB
+            {
+                RaiseUploadError(context, L"The file is too large (over 20 MB)", ERROR_FILE_TOO_LARGE);
+                goto CleanupExit;
+            }
         }
 
-        if (connectHandle)
-        {
-            WinHttpCloseHandle(connectHandle);
-        }
+        context->TotalFileLength = fileSize64.LowPart;
+    }
 
-        if (fileHandle != INVALID_HANDLE_VALUE)
+    // Create a user agent string.
+    phVersion = PhGetPhVersion();
+    userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
+
+    // Query the current system proxy
+    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+
+    // Open the HTTP session
+    context->HttpHandle = WinHttpOpen(
+        userAgent->Buffer,
+        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        proxyConfig.lpszProxy,
+        proxyConfig.lpszProxyBypass,
+        0
+        );
+
+    PhClearReference(&phVersion);
+    PhClearReference(&userAgent);
+
+    if (!context->HttpHandle)
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
+        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+
+        WinHttpSetOption(context->HttpHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
+    }
+
+    switch (context->Service)
+    {
+    case MENUITEM_VIRUSTOTAL_UPLOAD:
         {
-            NtClose(fileHandle);
+            PSTR uploadUrl = NULL;
+            PSTR quote = NULL;
+            ULONG bufferLength = 0;
+            UCHAR hash[32];
+            PVOID rootJsonObject;
+
+            if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
+            {
+                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                goto CleanupExit;
+            }
+
+            hashString = PhBufferToHexString(hash, 32);
+            subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
+            context->LaunchCommand = PhFormatString(L"http://www.virustotal.com/en/file/%s/analysis/", hashString->Buffer);
+
+            if (!PerformSubRequest(
+                context,
+                serviceInfo->HostName,
+                serviceInfo->HostPort,
+                serviceInfo->HostFlags,
+                subObjectName->Buffer,
+                &subRequestBuffer,
+                &bufferLength
+                ))
+            {
+                goto CleanupExit;
+            }
+
+            if (rootJsonObject = CreateJsonParser(subRequestBuffer))
+            {
+                BOOL file_Exists = FALSE;
+                PSTR uploadUrl;
+
+                file_Exists = GetJsonValueAsBool(rootJsonObject, "file_exists");
+                uploadUrl = GetJsonValueAsString(rootJsonObject, "upload_url");
+
+                if (file_Exists)
+                {
+                    fileExists = TRUE;
+                }
+
+                context->ObjectName = PhZeroExtendToUtf16(uploadUrl + strlen("https://www.virustotal.com"));
+
+                CleanupJsonParser(rootJsonObject);
+            }
+
+            // Create the default upload URL
+            if (!context->ObjectName)
+                context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
         }
+        break;
+    case MENUITEM_JOTTI_UPLOAD:
+        {
+            // Create the default upload URL
+            if (!context->ObjectName)
+                context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
+        }
+        break;
+    //case UPLOAD_SERVICE_CIMA:
+    //    {
+    //        PSTR quote = NULL;
+    //        ULONG bufferLength = 0;
+    //        UCHAR hash[32];
+    //        ULONG status = 0;
+    //        ULONG statusLength = sizeof(statusLength);
+
+    //        if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
+    //        {
+    //            RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+    //            __leave;
+    //        }
+
+    //        hashString = PhBufferToHexString(hash, 32);
+    //        subObjectName = PhConcatStrings2(L"/cgi-bin/submit?file=", hashString->Buffer);
+    //        context->LaunchCommand = PhFormatString(L"http://camas.comodo.com/cgi-bin/submit?file=%s", hashString->Buffer);
+
+    //        // Connect to the CIMA online service.
+    //        if (!(connectHandle = WinHttpConnect(
+    //            context->HttpHandle,
+    //            serviceInfo->HostName,
+    //            INTERNET_DEFAULT_HTTP_PORT,
+    //            0
+    //            )))
+    //        {
+    //            RaiseUploadError(context, L"Unable to connect to the CIMA service", GetLastError());
+    //            __leave;
+    //        }
+
+    //        // Create the request.
+    //        if (!(requestHandle = WinHttpOpenRequest(
+    //            connectHandle,
+    //            NULL,
+    //            subObjectName->Buffer,
+    //            NULL,
+    //            WINHTTP_NO_REFERER,
+    //            WINHTTP_DEFAULT_ACCEPT_TYPES,
+    //            WINHTTP_FLAG_REFRESH
+    //            )))
+    //        {
+    //            RaiseUploadError(context, L"Unable to create the CIMA request", GetLastError());
+    //            __leave;
+    //        }
+
+    //        // Send the request.
+    //        if (!WinHttpSendRequest(
+    //            requestHandle,
+    //            WINHTTP_NO_ADDITIONAL_HEADERS,
+    //            0,
+    //            WINHTTP_NO_REQUEST_DATA,
+    //            0,
+    //            WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
+    //            0
+    //            ))
+    //        {
+    //            RaiseUploadError(context, L"Unable to send the CIMA request", GetLastError());
+    //            __leave;
+    //        }
+
+    //        // Wait for the send request to complete and receive the response.
+    //        if (!WinHttpReceiveResponse(requestHandle, NULL))
+    //        {
+    //            RaiseUploadError(context, L"Unable to receive the CIMA response", GetLastError());
+    //            __leave;
+    //        }
+
+    //        WinHttpQueryHeaders(
+    //            requestHandle,
+    //            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+    //            NULL,
+    //            &status,
+    //            &statusLength,
+    //            NULL
+    //            );
+
+    //        if (status == HTTP_STATUS_OK)
+    //        {
+    //            fileExists = TRUE;
+    //        }
+
+    //        if (!context->ObjectName)
+    //        {
+    //            // Create the default upload URL
+    //            context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
+    //        }
+    //    }
+    //    break;
+    }
+
+    // Do we need to prompt the user?
+    if (fileExists && !PhIsNullOrEmptyString(context->LaunchCommand))
+    {
+        PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
+        goto CleanupExit;
+    }
+
+    // No existing file found... Start the upload.
+    if (!NT_SUCCESS(UploadFileThreadStart(context)))
+        goto CleanupExit;
+
+CleanupExit:
+
+    PhClearReference(&hashString);
+    PhClearReference(&subObjectName);
+
+    if (requestHandle)
+    {
+        WinHttpCloseHandle(requestHandle);
+    }
+
+    if (connectHandle)
+    {
+        WinHttpCloseHandle(connectHandle);
+    }
+
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        NtClose(fileHandle);
     }
 
     return status;
@@ -1111,18 +1098,15 @@ INT_PTR CALLBACK UploadDlgProc(
 
             switch (context->Service)
             {
-            case UPLOAD_SERVICE_VIRUSTOTAL:
+            case MENUITEM_VIRUSTOTAL_UPLOAD:
                 Static_SetText(hwndDlg, L"Uploading to VirusTotal...");
                 break;
-            case UPLOAD_SERVICE_JOTTI:
+            case MENUITEM_JOTTI_UPLOAD:
                 Static_SetText(hwndDlg, L"Uploading to Jotti...");
                 break;
-            //case UPLOAD_SERVICE_CIMA:
-            //    Static_SetText(hwndDlg, L"Uploading to Comodo...");
-            //    break;
             }
 
-            if (dialogThread = PhCreateThread(0, UploadCheckThreadStart, (PVOID)context))
+            if (dialogThread = PhCreateThread(0, UploadCheckThreadStart, context))
                 NtClose(dialogThread);
         }
         break;
@@ -1146,7 +1130,7 @@ INT_PTR CALLBACK UploadDlgProc(
                 {
                     if (context->UploadServiceState == PhUploadServiceViewReport)
                     {
-                        HANDLE dialogThread = NULL;
+                        HANDLE dialogThread;
 
                         // Set state to uploading...
                         context->UploadServiceState = PhUploadServiceUploading;
@@ -1157,7 +1141,7 @@ INT_PTR CALLBACK UploadDlgProc(
                         Control_Visible(GetDlgItem(hwndDlg, IDYES), FALSE);
 
                         // Start the upload thread...
-                        if (dialogThread = PhCreateThread(0, UploadFileThreadStart, (PVOID)context))
+                        if (dialogThread = PhCreateThread(0, UploadFileThreadStart, context))
                             NtClose(dialogThread);
                     }
                     else
