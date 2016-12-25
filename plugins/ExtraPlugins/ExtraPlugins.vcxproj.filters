@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{802108be-ae96-47c3-8d93-884ed6dd096a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{3e65ffb8-3f3e-40d7-b3ca-d55cae8edb16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{b98dd849-bbfe-4b41-8c48-f65680da5c00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\json-c">
+      <UniqueIdentifier>{d13aeaca-3136-44f8-8525-ac088e4170ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\json-c">
+      <UniqueIdentifier>{297fc08d-cce6-41c6-8e77-63411ddd185b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\zip">
+      <UniqueIdentifier>{59006979-4faf-455c-b58c-3f81e8ff9272}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zip">
+      <UniqueIdentifier>{2ff6c860-c958-4bcc-8147-4093cad157e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Images">
+      <UniqueIdentifier>{77191a45-2eba-438a-8ad2-853e25615850}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\pages">
+      <UniqueIdentifier>{50861cd8-df66-4551-a743-f08b54011d1e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wndtree.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cloud.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\arraylist.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_c_version.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_object.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_object_iterator.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_tokener.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\json_util.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\linkhash.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\random_seed.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\debug.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\libjson.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="json-c\printbuf.c">
+      <Filter>Source Files\json-c</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz\miniz.c">
+      <Filter>Source Files\zip</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\verify.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\page1.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\page2.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\page3.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\page4.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\page5.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\updater.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="dialog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disabled.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="setup\uninstall.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_config.h">
+      <Filter>Source Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json.h">
+      <Filter>Source Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\arraylist.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_c_version.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_inttypes.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object_iterator.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_object_private.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_tokener.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\json_util.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\linkhash.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\math_compat.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\printbuf.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\random_seed.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\bits.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\config.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="json-c\debug.h">
+      <Filter>Header Files\json-c</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz.h">
+      <Filter>Header Files\zip</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ExtraPlugins.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\inactive_search.bmp">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\active_search.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\active_search.bmp">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\cog_edit_modern.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CHANGELOG.txt" />
+  </ItemGroup>
+</Project>

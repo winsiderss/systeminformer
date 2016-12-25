@@ -1,0 +1,214 @@
+
+0.12
+
+  * Address security issues:
+    * CVE-2013-6371: hash collision denial of service
+    * CVE-2013-6370: buffer overflow if size_t is larger than int
+
+  * Avoid potential overflow in json_object_get_double
+
+  * Eliminate the mc_abort() function and MC_ABORT macro.
+
+  * Make the json_tokener_errors array local.  It has been deprecated for
+     a while, and json_tokener_error_desc() should be used instead.
+
+  * change the floating point output format to %.17g so values with 
+     more than 6 digits show up in the output.
+
+  * Remove the old libjson.so name compatibility support.  The library is
+      only created as libjson-c.so now and headers are only installed 
+      into the ${prefix}/json-c directory.
+
+  * When supported by the linker, add the -Bsymbolic-functions flag.
+
+  * Various changes to fix the build on MSVC.
+
+  * Make strict mode more strict:
+    * number must not start with 0
+    * no single-quote strings
+    * no comments
+    * trailing char not allowed
+    * only allow lowercase literals
+
+  * Added a json_object_new_double_s() convenience function to allow
+    an exact string representation of a double to be specified when
+    creating the object and use it in json_tokener_parse_ex() so
+    a re-serialized object more exactly matches the input.
+
+  * Add support NaN and Infinity
+
+
+0.11
+
+  * IMPORTANT: the name of the library has changed to libjson-c.so and
+     the header files are now in include/json-c.
+     The pkgconfig name has also changed from json to json-c.
+     You should change your build to use appropriate -I and -l options.
+     A compatibility shim is in place so builds using the old name will
+     continue to work, but that will be removed in the next release.
+  * Maximum recursion depth is now a runtime option.
+     json_tokener_new() is provided for compatibility.
+     json_tokener_new_ex(depth)
+  * Include json_object_iterator.h in the installed headers.
+  * Add support for building on Android.
+  * Rewrite json_object_object_add to replace just the value if the key already exists so keys remain valid.
+  * Make it safe to delete keys while iterating with the json_object_object_foreach macro.
+  * Add a json_set_serializer() function to allow the string output of a json_object to be customized.
+  * Make float parsing locale independent.
+  * Add a json_tokener_set_flags() function and a JSON_TOKENER_STRICT flag.
+  * Enable -Werror when building.
+  * speed improvements to parsing 64-bit integers on systems with working sscanf
+  * Add a json_object_object_length function.
+  * Fix a bug (buffer overrun) when expanding arrays to more than 64 entries.
+
+0.10
+
+  * Add a json_object_to_json_string_ext() function to allow output to be
+     formatted in a more human readable form.
+  * Add json_object_object_get_ex(), a NULL-safe get object method, to be able
+     to distinguish between a key not present and the value being NULL.
+  * Add an alternative iterator implementation, see json_object_iterator.h
+  * Make json_object_iter public to enable external use of the
+     json_object_object_foreachC macro.
+  * Add a printbuf_memset() function to provide an effecient way to set and
+     append things like whitespace indentation.
+  * Adjust json_object_is_type and json_object_get_type so they return
+      json_type_null for NULL objects and handle NULL passed to
+      json_objct_object_get().
+  * Rename boolean type to json_bool.
+  * Fix various compile issues for Visual Studio and MinGW.
+  * Allow json_tokener_parse_ex() to be re-used to parse multiple object.
+     Also, fix some parsing issues with capitalized hexadecimal numbers and
+     number in E notation.
+  * Add json_tokener_get_error() and json_tokener_error_desc() to better 
+     encapsulate the process of retrieving errors while parsing.
+  * Various improvements to the documentation of many functions.
+  * Add new json_object_array_sort() function.
+  * Fix a bug in json_object_get_int(), which would incorrectly return 0
+    when called on a string type object.
+    Eric Haszlakiewicz
+  * Add a json_type_to_name() function.
+    Eric Haszlakiewicz
+  * Add a json_tokener_parse_verbose() function.
+    Jehiah Czebotar
+  * Improve support for null bytes within JSON strings.
+    Jehiah Czebotar
+  * Fix file descriptor leak if memory allocation fails in json_util
+    Zachary Blair, zack_blair at hotmail dot com
+  * Add int64 support. Two new functions json_object_net_int64 and
+    json_object_get_int64. Binary compatibility preserved.
+    Eric Haszlakiewicz, EHASZLA at transunion com
+    Rui Miguel Silva Seabra, rms at 1407 dot org
+  * Fix subtle bug in linkhash where lookup could hang after all slots
+    were filled then successively freed.
+    Spotted by Jean-Marc Naud, j dash m at newtraxtech dot com
+  * Make json_object_from_file take const char *filename
+    Spotted by Vikram Raj V, vsagar at attinteractive dot com
+  * Add handling of surrogate pairs (json_tokener.c, test4.c, Makefile.am)
+    Brent Miller, bdmiller at yahoo dash inc dot com
+  * Correction to comment describing printbuf_memappend in printbuf.h
+    Brent Miller, bdmiller at yahoo dash inc dot com
+
+0.9
+  * Add README.html README-WIN32.html config.h.win32 to Makefile.am
+    Michael Clark, <michael@metaparadigm.com>
+  * Add const qualifier to the json_tokener_parse functions
+    Eric Haszlakiewicz, EHASZLA at transunion dot com
+  * Rename min and max so we can never clash with C or C++ std library
+    Ian Atha, thatha at yahoo dash inc dot com
+  * Fix any noticeable spelling or grammar errors.
+  * Make sure every va_start has a va_end.
+  * Check all pointers for validity.
+    Erik Hovland, erik at hovland dot org
+  * Fix json_object_get_boolean to return false for empty string
+    Spotted by Vitaly Kruglikov, Vitaly dot Kruglikov at palm dot com
+  * optimizations to json_tokener_parse_ex(), printbuf_memappend()
+    Brent Miller, bdmiller at yahoo dash inc dot com
+  * Disable REFCOUNT_DEBUG by default in json_object.c
+  * Don't use this as a variable, so we can compile with a C++ compiler
+  * Add casts from void* to type of assignment when using malloc 
+  * Add #ifdef __cplusplus guards to all of the headers
+  * Add typedefs for json_object, json_tokener, array_list, printbuf, lh_table
+    Michael Clark, <michael@metaparadigm.com>
+  * Null pointer dereference fix. Fix json_object_get_boolean strlen test
+    to not return TRUE for zero length string. Remove redundant includes.
+    Erik Hovland, erik at hovland dot org
+  * Fixed warning reported by adding -Wstrict-prototypes
+    -Wold-style-definition to the compilatin flags.
+    Dotan Barak, dotanba at gmail dot com
+  * Add const correctness to public interfaces
+    Gerard Krol, g dot c dot krol at student dot tudelft dot nl
+
+0.8
+  * Add va_end for every va_start
+    Dotan Barak, dotanba at gmail dot com
+  * Add macros to enable compiling out debug code
+    Geoffrey Young, geoff at modperlcookbook dot org
+  * Fix bug with use of capital E in numbers with exponents
+    Mateusz Loskot, mateusz at loskot dot net
+  * Add stddef.h include
+  * Patch allows for json-c compile with -Werror and not fail due to
+    -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
+    Geoffrey Young, geoff at modperlcookbook dot org
+
+0.7
+  * Add escaping of backslash to json output
+  * Add escaping of foward slash on tokenizing and output
+  * Changes to internal tokenizer from using recursion to
+    using a depth state structure to allow incremental parsing
+
+0.6
+  * Fix bug in escaping of control characters
+    Johan Björklund, johbjo09 at kth dot se
+  * Remove include "config.h" from headers (should only
+    be included from .c files)
+    Michael Clark <michael@metaparadigm.com>
+
+0.5
+  * Make headers C++ compatible by change *this to *obj
+  * Add ifdef C++ extern "C" to headers
+  * Use simpler definition of min and max in bits.h
+    Larry Lansing, llansing at fuzzynerd dot com
+
+  * Remove automake 1.6 requirement
+  * Move autogen commands into autogen.sh. Update README
+  * Remove error pointer special case for Windows
+  * Change license from LGPL to MIT
+    Michael Clark <michael@metaparadigm.com>
+
+0.4
+  * Fix additional error case in object parsing
+  * Add back sign reversal in nested object parse as error pointer
+    value is negative, while error value is positive.
+    Michael Clark <michael@metaparadigm.com>
+
+0.3
+  * fix pointer arithmetic bug for error pointer check in is_error() macro
+  * fix type passed to printbuf_memappend in json_tokener
+  * update autotools bootstrap instructions in README
+    Michael Clark <michael@metaparadigm.com>
+
+0.2
+  * printbuf.c - C. Watford (christopher.watford@gmail.com)
+    Added a Win32/Win64 compliant implementation of vasprintf
+  * debug.c - C. Watford (christopher.watford@gmail.com)
+    Removed usage of vsyslog on Win32/Win64 systems, needs to be handled
+    by a configure script
+  * json_object.c - C. Watford (christopher.watford@gmail.com)
+    Added scope operator to wrap usage of json_object_object_foreach, this
+    needs to be rethought to be more ANSI C friendly
+  * json_object.h - C. Watford (christopher.watford@gmail.com)
+    Added Microsoft C friendly version of json_object_object_foreach
+  * json_tokener.c - C. Watford (christopher.watford@gmail.com)
+    Added a Win32/Win64 compliant implementation of strndup
+  * json_util.c - C. Watford (christopher.watford@gmail.com)
+    Added cast and mask to suffice size_t v. unsigned int conversion
+    correctness 
+  * json_tokener.c - sign reversal issue on error info for nested object parse
+    spotted by Johan Björklund (johbjo09 at kth.se)
+  * json_object.c - escape " in json_escape_str
+  * Change to automake and libtool to build shared and static library
+    Michael Clark <michael@metaparadigm.com>
+	
+0.1
+  * initial release
