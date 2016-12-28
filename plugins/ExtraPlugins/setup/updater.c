@@ -438,7 +438,6 @@ NTSTATUS UpdateDownloadThread(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
         WinHttpSetOption(
@@ -446,7 +445,7 @@ NTSTATUS UpdateDownloadThread(
             WINHTTP_OPTION_DECOMPRESSION,
             &httpFlags,
             sizeof(ULONG)
-        );
+            );
     }
 
     if (!(httpConnectionHandle = WinHttpConnect(

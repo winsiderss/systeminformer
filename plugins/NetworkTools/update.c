@@ -164,7 +164,6 @@ PPH_STRING QueryFwLinkUrl(PPH_UPDATER_CONTEXT Context)
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
         WinHttpSetOption(
@@ -426,7 +425,6 @@ NTSTATUS GeoIPUpdateThread(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
         WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));

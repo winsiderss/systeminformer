@@ -486,14 +486,13 @@ VOID LookupGeoIpCurrentCity(
             proxyConfig.lpszProxy,
             proxyConfig.lpszProxyBypass,
             0
-        )))
+            )))
         {
             goto CleanupExit;
         }
 
         if (WindowsVersion >= WINDOWS_8_1)
         {
-            // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
             ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
             WinHttpSetOption(
@@ -501,7 +500,7 @@ VOID LookupGeoIpCurrentCity(
                 WINHTTP_OPTION_DECOMPRESSION,
                 &httpFlags,
                 sizeof(ULONG)
-            );
+                );
         }
 
         if (!(httpConnectionHandle = WinHttpConnect(
@@ -509,7 +508,7 @@ VOID LookupGeoIpCurrentCity(
             L"wj32.org",
             INTERNET_DEFAULT_HTTPS_PORT,
             0
-        )))
+            )))
         {
             goto CleanupExit;
         }
@@ -522,7 +521,7 @@ VOID LookupGeoIpCurrentCity(
             WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
             WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
-        )))
+            )))
         {
             goto CleanupExit;
         }
@@ -561,7 +560,7 @@ VOID LookupGeoIpCurrentCity(
             0,
             WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
             0
-        ))
+            ))
         {
             goto CleanupExit;
         }
@@ -637,9 +636,10 @@ VOID LookupGeoIpCurrentCity(
             &remoteCountryName,
             &currentLatitude,
             &currentLongitude
-        );
+            );
 
     CleanupExit:
+
         if (httpRequestHandle)
             WinHttpCloseHandle(httpRequestHandle);
 

@@ -349,7 +349,6 @@ BOOLEAN QueryUpdateData(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
         WinHttpSetOption(
@@ -838,7 +837,6 @@ NTSTATUS UpdateDownloadThread(
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
-        // Enable GZIP and DEFLATE support on Windows 8.1 and above using undocumented flags.
         WinHttpSetOption(
             httpSessionHandle,
             WINHTTP_OPTION_DECOMPRESSION,

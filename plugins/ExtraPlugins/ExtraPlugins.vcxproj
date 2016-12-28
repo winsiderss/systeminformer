@@ -54,25 +54,25 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
       <AdditionalDependencies>windowscodecs.lib;bcrypt.lib;winhttp.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
       <AdditionalDependencies>windowscodecs.lib;bcrypt.lib;winhttp.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>windowscodecs.lib;bcrypt.lib;winhttp.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
       <AdditionalDependencies>windowscodecs.lib;bcrypt.lib;winhttp.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>bcrypt.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

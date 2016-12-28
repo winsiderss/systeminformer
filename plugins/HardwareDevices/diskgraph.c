@@ -57,13 +57,13 @@ VOID UpdateDiskDriveDialog(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    if (Context->DiskEntry->DiskName)
-        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, Context->DiskEntry->DiskName->Buffer);
+    if (!PhIsNullOrEmptyString(Context->DiskEntry->DiskName))
+        SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, PhGetString(Context->DiskEntry->DiskName));
     else
         SetDlgItemText(Context->WindowHandle, IDC_DISKNAME, L"Unknown disk");
 
-    if (Context->DiskEntry->DiskIndexName)
-        SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, Context->DiskEntry->DiskIndexName->Buffer);
+    if (!PhIsNullOrEmptyString(Context->DiskEntry->DiskIndexName))
+        SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, PhGetString(Context->DiskEntry->DiskIndexName));
     else
         SetDlgItemText(Context->WindowHandle, IDC_DISKMOUNTPATH, L"Unknown disk");
 
@@ -89,7 +89,7 @@ VOID UpdateDiskIndexText(
             PhMoveReference(&Context->DiskEntry->DiskIndexName, PhFormatString(
                 L"Disk %lu (%s)",
                 Context->DiskEntry->DiskIndex,
-                diskMountPoints->Buffer
+                PhGetString(diskMountPoints)
                 ));
         }
         else

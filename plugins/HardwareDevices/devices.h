@@ -352,6 +352,10 @@ BOOLEAN QueryInterfaceRow(
     _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
+PWSTR MediumTypeToString(
+    _In_ NDIS_PHYSICAL_MEDIUM MediumType
+    );
+
 // netoptions.c
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(

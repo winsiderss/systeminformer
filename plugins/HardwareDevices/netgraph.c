@@ -39,9 +39,9 @@ VOID NetAdapterUpdatePanel(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    ULONG64 inOctets = 0;
-    ULONG64 outOctets = 0;
-    ULONG64 linkSpeed = 0;
+    ULONG64 inOctetsValue = 0;
+    ULONG64 outOctetsValue = 0;
+    ULONG64 linkSpeedValue = 0;
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
     HANDLE deviceHandle = NULL;
 
@@ -78,14 +78,14 @@ VOID NetAdapterUpdatePanel(
         if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
         {
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                inOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
+                inOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
             else
-                inOctets = interfaceStats.ifHCInOctets;
+                inOctetsValue = interfaceStats.ifHCInOctets;
 
             if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                outOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
+                outOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             else
-                outOctets = interfaceStats.ifHCOutOctets;
+                outOctetsValue = interfaceStats.ifHCOutOctets;
         }
         else
         {
@@ -93,20 +93,20 @@ VOID NetAdapterUpdatePanel(
             // NDIS handles these two OIDs for all miniport drivers and we can use these for those special cases.
 
             // https://msdn.microsoft.com/en-us/library/ff569443.aspx
-            inOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
+            inOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
 
             // https://msdn.microsoft.com/en-us/library/ff569445.aspx
-            outOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
+            outOctetsValue = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
         }
 
         if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
         {
             mediaState = interfaceState.MediaConnectState;
-            linkSpeed = interfaceState.XmitLinkSpeed;
+            linkSpeedValue = interfaceState.XmitLinkSpeed;
         }
         else
         {
-            NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeed);
+            NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeedValue);
         }
 
         NtClose(deviceHandle);
@@ -117,22 +117,27 @@ VOID NetAdapterUpdatePanel(
 
         if (QueryInterfaceRow(&Context->AdapterEntry->Id, &interfaceRow))
         {
-            inOctets = interfaceRow.InOctets;
-            outOctets = interfaceRow.OutOctets;
+            inOctetsValue = interfaceRow.InOctets;
+            outOctetsValue = interfaceRow.OutOctets;
             mediaState = interfaceRow.MediaConnectState;
-            linkSpeed = interfaceRow.TransmitLinkSpeed;
+            linkSpeedValue = interfaceRow.TransmitLinkSpeed;
         }
     }
 
-    if (mediaState == MediaConnectStateConnected)
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
-    else
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctetsValue, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctetsValue, -1)->Buffer);
+    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctetsValue + outOctetsValue, -1)->Buffer);
 
-    SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeed / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BSENT, PhaFormatSize(outOctets, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BRECEIVED, PhaFormatSize(inOctets, -1)->Buffer);
-    SetDlgItemText(Context->PanelWindowHandle, IDC_STAT_BTOTAL, PhaFormatSize(inOctets + outOctets, -1)->Buffer);
+    if (mediaState == MediaConnectStateConnected)
+    {
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Connected");
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, -1)->Buffer)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(0, -1)->Buffer)->Buffer);
+    }
 }
 
 VOID UpdateNetAdapterDialog(
@@ -257,7 +262,6 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
             PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
-            // Create the graph control.
             context->GraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,

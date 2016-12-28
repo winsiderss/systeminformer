@@ -506,7 +506,7 @@ NTSTATUS DiskDriveQueryDeviceTypeAndNumber(
         NULL,
         NULL,
         &isb,
-        IOCTL_STORAGE_GET_DEVICE_NUMBER, // https://msdn.microsoft.com/en-us/library/bb968800.aspx
+        IOCTL_STORAGE_GET_DEVICE_NUMBER,
         NULL,
         0,
         &result,
@@ -547,7 +547,7 @@ NTSTATUS DiskDriveQueryStatistics(
         NULL,
         NULL,
         &isb,
-        IOCTL_DISK_PERFORMANCE, // https://msdn.microsoft.com/en-us/library/aa365183.aspx
+        IOCTL_DISK_PERFORMANCE,
         NULL,
         0,
         &result,
@@ -579,7 +579,7 @@ PPH_STRING DiskDriveQueryGeometry(
         NULL,
         NULL,
         &isb,
-        IOCTL_DISK_GET_DRIVE_GEOMETRY, // https://msdn.microsoft.com/en-us/library/aa365169.aspx
+        IOCTL_DISK_GET_DRIVE_GEOMETRY,
         NULL,
         0,
         &result,
@@ -614,7 +614,7 @@ BOOLEAN DiskDriveQueryImminentFailure(
         NULL,
         NULL,
         &isb,
-        IOCTL_STORAGE_PREDICT_FAILURE, // https://msdn.microsoft.com/en-us/library/ff560587.aspx
+        IOCTL_STORAGE_PREDICT_FAILURE,
         NULL,
         0,
         &storagePredictFailure,
@@ -1320,8 +1320,6 @@ PWSTR SmartAttributeGetText(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     )
 {
-    // from https://en.wikipedia.org/wiki/S.M.A.R.T
-
     switch (AttributeId)
     {
     case SMART_ATTRIBUTE_ID_READ_ERROR_RATE: // Critical
@@ -1430,7 +1428,7 @@ PWSTR SmartAttributeGetText(
         return L"GMR Head Amplitude";
     case SMART_ATTRIBUTE_ID_DRIVE_TEMPERATURE:
         return L"Temperature";
-    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS: // Transfer Error Rate (Fujitsu)
+    case SMART_ATTRIBUTE_ID_HEAD_FLYING_HOURS:
         return L"Head Flying Hours";
     case SMART_ATTRIBUTE_ID_TOTAL_LBA_WRITTEN:
         return L"Total LBAs Written";
@@ -1442,14 +1440,15 @@ PWSTR SmartAttributeGetText(
         return L"Free Fall Protection";
     }
 
-    return L"BUG BUG BUG";
+    return L"Unknown";
 }
 
 PWSTR SmartAttributeGetDescription(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     )
 {
-    // from https://en.wikipedia.org/wiki/S.M.A.R.T
+    // https://en.wikipedia.org/wiki/S.M.A.R.T
+
     switch (AttributeId)
     {
     case SMART_ATTRIBUTE_ID_READ_ERROR_RATE:
@@ -1570,5 +1569,5 @@ PWSTR SmartAttributeGetDescription(
         return L"";
     }
 
-    return L"";
+    return L"Unknown";
 }
