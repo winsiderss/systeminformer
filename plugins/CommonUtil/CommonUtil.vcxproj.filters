@@ -67,6 +67,9 @@
     <ClCompile Include="json-c\debug.c">
       <Filter>Source Files\json-c</Filter>
     </ClCompile>
+    <ClCompile Include="http.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">

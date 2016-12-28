@@ -84,6 +84,13 @@ PVOID UtilGetJsonObject(
     return json_get_object(Object, Key);
 }
 
+INT UtilGetJsonObjectLength(
+    _In_ PVOID Object
+    )
+{
+    return json_object_object_length(Object);
+}
+
 BOOL UtilGetJsonObjectBool(
     _In_ PVOID Object,
     _In_ PSTR Key
@@ -120,7 +127,7 @@ PSTR UtilGetJsonArrayString(
     _In_ PVOID Object
     )
 {
-    return _strdup(json_object_to_json_string(Object));
+    return _strdup( json_object_to_json_string(Object) ); // leak
 }
 
 INT UtilGetArrayLength(
@@ -136,4 +143,27 @@ PVOID UtilGetObjectArrayIndex(
     )
 {
     return json_object_array_get_idx(Object, Index);
+}
+
+PPH_LIST UtilGetObjectArrayList(
+    _In_ PVOID Object
+    )
+{
+    json_object_iter object_iter;
+    PPH_LIST listArray;
+
+    listArray = PhCreateList(1);
+
+    json_object_object_foreachC(Object, object_iter)
+    {
+        PJSON_ARRAY_LIST_OBJECT object = PhAllocate(sizeof(JSON_ARRAY_LIST_OBJECT));
+        memset(object, 0, sizeof(JSON_ARRAY_LIST_OBJECT));
+
+        object->Key = object_iter.key;
+        object->Entry = object_iter.val;
+
+        PhAddItemList(listArray, object);
+    }
+
+    return listArray;
 }

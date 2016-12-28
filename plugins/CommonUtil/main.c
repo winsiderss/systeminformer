@@ -38,12 +38,14 @@ COMMONUTIL_INTERFACE PluginInterface =
     UtilGetJsonObjectBool,
     UtilCreateJsonObject,
     UtilGetJsonObject,
+    UtilGetJsonObjectLength,
     UtilJsonAddObject,
     UtilCreateJsonArray,
     UtilAddJsonArray,
     UtilGetJsonArrayString,
     UtilGetArrayLength,
-    UtilGetObjectArrayIndex
+    UtilGetObjectArrayIndex,
+    UtilGetObjectArrayList
 };
 
 LOGICAL DllMain(
@@ -63,7 +65,7 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"CommonUtil Plugin";
+            info->DisplayName = L"Common Plugin Extensions";
             info->Author = L"dmex";
             info->Description = L"Common Plugin Extensions";
             info->HasOptions = FALSE;

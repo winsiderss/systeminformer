@@ -126,6 +126,10 @@ PVOID UtilGetJsonObject(
     _In_ PSTR Key
     );
 
+INT UtilGetJsonObjectLength(
+    _In_ PVOID Object
+    );
+
 BOOL UtilGetJsonObjectBool(
     _In_ PVOID Object,
     _In_ PSTR Key
@@ -148,6 +152,10 @@ INT UtilGetArrayLength(
 PVOID UtilGetObjectArrayIndex(
     _In_ PVOID Object,
     _In_ INT Index
+    );
+
+PPH_LIST UtilGetObjectArrayList(
+    _In_ PVOID Object
     );
 
 #endif
