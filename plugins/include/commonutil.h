@@ -68,6 +68,10 @@ typedef PVOID (NTAPI *PUTIL_GET_JSON_OBJECT)(
     _In_ PSTR Key
     );
 
+typedef INT (NTAPI *PUTIL_GET_JSON_OBJECT_LENGTH)(
+    _In_ PVOID Object
+    );
+
 typedef BOOL (NTAPI *PUTIL_GET_JSON_OBJECT_BOOL)(
     _In_ PVOID Object,
     _In_ PSTR Key
@@ -101,6 +105,16 @@ typedef PVOID (NTAPI *PUTIL_GET_JSON_OBJECT_ARRAY_INDEX)(
     _In_ INT Index
     );
 
+typedef struct _JSON_ARRAY_LIST_OBJECT
+{
+    PSTR Key;
+    PVOID Entry;
+} JSON_ARRAY_LIST_OBJECT, *PJSON_ARRAY_LIST_OBJECT;
+
+typedef PPH_LIST (NTAPI *PUTIL_GET_JSON_OBJECT_ARRAY_LIST)(
+    _In_ PVOID Object
+    );
+
 typedef struct _COMMONUTIL_INTERFACE
 {
     ULONG Version;
@@ -115,12 +129,14 @@ typedef struct _COMMONUTIL_INTERFACE
     PUTIL_GET_JSON_OBJECT_BOOL GetJsonValueAsBool;
     PUTIL_CREATE_JSON_OBJECT CreateJsonObject;
     PUTIL_GET_JSON_OBJECT GetJsonObject;
+    PUTIL_GET_JSON_OBJECT_LENGTH GetJsonObjectLength;
     PUTIL_ADD_JSON_ARRAY_VALUE JsonAddObject;
     PUTIL_CREATE_JSON_ARRAY CreateJsonArray;
     PUTIL_ADD_JSON_OBJECT_VALUE JsonArrayAddObject;
     PUTIL_GET_JSON_ARRAY_STRING GetJsonArrayString;
     PUTIL_GET_JSON_ARRAY_LENGTH JsonGetArrayLength;
     PUTIL_GET_JSON_OBJECT_ARRAY_INDEX JsonGetObjectArrayIndex;
+    PUTIL_GET_JSON_OBJECT_ARRAY_LIST JsonGetObjectArrayList;
 } COMMONUTIL_INTERFACE, *P_COMMONUTIL_INTERFACE;
 
 FORCEINLINE
@@ -399,6 +415,31 @@ JsonGetObjectArrayIndex(
 
     return NULL;
 }
+
+FORCEINLINE
+PPH_LIST
+JsonGetObjectArrayList(
+    _In_ PVOID Object
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->JsonGetObjectArrayList(Object);
+            }
+        }
+    }
+
+    return NULL;
+}
+
 
 FORCEINLINE
 PVOID 
