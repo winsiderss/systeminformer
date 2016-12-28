@@ -56,7 +56,14 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
                 }
                 else
                 {
-                    PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/downloads.php", NULL);
+                    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+                    {
+                        PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/nightly.php", NULL);
+                    }
+                    else
+                    {
+                        PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/downloads.php", NULL);
+                    }
                 }
             }
         }

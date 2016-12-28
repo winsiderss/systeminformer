@@ -97,7 +97,7 @@ BEGIN
     CONTROL         "Check for updates automatically",IDC_AUTOCHECKBOX,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,142,10
     DEFPUSHBUTTON   "Close",IDCANCEL,158,33,50,14
-    CONTROL         "Check for nightly builds",IDC_NIGHTLY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,18,142,10
+    CONTROL         "Check for nightly builds",IDC_NIGHTLY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,142,10
 END
 
 

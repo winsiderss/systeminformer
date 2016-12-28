@@ -630,9 +630,9 @@ VOID NTAPI MenuHookCallback(
 
                 LockDb();
 
-                // Update the process affinity in our database (if the database values are different).
                 if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
                 {
+                    // Update the process affinity in our database (if the database values are different).
                     if (object->AffinityMask != (ULONG)newAffinityMask)
                     {
                         object->AffinityMask = (ULONG)newAffinityMask;

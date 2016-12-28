@@ -145,6 +145,11 @@ PSTR UtilGetJsonArrayString(
     _In_ PVOID Object
     );
 
+INT64 UtilGetJsonArrayUlong(
+    _In_ PVOID Object,
+    _In_ INT Index
+    );
+
 INT UtilGetArrayLength(
     _In_ PVOID Object
     );

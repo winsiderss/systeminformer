@@ -43,6 +43,7 @@ COMMONUTIL_INTERFACE PluginInterface =
     UtilCreateJsonArray,
     UtilAddJsonArray,
     UtilGetJsonArrayString,
+    UtilGetJsonArrayUlong,
     UtilGetArrayLength,
     UtilGetObjectArrayIndex,
     UtilGetObjectArrayList

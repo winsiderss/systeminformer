@@ -96,6 +96,11 @@ typedef PSTR (NTAPI *PUTIL_GET_JSON_ARRAY_STRING)(
     _In_ PVOID Object
     );
 
+typedef INT64 (NTAPI *PUTIL_GET_JSON_OBJECT_ARRAY_ULONG)(
+    _In_ PVOID Object,
+    _In_ INT Index
+    );
+
 typedef INT (NTAPI *PUTIL_GET_JSON_ARRAY_LENGTH)(
     _In_ PVOID Object
     );
@@ -134,6 +139,7 @@ typedef struct _COMMONUTIL_INTERFACE
     PUTIL_CREATE_JSON_ARRAY CreateJsonArray;
     PUTIL_ADD_JSON_OBJECT_VALUE JsonArrayAddObject;
     PUTIL_GET_JSON_ARRAY_STRING GetJsonArrayString;
+    PUTIL_GET_JSON_OBJECT_ARRAY_ULONG GetJsonArrayUlong;
     PUTIL_GET_JSON_ARRAY_LENGTH JsonGetArrayLength;
     PUTIL_GET_JSON_OBJECT_ARRAY_INDEX JsonGetObjectArrayIndex;
     PUTIL_GET_JSON_OBJECT_ARRAY_LIST JsonGetObjectArrayList;
@@ -368,6 +374,31 @@ GetJsonArrayString(
 }
 
 FORCEINLINE
+INT64
+GetJsonArrayUlong(
+    _In_ PVOID Object,
+    _In_ INT Index
+    )
+{
+    PPH_PLUGIN toolStatusPlugin;
+
+    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
+    {
+        P_COMMONUTIL_INTERFACE Interface;
+
+        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
+        {
+            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
+            {
+                return Interface->GetJsonArrayUlong(Object, Index);
+            }
+        }
+    }
+
+    return 0;
+}
+
+FORCEINLINE
 INT 
 JsonGetArrayLength(
     _In_ PVOID Object
@@ -439,7 +470,6 @@ JsonGetObjectArrayList(
 
     return NULL;
 }
-
 
 FORCEINLINE
 PVOID 

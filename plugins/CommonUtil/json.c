@@ -61,7 +61,7 @@ PSTR UtilGetJsonValueAsString(
     return json_object_get_string(json_get_object(Object, Key));
 }
 
-int64_t UtilGetJsonValueAsUlong(
+INT64 UtilGetJsonValueAsUlong(
     _In_ PVOID Object,
     _In_ PSTR Key
     )
@@ -128,6 +128,14 @@ PSTR UtilGetJsonArrayString(
     )
 {
     return _strdup( json_object_to_json_string(Object) ); // leak
+}
+
+INT64 UtilGetJsonArrayUlong(
+    _In_ PVOID Object,
+    _In_ INT Index
+    )
+{
+    return json_object_get_int64(json_object_array_get_idx(Object, Index));
 }
 
 INT UtilGetArrayLength(
