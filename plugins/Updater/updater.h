@@ -69,9 +69,17 @@ extern PPH_PLUGIN PluginInstance;
 
 typedef struct _PH_UPDATER_CONTEXT
 {
-    BOOLEAN StartupCheck;
-    BOOLEAN HaveData;
-    BOOLEAN FixedWindowStyles;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN StartupCheck : 1;
+            BOOLEAN HaveData : 1;
+            BOOLEAN FixedWindowStyles : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
 
     HICON IconSmallHandle;
     HICON IconLargeHandle;

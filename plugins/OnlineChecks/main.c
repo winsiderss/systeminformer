@@ -64,23 +64,22 @@ VOID ProcessesUpdatedCallback(
     while (listEntry != &ProcessListHead)
     {
         PPROCESS_EXTENSION extension;
+        PPH_STRING filePath = NULL;
+        PPH_PROCESS_ITEM processItem = NULL;
+        PPH_MODULE_ITEM moduleItem = NULL;
 
         extension = CONTAINING_RECORD(listEntry, PROCESS_EXTENSION, ListEntry);
 
-        PPH_STRING filePath = NULL;
-        PPH_PROCESS_ITEM processItem = extension->ProcessItem;
-        PPH_MODULE_ITEM moduleItem = extension->ModuleItem;
-
-        if (processItem)
+        if (processItem = extension->ProcessItem)
         {
             filePath = processItem->FileName;
         }
-        else if (moduleItem)
+        else if (moduleItem = extension->ModuleItem)
         {
             filePath = moduleItem->FileName;
         }
 
-        if (!PhIsNullOrEmptyString(filePath)) // !PH_IS_FAKE_PROCESS_ID(processItem->ProcessId)
+        if (!PhIsNullOrEmptyString(filePath))
         {
             if (!extension->ResultValid)
             {
@@ -138,7 +137,6 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-    PPH_STRING fileName;
 
     switch (menuItem->Id)
     {
@@ -190,12 +188,10 @@ VOID NTAPI MenuItemCallback(
         }
         break;
     case MENUITEM_VIRUSTOTAL_UPLOAD:
-        fileName = menuItem->Context;
-        UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+        UploadToOnlineService(menuItem->Context, MENUITEM_VIRUSTOTAL_UPLOAD);
         break;
     case MENUITEM_JOTTI_UPLOAD:
-        fileName = menuItem->Context;
-        UploadToOnlineService(fileName, MENUITEM_JOTTI_UPLOAD);
+        UploadToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD);
         break;
     }
 }
@@ -213,7 +209,7 @@ VOID NTAPI MainMenuInitializingCallback(
         return;
 
     enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL);
-    detectMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"VirusTotal detections", NULL);
+    detectMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"VirusTotal Upload Queue", NULL);
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, enableMenuItem, -1);
     PhInsertEMenuItem(menuInfo->Menu, detectMenuItem, -1);
@@ -224,7 +220,6 @@ VOID NTAPI MainMenuInitializingCallback(
 
 PPH_EMENU_ITEM CreateSendToMenu(
     _In_ PPH_EMENU_ITEM Parent,
-    _In_ PWSTR InsertAfter,
     _In_ PPH_STRING FileName
     )
 {
@@ -232,15 +227,11 @@ PPH_EMENU_ITEM CreateSendToMenu(
     PPH_EMENU_ITEM menuItem;
     ULONG insertIndex;
 
-    // Create the Send To menu.
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"virustotal.com", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", FileName), -1);
-    //PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE3, L"camas.comodo.com", FileName), -1);
 
-    menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, InsertAfter, 0);
-
-    if (menuItem)
+    if (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0))
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
     else
         insertIndex = -1;
@@ -265,7 +256,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     else
         processItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search online", processItem ? processItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
     if (!processItem || !processItem->FileName)
@@ -288,7 +279,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search online", moduleItem ? moduleItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, moduleItem ? moduleItem->FileName : NULL);
 
     if (!moduleItem)
     {

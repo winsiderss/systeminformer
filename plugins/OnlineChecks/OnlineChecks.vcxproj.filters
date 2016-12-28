@@ -18,9 +18,6 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="upload.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="db.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -28,6 +25,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="upload.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

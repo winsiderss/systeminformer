@@ -79,6 +79,9 @@
     <ClCompile Include="db.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
+    <ClCompile Include="page1.c" />
+    <ClCompile Include="page2.c" />
+    <ClCompile Include="page3.c" />
     <ClCompile Include="upload.c" />
     <ClCompile Include="virustotal.c" />
   </ItemGroup>

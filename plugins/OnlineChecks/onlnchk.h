@@ -49,9 +49,11 @@
 #define VIRUSTOTAL_APIKEY L""
 #endif
 
-#define UM_EXISTS (WM_USER + 1)
-#define UM_LAUNCH (WM_USER + 2)
-#define UM_ERROR (WM_USER + 3)
+#define UM_UPLOAD (WM_APP + 1)
+#define UM_EXISTS (WM_APP + 2)
+#define UM_LAUNCH (WM_APP + 3)
+#define UM_ERROR (WM_APP + 4)
+#define UM_SHOWDIALOG (WM_APP + 5)
 
 #define Control_Visible(hWnd, visible) \
     ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
@@ -82,43 +84,10 @@ typedef struct _SERVICE_INFO
     PWSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
 
-typedef struct _UPLOAD_CONTEXT
-{
-    ULONG Service;
-    HWND DialogHandle;
-    HWND MessageHandle;
-    HWND StatusHandle;
-    HWND ProgressHandle;
-    HFONT MessageFont;
-    HINTERNET HttpHandle;
-
-    ULONG ErrorCode;
-    ULONG TotalFileLength;
-
-    PH_UPLOAD_SERVICE_STATE UploadServiceState;
-
-    PPH_STRING FileName;
-    PPH_STRING BaseFileName;
-    PPH_STRING WindowFileName;
-    PPH_STRING ObjectName;
-    PPH_STRING LaunchCommand;
-} UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
-
-// upload
-#define ENABLE_SERVICE_VIRUSTOTAL 100
-#define MENUITEM_VIRUSTOTAL_QUEUE 101
-#define MENUITEM_VIRUSTOTAL_UPLOAD 102
-#define MENUITEM_JOTTI_UPLOAD 103
-
-VOID UploadToOnlineService(
-    _In_ PPH_STRING FileName,
-    _In_ ULONG Service
-    );
-
 typedef struct _PROCESS_EXTENSION
 {
     LIST_ENTRY ListEntry;
-        
+
     BOOLEAN Flags;
     struct
     {
@@ -135,29 +104,19 @@ typedef struct _PROCESS_EXTENSION
     PPH_MODULE_ITEM ModuleItem;
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
 
-typedef enum _NETWORK_COLUMN_ID
-{
-    NETWORK_COLUMN_ID_VIUSTOTAL = 1,
-    NETWORK_COLUMN_ID_VIUSTOTAL_MODULE = 2,
-} NETWORK_COLUMN_ID;
-
-NTSTATUS HashFileAndResetPosition(
-    _In_ HANDLE FileHandle,
-    _In_ PLARGE_INTEGER FileSize,
-    _In_ PH_HASH_ALGORITHM Algorithm,
-    _Out_ PVOID Hash
-    );
-
 typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
 {
-    BOOLEAN Flags;
-    struct
+    union
     {
-        BOOLEAN Stage1 : 1;
-        BOOLEAN Processing : 1;
-        BOOLEAN Processed : 1;
-        BOOLEAN Found : 1;
-        BOOLEAN Spare : 5;
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Stage1 : 1;
+            BOOLEAN Processing : 1;
+            BOOLEAN Processed : 1;
+            BOOLEAN Found : 1;
+            BOOLEAN Spare : 5;
+        };
     };
 
     PPROCESS_EXTENSION Extension;
@@ -170,6 +129,123 @@ typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
     PPH_BYTES CreationTime;
     PPH_STRING FileResult;
 } VIRUSTOTAL_FILE_HASH_ENTRY, *PVIRUSTOTAL_FILE_HASH_ENTRY;
+
+typedef struct _UPLOAD_CONTEXT
+{
+    BOOLEAN FileExists;
+    ULONG Service;
+    ULONG ErrorCode;
+    ULONG TotalFileLength;
+    HWND DialogHandle;
+    HICON IconLargeHandle;
+    HICON IconSmallHandle;
+    HINTERNET HttpHandle;
+
+    PVIRUSTOTAL_FILE_HASH_ENTRY Extension;
+    PH_UPLOAD_SERVICE_STATE UploadServiceState;
+
+    PPH_STRING FileName;
+    PPH_STRING BaseFileName;
+    PPH_STRING WindowFileName;
+    PPH_STRING ObjectName;
+    PPH_STRING LaunchCommand;
+
+    PPH_STRING Detected;
+    PPH_STRING MaxDetected;
+    PPH_STRING UploadUrl;
+    PPH_STRING reAnalyseUrl;
+    PPH_STRING FirstAnalysisDate;
+    PPH_STRING LastAnalysisDate;
+    PPH_STRING LastAnalysisUrl;
+    PPH_STRING LastAnalysisAgo;
+} UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
+
+NTSTATUS UploadFileThreadStart(
+    _In_ PVOID Parameter
+    );
+
+NTSTATUS UploadCheckThreadStart(
+    _In_ PVOID Parameter
+    );
+
+VOID ShowVirusTotalUploadDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowCheckForUpdatesDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowFileFoundDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowVirusTotalProgressDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+typedef struct _VIRUSTOTAL_FILE_RESULT
+{
+    BOOLEAN FileExists;
+    BOOLEAN EmptyFile;
+    PPH_STRING DetectionRatio;
+    PPH_STRING UploadUrl;
+    PPH_STRING reAnalyseUrl;
+    PPH_STRING FirstAnalysisDate;
+    PPH_STRING LastAnalysisDate;
+    PPH_STRING LastAnalysisUrl;
+    PPH_STRING LastAnalysisAgo;
+} VIRUSTOTAL_FILE_RESULT, *PVIRUSTOTAL_FILE_RESULT;
+
+typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
+{
+    PPH_STRING FileName;
+    PPH_STRING BaseFileName;
+
+    PPH_STRING Total;
+    PPH_STRING Positives;
+    PPH_STRING Resource;
+    PPH_STRING ScanId;
+    PPH_STRING Md5;
+    PPH_STRING Sha1;
+    PPH_STRING Sha256;
+    PPH_STRING ScanDate;
+    PPH_STRING Permalink;
+    PPH_STRING StatusMessage;
+    PPH_LIST ScanResults;
+} VIRUSTOTAL_FILE_REPORT_RESULT, *PVIRUSTOTAL_FILE_REPORT_RESULT;
+
+PPH_STRING VirusTotalStringToTime(
+    _In_ PPH_STRING Time
+    );
+
+PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalQueryFileReport(
+    _In_ PPH_STRING FileHash
+    );
+
+// upload
+#define ENABLE_SERVICE_VIRUSTOTAL 100
+#define MENUITEM_VIRUSTOTAL_QUEUE 101
+#define MENUITEM_VIRUSTOTAL_UPLOAD 102
+#define MENUITEM_JOTTI_UPLOAD 103
+
+VOID UploadToOnlineService(
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Service
+    );
+
+typedef enum _NETWORK_COLUMN_ID
+{
+    NETWORK_COLUMN_ID_VIUSTOTAL = 1,
+    NETWORK_COLUMN_ID_VIUSTOTAL_MODULE = 2,
+} NETWORK_COLUMN_ID;
+
+NTSTATUS HashFileAndResetPosition(
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER FileSize,
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PVOID Hash
+    );
 
 typedef struct _VIRUSTOTAL_API_RESULT
 {
