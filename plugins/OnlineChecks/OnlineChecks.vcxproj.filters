@@ -39,6 +39,9 @@
     <ClCompile Include="page3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="page4.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="onlnchk.h">

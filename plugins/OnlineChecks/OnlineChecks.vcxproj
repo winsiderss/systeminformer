@@ -82,6 +82,7 @@
     <ClCompile Include="page1.c" />
     <ClCompile Include="page2.c" />
     <ClCompile Include="page3.c" />
+    <ClCompile Include="page4.c" />
     <ClCompile Include="upload.c" />
     <ClCompile Include="virustotal.c" />
   </ItemGroup>

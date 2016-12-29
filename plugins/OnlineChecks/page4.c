@@ -22,7 +22,7 @@
 
 #include "onlnchk.h"
 
-HRESULT CALLBACK ShowProgressCallbackProc(
+HRESULT CALLBACK TaskDialogErrorProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -36,35 +36,8 @@ HRESULT CALLBACK ShowProgressCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
-
-            // reference the context for the new thread
-            PhReferenceObject(context);
-
-            // create the new thread
-            context->UploadThreadHandle = PhCreateThread(0, UploadFileThreadStart, context);
-        }
-        break;
-    case TDN_BUTTON_CLICKED:
-        {
-            if ((INT)wParam == IDCANCEL)
-            {
-                if (context->UploadThreadHandle)
-                {
-                    NtClose(context->UploadThreadHandle);
-                    context->UploadThreadHandle = NULL;
-                }
-            }
-        }
-        break;
-    case TDN_DESTROYED:
-        {
-            if (context->UploadThreadHandle)
-            {
-                NtClose(context->UploadThreadHandle);
-                context->UploadThreadHandle = NULL;
-            }
+            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, FALSE, 1);
         }
         break;
     }
@@ -72,7 +45,7 @@ HRESULT CALLBACK ShowProgressCallbackProc(
     return S_OK;
 }
 
-VOID ShowVirusTotalProgressDialog(
+VOID VirusTotalShowErrorDialog(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
@@ -81,16 +54,16 @@ VOID ShowVirusTotalProgressDialog(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
-    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
-    config.pszMainInstruction = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
-    config.pszContent = L"Uploaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
+    config.pszMainInstruction = PhaFormatString(L"Error uploading %s", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
+    config.pszContent = PhGetStringOrEmpty(Context->ErrorString);
 
     config.cxWidth = 200;
     config.lpCallbackData = (LONG_PTR)Context;
-    config.pfCallback = ShowProgressCallbackProc;
+    config.pfCallback = TaskDialogErrorProc;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

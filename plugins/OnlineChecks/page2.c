@@ -43,7 +43,7 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
     {
     case TDN_BUTTON_CLICKED:
         {         
-            int buttonID = (INT)wParam;
+            INT buttonID = (INT)wParam;
 
             if (buttonID == IDOK)
             {
@@ -53,19 +53,12 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
             else if (buttonID == IDRETRY)
             {
                 if (!PhIsNullOrEmptyString(context->reAnalyseUrl))
-                {
-                    PPH_STRING urlPath = PhFormatString(L"https://www.virustotal.com%s", PhGetString(context->reAnalyseUrl));
-
-                    PhShellExecute(hwndDlg, PhGetString(urlPath), NULL);
-                    PhDereferenceObject(urlPath);
-                }
+                    PhShellExecute(hwndDlg, PhGetString(context->reAnalyseUrl), NULL);
             }
             else if (buttonID == IDYES)
             {
                 if (!PhIsNullOrEmptyString(context->LaunchCommand))
-                {
                     PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
-                }
             }
         }
         break;

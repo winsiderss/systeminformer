@@ -419,7 +419,7 @@ CleanupExit:
     return subRequestBuffer;
 }
 
-PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalQueryFileReport(
+PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
     _In_ PPH_STRING FileHash
     )
 {

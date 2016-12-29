@@ -88,12 +88,15 @@ typedef struct _PROCESS_EXTENSION
 {
     LIST_ENTRY ListEntry;
 
-    BOOLEAN Flags;
-    struct
+    union
     {
-        BOOLEAN Stage1 : 1;
-        BOOLEAN ResultValid : 1;
-        BOOLEAN Spare : 6;
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Stage1 : 1;
+            BOOLEAN ResultValid : 1;
+            BOOLEAN Spare : 6;
+        };
     };
 
     INT64 Retries;
@@ -134,12 +137,17 @@ typedef struct _UPLOAD_CONTEXT
 {
     BOOLEAN FileExists;
     ULONG Service;
+
     ULONG ErrorCode;
+    PPH_STRING ErrorString;
+
     ULONG TotalFileLength;
     HWND DialogHandle;
     HICON IconLargeHandle;
     HICON IconSmallHandle;
+    HANDLE UploadThreadHandle;
     HINTERNET HttpHandle;
+    ITaskbarList3* TaskbarListClass;
 
     PVIRUSTOTAL_FILE_HASH_ENTRY Extension;
     PH_UPLOAD_SERVICE_STATE UploadServiceState;
@@ -147,8 +155,9 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
     PPH_STRING WindowFileName;
-    PPH_STRING ObjectName;
+    //PPH_STRING ObjectName;
     PPH_STRING LaunchCommand;
+    PPH_STRING RedirectCommand;
 
     PPH_STRING Detected;
     PPH_STRING MaxDetected;
@@ -172,10 +181,6 @@ VOID ShowVirusTotalUploadDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
 
-VOID ShowCheckForUpdatesDialog(
-    _In_ PUPLOAD_CONTEXT Context
-    );
-
 VOID ShowFileFoundDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
@@ -184,18 +189,9 @@ VOID ShowVirusTotalProgressDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
 
-typedef struct _VIRUSTOTAL_FILE_RESULT
-{
-    BOOLEAN FileExists;
-    BOOLEAN EmptyFile;
-    PPH_STRING DetectionRatio;
-    PPH_STRING UploadUrl;
-    PPH_STRING reAnalyseUrl;
-    PPH_STRING FirstAnalysisDate;
-    PPH_STRING LastAnalysisDate;
-    PPH_STRING LastAnalysisUrl;
-    PPH_STRING LastAnalysisAgo;
-} VIRUSTOTAL_FILE_RESULT, *PVIRUSTOTAL_FILE_RESULT;
+VOID VirusTotalShowErrorDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
 
 typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
 {
@@ -219,7 +215,7 @@ PPH_STRING VirusTotalStringToTime(
     _In_ PPH_STRING Time
     );
 
-PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalQueryFileReport(
+PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
     _In_ PPH_STRING FileHash
     );
 
