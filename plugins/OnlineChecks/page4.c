@@ -1,6 +1,6 @@
 /*
  * Process Hacker Plugins -
- *   Update Checker Plugin
+ *   Online Checks Plugin
  *
  * Copyright (C) 2016 dmex
  *

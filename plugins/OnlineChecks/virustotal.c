@@ -1,6 +1,6 @@
 /*
  * Process Hacker Online Checks -
- *   database functions
+ *   VirusTotal functions
  *
  * Copyright (C) 2016 dmex
  *

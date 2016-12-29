@@ -1,6 +1,6 @@
 /*
  * Process Hacker Plugins -
- *   Update Checker Plugin
+ *   Online Checks Plugin
  *
  * Copyright (C) 2016 dmex
  *
@@ -24,12 +24,12 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDOK, L"Upload file" },
-    { IDRETRY, L"Reanalyse file" },
-    { IDYES, L"View last analysis" },
+    { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
+    { IDRETRY, L"Reanalyse file\nRescan the existing sample on VirusTotal" },
+    { IDYES, L"View last analysis\nOpen the last VirusTotal analysis page" },
 };
 
-HRESULT CALLBACK ShowAvailableCallbackProc(
+HRESULT CALLBACK TaskDialogResultFoundProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -87,7 +87,7 @@ VOID ShowFileFoundDialog(
 
     if (Context->FileExists)
     {    
-        //was last analysed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analysed by VirusTotal on 2016-12-12 17:08:19 UTC.
+        // was last analysed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analysed by VirusTotal on 2016-12-12 17:08:19 UTC.
         config.pszMainInstruction = PhaFormatString(
             L"%s was last analysed %s ago", 
             PhGetStringOrEmpty(Context->BaseFileName), 
@@ -113,9 +113,8 @@ VOID ShowFileFoundDialog(
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
-
     config.lpCallbackData = (LONG_PTR)Context;
-    config.pfCallback = ShowAvailableCallbackProc;
+    config.pfCallback = TaskDialogResultFoundProc;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

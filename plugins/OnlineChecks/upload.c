@@ -1,8 +1,8 @@
 /*
  * Process Hacker Plugins -
- *   Update Checker Plugin
+ *   Online Checks Plugin
  *
- * Copyright (C) 2011-2016 dmex
+ * Copyright (C) 2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -157,28 +157,6 @@ VOID TaskDialogCreateIcons(
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
-}
-
-VOID TaskDialogLinkClicked(
-    _In_ PUPLOAD_CONTEXT Context
-    )
-{
-    //if (!PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
-    //{
-    //    PhShellExecute(Context->DialogHandle, PhGetStringOrEmpty(Context->ReleaseNotesUrl), NULL);
-    //}
-}
-
-PPH_STRING UpdaterGetOpaqueXmlNodeText(
-    _In_ mxml_node_t *xmlNode
-)
-{
-    if (xmlNode && xmlNode->child && xmlNode->child->type == MXML_OPAQUE && xmlNode->child->value.opaque)
-    {
-        return PhConvertUtf8ToUtf16(xmlNode->child->value.opaque);
-    }
-
-    return PhReferenceEmptyString();
 }
 
 PPH_STRING UpdateVersionString(
@@ -409,7 +387,6 @@ NTSTATUS UploadFileThreadStart(
     PH_STRING_BUILDER httpPostHeader = { 0 };
     PH_STRING_BUILDER httpPostFooter = { 0 };
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
-    BYTE buffer[PAGE_SIZE];
 
     serviceInfo = GetUploadServiceInfo(context->Service);
 
@@ -643,6 +620,8 @@ NTSTATUS UploadFileThreadStart(
 
     while (TRUE)
     {
+        BYTE buffer[PAGE_SIZE];
+
         if (!context->UploadThreadHandle)
             goto CleanupExit;
 
@@ -1182,9 +1161,6 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
 
-            // Subclass the Taskdialog
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
-
             if (SUCCEEDED(CoCreateInstance(&CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, &IID_ITaskbarList3, &context->TaskbarListClass)))
             {
                 if (!SUCCEEDED(ITaskbarList3_HrInit(context->TaskbarListClass)))
@@ -1193,6 +1169,9 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                     context->TaskbarListClass = NULL;
                 }
             }
+
+            // Subclass the Taskdialog
+            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
 
             ShowVirusTotalUploadDialog(context);
         }
