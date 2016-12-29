@@ -823,9 +823,9 @@ function UpdateBuildService()
         return
     }
 
-    if (Test-Path $binZip)
+    if (Test-Path "$exeSetup")
     {
-        $fileInfo = (Get-Item "$binZip");
+        $fileInfo = (Get-Item "$exeSetup");
         $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
         $fileSize = $fileInfo.Length;
     }
