@@ -34,7 +34,6 @@
 #include <shlobj.h>
 #include <windowsx.h>
 #include <winhttp.h>
-
 #include "resource.h"
 #include "db.h"
 
@@ -55,24 +54,11 @@
 #define UM_ERROR (WM_APP + 4)
 #define UM_SHOWDIALOG (WM_APP + 5)
 
-#define Control_Visible(hWnd, visible) \
-    ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
-
 extern PPH_PLUGIN PluginInstance;
 
 VOID ShowOptionsDialog(
     _In_opt_ HWND Parent
     );
-
-typedef enum _PH_UPLOAD_SERVICE_STATE
-{
-    PhUploadServiceDefault = 0,
-    PhUploadServiceChecking,
-    PhUploadServiceViewReport,
-    PhUploadServiceUploading,
-    PhUploadServiceLaunching,
-    PhUploadServiceMaximum
-} PH_UPLOAD_SERVICE_STATE;
 
 typedef struct _SERVICE_INFO
 {
@@ -137,32 +123,25 @@ typedef struct _UPLOAD_CONTEXT
 {
     BOOLEAN FileExists;
     ULONG Service;
-
     ULONG ErrorCode;
-    PPH_STRING ErrorString;
-
     ULONG TotalFileLength;
+    
     HWND DialogHandle;
+    HANDLE UploadThreadHandle;
     HICON IconLargeHandle;
     HICON IconSmallHandle;
-    HANDLE UploadThreadHandle;
     HINTERNET HttpHandle;
     ITaskbarList3* TaskbarListClass;
-
-    PVIRUSTOTAL_FILE_HASH_ENTRY Extension;
-    PH_UPLOAD_SERVICE_STATE UploadServiceState;
+    PPH_STRING ErrorString;
 
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
     PPH_STRING WindowFileName;
-    //PPH_STRING ObjectName;
     PPH_STRING LaunchCommand;
-    PPH_STRING RedirectCommand;
-
     PPH_STRING Detected;
     PPH_STRING MaxDetected;
     PPH_STRING UploadUrl;
-    PPH_STRING reAnalyseUrl;
+    PPH_STRING ReAnalyseUrl;
     PPH_STRING FirstAnalysisDate;
     PPH_STRING LastAnalysisDate;
     PPH_STRING LastAnalysisUrl;

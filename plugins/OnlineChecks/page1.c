@@ -39,6 +39,9 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
+            if (context->TaskbarListClass)
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
+
             // reference the context for the new thread
             PhReferenceObject(context);
 

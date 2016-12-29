@@ -272,7 +272,6 @@ NTSTATUS HashFileAndResetPosition(
     return status;
 }
 
-
 PPH_BYTES PerformSubRequest(
     _In_ PUPLOAD_CONTEXT Context,
     _In_ PWSTR HostName,
@@ -637,7 +636,7 @@ NTSTATUS UploadFileThreadStart(
     {
         ITaskbarList3_SetProgressState(
             context->TaskbarListClass,
-            context->DialogHandle,
+            PhMainWndHandle,
             TBPF_NORMAL
             );
     }
@@ -744,36 +743,61 @@ NTSTATUS UploadFileThreadStart(
         {
         case MENUITEM_VIRUSTOTAL_UPLOAD:
             {
-                PSTR buffer = NULL;
-                PSTR redirectUrl;
-                ULONG bufferLength;
-                PVOID jsonRootObject;
+                PPH_STRING keyString = PhCreateString(VIRUSTOTAL_APIKEY);
 
-                if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
+                if (PhIsNullOrEmptyString(keyString))
                 {
-                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
-                    goto CleanupExit;
-                }
+                    ULONG bufferLength = 0;
 
-                if (jsonRootObject = CreateJsonParser(buffer))
-                {
-                    if (!GetJsonValueAsUlong(jsonRootObject, "response_code"))
-                        goto CleanupExit;
-
-                    /*result->Resource = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "resource"));
-                    result->ScanId = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_id"));
-                    result->Md5 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "md5"));
-                    result->Sha1 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha1"));
-                    result->Sha256 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha256"));
-                    result->StatusMessage = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));*/
-
-                    if (redirectUrl = GetJsonValueAsString(jsonRootObject, "permalink"))
+                    // Use WinHttpQueryOption to obtain a buffer size.
+                    if (!WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, NULL, &bufferLength))
                     {
-                        PhSwapReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
+                        PPH_STRING buffer = PhCreateStringEx(NULL, bufferLength);
+
+                        // Use WinHttpQueryOption again, this time to retrieve the URL in the new buffer
+                        if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Buffer, &bufferLength))
+                        {
+                            PhSwapReference(&context->LaunchCommand, PhDuplicateString(buffer));
+                        }
+
+                        PhDereferenceObject(buffer);
+                    }
+                }
+                else
+                {
+                    PSTR buffer = NULL;
+                    PSTR redirectUrl;
+                    ULONG bufferLength;
+                    PVOID jsonRootObject;
+
+                    if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        goto CleanupExit;
                     }
 
-                    CleanupJsonParser(jsonRootObject);
+                    if (jsonRootObject = CreateJsonParser(buffer))
+                    {
+                        if (!GetJsonValueAsUlong(jsonRootObject, "response_code"))
+                            goto CleanupExit;
+
+                        /*result->Resource = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "resource"));
+                        result->ScanId = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_id"));
+                        result->Md5 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "md5"));
+                        result->Sha1 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha1"));
+                        result->Sha256 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha256"));
+                        result->StatusMessage = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));*/
+
+                        if (redirectUrl = GetJsonValueAsString(jsonRootObject, "permalink"))
+                        {
+                            PhSwapReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
+                        }
+
+                        CleanupJsonParser(jsonRootObject);
+                    }
                 }
+
+                PhClearReference(&keyString);
             }
             break;
         case MENUITEM_JOTTI_UPLOAD:
@@ -843,14 +867,12 @@ CleanupExit:
     if (fileHandle)
         NtClose(fileHandle);
 
+    // Reset Taskbar progress state(s)
     if (context->TaskbarListClass)
-    {
-        ITaskbarList3_SetProgressState(
-            context->TaskbarListClass, 
-            context->DialogHandle, 
-            TBPF_NOPROGRESS
-            );
-    }
+        ITaskbarList3_SetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
+
+    if (context->TaskbarListClass)
+        ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
 
     return status;
 }
@@ -875,8 +897,7 @@ NTSTATUS UploadCheckThreadStart(
     WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
-    context->Extension = VirusTotalGetCachedResult(context->FileName);
-
+    //context->Extension = VirusTotalGetCachedResult(context->FileName);
     serviceInfo = GetUploadServiceInfo(context->Service);
 
     if (!NT_SUCCESS(status = PhCreateFileWin32(
@@ -934,9 +955,9 @@ NTSTATUS UploadCheckThreadStart(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
+        ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
 
-        WinHttpSetOption(context->HttpHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
+        WinHttpSetOption(context->HttpHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
     }
 
     switch (context->Service)
@@ -956,7 +977,7 @@ NTSTATUS UploadCheckThreadStart(
 
             hashString = PhBufferToHexString(hash, 32);
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
-            context->LaunchCommand = PhFormatString(L"https://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
+            //context->LaunchCommand = PhFormatString(L"https://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
 
             if (!(subRequestBuffer = PerformSubRequest(
                 context,
@@ -971,12 +992,12 @@ NTSTATUS UploadCheckThreadStart(
 
             if (rootJsonObject = CreateJsonParser(subRequestBuffer->Buffer))
             {  
-                INT64 detected = 0;
-                INT64 detectedMax = 0;
-                PVOID detectionRatio;
-
                 if (context->FileExists = GetJsonValueAsBool(rootJsonObject, "file_exists"))
                 {
+                    INT64 detected = 0;
+                    INT64 detectedMax = 0;
+                    PVOID detectionRatio;
+
                     if (detectionRatio = JsonGetObject(rootJsonObject, "detection_ratio"))
                     {
                         detected = GetJsonArrayUlong(detectionRatio, 0);
@@ -986,7 +1007,7 @@ NTSTATUS UploadCheckThreadStart(
                     context->Detected = PhFormatString(L"%I64d", detected);
                     context->MaxDetected = PhFormatString(L"%I64d", detectedMax);
                     context->UploadUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "upload_url"));
-                    context->reAnalyseUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "reanalyse_url"));
+                    context->ReAnalyseUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "reanalyse_url"));
                     context->LastAnalysisUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_url"));
                     context->FirstAnalysisDate = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "first_analysis_date"));
                     context->LastAnalysisDate = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_date"));
@@ -995,33 +1016,46 @@ NTSTATUS UploadCheckThreadStart(
                     PhSwapReference(&context->FirstAnalysisDate, VirusTotalStringToTime(context->FirstAnalysisDate));
                     PhSwapReference(&context->LastAnalysisDate, VirusTotalStringToTime(context->LastAnalysisDate));
                     
-                    if (!PhIsNullOrEmptyString(context->reAnalyseUrl))
+                    if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
                     {
-                        PhSwapReference(&context->reAnalyseUrl, PhFormatString(L"https://www.virustotal.com%s", PhGetString(context->reAnalyseUrl)));
+                        PhSwapReference(&context->ReAnalyseUrl, PhFormatString(
+                            L"https://www.virustotal.com%s", 
+                            PhGetString(context->ReAnalyseUrl)
+                            ));
                     }
 
                     if (!PhIsNullOrEmptyString(context->UploadUrl))
                     {
                         PPH_STRING keyString = PhCreateString(VIRUSTOTAL_APIKEY);
 
-                        PhSwapReference(&context->UploadUrl, PhFormatString(
-                            L"https://www.virustotal.com/vtapi/v2/file/scan?apikey=%s&resource=%s",
-                            PhGetString(keyString),
-                            PhGetString(hashString)
-                            ));
+                        if (!PhIsNullOrEmptyString(keyString))
+                        {
+                            PhSwapReference(&context->UploadUrl, PhFormatString(
+                                L"https://www.virustotal.com/vtapi/v2/file/scan?apikey=%s&resource=%s",
+                                PhGetString(keyString),
+                                PhGetString(hashString)
+                                ));
+                        }
 
                         PhClearReference(&keyString);
                     }
-                    PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
-                    success = TRUE;
+
+                    if (!PhIsNullOrEmptyString(context->UploadUrl))
+                    {
+                        success = TRUE;
+                        PostMessage(context->DialogHandle, UM_EXISTS, 0, 0);
+                    }
                 }
                 else
                 {
                     context->UploadUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "upload_url"));
 
                     // No file found... Start the upload.
-                    PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
-                    success = TRUE;
+                    if (!PhIsNullOrEmptyString(context->UploadUrl))
+                    {
+                        success = TRUE;
+                        PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
+                    }
                 }
  
                 CleanupJsonParser(rootJsonObject);
@@ -1030,59 +1064,25 @@ NTSTATUS UploadCheckThreadStart(
         break;
     case MENUITEM_JOTTI_UPLOAD:
         {
-            /*PSTR uploadId = NULL;
-            PSTR quote = NULL;
-            ULONG bufferLength = 0;
-            UCHAR hash[20];
-
-            status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha1HashAlgorithm, hash);
-            if (!NT_SUCCESS(status))
-            {
-                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
-                goto CleanupExit;
-            }
-
-            hashString = PhBufferToHexString(hash, 20);
-            subObjectName = PhConcatStrings2(L"/nestor/getfileforhash.php?hash=", hashString->Buffer);
-
-            if (!(subRequestBuffer = PerformSubRequest(
-                context,
-                serviceInfo->HostName,
-                serviceInfo->HostPort,
-                serviceInfo->HostFlags,
-                subObjectName->Buffer
-                )))
-            {
-                goto CleanupExit;
-            }*/
-
-            //if (uploadId = strstr(subRequestBuffer, "\"id\":"))
-            //{
-            //    uploadId += 6;
-            //    quote = strchr(uploadId, '"');
-
-            //    if (quote)
-            //    {
-            //        fileExists = TRUE;
-            //        context->LaunchCommand = PhFormatString(L"http://virusscan.jotti.org/en/scanresult/%.*S", quote - uploadId, uploadId);
-            //    }
-            //}
-
-            // Create the default upload URL
-            //if (!context->ObjectName)
-            //    context->ObjectName = PhCreateString(serviceInfo->UploadObjectName);
-
             // Create the default upload URL
             context->UploadUrl = PhFormatString(L"https://virusscan.jotti.org%s", serviceInfo->UploadObjectName);
 
             // No file found... Start the upload.
-            PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
-            success = TRUE;
+            if (!PhIsNullOrEmptyString(context->UploadUrl))
+            {
+                success = TRUE;
+                PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
+            }
         }
         break;
     }
 
 CleanupExit:
+
+    if (context->DialogHandle && !success)
+    {
+        PostMessage(context->DialogHandle, UM_ERROR, 0, 0);
+    }
 
     PhClearReference(&phVersion);
     PhClearReference(&userAgent);
@@ -1101,19 +1101,8 @@ CleanupExit:
 
     PhDereferenceObject(context);
 
-    if (!success)
-    {
-        PostMessage(context->DialogHandle, UM_ERROR, 0, 0);
-    }
-
     return status;
 }
-
-
-
-
-
-
 
 LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,

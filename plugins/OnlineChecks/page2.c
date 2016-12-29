@@ -41,6 +41,12 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
 
     switch (uMsg)
     {
+    case TDN_NAVIGATED:
+        {
+            if (context->TaskbarListClass)
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
+        }
+        break;
     case TDN_BUTTON_CLICKED:
         {         
             INT buttonID = (INT)wParam;
@@ -52,8 +58,8 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
             }
             else if (buttonID == IDRETRY)
             {
-                if (!PhIsNullOrEmptyString(context->reAnalyseUrl))
-                    PhShellExecute(hwndDlg, PhGetString(context->reAnalyseUrl), NULL);
+                if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
+                    PhShellExecute(hwndDlg, PhGetString(context->ReAnalyseUrl), NULL);
             }
             else if (buttonID == IDYES)
             {

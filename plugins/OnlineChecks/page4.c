@@ -38,6 +38,18 @@ HRESULT CALLBACK TaskDialogErrorProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, FALSE, 1);
+
+            if (context->TaskbarListClass)
+            {
+                ITaskbarList3_SetProgressValue(context->TaskbarListClass, PhMainWndHandle, 1, 1);
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_ERROR);
+            }
+        }
+        break;
+    case TDN_DESTROYED:
+        {
+            if (context->TaskbarListClass)
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
         }
         break;
     }
