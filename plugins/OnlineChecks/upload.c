@@ -24,11 +24,11 @@
 #include <commonutil.h>
 #include <shlobj.h>
 
+PPH_OBJECT_TYPE UploadContextType = NULL;
 SERVICE_INFO UploadServiceInfo[] =
 {
     { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
     { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
-    //{ UPLOAD_SERVICE_CIMA, L"camas.comodo.com", INTERNET_DEFAULT_HTTP_PORT, 0, L"/cgi-bin/submit", L"file" }
 };
 
 BOOL ReadRequestString(
@@ -90,12 +90,44 @@ VOID RaiseUploadError(
     _In_ ULONG ErrorCode
     )
 {
-    if (Context->DialogHandle)
-    {
-        Context->ErrorString = PhFormatString(L"Error: [%lu] %s", ErrorCode, Error);
+    PWSTR errorMessage = NULL;
+    PPH_STRING message;
 
-        PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
+    if (!Context->DialogHandle)
+        return;
+
+    if (message = PhGetMessage(GetModuleHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), ErrorCode))
+        PhTrimToNullTerminatorString(message);
+
+    // Remove any trailing newline
+    if (message && message->Length >= 2 * sizeof(WCHAR) &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 2] == '\r' &&
+        message->Buffer[message->Length / sizeof(WCHAR) - 1] == '\n')
+    {
+        PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
     }
+
+    if (message)
+    {
+        PhSwapReference(&Context->ErrorString, PhFormatString(
+            L"[%lu] %s",
+            ErrorCode,
+            PhGetString(message)
+            ));
+
+        PhDereferenceObject(message);
+    }
+    else
+    {
+        PhSwapReference(&Context->ErrorString, PhFormatString(
+            L"[%lu] %s",
+            ErrorCode,
+            Error
+            ));
+    }
+
+    PostMessage(Context->DialogHandle, UM_ERROR, 0, 0);
+
 }
 
 PSERVICE_INFO GetUploadServiceInfo(
@@ -113,25 +145,69 @@ PSERVICE_INFO GetUploadServiceInfo(
     return NULL;
 }
 
-VOID FreeUpdateContext(
+VOID UploadContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PUPLOAD_CONTEXT context = Object;
+
+    if (context->TaskbarListClass)
+    {
+        ITaskbarList3_Release(context->TaskbarListClass);
+        context->TaskbarListClass = NULL;
+    }
+
+    if (context->UploadThreadHandle)
+    {
+        NtClose(context->UploadThreadHandle);
+        context->UploadThreadHandle = NULL;
+    }
+
+    if (context->HttpHandle)
+    {
+        WinHttpCloseHandle(context->HttpHandle);
+        context->HttpHandle = NULL;
+    }
+
+    if (context->IconLargeHandle)
+    {
+        DestroyIcon(context->IconLargeHandle);
+        context->IconLargeHandle = NULL;
+    }
+
+    if (context->IconSmallHandle)
+    {
+        DestroyIcon(context->IconSmallHandle);
+        context->IconSmallHandle = NULL;
+    }
+
+    PhClearReference(&context->ErrorString);
+    PhClearReference(&context->KeyString);
+    PhClearReference(&context->FileName);
+    PhClearReference(&context->BaseFileName);
+    PhClearReference(&context->WindowFileName);
+    PhClearReference(&context->LaunchCommand);
+    PhClearReference(&context->Detected);
+    PhClearReference(&context->MaxDetected);
+    PhClearReference(&context->UploadUrl);
+    PhClearReference(&context->ReAnalyseUrl);
+    PhClearReference(&context->FirstAnalysisDate);
+    PhClearReference(&context->LastAnalysisDate);
+    PhClearReference(&context->LastAnalysisUrl);
+    PhClearReference(&context->LastAnalysisAgo);
+}
+
+VOID TaskDialogFreeContext(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
-    //PhClearReference(&Context->Version);
-    //PhClearReference(&Context->RevVersion);
-    //PhClearReference(&Context->RelDate);
-    //PhClearReference(&Context->Size);
-    //PhClearReference(&Context->Hash);
-    //PhClearReference(&Context->Signature);
-    //PhClearReference(&Context->ReleaseNotesUrl);
-    //PhClearReference(&Context->SetupFilePath);
-    //PhClearReference(&Context->SetupFileDownloadUrl);
+    // Reset Taskbar progress state(s)
+    if (Context->TaskbarListClass)
+        ITaskbarList3_SetProgressState(Context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
 
-    if (Context->IconLargeHandle)
-        DestroyIcon(Context->IconLargeHandle);
-
-    if (Context->IconSmallHandle)
-        DestroyIcon(Context->IconSmallHandle);
+    if (Context->TaskbarListClass)
+        ITaskbarList3_SetProgressState(Context->TaskbarListClass, Context->DialogHandle, TBPF_NOPROGRESS);
 
     PhDereferenceObject(Context);
 }
@@ -192,11 +268,22 @@ NTSTATUS HashFileAndResetPosition(
     PH_HASH_CONTEXT hashContext;
     ULONG64 bytesRemaining;
     FILE_POSITION_INFORMATION positionInfo;
+    LONG priority;
+    IO_PRIORITY_HINT ioPriority;
+    LONG newpriority;
+    IO_PRIORITY_HINT newioPriority;
     UCHAR buffer[PAGE_SIZE];
 
     bytesRemaining = FileSize->QuadPart;
 
     PhInitializeHash(&hashContext, Algorithm);
+
+    newpriority = THREAD_PRIORITY_LOWEST;
+    newioPriority = IoPriorityVeryLow;
+    NtQueryInformationThread(NtCurrentThread(), ThreadBasePriority, &priority, sizeof(LONG), NULL);
+    NtQueryInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT), NULL);
+    NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &newpriority, sizeof(LONG));
+    NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &newioPriority, sizeof(IO_PRIORITY_HINT));
 
     while (bytesRemaining)
     {
@@ -244,8 +331,11 @@ NTSTATUS HashFileAndResetPosition(
             &positionInfo,
             sizeof(FILE_POSITION_INFORMATION),
             FilePositionInformation
-        );
+            );
     }
+
+    NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &priority, sizeof(LONG));
+    NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT));
 
     return status;
 }
@@ -500,7 +590,7 @@ NTSTATUS UploadFileThreadStart(
             &httpPostHeader,
             L"Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n",
             serviceInfo->FileNameFieldName,
-            context->BaseFileName->Buffer
+            PhGetStringOrEmpty(context->BaseFileName)
             );
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -526,7 +616,7 @@ NTSTATUS UploadFileThreadStart(
             &httpPostHeader,
             L"Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n",
             serviceInfo->FileNameFieldName,
-            context->BaseFileName->Buffer
+            PhGetStringOrEmpty(context->BaseFileName)
             );
         PhAppendFormatStringBuilder(
             &httpPostHeader,
@@ -722,18 +812,42 @@ NTSTATUS UploadFileThreadStart(
         {
         case MENUITEM_VIRUSTOTAL_UPLOAD:
             {
-                PPH_STRING keyString = PhCreateString(VIRUSTOTAL_APIKEY);
+                PSTR buffer = NULL;
+                PSTR redirectUrl;
+                ULONG bufferLength;
+                PVOID jsonRootObject;
 
-                if (PhIsNullOrEmptyString(keyString))
+                if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
+                {
+                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                    goto CleanupExit;
+                }
+
+                if (jsonRootObject = CreateJsonParser(buffer))
+                {
+                    if (!GetJsonValueAsUlong(jsonRootObject, "response_code"))
+                        goto CleanupExit;
+
+                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "resource"));
+                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_id"));
+                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha256"));
+                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));
+
+                    if (redirectUrl = GetJsonValueAsString(jsonRootObject, "permalink"))
+                    {
+                        PhSwapReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
+                    }
+
+                    CleanupJsonParser(jsonRootObject);
+                }
+                else
                 {
                     ULONG bufferLength = 0;
 
-                    // Use WinHttpQueryOption to obtain a buffer size.
                     if (!WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, NULL, &bufferLength))
                     {
                         PPH_STRING buffer = PhCreateStringEx(NULL, bufferLength);
 
-                        // Use WinHttpQueryOption again, this time to retrieve the URL in the new buffer
                         if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Buffer, &bufferLength))
                         {
                             PhSwapReference(&context->LaunchCommand, PhDuplicateString(buffer));
@@ -742,41 +856,6 @@ NTSTATUS UploadFileThreadStart(
                         PhDereferenceObject(buffer);
                     }
                 }
-                else
-                {
-                    PSTR buffer = NULL;
-                    PSTR redirectUrl;
-                    ULONG bufferLength;
-                    PVOID jsonRootObject;
-
-                    if (!ReadRequestString(requestHandle, &buffer, &bufferLength))
-                    {
-                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
-                        goto CleanupExit;
-                    }
-
-                    if (jsonRootObject = CreateJsonParser(buffer))
-                    {
-                        if (!GetJsonValueAsUlong(jsonRootObject, "response_code"))
-                            goto CleanupExit;
-
-                        /*result->Resource = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "resource"));
-                        result->ScanId = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_id"));
-                        result->Md5 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "md5"));
-                        result->Sha1 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha1"));
-                        result->Sha256 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha256"));
-                        result->StatusMessage = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));*/
-
-                        if (redirectUrl = GetJsonValueAsString(jsonRootObject, "permalink"))
-                        {
-                            PhSwapReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
-                        }
-
-                        CleanupJsonParser(jsonRootObject);
-                    }
-                }
-
-                PhClearReference(&keyString);
             }
             break;
         case MENUITEM_JOTTI_UPLOAD:
@@ -825,6 +904,13 @@ NTSTATUS UploadFileThreadStart(
 
 CleanupExit:
 
+    // Reset Taskbar progress state(s)
+    if (context->TaskbarListClass)
+    {
+        ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
+        ITaskbarList3_SetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
+    }
+
     if (postBoundary)
         PhDereferenceObject(postBoundary);
 
@@ -846,12 +932,7 @@ CleanupExit:
     if (fileHandle)
         NtClose(fileHandle);
 
-    // Reset Taskbar progress state(s)
-    if (context->TaskbarListClass)
-        ITaskbarList3_SetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
-
-    if (context->TaskbarListClass)
-        ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
+    PhDereferenceObject(context);
 
     return status;
 }
@@ -897,6 +978,11 @@ NTSTATUS UploadCheckThreadStart(
     {
         if (context->Service == MENUITEM_VIRUSTOTAL_UPLOAD)
         {
+            if (fileSize64.QuadPart < 32 * 1024 * 1024)
+            {
+                context->VtApiUpload = TRUE;
+            }
+            
             if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
             {
                 RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
@@ -912,6 +998,7 @@ NTSTATUS UploadCheckThreadStart(
             }
         }
 
+        context->FileSize = PhFormatSize(fileSize64.QuadPart, -1);
         context->TotalFileLength = fileSize64.LowPart;
     }
 
@@ -956,7 +1043,15 @@ NTSTATUS UploadCheckThreadStart(
 
             hashString = PhBufferToHexString(hash, 32);
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
-            //context->LaunchCommand = PhFormatString(L"https://www.virustotal.com/file/%s/analysis/", hashString->Buffer);
+
+            if (PhIsNullOrEmptyString(context->KeyString))
+            {
+                // Create the default launch URL
+                PhSwapReference(&context->LaunchCommand, PhFormatString(
+                    L"https://www.virustotal.com/file/%s/analysis/",
+                    PhGetString(hashString)
+                    ));
+            }
 
             if (!(subRequestBuffer = PerformSubRequest(
                 context,
@@ -998,25 +1093,21 @@ NTSTATUS UploadCheckThreadStart(
                     if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
                     {
                         PhSwapReference(&context->ReAnalyseUrl, PhFormatString(
-                            L"https://www.virustotal.com%s", 
+                            L"%s%s", 
+                            L"https://www.virustotal.com",
                             PhGetString(context->ReAnalyseUrl)
                             ));
                     }
 
-                    if (!PhIsNullOrEmptyString(context->UploadUrl))
+                    if (context->VtApiUpload && !PhIsNullOrEmptyString(context->KeyString))
                     {
-                        PPH_STRING keyString = PhCreateString(VIRUSTOTAL_APIKEY);
-
-                        if (!PhIsNullOrEmptyString(keyString))
-                        {
-                            PhSwapReference(&context->UploadUrl, PhFormatString(
-                                L"https://www.virustotal.com/vtapi/v2/file/scan?apikey=%s&resource=%s",
-                                PhGetString(keyString),
-                                PhGetString(hashString)
-                                ));
-                        }
-
-                        PhClearReference(&keyString);
+                        PhSwapReference(&context->UploadUrl, PhFormatString(
+                            L"%s%s?apikey=%s&resource=%s",
+                            L"https://www.virustotal.com",
+                            L"/vtapi/v2/file/scan",
+                            PhGetString(context->KeyString),
+                            PhGetString(hashString)
+                            ));
                     }
 
                     if (!PhIsNullOrEmptyString(context->UploadUrl))
@@ -1097,7 +1188,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     switch (uMsg)
     {
     case WM_NCDESTROY:
-        RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+        {
+            TaskDialogFreeContext(context);
+
+            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+        }
         break;
     case UM_SHOWDIALOG:
         {
@@ -1176,11 +1271,6 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             ShowVirusTotalUploadDialog(context);
         }
         break;
-    case TDN_DESTROYED:
-        {
-            FreeUpdateContext(context);
-        }
-        break;
     }
 
     return S_OK;
@@ -1193,6 +1283,7 @@ NTSTATUS ShowUpdateDialogThread(
     PH_AUTO_POOL autoPool;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
+    BOOL checked = FALSE;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -1202,7 +1293,7 @@ NTSTATUS ShowUpdateDialogThread(
     config.pfCallback = TaskDialogBootstrapCallback;
 
     // Start TaskDialog bootstrap
-    TaskDialogIndirect(&config, NULL, NULL, NULL);
+    TaskDialogIndirect(&config, NULL, NULL, &checked);
 
     PhDeleteAutoPool(&autoPool);
 
@@ -1214,15 +1305,24 @@ VOID UploadToOnlineService(
     _In_ ULONG Service
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
     HANDLE dialogThread;
     PUPLOAD_CONTEXT context;
 
-    context = (PUPLOAD_CONTEXT)PhCreateAlloc(sizeof(UPLOAD_CONTEXT));
+    if (PhBeginInitOnce(&initOnce))
+    {
+        UploadContextType = PhCreateObjectType(L"OnlineChecksObjectType", 0, UploadContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    context = (PUPLOAD_CONTEXT)PhCreateObject(sizeof(UPLOAD_CONTEXT), UploadContextType);
     memset(context, 0, sizeof(UPLOAD_CONTEXT));
 
     context->Service = Service;
     context->FileName = PhDuplicateString(FileName);
     context->BaseFileName = PhGetBaseName(context->FileName);
+    context->KeyString = PhCreateString(VIRUSTOTAL_APIKEY);
 
     if (dialogThread = PhCreateThread(0, ShowUpdateDialogThread, (PVOID)context))
     {

@@ -136,7 +136,7 @@ VOID NetAdapterUpdatePanel(
     else
     {
         SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_STATE, L"Disconnected");
-        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, PhaFormatString(L"%s/s", PhaFormatSize(0, -1)->Buffer)->Buffer);
+        SetDlgItemText(Context->PanelWindowHandle, IDC_LINK_SPEED, L"N/A");
     }
 }
 

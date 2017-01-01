@@ -61,15 +61,6 @@ HRESULT CALLBACK ShowProgressCallbackProc(
             }
         }
         break;
-    case TDN_DESTROYED:
-        {
-            if (context->UploadThreadHandle)
-            {
-                NtClose(context->UploadThreadHandle);
-                context->UploadThreadHandle = NULL;
-            }
-        }
-        break;
     }
 
     return S_OK;

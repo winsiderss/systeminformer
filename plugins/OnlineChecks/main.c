@@ -193,6 +193,28 @@ VOID NTAPI MenuItemCallback(
     case MENUITEM_JOTTI_UPLOAD:
         UploadToOnlineService(menuItem->Context, MENUITEM_JOTTI_UPLOAD);
         break;
+    case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
+        {
+            static PH_FILETYPE_FILTER filters[] =
+            {
+                { L"All files (*.*)", L"*.*" }
+            };
+            PVOID fileDialog;
+            PPH_STRING fileName;
+
+            fileDialog = PhCreateOpenFileDialog();
+            PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+            if (PhShowFileDialog(menuItem->Context, fileDialog))
+            {
+                fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
+
+                UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+            }
+
+            PhFreeFileDialog(fileDialog);
+        }
+        break;
     }
 }
 
@@ -201,18 +223,19 @@ VOID NTAPI MainMenuInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM onlineMenuItem;
     PPH_EMENU_ITEM enableMenuItem;
-    PPH_EMENU_ITEM detectMenuItem;
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
 
-    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
-    enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL);
-    detectMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"VirusTotal Upload Queue", NULL);
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, enableMenuItem, -1);
-    PhInsertEMenuItem(menuInfo->Menu, detectMenuItem, -1);
+    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Online Checks", NULL);
+    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to VirusTotal...", NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, -1);
 
     if (VirusTotalScanningEnabled)
         enableMenuItem->Flags |= PH_EMENU_CHECKED;

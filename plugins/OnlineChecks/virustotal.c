@@ -690,25 +690,33 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
             for (i = 0; i < virusTotalResults->Count; i++)
             {
                 PVIRUSTOTAL_API_RESULT result = virusTotalResults->Items[i];
-                PVIRUSTOTAL_FILE_HASH_ENTRY entry = VirusTotalGetCachedResultFromHash(result->FileHash);
- 
-                if (entry && !entry->Processed)
+
+                if (result->Found)
                 {
-                    entry->Processed = TRUE;
-                    entry->Found = result->Found;
-                    entry->Positives = result->Positives;
+                    PVIRUSTOTAL_FILE_HASH_ENTRY entry = VirusTotalGetCachedResultFromHash(result->FileHash);
 
-                    PhSwapReference(&entry->FileResult, PhDuplicateString(result->DetectionRatio));
-
-                    if (!FindProcessDbObject(&entry->FileName->sr))
+                    if (entry && !entry->Processed)
                     {
-                        CreateProcessDbObject(
-                            entry->FileName, 
-                            entry->Positives, 
-                            result->FileHash, 
-                            entry->FileResult
-                            );
-                    } 
+                        entry->Processed = TRUE;
+                        entry->Found = result->Found;
+                        entry->Positives = result->Positives;
+
+                        PhSwapReference(&entry->FileResult, PhDuplicateString(result->DetectionRatio));
+
+                        if (!FindProcessDbObject(&entry->FileName->sr))
+                        {
+                            CreateProcessDbObject(
+                                entry->FileName,
+                                entry->Positives,
+                                result->FileHash,
+                                entry->FileResult
+                                );
+                        }
+                    }
+                }
+                else
+                {
+
                 }
             }
         }
@@ -717,17 +725,17 @@ CleanupExit:
 
         if (virusTotalResults)
         {
-            //for (i = 0; i < virusTotalResults->Count; i++)
-            //{
-            //    PVIRUSTOTAL_API_RESULT result = virusTotalResults->Items[i];
-            //
+            for (i = 0; i < virusTotalResults->Count; i++)
+            {
+                PVIRUSTOTAL_API_RESULT result = virusTotalResults->Items[i];
+            
             //    PhClearReference(&result->Permalink);
             //    PhClearReference(&result->FileHash);
             //    PhClearReference(&result->DetectionRatio);
             //
             //    PhFree(result);
-            //}
-            //
+            }
+            
             //PhDereferenceObject(virusTotalResults);
         }
         

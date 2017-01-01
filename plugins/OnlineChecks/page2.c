@@ -24,8 +24,8 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
     { IDRETRY, L"Reanalyse file\nRescan the existing sample on VirusTotal" },
+    { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
     { IDYES, L"View last analysis\nOpen the last VirusTotal analysis page" },
 };
 
@@ -44,7 +44,9 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
     case TDN_NAVIGATED:
         {
             if (context->TaskbarListClass)
+            {
                 ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
+            }           
         }
         break;
     case TDN_BUTTON_CLICKED:
@@ -68,6 +70,11 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
             }
         }
         break;
+    case TDN_VERIFICATION_CLICKED:
+        {
+            BOOL verification = (BOOL)wParam;
+        }
+        break;
     }
 
     return S_OK;
@@ -84,33 +91,21 @@ VOID ShowFileFoundDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_USE_COMMAND_LINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
-    if (Context->FileExists)
-    {    
-        // was last analysed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analysed by VirusTotal on 2016-12-12 17:08:19 UTC.
-        config.pszMainInstruction = PhaFormatString(
-            L"%s was last analysed %s ago", 
-            PhGetStringOrEmpty(Context->BaseFileName), 
-            PhGetStringOrEmpty(Context->LastAnalysisAgo)
-            )->Buffer;
-
-        config.pszContent = PhaFormatString(
-            L"Detection ratio: %s/%s\r\nFirst analysed: %s\r\nLast analysed: %s\r\n\r\nYou can take a look at the last analysis or upload it again now.",
-            PhGetStringOrEmpty(Context->Detected),
-            PhGetStringOrEmpty(Context->MaxDetected),
-            PhGetStringOrEmpty(Context->FirstAnalysisDate),
-            PhGetStringOrEmpty(Context->LastAnalysisDate)
-            )->Buffer;
-    }
-    else
-    {
-        config.pszMainInstruction = PhaFormatString(L"%s existing", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
-        config.pszContent = PhaFormatString(L"existing")->Buffer;
-    }
-
-    //TaskDialogButtonArray[0].pszButtonText = PhaFormatString(L"Upload %s", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
-
-    config.cxWidth = 200;
+    config.pszMainInstruction = PhaFormatString(
+        L"%s was last analysed %s ago",
+        PhGetStringOrEmpty(Context->BaseFileName),
+        PhGetStringOrEmpty(Context->LastAnalysisAgo)
+        )->Buffer;
+    // was last analysed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analysed by VirusTotal on 2016-12-12 17:08:19 UTC.
+    config.pszContent = PhaFormatString(
+        L"Detection ratio: %s/%s\r\nFirst analysed: %s\r\nLast analysed: %s\r\nUpload size: %s\r\n\r\nYou can take a look at the last analysis or upload it again now.",
+        PhGetStringOrEmpty(Context->Detected),
+        PhGetStringOrEmpty(Context->MaxDetected),
+        PhGetStringOrEmpty(Context->FirstAnalysisDate),
+        PhGetStringOrEmpty(Context->LastAnalysisDate),
+        PhGetStringOrEmpty(Context->FileSize)
+        )->Buffer;
+    config.pszVerificationText = L"Remember this selection...";
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.lpCallbackData = (LONG_PTR)Context;

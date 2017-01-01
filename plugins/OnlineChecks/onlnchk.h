@@ -121,6 +121,7 @@ typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
 
 typedef struct _UPLOAD_CONTEXT
 {
+    BOOLEAN VtApiUpload;
     BOOLEAN FileExists;
     ULONG Service;
     ULONG ErrorCode;
@@ -132,7 +133,10 @@ typedef struct _UPLOAD_CONTEXT
     HICON IconSmallHandle;
     HINTERNET HttpHandle;
     ITaskbarList3* TaskbarListClass;
+
+    PPH_STRING FileSize;
     PPH_STRING ErrorString;
+    PPH_STRING KeyString;
 
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
@@ -202,7 +206,8 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
 #define ENABLE_SERVICE_VIRUSTOTAL 100
 #define MENUITEM_VIRUSTOTAL_QUEUE 101
 #define MENUITEM_VIRUSTOTAL_UPLOAD 102
-#define MENUITEM_JOTTI_UPLOAD 103
+#define MENUITEM_VIRUSTOTAL_UPLOAD_FILE 103
+#define MENUITEM_JOTTI_UPLOAD 104
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,
