@@ -24,8 +24,8 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDRETRY, L"Reanalyse file\nRescan the existing sample on VirusTotal" },
     { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
+    { IDRETRY, L"Reanalyse file\nRescan the existing sample on VirusTotal" },
     { IDYES, L"View last analysis\nOpen the last VirusTotal analysis page" },
 };
 

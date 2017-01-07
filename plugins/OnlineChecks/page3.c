@@ -42,10 +42,7 @@ HRESULT CALLBACK ShowProgressCallbackProc(
             if (context->TaskbarListClass)
                 ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
 
-            // reference the context for the new thread
             PhReferenceObject(context);
-
-            // create the new thread
             context->UploadThreadHandle = PhCreateThread(0, UploadFileThreadStart, context);
         }
         break;

@@ -266,7 +266,7 @@ NTSTATUS HashFileAndResetPosition(
     NTSTATUS status;
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
-    PPH_STRING hashString;
+    PPH_STRING hashString = NULL;
     ULONG64 bytesRemaining;
     FILE_POSITION_INFORMATION positionInfo;
     LONG priority;
@@ -277,14 +277,14 @@ NTSTATUS HashFileAndResetPosition(
     
     bytesRemaining = FileSize->QuadPart;
 
-    PhInitializeHash(&hashContext, Algorithm);
-
     newpriority = THREAD_PRIORITY_LOWEST;
     newioPriority = IoPriorityVeryLow;
     NtQueryInformationThread(NtCurrentThread(), ThreadBasePriority, &priority, sizeof(LONG), NULL);
     NtQueryInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT), NULL);
     NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &newpriority, sizeof(LONG));
     NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &newioPriority, sizeof(IO_PRIORITY_HINT));
+
+    PhInitializeHash(&hashContext, Algorithm);
 
     while (bytesRemaining)
     {
@@ -318,19 +318,17 @@ NTSTATUS HashFileAndResetPosition(
         {
         case Md5HashAlgorithm:
             PhFinalHash(&hashContext, hash, 16, NULL);
-            hashString = PhBufferToHexString(hash, 16);
+            *HashString = PhBufferToHexString(hash, 16);
             break;
         case Sha1HashAlgorithm:
             PhFinalHash(&hashContext, hash, 20, NULL);
-            hashString = PhBufferToHexString(hash, 20);
+            *HashString = PhBufferToHexString(hash, 20);
             break;
         case Sha256HashAlgorithm:
             PhFinalHash(&hashContext, hash, 32, NULL);
-            hashString = PhBufferToHexString(hash, 32);
+            *HashString = PhBufferToHexString(hash, 32);
             break;
         }
-
-        *HashString = hashString;
 
         positionInfo.CurrentByteOffset.QuadPart = 0;
         status = NtSetInformationFile(

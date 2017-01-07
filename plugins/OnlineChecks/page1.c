@@ -42,10 +42,7 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
             if (context->TaskbarListClass)
                 ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
 
-            // reference the context for the new thread
             PhReferenceObject(context);
-
-            // create the new thread
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadCheckThreadStart, context);
         }
         break;
