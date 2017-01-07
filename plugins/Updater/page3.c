@@ -86,7 +86,7 @@ VOID ShowAvailableDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_EXPANDED_BY_DEFAULT;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pszWindowTitle = L"Process Hacker - Updater";
