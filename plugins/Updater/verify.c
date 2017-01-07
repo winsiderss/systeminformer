@@ -48,8 +48,8 @@ static UCHAR UpdaterTrustedNightlyPublicKey[] =
     0xBF, 0xA2, 0xC0, 0x4D, 0xB0, 0xA9, 0x72, 0xEB,
 };
 
-BOOLEAN UpdaterInitializeHash(
-    _Out_ PUPDATER_HASH_CONTEXT *Context
+PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
+    VOID
     )
 {
     BOOLEAN success = FALSE;
@@ -58,7 +58,6 @@ BOOLEAN UpdaterInitializeHash(
 
     hashContext = PhAllocate(sizeof(UPDATER_HASH_CONTEXT));
     memset(hashContext, 0, sizeof(UPDATER_HASH_CONTEXT));
-
 
     // Import the trusted public key.
     if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
@@ -161,16 +160,12 @@ BOOLEAN UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    success = TRUE;
+    return hashContext;
 
 CleanupExit:
 
-    if (success)
-        *Context = hashContext;
-    else
-        UpdaterDestroyHash(hashContext);
-
-    return success;
+    UpdaterDestroyHash(hashContext);
+    return NULL;
 }
 
 BOOLEAN UpdaterUpdateHash(

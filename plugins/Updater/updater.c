@@ -927,7 +927,7 @@ NTSTATUS UpdateDownloadThread(
         }
 
         // Initialize hash algorithm.
-        if (!UpdaterInitializeHash(&hashContext))
+        if (!(hashContext = UpdaterInitializeHash()))
             goto CleanupExit;
 
         // Zero the buffer.
@@ -1001,8 +1001,6 @@ NTSTATUS UpdateDownloadThread(
             }
         }
 
-        downloadSuccess = TRUE;
-
         if (UpdaterVerifyHash(hashContext, context->Hash))
         {
             hashSuccess = TRUE;
@@ -1011,6 +1009,11 @@ NTSTATUS UpdateDownloadThread(
         if (UpdaterVerifySignature(hashContext, context->Signature))
         {
             signatureSuccess = TRUE;
+        }
+
+        if (hashSuccess && signatureSuccess)
+        {
+            downloadSuccess = TRUE;
         }
     }
 

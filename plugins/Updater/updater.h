@@ -192,8 +192,8 @@ typedef struct _UPDATER_HASH_CONTEXT
     PVOID Hash;
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
-BOOLEAN UpdaterInitializeHash(
-    _Out_ PUPDATER_HASH_CONTEXT *Context
+PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
+    VOID
     );
 
 BOOLEAN UpdaterUpdateHash(
