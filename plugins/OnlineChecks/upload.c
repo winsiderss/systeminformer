@@ -260,20 +260,21 @@ NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,
     _In_ PH_HASH_ALGORITHM Algorithm,
-    _Out_ PVOID Hash
+    _Out_ PPH_STRING *HashString
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK iosb;
     PH_HASH_CONTEXT hashContext;
+    PPH_STRING hashString;
     ULONG64 bytesRemaining;
     FILE_POSITION_INFORMATION positionInfo;
     LONG priority;
-    IO_PRIORITY_HINT ioPriority;
     LONG newpriority;
+    IO_PRIORITY_HINT ioPriority;
     IO_PRIORITY_HINT newioPriority;
     UCHAR buffer[PAGE_SIZE];
-
+    
     bytesRemaining = FileSize->QuadPart;
 
     PhInitializeHash(&hashContext, Algorithm);
@@ -311,18 +312,25 @@ NTSTATUS HashFileAndResetPosition(
 
     if (NT_SUCCESS(status))
     {
+        UCHAR hash[32];
+
         switch (Algorithm)
         {
         case Md5HashAlgorithm:
-            PhFinalHash(&hashContext, Hash, 16, NULL);
+            PhFinalHash(&hashContext, hash, 16, NULL);
+            hashString = PhBufferToHexString(hash, 16);
             break;
         case Sha1HashAlgorithm:
-            PhFinalHash(&hashContext, Hash, 20, NULL);
+            PhFinalHash(&hashContext, hash, 20, NULL);
+            hashString = PhBufferToHexString(hash, 20);
             break;
         case Sha256HashAlgorithm:
-            PhFinalHash(&hashContext, Hash, 32, NULL);
+            PhFinalHash(&hashContext, hash, 32, NULL);
+            hashString = PhBufferToHexString(hash, 32);
             break;
         }
+
+        *HashString = hashString;
 
         positionInfo.CurrentByteOffset.QuadPart = 0;
         status = NtSetInformationFile(
@@ -1032,16 +1040,14 @@ NTSTATUS UploadCheckThreadStart(
         {
             PSTR uploadUrl = NULL;
             PSTR quote = NULL;
-            UCHAR hash[32];
             PVOID rootJsonObject;
 
-            if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, hash)))
+            if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, &hashString)))
             {
                 RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
                 goto CleanupExit;
             }
 
-            hashString = PhBufferToHexString(hash, 32);
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
 
             if (PhIsNullOrEmptyString(context->KeyString))

@@ -56,10 +56,6 @@
 
 extern PPH_PLUGIN PluginInstance;
 
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
-    );
-
 typedef struct _SERVICE_INFO
 {
     ULONG Id;
@@ -152,6 +148,10 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING LastAnalysisAgo;
 } UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
 
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
+    );
+
 NTSTATUS UploadFileThreadStart(
     _In_ PVOID Parameter
     );
@@ -224,7 +224,7 @@ NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,
     _In_ PH_HASH_ALGORITHM Algorithm,
-    _Out_ PVOID Hash
+    _Out_ PPH_STRING *HashString
     );
 
 typedef struct _VIRUSTOTAL_API_RESULT

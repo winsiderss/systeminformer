@@ -89,8 +89,10 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
     result = PhAllocate(sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
     memset(result, 0, sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
 
+    PhReferenceObject(FileName);
+    result->FileName = FileName;
+    result->FileNameAnsi = PhConvertUtf16ToMultiByte(PhGetString(FileName));
     result->Extension = Extension;
-    result->FileName = PhDuplicateString(FileName);
 
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     PhAddItemList(VirusTotalList, result);
@@ -226,7 +228,7 @@ VOID VirusTotalBuildJsonArray(
 {
     HANDLE fileHandle;
     FILE_NETWORK_OPEN_INFORMATION fileAttributeInfo;
-    UCHAR hash[32];
+    PPH_STRING hashString = NULL;
 
     if (NT_SUCCESS(PhQueryFullAttributesFileWin32(
         Entry->FileName->Buffer,
@@ -250,20 +252,19 @@ VOID VirusTotalBuildJsonArray(
             fileHandle,
             &fileAttributeInfo.EndOfFile,
             Sha256HashAlgorithm,
-            hash
+            &hashString
             )))
         {
             PVOID entry;
-            
-            Entry->FileHash = PhBufferToHexString(hash, 32);
-            Entry->FileHashAnsi = PhConvertUtf16ToMultiByte(PhGetStringOrEmpty(Entry->FileHash));
-            Entry->FileNameAnsi = PhConvertUtf16ToMultiByte(PhGetStringOrEmpty(Entry->FileName));
+
+            Entry->FileHash = hashString;
+            Entry->FileHashAnsi = PhConvertUtf16ToMultiByte(Entry->FileHash->Buffer);
 
             entry = CreateJsonObject();
             JsonAddObject(entry, "autostart_location", "");
             JsonAddObject(entry, "autostart_entry", "");
-            JsonAddObject(entry, "hash", Entry->FileHashAnsi ? Entry->FileHashAnsi->Buffer : "");
-            JsonAddObject(entry, "image_path", Entry->FileNameAnsi ? Entry->FileNameAnsi->Buffer : "");
+            JsonAddObject(entry, "hash", Entry->FileHashAnsi->Buffer);
+            JsonAddObject(entry, "image_path", Entry->FileNameAnsi->Buffer);
             JsonAddObject(entry, "creation_datetime", Entry->CreationTime ? Entry->CreationTime->Buffer : "");
             JsonArrayAddObject(JsonArray, entry);
         }
@@ -290,7 +291,9 @@ PSTR VirusTotalSendHttpRequest(
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
+#ifdef _DEBUG
     WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+#endif
 
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
@@ -438,7 +441,9 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
+#ifdef _DEBUG
     WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
+#endif
 
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,

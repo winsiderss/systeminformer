@@ -233,8 +233,8 @@ VOID NTAPI MainMenuInitializingCallback(
     onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Online Checks", NULL);
     PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL), -1);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to VirusTotal...", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, -1);
 
     if (VirusTotalScanningEnabled)
@@ -449,7 +449,7 @@ VOID NTAPI TreeNewMessageCallback(
 
             if (!VirusTotalScanningEnabled)
             {
-                static PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"VirusTotal disabled");
+                static PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"Scanning disabled");
 
                 GetTextExtentPoint32(
                     customDraw->Dc,
