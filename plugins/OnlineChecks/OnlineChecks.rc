@@ -95,7 +95,7 @@ BEGIN
     CONTROL         "Enable VirusTotal scanning",IDC_ENABLE_VIRUSTOTAL,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
     CONTROL         "Enable VirusTotal detection highlighting",IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT,
-                    "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,7,19,141,10
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,20,141,10
     PUSHBUTTON      "Close",IDCANCEL,129,82,50,14
     CONTROL         "Enable detection actions",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,34,94,10
     EDITTEXT        IDC_EDIT1,91,47,37,14,ES_AUTOHSCROLL

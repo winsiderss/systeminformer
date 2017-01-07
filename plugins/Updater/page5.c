@@ -72,19 +72,18 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
 
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
 
-                if (!ShellExecuteEx(&info))
+                if (ShellExecuteEx(&info))
+                {
+                    ProcessHacker_Destroy(PhMainWndHandle);
+                }
+                else
                 {
                     // Install failed, cancel the shutdown.
                     ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
 
                     // Set button text for next action
                     //Button_SetText(GetDlgItem(hwndDlg, IDOK), L"Retry");
-
                     return S_FALSE;
-                }
-                else
-                {
-                    ProcessHacker_Destroy(PhMainWndHandle);
                 }
             }
         }
@@ -149,8 +148,8 @@ VOID ShowLatestVersionDialog(
         PIMAGE_NT_HEADERS imageNtHeader;
 
         // HACK
-        imageDosHeader = (PIMAGE_DOS_HEADER)PluginInstance->DllBase;
-        imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(PluginInstance->DllBase, (ULONG)imageDosHeader->e_lfanew);
+        imageDosHeader = (PIMAGE_DOS_HEADER)NtCurrentPeb()->ImageBaseAddress;
+        imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, (ULONG)imageDosHeader->e_lfanew);
        
         RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
