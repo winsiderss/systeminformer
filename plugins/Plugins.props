@@ -54,7 +54,7 @@
     <!-- Release Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
         <ClCompile>
-            <Optimization>MaxSpeed</Optimization> <!-- <Optimization>Full</Optimization> -->
+            <Optimization>Full</Optimization>
             <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
             <FunctionLevelLinking>true</FunctionLevelLinking>
             <IntrinsicFunctions>true</IntrinsicFunctions>
