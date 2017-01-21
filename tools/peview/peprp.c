@@ -67,6 +67,13 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPeCgfDlgProc(
+	_In_ HWND hwndDlg,
+	_In_ UINT uMsg,
+	_In_ WPARAM wParam,
+	_In_ LPARAM lParam
+);
+
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header;
 
@@ -169,6 +176,17 @@ VOID PvPeProperties(
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
         }
     }
+
+	// CFG page
+	if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
+		(PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
+	{
+		memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+		propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+		propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECFG);
+		propSheetPage.pfnDlgProc = PvpPeCgfDlgProc;
+		pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+	}
 
     PropertySheet(&propSheetHeader);
 
@@ -902,6 +920,69 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     }
 
     return FALSE;
+}
+
+INT_PTR CALLBACK PvpPeCgfDlgProc(
+	_In_ HWND hwndDlg,
+	_In_ UINT uMsg,
+	_In_ WPARAM wParam,
+	_In_ LPARAM lParam
+)
+{
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+	{
+		HWND lvHandle;
+		PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+		
+
+		lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+		PhSetListViewStyle(lvHandle, FALSE, TRUE);
+		PhSetControlTheme(lvHandle, L"explorer");
+		PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"RVA");
+		//PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"VA");
+		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Name");
+
+		if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
+		{
+			size_t cfgEntrySize = sizeof(DWORD) + ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
+			ULONG cfgFunctionTableRva = (ULONG) (config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase);
+			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, cfgFunctionTableRva, NULL);
+			size_t CfgFunctionCount = config64->GuardCFFunctionCount;
+			size_t cfgFunctionSize = CfgFunctionCount * cfgEntrySize;
+
+
+			for (size_t i = 0; i < CfgFunctionCount; i++)
+			{
+				//WCHAR VaPointer[PH_PTR_STR_LEN_1];
+				WCHAR RvaPointer[PH_PTR_STR_LEN_1];
+				size_t RawRva = 0;
+
+				memcpy(&RawRva, (BYTE*) CfgFunctionTable + i*cfgEntrySize, cfgEntrySize);
+				//PVOID Va = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) RawRva, NULL);
+
+				PhPrintPointer(RvaPointer, (PVOID) (size_t) RawRva);
+				//PhPrintPointer(VaPointer, PTR_SUB_OFFSET(Va, PvMappedImage.ViewBase));
+
+				INT lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, RvaPointer, NULL);
+				//PhSetListViewSubItem(lvHandle, lvItemIndex, 1, VaPointer );
+				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, L"(unnamed)");
+			}
+		}
+
+		ExtendedListView_SortItems(lvHandle);
+		EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+	}
+		break;
+	case WM_NOTIFY:
+	{
+		
+	}
+		break;
+	}
+
+	return FALSE;
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
