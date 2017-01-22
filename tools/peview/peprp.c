@@ -984,6 +984,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 		PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"RVA");
 		//PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"VA");
 		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Name");
+		PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Flags");
 		
 		// Init symbol resolver
 		if (PhSymbolProviderInitialization())
@@ -1023,31 +1024,30 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
 		if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
 		{
-			size_t cfgEntrySize = sizeof(DWORD) + ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
-			ULONG  cfgFunctionTableRva = (ULONG) (config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase);
-			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, cfgFunctionTableRva, NULL);
+			// Retrieve Cfg Table entry and characteristics
+			size_t CfgOptionalFlagsSize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
+			size_t cfgEntrySize = sizeof(DWORD) + CfgOptionalFlagsSize;
+
+			ULONGLONG cfgFunctionTableOffset = config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
+			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) cfgFunctionTableOffset, NULL);
 			size_t CfgFunctionCount = config64->GuardCFFunctionCount;
 			size_t cfgFunctionSize = CfgFunctionCount * cfgEntrySize;
 
-
 			for (size_t i = 0; i < CfgFunctionCount; i++)
 			{
+				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry;
 				WCHAR RvaPointer[PH_PTR_STR_LEN_1];
-				size_t Rva = 0;
 				ULONG64 Va = 0; 
-				BYTE *CfgEntry = NULL;
+				
 
-				// Compute cfg entry rva.
-				CfgEntry = ((BYTE*)CfgFunctionTable + i*cfgEntrySize);
-				Rva = ((DWORD*)CfgEntry)[0];
-				Va = (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, Rva); /* Va = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) Rva, NULL); */
-				if ((cfgEntrySize >  sizeof(DWORD)) && (CfgEntry[cfgEntrySize - 1]))
-				{
-					BOOLEAN bSomeFlags = TRUE;
-				}
+				// Parse cfg entry
+				CfgFunctionEntry.HasOptionalFlags = (CfgOptionalFlagsSize != 0);
+				memcpy(&CfgFunctionEntry.Item, PTR_ADD_OFFSET(CfgFunctionTable, i*cfgEntrySize), min(sizeof(PH_MAPPED_IMAGE_CFG_ITEM), cfgEntrySize));
+				Va = (ULONG64) PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Item.Rva); /* Va = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) Rva, NULL); */
+	
 					
-
-				PhPrintPointer(RvaPointer, (PVOID) (size_t)Rva);
+				// Set function Address
+				PhPrintPointer(RvaPointer, (PVOID) (size_t)CfgFunctionEntry.Item.Rva);
 				INT lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, RvaPointer, NULL);
 				
 
@@ -1071,7 +1071,13 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 				case PhsrlInvalid:
 					PhSetListViewSubItem(lvHandle, lvItemIndex, 1, L"(unnamed)");
 					break;
-				}				
+				}
+
+				// Add additional flags
+				if (CfgFunctionEntry.HasOptionalFlags && CfgFunctionEntry.Item.Flags.LockdownBit)
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"Lockdown");
+				else
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"");
 			}
 		}
 
