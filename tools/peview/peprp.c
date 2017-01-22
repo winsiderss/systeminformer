@@ -28,6 +28,7 @@
 #include <shlobj.h>
 #include <uxtheme.h>
 #include <shellapi.h>
+#include <symprv.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
@@ -922,6 +923,46 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     return FALSE;
 }
 
+VOID PhLoadDbgHelpFromPath(
+	_In_ PWSTR DbgHelpPath
+)
+{
+	HMODULE dbghelpModule;
+
+	if (dbghelpModule = LoadLibrary(DbgHelpPath))
+	{
+		PPH_STRING fullDbghelpPath;
+		ULONG indexOfFileName;
+		PH_STRINGREF dbghelpFolder;
+		PPH_STRING symsrvPath;
+
+		fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+
+		if (fullDbghelpPath)
+		{
+			if (indexOfFileName != 0)
+			{
+				static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
+
+				dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
+				dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
+
+				symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+				LoadLibrary(symsrvPath->Buffer);
+				PhDereferenceObject(symsrvPath);
+			}
+
+			PhDereferenceObject(fullDbghelpPath);
+		}
+	}
+	else
+	{
+		dbghelpModule = LoadLibrary(L"dbghelp.dll");
+	}
+
+	PhSymbolProviderCompleteInitialization(dbghelpModule);
+}
+
 INT_PTR CALLBACK PvpPeCgfDlgProc(
 	_In_ HWND hwndDlg,
 	_In_ UINT uMsg,
@@ -935,7 +976,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 	{
 		HWND lvHandle;
 		PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-		
+		PPH_SYMBOL_PROVIDER symbolProvider;
 
 		lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 		PhSetListViewStyle(lvHandle, FALSE, TRUE);
@@ -943,11 +984,47 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 		PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"RVA");
 		//PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"VA");
 		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Name");
+		
+		// Init symbol resolver
+		if (PhSymbolProviderInitialization())
+		{
+			WCHAR buffer[512];
+			PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" /*PhGetStringSetting(L"DbgHelpPath")*/;
+			UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
+			UNICODE_STRING SymbolPathVar = {
+				.Buffer = buffer,
+				.MaximumLength = sizeof(buffer)
+			};
+			PPH_STRING SymbolCache;
+
+			PhLoadDbgHelpFromPath(dbghelpPath);
+			symbolProvider = PhCreateSymbolProvider(NULL/*node->ProcessId*/);
+
+			// Load user symcache path
+			NTSTATUS status;
+			if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
+			{
+				SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
+			}
+			else
+			{
+				SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
+			}
+			PhSetSearchPathSymbolProvider(symbolProvider, SymbolCache->Buffer);
+			
+			// Load current PE's pdb
+			PhLoadModuleSymbolProvider(
+				symbolProvider,
+				PvFileName->Buffer,
+				(ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+				PvMappedImage.NtHeaders->OptionalHeader.SizeOfCode
+			);
+		}
 
 		if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
 		{
 			size_t cfgEntrySize = sizeof(DWORD) + ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
-			ULONG cfgFunctionTableRva = (ULONG) (config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase);
+			ULONG  cfgFunctionTableRva = (ULONG) (config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase);
 			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, cfgFunctionTableRva, NULL);
 			size_t CfgFunctionCount = config64->GuardCFFunctionCount;
 			size_t cfgFunctionSize = CfgFunctionCount * cfgEntrySize;
@@ -955,19 +1032,46 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
 			for (size_t i = 0; i < CfgFunctionCount; i++)
 			{
-				//WCHAR VaPointer[PH_PTR_STR_LEN_1];
 				WCHAR RvaPointer[PH_PTR_STR_LEN_1];
-				size_t RawRva = 0;
+				size_t Rva = 0;
+				ULONG64 Va = 0; 
+				BYTE *CfgEntry = NULL;
 
-				memcpy(&RawRva, (BYTE*) CfgFunctionTable + i*cfgEntrySize, cfgEntrySize);
-				//PVOID Va = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) RawRva, NULL);
+				// Compute cfg entry rva.
+				CfgEntry = ((BYTE*)CfgFunctionTable + i*cfgEntrySize);
+				Rva = ((DWORD*)CfgEntry)[0];
+				Va = (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, Rva); /* Va = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) Rva, NULL); */
+				if ((cfgEntrySize >  sizeof(DWORD)) && (CfgEntry[cfgEntrySize - 1]))
+				{
+					BOOLEAN bSomeFlags = TRUE;
+				}
+					
 
-				PhPrintPointer(RvaPointer, (PVOID) (size_t) RawRva);
-				//PhPrintPointer(VaPointer, PTR_SUB_OFFSET(Va, PvMappedImage.ViewBase));
-
+				PhPrintPointer(RvaPointer, (PVOID) (size_t)Rva);
 				INT lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, RvaPointer, NULL);
-				//PhSetListViewSubItem(lvHandle, lvItemIndex, 1, VaPointer );
-				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, L"(unnamed)");
+				
+
+				// Resolve name based on public symbols
+				PPH_STRING SymbolName;
+				ULONG64 Displacement;
+				PH_SYMBOL_RESOLVE_LEVEL SymbolResolveLevel;
+				PPH_STRING Symbol = PhGetSymbolFromAddress(symbolProvider, Va, &SymbolResolveLevel, NULL, &SymbolName, &Displacement);
+				switch (SymbolResolveLevel)
+				{
+				case PhsrlFunction:
+					if (Displacement)
+						PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"%s+0x%x", SymbolName->Buffer, Displacement)->Buffer);
+					else
+						PhSetListViewSubItem(lvHandle, lvItemIndex, 1, SymbolName->Buffer);
+					break;
+				case PhsrlAddress:
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 1, Symbol->Buffer);
+					break;
+				default:
+				case PhsrlInvalid:
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 1, L"(unnamed)");
+					break;
+				}				
 			}
 		}
 
