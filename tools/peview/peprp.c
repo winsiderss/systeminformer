@@ -981,10 +981,12 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 		lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 		PhSetListViewStyle(lvHandle, FALSE, TRUE);
 		PhSetControlTheme(lvHandle, L"explorer");
+
+		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Name");
 		PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"RVA");
 		//PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"VA");
-		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Name");
 		PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Flags");
+		PhSetExtendedListView(lvHandle);
 		
 		// Init symbol resolver
 		if (PhSymbolProviderInitialization())
@@ -1036,9 +1038,9 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 			for (size_t i = 0; i < CfgFunctionCount; i++)
 			{
 				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry;
-				WCHAR RvaPointer[PH_PTR_STR_LEN_1];
+				//WCHAR RvaPointer[PH_PTR_STR_LEN_1];
 				ULONG64 Va = 0; 
-				
+				INT lvItemIndex;
 
 				// Parse cfg entry
 				CfgFunctionEntry.HasOptionalFlags = (CfgOptionalFlagsSize != 0);
@@ -1047,8 +1049,8 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 	
 					
 				// Set function Address
-				PhPrintPointer(RvaPointer, (PVOID) (size_t)CfgFunctionEntry.Item.Rva);
-				INT lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, RvaPointer, NULL);
+//				PhPrintPointer(RvaPointer, (PVOID) (size_t)CfgFunctionEntry.Item.Rva);
+				lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhFormatString(L"0x%08x", CfgFunctionEntry.Item.Rva)->Buffer, NULL);
 				
 
 				// Resolve name based on public symbols
@@ -1083,12 +1085,12 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
 		ExtendedListView_SortItems(lvHandle);
 		EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-	}
+		}
 		break;
 	case WM_NOTIFY:
-	{
-		
-	}
+		{
+			PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+		}
 		break;
 	}
 
