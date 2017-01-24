@@ -159,26 +159,6 @@ NTSTATUS TracertHostnameLookupCallback(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS TracertGeoIpLookupCallback(
-    _In_ PVOID Parameter
-    )
-{
-    PTRACERT_RESOLVE_WORKITEM resolve = Parameter;
-    DOUBLE currentLatitude = 0.0;
-    DOUBLE currentLongitude = 0.0;
-
-    LookupGeoIpCurrentCity(&currentLatitude, &currentLongitude);
-
-    PhSwapReference(&resolve->Node->RemoteCityDistance, GeoLookupCityDistance(
-        resolve->CityLatitude,
-        resolve->CityLongitude,
-        currentLatitude,
-        currentLongitude
-        ));
-
-    return STATUS_SUCCESS;
-}
-
 VOID TracertQueueHostLookup(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ PPOOLTAG_ROOT_NODE Node,
@@ -215,18 +195,11 @@ VOID TracertQueueHostLookup(
         if (LookupSockAddrCountryCode(
             sockAddrIn,
             &remoteCountryCode,
-            &remoteCountryName,
-            &resolve->CityLatitude,
-            &resolve->CityLongitude
+            &remoteCountryName
             ))
         {
             PhSwapReference(&Node->RemoteCountryCode, remoteCountryCode);
             PhSwapReference(&Node->RemoteCountryName, remoteCountryName);
-
-            if (resolve->CityLatitude != 0.0 && resolve->CityLongitude != 0.0)
-            {
-                PhQueueItemWorkQueue(&Context->WorkQueue, TracertGeoIpLookupCallback, resolve);
-            }
         }
 
         PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);

@@ -563,10 +563,10 @@ NTSTATUS UpdateCheckSilentThread(
 
 #ifndef FORCE_UPDATE_CHECK
     if (!LastUpdateCheckExpired())
-        goto exit;
+        goto CleanupExit;
 #endif
     if (!QueryUpdateData(context))
-        goto exit;
+        goto CleanupExit;
 
     currentVersion = MAKE_VERSION_ULONGLONG(
         context->CurrentMajorVersion,
@@ -608,7 +608,8 @@ NTSTATUS UpdateCheckSilentThread(
         }
     }
 
-exit:
+CleanupExit:
+
     if (!context->HaveData)
         FreeUpdateContext(context);
 

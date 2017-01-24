@@ -24,6 +24,7 @@
 #include "zlib\zlib.h"
 #include "zlib\gzguts.h"
 #include <commonutil.h>
+#include <shellapi.h>
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -56,23 +57,29 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->IconLargeHandle = PhLoadIcon(
+    HICON largeIcon;
+    HICON smallIcon;
+
+    largeIcon = PhLoadIcon(
         NtCurrentPeb()->ImageBaseAddress,
         MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
         PH_LOAD_ICON_SIZE_LARGE,
         GetSystemMetrics(SM_CXICON),
         GetSystemMetrics(SM_CYICON)
         );
-    Context->IconSmallHandle = PhLoadIcon(
+    smallIcon = PhLoadIcon(
         NtCurrentPeb()->ImageBaseAddress,
         MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
         PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
+        GetSystemMetrics(SM_CXSMICON),
+        GetSystemMetrics(SM_CYSMICON)
         );
 
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
+    Context->IconLargeHandle = largeIcon;
+    Context->IconSmallHandle = smallIcon;
+
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
 }
 
 VOID TaskDialogLinkClicked(
@@ -139,7 +146,9 @@ PPH_STRING UpdateWindowsString(
     return buildLabHeader;
 }
 
-PPH_STRING QueryFwLinkUrl(PPH_UPDATER_CONTEXT Context)
+PPH_STRING QueryFwLinkUrl(
+    _In_ PPH_UPDATER_CONTEXT Context
+    )
 {
     PPH_STRING redirectUrl = NULL;
     HINTERNET httpSessionHandle = NULL;
@@ -338,10 +347,10 @@ NTSTATUS GeoIPUpdateThread(
         PhSwapReference(&randomGuidString, PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2));
     }
 
-    // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-City.mmdb.gz
-    // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\GeoLite2-City.mmdb.gz
+    // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-Country.mmdb.gz
+    // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\GeoLite2-Country.mmdb.gz
     context->SetupFilePath = PhFormatString(
-        L"%s\\%s\\GeoLite2-City.mmdb.gz",
+        L"%s\\%s\\GeoLite2-Country.mmdb.gz",
         PhGetStringOrEmpty(setupTempPath),
         PhGetStringOrDefault(randomGuidString, L"NetworkTools")
         );
@@ -488,7 +497,7 @@ NTSTATUS GeoIPUpdateThread(
 
         memset(buffer, 0, PAGE_SIZE);
 
-        status = PhFormatString(L"Downloading GeoLite2-City.mmdb...");
+        status = PhFormatString(L"Downloading GeoLite2-Country.mmdb...");
         SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
         PhDereferenceObject(status);
@@ -577,7 +586,7 @@ NTSTATUS GeoIPUpdateThread(
         gzFile file;
 
         directory = PH_AUTO(PhGetApplicationDirectory());
-        path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-City.mmdb");
+        path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
         mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
 
         if (RtlDoesFileExists_U(PhGetString(path)))
@@ -768,38 +777,83 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     return S_OK;
 }
 
-BOOLEAN ShowInitialDialog(
-    _In_ HWND Parent,
-    _In_ PVOID Context
-    )
-{   
-    INT result = 0;
-    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_POSITION_RELATIVE_TO_WINDOW;
-    config.pszContent = L"Initializing...";
-    config.lpCallbackData = (LONG_PTR)Context;
-    config.pfCallback = TaskDialogBootstrapCallback;
-    config.hwndParent = Parent;
-
-    TaskDialogIndirect(&config, &result, NULL, NULL);
-
-    return result == IDOK;
-}
-
-VOID ShowUpdateDialog(
-    _In_opt_ HWND Parent
+NTSTATUS GeoIPUpdateDialogThread(
+    _In_ PVOID Parameter
     )
 {
     PH_AUTO_POOL autoPool;
     PPH_UPDATER_CONTEXT context;
+    INT result = 0;
+    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+
+    PhInitializeAutoPool(&autoPool);
 
     context = (PPH_UPDATER_CONTEXT)PhCreateAlloc(sizeof(PH_UPDATER_CONTEXT));
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
-    PhInitializeAutoPool(&autoPool);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.pszContent = L"Initializing...";
+    config.lpCallbackData = (LONG_PTR)context;
+    config.pfCallback = TaskDialogBootstrapCallback;
+    config.hwndParent = Parameter;
 
-    ShowInitialDialog(Parent, context);
+    TaskDialogIndirect(&config, &result, NULL, NULL);
 
     FreeUpdateContext(context);
     PhDeleteAutoPool(&autoPool);
+
+    return STATUS_SUCCESS;
+
+    //SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
+    //
+    //info.lpFile = L"ProcessHacker.exe";
+    //info.lpParameters = L"-plugin " PLUGIN_NAME L":UpdateGeoIp";
+    //info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+    //info.nShow = SW_SHOW;
+    //info.hwnd = Parameter;
+    //info.lpVerb = L"runas";
+    //
+    //ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+    //
+    //if (ShellExecuteEx(&info))
+    //{
+    //    LARGE_INTEGER timeout;
+    //    PROCESS_BASIC_INFORMATION basic;
+    //
+    //    NtWaitForSingleObject(info.hProcess, FALSE, PhTimeoutFromMilliseconds(&timeout, INFINITE));
+    //
+    //    if (NT_SUCCESS(PhGetProcessBasicInformation(info.hProcess, &basic)))
+    //    {
+    //        if (basic.ExitStatus == STATUS_ALREADY_COMPLETE)
+    //        {
+    //            PhShellProcessHacker(
+    //                Parameter,
+    //                NULL,
+    //                SW_SHOW,
+    //                0,
+    //                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+    //                0,
+    //                NULL
+    //                );
+    //
+    //            ProcessHacker_Destroy(PhMainWndHandle);
+    //        }
+    //    }
+    //
+    //    NtClose(info.hProcess);
+    //}
+    //else
+    //{
+    //    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+    //}
+}
+
+VOID ShowGeoIPUpdateDialog(
+    _In_opt_ HWND Parent
+    )
+{
+    HANDLE threadHandle = NULL;
+
+    if (threadHandle = PhCreateThread(0, GeoIPUpdateDialogThread, Parent))
+        NtClose(threadHandle);
 }

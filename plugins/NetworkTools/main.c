@@ -35,45 +35,11 @@ PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
 HWND NetworkTreeNewHandle = NULL;
 
-LONG NTAPI NetworkServiceSortFunction(
-    _In_ PVOID Node1,
-    _In_ PVOID Node2,
-    _In_ ULONG SubId,
-    _In_ PVOID Context
-    )
-{
-    PPH_NETWORK_NODE node1 = Node1;
-    PPH_NETWORK_NODE node2 = Node2;
-    PNETWORK_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->NetworkItem, EmNetworkItemType);
-    PNETWORK_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->NetworkItem, EmNetworkItemType);
-
-    switch (SubId)
-    {
-    case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
-        return PhCompareStringWithNull(extension1->RemoteCountryCode, extension2->RemoteCountryCode, TRUE);
-    }
-
-    return 0;
-}
-
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    PPH_LIST pluginArgvList = Parameter;
-
-    if (pluginArgvList)
-    {
-        for (ULONG i = 0; i < pluginArgvList->Count; i++)
-        {
-            if (PhEqualString2(pluginArgvList->Items[i], L"UpdateGeoIp", TRUE))
-            {
-                ShowUpdateDialog(PhMainWndHandle);
-            }
-        }
-    }
-
     LoadGeoLiteDb();
 }
 
@@ -216,21 +182,7 @@ VOID NTAPI MenuItemCallback(
         {
             if (PhGetOwnTokenAttributes().Elevated)
             {
-                ShowUpdateDialog(PhMainWndHandle);
-            }
-            else
-            {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-                PhShellProcessHacker(
-                    PhMainWndHandle,
-                    L"-plugin " PLUGIN_NAME L":UpdateGeoIp",
-                    SW_SHOW,
-                    PH_SHELL_EXECUTE_ADMIN,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                    0,
-                    NULL
-                    );
-                ProcessHacker_Destroy(PhMainWndHandle);
+                ShowGeoIPUpdateDialog(PhMainWndHandle);
             }
         }
         break;
@@ -251,9 +203,9 @@ VOID NTAPI MainMenuInitializingCallback(
     networkToolsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Network Tools", NULL);    
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"GeoIP database update...", NULL), -1);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_PING, L"Ping IP address...", NULL), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_TRACERT, L"Traceroute IP address...", NULL), -1);
-    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_WHOIS, L"Whois IP address...", NULL), -1);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_PING, L"Ping address...", NULL), -1);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_TRACERT, L"Traceroute address...", NULL), -1);
+    PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_WHOIS, L"Whois address...", NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, networkToolsMenu, -1);
 }
 
@@ -290,6 +242,27 @@ VOID NTAPI NetworkMenuInitializingCallback(
     }
 }
 
+LONG NTAPI NetworkServiceSortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
+    )
+{
+    PPH_NETWORK_NODE node1 = Node1;
+    PPH_NETWORK_NODE node2 = Node2;
+    PNETWORK_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->NetworkItem, EmNetworkItemType);
+    PNETWORK_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->NetworkItem, EmNetworkItemType);
+
+    switch (SubId)
+    {
+    case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
+        return PhCompareStringWithNull(extension1->RemoteCountryCode, extension2->RemoteCountryCode, TRUE);
+    }
+
+    return 0;
+}
+
 VOID NTAPI NetworkTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -318,12 +291,6 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     column.Width = 140;
     column.Alignment = PH_ALIGN_LEFT;
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_SERVICE, NULL, NetworkServiceSortFunction);
-       
-    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
-    column.Text = L"Distance (est)";
-    column.Width = 140;
-    column.Alignment = PH_ALIGN_LEFT;
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_DISTANCE, NULL, NetworkServiceSortFunction);
 }
 
 VOID NTAPI NetworkItemCreateCallback(
@@ -354,27 +321,6 @@ VOID NTAPI NetworkItemDeleteCallback(
         DestroyIcon(extension->CountryIcon);
 }
 
-NTSTATUS NetworkGeoIpLookupCallback(
-    _In_ PVOID Parameter
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    PTRACERT_NETWORK_WORKITEM resolve = Parameter;
-    DOUBLE currentLatitude = 0.0;
-    DOUBLE currentLongitude = 0.0;
-
-    LookupGeoIpCurrentCity(&currentLatitude, &currentLongitude);
-
-    PhSwapReference(&resolve->Node->RemoteCityDistance, GeoLookupCityDistance(
-        resolve->CityLatitude,
-        resolve->CityLongitude,
-        currentLatitude,
-        currentLongitude
-        ));
-
-    return STATUS_SUCCESS;
-}
-
 VOID NTAPI NetworkNodeCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -388,33 +334,15 @@ VOID NTAPI NetworkNodeCreateCallback(
     {
         PPH_STRING remoteCountryCode;
         PPH_STRING remoteCountryName;
-        DOUBLE remoteCityLatitude = 0.0;
-        DOUBLE remoteCityLongitude = 0.0;
 
         if (LookupCountryCode(
             networkNode->NetworkItem->RemoteEndpoint.Address, 
             &remoteCountryCode, 
-            &remoteCountryName,
-            &remoteCityLatitude,
-            &remoteCityLongitude
+            &remoteCountryName
             ))
         {
             PhSwapReference(&extension->RemoteCountryCode, remoteCountryCode);
             PhSwapReference(&extension->RemoteCountryName, remoteCountryName);
-
-            if (remoteCityLatitude != 0.0 && remoteCityLongitude != 0.0)
-            {
-                PTRACERT_NETWORK_WORKITEM resolve;
-
-                resolve = PhCreateAlloc(sizeof(TRACERT_NETWORK_WORKITEM));
-                memset(resolve, 0, sizeof(TRACERT_NETWORK_WORKITEM));
-
-                resolve->Node = extension;
-                resolve->CityLatitude = remoteCityLatitude;
-                resolve->CityLongitude = remoteCityLongitude;
-
-                PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), NetworkGeoIpLookupCallback, resolve);
-            }
         }
 
         extension->CountryValid = TRUE;
@@ -498,9 +426,6 @@ VOID NTAPI TreeNewMessageCallback(
                 case NETWORK_COLUMN_ID_REMOTE_SERVICE:
                     getCellText->Text = PhGetStringRef(extension->RemoteServiceName);
                     break;
-                case NETWORK_COLUMN_ID_REMOTE_DISTANCE:
-                    getCellText->Text = PhGetStringRef(extension->RemoteCityDistance);
-                    break;
                 }
             }
         }
@@ -578,7 +503,7 @@ VOID NTAPI TreeNewMessageCallback(
 
             if (!GeoDbLoaded)
             {
-                DrawText(hdc, L"Geoip database error.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
             }
         }
         break;

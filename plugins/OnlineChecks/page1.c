@@ -22,7 +22,7 @@
 
 #include "onlnchk.h"
 
-HRESULT CALLBACK CheckingForUpdatesCallbackProc(
+HRESULT CALLBACK TaskDialogProcessingCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -68,7 +68,7 @@ VOID ShowVirusTotalUploadDialog(
     config.pszMainInstruction = PhaFormatString(L"Processing %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
 
     config.cxWidth = 200;
-    config.pfCallback = CheckingForUpdatesCallbackProc;
+    config.pfCallback = TaskDialogProcessingCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);

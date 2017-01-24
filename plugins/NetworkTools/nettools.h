@@ -196,13 +196,16 @@ typedef struct _NETWORK_TRACERT_CONTEXT
 // country.c
 typedef struct _NETWORK_EXTENSION
 {
-    BOOLEAN Flags;
-    struct
+    union
     {
-        BOOLEAN CountryValid : 1;
-        BOOLEAN LocalValid : 1;
-        BOOLEAN RemoteValid : 1;
-        BOOLEAN Spare : 5;
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN CountryValid : 1;
+            BOOLEAN LocalValid : 1;
+            BOOLEAN RemoteValid : 1;
+            BOOLEAN Spare : 5;
+        };
     };
 
     HICON CountryIcon;
@@ -210,7 +213,6 @@ typedef struct _NETWORK_EXTENSION
     PPH_STRING RemoteServiceName;
     PPH_STRING RemoteCountryCode;
     PPH_STRING RemoteCountryName;
-    PPH_STRING RemoteCityDistance;
 } NETWORK_EXTENSION, *PNETWORK_EXTENSION;
 
 typedef enum _NETWORK_COLUMN_ID
@@ -218,34 +220,22 @@ typedef enum _NETWORK_COLUMN_ID
     NETWORK_COLUMN_ID_REMOTE_COUNTRY = 1,
     NETWORK_COLUMN_ID_LOCAL_SERVICE = 2,
     NETWORK_COLUMN_ID_REMOTE_SERVICE = 3,
-    NETWORK_COLUMN_ID_REMOTE_DISTANCE = 4,
 } NETWORK_COLUMN_ID;
 
 // country.c
 VOID LoadGeoLiteDb(VOID);
 VOID FreeGeoLiteDb(VOID);
 
-PPH_STRING GeoLookupCityDistance(
-    _In_ DOUBLE Latitude,
-    _In_ DOUBLE Longitude,
-    _In_ DOUBLE CompareLatitude,
-    _In_ DOUBLE CompareLongitude
-    );
-
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
-    _Out_ PPH_STRING *CountryName,
-    _Out_opt_ DOUBLE *CityLatitude,
-    _Out_opt_ DOUBLE *CityLongitude
+    _Out_ PPH_STRING *CountryName
     );
 
 BOOLEAN LookupSockAddrCountryCode(
     _In_ IN_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
-    _Out_ PPH_STRING *CountryName,
-    _Out_opt_ DOUBLE *CityLatitude,
-    _Out_opt_ DOUBLE *CityLongitude
+    _Out_ PPH_STRING *CountryName
     );
 
 INT LookupResourceCode(
@@ -273,7 +263,7 @@ NTSTATUS GeoIPUpdateThread(
     _In_ PVOID Parameter
     );
 
-VOID ShowUpdateDialog(
+VOID ShowGeoIPUpdateDialog(
     _In_opt_ HWND Parent
     );
 
@@ -314,10 +304,5 @@ typedef struct _RESOLVED_PORT
 } RESOLVED_PORT;
 
 RESOLVED_PORT ResolvedPortsTable[6265];
-
-VOID LookupGeoIpCurrentCity(
-    _Out_ DOUBLE *CurrentLatitude,
-    _Out_ DOUBLE *CurrentLongitude
-    );
 
 #endif

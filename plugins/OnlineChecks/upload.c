@@ -97,7 +97,9 @@ VOID RaiseUploadError(
         return;
 
     if (message = PhGetMessage(GetModuleHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), ErrorCode))
+    {
         PhTrimToNullTerminatorString(message);
+    }
 
     // Remove any trailing newline
     if (message && message->Length >= 2 * sizeof(WCHAR) &&

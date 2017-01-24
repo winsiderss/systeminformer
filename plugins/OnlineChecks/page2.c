@@ -25,7 +25,7 @@
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
     { IDOK, L"Upload file\nUpload fresh sample to VirusTotal for analysis" },
-    { IDRETRY, L"Reanalyse file\nRescan the existing sample on VirusTotal" },
+    { IDRETRY, L"Reanalyze file\nRescan the existing sample on VirusTotal" },
     { IDYES, L"View last analysis\nOpen the last VirusTotal analysis page" },
 };
 
@@ -92,13 +92,13 @@ VOID ShowFileFoundDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.pszMainInstruction = PhaFormatString(
-        L"%s was last analysed %s ago",
+        L"%s was last analyzed %s ago",
         PhGetStringOrEmpty(Context->BaseFileName),
         PhGetStringOrEmpty(Context->LastAnalysisAgo)
         )->Buffer;
-    // was last analysed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analysed by VirusTotal on 2016-12-12 17:08:19 UTC.
+    // was last analyzed by VirusTotal on 2016-12-28 05:26:50 UTC (1 hour ago) it was first analyzed by VirusTotal on 2016-12-12 17:08:19 UTC.
     config.pszContent = PhaFormatString(
-        L"Detection ratio: %s/%s\r\nFirst analysed: %s\r\nLast analysed: %s\r\nUpload size: %s\r\n\r\nYou can take a look at the last analysis or upload it again now.",
+        L"Detection ratio: %s/%s\r\nFirst analyzed: %s\r\nLast analyzed: %s\r\nUpload size: %s\r\n\r\nYou can take a look at the last analysis or upload it again now.",
         PhGetStringOrEmpty(Context->Detected),
         PhGetStringOrEmpty(Context->MaxDetected),
         PhGetStringOrEmpty(Context->FirstAnalysisDate),

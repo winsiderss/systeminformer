@@ -22,7 +22,7 @@
 
 #include "onlnchk.h"
 
-HRESULT CALLBACK ShowProgressCallbackProc(
+HRESULT CALLBACK TaskDialogProgressCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -81,7 +81,7 @@ VOID ShowVirusTotalProgressDialog(
 
     config.cxWidth = 200;
     config.lpCallbackData = (LONG_PTR)Context;
-    config.pfCallback = ShowProgressCallbackProc;
+    config.pfCallback = TaskDialogProgressCallbackProc;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

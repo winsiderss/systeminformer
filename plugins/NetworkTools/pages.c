@@ -21,13 +21,14 @@
  */
 
 #include "nettools.h"
+#include <shellapi.h>
 
-static TASKDIALOG_BUTTON RestartButtonArray[] =
+TASKDIALOG_BUTTON RestartButtonArray[] =
 {
     { IDYES, L"Restart" }
 };
 
-static TASKDIALOG_BUTTON DownloadButtonArray[] =
+TASKDIALOG_BUTTON DownloadButtonArray[] =
 {
     { IDOK, L"Download" }
 };
@@ -109,9 +110,9 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
                 PhShellProcessHacker(
                     PhMainWndHandle,
-                    L"",
+                    NULL,
                     SW_SHOW,
-                    PH_SHELL_EXECUTE_ADMIN,
+                    0,
                     PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                     0,
                     NULL
@@ -166,16 +167,15 @@ VOID ShowCheckForUpdatesDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
-    config.pszWindowTitle = L"Network Tools - GeoIP Updater";
-    config.pszMainInstruction = L"Download the latest GeoIP database?";
-    config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
-
     config.cxWidth = 200;
     config.pButtons = DownloadButtonArray;
     config.cButtons = ARRAYSIZE(DownloadButtonArray);
     config.pfCallback = CheckForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+
+    config.pszWindowTitle = L"Network Tools - GeoIP Updater";
+    config.pszMainInstruction = L"Download the latest GeoIP database?";
+    config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -191,14 +191,13 @@ VOID ShowCheckingForUpdatesDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
+    config.cxWidth = 200;
+    config.pfCallback = CheckingForUpdatesCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
     config.pszMainInstruction = L"Downloading";
     config.pszContent = L"Downloaded: ~ of ~ (~%%)\r\nSpeed: ~/s";
-
-    config.cxWidth = 200;
-    config.pfCallback = CheckingForUpdatesCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -214,7 +213,6 @@ VOID ShowInstallRestartDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
     config.cxWidth = 200;
     config.pfCallback = RestartTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
@@ -241,7 +239,6 @@ VOID ShowUpdateFailedDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;

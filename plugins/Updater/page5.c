@@ -143,7 +143,6 @@ VOID ShowLatestVersionDialog(
     {
         LARGE_INTEGER time;
         SYSTEMTIME systemTime = { 0 };
-        //SYSTEMTIME localTime = { 0 };
         PIMAGE_DOS_HEADER imageDosHeader;
         PIMAGE_NT_HEADERS imageNtHeader;
 
@@ -153,7 +152,6 @@ VOID ShowLatestVersionDialog(
        
         RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
-        //SystemTimeToTzSpecificLocalTime(NULL, &systemTime, &localTime);
 
         config.pszMainInstruction = L"You're running the latest nightly build";
         config.pszContent = PhaFormatString(

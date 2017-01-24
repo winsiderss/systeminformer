@@ -126,7 +126,6 @@ VOID DestroyTracertNode(
    PhClearReference(&PoolTagNode->IpAddressString);
    PhClearReference(&PoolTagNode->RemoteCountryCode);
    PhClearReference(&PoolTagNode->RemoteCountryName);
-   PhClearReference(&PoolTagNode->RemoteCityDistance);
    
    PhDereferenceObject(PoolTagNode);
 }
@@ -361,9 +360,6 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
             case TREE_COLUMN_ITEM_HOSTNAME:
                 getCellText->Text = PhGetStringRef(node->HostnameString);
                 break;
-            case TREE_COLUMN_ITEM_DISTANCE:
-                getCellText->Text = PhGetStringRef(node->RemoteCityDistance);
-                break;
             default:
                 return FALSE;
             }
@@ -588,7 +584,6 @@ VOID InitializeTracertTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_IPADDR, TRUE, L"IP Address", 120, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_IPADDR, 0);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, TREE_COLUMN_ITEM_COUNTRY, TRUE, L"Country", 130, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_DISTANCE, TRUE, L"Distance", 120, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_DISTANCE, 0);
 
     //for (INT i = 0; i < MAX_PINGS; i++)
     //    PhAddTreeNewColumn(context->TreeNewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
