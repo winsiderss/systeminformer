@@ -158,8 +158,8 @@ typedef struct _PH_MAPPED_IMAGE_CFG_ITEM
 	DWORD Rva;
 	struct
 	{
-		BYTE LockdownBit : 1;
-		BYTE ReservedBits : 7;
+		BYTE SuppressedCall : 1;
+		BYTE Reserved : 7;
 	} Flags;
 
 } PH_MAPPED_IMAGE_CFG_ITEM, *P_PH_MAPPED_IMAGE_CFG_ITEM;

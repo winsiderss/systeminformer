@@ -1076,8 +1076,8 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 				}
 
 				// Add additional flags
-				if (CfgFunctionEntry.HasOptionalFlags && CfgFunctionEntry.Item.Flags.LockdownBit)
-					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"Lockdown");
+				if (CfgFunctionEntry.HasOptionalFlags && CfgFunctionEntry.Item.Flags.SuppressedCall)
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"SuppressedCall");
 				else
 					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"");
 			}
