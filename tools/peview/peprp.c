@@ -963,6 +963,46 @@ VOID PhLoadDbgHelpFromPath(
 	PhSymbolProviderCompleteInitialization(dbghelpModule);
 }
 
+
+BOOLEAN PhLoadDbgHelp(
+	_Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
+)
+{
+	WCHAR buffer[512];
+	PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll";
+	UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
+	UNICODE_STRING SymbolPathVar = {
+		.Buffer = buffer,
+		.MaximumLength = sizeof(buffer)
+	};
+	PPH_STRING SymbolCache;
+	PPH_SYMBOL_PROVIDER SymbolProv;
+
+	*SymbolProvider = NULL;
+
+	if (!PhSymbolProviderInitialization())
+		return FALSE;		
+
+	PhLoadDbgHelpFromPath(dbghelpPath);
+	SymbolProv = PhCreateSymbolProvider(NULL);
+
+	// Load user symcache path from _NT_SYMBOL_PATH has set it
+	NTSTATUS status;
+	if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
+	{
+		SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
+	}
+	else
+	{
+		SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
+	}
+
+	PhSetSearchPathSymbolProvider(SymbolProv, SymbolCache->Buffer);
+
+	*SymbolProvider = SymbolProv;
+	return TRUE;
+}
+
 INT_PTR CALLBACK PvpPeCgfDlgProc(
 	_In_ HWND hwndDlg,
 	_In_ UINT uMsg,
@@ -989,32 +1029,8 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 		PhSetExtendedListView(lvHandle);
 		
 		// Init symbol resolver
-		if (PhSymbolProviderInitialization())
+		if (PhLoadDbgHelp(&symbolProvider))
 		{
-			WCHAR buffer[512];
-			PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" /*PhGetStringSetting(L"DbgHelpPath")*/;
-			UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
-			UNICODE_STRING SymbolPathVar = {
-				.Buffer = buffer,
-				.MaximumLength = sizeof(buffer)
-			};
-			PPH_STRING SymbolCache;
-
-			PhLoadDbgHelpFromPath(dbghelpPath);
-			symbolProvider = PhCreateSymbolProvider(NULL/*node->ProcessId*/);
-
-			// Load user symcache path
-			NTSTATUS status;
-			if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
-			{
-				SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
-			}
-			else
-			{
-				SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
-			}
-			PhSetSearchPathSymbolProvider(symbolProvider, SymbolCache->Buffer);
-			
 			// Load current PE's pdb
 			PhLoadModuleSymbolProvider(
 				symbolProvider,
