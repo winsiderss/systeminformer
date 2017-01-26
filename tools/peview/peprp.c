@@ -889,6 +889,16 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
         ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
         ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
         ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+		ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+		ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
+		ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
+		ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
+		ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
+		ADD_VALUE(L"CFG Function table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionCount)->Buffer); \
+		ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
+		ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryCount)->Buffer); \
+		ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
+		ADD_VALUE(L"CFG LongJump table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetCount)->Buffer); \
     } while (0)
 
             PhInitializeAutoPool(&autoPool);
