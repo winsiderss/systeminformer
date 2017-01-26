@@ -1071,6 +1071,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhFormatString(L"%s+0x%x", SymbolName->Buffer, Displacement)->Buffer);
 						else
 							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, SymbolName->Buffer);
+						PhDereferenceObject(SymbolName);
 					}
 					break;
 				case PhsrlModule:
@@ -1092,6 +1093,8 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"SuppressedCall");
 				else
 					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"");
+
+				PhDereferenceObject(Symbol);			
 			}
 		}
 
