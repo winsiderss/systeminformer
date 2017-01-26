@@ -975,8 +975,8 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 	case WM_INITDIALOG:
 	{
 		HWND lvHandle;
-		PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-		PPH_SYMBOL_PROVIDER symbolProvider;
+		PPH_SYMBOL_PROVIDER symbolProvider = NULL;
+		PH_MAPPED_IMAGE_CFG CfgConfig = { 0 };
 
 		lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 		PhSetListViewStyle(lvHandle, FALSE, TRUE);
@@ -1023,45 +1023,31 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 				PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
 			);
 		}
-
-		if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
+		
+		// Retrieve Cfg Table entry and characteristics
+		if (NT_SUCCESS(PhGetMappedImageCfg(&CfgConfig, &PvMappedImage)))
 		{
-			// Retrieve Cfg Table entry and characteristics
-			size_t CfgOptionalFlagsSize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) & 0xff;
-			size_t cfgEntrySize = sizeof(FIELD_OFFSET(PH_MAPPED_IMAGE_CFG_ITEM, Rva)) + CfgOptionalFlagsSize;
 
-			ULONGLONG GuardCFFunctionTableOffset = config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
-			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) GuardCFFunctionTableOffset, NULL);
-
-			for (size_t i = 0; i < config64->GuardCFFunctionCount; i++)
+			for (size_t i = 0; i < CfgConfig.NumberOfGuardFunctionEntries; i++)
 			{
+				ULONG64 Va = 0;
+				INT lvItemIndex;
 				PPH_STRING SymbolName;
 				ULONG64 Displacement;
 				PH_SYMBOL_RESOLVE_LEVEL SymbolResolveLevel;
-
 				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry = { 0 };
-				PPH_MAPPED_IMAGE_CFG_ITEM cfgMappedEntry;
-				ULONG64 Va = 0; 
-				INT lvItemIndex;
-
 				
-				// Parse cfg entry
-				cfgMappedEntry = (PPH_MAPPED_IMAGE_CFG_ITEM) PTR_ADD_OFFSET(CfgFunctionTable, i*cfgEntrySize);
-				CfgFunctionEntry.Item.Rva = cfgMappedEntry->Rva;
-				CfgFunctionEntry.HasOptionalFlags = (CfgOptionalFlagsSize != 0);
-				if (CfgFunctionEntry.HasOptionalFlags)
-				{
-					CfgFunctionEntry.Item.Flags = cfgMappedEntry->Flags;
-				}
-				
-		
+				// Parse cfg entry : if it fails, just skip it ?
+				if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&CfgConfig, i, ControlFlowGuardFunction, &CfgFunctionEntry)))
+					continue;
+			
 				
 				lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhFormatString(L"%d", i)->Buffer, NULL);
-				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"0x%08x", CfgFunctionEntry.Item.Rva)->Buffer);
+				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"0x%08x", CfgFunctionEntry.Rva)->Buffer);
 				
 
 				// Resolve name based on public symbols
-				Va = (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Item.Rva); 
+				Va = (ULONG64) PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Rva); 
 				PPH_STRING Symbol = PhGetSymbolFromAddress(symbolProvider, Va, &SymbolResolveLevel, NULL, &SymbolName, &Displacement);
 				switch (SymbolResolveLevel)
 				{
@@ -1089,7 +1075,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 				}
 
 				// Add additional flags
-				if (CfgFunctionEntry.HasOptionalFlags && CfgFunctionEntry.Item.Flags.SuppressedCall)
+				if (CfgFunctionEntry.Flags.SuppressedCall)
 					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"SuppressedCall");
 				else
 					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"");

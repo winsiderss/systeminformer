@@ -153,23 +153,6 @@ typedef struct _PH_MAPPED_IMAGE_EXPORT_FUNCTION
     PSTR ForwardedName;
 } PH_MAPPED_IMAGE_EXPORT_FUNCTION, *PPH_MAPPED_IMAGE_EXPORT_FUNCTION;
 
-typedef struct _PH_MAPPED_IMAGE_CFG_ITEM
-{
-	DWORD Rva;
-	struct
-	{
-		BYTE SuppressedCall : 1;
-		BYTE Reserved : 7;
-	} Flags;
-
-} PH_MAPPED_IMAGE_CFG_ITEM, *PPH_MAPPED_IMAGE_CFG_ITEM;
-
-typedef struct _PH_MAPPED_IMAGE_CFG_ENTRY
-{
-	BOOLEAN HasOptionalFlags;
-	PH_MAPPED_IMAGE_CFG_ITEM Item;
-	
-} PH_MAPPED_IMAGE_CFG_ENTRY, *PPH_MAPPED_IMAGE_CFG_ENTRY;
 
 PHLIBAPI
 NTSTATUS
@@ -397,6 +380,72 @@ NTAPI
 PhGetMappedArchiveImportEntry(
     _In_ PPH_MAPPED_ARCHIVE_MEMBER Member,
     _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
+    );
+
+typedef struct _PH_MAPPED_IMAGE_CFG_ENTRY
+{
+	DWORD Rva;
+    struct
+    {
+        BYTE SuppressedCall : 1;
+        BYTE Reserved : 7;
+    } Flags;
+
+} PH_MAPPED_IMAGE_CFG_ENTRY, *PPH_MAPPED_IMAGE_CFG_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_CFG
+{
+	PPH_MAPPED_IMAGE MappedImage;
+    ULONG   EntrySize;
+
+    struct 
+    {
+        BOOLEAN CfgInstrumented;
+        BOOLEAN WriteIntegrityChecks;
+        BOOLEAN CfgFunctionTablePresent;
+        BOOLEAN SecurityCookieUnused;
+        BOOLEAN ProtectDelayLoadedIat;
+        BOOLEAN DelayLoadInDidatSection;
+        BOOLEAN HasExportSuppressionInfos;
+        BOOLEAN EnableExportSuppression;
+        BOOLEAN CfgLongJumpTablePresent;
+    } GuardFlags;
+
+    PULONGLONG GuardFunctionTable;
+	ULONGLONG  NumberOfGuardFunctionEntries;
+
+	PULONGLONG GuardAdressIatTable; // not currently used
+	ULONGLONG  NumberOfGuardAdressIatEntries;
+
+	PULONGLONG GuardLongJumpTable; // not currently used
+	ULONGLONG  NumberOfGuardLongJumpEntries;
+
+} PH_MAPPED_IMAGE_CFG, *PPH_MAPPED_IMAGE_CFG;
+
+
+typedef enum _PH_MAPPED_CFG_ENTRY_TYPE
+{
+    ControlFlowGuardFunction,
+    ControlFlowGuardtakenIatEntry,
+    ControlFlowGuardLongJump
+} PH_MAPPED_ARCHIVE_MEMBER_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageCfg(
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageCfgEntry(
+    _In_ PPH_MAPPED_IMAGE_CFG CfgConfig,
+    _In_ ULONGLONG Index,
+    _In_ PH_MAPPED_ARCHIVE_MEMBER_TYPE Type,
+    _Out_ PPH_MAPPED_IMAGE_CFG_ENTRY Entry
     );
 
 #ifdef __cplusplus
