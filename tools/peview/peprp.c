@@ -1027,52 +1027,63 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 		if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
 		{
 			// Retrieve Cfg Table entry and characteristics
-			size_t CfgOptionalFlagsSize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
-			size_t cfgEntrySize = sizeof(DWORD) + CfgOptionalFlagsSize;
+			size_t CfgOptionalFlagsSize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) & 0xff;
+			size_t cfgEntrySize = sizeof(FIELD_OFFSET(PH_MAPPED_IMAGE_CFG_ITEM, Rva)) + CfgOptionalFlagsSize;
 
-			ULONGLONG cfgFunctionTableOffset = config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
-			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) cfgFunctionTableOffset, NULL);
-			size_t CfgFunctionCount = config64->GuardCFFunctionCount;
-			size_t cfgFunctionSize = CfgFunctionCount * cfgEntrySize;
+			ULONGLONG GuardCFFunctionTableOffset = config64->GuardCFFunctionTable - PvMappedImage.NtHeaders->OptionalHeader.ImageBase;
+			PVOID  CfgFunctionTable = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) GuardCFFunctionTableOffset, NULL);
 
-			for (size_t i = 0; i < CfgFunctionCount; i++)
+			for (size_t i = 0; i < config64->GuardCFFunctionCount; i++)
 			{
-				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry;
-				ULONG64 Va = 0; 
-				INT lvItemIndex;
-
-				lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhFormatString(L"%d", i)->Buffer , NULL);
-
-				// Parse cfg entry
-				CfgFunctionEntry.HasOptionalFlags = (CfgOptionalFlagsSize != 0);
-				memcpy(&CfgFunctionEntry.Item, PTR_ADD_OFFSET(CfgFunctionTable, i*cfgEntrySize), min(sizeof(PH_MAPPED_IMAGE_CFG_ITEM), cfgEntrySize));
-				Va = (ULONG64) PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Item.Rva); /* Va = PhMappedImageRvaToVa(&PvMappedImage, (ULONG) Rva, NULL); */
-
-					
-				// Set function Address
-				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"0x%08x", CfgFunctionEntry.Item.Rva)->Buffer);
-				
-				
-
-				// Resolve name based on public symbols
 				PPH_STRING SymbolName;
 				ULONG64 Displacement;
 				PH_SYMBOL_RESOLVE_LEVEL SymbolResolveLevel;
+
+				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry = { 0 };
+				PPH_MAPPED_IMAGE_CFG_ITEM cfgMappedEntry;
+				ULONG64 Va = 0; 
+				INT lvItemIndex;
+
+				
+				// Parse cfg entry
+				cfgMappedEntry = (PPH_MAPPED_IMAGE_CFG_ITEM) PTR_ADD_OFFSET(CfgFunctionTable, i*cfgEntrySize);
+				CfgFunctionEntry.Item.Rva = cfgMappedEntry->Rva;
+				CfgFunctionEntry.HasOptionalFlags = (CfgOptionalFlagsSize != 0);
+				if (CfgFunctionEntry.HasOptionalFlags)
+				{
+					CfgFunctionEntry.Item.Flags = cfgMappedEntry->Flags;
+				}
+				
+		
+				
+				lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhFormatString(L"%d", i)->Buffer, NULL);
+				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"0x%08x", CfgFunctionEntry.Item.Rva)->Buffer);
+				
+
+				// Resolve name based on public symbols
+				Va = (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Item.Rva); 
 				PPH_STRING Symbol = PhGetSymbolFromAddress(symbolProvider, Va, &SymbolResolveLevel, NULL, &SymbolName, &Displacement);
 				switch (SymbolResolveLevel)
 				{
 				case PhsrlFunction:
-					if (Displacement)
-						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhFormatString(L"%s+0x%x", SymbolName->Buffer, Displacement)->Buffer);
-					else
-						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, SymbolName->Buffer);
+					{
+						if (Displacement)
+							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhFormatString(L"%s+0x%x", SymbolName->Buffer, Displacement)->Buffer);
+						else
+							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, SymbolName->Buffer);
+					}
 					break;
-				case PhsrlAddress:
-					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, Symbol->Buffer);
+				case PhsrlModule:
+				case PhsrlAddress: 
+					{
+						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, Symbol->Buffer);
+					}
 					break;
 				default:
 				case PhsrlInvalid:
-					PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+					{
+						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+					}
 					break;
 				}
 
