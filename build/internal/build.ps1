@@ -25,19 +25,19 @@ Param([bool] $debug);
 function InitializeScriptEnvironment()
 {
     # Get script start time
-    $global:TimeStart = (Get-Date);
+    $global:TimeStart = (Get-Date)
 
     # Stop script execution after any errors.
-    $global:ErrorActionPreference = "Stop";
+    $global:ErrorActionPreference = "Stop"
 
     # Check if the current directory contains the main solution
     if (!(Test-Path "ProcessHacker.sln"))
     {
         # Change root directory to the \build\internal\ directory (where this script is located).
-        Set-Location $PSScriptRoot;
+        Set-Location $PSScriptRoot
 
         # Set the current location to the base repository directory.
-        Set-Location "..\..\";
+        Set-Location "..\..\"
 
         # Re-check if the current directory
         if (!(Test-Path "ProcessHacker.sln"))
@@ -54,8 +54,8 @@ function InitializeScriptEnvironment()
         # AppVeyor preseves the directory structure during deployment.
         # So, we need to output into the current directory to upload into the correct FTP directory.
         #$env:BUILD_OUTPUT_FOLDER = ".";
-        $env:APPVEYOR_REPO_BRANCH = "master";
-        $env:BUILD_OUTPUT_FOLDER = "ClientBin";
+        $env:APPVEYOR_REPO_BRANCH = "master"
+        $env:BUILD_OUTPUT_FOLDER = "ClientBin"
     }
     else
     {
@@ -63,8 +63,8 @@ function InitializeScriptEnvironment()
 
         # Set the default branch for the build-src.zip.
         # We only set this when doing a local build, the buildbot sets this variable based on our appveyor.yml.
-        $env:APPVEYOR_REPO_BRANCH = "master";
-        $env:BUILD_OUTPUT_FOLDER = "ClientBin";
+        $env:APPVEYOR_REPO_BRANCH = "master"
+        $env:BUILD_OUTPUT_FOLDER = "ClientBin"
     }
 
     if ($global:buildbot)
@@ -75,13 +75,13 @@ function InitializeScriptEnvironment()
     else
     {
         # Clear the console (if we're not running on the appveyor buildbot)
-        #Clear-Host;
+        #Clear-Host
     }
 
     if ($debug)
     {
         # Enable debug if we have a valid argument.
-        $global:debug_enabled = $true;
+        $global:debug_enabled = $true
     }
 
     if (Test-Path Env:\APPVEYOR_RE_BUILD)
@@ -128,7 +128,7 @@ function BuildSolution([string] $FileName)
     # Set msbuild path (TODO: Do we need the 32bit version of MSBuild for x86 builds?)
     $msBuild = "${env:ProgramFiles(x86)}\MSBuild\14.0\bin\amd64\MSBuild.exe"
     # Get base file name
-    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($FileName);
+    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
 
     Write-Host "Building $baseName" -NoNewline -ForegroundColor Cyan
 
@@ -429,6 +429,130 @@ function SetupProcessHackerWow64()
     Write-Host "       [SUCCESS]" -ForegroundColor Green
 }
 
+function SetupSignatureFiles()
+{
+    $secure_file = "tools\SecureBuildTool\secure-file.exe";
+    
+    Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
+    
+    if ((!$global:buildbot) -and !(Test-Path Env:\VIRUSTOTAL_BUILD_KEY) -and !(Test-Path Env:\NIGHTLY_BUILD_KEY) -and !(Test-Path Env:\KPH_BUILD_KEY))
+    {
+        Write-Host " [SKIPPED] (missing build keys)" -ForegroundColor Yellow
+        return
+    }
+    
+    if (!(Test-Path "$secure_file"))
+    {
+        Write-Host " [SKIPPED] (secure-file not installed)" -ForegroundColor Yellow
+        return
+    }
+    
+    & "$secure_file" "-decrypt",
+            "plugins\OnlineChecks\virustotal.s",
+            "-secret",
+            "${env:VIRUSTOTAL_BUILD_KEY}",
+            "-out",
+            "plugins\OnlineChecks\virustotal.h"
+
+
+    if (!($LASTEXITCODE -eq 0))
+    {
+        Write-Host "    [ERROR] (virustotal)" -ForegroundColor Red
+        exit 5
+    }
+
+    & "$secure_file" "-decrypt",
+            "build\internal\nightly.s",
+            "-secret",
+            "${env:NIGHTLY_BUILD_KEY}",
+            "-out",
+            "build\internal\nightly.key"
+
+    if (!($LASTEXITCODE -eq 0))
+    {
+        Write-Host "    [ERROR] (virustotal)" -ForegroundColor Red
+        exit 5
+    }
+    
+    & "$secure_file" "-decrypt",
+            "build\internal\kph.s",
+            "-secret",
+            "${env:KPH_BUILD_KEY}",
+            "-out",
+            "build\internal\kph.key"
+            
+    if ($LASTEXITCODE -eq 0)
+    {
+        Write-Host "    [SUCCESS]" -ForegroundColor Green
+    }
+    else
+    {
+        Write-Host "    [ERROR] (KPH)" -ForegroundColor Red
+        exit 5
+    }
+}
+
+function BuildKphSignature()
+{
+    $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe"
+
+    Write-Host "Update KPH signatures" -NoNewline -ForegroundColor Cyan
+    
+    if ((!$global:buildbot) -and !(Test-Path Env:\KPH_BUILD_KEY))
+    {
+        Write-Host " [SKIPPED] (KPH build key)" -ForegroundColor Yellow
+        return
+    }
+
+    if (!(Test-Path "build\internal\kph.key"))
+    {
+        Write-Host " [SKIPPED] (kph.key)" -ForegroundColor Yellow
+        return
+    }
+
+    if (!(Test-Path "bin\Release32\ProcessHacker.exe"))
+    {
+        Write-Host " [SKIPPED] (Release32\ProcessHacker.exe)" -ForegroundColor Yellow
+        return
+    }
+
+    if (!(Test-Path "bin\Release64\ProcessHacker.exe"))
+    {
+        Write-Host " [SKIPPED] (Release64\ProcessHacker.exe)" -ForegroundColor Yellow
+        return
+    }
+
+    & "$sign_file" "sign", 
+        "-k", 
+        "build\internal\kph.key", 
+        "bin\Release32\ProcessHacker.exe", 
+        "-s",
+        "bin\Release32\ProcessHacker.sig"
+
+    if (!($LASTEXITCODE -eq 0))
+    {
+        Write-Host "     [ERROR]" -ForegroundColor Red
+        exit 5
+    }
+
+    & "$sign_file" "sign", 
+        "-k", 
+        "build\internal\kph.key", 
+        "bin\Release64\ProcessHacker.exe", 
+        "-s",
+        "bin\Release64\ProcessHacker.sig"
+
+    if ($LASTEXITCODE -eq 0)
+    {
+        Write-Host "     [SUCCESS]" -ForegroundColor Green
+    }
+    else
+    {
+        Write-Host "     [ERROR]" -ForegroundColor Red
+        exit 5
+    }
+}
+
 function BuildSetupExe()
 {  
     $innoBuild = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe"
@@ -474,7 +598,7 @@ function BuildSetupExe()
 function BuildSdkZip()
 {
     $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe"
-    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip";
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-sdk.zip"
 
     Write-Host "Building build-sdk.zip" -NoNewline -ForegroundColor Cyan
 
@@ -515,8 +639,8 @@ function BuildSdkZip()
 
 function BuildBinZip()
 {
-    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe";
-    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip";
+    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe"
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-bin.zip"
 
     Write-Host "Building build-bin.zip" -NoNewline -ForegroundColor Cyan
     
@@ -606,8 +730,8 @@ function BuildSourceZip()
 
 function BuildPdbZip()
 {
-    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe";
-    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip";
+    $7zip =     "${env:ProgramFiles}\7-Zip\7z.exe"
+    $zip_path = "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-pdb.zip"
 
     Write-Host "Building build-pdb.zip" -NoNewline -ForegroundColor Cyan
     
@@ -677,7 +801,7 @@ function BuildChecksumsFile()
             continue;
         }
 
-        $fileHashes += $file + ": (SHA256)`r`n" + (Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256).Hash + "`r`n`r`n";
+        $fileHashes += $file + ": (SHA256)`r`n" + (Get-FileHash "${env:BUILD_OUTPUT_FOLDER}\$file" -Algorithm SHA256).Hash + "`r`n`r`n"
     }
 
     if (Test-Path "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-checksums.txt")
@@ -691,82 +815,9 @@ function BuildChecksumsFile()
     Write-Host "        [SUCCESS]" -ForegroundColor Green
 }
 
-function SetupSignatureFiles()
+function BuildSetupSignature()
 {
-    $secure_file = "tools\SecureBuildTool\secure-file.exe";
-    
-    Write-Host "Setting up signature files" -NoNewline -ForegroundColor Cyan
-    
-    if ((!$global:buildbot) -and !(Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
-    {
-        Write-Host " [SKIPPED] (VirusTotal build key)" -ForegroundColor Yellow
-        return
-    }
-    
-    if (!(Test-Path "$secure_file"))
-    {
-        Write-Host " [SKIPPED] (secure-file not installed)" -ForegroundColor Yellow
-        return
-    }
-
-    if ($global:debug_enabled)
-    {
-        & "$secure_file" "-decrypt",
-                "plugins\OnlineChecks\virustotal.s",
-                "-secret",
-                "${env:VIRUSTOTAL_BUILD_KEY}",
-                "-out",
-                "plugins\OnlineChecks\virustotal.h"
-    }
-    else
-    {
-        & "$secure_file" "-decrypt",
-                "plugins\OnlineChecks\virustotal.s",
-                "-secret",
-                "${env:VIRUSTOTAL_BUILD_KEY}",
-                "-out",
-                "plugins\OnlineChecks\virustotal.h"
-    }
-
-    if (!($LASTEXITCODE -eq 0))
-    {
-        Write-Host "     [ERROR] (virustotal)" -ForegroundColor Red
-        exit 5
-    }
-
-    if ($global:debug_enabled)
-    {
-        & "$secure_file" "-decrypt",
-                "build\internal\private.s",
-                "-secret",
-                "${env:VIRUSTOTAL_BUILD_KEY}",
-                "-out",
-                "build\internal\private.key"
-    }
-    else
-    {
-        & "$secure_file" "-decrypt",
-                "build\internal\private.s",
-                "-secret",
-                "${env:VIRUSTOTAL_BUILD_KEY}",
-                "-out",
-                "build\internal\private.key"
-    }
-
-    if ($LASTEXITCODE -eq 0)
-    {
-        Write-Host "     [SUCCESS]" -ForegroundColor Green
-    }
-    else
-    {
-        Write-Host "     [ERROR] (private)" -ForegroundColor Red
-        exit 5
-    }
-}
-
-function BuildSignatureFiles()
-{
-    $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe";
+    $sign_file = "tools\CustomSignTool\bin\Release32\CustomSignTool.exe"
 
     Write-Host "Update build signatures" -NoNewline -ForegroundColor Cyan
     
@@ -776,9 +827,9 @@ function BuildSignatureFiles()
         return
     }
 
-    if (!(Test-Path "build\internal\private.key"))
+    if (!(Test-Path "build\internal\nightly.key"))
     {
-        Write-Host " [SKIPPED] (private.key)" -ForegroundColor Yellow
+        Write-Host " [SKIPPED] (nightly.key)" -ForegroundColor Yellow
         return
     }
 
@@ -790,7 +841,7 @@ function BuildSignatureFiles()
 
     $global:signature_output = ( & "$sign_file" "sign", 
         "-k", 
-        "build\internal\private.key", 
+        "build\internal\nightly.key", 
         "${env:BUILD_OUTPUT_FOLDER}\processhacker-build-setup.exe", 
         "-h" | Out-String) -replace "`n|`r"
 
@@ -825,8 +876,8 @@ function UpdateBuildService()
 
     if (Test-Path "$exeSetup")
     {
-        $fileInfo = (Get-Item "$exeSetup");
-        $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz");
+        $fileInfo = (Get-Item "$exeSetup")
+        $fileTime = $fileInfo.CreationTime.ToString("yyyy-MM-ddTHH:mm:sszzz")
         $fileSize = $fileInfo.Length;
     }
 
@@ -842,22 +893,22 @@ function UpdateBuildService()
     {
         if (Test-Path $exeSetup)
         {
-            $exeHash = (Get-FileHash "$exeSetup" -Algorithm SHA256).Hash;
+            $exeHash = (Get-FileHash "$exeSetup" -Algorithm SHA256).Hash
         }
 
         if (Test-Path "$sdkZip")
         {
-            $sdkHash = (Get-FileHash "$sdkZip" -Algorithm SHA256).Hash;
+            $sdkHash = (Get-FileHash "$sdkZip" -Algorithm SHA256).Hash
         }
 
         if (Test-Path "$binZip")
         {
-            $binHash = (Get-FileHash "$binZip" -Algorithm SHA256).Hash;
+            $binHash = (Get-FileHash "$binZip" -Algorithm SHA256).Hash
         }
         
         if (Test-Path "$srcZip")
         {
-            $srcHash = (Get-FileHash "$srcZip" -Algorithm SHA256).Hash;
+            $srcHash = (Get-FileHash "$srcZip" -Algorithm SHA256).Hash
         }
 
         #if (Test-Path "$pdbZip")
@@ -879,7 +930,7 @@ function UpdateBuildService()
             "hash_src"="$srcHash"
             "message"="$global:buildMessage"
             "sig"="$global:signature_output"
-        } | ConvertTo-Json | Out-String;
+        } | ConvertTo-Json | Out-String
 
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-setup.exe" -Force -ErrorAction SilentlyContinue
         Remove-Item "${env:BUILD_OUTPUT_FOLDER}\processhacker-$global:fileVersion-sdk.zip" -Force -ErrorAction SilentlyContinue
@@ -927,8 +978,8 @@ function ShowBuildTime()
 {
     $timeEnd = New-TimeSpan -Start $global:TimeStart -End $(Get-Date)
 
-    Write-Host "";
-    Write-Host "Build Time: $($timeEnd.Minutes) minute(s), $($timeEnd.Seconds) second(s)";
+    Write-Host ""
+    Write-Host "Build Time: $($timeEnd.Minutes) minute(s), $($timeEnd.Seconds) second(s)"
 }
 
 function BuildCleanup()
@@ -937,7 +988,8 @@ function BuildCleanup()
 
     if ($global:buildbot)
     {
-        Remove-Item "build\internal\private.key" -Force -ErrorAction SilentlyContinue
+        Remove-Item "build\internal\kph.key" -Force -ErrorAction SilentlyContinue
+        Remove-Item "build\internal\nightly.key" -Force -ErrorAction SilentlyContinue
         Remove-Item "plugins\OnlineChecks\virustotal.h" -Force -ErrorAction SilentlyContinue
     }
 }
@@ -970,6 +1022,9 @@ BuildSolution("plugins\Plugins.sln");
 # Setup the x86 plugin files
 SetupProcessHackerWow64;
 
+# Build KPH release signature
+BuildKphSignature;
+
 # Build the release files
 BuildSetupExe;
 BuildSdkZip;
@@ -980,8 +1035,8 @@ BuildSourceZip;
 # Build the checksums
 BuildChecksumsFile;
 
-# Create signature files
-BuildSignatureFiles;
+# Build nightly release signature
+BuildSetupSignature;
 
 # Update the build service
 UpdateBuildService;

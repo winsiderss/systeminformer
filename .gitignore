@@ -9,6 +9,7 @@
 *.suo
 *.user
 *.sln.docstates
+*.key
 
 # Build results
 *_i.c
@@ -84,8 +85,6 @@ _UpgradeReport_Files/
 #Backup*/
 UpgradeLog*.XML
 
-
-
 ############
 ## Windows
 ############
@@ -104,7 +103,6 @@ Desktop.ini
 ##########################
 
 build/installer/*.exe
-build/internal/private.key
 ProcessHacker/include/phapprev.h
 ProcessHacker/sdk/phapppub.h
 plugins-extra/
@@ -124,7 +122,6 @@ plugins/SamplePlugin/bin/Release32/*
 plugins/SamplePlugin/bin/Release64/*
 !plugins/SamplePlugin/bin/Release64/SamplePlugin.dll
 plugins/OnlineChecks/virustotal.h
-
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/
