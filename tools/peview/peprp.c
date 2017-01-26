@@ -1020,7 +1020,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 				symbolProvider,
 				PvFileName->Buffer,
 				(ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
-				PvMappedImage.NtHeaders->OptionalHeader.SizeOfCode
+				PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
 			);
 		}
 
