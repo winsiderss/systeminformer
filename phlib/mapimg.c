@@ -1255,7 +1255,7 @@ NTSTATUS PhGetMappedImageCfg(
             PhpMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardFunctionTable,
-                CfgConfig->EntrySize * CfgConfig->NumberOfGuardFunctionEntries
+                CfgConfig->EntrySize * (ULONG)CfgConfig->NumberOfGuardFunctionEntries
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -1278,7 +1278,7 @@ NTSTATUS PhGetMappedImageCfg(
             PhpMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardAdressIatTable,
-                CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries
+                CfgConfig->EntrySize * (ULONG)CfgConfig->NumberOfGuardAdressIatEntries
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -1301,7 +1301,7 @@ NTSTATUS PhGetMappedImageCfg(
             PhpMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardLongJumpTable,
-                CfgConfig->EntrySize * CfgConfig->NumberOfGuardLongJumpEntries
+                CfgConfig->EntrySize * (ULONG)CfgConfig->NumberOfGuardLongJumpEntries
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)

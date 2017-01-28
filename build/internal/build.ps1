@@ -143,7 +143,7 @@ function BuildSolution([string] $FileName)
 
     if (($global:buildbot) -and (Test-Path Env:\VIRUSTOTAL_BUILD_KEY))
     {
-       $msbuild_output += & "$msBuild"  "/m",
+        $msbuild_output += & "$msBuild"  "/m",
                     "/nologo",
                     "/verbosity:$verbose",
                     "/p:Configuration=Release",
@@ -153,7 +153,13 @@ function BuildSolution([string] $FileName)
                     "/nodeReuse:true",
                     "$FileName";
 
-       $msbuild_output += & "$msBuild"  "/m",
+        if (!($LASTEXITCODE -eq 0))
+        {
+            Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
+            exit 2
+        }
+
+        $msbuild_output += & "$msBuild"  "/m",
                     "/nologo",
                     "/verbosity:$verbose",
                     "/p:Configuration=Release",
@@ -162,12 +168,18 @@ function BuildSolution([string] $FileName)
                     "/t:Rebuild",
                     "/nodeReuse:true",
                     "$FileName";
+
+        if (!($LASTEXITCODE -eq 0))
+        {
+            Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
+            exit 2
+        }
     }
     else
     {
         if ($global:debug_enabled)
         {
-           $msbuild_output += & "$msBuild"  "/m",
+            $msbuild_output += & "$msBuild"  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
                         "/p:Configuration=Release",
@@ -176,7 +188,13 @@ function BuildSolution([string] $FileName)
                         "/nodeReuse:true",
                         "$FileName";
 
-           $msbuild_output += & $msBuild  "/m",
+            if (!($LASTEXITCODE -eq 0))
+            {
+                Write-Host "        [ERROR] (Win32) $msbuild_output" -ForegroundColor Red
+                exit 2
+            }
+
+            $msbuild_output += & $msBuild  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
                         "/p:Configuration=Release",
@@ -184,6 +202,12 @@ function BuildSolution([string] $FileName)
                         "/t:Rebuild",
                         "/nodeReuse:true",
                         "$FileName";
+
+            if (!($LASTEXITCODE -eq 0))
+            {
+                Write-Host "        [ERROR] (x64) $msbuild_output" -ForegroundColor Red
+                exit 2
+            }
         }
         else
         {
@@ -196,6 +220,12 @@ function BuildSolution([string] $FileName)
                         "/nodeReuse:true",
                         "$FileName" | Out-String;
 
+            if (!($LASTEXITCODE -eq 0))
+            {
+                Write-Host "        [ERROR] (Win32) $msbuild_output" -ForegroundColor Red
+                exit 2
+            }
+
             $msbuild_output += & "$msBuild"  "/m",
                         "/nologo",
                         "/verbosity:$verbose",
@@ -204,19 +234,17 @@ function BuildSolution([string] $FileName)
                         "/t:Rebuild",
                         "/nodeReuse:true",
                         "$FileName" | Out-String;
+
+            if (!($LASTEXITCODE -eq 0))
+            {
+                Write-Host "        [ERROR] (x64) $msbuild_output" -ForegroundColor Red
+                exit 2
+            }
         }
 
     }
 
-    if ($LASTEXITCODE -eq 0)
-    {
-        Write-Host "        [SUCCESS]" -ForegroundColor Green
-    }
-    else
-    {
-        Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
-        exit 2
-    }
+    Write-Host "        [SUCCESS]" -ForegroundColor Green
 }
 
 function CopyTextFiles()
@@ -988,6 +1016,10 @@ function BuildCleanup()
 
     if ($global:buildbot)
     {
+		Clear-Content "build\internal\kph.key" -Force -ErrorAction SilentlyContinue
+		Clear-Content "build\internal\nightly.key" -Force -ErrorAction SilentlyContinue
+		Clear-Content "plugins\OnlineChecks\virustotal.h" -Force -ErrorAction SilentlyContinue
+	
         Remove-Item "build\internal\kph.key" -Force -ErrorAction SilentlyContinue
         Remove-Item "build\internal\nightly.key" -Force -ErrorAction SilentlyContinue
         Remove-Item "plugins\OnlineChecks\virustotal.h" -Force -ErrorAction SilentlyContinue
