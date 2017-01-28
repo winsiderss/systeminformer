@@ -25,10 +25,9 @@
 #include <peview.h>
 #include <uxtheme.h>
 
-PPH_OBJECT_TYPE PhpProcessPropContextType;
-PPH_OBJECT_TYPE PhpProcessPropPageContextType;
+PPH_OBJECT_TYPE PhpPropContextType;
+PPH_OBJECT_TYPE PhpPropPageContextType;
 PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
-
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID NTAPI PvpPropContextDeleteProcedure(
@@ -66,8 +65,8 @@ BOOLEAN PvPropInitialization(
     VOID
     )
 {
-    PhpProcessPropContextType = PhCreateObjectType(L"PvPropContext", 0, PvpPropContextDeleteProcedure);
-    PhpProcessPropPageContextType = PhCreateObjectType(L"PvPropPageContext", 0, PvpPropPageContextDeleteProcedure);
+    PhpPropContextType = PhCreateObjectType(L"PvPropContext", 0, PvpPropContextDeleteProcedure);
+    PhpPropPageContextType = PhCreateObjectType(L"PvPropPageContext", 0, PvpPropPageContextDeleteProcedure);
 
     return TRUE;
 }
@@ -79,7 +78,7 @@ PPV_PROPCONTEXT PvCreatePropContext(
     PPV_PROPCONTEXT propContext;
     PROPSHEETHEADER propSheetHeader;
 
-    propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), PhpProcessPropContextType);
+    propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), PhpPropContextType);
     memset(propContext, 0, sizeof(PV_PROPCONTEXT));
 
     propContext->Title = Caption;
@@ -92,13 +91,10 @@ PPV_PROPCONTEXT PvCreatePropContext(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE |
-        PSH_USECALLBACK |
-        PSH_USEHICON;
+        PSH_USECALLBACK;
     propSheetHeader.hwndParent = NULL;
-    //propSheetHeader.hIcon = ProcessItem->SmallIcon;
     propSheetHeader.pszCaption = propContext->Title->Buffer;
     propSheetHeader.pfnCallback = PvpPropSheetProc;
-
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = propContext->PropSheetPages;
@@ -330,7 +326,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
 {
     PPV_PROPPAGECONTEXT propPageContext;
 
-    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PhpProcessPropPageContextType);
+    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PhpPropPageContextType);
     memset(propPageContext, 0, sizeof(PV_PROPPAGECONTEXT));
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
