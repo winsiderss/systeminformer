@@ -330,6 +330,12 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -478,14 +484,11 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             }
 
             SetDlgItemText(hwndDlg, IDC_SUBSYSTEM, type);
-
-            string = PhFormatString(
+            SetDlgItemText(hwndDlg, IDC_SUBSYSTEMVERSION, PhaFormatString(
                 L"%u.%u",
                 PvMappedImage.NtHeaders->OptionalHeader.MajorSubsystemVersion, // same for 32-bit and 64-bit images
                 PvMappedImage.NtHeaders->OptionalHeader.MinorSubsystemVersion
-                );
-            SetDlgItemText(hwndDlg, IDC_SUBSYSTEMVERSION, string->Buffer);
-            PhDereferenceObject(string);
+                )->Buffer);
 
             PhInitializeStringBuilder(&stringBuilder, 10);
 
@@ -557,6 +560,27 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                     PhPrintPointer(pointer, UlongToPtr(PvMappedImage.Sections[i].SizeOfRawData));
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
                 }
+            }
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILE),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CHARACTERISTICS),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
             }
         }
         break;
@@ -710,6 +734,12 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -742,6 +772,23 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
@@ -759,6 +806,12 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -829,6 +882,23 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
@@ -846,6 +916,12 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -920,6 +996,23 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
             }
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
         }
         break;
     case WM_NOTIFY:
@@ -1023,6 +1116,12 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -1144,6 +1243,23 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
@@ -1161,6 +1277,12 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -1241,6 +1363,21 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             else
             {
                 SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, L"N/A");
+            }
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
             }
         }
         break;

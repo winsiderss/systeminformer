@@ -43,7 +43,7 @@ static VOID PvpInitializeDpi(
 {
     HDC hdc;
 
-    if (hdc = GetDC(NULL))
+    if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
     {
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
         ReleaseDC(NULL, hdc);

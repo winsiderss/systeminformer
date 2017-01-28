@@ -98,8 +98,6 @@ PPV_PROPCONTEXT PvCreateProcessPropContext(
 
     memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
 
-    PhInitializeEvent(&propContext->CreatedEvent);
-
     return propContext;
 }
 
@@ -429,25 +427,6 @@ INT CALLBACK PvpStandardPropPageProc(
     return 1;
 }
 
-BOOLEAN PvPropPageDlgProcHeader(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ LPARAM lParam,
-    _Out_ LPPROPSHEETPAGE *PropSheetPage,
-    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext
-    )
-{
-    return FALSE;
-    //return PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, PropSheetPage, PropPageContext, ProcessItem);
-}
-
-VOID PvPropPageDlgProcDestroy(
-    _In_ HWND hwndDlg
-    )
-{
-    //PhpPropPageDlgProcDestroy(hwndDlg);
-}
-
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     _In_ HWND hwnd,
     _In_ HWND Handle,
@@ -485,8 +464,8 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
         RECT margin;
 
         // MAKE SURE THESE NUMBERS ARE CORRECT.
-        dialogSize.right = 260;
-        dialogSize.bottom = 260;
+        dialogSize.right = 300;
+        dialogSize.bottom = 280;
         MapDialogRect(hwnd, &dialogSize);
 
         // Get the original dialog rectangle.
@@ -523,195 +502,3 @@ VOID PvDoPropPageLayout(
     propSheetContext = PhpGetPropSheetContext(parent);
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 }
-
-NTSTATUS PvpProcessPropertiesThreadStart(
-    _In_ PVOID Parameter
-    )
-{
-    PH_AUTO_POOL autoPool;
-    PPV_PROPCONTEXT PropContext = (PPV_PROPCONTEXT)Parameter;
-    //PPH_PROCESS_PROPPAGECONTEXT newPage;
-    //PPH_STRING startPage;
-    HWND hwnd;
-    BOOL result;
-    MSG message;
-
-    PhInitializeAutoPool(&autoPool);
-
-    // Wait for stage 1 to be processed.
-    //PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, NULL);
-    // Refresh the icon which may have been updated due to
-    // stage 1.
-    PhRefreshProcessPropContext(PropContext);
-    //
-    // Add the pages...
-    //
-    // General
-    /*newPage = PhCreateProcessPropPageContext(
-        MAKEINTRESOURCE(IDD_PROCGENERAL),
-        PhpProcessGeneralDlgProc,
-        NULL
-        );*/
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Statistics
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCSTATISTICS),
-    //    PhpProcessStatisticsDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Performance
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCPERFORMANCE),
-    //    PhpProcessPerformanceDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Threads
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCTHREADS),
-    //    PhpProcessThreadsDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Token
-    //PhAddProcessPropPage2(
-    //    PropContext,
-    //    PhCreateTokenPage(PhpOpenProcessTokenForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessTokenHookProc)
-    //    );
-    //
-    // Modules
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCMODULES),
-    //    PhpProcessModulesDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Memory
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCMEMORY),
-    //    PhpProcessMemoryDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Environment
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCENVIRONMENT),
-    //    PhpProcessEnvironmentDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Handles
-    //newPage = PhCreateProcessPropPageContext(
-    //    MAKEINTRESOURCE(IDD_PROCHANDLES),
-    //    PhpProcessHandlesDlgProc,
-    //    NULL
-    //    );
-    //PhAddProcessPropPage(PropContext, newPage);
-    //
-    // Job
-    //if (
-    //    PropContext->ProcessItem->IsInJob &&
-    //    // There's no way the job page can function without KPH since it needs
-    //    // to open a handle to the job.
-    //    KphIsConnected()
-    //    )
-    //{
-    //    PhAddProcessPropPage2(
-    //        PropContext,
-    //        PhCreateJobPage(PhpOpenProcessJobForPage, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessJobHookProc)
-    //        );
-    //}
-    //
-    // Services
-    //if (PropContext->ProcessItem->ServiceList && PropContext->ProcessItem->ServiceList->Count != 0)
-    //{
-    //    newPage = PhCreateProcessPropPageContext(
-    //        MAKEINTRESOURCE(IDD_PROCSERVICES),
-    //        PhpProcessServicesDlgProc,
-    //        NULL
-    //        );
-    //    PhAddProcessPropPage(PropContext, newPage);
-    //}
-    //
-    // Plugin-supplied pages
-    //if (PhPluginsEnabled)
-    //{
-    //    PH_PLUGIN_PROCESS_PROPCONTEXT pluginProcessPropContext;
-    //
-    //    pluginProcessPropContext.PropContext = PropContext;
-    //    pluginProcessPropContext.ProcessItem = PropContext->ProcessItem;
-    //
-    //    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing), &pluginProcessPropContext);
-    //}
-    //
-    // Create the property sheet
-    //
-    //if (PropContext->SelectThreadId)
-    //    PhSetStringSetting(L"ProcPropPage", L"Threads");
-
-    //startPage = PhGetStringSetting(L"ProcPropPage");
-    PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
-    //PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
-
-    hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
-
-    //PhDereferenceObject(startPage);
-
-    PropContext->WindowHandle = hwnd;
-    PhSetEvent(&PropContext->CreatedEvent);
-
-    // Main event loop
-
-    while (result = GetMessage(&message, NULL, 0, 0))
-    {
-        if (result == -1)
-            break;
-
-        if (!PropSheet_IsDialogMessage(hwnd, &message))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-        PhDrainAutoPool(&autoPool);
-
-        if (!PropSheet_GetCurrentPageHwnd(hwnd))
-            break;
-    }
-
-    DestroyWindow(hwnd);
-    PhDereferenceObject(PropContext);
-
-    PhDeleteAutoPool(&autoPool);
-
-    return STATUS_SUCCESS;
-}
-
-//BOOLEAN PvShowProcessProperties(
-//    _In_ PPV_PROPCONTEXT Context
-//    )
-//{
-//    //HANDLE threadHandle;
-//
-//    //PhReferenceObject(Context);
-//    ////threadHandle = PhCreateThread(0, PhpProcessPropertiesThreadStart, Context);
-//
-//    //if (threadHandle)
-//    //{
-//    //    NtClose(threadHandle);
-//    //    return TRUE;
-//    //}
-//    //else
-//    //{
-//    //    PhDereferenceObject(Context);
-//    //    return FALSE;
-//    //}
-//}

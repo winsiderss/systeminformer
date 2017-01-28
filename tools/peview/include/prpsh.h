@@ -13,8 +13,6 @@ typedef struct _PV_PROPSHEETCONTEXT
 
 typedef struct _PPV_PROPCONTEXT
 {
-    HWND WindowHandle;
-    PH_EVENT CreatedEvent;
     PPH_STRING Title;
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE *PropSheetPages;
@@ -93,12 +91,6 @@ PvPropPageDlgProcHeader(
     _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext
     );
 
-VOID
-NTAPI
-PhPropPageDlgProcDestroy(
-    _In_ HWND hwndDlg
-    );
-
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
 
 PPH_LAYOUT_ITEM
@@ -143,6 +135,34 @@ PvEndPropPageLayout(
 {
     PvDoPropPageLayout(hwndDlg);
     PropPageContext->LayoutInitialized = TRUE;
+}
+
+FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam,
+    _Out_ LPPROPSHEETPAGE *PropSheetPage,
+    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        // Save the context.
+        SetProp(hwndDlg, L"PhMakeContextAtom()", (HANDLE)lParam);
+    }
+
+    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PhMakeContextAtom()");
+
+    if (!propSheetPage)
+        return FALSE;
+
+    *PropSheetPage = propSheetPage;
+    *PropPageContext = propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+
+    return TRUE;
 }
 
 #endif
