@@ -1219,42 +1219,34 @@ ULONG PhCheckSumMappedImage(
 }
 
 NTSTATUS PhGetMappedImageCfg(
-    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
-    _In_ PPH_MAPPED_IMAGE MappedImage
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig
     )
 {
-    NTSTATUS Status = STATUS_SUCCESS;
+    NTSTATUS status;
     PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-    
 
-    if (!NT_SUCCESS(Status = PhGetMappedImageLoadConfig64(MappedImage, &config64)))
-    {
-        return Status;
-    }
+    if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig64(MappedImage, &config64)))
+        return status;
 
-	CfgConfig->MappedImage = MappedImage;
-
-
-    CfgConfig->GuardFlags.CfgInstrumented            = !!(config64->GuardFlags & IMAGE_GUARD_CF_INSTRUMENTED);
-    CfgConfig->GuardFlags.WriteIntegrityChecks       = !!(config64->GuardFlags & IMAGE_GUARD_CFW_INSTRUMENTED);
-    CfgConfig->GuardFlags.CfgFunctionTablePresent    = !!(config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT);
-    CfgConfig->GuardFlags.SecurityCookieUnused       = !!(config64->GuardFlags & IMAGE_GUARD_SECURITY_COOKIE_UNUSED);
-    CfgConfig->GuardFlags.ProtectDelayLoadedIat      = !!(config64->GuardFlags & IMAGE_GUARD_PROTECT_DELAYLOAD_IAT);
-    CfgConfig->GuardFlags.DelayLoadInDidatSection    = !!(config64->GuardFlags & IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION);
-    CfgConfig->GuardFlags.EnableExportSuppression    = !!(config64->GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION);
-    CfgConfig->GuardFlags.HasExportSuppressionInfos  = !!(config64->GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT);
-    CfgConfig->GuardFlags.CfgLongJumpTablePresent    = !!(config64->GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT);
-
-
-    ULONG OptionalHeaderSize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
-    CfgConfig->EntrySize = sizeof(FIELD_OFFSET(PH_MAPPED_IMAGE_CFG_ENTRY, Rva)) + OptionalHeaderSize;
-    
-
+    CfgConfig->MappedImage = MappedImage;
+    CfgConfig->EntrySize = (ULONG)((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
+    CfgConfig->CfgInstrumented = !!(config64->GuardFlags & IMAGE_GUARD_CF_INSTRUMENTED);
+    CfgConfig->WriteIntegrityChecks = !!(config64->GuardFlags & IMAGE_GUARD_CFW_INSTRUMENTED);
+    CfgConfig->CfgFunctionTablePresent = !!(config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT);
+    CfgConfig->SecurityCookieUnused = !!(config64->GuardFlags & IMAGE_GUARD_SECURITY_COOKIE_UNUSED);
+    CfgConfig->ProtectDelayLoadedIat = !!(config64->GuardFlags & IMAGE_GUARD_PROTECT_DELAYLOAD_IAT);
+    CfgConfig->DelayLoadInDidatSection = !!(config64->GuardFlags & IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION);
+    CfgConfig->EnableExportSuppression = !!(config64->GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION);
+    CfgConfig->HasExportSuppressionInfos = !!(config64->GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT);
+    CfgConfig->CfgLongJumpTablePresent = !!(config64->GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT);
     CfgConfig->NumberOfGuardFunctionEntries = config64->GuardCFFunctionCount;
+
     CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
-                MappedImage,
-                (ULONG) (config64->GuardCFFunctionTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
-                NULL);
+        MappedImage,
+        (ULONG)(config64->GuardCFFunctionTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+        NULL
+        );
 
     if (CfgConfig->GuardFunctionTable &&  CfgConfig->NumberOfGuardFunctionEntries)
     {
@@ -1272,12 +1264,12 @@ NTSTATUS PhGetMappedImageCfg(
         }
     }
 
-
     CfgConfig->NumberOfGuardAdressIatEntries = config64->GuardAddressTakenIatEntryCount;
     CfgConfig->GuardAdressIatTable = PhMappedImageRvaToVa(
-                MappedImage,
-				(ULONG) (config64->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
-                NULL);
+        MappedImage,
+        (ULONG)(config64->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+        NULL
+        );
 
     if (CfgConfig->GuardAdressIatTable &&  CfgConfig->NumberOfGuardAdressIatEntries)
     {
@@ -1297,9 +1289,10 @@ NTSTATUS PhGetMappedImageCfg(
 
     CfgConfig->NumberOfGuardLongJumpEntries = config64->GuardLongJumpTargetCount;
     CfgConfig->GuardLongJumpTable = PhMappedImageRvaToVa(
-                MappedImage,
-				(ULONG) (config64->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
-                NULL);
+        MappedImage,  
+        (ULONG)(config64->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+        NULL
+        );
 
     if (CfgConfig->GuardLongJumpTable &&  CfgConfig->NumberOfGuardLongJumpEntries)
     {
@@ -1320,53 +1313,54 @@ NTSTATUS PhGetMappedImageCfg(
     return STATUS_SUCCESS;
 }
 
-
 NTSTATUS PhGetMappedImageCfgEntry(
     _In_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ ULONGLONG Index,
-    _In_ PH_MAPPED_ARCHIVE_MEMBER_TYPE Type,
-    _Out_ PPH_MAPPED_IMAGE_CFG_ENTRY Entry
+    _In_ CFG_ENTRY_TYPE Type,
+    _Out_ PIMAGE_CFG_ENTRY Entry
     )
 {
-	PULONGLONG GuardTable;
-	ULONGLONG NumberofGuardEntries;
-    PPH_MAPPED_IMAGE_CFG_ENTRY cfgMappedEntry;
+    PULONGLONG GuardTable;
+    ULONGLONG NumberofGuardEntries;
+    PIMAGE_CFG_ENTRY cfgMappedEntry;
 
     switch (Type)
     {
-    case ControlFlowGuardFunction :
+    case ControlFlowGuardFunction:
         {
-			GuardTable = CfgConfig->GuardFunctionTable;
-			NumberofGuardEntries = CfgConfig->NumberOfGuardFunctionEntries;
+            GuardTable = CfgConfig->GuardFunctionTable;
+            NumberofGuardEntries = CfgConfig->NumberOfGuardFunctionEntries;
         }
-		break;
-    case ControlFlowGuardtakenIatEntry :
+        break;
+    case ControlFlowGuardtakenIatEntry:
         {
-			GuardTable = CfgConfig->GuardAdressIatTable;
-			NumberofGuardEntries = CfgConfig->NumberOfGuardAdressIatEntries;
+            GuardTable = CfgConfig->GuardAdressIatTable;
+            NumberofGuardEntries = CfgConfig->NumberOfGuardAdressIatEntries;
         }
-		break;
-    case ControlFlowGuardLongJump :
+        break;
+    case ControlFlowGuardLongJump:
         {
-			GuardTable = CfgConfig->GuardLongJumpTable;
-			NumberofGuardEntries = CfgConfig->NumberOfGuardLongJumpEntries;
+            GuardTable = CfgConfig->GuardLongJumpTable;
+            NumberofGuardEntries = CfgConfig->NumberOfGuardLongJumpEntries;
         }
-		break;
+        break;
     default:
         return STATUS_INVALID_PARAMETER_3;
     }
 
-    if ((!GuardTable) || (Index >= NumberofGuardEntries))
+    if (!GuardTable || Index >= NumberofGuardEntries)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    cfgMappedEntry = (PPH_MAPPED_IMAGE_CFG_ENTRY) PTR_ADD_OFFSET(GuardTable, Index*CfgConfig->EntrySize);
+    cfgMappedEntry = (PIMAGE_CFG_ENTRY)PTR_ADD_OFFSET(GuardTable, Index * CfgConfig->EntrySize);
 
     Entry->Rva = cfgMappedEntry->Rva;
-	memset(&Entry->Flags ,0, sizeof(Entry->Flags));
 
     // Optional header after the rva entry
-    if (CfgConfig->EntrySize > sizeof(FIELD_OFFSET(PH_MAPPED_IMAGE_CFG_ENTRY, Rva)))
-        Entry->Flags = cfgMappedEntry->Flags;
+    if (CfgConfig->EntrySize > sizeof(FIELD_OFFSET(IMAGE_CFG_ENTRY, Rva)))
+    {
+        Entry->SuppressedCall = cfgMappedEntry->SuppressedCall;
+        Entry->Reserved = cfgMappedEntry->Reserved;
+    }
 
     return STATUS_SUCCESS;
 }

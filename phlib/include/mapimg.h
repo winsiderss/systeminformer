@@ -382,60 +382,62 @@ PhGetMappedArchiveImportEntry(
     _Out_ PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
 
-typedef struct _PH_MAPPED_IMAGE_CFG_ENTRY
+typedef struct _IMAGE_CFG_ENTRY
 {
-	DWORD Rva;
+    ULONG Rva;
     struct
     {
         BYTE SuppressedCall : 1;
         BYTE Reserved : 7;
-    } Flags;
-
-} PH_MAPPED_IMAGE_CFG_ENTRY, *PPH_MAPPED_IMAGE_CFG_ENTRY;
+    };
+} IMAGE_CFG_ENTRY, *PIMAGE_CFG_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_CFG
 {
-	PPH_MAPPED_IMAGE MappedImage;
-    ULONG   EntrySize;
+    PPH_MAPPED_IMAGE MappedImage;
+    ULONG EntrySize;
 
-    struct 
+    union
     {
-        BOOLEAN CfgInstrumented;
-        BOOLEAN WriteIntegrityChecks;
-        BOOLEAN CfgFunctionTablePresent;
-        BOOLEAN SecurityCookieUnused;
-        BOOLEAN ProtectDelayLoadedIat;
-        BOOLEAN DelayLoadInDidatSection;
-        BOOLEAN HasExportSuppressionInfos;
-        BOOLEAN EnableExportSuppression;
-        BOOLEAN CfgLongJumpTablePresent;
-    } GuardFlags;
+        ULONG GuardFlags;
+        struct
+        {
+            ULONG CfgInstrumented : 1;
+            ULONG WriteIntegrityChecks : 1;
+            ULONG CfgFunctionTablePresent : 1;
+            ULONG SecurityCookieUnused : 1;
+            ULONG ProtectDelayLoadedIat : 1;
+            ULONG DelayLoadInDidatSection : 1;
+            ULONG HasExportSuppressionInfos : 1;
+            ULONG EnableExportSuppression : 1;
+            ULONG CfgLongJumpTablePresent : 1;
+            ULONG Spare : 23;
+        };
+    };
 
     PULONGLONG GuardFunctionTable;
-	ULONGLONG  NumberOfGuardFunctionEntries;
+    ULONGLONG NumberOfGuardFunctionEntries;
 
-	PULONGLONG GuardAdressIatTable; // not currently used
-	ULONGLONG  NumberOfGuardAdressIatEntries;
+    PULONGLONG GuardAdressIatTable; // not currently used
+    ULONGLONG NumberOfGuardAdressIatEntries;
 
-	PULONGLONG GuardLongJumpTable; // not currently used
-	ULONGLONG  NumberOfGuardLongJumpEntries;
-
+    PULONGLONG GuardLongJumpTable; // not currently used
+    ULONGLONG NumberOfGuardLongJumpEntries;
 } PH_MAPPED_IMAGE_CFG, *PPH_MAPPED_IMAGE_CFG;
 
-
-typedef enum _PH_MAPPED_CFG_ENTRY_TYPE
+typedef enum _CFG_ENTRY_TYPE
 {
     ControlFlowGuardFunction,
     ControlFlowGuardtakenIatEntry,
     ControlFlowGuardLongJump
-} PH_MAPPED_ARCHIVE_MEMBER_TYPE;
+} CFG_ENTRY_TYPE;
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetMappedImageCfg(
-    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
-    _In_ PPH_MAPPED_IMAGE MappedImage
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig
     );
 
 PHLIBAPI
@@ -444,8 +446,8 @@ NTAPI
 PhGetMappedImageCfgEntry(
     _In_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ ULONGLONG Index,
-    _In_ PH_MAPPED_ARCHIVE_MEMBER_TYPE Type,
-    _Out_ PPH_MAPPED_IMAGE_CFG_ENTRY Entry
+    _In_ CFG_ENTRY_TYPE Type,
+    _Out_ PIMAGE_CFG_ENTRY Entry
     );
 
 #ifdef __cplusplus

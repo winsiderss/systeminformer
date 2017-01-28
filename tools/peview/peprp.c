@@ -69,11 +69,11 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeCgfDlgProc(
-	_In_ HWND hwndDlg,
-	_In_ UINT uMsg,
-	_In_ WPARAM wParam,
-	_In_ LPARAM lParam
-);
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
 
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header;
@@ -178,18 +178,18 @@ VOID PvPeProperties(
         }
     }
 
-	// CFG page
-	if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
-		(PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
-	{
-		memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-		propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-		propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECFG);
-		propSheetPage.pfnDlgProc = PvpPeCgfDlgProc;
-		pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-	}
+    // CFG page
+    if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
+        (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECFG);
+        propSheetPage.pfnDlgProc = PvpPeCgfDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 
     PhUnloadMappedImage(&PvMappedImage);
 }
@@ -839,11 +839,9 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PH_AUTO_POOL autoPool;
             HWND lvHandle;
             PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
             PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-            PPH_STRING string;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
@@ -851,57 +849,49 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 220, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 170, L"Value");
 
-#define ADD_VALUE(Name, Value) \
-    do { \
-        INT lvItemIndex; \
-        \
-        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, Name, NULL); \
-        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, Value); \
-    } while (0)
+            #define ADD_VALUE(Name, Value) \
+            { \
+                INT lvItemIndex; \
+                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, Name, NULL); \
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, Value); \
+            }
 
-#define ADD_VALUES(Config) \
-    do { \
-        { \
-            LARGE_INTEGER time; \
-            SYSTEMTIME systemTime; \
-            \
-            RtlSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
-            PhLargeIntegerToLocalSystemTime(&systemTime, &time); \
-            \
-            string = PhFormatDateTime(&systemTime); \
-            ADD_VALUE(L"Time stamp", string->Buffer); \
-            PhDereferenceObject(string); \
-        } \
-        \
-        ADD_VALUE(L"Version", PhaFormatString(L"%u.%u", (Config)->MajorVersion, (Config)->MinorVersion)->Buffer); \
-        ADD_VALUE(L"Global flags to clear", PhaFormatString(L"0x%x", (Config)->GlobalFlagsClear)->Buffer); \
-        ADD_VALUE(L"Global flags to set", PhaFormatString(L"0x%x", (Config)->GlobalFlagsSet)->Buffer); \
-        ADD_VALUE(L"Critical section default timeout", PhaFormatUInt64((Config)->CriticalSectionDefaultTimeout, TRUE)->Buffer); \
-        ADD_VALUE(L"De-commit free block threshold", PhaFormatUInt64((Config)->DeCommitFreeBlockThreshold, TRUE)->Buffer); \
-        ADD_VALUE(L"De-commit total free threshold", PhaFormatUInt64((Config)->DeCommitTotalFreeThreshold, TRUE)->Buffer); \
-        ADD_VALUE(L"LOCK prefix table", PhaFormatString(L"0x%Ix", (Config)->LockPrefixTable)->Buffer); \
-        ADD_VALUE(L"Maximum allocation size", PhaFormatString(L"0x%Ix", (Config)->MaximumAllocationSize)->Buffer); \
-        ADD_VALUE(L"Virtual memory threshold", PhaFormatString(L"0x%Ix", (Config)->VirtualMemoryThreshold)->Buffer); \
-        ADD_VALUE(L"Process affinity mask", PhaFormatString(L"0x%Ix", (Config)->ProcessAffinityMask)->Buffer); \
-        ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \
-        ADD_VALUE(L"CSD version", PhaFormatString(L"%u", (Config)->CSDVersion)->Buffer); \
-        ADD_VALUE(L"Edit list", PhaFormatString(L"0x%Ix", (Config)->EditList)->Buffer); \
-        ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
-        ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
-        ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
-		ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
-		ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
-		ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
-		ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
-		ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
-		ADD_VALUE(L"CFG Function table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionCount)->Buffer); \
-		ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
-		ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryCount)->Buffer); \
-		ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
-		ADD_VALUE(L"CFG LongJump table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetCount)->Buffer); \
-    } while (0)
-
-            PhInitializeAutoPool(&autoPool);
+            #define ADD_VALUES(Config) \
+            { \
+                LARGE_INTEGER time; \
+                SYSTEMTIME systemTime; \
+                \
+                RtlSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
+                PhLargeIntegerToLocalSystemTime(&systemTime, &time); \
+                \
+                ADD_VALUE(L"Time stamp", PhaFormatDateTime(&systemTime)->Buffer); \
+                ADD_VALUE(L"Version", PhaFormatString(L"%u.%u", (Config)->MajorVersion, (Config)->MinorVersion)->Buffer); \
+                ADD_VALUE(L"Global flags to clear", PhaFormatString(L"0x%x", (Config)->GlobalFlagsClear)->Buffer); \
+                ADD_VALUE(L"Global flags to set", PhaFormatString(L"0x%x", (Config)->GlobalFlagsSet)->Buffer); \
+                ADD_VALUE(L"Critical section default timeout", PhaFormatUInt64((Config)->CriticalSectionDefaultTimeout, TRUE)->Buffer); \
+                ADD_VALUE(L"De-commit free block threshold", PhaFormatUInt64((Config)->DeCommitFreeBlockThreshold, TRUE)->Buffer); \
+                ADD_VALUE(L"De-commit total free threshold", PhaFormatUInt64((Config)->DeCommitTotalFreeThreshold, TRUE)->Buffer); \
+                ADD_VALUE(L"LOCK prefix table", PhaFormatString(L"0x%Ix", (Config)->LockPrefixTable)->Buffer); \
+                ADD_VALUE(L"Maximum allocation size", PhaFormatString(L"0x%Ix", (Config)->MaximumAllocationSize)->Buffer); \
+                ADD_VALUE(L"Virtual memory threshold", PhaFormatString(L"0x%Ix", (Config)->VirtualMemoryThreshold)->Buffer); \
+                ADD_VALUE(L"Process affinity mask", PhaFormatString(L"0x%Ix", (Config)->ProcessAffinityMask)->Buffer); \
+                ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \
+                ADD_VALUE(L"CSD version", PhaFormatString(L"%u", (Config)->CSDVersion)->Buffer); \
+                ADD_VALUE(L"Edit list", PhaFormatString(L"0x%Ix", (Config)->EditList)->Buffer); \
+                ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
+                ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
+                ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+                ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+                ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
+                ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
+                ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
+                ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
+                ADD_VALUE(L"CFG Function table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionCount)->Buffer); \
+                ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
+                ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryCount)->Buffer); \
+                ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
+                ADD_VALUE(L"CFG LongJump table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetCount)->Buffer); \
+            }
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
@@ -918,8 +908,6 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 }
             }
 
-            PhDeleteAutoPool(&autoPool);
-
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
@@ -933,195 +921,226 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     return FALSE;
 }
 
-VOID PhLoadDbgHelpFromPath(
-	_In_ PWSTR DbgHelpPath
-)
+VOID PvpLoadDbgHelpFromPath(
+    _In_ PWSTR DbgHelpPath
+    )
 {
-	HMODULE dbghelpModule;
+    HMODULE dbghelpModule;
 
-	if (dbghelpModule = LoadLibrary(DbgHelpPath))
-	{
-		PPH_STRING fullDbghelpPath;
-		ULONG indexOfFileName;
-		PH_STRINGREF dbghelpFolder;
-		PPH_STRING symsrvPath;
+    if (dbghelpModule = LoadLibrary(DbgHelpPath))
+    {
+        PPH_STRING fullDbghelpPath;
+        ULONG indexOfFileName;
+        PH_STRINGREF dbghelpFolder;
+        PPH_STRING symsrvPath;
 
-		fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
 
-		if (fullDbghelpPath)
-		{
-			if (indexOfFileName != 0)
-			{
-				static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
+        if (fullDbghelpPath)
+        {
+            if (indexOfFileName != 0)
+            {
+                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
 
-				dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-				dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
+                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
+                dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
 
-				symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
-				LoadLibrary(symsrvPath->Buffer);
-				PhDereferenceObject(symsrvPath);
-			}
+                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
 
-			PhDereferenceObject(fullDbghelpPath);
-		}
-	}
-	else
-	{
-		dbghelpModule = LoadLibrary(L"dbghelp.dll");
-	}
+                LoadLibrary(symsrvPath->Buffer);
 
-	PhSymbolProviderCompleteInitialization(dbghelpModule);
+                PhDereferenceObject(symsrvPath);
+            }
+
+            PhDereferenceObject(fullDbghelpPath);
+        }
+    }
+    else
+    {
+        dbghelpModule = LoadLibrary(L"dbghelp.dll");
+    }
+
+    PhSymbolProviderCompleteInitialization(dbghelpModule);
 }
 
-
-BOOLEAN PhLoadDbgHelp(
-	_Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
-)
+BOOLEAN PvpLoadDbgHelp(
+    _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
+    )
 {
-	WCHAR buffer[512];
-	PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll";
-	UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
-	UNICODE_STRING SymbolPathVar = {
-		.Buffer = buffer,
-		.MaximumLength = sizeof(buffer)
-	};
-	PPH_STRING SymbolCache;
-	PPH_SYMBOL_PROVIDER SymbolProv;
+    static UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
+    NTSTATUS status;
+    WCHAR buffer[512];
+    PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll";
+    
+    UNICODE_STRING SymbolPathVar = 
+    {
+        .Buffer = buffer,
+        .MaximumLength = sizeof(buffer)
+    };
+    PPH_STRING SymbolCache;
+    PPH_SYMBOL_PROVIDER SymbolProv;
 
-	*SymbolProvider = NULL;
+    *SymbolProvider = NULL;
 
-	if (!PhSymbolProviderInitialization())
-		return FALSE;		
+    if (!PhSymbolProviderInitialization())
+        return FALSE;		
 
-	PhLoadDbgHelpFromPath(dbghelpPath);
-	SymbolProv = PhCreateSymbolProvider(NULL);
+    PvpLoadDbgHelpFromPath(dbghelpPath);
+    SymbolProv = PhCreateSymbolProvider(NULL);
 
-	// Load user symcache path from _NT_SYMBOL_PATH has set it
-	NTSTATUS status;
-	if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
-	{
-		SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
-	}
-	else
-	{
-		SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
-	}
+    // Load user symcache path from _NT_SYMBOL_PATH has set it
+    
+    if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
+    {
+        SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
+    }
+    else
+    {
+        SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
+    }
 
-	PhSetSearchPathSymbolProvider(SymbolProv, SymbolCache->Buffer);
+    PhSetSearchPathSymbolProvider(SymbolProv, SymbolCache->Buffer);
 
-	*SymbolProvider = SymbolProv;
-	return TRUE;
+    *SymbolProvider = SymbolProv;
+    return TRUE;
 }
 
 INT_PTR CALLBACK PvpPeCgfDlgProc(
-	_In_ HWND hwndDlg,
-	_In_ UINT uMsg,
-	_In_ WPARAM wParam,
-	_In_ LPARAM lParam
-)
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
 {
-	switch (uMsg)
-	{
-	case WM_INITDIALOG:
-	{
-		HWND lvHandle;
-		PPH_SYMBOL_PROVIDER symbolProvider = NULL;
-		PH_MAPPED_IMAGE_CFG CfgConfig = { 0 };
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND lvHandle;
+            PPH_SYMBOL_PROVIDER symbolProvider = NULL;
+            PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 
-		lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-		PhSetListViewStyle(lvHandle, FALSE, TRUE);
-		PhSetControlTheme(lvHandle, L"explorer");
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
 
-		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT ,  40, L"#");
-		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 100, L"RVA");
-		PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT , 250, L"Name");
-		PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT , 100, L"Flags");
-		PhSetExtendedListView(lvHandle);
-		
-		// Init symbol resolver
-		if (PhLoadDbgHelp(&symbolProvider))
-		{
-			// Load current PE's pdb
-			PhLoadModuleSymbolProvider(
-				symbolProvider,
-				PvFileName->Buffer,
-				(ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
-				PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
-			);
-		}
-		
-		// Retrieve Cfg Table entry and characteristics
-		if (NT_SUCCESS(PhGetMappedImageCfg(&CfgConfig, &PvMappedImage)))
-		{
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT ,  40, L"#");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 100, L"RVA");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT , 250, L"Name");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT , 100, L"Flags");
+            PhSetExtendedListView(lvHandle);
 
-			for (size_t i = 0; i < CfgConfig.NumberOfGuardFunctionEntries; i++)
-			{
-				ULONG64 Va = 0;
-				INT lvItemIndex;
-				PPH_STRING SymbolName;
-				ULONG64 Displacement;
-				PH_SYMBOL_RESOLVE_LEVEL SymbolResolveLevel;
-				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry = { 0 };
-				
-				// Parse cfg entry : if it fails, just skip it ?
-				if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&CfgConfig, i, ControlFlowGuardFunction, &CfgFunctionEntry)))
-					continue;
-			
-				
-				lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhFormatString(L"%d", i)->Buffer, NULL);
-				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"0x%08x", CfgFunctionEntry.Rva)->Buffer);
-				
+            // Init symbol resolver
+            if (PvpLoadDbgHelp(&symbolProvider))
+            {
+                // Load current PE's pdb
+                PhLoadModuleSymbolProvider(
+                    symbolProvider,
+                    PvFileName->Buffer,
+                    (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+                    PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
+                    );
+            }
 
-				// Resolve name based on public symbols
-				Va = (ULONG64) PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Rva); 
-				PPH_STRING Symbol = PhGetSymbolFromAddress(symbolProvider, Va, &SymbolResolveLevel, NULL, &SymbolName, &Displacement);
-				switch (SymbolResolveLevel)
-				{
-				case PhsrlFunction:
-					{
-						if (Displacement)
-							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhFormatString(L"%s+0x%x", SymbolName->Buffer, Displacement)->Buffer);
-						else
-							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, SymbolName->Buffer);
-						PhDereferenceObject(SymbolName);
-					}
-					break;
-				case PhsrlModule:
-				case PhsrlAddress: 
-					{
-						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, Symbol->Buffer);
-					}
-					break;
-				default:
-				case PhsrlInvalid:
-					{
-						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
-					}
-					break;
-				}
+            // Retrieve Cfg Table entry and characteristics
+            if (NT_SUCCESS(PhGetMappedImageCfg(&PvMappedImage, &cfgConfig)))
+            {
+                for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardFunctionEntries; i++)
+                {
+                    INT lvItemIndex;
+                    PPH_STRING symbol;
+                    PPH_STRING symbolName;
+                    ULONG64 displacement;
+                    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel;
+                    IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
 
-				// Add additional flags
-				if (CfgFunctionEntry.Flags.SuppressedCall)
-					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"SuppressedCall");
-				else
-					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"");
+                    // Parse cfg entry : if it fails, just skip it ?
+                    if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&cfgConfig, i, ControlFlowGuardFunction, &cfgFunctionEntry)))
+                        continue;
+            
+                    lvItemIndex = PhAddListViewItem(
+                        lvHandle, 
+                        MAXINT, 
+                        PhaFormatString(L"%d", i)->Buffer,
+                        NULL
+                        );
+                    PhSetListViewSubItem(
+                        lvHandle, 
+                        lvItemIndex, 
+                        1, 
+                        PhaFormatString(L"0x%08x", cfgFunctionEntry.Rva)->Buffer
+                        );
 
-				PhDereferenceObject(Symbol);			
-			}
-		}
+                    // Resolve name based on public symbols
+                    if (!(symbol = PhGetSymbolFromAddress(
+                        symbolProvider,
+                        (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, cfgFunctionEntry.Rva),
+                        &symbolResolveLevel,
+                        NULL,
+                        &symbolName,
+                        &displacement
+                        )))
+                    {
+                        continue;
+                    }
 
-		ExtendedListView_SortItems(lvHandle);
-		EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-		}
-		break;
-	case WM_NOTIFY:
-		{
-			PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
-		}
-		break;
-	}
+                    switch (symbolResolveLevel)
+                    {
+                    case PhsrlFunction:
+                        {
+                            if (displacement)
+                            {
+                                PhSetListViewSubItem(
+                                    lvHandle, 
+                                    lvItemIndex, 
+                                    2,
+                                    PhaFormatString(L"%s+0x%x", symbolName->Buffer, displacement)->Buffer
+                                    );
+                            }
+                            else
+                            {
+                                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, symbolName->Buffer);
+                            }
+                        }
+                        break;
+                    case PhsrlModule:
+                    case PhsrlAddress: 
+                        {
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, symbol->Buffer);
+                        }
+                        break;
+                    default:
+                    case PhsrlInvalid:
+                        {
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+                        }
+                        break;
+                    }
 
-	return FALSE;
+                    // Add additional flags
+                    if (cfgFunctionEntry.SuppressedCall)
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"SuppressedCall");
+                    else
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"");
+
+                    if (symbolName)
+                        PhDereferenceObject(symbolName);
+                    PhDereferenceObject(symbol);
+                }
+            }
+
+            ExtendedListView_SortItems(lvHandle);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
@@ -1140,10 +1159,9 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PVOID metaData;
             ULONG versionStringLength;
 
-            string = PhFormatString(L"%u.%u", PvImageCor20Header->MajorRuntimeVersion,
+            string = PhaFormatString(L"%u.%u", PvImageCor20Header->MajorRuntimeVersion,
                 PvImageCor20Header->MinorRuntimeVersion);
             SetDlgItemText(hwndDlg, IDC_RUNTIMEVERSION, string->Buffer);
-            PhDereferenceObject(string);
 
             PhInitializeStringBuilder(&stringBuilder, 256);
 
