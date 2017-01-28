@@ -1230,7 +1230,8 @@ NTSTATUS PhGetMappedImageCfg(
         return status;
 
     CfgConfig->MappedImage = MappedImage;
-    CfgConfig->EntrySize = (ULONG)((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
+    CfgConfig->EntrySize = sizeof(FIELD_OFFSET(IMAGE_CFG_ENTRY, Rva)) +
+        (ULONG)((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
     CfgConfig->CfgInstrumented = !!(config64->GuardFlags & IMAGE_GUARD_CF_INSTRUMENTED);
     CfgConfig->WriteIntegrityChecks = !!(config64->GuardFlags & IMAGE_GUARD_CFW_INSTRUMENTED);
     CfgConfig->CfgFunctionTablePresent = !!(config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT);
