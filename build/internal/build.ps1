@@ -155,7 +155,7 @@ function BuildSolution([string] $FileName)
 
         if (!($LASTEXITCODE -eq 0))
         {
-            Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
+            Write-Host "        [ERROR] (Win32) $msbuild_output" -ForegroundColor Red
             exit 2
         }
 
@@ -171,7 +171,7 @@ function BuildSolution([string] $FileName)
 
         if (!($LASTEXITCODE -eq 0))
         {
-            Write-Host "        [ERROR] $msbuild_output" -ForegroundColor Red
+            Write-Host "        [ERROR] (x64) $msbuild_output" -ForegroundColor Red
             exit 2
         }
     }
