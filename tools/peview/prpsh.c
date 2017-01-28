@@ -1,6 +1,6 @@
 /*
  * Process Hacker -
- *   Process properties
+ *   property sheet 
  *
  * Copyright (C) 2017 dmex
  *
@@ -20,6 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// NOTE: Copied from processhacker2\ProcessHacker\procprp.c
+
 #include <peview.h>
 #include <uxtheme.h>
 
@@ -28,12 +30,13 @@ PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
-VOID NTAPI PvpProcessPropContextDeleteProcedure(
+
+VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
-VOID NTAPI PvpProcessPropPageContextDeleteProcedure(
+VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
@@ -43,12 +46,16 @@ INT CALLBACK PvpPropSheetProc(
     _In_ UINT uMsg,
     _In_ LPARAM lParam
     );
+
 LRESULT CALLBACK PvpPropSheetWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     );
+
 INT CALLBACK PvpStandardPropPageProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -59,13 +66,13 @@ BOOLEAN PvPropInitialization(
     VOID
     )
 {
-    PhpProcessPropContextType = PhCreateObjectType(L"PvPropContext", 0, PvpProcessPropContextDeleteProcedure);
-    PhpProcessPropPageContextType = PhCreateObjectType(L"PvPropPageContext", 0, PvpProcessPropPageContextDeleteProcedure);
+    PhpProcessPropContextType = PhCreateObjectType(L"PvPropContext", 0, PvpPropContextDeleteProcedure);
+    PhpProcessPropPageContextType = PhCreateObjectType(L"PvPropPageContext", 0, PvpPropPageContextDeleteProcedure);
 
     return TRUE;
 }
 
-PPV_PROPCONTEXT PvCreateProcessPropContext(
+PPV_PROPCONTEXT PvCreatePropContext(
     _In_ PPH_STRING Caption
     )
 {
@@ -76,7 +83,7 @@ PPV_PROPCONTEXT PvCreateProcessPropContext(
     memset(propContext, 0, sizeof(PV_PROPCONTEXT));
 
     propContext->Title = Caption;
-    propContext->PropSheetPages = PhAllocate(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
+    propContext->PropSheetPages = PhAllocate(sizeof(HPROPSHEETPAGE) * PV_PROPCONTEXT_MAXPAGES);
 
     memset(&propSheetHeader, 0, sizeof(PROPSHEETHEADER));
     propSheetHeader.dwSize = sizeof(PROPSHEETHEADER);
@@ -101,7 +108,7 @@ PPV_PROPCONTEXT PvCreateProcessPropContext(
     return propContext;
 }
 
-VOID NTAPI PvpProcessPropContextDeleteProcedure(
+VOID NTAPI PvpPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
@@ -110,13 +117,6 @@ VOID NTAPI PvpProcessPropContextDeleteProcedure(
 
     PhFree(propContext->PropSheetPages);
     PhDereferenceObject(propContext->Title);
-}
-
-VOID PhRefreshProcessPropContext(
-    _Inout_ PPV_PROPCONTEXT PropContext
-    )
-{
-    //PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
 }
 
 INT CALLBACK PvpPropSheetProc(
@@ -151,12 +151,11 @@ INT CALLBACK PvpPropSheetProc(
             propSheetContext = PhAllocate(sizeof(PV_PROPSHEETCONTEXT));
             memset(propSheetContext, 0, sizeof(PV_PROPSHEETCONTEXT));
 
+            SetProp(hwndDlg, L"PvContext", (HANDLE)propSheetContext);
+
             PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
 
-            propSheetContext->OldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PvpPropSheetWndProc);
-
-            SetProp(hwndDlg, L"PhMakeContextAtom()", (HANDLE)propSheetContext);
+            SetWindowSubclass(hwndDlg, PvpPropSheetWndProc, 0, 0);
 
             if (MinimumSize.left == -1)
             {
@@ -164,8 +163,8 @@ INT CALLBACK PvpPropSheetProc(
 
                 rect.left = 0;
                 rect.top = 0;
-                rect.right = 290;
-                rect.bottom = 320;
+                rect.right = 320;
+                rect.bottom = 300;
                 MapDialogRect(hwndDlg, &rect);
                 MinimumSize = rect;
                 MinimumSize.left = 0;
@@ -181,51 +180,28 @@ PPV_PROPSHEETCONTEXT PhpGetPropSheetContext(
     _In_ HWND hwnd
     )
 {
-    return (PPV_PROPSHEETCONTEXT)GetProp(hwnd, L"PhMakeContextAtom()");
+    return (PPV_PROPSHEETCONTEXT)GetProp(hwnd, L"PvContext");
 }
 
 LRESULT CALLBACK PvpPropSheetWndProc(
-    _In_ HWND hwnd,
+    _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     )
 {
-    PPV_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hwnd);
-    WNDPROC oldWndProc = propSheetContext->OldWndProc;
+    PPV_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hWnd);
 
     switch (uMsg)
     {
-    case WM_DESTROY:
-        {
-            HWND tabControl;
-            TCITEM tabItem;
-            WCHAR text[128];
-
-            // Save the window position and size.
-
-            //PhSaveWindowPlacementToSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
-
-            // Save the selected tab.
-
-            tabControl = PropSheet_GetTabControl(hwnd);
-
-            tabItem.mask = TCIF_TEXT;
-            tabItem.pszText = text;
-            tabItem.cchTextMax = sizeof(text) / 2 - 1;
-
-            if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
-            {
-                //PhSetStringSetting(L"ProcPropPage", text);
-            }
-        }
-        break;
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            RemoveWindowSubclass(hWnd, PvpPropSheetWndProc, uIdSubclass);
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
 
-            //RemoveProp(hwnd, PhMakeContextAtom());
+            RemoveProp(hWnd, L"PvContext");
             PhFree(propSheetContext);
         }
         break;
@@ -243,7 +219,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     case WM_SIZE:
         {
-            if (!IsIconic(hwnd))
+            if (!IsIconic(hWnd))
             {
                 PhLayoutManagerLayout(&propSheetContext->LayoutManager);
             }
@@ -256,7 +232,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
@@ -295,40 +271,14 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
     return FALSE;
 }
 
-VOID PhpInitializePropSheetLayoutStage2(
-    _In_ HWND hwnd
-    )
-{
-    //PH_RECTANGLE windowRectangle;
-    //
-    //windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
-    //windowRectangle.Size = PhGetScalableIntegerPairSetting(L"ProcPropSize", TRUE).Pair;
-    //
-    //if (windowRectangle.Size.X < MinimumSize.right)
-    //     windowRectangle.Size.X = MinimumSize.right;
-    //if (windowRectangle.Size.Y < MinimumSize.bottom)
-    //    windowRectangle.Size.Y = MinimumSize.bottom;
-    //
-    //PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
-    //
-    //MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
-    //    windowRectangle.Width, windowRectangle.Height, FALSE);
-    //
-    // Implement cascading by saving an offsetted rectangle.
-    //windowRectangle.Left += 20;
-    //windowRectangle.Top += 20;
-    //
-    //PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
-}
-
-BOOLEAN PvAddProcessPropPage(
+BOOLEAN PvAddPropPage(
     _Inout_ PPV_PROPCONTEXT PropContext,
-    _In_ _Assume_refs_(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    _In_ _Assume_refs_(1) PPV_PROPPAGECONTEXT PropPageContext
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
 
-    if (PropContext->PropSheetHeader.nPages == PH_PROCESS_PROPCONTEXT_MAXPAGES)
+    if (PropContext->PropSheetHeader.nPages == PV_PROPCONTEXT_MAXPAGES)
         return FALSE;
 
     propSheetPageHandle = CreatePropertySheetPage(
@@ -348,41 +298,40 @@ BOOLEAN PvAddProcessPropPage(
     return TRUE;
 }
 
-BOOLEAN PvAddProcessPropPage2(
+BOOLEAN PvAddPropPage2(
     _Inout_ PPV_PROPCONTEXT PropContext,
     _In_ HPROPSHEETPAGE PropSheetPageHandle
     )
 {
-    if (PropContext->PropSheetHeader.nPages == PH_PROCESS_PROPCONTEXT_MAXPAGES)
+    if (PropContext->PropSheetHeader.nPages == PV_PROPCONTEXT_MAXPAGES)
         return FALSE;
 
-    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
-        PropSheetPageHandle;
+    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] = PropSheetPageHandle;
     PropContext->PropSheetHeader.nPages++;
 
     return TRUE;
 }
 
-PPH_PROCESS_PROPPAGECONTEXT PvCreateProcessPropPageContext(
+PPV_PROPPAGECONTEXT PvCreatePropPageContext(
     _In_ LPCWSTR Template,
     _In_ DLGPROC DlgProc,
     _In_opt_ PVOID Context
     )
 {
-    return PvCreateProcessPropPageContextEx(NULL, Template, DlgProc, Context);
+    return PvCreatePropPageContextEx(NULL, Template, DlgProc, Context);
 }
 
-PPH_PROCESS_PROPPAGECONTEXT PvCreateProcessPropPageContextEx(
+PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     _In_opt_ PVOID InstanceHandle,
     _In_ LPCWSTR Template,
     _In_ DLGPROC DlgProc,
     _In_opt_ PVOID Context
     )
 {
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
-    propPageContext = PhCreateObject(sizeof(PH_PROCESS_PROPPAGECONTEXT), PhpProcessPropPageContextType);
-    memset(propPageContext, 0, sizeof(PH_PROCESS_PROPPAGECONTEXT));
+    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PhpProcessPropPageContextType);
+    memset(propPageContext, 0, sizeof(PV_PROPPAGECONTEXT));
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propPageContext->PropSheetPage.dwFlags =
@@ -398,12 +347,12 @@ PPH_PROCESS_PROPPAGECONTEXT PvCreateProcessPropPageContextEx(
     return propPageContext;
 }
 
-VOID NTAPI PvpProcessPropPageContextDeleteProcedure(
+VOID NTAPI PvpPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
 {
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)Object;
+    PPV_PROPPAGECONTEXT propPageContext = (PPV_PROPPAGECONTEXT)Object;
 
     if (propPageContext->PropContext)
         PhDereferenceObject(propPageContext->PropContext);
@@ -415,9 +364,9 @@ INT CALLBACK PvpStandardPropPageProc(
     _In_ LPPROPSHEETPAGE ppsp
     )
 {
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
-    propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)ppsp->lParam;
+    propPageContext = (PPV_PROPPAGECONTEXT)ppsp->lParam;
 
     if (uMsg == PSPCB_ADDREF)
         PhReferenceObject(propPageContext);
@@ -438,14 +387,13 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     PPV_PROPSHEETCONTEXT propSheetContext;
     PPH_LAYOUT_MANAGER layoutManager;
     PPH_LAYOUT_ITEM realParentItem;
-    BOOLEAN doLayoutStage2;
     PPH_LAYOUT_ITEM item;
 
     parent = GetParent(hwnd);
     propSheetContext = PhpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
-    doLayoutStage2 = PhpInitializePropSheetLayoutStage1(parent);
+    PhpInitializePropSheetLayoutStage1(parent);
 
     if (ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT)
         realParentItem = ParentItem;
@@ -484,9 +432,6 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     {
         item = PhAddLayoutItem(layoutManager, Handle, realParentItem, Anchor);
     }
-
-    if (doLayoutStage2)
-        PhpInitializePropSheetLayoutStage2(parent);
 
     return item;
 }

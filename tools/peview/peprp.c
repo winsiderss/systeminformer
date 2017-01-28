@@ -3,6 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -104,51 +105,50 @@ VOID PvPeProperties(
         return;
     }
 
-    // Create the property sheet
-    if (propContext = PvCreateProcessPropContext(PvFileName))
+    if (propContext = PvCreatePropContext(PvFileName))
     {
-        PPH_PROCESS_PROPPAGECONTEXT newPage;
+        PPV_PROPPAGECONTEXT newPage;
 
         // General page
-        newPage = PvCreateProcessPropPageContext(
+        newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_PEGENERAL), 
             PvpPeGeneralDlgProc, 
             NULL
             );
-        PvAddProcessPropPage(propContext, newPage);
+        PvAddPropPage(propContext, newPage);
 
         // Imports page
         if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
             (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
         {
-            newPage = PvCreateProcessPropPageContext(
+            newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEIMPORTS),
                 PvpPeImportsDlgProc,
                 NULL
                 );
-            PvAddProcessPropPage(propContext, newPage);
+            PvAddPropPage(propContext, newPage);
         }
 
         // Exports page
         if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
         {
-            newPage = PvCreateProcessPropPageContext(
+            newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEEXPORTS),
                 PvpPeExportsDlgProc,
                 NULL
                 );
-            PvAddProcessPropPage(propContext, newPage);
+            PvAddPropPage(propContext, newPage);
         }
 
         // Load Config page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
         {
-            newPage = PvCreateProcessPropPageContext(
+            newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PELOADCONFIG),
                 PvpPeLoadConfigDlgProc,
                 NULL
                 );
-            PvAddProcessPropPage(propContext, newPage);
+            PvAddPropPage(propContext, newPage);
         }
 
         // CLR page
@@ -175,12 +175,12 @@ VOID PvPeProperties(
 
             if (NT_SUCCESS(status))
             {
-                newPage = PvCreateProcessPropPageContext(
+                newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PECLR),
                     PvpPeClrDlgProc,
                     NULL
                     );
-                PvAddProcessPropPage(propContext, newPage);
+                PvAddPropPage(propContext, newPage);
             }
         }
 
@@ -188,19 +188,18 @@ VOID PvPeProperties(
         if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
             (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
         {
-            newPage = PvCreateProcessPropPageContext(
+            newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PECFG),
                 PvpPeCgfDlgProc,
                 NULL
                 );
-            PvAddProcessPropPage(propContext, newPage);
+            PvAddPropPage(propContext, newPage);
         }
+
+        PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);
     }
-    
-    // Show the property sheet
-    PhModalPropertySheet(&propContext->PropSheetHeader);
 
     PhUnloadMappedImage(&PvMappedImage);
 }
@@ -331,7 +330,7 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -735,7 +734,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -807,7 +806,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -917,7 +916,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -1117,7 +1116,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;
@@ -1278,7 +1277,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
         return FALSE;

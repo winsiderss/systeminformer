@@ -1,166 +1,131 @@
-#ifndef PH_PROCPRP_H
-#define PH_PROCPRP_H
+/*
+ * Process Hacker -
+ *   property sheet 
+ *
+ * Copyright (C) 2017 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#define PH_PROCESS_PROPCONTEXT_MAXPAGES 20
+// NOTE: Copied from processhacker2\ProcessHacker\procprp.h
+
+#ifndef PV_PRP_H
+#define PV_PRP_H
+
+#define PV_PROPCONTEXT_MAXPAGES 20
 
 typedef struct _PV_PROPSHEETCONTEXT
 {
-    WNDPROC OldWndProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
 } PV_PROPSHEETCONTEXT, *PPV_PROPSHEETCONTEXT;
 
-typedef struct _PPV_PROPCONTEXT
+typedef struct _PV_PROPCONTEXT
 {
     PPH_STRING Title;
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE *PropSheetPages;
 } PV_PROPCONTEXT, *PPV_PROPCONTEXT;
 
-typedef struct _PH_PROCESS_PROPPAGECONTEXT
+typedef struct _PV_PROPPAGECONTEXT
 {
     PPV_PROPCONTEXT PropContext;
     PVOID Context;
     PROPSHEETPAGE PropSheetPage;
 
     BOOLEAN LayoutInitialized;
-} PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
+} PV_PROPPAGECONTEXT, *PPV_PROPPAGECONTEXT;
 
 BOOLEAN PvPropInitialization(
     VOID
     );
 
-PPV_PROPCONTEXT
-NTAPI
-PvCreateProcessPropContext(
+PPV_PROPCONTEXT PvCreatePropContext(
     _In_ PPH_STRING Caption
     );
 
-VOID 
-PvRefreshProcessPropContext(
-    _Inout_ PPV_PROPCONTEXT PropContext
-    );
-
-VOID
-NTAPI
-PvSetSelectThreadIdProcessPropContext(
+BOOLEAN PvAddPropPage(
     _Inout_ PPV_PROPCONTEXT PropContext,
-    _In_ HANDLE ThreadId
+    _In_ _Assume_refs_(1) PPV_PROPPAGECONTEXT PropPageContext
     );
 
-
-BOOLEAN
-NTAPI
-PvAddProcessPropPage(
-    _Inout_ PPV_PROPCONTEXT PropContext,
-    _In_ _Assume_refs_(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
-    );
-
-BOOLEAN
-NTAPI
-PvAddProcessPropPage2(
+BOOLEAN PvAddPropPage2(
     _Inout_ PPV_PROPCONTEXT PropContext,
     _In_ HPROPSHEETPAGE PropSheetPageHandle
     );
 
-PPH_PROCESS_PROPPAGECONTEXT
-NTAPI
-PvCreateProcessPropPageContext(
+PPV_PROPPAGECONTEXT PvCreatePropPageContext(
     _In_ LPCWSTR Template,
     _In_ DLGPROC DlgProc,
     _In_opt_ PVOID Context
     );
 
-PPH_PROCESS_PROPPAGECONTEXT
-NTAPI
-PvCreateProcessPropPageContextEx(
+PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     _In_opt_ PVOID InstanceHandle,
     _In_ LPCWSTR Template,
     _In_ DLGPROC DlgProc,
     _In_opt_ PVOID Context
     );
 
-BOOLEAN
-NTAPI
-PvPropPageDlgProcHeader(
+BOOLEAN PvPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam,
     _Out_ LPPROPSHEETPAGE *PropSheetPage,
-    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext
+    _Out_ PPV_PROPPAGECONTEXT *PropPageContext
     );
 
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
 
-PPH_LAYOUT_ITEM
-NTAPI
-PvAddPropPageLayoutItem(
+PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     _In_ HWND hwnd,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
     );
 
-VOID
-NTAPI
-PvDoPropPageLayout(
+VOID PvDoPropPageLayout(
     _In_ HWND hwnd
     );
-
-FORCEINLINE
-PPH_LAYOUT_ITEM
-PvBeginPropPageLayout(
-    _In_ HWND hwndDlg,
-    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
-    )
-{
-    if (!PropPageContext->LayoutInitialized)
-    {
-        return PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
-            PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-FORCEINLINE
-VOID
-PvEndPropPageLayout(
-    _In_ HWND hwndDlg,
-    _In_ PPH_PROCESS_PROPPAGECONTEXT PropPageContext
-    )
-{
-    PvDoPropPageLayout(hwndDlg);
-    PropPageContext->LayoutInitialized = TRUE;
-}
 
 FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam,
     _Out_ LPPROPSHEETPAGE *PropSheetPage,
-    _Out_ PPH_PROCESS_PROPPAGECONTEXT *PropPageContext
+    _Out_ PPV_PROPPAGECONTEXT *PropPageContext
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPV_PROPPAGECONTEXT propPageContext;
 
     if (uMsg == WM_INITDIALOG)
     {
         // Save the context.
-        SetProp(hwndDlg, L"PhMakeContextAtom()", (HANDLE)lParam);
+        SetProp(hwndDlg, L"PvContext", (HANDLE)lParam);
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PhMakeContextAtom()");
+    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PvContext");
 
     if (!propSheetPage)
         return FALSE;
 
     *PropSheetPage = propSheetPage;
-    *PropPageContext = propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+    *PropPageContext = propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
 
     return TRUE;
 }
