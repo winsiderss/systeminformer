@@ -28,6 +28,7 @@
 #include <shlobj.h>
 #include <uxtheme.h>
 #include <shellapi.h>
+#include <symprv.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
@@ -66,6 +67,13 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
+
+INT_PTR CALLBACK PvpPeCgfDlgProc(
+	_In_ HWND hwndDlg,
+	_In_ UINT uMsg,
+	_In_ WPARAM wParam,
+	_In_ LPARAM lParam
+);
 
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header;
@@ -169,6 +177,17 @@ VOID PvPeProperties(
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
         }
     }
+
+	// CFG page
+	if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
+		(PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
+	{
+		memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+		propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+		propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECFG);
+		propSheetPage.pfnDlgProc = PvpPeCgfDlgProc;
+		pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+	}
 
     PropertySheet(&propSheetHeader);
 
@@ -870,6 +889,16 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
         ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
         ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
         ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+		ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+		ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
+		ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
+		ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
+		ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
+		ADD_VALUE(L"CFG Function table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionCount)->Buffer); \
+		ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
+		ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryCount)->Buffer); \
+		ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
+		ADD_VALUE(L"CFG LongJump table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetCount)->Buffer); \
     } while (0)
 
             PhInitializeAutoPool(&autoPool);
@@ -902,6 +931,197 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     }
 
     return FALSE;
+}
+
+VOID PhLoadDbgHelpFromPath(
+	_In_ PWSTR DbgHelpPath
+)
+{
+	HMODULE dbghelpModule;
+
+	if (dbghelpModule = LoadLibrary(DbgHelpPath))
+	{
+		PPH_STRING fullDbghelpPath;
+		ULONG indexOfFileName;
+		PH_STRINGREF dbghelpFolder;
+		PPH_STRING symsrvPath;
+
+		fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+
+		if (fullDbghelpPath)
+		{
+			if (indexOfFileName != 0)
+			{
+				static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
+
+				dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
+				dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
+
+				symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+				LoadLibrary(symsrvPath->Buffer);
+				PhDereferenceObject(symsrvPath);
+			}
+
+			PhDereferenceObject(fullDbghelpPath);
+		}
+	}
+	else
+	{
+		dbghelpModule = LoadLibrary(L"dbghelp.dll");
+	}
+
+	PhSymbolProviderCompleteInitialization(dbghelpModule);
+}
+
+
+BOOLEAN PhLoadDbgHelp(
+	_Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
+)
+{
+	WCHAR buffer[512];
+	PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll";
+	UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
+	UNICODE_STRING SymbolPathVar = {
+		.Buffer = buffer,
+		.MaximumLength = sizeof(buffer)
+	};
+	PPH_STRING SymbolCache;
+	PPH_SYMBOL_PROVIDER SymbolProv;
+
+	*SymbolProvider = NULL;
+
+	if (!PhSymbolProviderInitialization())
+		return FALSE;		
+
+	PhLoadDbgHelpFromPath(dbghelpPath);
+	SymbolProv = PhCreateSymbolProvider(NULL);
+
+	// Load user symcache path from _NT_SYMBOL_PATH has set it
+	NTSTATUS status;
+	if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
+	{
+		SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
+	}
+	else
+	{
+		SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
+	}
+
+	PhSetSearchPathSymbolProvider(SymbolProv, SymbolCache->Buffer);
+
+	*SymbolProvider = SymbolProv;
+	return TRUE;
+}
+
+INT_PTR CALLBACK PvpPeCgfDlgProc(
+	_In_ HWND hwndDlg,
+	_In_ UINT uMsg,
+	_In_ WPARAM wParam,
+	_In_ LPARAM lParam
+)
+{
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+	{
+		HWND lvHandle;
+		PPH_SYMBOL_PROVIDER symbolProvider = NULL;
+		PH_MAPPED_IMAGE_CFG CfgConfig = { 0 };
+
+		lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+		PhSetListViewStyle(lvHandle, FALSE, TRUE);
+		PhSetControlTheme(lvHandle, L"explorer");
+
+		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT ,  40, L"#");
+		PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 100, L"RVA");
+		PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT , 250, L"Name");
+		PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT , 100, L"Flags");
+		PhSetExtendedListView(lvHandle);
+		
+		// Init symbol resolver
+		if (PhLoadDbgHelp(&symbolProvider))
+		{
+			// Load current PE's pdb
+			PhLoadModuleSymbolProvider(
+				symbolProvider,
+				PvFileName->Buffer,
+				(ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+				PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
+			);
+		}
+		
+		// Retrieve Cfg Table entry and characteristics
+		if (NT_SUCCESS(PhGetMappedImageCfg(&CfgConfig, &PvMappedImage)))
+		{
+
+			for (size_t i = 0; i < CfgConfig.NumberOfGuardFunctionEntries; i++)
+			{
+				ULONG64 Va = 0;
+				INT lvItemIndex;
+				PPH_STRING SymbolName;
+				ULONG64 Displacement;
+				PH_SYMBOL_RESOLVE_LEVEL SymbolResolveLevel;
+				PH_MAPPED_IMAGE_CFG_ENTRY CfgFunctionEntry = { 0 };
+				
+				// Parse cfg entry : if it fails, just skip it ?
+				if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&CfgConfig, i, ControlFlowGuardFunction, &CfgFunctionEntry)))
+					continue;
+			
+				
+				lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhFormatString(L"%d", i)->Buffer, NULL);
+				PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhFormatString(L"0x%08x", CfgFunctionEntry.Rva)->Buffer);
+				
+
+				// Resolve name based on public symbols
+				Va = (ULONG64) PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, CfgFunctionEntry.Rva); 
+				PPH_STRING Symbol = PhGetSymbolFromAddress(symbolProvider, Va, &SymbolResolveLevel, NULL, &SymbolName, &Displacement);
+				switch (SymbolResolveLevel)
+				{
+				case PhsrlFunction:
+					{
+						if (Displacement)
+							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhFormatString(L"%s+0x%x", SymbolName->Buffer, Displacement)->Buffer);
+						else
+							PhSetListViewSubItem(lvHandle, lvItemIndex, 2, SymbolName->Buffer);
+						PhDereferenceObject(SymbolName);
+					}
+					break;
+				case PhsrlModule:
+				case PhsrlAddress: 
+					{
+						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, Symbol->Buffer);
+					}
+					break;
+				default:
+				case PhsrlInvalid:
+					{
+						PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+					}
+					break;
+				}
+
+				// Add additional flags
+				if (CfgFunctionEntry.Flags.SuppressedCall)
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"SuppressedCall");
+				else
+					PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"");
+
+				PhDereferenceObject(Symbol);			
+			}
+		}
+
+		ExtendedListView_SortItems(lvHandle);
+		EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+		}
+		break;
+	case WM_NOTIFY:
+		{
+			PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+		}
+		break;
+	}
+
+	return FALSE;
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
