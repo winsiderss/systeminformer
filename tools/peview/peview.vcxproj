@@ -197,9 +197,11 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="misc.c" />
     <ClCompile Include="peprp.c" />
+    <ClCompile Include="prpsh.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h" />
+    <ClInclude Include="include\prpsh.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

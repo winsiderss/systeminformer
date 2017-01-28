@@ -88,108 +88,119 @@ VOID PvPeProperties(
     )
 {
     NTSTATUS status;
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[5];
+    PPV_PROPCONTEXT propContext;
     PH_MAPPED_IMAGE_IMPORTS imports;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PIMAGE_DATA_DIRECTORY entry;
 
-    status = PhLoadMappedImage(PvFileName->Buffer, NULL, TRUE, &PvMappedImage);
-
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = PhLoadMappedImage(
+        PvFileName->Buffer, 
+        NULL, 
+        TRUE, 
+        &PvMappedImage
+        )))
     {
         PhShowStatus(NULL, L"Unable to load the PE file", status, 0);
         return;
     }
 
-    propSheetHeader.dwFlags =
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
-    propSheetHeader.hwndParent = NULL;
-    propSheetHeader.pszCaption = PvFileName->Buffer;
-    propSheetHeader.nPages = 0;
-    propSheetHeader.nStartPage = 0;
-    propSheetHeader.phpage = pages;
-
-    // General page
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEGENERAL);
-    propSheetPage.pfnDlgProc = PvpPeGeneralDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    // Imports page
-    if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
-        (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
+    // Create the property sheet
+    if (propContext = PvCreateProcessPropContext(PvFileName))
     {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEIMPORTS);
-        propSheetPage.pfnDlgProc = PvpPeImportsDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+        PPH_PROCESS_PROPPAGECONTEXT newPage;
 
-    // Exports page
-    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEEXPORTS);
-        propSheetPage.pfnDlgProc = PvpPeExportsDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+        // General page
+        newPage = PvCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PEGENERAL), 
+            PvpPeGeneralDlgProc, 
+            NULL
+            );
+        PvAddProcessPropPage(propContext, newPage);
 
-    // Load Config page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PELOADCONFIG);
-        propSheetPage.pfnDlgProc = PvpPeLoadConfigDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
-
-    // CLR page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
-        entry->VirtualAddress &&
-        (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
-    {
-        status = STATUS_SUCCESS;
-
-        __try
+        // Imports page
+        if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
+            (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
         {
-            PhProbeAddress(PvImageCor20Header, sizeof(IMAGE_COR20_HEADER),
-                PvMappedImage.ViewBase, PvMappedImage.Size, 4);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
+            newPage = PvCreateProcessPropPageContext(
+                MAKEINTRESOURCE(IDD_PEIMPORTS),
+                PvpPeImportsDlgProc,
+                NULL
+                );
+            PvAddProcessPropPage(propContext, newPage);
         }
 
-        if (NT_SUCCESS(status))
+        // Exports page
+        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
         {
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECLR);
-            propSheetPage.pfnDlgProc = PvpPeClrDlgProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+            newPage = PvCreateProcessPropPageContext(
+                MAKEINTRESOURCE(IDD_PEEXPORTS),
+                PvpPeExportsDlgProc,
+                NULL
+                );
+            PvAddProcessPropPage(propContext, newPage);
         }
-    }
 
-    // CFG page
-    if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
-        (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECFG);
-        propSheetPage.pfnDlgProc = PvpPeCgfDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+        // Load Config page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreateProcessPropPageContext(
+                MAKEINTRESOURCE(IDD_PELOADCONFIG),
+                PvpPeLoadConfigDlgProc,
+                NULL
+                );
+            PvAddProcessPropPage(propContext, newPage);
+        }
 
-    PhModalPropertySheet(&propSheetHeader);
+        // CLR page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
+            entry->VirtualAddress &&
+            (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
+        {
+            status = STATUS_SUCCESS;
+
+            __try
+            {
+                PhProbeAddress(
+                    PvImageCor20Header, 
+                    sizeof(IMAGE_COR20_HEADER),
+                    PvMappedImage.ViewBase, 
+                    PvMappedImage.Size, 
+                    4
+                    );
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                newPage = PvCreateProcessPropPageContext(
+                    MAKEINTRESOURCE(IDD_PECLR),
+                    PvpPeClrDlgProc,
+                    NULL
+                    );
+                PvAddProcessPropPage(propContext, newPage);
+            }
+        }
+
+        // CFG page
+        if ((PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) &&
+            (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF))
+        {
+            newPage = PvCreateProcessPropPageContext(
+                MAKEINTRESOURCE(IDD_PECFG),
+                PvpPeCgfDlgProc,
+                NULL
+                );
+            PvAddProcessPropPage(propContext, newPage);
+        }
+
+        PhDereferenceObject(propContext);
+    }
+    
+    // Show the property sheet
+    PhModalPropertySheet(&propContext->PropSheetHeader);
 
     PhUnloadMappedImage(&PvMappedImage);
 }

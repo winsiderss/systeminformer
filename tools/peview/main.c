@@ -68,6 +68,7 @@ INT WINAPI wWinMain(
 
     PhGuiSupportInitialization();
     PvpInitializeDpi();
+    PvPropInitialization();
 
     PhApplicationName = L"PE Viewer";
 
