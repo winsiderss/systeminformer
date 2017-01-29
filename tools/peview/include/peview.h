@@ -4,6 +4,7 @@
 #include <ph.h>
 #include <guisup.h>
 #include <prsht.h>
+#include <prpsh.h>
 #include "resource.h"
 
 extern PPH_STRING PvFileName;
