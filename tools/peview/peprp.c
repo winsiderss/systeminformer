@@ -886,11 +886,11 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
                 ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
                 ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
-                ADD_VALUE(L"CFG Function table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionCount)->Buffer); \
+                ADD_VALUE(L"CFG Function table entry count", PhaFormatUInt64((Config)->GuardCFFunctionCount, TRUE)->Buffer); \
                 ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
-                ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryCount)->Buffer); \
+                ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
                 ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
-                ADD_VALUE(L"CFG LongJump table entry count", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetCount)->Buffer); \
+                ADD_VALUE(L"CFG LongJump table entry count", PhaFormatUInt64((Config)->GuardLongJumpTargetCount, TRUE)->Buffer); \
             }
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
