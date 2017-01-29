@@ -170,7 +170,7 @@ INT CALLBACK PvpPropSheetProc(
     return 0;
 }
 
-PPV_PROPSHEETCONTEXT PhpGetPropSheetContext(
+PPV_PROPSHEETCONTEXT PvpGetPropSheetContext(
     _In_ HWND hwnd
     )
 {
@@ -186,7 +186,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ ULONG_PTR dwRefData
     )
 {
-    PPV_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hWnd);
+    PPV_PROPSHEETCONTEXT propSheetContext = PvpGetPropSheetContext(hWnd);
 
     switch (uMsg)
     {
@@ -233,7 +233,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ HWND hwnd
     )
 {
-    PPV_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hwnd);
+    PPV_PROPSHEETCONTEXT propSheetContext = PvpGetPropSheetContext(hwnd);
 
     if (!propSheetContext->LayoutInitialized)
     {
@@ -384,7 +384,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     PPH_LAYOUT_ITEM item;
 
     parent = GetParent(hwnd);
-    propSheetContext = PhpGetPropSheetContext(parent);
+    propSheetContext = PvpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
     PhpInitializePropSheetLayoutStage1(parent);
@@ -438,6 +438,6 @@ VOID PvDoPropPageLayout(
     PPV_PROPSHEETCONTEXT propSheetContext;
 
     parent = GetParent(hwnd);
-    propSheetContext = PhpGetPropSheetContext(parent);
+    propSheetContext = PvpGetPropSheetContext(parent);
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 }

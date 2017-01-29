@@ -1174,7 +1174,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
                     lvItemIndex = PhAddListViewItem(
                         lvHandle, 
                         MAXINT, 
-                        PhaFormatString(L"%d", i)->Buffer,
+                        PhaFormatString(L"%I64u", i)->Buffer,
                         NULL
                         );
                     PhSetListViewSubItem(
@@ -1373,9 +1373,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
         {
             if (!propPageContext->LayoutInitialized)
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
 
                 PvDoPropPageLayout(hwndDlg);

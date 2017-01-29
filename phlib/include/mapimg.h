@@ -387,8 +387,8 @@ typedef struct _IMAGE_CFG_ENTRY
     ULONG Rva;
     struct
     {
-        BYTE SuppressedCall : 1;
-        BYTE Reserved : 7;
+        BOOLEAN SuppressedCall : 1;
+        BOOLEAN Reserved : 7;
     };
 } IMAGE_CFG_ENTRY, *PIMAGE_CFG_ENTRY;
 
