@@ -111,7 +111,6 @@ FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
     )
 {
     LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
 
     if (uMsg == WM_INITDIALOG)
     {
@@ -125,7 +124,7 @@ FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
         return FALSE;
 
     *PropSheetPage = propSheetPage;
-    *PropPageContext = propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+    *PropPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
 
     return TRUE;
 }
