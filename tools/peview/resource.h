@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by peview.rc
 //
-#define IDR_RT_MANIFEST                 1
 #define IDD_PEGENERAL                   102
 #define IDD_PEIMPORTS                   103
 #define IDD_PEEXPORTS                   104
