@@ -436,8 +436,8 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetMappedImageCfg(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
 PHLIBAPI

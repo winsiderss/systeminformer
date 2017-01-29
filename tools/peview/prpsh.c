@@ -23,11 +23,9 @@
 // NOTE: Copied from processhacker2\ProcessHacker\procprp.c
 
 #include <peview.h>
-#include <uxtheme.h>
 
-PPH_OBJECT_TYPE PhpPropContextType;
-PPH_OBJECT_TYPE PhpPropPageContextType;
-PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
+PPH_OBJECT_TYPE PvpPropContextType;
+PPH_OBJECT_TYPE PvpPropPageContextType;
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID NTAPI PvpPropContextDeleteProcedure(
@@ -65,8 +63,8 @@ BOOLEAN PvPropInitialization(
     VOID
     )
 {
-    PhpPropContextType = PhCreateObjectType(L"PvPropContext", 0, PvpPropContextDeleteProcedure);
-    PhpPropPageContextType = PhCreateObjectType(L"PvPropPageContext", 0, PvpPropPageContextDeleteProcedure);
+    PvpPropContextType = PhCreateObjectType(L"PvPropContext", 0, PvpPropContextDeleteProcedure);
+    PvpPropPageContextType = PhCreateObjectType(L"PvPropPageContext", 0, PvpPropPageContextDeleteProcedure);
 
     return TRUE;
 }
@@ -78,7 +76,7 @@ PPV_PROPCONTEXT PvCreatePropContext(
     PPV_PROPCONTEXT propContext;
     PROPSHEETHEADER propSheetHeader;
 
-    propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), PhpPropContextType);
+    propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), PvpPropContextType);
     memset(propContext, 0, sizeof(PV_PROPCONTEXT));
 
     propContext->Title = Caption;
@@ -326,7 +324,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
 {
     PPV_PROPPAGECONTEXT propPageContext;
 
-    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PhpPropPageContextType);
+    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PvpPropPageContextType);
     memset(propPageContext, 0, sizeof(PV_PROPPAGECONTEXT));
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);

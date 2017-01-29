@@ -1219,8 +1219,8 @@ ULONG PhCheckSumMappedImage(
 }
 
 NTSTATUS PhGetMappedImageCfg(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
@@ -1228,6 +1228,10 @@ NTSTATUS PhGetMappedImageCfg(
 
     if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig64(MappedImage, &config64)))
         return status;
+
+    // Not every load configuration defines CFG characteristics
+    if (config64->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardAddressTakenIatEntryTable))
+        return STATUS_INVALID_VIEW_SIZE;
 
     CfgConfig->MappedImage = MappedImage;
     CfgConfig->EntrySize = sizeof(FIELD_OFFSET(IMAGE_CFG_ENTRY, Rva)) +
@@ -1241,8 +1245,8 @@ NTSTATUS PhGetMappedImageCfg(
     CfgConfig->EnableExportSuppression = !!(config64->GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION);
     CfgConfig->HasExportSuppressionInfos = !!(config64->GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT);
     CfgConfig->CfgLongJumpTablePresent = !!(config64->GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT);
-    CfgConfig->NumberOfGuardFunctionEntries = config64->GuardCFFunctionCount;
 
+    CfgConfig->NumberOfGuardFunctionEntries = config64->GuardCFFunctionCount;
     CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
         MappedImage,
         (ULONG)(config64->GuardCFFunctionTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
@@ -1256,7 +1260,7 @@ NTSTATUS PhGetMappedImageCfg(
             PhpMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardFunctionTable,
-                CfgConfig->EntrySize * (ULONG)CfgConfig->NumberOfGuardFunctionEntries
+                (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardFunctionEntries)
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -1279,7 +1283,7 @@ NTSTATUS PhGetMappedImageCfg(
             PhpMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardAdressIatTable,
-                CfgConfig->EntrySize * (ULONG)CfgConfig->NumberOfGuardAdressIatEntries
+                (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -1302,7 +1306,7 @@ NTSTATUS PhGetMappedImageCfg(
             PhpMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardLongJumpTable,
-                CfgConfig->EntrySize * (ULONG)CfgConfig->NumberOfGuardLongJumpEntries
+                (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardLongJumpEntries)
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)

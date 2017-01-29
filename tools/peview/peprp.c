@@ -942,7 +942,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, Value); \
             }
 
-            #define ADD_VALUES(Config) \
+            #define ADD_VALUES(Type, Config) \
             { \
                 LARGE_INTEGER time; \
                 SYSTEMTIME systemTime; \
@@ -968,29 +968,33 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
                 ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
                 ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
-                ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
-                ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
-                ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
-                ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
-                ADD_VALUE(L"CFG Function table entry count", PhaFormatUInt64((Config)->GuardCFFunctionCount, TRUE)->Buffer); \
-                ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
-                ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
-                ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
-                ADD_VALUE(L"CFG LongJump table entry count", PhaFormatUInt64((Config)->GuardLongJumpTargetCount, TRUE)->Buffer); \
+                \
+                if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardAddressTakenIatEntryTable)) \
+                { \
+                    ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
+                    ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
+                    ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
+                    ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
+                    ADD_VALUE(L"CFG Function table entry count", PhaFormatUInt64((Config)->GuardCFFunctionCount, TRUE)->Buffer); \
+                    ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
+                    ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
+                    ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
+                    ADD_VALUE(L"CFG LongJump table entry count", PhaFormatUInt64((Config)->GuardLongJumpTargetCount, TRUE)->Buffer); \
+                } \
             }
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)))
                 {
-                    ADD_VALUES(config32);
+                    ADD_VALUES(IMAGE_LOAD_CONFIG_DIRECTORY32, config32);
                 }
             }
             else
             {
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
                 {
-                    ADD_VALUES(config64);
+                    ADD_VALUES(IMAGE_LOAD_CONFIG_DIRECTORY64, config64);
                 }
             }
 
@@ -1152,7 +1156,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             }
 
             // Retrieve Cfg Table entry and characteristics
-            if (NT_SUCCESS(PhGetMappedImageCfg(&PvMappedImage, &cfgConfig)))
+            if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &PvMappedImage)))
             {
                 for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardFunctionEntries; i++)
                 {
