@@ -30,10 +30,11 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <windowsx.h>
-#include <Wincodec.h>
-#include <toolstatusintf.h>
+#include <uxtheme.h>
+#include <vssym32.h>
 
 #include "resource.h"
+#include <toolstatusintf.h>
 
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
@@ -49,11 +50,10 @@
 #define MAX_TOOLBAR_ITEMS 12
 #define MAX_STATUSBAR_ITEMS 14
 
-#define ID_SEARCH_CLEAR (WM_APP + 1)
-#define TIDC_FINDWINDOW (WM_APP + 2)
-#define TIDC_FINDWINDOWTHREAD (WM_APP + 3)
-#define TIDC_FINDWINDOWKILL (WM_APP + 4)
-#define TIDC_POWERMENUDROPDOWN (WM_APP + 5)
+#define TIDC_FINDWINDOW (WM_APP + 1)
+#define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
+#define TIDC_FINDWINDOWKILL (WM_APP + 3)
+#define TIDC_POWERMENUDROPDOWN (WM_APP + 4)
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -74,12 +74,12 @@ typedef enum _TOOLBAR_COMMAND_ID
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
 } TOOLBAR_COMMAND_ID;
 
-typedef enum _TOOLBAR_THEME
-{
-    TOOLBAR_THEME_NONE,
-    TOOLBAR_THEME_BLACK,
-    TOOLBAR_THEME_BLUE
-} TOOLBAR_THEME;
+//typedef enum _TOOLBAR_THEME
+//{
+//    TOOLBAR_THEME_NONE,
+//    TOOLBAR_THEME_BLACK,
+//    TOOLBAR_THEME_BLUE
+//} TOOLBAR_THEME;
 
 typedef enum _SEARCHBOX_DISPLAY_MODE
 {
@@ -123,8 +123,9 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG MemGraphEnabled : 1;
         ULONG CommitGraphEnabled : 1;
         ULONG IoGraphEnabled : 1;
+        ULONG AutoComplete : 1;
 
-        ULONG Spare : 21;
+        ULONG Spare : 20;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -135,7 +136,6 @@ extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
-extern TOOLBAR_THEME ToolBarTheme;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -251,48 +251,6 @@ NTSTATUS QueryServiceFileName(
     _Out_ PPH_STRING *ServiceBinaryPath
     );
 
-// searchbox.c
-
-HWND CreateSearchControl(
-    _In_ UINT CmdId
-    );
-
-typedef struct _EDIT_CONTEXT
-{
-    UINT CommandID;
-    LONG CXWidth;
-    INT CXBorder;
-    INT ImageWidth;
-    INT ImageHeight;
-
-    HWND WindowHandle;
-    HFONT WindowFont;
-    HIMAGELIST ImageList;
-
-    HBRUSH BrushNormal;
-    HBRUSH BrushPushed;
-    HBRUSH BrushHot;
-    //COLORREF BackgroundColorRef;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Hot : 1;
-            ULONG Pushed : 1;
-            ULONG Spare : 30;
-        };
-    };
-} EDIT_CONTEXT, *PEDIT_CONTEXT;
-
-HBITMAP LoadImageFromResources(
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    );
-
 // graph.c
 
 extern HWND CpuGraphHandle;
@@ -376,7 +334,7 @@ VOID StatusBarShowCustomizeDialog(
 typedef struct _BUTTON_CONTEXT
 {
     INT IdCommand;
-    INT IdBitmap;
+    HICON IconHandle;
 
     union
     {
@@ -393,6 +351,14 @@ typedef struct _BUTTON_CONTEXT
 
 typedef struct _CUSTOMIZE_CONTEXT
 {
+    HFONT FontHandle;
+    HBRUSH BrushNormal;
+    HBRUSH BrushPushed;
+    HBRUSH BrushHot;
+    INT CXWidth;
+    INT ImageWidth;
+    INT ImageHeight;
+
     HWND DialogHandle;
     HWND AvailableListHandle;
     HWND CurrentListHandle;
@@ -400,10 +366,17 @@ typedef struct _CUSTOMIZE_CONTEXT
     HWND MoveDownButtonHandle;
     HWND AddButtonHandle;
     HWND RemoveButtonHandle;
-
-    INT BitmapWidth;
-    HFONT FontHandle;
-    HIMAGELIST ImageListHandle;
 } CUSTOMIZE_CONTEXT, *PCUSTOMIZE_CONTEXT;
+
+HICON CustomizeGetToolbarIcon(
+    _In_ PCUSTOMIZE_CONTEXT Context,
+    _In_ INT CommandID
+    );
+
+// searchbox.c
+
+BOOLEAN CreateSearchboxControl(
+    VOID
+    );
 
 #endif

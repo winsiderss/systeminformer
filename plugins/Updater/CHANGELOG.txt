@@ -1,5 +1,5 @@
 2.0
- * Major rewrite of updater
+ * Added support for Process Hacker nightly builds
  * Improved UI with native TaskDialog
 
 1.8

@@ -51,13 +51,14 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            if ((INT)wParam == IDRETRY)
+            INT buttonId = (INT)wParam;
+
+            if (buttonId == IDRETRY)
             {
                 ShowCheckingForUpdatesDialog(context);
                 return S_FALSE;
             }
-
-            if ((INT)wParam == IDYES)
+            else if (buttonId == IDYES)
             {
                 SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
 
@@ -71,19 +72,18 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
 
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
 
-                if (!ShellExecuteEx(&info))
+                if (ShellExecuteEx(&info))
+                {
+                    ProcessHacker_Destroy(PhMainWndHandle);
+                }
+                else
                 {
                     // Install failed, cancel the shutdown.
                     ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
 
                     // Set button text for next action
                     //Button_SetText(GetDlgItem(hwndDlg, IDOK), L"Retry");
-
                     return S_FALSE;
-                }
-                else
-                {
-                    ProcessHacker_Destroy(PhMainWndHandle);
                 }
             }
         }
@@ -109,17 +109,15 @@ VOID ShowUpdateInstallDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
+    config.cxWidth = 200;
+    config.pfCallback = FinalTaskDialogCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pButtons = TaskDialogButtonArray;
+    config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"Ready to install update";
     config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
-
-    config.pButtons = TaskDialogButtonArray;
-    config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
-
-    config.cxWidth = 200;
-    config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -128,29 +126,62 @@ VOID ShowLatestVersionDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
-
-    config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"You're running the latest version.";
-        config.pszContent = PhaFormatString(
-        L"Stable release build: v%lu.%lu.%lu\r\n\r\n<A HREF=\"executablestring\">View Changelog</A>",
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion
-        )->Buffer;
-
+    config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+
+    config.pszWindowTitle = L"Process Hacker - Updater";
+    
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
+        LARGE_INTEGER time;
+        SYSTEMTIME systemTime = { 0 };
+        PIMAGE_DOS_HEADER imageDosHeader;
+        PIMAGE_NT_HEADERS imageNtHeader;
+
+        // HACK
+        imageDosHeader = (PIMAGE_DOS_HEADER)NtCurrentPeb()->ImageBaseAddress;
+        imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, (ULONG)imageDosHeader->e_lfanew);
+       
+        RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
+        PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+
+        config.pszMainInstruction = L"You're running the latest nightly build";
+        config.pszContent = PhaFormatString(
+            L"Version: v%lu.%lu.%lu\r\nCompiled: %s",
+            Context->CurrentMajorVersion,
+            Context->CurrentMinorVersion,
+            Context->CurrentRevisionVersion,
+            PhaFormatDateTime(&systemTime)->Buffer
+            )->Buffer;
+
+        if (PhIsNullOrEmptyString(Context->BuildMessage))
+            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+        else
+            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+    }
+    else
+    {
+        config.pszMainInstruction = L"You're running the latest version";
+        config.pszContent = PhaFormatString(
+            L"Stable release build: v%lu.%lu.%lu\r\n\r\n",
+            Context->CurrentMajorVersion,
+            Context->CurrentMinorVersion,
+            Context->CurrentRevisionVersion
+            )->Buffer;
+
+        if (PhIsNullOrEmptyString(Context->BuildMessage))
+            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+        else
+            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+    }
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -159,25 +190,36 @@ VOID ShowNewerVersionDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PPH_UPDATER_CONTEXT context;
     TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
+    config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"You're running a pre-release version!";
-    config.pszContent = PhaFormatString(
-        L"Pre-release build: v%lu.%lu.%lu\r\n",
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion
-        )->Buffer;
+
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
+        config.pszMainInstruction = L"You're running the latest nightly build";
+        config.pszContent = PhaFormatString(
+            L"Pre-release build: v%lu.%lu.%lu\r\n",
+            Context->CurrentMajorVersion,
+            Context->CurrentMinorVersion,
+            Context->CurrentRevisionVersion
+            )->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = L"You're running a pre-release version!";
+        config.pszContent = PhaFormatString(
+            L"Pre-release build: v%lu.%lu.%lu\r\n",
+            Context->CurrentMajorVersion,
+            Context->CurrentMinorVersion,
+            Context->CurrentRevisionVersion
+            )->Buffer;
+    }
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
@@ -202,7 +244,7 @@ VOID ShowUpdateFailedDialog(
     config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"An error was encountered while downloading the update.";
+    config.pszMainInstruction = L"Error while downloading the update";
 
     if (SignatureFailed)
     {

@@ -1,5 +1,5 @@
 # Version format.
-version: "Build #{build}"
+version: "3.0.{build}"
 
 # Only build the master branch.
 branches:
@@ -15,13 +15,6 @@ skip_tags: true
   
 # Set the clone directory on the buildbot.
 clone_folder: C:\projects\processhacker2
-
-# Set clone depth.
-clone_depth: 1
-
-# Do not build on commits, only nightly builds.
-#skip_commits:
-#  message: /^(?!.*(appveyor)).*/
   
 # Immediately finish build if something fails.
 matrix:
@@ -30,36 +23,13 @@ matrix:
 # Install inno setup.
 install:
   - choco install -y InnoSetup
-  
+
 # Disable running any test assemblies.
 test: off
 
 # Run custom build script.
 build_script:
-- ps: .\build\internal\nightly.ps1
-
-# FTP deployment settings.
-deploy:
-- provider: FTP
-  host: wj32.org
-  protocol: sftp
-  username: processhacker
-  password:
-    secure: lWdlTtxnMMQRjUQ8pndOBPBiJPn8b8ssP1qtSPzIj58=
-  folder: /www/rel
-
-# Deploy these files to our ftp.
-artifacts:
-- path: .\processhacker-nightly-setup.exe
-  name: processhacker-nightly-setup.exe
-- path: .\processhacker-nightly-bin.zip
-  name: processhacker-nightly-bin.zip
-- path: .\processhacker-nightly-sdk.zip
-  name: processhacker-nightly-sdk.zip
-- path: .\processhacker-nightly-src.zip
-  name: processhacker-nightly-src.zip
-- path: .\processhacker-nightly-checksums.txt
-  name: processhacker-nightly-checksums.txt
+- ps: .\build\internal\build.ps1
 
 # Setup build notifications.
 notifications:

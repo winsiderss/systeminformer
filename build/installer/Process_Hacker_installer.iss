@@ -33,9 +33,8 @@
 #include "Custom_Messages.iss"
 #include "Services.iss"
 
-#define installer_build_number "14"
 #define copyright              "Copyright © 2010-2016, Process Hacker Team. Licensed under the GNU GPL, v3."
-
+#define website_url            "http://processhacker.sourceforge.net/"
 #if defined(TWO_DIGIT_VER)
   #define app_version          str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR)
   #define app_version_long     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + ".0" + "." + str(PHAPP_VERSION_REVISION)
@@ -46,21 +45,20 @@
   #define app_version_full     str(PHAPP_VERSION_MAJOR) + "." + str(PHAPP_VERSION_MINOR) + "." + str(PHAPP_VERSION_BUILD) + " (r" + str(PHAPP_VERSION_REVISION) + ")"
 #endif
 
-#define installer_build_date   GetDateTimeString('mmm, d yyyy', '', '')
 #define quick_launch           "{userappdata}\Microsoft\Internet Explorer\Quick Launch"
 
 
 [Setup]
 AppID=Process_Hacker2
 AppCopyright={#copyright}
-AppContact=http://sourceforge.net/projects/processhacker/support
+AppContact=http://wj32.org/processhacker/forums/
 AppName=Process Hacker
 AppVerName=Process Hacker {#app_version_full}
 AppVersion={#app_version_long}
 AppPublisher=wj32
-AppPublisherURL=http://processhacker.sourceforge.net/
-AppSupportURL=http://sourceforge.net/projects/processhacker/support
-AppUpdatesURL=http://processhacker.sourceforge.net/
+AppPublisherURL={#website_url}
+AppSupportURL=http://wj32.org/processhacker/forums/
+AppUpdatesURL={#website_url}
 UninstallDisplayName=Process Hacker {#app_version_full}
 DefaultDirName={pf}\Process Hacker 2
 DefaultGroupName=Process Hacker 2
@@ -72,7 +70,7 @@ VersionInfoProductTextVersion={#app_version_full}
 VersionInfoProductVersion={#app_version_long}
 VersionInfoTextVersion={#app_version_full}
 VersionInfoVersion={#app_version_long}
-MinVersion=5.01.2600sp2
+MinVersion=6.01
 LicenseFile=..\..\LICENSE.txt
 SetupIconFile=..\..\ProcessHacker\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
@@ -100,7 +98,7 @@ Name: en; MessagesFile: compiler:Default.isl
 [Messages]
 WelcomeLabel1=[name/ver]
 WelcomeLabel2=This will install [name] on your computer.%n%nIt is recommended that you close all other applications before continuing.
-BeveledLabel=Process Hacker v{#app_version_full}, Setup v{#installer_build_number} built on {#installer_build_date}
+BeveledLabel=Process Hacker v{#app_version_full}
 SetupAppTitle=Setup - Process Hacker
 SetupWindowTitle=Setup - Process Hacker
 
@@ -115,10 +113,12 @@ Name: custom;                        Description: {cm:tsk_custom};              
 Name: main;                          Description: {cm:comp_Main_App};              Types: full minimal custom; Flags: fixed
 Name: peview;                        Description: {cm:comp_PE_Viewer};             Types: full minimal custom; Flags: disablenouninstallwarning
 Name: plugins;                       Description: {cm:comp_Plugins};               Types: full custom;         Flags: disablenouninstallwarning
+Name: plugins\cmnutil;               Description: {cm:comp_CommonUtil};            Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\dotnettools;           Description: {cm:comp_DotNetTools};           Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendednotifications; Description: {cm:comp_ExtendedNotifications}; Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendedservices;      Description: {cm:comp_ExtendedServices};      Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\extendedtools;         Description: {cm:comp_ExtendedTools};         Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 6.0
+Name: plugins\extraplugins;          Description: {cm:comp_ExtraPlugins};          Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\hardwaredevices;       Description: {cm:comp_HardwareDevices};       Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\networktools;          Description: {cm:comp_NetworkTools};          Types: full custom;         Flags: disablenouninstallwarning
 Name: plugins\onlinechecks;          Description: {cm:comp_OnlineChecks};          Types: full custom;         Flags: disablenouninstallwarning
@@ -165,7 +165,8 @@ Source: ..\..\KProcessHacker\bin-signed\amd64\kprocesshacker.sys; DestDir: {app}
 
 Source: ..\..\bin\Release32\peview.exe;                           DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\peview.exe;                           DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: Is64BitInstallMode()
-
+Source: ..\..\bin\Release32\plugins\CommonUtil.dll;               DestDir: {app}\plugins; Components: plugins\cmnutil;               Flags: ignoreversion; Check: not Is64BitInstallMode()
+Source: ..\..\bin\Release64\plugins\CommonUtil.dll;               DestDir: {app}\plugins; Components: plugins\cmnutil;               Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\DotNetTools.dll;              DestDir: {app}\plugins; Components: plugins\dotnettools;           Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\DotNetTools.dll;              DestDir: {app}\plugins; Components: plugins\dotnettools;           Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\DotNetTools.dll;              DestDir: {app}\x86\plugins; Components: plugins\dotnettools;       Flags: ignoreversion; Check: Is64BitInstallMode()
@@ -175,6 +176,8 @@ Source: ..\..\bin\Release32\plugins\ExtendedServices.dll;         DestDir: {app}
 Source: ..\..\bin\Release64\plugins\ExtendedServices.dll;         DestDir: {app}\plugins; Components: plugins\extendedservices;      Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\ExtendedTools.dll;            DestDir: {app}\plugins; Components: plugins\extendedtools;         Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\ExtendedTools.dll;            DestDir: {app}\plugins; Components: plugins\extendedtools;         Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\bin\Release32\plugins\ExtraPlugins.dll;             DestDir: {app}\plugins; Components: plugins\extraplugins;          Flags: ignoreversion; Check: not Is64BitInstallMode()
+Source: ..\..\bin\Release64\plugins\ExtraPlugins.dll;             DestDir: {app}\plugins; Components: plugins\extraplugins;          Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\HardwareDevices.dll;          DestDir: {app}\plugins; Components: plugins\hardwaredevices;       Flags: ignoreversion; Check: not Is64BitInstallMode()
 Source: ..\..\bin\Release64\plugins\HardwareDevices.dll;          DestDir: {app}\plugins; Components: plugins\hardwaredevices;       Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\plugins\NetworkTools.dll;             DestDir: {app}\plugins; Components: plugins\networktools;          Flags: ignoreversion; Check: not Is64BitInstallMode()
@@ -198,9 +201,9 @@ Source: Icons\uninstall.ico;                                      DestDir: {app}
 [Icons]
 Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; AppUserModelID: "wj32.ProcessHacker2"
-Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
-Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
-Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};     Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
+Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; WorkingDir: {app};                 Comment: {cm:sm_com_Changelog}
+Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: {#website_url};                     Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
+Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};  Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
 Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
 Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#app_version_full}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user; AppUserModelID: "wj32.ProcessHacker2"
@@ -219,10 +222,12 @@ Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: rese
 Type: files;      Name: {app}\Help.htm;                              Check: IsUpgrade()
 Type: files;      Name: {app}\peview.exe;                            Check: not IsComponentSelected('peview')                        and IsUpgrade()
 Type: files;      Name: {group}\PE Viewer.lnk;                       Check: not IsComponentSelected('peview')                        and IsUpgrade()
+Type: files;      Name: {app}\plugins\CommonUtil.dll;                Check: not IsComponentSelected('plugins\cmnutil')               and IsUpgrade()
 Type: files;      Name: {app}\plugins\DotNetTools.dll;               Check: not IsComponentSelected('plugins\dotnettools')           and IsUpgrade()
 Type: files;      Name: {app}\plugins\ExtendedNotifications.dll;     Check: not IsComponentSelected('plugins\extendednotifications') and IsUpgrade()
 Type: files;      Name: {app}\plugins\ExtendedServices.dll;          Check: not IsComponentSelected('plugins\extendedservices')      and IsUpgrade()
 Type: files;      Name: {app}\plugins\ExtendedTools.dll;             Check: not IsComponentSelected('plugins\extendedtools')         and IsUpgrade()
+Type: files;      Name: {app}\plugins\ExtraPlugins.dll;              Check: not IsComponentSelected('plugins\extraplugins')          and IsUpgrade()
 Type: files;      Name: {app}\plugins\HardwareDevices.dll;           Check: not IsComponentSelected('plugins\hardwaredevices')       and IsUpgrade()
 Type: files;      Name: {app}\plugins\NetAdapters.dll;               Check: IsUpgrade()
 Type: files;      Name: {app}\plugins\NetworkTools.dll;              Check: not IsComponentSelected('plugins\networktools')          and IsUpgrade()
@@ -238,7 +243,7 @@ Type: dirifempty; Name: {app}\plugins
 [Run]
 Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent
 Filename: {app}\CHANGELOG.txt;                   Description: {cm:run_ViewChangelog};              Flags: nowait postinstall skipifsilent unchecked shellexec
-Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite};               Flags: nowait postinstall skipifsilent unchecked shellexec
+Filename: {#website_url}; Description: {cm:run_VisitWebsite};                                      Flags: nowait postinstall skipifsilent unchecked shellexec
 
 
 [Code]
@@ -270,7 +275,7 @@ function KPHServiceCheck(): Boolean;
 var
   dwStart: DWORD;
 begin
-  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dwStart) then begin
+  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker3', 'Start', dwStart) then begin
     if dwStart = 1 then
       Result := True;
   end else
@@ -327,16 +332,16 @@ var
   iResultCode: Integer;
 begin
   if CurStep = ssInstall then begin
-    if IsServiceRunning('KProcessHacker2') then
-      StopService('KProcessHacker2');
+    if IsServiceRunning('KProcessHacker3') then
+      StopService('KProcessHacker3');
     if IsTaskSelected('delete_KPH_service') then
-      RemoveService('KProcessHacker2');
+      RemoveService('KProcessHacker3');
   end;
 
   if CurStep = ssPostInstall then begin
     if (KPHServiceCheck() and not IsTaskSelected('delete_KPH_service') or (IsTaskSelected('create_KPH_service'))) then begin
-      StopService('KProcessHacker2');
-      RemoveService('KProcessHacker2');
+      StopService('KProcessHacker3');
+      RemoveService('KProcessHacker3');
 
       if not Exec(ExpandConstant('{app}\ProcessHacker.exe'), '-installkph -s', '', SW_HIDE, ewWaitUntilTerminated, iResultCode) then begin
         // handle failure if necessary; iResultCode contains the error code
@@ -364,8 +369,8 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then begin
-    StopService('KProcessHacker2');
-    RemoveService('KProcessHacker2');
+    StopService('KProcessHacker3');
+    RemoveService('KProcessHacker3');
 
     // When uninstalling ask user to delete Process Hacker's settings
     // based on whether the settings file exists only

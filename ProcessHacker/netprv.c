@@ -84,8 +84,6 @@ typedef int (WSAAPI *_WSAStartup)(
     _Out_ LPWSADATA lpWSAData
     );
 
-typedef int (WSAAPI *_WSAGetLastError)();
-
 typedef INT (WSAAPI *_GetNameInfoW)(
     _In_reads_bytes_(SockaddrLength) const SOCKADDR *pSockaddr,
     _In_ socklen_t SockaddrLength,
@@ -94,12 +92,6 @@ typedef INT (WSAAPI *_GetNameInfoW)(
     _Out_writes_opt_(ServiceBufferSize) PWCHAR pServiceBuffer,
     _In_ DWORD ServiceBufferSize,
     _In_ INT Flags
-    );
-
-typedef struct hostent *(WSAAPI *_gethostbyaddr)(
-    _In_reads_bytes_(len) const char *addr,
-    _In_ int len,
-    _In_ int type
     );
 
 VOID NTAPI PhpNetworkItemDeleteProcedure(
@@ -153,9 +145,7 @@ static BOOLEAN NetworkImportDone = FALSE;
 static _GetExtendedTcpTable GetExtendedTcpTable_I;
 static _GetExtendedUdpTable GetExtendedUdpTable_I;
 static _WSAStartup WSAStartup_I;
-static _WSAGetLastError WSAGetLastError_I;
 static _GetNameInfoW GetNameInfoW_I;
-static _gethostbyaddr gethostbyaddr_I;
 
 BOOLEAN PhNetworkProviderInitialization(
     VOID
@@ -446,10 +436,6 @@ NTSTATUS PhpNetworkItemQueryWorker(
 
             PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
         }
-        else
-        {
-            dprintf("resolve failed, error %u\n", WSAGetLastError_I());
-        }
     }
     else
     {
@@ -527,18 +513,16 @@ VOID PhNetworkProviderUpdate(
         HMODULE ws2_32;
 
         iphlpapi = LoadLibrary(L"iphlpapi.dll");
-        GetExtendedTcpTable_I = (PVOID)GetProcAddress(iphlpapi, "GetExtendedTcpTable");
-        GetExtendedUdpTable_I = (PVOID)GetProcAddress(iphlpapi, "GetExtendedUdpTable");
+        GetExtendedTcpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
+        GetExtendedUdpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
         ws2_32 = LoadLibrary(L"ws2_32.dll");
-        WSAStartup_I = (PVOID)GetProcAddress(ws2_32, "WSAStartup");
-        WSAGetLastError_I = (PVOID)GetProcAddress(ws2_32, "WSAGetLastError");
-        GetNameInfoW_I = (PVOID)GetProcAddress(ws2_32, "GetNameInfoW");
-        gethostbyaddr_I = (PVOID)GetProcAddress(ws2_32, "gethostbyaddr");
+        WSAStartup_I = PhGetProcedureAddress(ws2_32, "WSAStartup", 0);
+        GetNameInfoW_I = PhGetProcedureAddress(ws2_32, "GetNameInfoW", 0);
 
         // Make sure WSA is initialized.
         if (WSAStartup_I)
         {
-            WSAStartup_I(MAKEWORD(2, 2), &wsaData);
+            WSAStartup_I(WINSOCK_VERSION, &wsaData);
         }
 
         NetworkImportDone = TRUE;

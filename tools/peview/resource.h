@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by peview.rc
 //
-#define IDR_RT_MANIFEST                 1
 #define IDD_PEGENERAL                   102
 #define IDD_PEIMPORTS                   103
 #define IDD_PEEXPORTS                   104
@@ -10,6 +9,7 @@
 #define IDD_PECLR                       106
 #define IDD_PEEXPORTS1                  107
 #define IDD_PELOADCONFIG                107
+#define IDD_PECFG                       108
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
@@ -34,7 +34,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        108
+#define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           101

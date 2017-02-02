@@ -352,6 +352,10 @@ BOOLEAN QueryInterfaceRow(
     _Out_ PMIB_IF_ROW2 InterfaceRow
     );
 
+PWSTR MediumTypeToString(
+    _In_ NDIS_PHYSICAL_MEDIUM MediumType
+    );
+
 // netoptions.c
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
@@ -513,16 +517,6 @@ PPH_STRING DiskDriveQueryGeometry(
 BOOLEAN DiskDriveQueryImminentFailure(
     _In_ HANDLE DeviceHandle,
     _Out_ PPH_LIST* DiskSmartAttributes
-    );
-
-typedef struct _DISK_HANDLE_ENTRY
-{
-    WCHAR DeviceLetter;
-    HANDLE DeviceHandle;
-} DISK_HANDLE_ENTRY, *PDISK_HANDLE_ENTRY;
-
-PPH_LIST DiskDriveQueryMountPointHandles(
-    _In_ ULONG DeviceNumber
     );
 
 typedef struct _NTFS_FILESYSTEM_STATISTICS

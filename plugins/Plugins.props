@@ -27,6 +27,7 @@
             <MinimalRebuild>false</MinimalRebuild>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+            <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -53,13 +54,12 @@
     <!-- Release Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
         <ClCompile>
-            <Optimization>MaxSpeed</Optimization> <!-- <Optimization>Full</Optimization> -->
+            <Optimization>Full</Optimization>
             <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
             <FunctionLevelLinking>true</FunctionLevelLinking>
             <IntrinsicFunctions>true</IntrinsicFunctions>
             <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
             <WholeProgramOptimization>true</WholeProgramOptimization>
-            <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
             <OptimizeReferences>true</OptimizeReferences>
@@ -91,28 +91,28 @@
     <!-- Debug|Win32 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
         <ClCompile>
-            <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 
     <!-- Debug|x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
         <ClCompile>
-            <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 
     <!-- Release|Win32 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
         <ClCompile>
-            <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 
     <!-- Release|x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <ClCompile>
-            <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ClCompile>
     </ItemDefinitionGroup>
 

@@ -40,10 +40,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
     switch (uMsg)
     {
     case TDN_NAVIGATED:
-        {
-            // Taskdialog is now initialized
-            PhSetEvent(&InitializedEvent);
-        }
+        PhSetEvent(&InitializedEvent);
         break;
     case TDN_BUTTON_CLICKED:
         {
@@ -70,17 +67,16 @@ VOID ShowCheckForUpdatesDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
-    config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Check for new Process Hacker releases?";
-    //config.pszContent = L"The updater will check for new Process Hacker releases and optionally download and install the update.\r\n\r\nClick the check for updates button to continue.";
-    config.pszContent = L"Select \"check for updates\" to continue.\r\n";
-
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.pfCallback = CheckForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+
+    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszMainInstruction = L"Check for new Process Hacker releases?";
+    //config.pszContent = L"The updater will check for new Process Hacker releases and optionally download and install the update.\r\n\r\nClick the check for updates button to continue.";
+    config.pszContent = L"Select \"check for updates\" to continue.\r\n";
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

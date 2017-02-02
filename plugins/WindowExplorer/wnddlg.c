@@ -23,11 +23,13 @@
 
 #include "wndexp.h"
 #include "resource.h"
+#include <commonutil.h>
 #include <windowsx.h>
 
 typedef struct _WINDOWS_CONTEXT
 {
     HWND TreeNewHandle;
+    HWND SearchBoxHandle;
     WE_WINDOW_TREE_CONTEXT TreeContext;
     WE_WINDOW_SELECTOR Selector;
 
@@ -317,11 +319,16 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PH_RECTANGLE windowRectangle;
 
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
+
+            CreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
 
             PhRegisterDialog(hwndDlg);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
 
             if (MinimumSize.left == -1)
@@ -355,6 +362,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             SetWindowText(hwndDlg, windowTitle->Buffer);
 
             WepRefreshWindows(context);
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_LIST), TRUE);
         }
         break;
     case WM_DESTROY:
@@ -371,10 +380,36 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_COMMAND:
         {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
+                        break;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
+
+                    if (!PhEqualString(context->TreeContext.SearchboxText, newSearchboxText, FALSE))
+                    {
+                        PhSwapReference(&context->TreeContext.SearchboxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(context->TreeContext.SearchboxText))
+                            WeExpandAllWindowNodes(&context->TreeContext, TRUE);
+
+                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+                        TreeNew_NodesStructured(context->TreeNewHandle);
+                       // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
+                    }
+                }
+                break;
+            }
+
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-            //case IDOK:
                 DestroyWindow(hwndDlg);
                 break;
             case IDC_REFRESH:

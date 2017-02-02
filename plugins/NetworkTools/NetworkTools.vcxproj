@@ -53,45 +53,346 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ClCompile />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>iphlpapi.lib;winhttp.lib;ws2_32.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>iphlpapi.dll;winhttp.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="country.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="maxminddb\maxminddb.c" />
     <ClCompile Include="options.c" />
-    <ClCompile Include="output.c" />
     <ClCompile Include="ping.c" />
+    <ClCompile Include="pages.c" />
+    <ClCompile Include="ports.c" />
     <ClCompile Include="tracert.c" />
+    <ClCompile Include="tracetree.c" />
+    <ClCompile Include="update.c" />
     <ClCompile Include="whois.c" />
+    <ClCompile Include="zlib\adler32.c" />
+    <ClCompile Include="zlib\compress.c" />
+    <ClCompile Include="zlib\crc32.c" />
+    <ClCompile Include="zlib\deflate.c" />
+    <ClCompile Include="zlib\gzclose.c" />
+    <ClCompile Include="zlib\gzlib.c" />
+    <ClCompile Include="zlib\gzread.c" />
+    <ClCompile Include="zlib\gzwrite.c" />
+    <ClCompile Include="zlib\infback.c" />
+    <ClCompile Include="zlib\inffast.c" />
+    <ClCompile Include="zlib\inflate.c" />
+    <ClCompile Include="zlib\inftrees.c" />
+    <ClCompile Include="zlib\ioapi.c" />
+    <ClCompile Include="zlib\iowin32.c" />
+    <ClCompile Include="zlib\miniunz.c" />
+    <ClCompile Include="zlib\minizip.c" />
+    <ClCompile Include="zlib\mztools.c" />
+    <ClCompile Include="zlib\trees.c" />
+    <ClCompile Include="zlib\uncompr.c" />
+    <ClCompile Include="zlib\unzip.c" />
+    <ClCompile Include="zlib\zip.c" />
+    <ClCompile Include="zlib\zutil.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
+    <ClInclude Include="maxminddb\maxminddb.h" />
+    <ClInclude Include="maxminddb\maxminddb_config.h" />
     <ClInclude Include="nettools.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="tracert.h" />
+    <ClInclude Include="zlib\crc32.h" />
+    <ClInclude Include="zlib\crypt.h" />
+    <ClInclude Include="zlib\deflate.h" />
+    <ClInclude Include="zlib\gzguts.h" />
+    <ClInclude Include="zlib\inffast.h" />
+    <ClInclude Include="zlib\inffixed.h" />
+    <ClInclude Include="zlib\inflate.h" />
+    <ClInclude Include="zlib\inftrees.h" />
+    <ClInclude Include="zlib\ioapi.h" />
+    <ClInclude Include="zlib\iowin32.h" />
+    <ClInclude Include="zlib\mztools.h" />
+    <ClInclude Include="zlib\trees.h" />
+    <ClInclude Include="zlib\unzip.h" />
+    <ClInclude Include="zlib\zconf.h" />
+    <ClInclude Include="zlib\zip.h" />
+    <ClInclude Include="zlib\zlib.h" />
+    <ClInclude Include="zlib\zutil.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NetworkTools.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\ad.png" />
+    <Image Include="resources\ae.png" />
+    <Image Include="resources\af.png" />
+    <Image Include="resources\ag.png" />
+    <Image Include="resources\ai.png" />
+    <Image Include="resources\al.png" />
+    <Image Include="resources\am.png" />
+    <Image Include="resources\an.png" />
+    <Image Include="resources\ao.png" />
+    <Image Include="resources\ar.png" />
+    <Image Include="resources\as.png" />
+    <Image Include="resources\at.png" />
+    <Image Include="resources\au.png" />
+    <Image Include="resources\aw.png" />
+    <Image Include="resources\ax.png" />
+    <Image Include="resources\az.png" />
+    <Image Include="resources\ba.png" />
+    <Image Include="resources\bb.png" />
+    <Image Include="resources\bd.png" />
+    <Image Include="resources\be.png" />
+    <Image Include="resources\bf.png" />
+    <Image Include="resources\bg.png" />
+    <Image Include="resources\bh.png" />
+    <Image Include="resources\bi.png" />
+    <Image Include="resources\bj.png" />
+    <Image Include="resources\bm.png" />
+    <Image Include="resources\bn.png" />
+    <Image Include="resources\bo.png" />
+    <Image Include="resources\br.png" />
+    <Image Include="resources\bs.png" />
+    <Image Include="resources\bt.png" />
+    <Image Include="resources\bv.png" />
+    <Image Include="resources\bw.png" />
+    <Image Include="resources\by.png" />
+    <Image Include="resources\bz.png" />
+    <Image Include="resources\ca.png" />
+    <Image Include="resources\catalonia.png" />
+    <Image Include="resources\cc.png" />
+    <Image Include="resources\cd.png" />
+    <Image Include="resources\cf.png" />
+    <Image Include="resources\cg.png" />
+    <Image Include="resources\ch.png" />
+    <Image Include="resources\ci.png" />
+    <Image Include="resources\ck.png" />
+    <Image Include="resources\cl.png" />
+    <Image Include="resources\cm.png" />
+    <Image Include="resources\cn.png" />
+    <Image Include="resources\co.png" />
+    <Image Include="resources\cr.png" />
+    <Image Include="resources\cs.png" />
+    <Image Include="resources\cu.png" />
+    <Image Include="resources\cv.png" />
+    <Image Include="resources\cx.png" />
+    <Image Include="resources\cy.png" />
+    <Image Include="resources\cz.png" />
+    <Image Include="resources\de.png" />
+    <Image Include="resources\dj.png" />
+    <Image Include="resources\dk.png" />
+    <Image Include="resources\dm.png" />
+    <Image Include="resources\do.png" />
+    <Image Include="resources\dz.png" />
+    <Image Include="resources\ec.png" />
+    <Image Include="resources\ee.png" />
+    <Image Include="resources\eg.png" />
+    <Image Include="resources\eh.png" />
+    <Image Include="resources\england.png" />
+    <Image Include="resources\er.png" />
+    <Image Include="resources\es.png" />
+    <Image Include="resources\et.png" />
+    <Image Include="resources\europeanunion.png" />
+    <Image Include="resources\fam.png" />
+    <Image Include="resources\fi.png" />
+    <Image Include="resources\fj.png" />
+    <Image Include="resources\fk.png" />
+    <Image Include="resources\fm.png" />
+    <Image Include="resources\fo.png" />
+    <Image Include="resources\fr.png" />
+    <Image Include="resources\ga.png" />
+    <Image Include="resources\gb.png" />
+    <Image Include="resources\gd.png" />
+    <Image Include="resources\ge.png" />
+    <Image Include="resources\gf.png" />
+    <Image Include="resources\gh.png" />
+    <Image Include="resources\gi.png" />
+    <Image Include="resources\gl.png" />
+    <Image Include="resources\gm.png" />
+    <Image Include="resources\gn.png" />
+    <Image Include="resources\gp.png" />
+    <Image Include="resources\gq.png" />
+    <Image Include="resources\gr.png" />
+    <Image Include="resources\gs.png" />
+    <Image Include="resources\gt.png" />
+    <Image Include="resources\gu.png" />
+    <Image Include="resources\gw.png" />
+    <Image Include="resources\gy.png" />
+    <Image Include="resources\hk.png" />
+    <Image Include="resources\hm.png" />
+    <Image Include="resources\hn.png" />
+    <Image Include="resources\hr.png" />
+    <Image Include="resources\ht.png" />
+    <Image Include="resources\hu.png" />
+    <Image Include="resources\id.png" />
+    <Image Include="resources\ie.png" />
+    <Image Include="resources\il.png" />
+    <Image Include="resources\in.png" />
+    <Image Include="resources\io.png" />
+    <Image Include="resources\iq.png" />
+    <Image Include="resources\ir.png" />
+    <Image Include="resources\is.png" />
+    <Image Include="resources\it.png" />
+    <Image Include="resources\jm.png" />
+    <Image Include="resources\jo.png" />
+    <Image Include="resources\jp.png" />
+    <Image Include="resources\ke.png" />
+    <Image Include="resources\kg.png" />
+    <Image Include="resources\kh.png" />
+    <Image Include="resources\ki.png" />
+    <Image Include="resources\km.png" />
+    <Image Include="resources\kn.png" />
+    <Image Include="resources\kp.png" />
+    <Image Include="resources\kr.png" />
+    <Image Include="resources\kw.png" />
+    <Image Include="resources\ky.png" />
+    <Image Include="resources\kz.png" />
+    <Image Include="resources\la.png" />
+    <Image Include="resources\lb.png" />
+    <Image Include="resources\lc.png" />
+    <Image Include="resources\li.png" />
+    <Image Include="resources\lk.png" />
+    <Image Include="resources\lr.png" />
+    <Image Include="resources\ls.png" />
+    <Image Include="resources\lt.png" />
+    <Image Include="resources\lu.png" />
+    <Image Include="resources\lv.png" />
+    <Image Include="resources\ly.png" />
+    <Image Include="resources\ma.png" />
+    <Image Include="resources\mc.png" />
+    <Image Include="resources\md.png" />
+    <Image Include="resources\me.png" />
+    <Image Include="resources\mg.png" />
+    <Image Include="resources\mh.png" />
+    <Image Include="resources\mk.png" />
+    <Image Include="resources\ml.png" />
+    <Image Include="resources\mm.png" />
+    <Image Include="resources\mn.png" />
+    <Image Include="resources\mo.png" />
+    <Image Include="resources\mp.png" />
+    <Image Include="resources\mq.png" />
+    <Image Include="resources\mr.png" />
+    <Image Include="resources\ms.png" />
+    <Image Include="resources\mt.png" />
+    <Image Include="resources\mu.png" />
+    <Image Include="resources\mv.png" />
+    <Image Include="resources\mw.png" />
+    <Image Include="resources\mx.png" />
+    <Image Include="resources\my.png" />
+    <Image Include="resources\mz.png" />
+    <Image Include="resources\na.png" />
+    <Image Include="resources\nc.png" />
+    <Image Include="resources\ne.png" />
+    <Image Include="resources\nf.png" />
+    <Image Include="resources\ng.png" />
+    <Image Include="resources\ni.png" />
+    <Image Include="resources\nl.png" />
+    <Image Include="resources\no.png" />
+    <Image Include="resources\np.png" />
+    <Image Include="resources\nr.png" />
+    <Image Include="resources\nu.png" />
+    <Image Include="resources\nz.png" />
+    <Image Include="resources\om.png" />
+    <Image Include="resources\pa.png" />
+    <Image Include="resources\pe.png" />
+    <Image Include="resources\pf.png" />
+    <Image Include="resources\pg.png" />
+    <Image Include="resources\ph.png" />
+    <Image Include="resources\pk.png" />
+    <Image Include="resources\pl.png" />
+    <Image Include="resources\pm.png" />
+    <Image Include="resources\pn.png" />
+    <Image Include="resources\pr.png" />
+    <Image Include="resources\ps.png" />
+    <Image Include="resources\pt.png" />
+    <Image Include="resources\pw.png" />
+    <Image Include="resources\py.png" />
+    <Image Include="resources\qa.png" />
+    <Image Include="resources\re.png" />
+    <Image Include="resources\ro.png" />
+    <Image Include="resources\rs.png" />
+    <Image Include="resources\ru.png" />
+    <Image Include="resources\rw.png" />
+    <Image Include="resources\sa.png" />
+    <Image Include="resources\sb.png" />
+    <Image Include="resources\sc.png" />
+    <Image Include="resources\scotland.png" />
+    <Image Include="resources\sd.png" />
+    <Image Include="resources\se.png" />
+    <Image Include="resources\sg.png" />
+    <Image Include="resources\sh.png" />
+    <Image Include="resources\si.png" />
+    <Image Include="resources\sj.png" />
+    <Image Include="resources\sk.png" />
+    <Image Include="resources\sl.png" />
+    <Image Include="resources\sm.png" />
+    <Image Include="resources\sn.png" />
+    <Image Include="resources\so.png" />
+    <Image Include="resources\sr.png" />
+    <Image Include="resources\st.png" />
+    <Image Include="resources\sv.png" />
+    <Image Include="resources\sy.png" />
+    <Image Include="resources\sz.png" />
+    <Image Include="resources\tc.png" />
+    <Image Include="resources\td.png" />
+    <Image Include="resources\tf.png" />
+    <Image Include="resources\tg.png" />
+    <Image Include="resources\th.png" />
+    <Image Include="resources\tj.png" />
+    <Image Include="resources\tk.png" />
+    <Image Include="resources\tl.png" />
+    <Image Include="resources\tm.png" />
+    <Image Include="resources\tn.png" />
+    <Image Include="resources\to.png" />
+    <Image Include="resources\tr.png" />
+    <Image Include="resources\tt.png" />
+    <Image Include="resources\tv.png" />
+    <Image Include="resources\tw.png" />
+    <Image Include="resources\tz.png" />
+    <Image Include="resources\ua.png" />
+    <Image Include="resources\ug.png" />
+    <Image Include="resources\um.png" />
+    <Image Include="resources\us.png" />
+    <Image Include="resources\uy.png" />
+    <Image Include="resources\uz.png" />
+    <Image Include="resources\va.png" />
+    <Image Include="resources\vc.png" />
+    <Image Include="resources\ve.png" />
+    <Image Include="resources\vg.png" />
+    <Image Include="resources\vi.png" />
+    <Image Include="resources\vn.png" />
+    <Image Include="resources\vu.png" />
+    <Image Include="resources\wales.png" />
+    <Image Include="resources\wf.png" />
+    <Image Include="resources\ws.png" />
+    <Image Include="resources\ye.png" />
+    <Image Include="resources\yt.png" />
+    <Image Include="resources\za.png" />
+    <Image Include="resources\zm.png" />
+    <Image Include="resources\zw.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\licence.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

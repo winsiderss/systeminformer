@@ -21,7 +21,9 @@
  */
 
 #include "toolstatus.h"
+#include "commonutil.h"
 
+SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
 
 TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
@@ -105,25 +107,16 @@ VOID RebarLoadSettings(
     VOID
     )
 {
-    // Initialize the Toolbar Imagelist.
     if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
     {
-        ToolBarImageList = ImageList_Create(
-            GetSystemMetrics(SM_CXSMICON),
-            GetSystemMetrics(SM_CYSMICON),
-            ILC_COLOR32,
-            0,
-            0
-            );
+        ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_COLOR32, 0, 0);
     }
 
-    // Initialize the Rebar and Toolbar controls.
     if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
     {
         REBARINFO rebarInfo = { sizeof(REBARINFO) };
         ULONG toolbarButtonSize;
 
-        // Create the ReBar window.
         RebarHandle = CreateWindowEx(
             WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
@@ -136,10 +129,6 @@ VOID RebarLoadSettings(
             NULL
             );
 
-        // Set the toolbar info with no imagelist.
-        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
-
-        // Create the ToolBar window.
         ToolBarHandle = CreateWindowEx(
             0,
             TOOLBARCLASSNAME,
@@ -152,6 +141,8 @@ VOID RebarLoadSettings(
             NULL
             );
 
+        // Set the toolbar info with no imagelist.
+        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
@@ -167,40 +158,23 @@ VOID RebarLoadSettings(
         toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
 
         // Enable theming
-        switch (ToolBarTheme)
-        {
-        case TOOLBAR_THEME_BLACK:
-            {
-                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-            }
-            break;
-        case TOOLBAR_THEME_BLUE:
-            {
-                SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
-                SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Communications");
-            }
-            break;
-        }
+        // SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
+        // SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
         // Inset the toolbar into the rebar control.
         RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), HIWORD(toolbarButtonSize));
     }
 
-    // Initialize the Searchbox and TreeNewFilters.
     if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
     {
         SearchboxText = PhReferenceEmptyString();
-
         ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, NULL);
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), (PPH_TN_FILTER_FUNCTION)ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), (PPH_TN_FILTER_FUNCTION)NetworkTreeFilterCallback, NULL);
 
-        // Create the Searchbox control.
-        SearchboxHandle = CreateSearchControl(ID_SEARCH_CLEAR);
+        CreateSearchboxControl();
     }
 
-    // Initialize the Statusbar control.
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
     {
         // Create the StatusBar window.
@@ -235,7 +209,7 @@ VOID RebarLoadSettings(
 
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), height - 2);
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), height);
 
         if (!IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
@@ -460,19 +434,6 @@ HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     )
 {
-    static INT cx = 0;
-    static INT cy = 0;
-
-    if (!cx)
-    {
-        cx = GetSystemMetrics(SM_CXSMICON);
-    }
-
-    if (!cy)
-    {
-        cy = GetSystemMetrics(SM_CYSMICON);
-    }
-
     switch (CommandID)
     {
     case PHAPP_ID_VIEW_REFRESH:
@@ -481,11 +442,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH));
             }
 
             return toolbarBitmap;
@@ -497,11 +458,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_COG_EDIT));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_COG_EDIT));
             }
 
             return toolbarBitmap;
@@ -513,11 +474,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_FIND_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_FIND_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_FIND));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_FIND));
             }
 
             return toolbarBitmap;
@@ -529,11 +490,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_CHART_LINE));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CHART_LINE));
             }
 
             return toolbarBitmap;
@@ -545,11 +506,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_TBAPPLICATION));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_TBAPPLICATION));
             }
 
             return toolbarBitmap;
@@ -561,11 +522,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_APPLICATION_GO));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GO));
             }
 
             return toolbarBitmap;
@@ -577,11 +538,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_CROSS_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CROSS_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_CROSS));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CROSS));
             }
 
             return toolbarBitmap;
@@ -593,11 +554,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_APPLICATION_GET));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GET));
             }
 
             return toolbarBitmap;
@@ -609,11 +570,11 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(cx, cy, MAKEINTRESOURCE(IDB_POWER_MODERN), FALSE);
+                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_POWER_MODERN), FALSE);
             }
             else
             {
-                toolbarBitmap = ToolbarLoadImageFromIcon(cx, cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF));
+                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF));
             }
 
             return toolbarBitmap;
@@ -621,17 +582,12 @@ HBITMAP ToolbarGetImage(
         break;
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         {
+            HICON shieldIcon;
             HBITMAP toolbarBitmap = NULL;
-            HICON shieldIcon = NULL;
 
-            if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
+            if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL, 0, 0))
             {
-                toolbarBitmap = PhIconToBitmap(
-                    shieldIcon,
-                    cx,
-                    cy
-                    );
-
+                toolbarBitmap = PhIconToBitmap(shieldIcon, ToolBarImageSize.cx, ToolBarImageSize.cy);
                 DestroyIcon(shieldIcon);
             }
 
@@ -647,7 +603,7 @@ VOID ToolbarLoadButtonSettings(
     VOID
     )
 {
-    INT buttonCount;
+    INT count;
     ULONG64 countInteger;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
@@ -679,13 +635,13 @@ VOID ToolbarLoadButtonSettings(
         return;
     }
 
-    buttonCount = (INT)countInteger;
+    count = (INT)countInteger;
 
     // Allocate the button array
-    buttonArray = PhAllocate(buttonCount * sizeof(TBBUTTON));
-    memset(buttonArray, 0, buttonCount * sizeof(TBBUTTON));
+    buttonArray = PhAllocate(count * sizeof(TBBUTTON));
+    memset(buttonArray, 0, count * sizeof(TBBUTTON));
 
-    for (INT index = 0; index < buttonCount; index++)
+    for (INT index = 0; index < count; index++)
     {
         ULONG64 commandInteger;
         PH_STRINGREF commandIdPart;
@@ -714,24 +670,24 @@ VOID ToolbarLoadButtonSettings(
         {
             if (ToolbarButtons[i].idCommand == buttonArray[index].idCommand)
             {
-                HBITMAP buttonImage;
+                HBITMAP bitmap;
 
-                buttonImage = ToolbarGetImage(ToolbarButtons[i].idCommand);
+                bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand);
 
                 // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
                 buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = ImageList_Add(
                     ToolBarImageList,
-                    buttonImage,
+                    bitmap,
                     NULL
                     );
 
-                DeleteObject(buttonImage);
+                DeleteObject(bitmap);
                 break;
             }
         }
     }
 
-    SendMessage(ToolBarHandle, TB_ADDBUTTONS, buttonCount, (LPARAM)buttonArray);
+    SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 
     PhFree(buttonArray);
 }
@@ -740,22 +696,22 @@ VOID ToolbarSaveButtonSettings(
     VOID
     )
 {
-    INT buttonIndex = 0;
-    INT buttonCount = 0;
+    INT index = 0;
+    INT count = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+    count = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
     PhAppendFormatStringBuilder(
         &stringBuilder,
         L"%d|",
-        buttonCount
+        count
         );
 
-    for (buttonIndex = 0; buttonIndex < buttonCount; buttonIndex++)
+    for (index = 0; index < count; index++)
     {
         TBBUTTONINFO buttonInfo =
         {
@@ -763,8 +719,7 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        // Get button information.
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, buttonIndex, (LPARAM)&buttonInfo) == -1)
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
             break;
 
         PhAppendFormatStringBuilder(
@@ -785,8 +740,8 @@ VOID ReBarLoadLayoutSettings(
     VOID
     )
 {
-    UINT bandIndex = 0;
-    UINT bandCount = 0;
+    UINT index = 0;
+    UINT count = 0;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
@@ -796,9 +751,9 @@ VOID ReBarLoadLayoutSettings(
     if (remaining.Length == 0)
         return;
 
-    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
 
-    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+    for (index = 0; index < count; index++)
     {
         PH_STRINGREF idPart;
         PH_STRINGREF cxPart;
@@ -827,17 +782,17 @@ VOID ReBarLoadLayoutSettings(
         if ((oldBandIndex = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, (UINT)idInteger, 0)) == -1)
             break;
 
-        if (oldBandIndex != bandIndex)
+        if (oldBandIndex != index)
         {
-            SendMessage(RebarHandle, RB_MOVEBAND, oldBandIndex, bandIndex);
+            SendMessage(RebarHandle, RB_MOVEBAND, oldBandIndex, index);
         }
 
-        if (SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo))
+        if (SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo))
         {
             rebarBandInfo.cx = (UINT)cxInteger;
             rebarBandInfo.fStyle |= (UINT)styleInteger;
 
-            SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+            SendMessage(RebarHandle, RB_SETBANDINFO, index, (LPARAM)&rebarBandInfo);
         }
     }
 }
@@ -846,16 +801,16 @@ VOID ReBarSaveLayoutSettings(
     VOID
     )
 {
-    UINT bandIndex = 0;
-    UINT bandCount = 0;
+    UINT index = 0;
+    UINT count = 0;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    bandCount = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
+    count = (UINT)SendMessage(RebarHandle, RB_GETBANDCOUNT, 0, 0);
 
-    for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
+    for (index = 0; index < count; index++)
     {
         REBARBANDINFO rebarBandInfo =
         {
@@ -863,7 +818,7 @@ VOID ReBarSaveLayoutSettings(
             RBBIM_STYLE | RBBIM_SIZE | RBBIM_ID
         };
 
-        SendMessage(RebarHandle, RB_GETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
+        SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
 
         if (rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS)
         {

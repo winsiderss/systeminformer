@@ -64,6 +64,9 @@ VOID ShowProgressDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
+    config.cxWidth = 200;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pfCallback = ShowProgressCallbackProc;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = PhaFormatString(L"Downloading update %lu.%lu.%lu...",
@@ -72,11 +75,11 @@ VOID ShowProgressDialog(
         Context->RevisionVersion
         )->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
-    config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";   
-    
-    config.cxWidth = 200;
-    config.lpCallbackData = (LONG_PTR)Context;
-    config.pfCallback = ShowProgressCallbackProc;
+
+    if (PhIsNullOrEmptyString(Context->BuildMessage))
+        config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+    else
+        config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

@@ -55,8 +55,8 @@ FORCEINLINE VOID PhpSecurityEditorInitialization(
         HMODULE aclui;
 
         aclui = LoadLibrary(L"aclui.dll");
-        CreateSecurityPage_I = (PVOID)GetProcAddress(aclui, "CreateSecurityPage");
-        EditSecurity_I = (PVOID)GetProcAddress(aclui, "EditSecurity");
+        CreateSecurityPage_I = PhGetProcedureAddress(aclui, "CreateSecurityPage", 0);
+        EditSecurity_I = PhGetProcedureAddress(aclui, "EditSecurity", 0);
 
         PhEndInitOnce(&SecurityEditorInitOnce);
     }

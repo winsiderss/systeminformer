@@ -33,8 +33,13 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
+
+            if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+                Button_SetCheck(GetDlgItem(hwndDlg, IDC_NIGHTLY), BST_CHECKED);
         }
         break;
     case WM_COMMAND:
@@ -42,14 +47,14 @@ INT_PTR CALLBACK OptionsDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
                 {
                     PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
 
-                    EndDialog(hwndDlg, IDOK);
+                    PhSetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD,
+                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_NIGHTLY)) == BST_CHECKED);
+
+                    EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
             }

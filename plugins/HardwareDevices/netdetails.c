@@ -353,7 +353,6 @@ VOID NetAdapterUpdateDetails(
 
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
     {
-        // Create the handle to the network device
         if (NT_SUCCESS(NetworkAdapterCreateHandle(&deviceHandle, Context->AdapterId.InterfaceGuid)))
         {
             if (!Context->CheckedDeviceSupport)
@@ -527,8 +526,8 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 315, L"Property");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 262, L"Value");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);

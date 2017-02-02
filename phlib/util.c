@@ -2646,11 +2646,11 @@ NTSTATUS PhCreateProcessAsUser(
         HMODULE userEnv;
 
         winsta = LoadLibrary(L"winsta.dll");
-        WinStationQueryInformationW_I = (_WinStationQueryInformationW)GetProcAddress(winsta, "WinStationQueryInformationW");
+        WinStationQueryInformationW_I = PhGetProcedureAddress(winsta, "WinStationQueryInformationW", 0);
 
         userEnv = LoadLibrary(L"userenv.dll");
-        CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userEnv, "CreateEnvironmentBlock");
-        DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userEnv, "DestroyEnvironmentBlock");
+        CreateEnvironmentBlock_I = PhGetProcedureAddress(userEnv, "CreateEnvironmentBlock", 0);
+        DestroyEnvironmentBlock_I = PhGetProcedureAddress(userEnv, "DestroyEnvironmentBlock", 0);
 
         PhEndInitOnce(&initOnce);
     }

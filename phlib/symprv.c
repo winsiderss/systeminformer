@@ -124,32 +124,32 @@ VOID PhSymbolProviderCompleteInitialization(
 
     symsrvHandle = GetModuleHandle(L"symsrv.dll");
 
-    SymInitialize_I = (PVOID)GetProcAddress(dbghelpHandle, "SymInitialize");
-    SymCleanup_I = (PVOID)GetProcAddress(dbghelpHandle, "SymCleanup");
-    if (!(SymEnumSymbolsW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymEnumSymbolsW")))
-        SymEnumSymbols_I = (PVOID)GetProcAddress(dbghelpHandle, "SymEnumSymbols");
-    if (!(SymFromAddrW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromAddrW")))
-        SymFromAddr_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromAddr");
-    if (!(SymFromNameW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromNameW")))
-        SymFromName_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromName");
-    if (!(SymGetLineFromAddrW64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetLineFromAddrW64")))
-        SymGetLineFromAddr64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetLineFromAddr64");
-    if (!(SymLoadModuleExW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymLoadModuleExW")))
-        SymLoadModule64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymLoadModule64");
-    SymGetOptions_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetOptions");
-    SymSetOptions_I = (PVOID)GetProcAddress(dbghelpHandle, "SymSetOptions");
-    if (!(SymGetSearchPathW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetSearchPathW")))
-        SymGetSearchPath_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetSearchPath");
-    if (!(SymSetSearchPathW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymSetSearchPathW")))
-        SymSetSearchPath_I = (PVOID)GetProcAddress(dbghelpHandle, "SymSetSearchPath");
-    SymUnloadModule64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymUnloadModule64");
-    SymFunctionTableAccess64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFunctionTableAccess64");
-    SymGetModuleBase64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetModuleBase64");
-    SymRegisterCallbackW64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymRegisterCallbackW64");
-    StackWalk64_I = (PVOID)GetProcAddress(dbghelpHandle, "StackWalk64");
-    MiniDumpWriteDump_I = (PVOID)GetProcAddress(dbghelpHandle, "MiniDumpWriteDump");
-    SymbolServerGetOptions = (PVOID)GetProcAddress(symsrvHandle, "SymbolServerGetOptions");
-    SymbolServerSetOptions = (PVOID)GetProcAddress(symsrvHandle, "SymbolServerSetOptions");
+    SymInitialize_I = PhGetProcedureAddress(dbghelpHandle, "SymInitialize", 0);
+    SymCleanup_I = PhGetProcedureAddress(dbghelpHandle, "SymCleanup", 0);
+    if (!(SymEnumSymbolsW_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0)))
+        SymEnumSymbols_I = PhGetProcedureAddress(dbghelpHandle, "SymEnumSymbols", 0);
+    if (!(SymFromAddrW_I = PhGetProcedureAddress(dbghelpHandle, "SymFromAddrW", 0)))
+        SymFromAddr_I = PhGetProcedureAddress(dbghelpHandle, "SymFromAddr", 0);
+    if (!(SymFromNameW_I = PhGetProcedureAddress(dbghelpHandle, "SymFromNameW", 0)))
+        SymFromName_I = PhGetProcedureAddress(dbghelpHandle, "SymFromName", 0);
+    if (!(SymGetLineFromAddrW64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetLineFromAddrW64", 0)))
+        SymGetLineFromAddr64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetLineFromAddr64", 0);
+    if (!(SymLoadModuleExW_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0)))
+        SymLoadModule64_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModule64", 0);
+    SymGetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
+    SymSetOptions_I = PhGetProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
+    if (!(SymGetSearchPathW_I = PhGetProcedureAddress(dbghelpHandle, "SymGetSearchPathW", 0)))
+        SymGetSearchPath_I = PhGetProcedureAddress(dbghelpHandle, "SymGetSearchPath", 0);
+    if (!(SymSetSearchPathW_I = PhGetProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0)))
+        SymSetSearchPath_I = PhGetProcedureAddress(dbghelpHandle, "SymSetSearchPath", 0);
+    SymUnloadModule64_I = PhGetProcedureAddress(dbghelpHandle, "SymUnloadModule64", 0);
+    SymFunctionTableAccess64_I = PhGetProcedureAddress(dbghelpHandle, "SymFunctionTableAccess64", 0);
+    SymGetModuleBase64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetModuleBase64", 0);
+    SymRegisterCallbackW64_I = PhGetProcedureAddress(dbghelpHandle, "SymRegisterCallbackW64", 0);
+    StackWalk64_I = PhGetProcedureAddress(dbghelpHandle, "StackWalk64", 0);
+    MiniDumpWriteDump_I = PhGetProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
+    SymbolServerGetOptions = PhGetProcedureAddress(symsrvHandle, "SymbolServerGetOptions", 0);
+    SymbolServerSetOptions = PhGetProcedureAddress(symsrvHandle, "SymbolServerSetOptions", 0);
 
     if (SymGetOptions_I && SymSetOptions_I)
         SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED);

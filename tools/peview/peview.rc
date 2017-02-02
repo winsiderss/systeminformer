@@ -100,6 +100,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 273
     END
+
+    IDD_PECFG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 292
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 273
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -186,13 +194,13 @@ BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,286,266
 END
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RT_MANIFEST
-//
-
-IDR_RT_MANIFEST         RT_MANIFEST             "peview.manifest"
+IDD_PECFG DIALOGEX 0, 0, 299, 280
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "CFG"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,286,266
+END
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -206,6 +214,11 @@ BEGIN
 END
 
 IDD_PEGENERAL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PECFG AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

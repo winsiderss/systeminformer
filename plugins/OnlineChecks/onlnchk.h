@@ -27,29 +27,34 @@
 #define CINTERFACE
 #define COBJMACROS
 #include <phdk.h>
+#include <phappresource.h>
+#include <mxml.h>
+#include <commonutil.h>
+#include <workqueue.h>
+#include <shlobj.h>
 #include <windowsx.h>
 #include <winhttp.h>
-
 #include "resource.h"
+#include "db.h"
 
 #define PLUGIN_NAME L"ProcessHacker.OnlineChecks"
+#define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
+#define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
 
-#define UM_EXISTS (WM_USER + 1)
-#define UM_LAUNCH (WM_USER + 2)
-#define UM_ERROR (WM_USER + 3)
+#ifdef VIRUSTOTAL_API
+#include "virustotal.h"
+#else
+#define VIRUSTOTAL_URLPATH L""
+#define VIRUSTOTAL_APIKEY L""
+#endif
 
-#define Control_Visible(hWnd, visible) \
-    ShowWindow(hWnd, visible ? SW_SHOW : SW_HIDE);
+#define UM_UPLOAD (WM_APP + 1)
+#define UM_EXISTS (WM_APP + 2)
+#define UM_LAUNCH (WM_APP + 3)
+#define UM_ERROR (WM_APP + 4)
+#define UM_SHOWDIALOG (WM_APP + 5)
 
-typedef enum _PH_UPLOAD_SERVICE_STATE
-{
-    PhUploadServiceDefault = 0,
-    PhUploadServiceChecking,
-    PhUploadServiceViewReport,
-    PhUploadServiceUploading,
-    PhUploadServiceLaunching,
-    PhUploadServiceMaximum
-} PH_UPLOAD_SERVICE_STATE;
+extern PPH_PLUGIN PluginInstance;
 
 typedef struct _SERVICE_INFO
 {
@@ -61,39 +66,195 @@ typedef struct _SERVICE_INFO
     PWSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
 
+typedef struct _PROCESS_EXTENSION
+{
+    LIST_ENTRY ListEntry;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Stage1 : 1;
+            BOOLEAN ResultValid : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
+
+    INT64 Retries;
+    INT64 Positives;
+    PPH_STRING VirusTotalResult;
+
+    PPH_PROCESS_ITEM ProcessItem;
+    PPH_MODULE_ITEM ModuleItem;
+} PROCESS_EXTENSION, *PPROCESS_EXTENSION;
+
+typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
+{
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Stage1 : 1;
+            BOOLEAN Processing : 1;
+            BOOLEAN Processed : 1;
+            BOOLEAN Found : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
+    PPROCESS_EXTENSION Extension;
+
+    INT64 Positives;
+    PPH_STRING FileName;
+    PPH_STRING FileHash;
+    PPH_BYTES FileNameAnsi;
+    PPH_BYTES FileHashAnsi;
+    PPH_BYTES CreationTime;
+    PPH_STRING FileResult;
+} VIRUSTOTAL_FILE_HASH_ENTRY, *PVIRUSTOTAL_FILE_HASH_ENTRY;
+
 typedef struct _UPLOAD_CONTEXT
 {
+    BOOLEAN VtApiUpload;
+    BOOLEAN FileExists;
     ULONG Service;
-    HWND DialogHandle;
-    HWND MessageHandle;
-    HWND StatusHandle;
-    HWND ProgressHandle;
-    HFONT MessageFont;
-    HINTERNET HttpHandle;
-
     ULONG ErrorCode;
     ULONG TotalFileLength;
+    
+    HWND DialogHandle;
+    HANDLE UploadThreadHandle;
+    HICON IconLargeHandle;
+    HICON IconSmallHandle;
+    HINTERNET HttpHandle;
+    ITaskbarList3* TaskbarListClass;
 
-    PH_UPLOAD_SERVICE_STATE UploadServiceState;
+    PPH_STRING FileSize;
+    PPH_STRING ErrorString;
+    PPH_STRING KeyString;
 
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
     PPH_STRING WindowFileName;
-    PPH_STRING ObjectName;
     PPH_STRING LaunchCommand;
+    PPH_STRING Detected;
+    PPH_STRING MaxDetected;
+    PPH_STRING UploadUrl;
+    PPH_STRING ReAnalyseUrl;
+    PPH_STRING FirstAnalysisDate;
+    PPH_STRING LastAnalysisDate;
+    PPH_STRING LastAnalysisUrl;
+    PPH_STRING LastAnalysisAgo;
 } UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
 
-// main
-extern PPH_PLUGIN PluginInstance;
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
+    );
+
+NTSTATUS UploadFileThreadStart(
+    _In_ PVOID Parameter
+    );
+
+NTSTATUS UploadCheckThreadStart(
+    _In_ PVOID Parameter
+    );
+
+VOID ShowVirusTotalUploadDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowFileFoundDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID ShowVirusTotalProgressDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+VOID VirusTotalShowErrorDialog(
+    _In_ PUPLOAD_CONTEXT Context
+    );
+
+typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
+{
+    PPH_STRING FileName;
+    PPH_STRING BaseFileName;
+
+    PPH_STRING Total;
+    PPH_STRING Positives;
+    PPH_STRING Resource;
+    PPH_STRING ScanId;
+    PPH_STRING Md5;
+    PPH_STRING Sha1;
+    PPH_STRING Sha256;
+    PPH_STRING ScanDate;
+    PPH_STRING Permalink;
+    PPH_STRING StatusMessage;
+    PPH_LIST ScanResults;
+} VIRUSTOTAL_FILE_REPORT_RESULT, *PVIRUSTOTAL_FILE_REPORT_RESULT;
+
+PPH_STRING VirusTotalStringToTime(
+    _In_ PPH_STRING Time
+    );
+
+PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
+    _In_ PPH_STRING FileHash
+    );
 
 // upload
-#define UPLOAD_SERVICE_VIRUSTOTAL 101
-#define UPLOAD_SERVICE_JOTTI 102
-#define UPLOAD_SERVICE_CIMA 103
+#define ENABLE_SERVICE_VIRUSTOTAL 100
+#define MENUITEM_VIRUSTOTAL_QUEUE 101
+#define MENUITEM_VIRUSTOTAL_UPLOAD 102
+#define MENUITEM_VIRUSTOTAL_UPLOAD_FILE 103
+#define MENUITEM_JOTTI_UPLOAD 104
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,
     _In_ ULONG Service
+    );
+
+typedef enum _NETWORK_COLUMN_ID
+{
+    NETWORK_COLUMN_ID_VIUSTOTAL = 1,
+    NETWORK_COLUMN_ID_VIUSTOTAL_MODULE = 2,
+} NETWORK_COLUMN_ID;
+
+NTSTATUS HashFileAndResetPosition(
+    _In_ HANDLE FileHandle,
+    _In_ PLARGE_INTEGER FileSize,
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_STRING *HashString
+    );
+
+typedef struct _VIRUSTOTAL_API_RESULT
+{
+    BOOLEAN Found;
+    INT64 Positives;
+    INT64 Total;
+    PPH_STRING Permalink;
+    PPH_STRING FileHash;
+    PPH_STRING DetectionRatio;
+} VIRUSTOTAL_API_RESULT, *PVIRUSTOTAL_API_RESULT;
+
+extern PPH_LIST VirusTotalList;
+extern BOOLEAN VirusTotalScanningEnabled;
+
+PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
+    _In_ PPH_STRING FileName,
+    _In_ PPROCESS_EXTENSION Extension
+    );
+
+PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResult(
+    _In_ PPH_STRING FileName
+    );
+
+VOID InitializeVirusTotalProcessMonitor(
+    VOID
+    );
+
+VOID CleanupVirusTotalProcessMonitor(
+    VOID
     );
 
 #endif

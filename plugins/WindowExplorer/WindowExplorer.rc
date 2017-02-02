@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,5,0,0
- PRODUCTVERSION 1,5,0,0
+ FILEVERSION 1,6,0,0
+ PRODUCTVERSION 1,6,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Window Explorer plugin for Process Hacker"
-            VALUE "FileVersion", "1.5"
-            VALUE "InternalName", "WindowExplorer"
+            VALUE "FileVersion", "1.6"
+            VALUE "InternalName", "ProcessHacker.WindowExplorer"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "WindowExplorer.dll"
             VALUE "ProductName", "Window Explorer plugin for Process Hacker"
-            VALUE "ProductVersion", "1.5"
+            VALUE "ProductVersion", "1.6"
         END
     END
     BLOCK "VarFileInfo"
@@ -93,8 +93,9 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "Windows"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Refresh",IDC_REFRESH,7,6,50,14
-    CONTROL         "Windows",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,7,25,433,277,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Refresh",IDC_REFRESH,2,3,50,14
+    CONTROL         "Windows",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,2,19,443,288,WS_EX_CLIENTEDGE
+    EDITTEXT        IDC_SEARCHEDIT,302,3,143,14,ES_AUTOHSCROLL
 END
 
 IDD_WNDPROPS DIALOGEX 0, 0, 233, 152
@@ -188,10 +189,10 @@ GUIDELINES DESIGNINFO
 BEGIN
     IDD_WNDLIST, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 440
-        TOPMARGIN, 6
-        BOTTOMMARGIN, 302
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 445
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 307
     END
 
     IDD_WNDPROPS, DIALOG

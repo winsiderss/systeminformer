@@ -606,7 +606,7 @@ VOID NTAPI MenuHookCallback(
             if (changed)
                 SaveDb();
         }
-        break;     
+        break;
     case PHAPP_ID_PROCESS_AFFINITY:
         {
             BOOLEAN changed = FALSE;
@@ -630,9 +630,9 @@ VOID NTAPI MenuHookCallback(
 
                 LockDb();
 
-                // Update the process affinity in our database (if the database values are different).
                 if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
                 {
+                    // Update the process affinity in our database (if the database values are different).
                     if (object->AffinityMask != (ULONG)newAffinityMask)
                     {
                         object->AffinityMask = (ULONG)newAffinityMask;
@@ -861,10 +861,12 @@ VOID AddSavePriorityMenuItemsAndHook(
     PPH_EMENU_ITEM saveForCommandLineMenuItem;
     PDB_OBJECT object;
 
-    if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Affinity", 0))
+    if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Affinity", PHAPP_ID_PROCESS_AFFINITY))
     {
-        // Change default Affinity menu-item into a drop-down list
+        // HACK: Change default Affinity menu-item into a drop-down list
         PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuItem(0, affinityMenuItem->Id, L"Set &affinity", NULL, NULL), -1);
+        //PhInsertEMenuItem(affinityMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PHAPP_ID_PROCESS_AFFINITY, L"Set &affinity", NULL), PhIndexOfEMenuItem(MenuInfo->Menu, affinityMenuItem) + 1);
+        //PhRemoveEMenuItem(affinityMenuItem, affinityMenuItem, 0);
 
         // Insert standard menu-items
         PhInsertEMenuItem(affinityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
@@ -1481,7 +1483,11 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             SetDlgItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
         }
         break;
     case WM_COMMAND:

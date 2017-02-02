@@ -53,20 +53,20 @@ static VOID PhpVerifyInitialization(
     wintrust = LoadLibrary(L"wintrust.dll");
     crypt32 = LoadLibrary(L"crypt32.dll");
 
-    CryptCATAdminCalcHashFromFileHandle = (PVOID)GetProcAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle");
-    CryptCATAdminCalcHashFromFileHandle2 = (PVOID)GetProcAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle2");
-    CryptCATAdminAcquireContext = (PVOID)GetProcAddress(wintrust, "CryptCATAdminAcquireContext");
-    CryptCATAdminAcquireContext2 = (PVOID)GetProcAddress(wintrust, "CryptCATAdminAcquireContext2");
-    CryptCATAdminEnumCatalogFromHash = (PVOID)GetProcAddress(wintrust, "CryptCATAdminEnumCatalogFromHash");
-    CryptCATCatalogInfoFromContext = (PVOID)GetProcAddress(wintrust, "CryptCATCatalogInfoFromContext");
-    CryptCATAdminReleaseCatalogContext = (PVOID)GetProcAddress(wintrust, "CryptCATAdminReleaseCatalogContext");
-    CryptCATAdminReleaseContext = (PVOID)GetProcAddress(wintrust, "CryptCATAdminReleaseContext");
-    WTHelperProvDataFromStateData_I = (PVOID)GetProcAddress(wintrust, "WTHelperProvDataFromStateData");
-    WTHelperGetProvSignerFromChain_I = (PVOID)GetProcAddress(wintrust, "WTHelperGetProvSignerFromChain");
-    WinVerifyTrust_I = (PVOID)GetProcAddress(wintrust, "WinVerifyTrust");
-    CertNameToStr_I = (PVOID)GetProcAddress(crypt32, "CertNameToStrW");
-    CertDuplicateCertificateContext_I = (PVOID)GetProcAddress(crypt32, "CertDuplicateCertificateContext");
-    CertFreeCertificateContext_I = (PVOID)GetProcAddress(crypt32, "CertFreeCertificateContext");
+    CryptCATAdminCalcHashFromFileHandle = PhGetProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle", 0);
+    CryptCATAdminCalcHashFromFileHandle2 = PhGetProcedureAddress(wintrust, "CryptCATAdminCalcHashFromFileHandle2", 0);
+    CryptCATAdminAcquireContext = PhGetProcedureAddress(wintrust, "CryptCATAdminAcquireContext", 0);
+    CryptCATAdminAcquireContext2 = PhGetProcedureAddress(wintrust, "CryptCATAdminAcquireContext2", 0);
+    CryptCATAdminEnumCatalogFromHash = PhGetProcedureAddress(wintrust, "CryptCATAdminEnumCatalogFromHash", 0);
+    CryptCATCatalogInfoFromContext = PhGetProcedureAddress(wintrust, "CryptCATCatalogInfoFromContext", 0);
+    CryptCATAdminReleaseCatalogContext = PhGetProcedureAddress(wintrust, "CryptCATAdminReleaseCatalogContext", 0);
+    CryptCATAdminReleaseContext = PhGetProcedureAddress(wintrust, "CryptCATAdminReleaseContext", 0);
+    WTHelperProvDataFromStateData_I = PhGetProcedureAddress(wintrust, "WTHelperProvDataFromStateData", 0);
+    WTHelperGetProvSignerFromChain_I = PhGetProcedureAddress(wintrust, "WTHelperGetProvSignerFromChain", 0);
+    WinVerifyTrust_I = PhGetProcedureAddress(wintrust, "WinVerifyTrust", 0);
+    CertNameToStr_I = PhGetProcedureAddress(crypt32, "CertNameToStrW", 0);
+    CertDuplicateCertificateContext_I = PhGetProcedureAddress(crypt32, "CertDuplicateCertificateContext", 0);
+    CertFreeCertificateContext_I = PhGetProcedureAddress(crypt32, "CertFreeCertificateContext", 0);
 }
 
 VERIFY_RESULT PhpStatusToVerifyResult(
@@ -164,7 +164,7 @@ VOID PhpViewSignerInfo(
     {
         HMODULE cryptui = LoadLibrary(L"cryptui.dll");
 
-        cryptUIDlgViewSignerInfo = (PVOID)GetProcAddress(cryptui, "CryptUIDlgViewSignerInfoW");
+        cryptUIDlgViewSignerInfo = PhGetProcedureAddress(cryptui, "CryptUIDlgViewSignerInfoW", 0);
         PhEndInitOnce(&initOnce);
     }
 
