@@ -43,7 +43,6 @@ HWND NetworkTreeNewHandle = NULL;
 INT SelectedTabIndex;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
-TOOLBAR_THEME ToolBarTheme = TOOLBAR_THEME_NONE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -640,6 +639,9 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                     PPH_STRING newSearchboxText;
 
+                    if (!SearchboxHandle)
+                        break;
+
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
@@ -681,6 +683,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                         if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                             RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
                     }
+
+                    goto DefaultWndProc;
                 }
                 break;
             }
@@ -705,19 +709,17 @@ LRESULT CALLBACK MainWndSubclassProc(
                     // handle keybind Ctrl + K
                     if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
+                        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                        {
+                            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), 22);
+
+                            if (!IsWindowVisible(SearchboxHandle))
+                                ShowWindow(SearchboxHandle, SW_SHOW);
+                        }
+
                         SetFocus(SearchboxHandle);
                         Edit_SetSel(SearchboxHandle, 0, -1);
-                    }
-
-                    goto DefaultWndProc;
-                }
-                break;
-            case ID_SEARCH_CLEAR:
-                {
-                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
-                    {
-                        SetFocus(SearchboxHandle);
-                        Static_SetText(SearchboxHandle, L"");
                     }
 
                     goto DefaultWndProc;
@@ -1292,6 +1294,64 @@ LRESULT CALLBACK MainWndSubclassProc(
             }
         }
         break;
+    case WM_MEASUREITEM:
+        {
+            LPMEASUREITEMSTRUCT drawInfo = (LPMEASUREITEMSTRUCT)lParam;
+
+            if (drawInfo->CtlType == ODT_COMBOBOX)
+            {
+                drawInfo->itemHeight = 16;
+            }
+        }
+        break;
+    case WM_DRAWITEM:
+        {
+            LPDRAWITEMSTRUCT drawInfo = (LPDRAWITEMSTRUCT)lParam;
+
+            if (drawInfo->hwndItem == SearchboxHandle && drawInfo->CtlType == ODT_COMBOBOX)
+            {
+                INT length;
+                PPH_STRING text;
+
+                if (!(length = ComboBox_GetLBTextLen(drawInfo->hwndItem, drawInfo->itemID)))
+                    break;
+
+                SetBkMode(drawInfo->hDC, TRANSPARENT);
+
+                if ((drawInfo->itemState & CDIS_SELECTED) == CDIS_SELECTED)
+                {
+                    SetTextColor(drawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetDCBrushColor(drawInfo->hDC, RGB(78, 78, 78));
+
+                    FillRect(drawInfo->hDC, &drawInfo->rcItem, GetStockObject(DC_BRUSH));
+                }
+                else
+                {
+                    SetTextColor(drawInfo->hDC, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor(drawInfo->hDC, RGB(0xff, 0xff, 0xff));
+
+                    FillRect(drawInfo->hDC, &drawInfo->rcItem, GetStockObject(DC_BRUSH));
+
+                    //SetDCBrushColor(drawInfo->hDC, RGB(0xff, RGB(43, 43, 43));
+                    //SetTextColor(drawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                }
+
+                text = PhCreateStringEx(NULL, length * sizeof(WCHAR));
+                ComboBox_GetLBText(drawInfo->hwndItem, drawInfo->itemID, text->Buffer);
+
+                drawInfo->rcItem.left += 5;
+                DrawText(
+                    drawInfo->hDC,
+                    text->Buffer,
+                    (INT)text->Length / sizeof(WCHAR),
+                    &drawInfo->rcItem,
+                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_WORD_ELLIPSIS
+                    );
+
+                PhDereferenceObject(text);
+            }
+        }
+        break;
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
@@ -1331,7 +1391,6 @@ VOID NTAPI LoadCallback(
     )
 {
     ToolStatusConfig.Flags = PhGetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG);
-    ToolBarTheme = (TOOLBAR_THEME)PhGetIntegerSetting(SETTING_NAME_TOOLBAR_THEME);
     DisplayStyle = (TOOLBAR_DISPLAY_STYLE)PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");

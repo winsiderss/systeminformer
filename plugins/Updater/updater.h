@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
@@ -48,6 +48,7 @@
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_NIGHTLY_BUILD (PLUGIN_NAME L".NightlyBuilds")
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
@@ -60,8 +61,6 @@
 //#define FORCE_UPDATE_CHECK
 // Force update check to show the current version as the latest version.
 //#define FORCE_LATEST_VERSION
-// Disable startup update check.
-//#define DISABLE_STARTUP_CHECK
 #endif
 
 extern HWND UpdateDialogHandle;
@@ -70,9 +69,17 @@ extern PPH_PLUGIN PluginInstance;
 
 typedef struct _PH_UPDATER_CONTEXT
 {
-    BOOLEAN StartupCheck;
-    BOOLEAN HaveData;
-    BOOLEAN FixedWindowStyles;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN StartupCheck : 1;
+            BOOLEAN HaveData : 1;
+            BOOLEAN FixedWindowStyles : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
 
     HICON IconSmallHandle;
     HICON IconLargeHandle;
@@ -94,6 +101,9 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING ReleaseNotesUrl;
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
+
+    // Nightly builds only
+    PPH_STRING BuildMessage;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID TaskDialogLinkClicked(
@@ -182,8 +192,8 @@ typedef struct _UPDATER_HASH_CONTEXT
     PVOID Hash;
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
-BOOLEAN UpdaterInitializeHash(
-    _Out_ PUPDATER_HASH_CONTEXT *Context
+PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
+    VOID
     );
 
 BOOLEAN UpdaterUpdateHash(

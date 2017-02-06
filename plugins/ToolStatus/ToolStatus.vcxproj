@@ -53,22 +53,22 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>WindowsCodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>WindowsCodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>WindowsCodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>WindowsCodecs.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -76,9 +76,9 @@
     <ClCompile Include="customizetb.c" />
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="searchbox.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="filter.c" />
+    <ClCompile Include="searchbox.c" />
     <ClCompile Include="statusbar.c" />
     <ClCompile Include="toolbar.c" />
   </ItemGroup>
@@ -93,8 +93,6 @@
     <ResourceCompile Include="ToolStatus.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\active_search.bmp" />
-    <Image Include="resources\active_search.png" />
     <Image Include="resources\application.ico" />
     <Image Include="resources\application_get.ico" />
     <Image Include="resources\application_get_modern.png" />
@@ -111,8 +109,6 @@
     <Image Include="resources\cross_modern.png" />
     <Image Include="resources\find.ico" />
     <Image Include="resources\find_modern.png" />
-    <Image Include="resources\inactive_search.bmp" />
-    <Image Include="resources\inactive_search.png" />
     <Image Include="resources\lightbulb_off.ico" />
     <Image Include="resources\lightbulb_off_modern.png" />
   </ItemGroup>

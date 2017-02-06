@@ -43,7 +43,7 @@ BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Hardware Devices plugin for Process Hacker"
             VALUE "FileVersion", "1.5"
-            VALUE "InternalName", "HardwareDevices"
+            VALUE "InternalName", "ProcessHacker.HardwareDevices"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "HardwareDevices.dll"
             VALUE "ProductName", "Hardware Devices plugin for Process Hacker"

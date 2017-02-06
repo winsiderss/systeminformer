@@ -38,13 +38,10 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
                 ToolStatusConfig.ToolBarEnabled ? BST_CHECKED : BST_UNCHECKED);
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR),
                 ToolStatusConfig.StatusBarEnabled ? BST_CHECKED : BST_UNCHECKED);
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS),
                 ToolStatusConfig.ResolveGhostWindows ? BST_CHECKED : BST_UNCHECKED);
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU),
                 ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
         }

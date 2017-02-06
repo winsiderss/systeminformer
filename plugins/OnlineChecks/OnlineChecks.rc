@@ -49,8 +49,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,7,0,0
- PRODUCTVERSION 1,7,0,0
+ FILEVERSION 1,8,0,0
+ PRODUCTVERSION 1,8,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -67,12 +67,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "dmex"
             VALUE "FileDescription", "Online Checks plugin for Process Hacker"
-            VALUE "FileVersion", "1.7"
-            VALUE "InternalName", "OnlineChecks"
+            VALUE "FileVersion", "1.8"
+            VALUE "InternalName", "ProcessHacker.OnlineChecks"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "OnlineChecks.dll"
             VALUE "ProductName", "Online Checks plugin for Process Hacker"
-            VALUE "ProductVersion", "1.7"
+            VALUE "ProductVersion", "1.8"
         END
     END
     BLOCK "VarFileInfo"
@@ -87,17 +87,21 @@ END
 // Dialog
 //
 
-IDD_PROGRESS DIALOGEX 0, 0, 241, 58
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-EXSTYLE WS_EX_APPWINDOW
-CAPTION "Uploading To"
+IDD_OPTIONS DIALOGEX 0, 0, 185, 103
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Message",IDC_MESSAGE,7,5,227,12
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",0x0,7,23,227,9
-    LTEXT           "Connecting...",IDC_STATUS,7,39,172,11
-    PUSHBUTTON      "Yes",IDYES,133,37,50,14,NOT WS_VISIBLE
-    DEFPUSHBUTTON   "Cancel",IDNO,185,37,50,14
+    CONTROL         "Enable VirusTotal scanning",IDC_ENABLE_VIRUSTOTAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,101,10
+    CONTROL         "Enable VirusTotal detection highlighting",IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT,
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,20,141,10
+    PUSHBUTTON      "Close",IDCANCEL,129,82,50,14
+    CONTROL         "Enable detection actions",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,34,94,10
+    EDITTEXT        IDC_EDIT1,91,47,37,14,ES_AUTOHSCROLL
+    LTEXT           "Minimum detection ratio:",IDC_STATIC,8,50,79,8
+    COMBOBOX        IDC_COMBO1,91,65,88,14,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Minimum detection action:",IDC_STATIC,7,67,84,8
 END
 
 
@@ -109,12 +113,12 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    IDD_PROGRESS, DIALOG
+    IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 234
-        TOPMARGIN, 5
-        BOTTOMMARGIN, 51
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 96
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -125,7 +129,7 @@ END
 // AFX_DIALOG_LAYOUT
 //
 
-IDD_PROGRESS AFX_DIALOG_LAYOUT
+IDD_OPTIONS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

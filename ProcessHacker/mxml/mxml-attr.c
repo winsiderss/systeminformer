@@ -45,7 +45,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
   mxml_attr_t	*attr;			/* Cirrent attribute */
 
 
-#ifdef DEBUG
+#if DEBUG > 1
   fprintf(stderr, "mxmlElementDeleteAttr(node=%p, name=\"%s\")\n",
           node, name ? name : "(null)");
 #endif /* DEBUG */
@@ -65,7 +65,7 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
        i > 0;
        i --, attr ++)
   {
-#ifdef DEBUG
+#if DEBUG > 1
     printf("    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
@@ -107,7 +107,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   mxml_attr_t	*attr;			/* Cirrent attribute */
 
 
-#ifdef DEBUG
+#if DEBUG > 1
   fprintf(stderr, "mxmlElementGetAttr(node=%p, name=\"%s\")\n",
           node, name ? name : "(null)");
 #endif /* DEBUG */
@@ -127,13 +127,13 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
        i > 0;
        i --, attr ++)
   {
-#ifdef DEBUG
+#if DEBUG > 1
     printf("    %s=\"%s\"\n", attr->name, attr->value);
 #endif /* DEBUG */
 
     if (!strcmp(attr->name, name))
     {
-#ifdef DEBUG
+#if DEBUG > 1
       printf("    Returning \"%s\"!\n", attr->value);
 #endif /* DEBUG */
       return (attr->value);
@@ -144,7 +144,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   * Didn't find attribute, so return NULL...
   */
 
-#ifdef DEBUG
+#if DEBUG > 1
   puts("    Returning NULL!\n");
 #endif /* DEBUG */
 
@@ -169,7 +169,7 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
   char	*valuec;			/* Copy of value */
 
 
-#ifdef DEBUG
+#if DEBUG > 1
   fprintf(stderr, "mxmlElementSetAttr(node=%p, name=\"%s\", value=\"%s\")\n",
           node, name ? name : "(null)", value ? value : "(null)");
 #endif /* DEBUG */
@@ -212,7 +212,7 @@ mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
   char		*value;			/* Value */
 
 
-#ifdef DEBUG
+#if DEBUG > 1
   fprintf(stderr,
           "mxmlElementSetAttrf(node=%p, name=\"%s\", format=\"%s\", ...)\n",
           node, name ? name : "(null)", format ? format : "(null)");

@@ -40,10 +40,7 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
     switch (uMsg)
     {
     case TDN_NAVIGATED:
-        {
-            // Taskdialog is now initialized (Required if the background startup check starts here)
-            PhSetEvent(&InitializedEvent);
-        }
+        PhSetEvent(&InitializedEvent);
         break;
     case TDN_BUTTON_CLICKED:
         {
@@ -56,7 +53,14 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
                 }
                 else
                 {
-                    PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/downloads.php", NULL);
+                    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+                    {
+                        PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/nightly.php", NULL);
+                    }
+                    else
+                    {
+                        PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/downloads.php", NULL);
+                    }
                 }
             }
         }
@@ -79,26 +83,42 @@ VOID ShowAvailableDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-
-    config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"An update for Process Hacker is available";
-    config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
-        Context->MajorVersion,
-        Context->MinorVersion,
-        Context->RevisionVersion,
-        PhGetStringOrEmpty(Context->Size)
-        )->Buffer;
-    config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
-
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowAvailableCallbackProc;
+    config.pszWindowTitle = L"Process Hacker - Updater";
+
+    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    {
+        config.pszMainInstruction = L"A new Process Hacker nightly build is available";
+        config.pszContent = PhaFormatString(L"Build: %lu.%lu.%lu\r\nDownload size: %s",
+            Context->MajorVersion,
+            Context->MinorVersion,
+            Context->RevisionVersion,
+            PhGetStringOrEmpty(Context->Size)
+            )->Buffer;
+
+        if (PhIsNullOrEmptyString(Context->BuildMessage))
+            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+        else
+            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+    }
+    else
+    {
+        config.pszMainInstruction = L"A new Process Hacker release is available";
+        config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
+            Context->MajorVersion,
+            Context->MinorVersion,
+            Context->RevisionVersion,
+            PhGetStringOrEmpty(Context->Size)
+            )->Buffer;
+        config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
+    }
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

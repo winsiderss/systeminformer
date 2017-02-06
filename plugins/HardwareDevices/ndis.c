@@ -31,7 +31,6 @@ NTSTATUS NetworkAdapterCreateHandle(
     _In_ PPH_STRING InterfaceGuid
     )
 {
-    // NOTE: Do not cache this handle. The user will be unable to enable, disable or change adapter configuration.
     return PhCreateFileWin32(
         DeviceHandle,
         PhaConcatStrings(2, L"\\\\.\\", InterfaceGuid->Buffer)->Buffer,
@@ -56,7 +55,6 @@ BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterLinkSpeedSupported = FALSE;
     PNDIS_OID ndisObjectIdentifiers;
 
-    // https://msdn.microsoft.com/en-us/library/ff569642.aspx
     opcode = OID_GEN_SUPPORTED_LIST;
 
     // TODO: 4096 objects might be too small...
@@ -69,7 +67,7 @@ BOOLEAN NetworkAdapterQuerySupported(
         NULL,
         NULL,
         &isb,
-        IOCTL_NDIS_QUERY_GLOBAL_STATS, // https://msdn.microsoft.com/en-us/library/windows/hardware/ff548975.aspx
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &opcode,
         sizeof(NDIS_OID),
         ndisObjectIdentifiers,
@@ -124,7 +122,6 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     IO_STATUS_BLOCK isb;
     ULONG versionResult = 0;
 
-    // https://msdn.microsoft.com/en-us/library/ff569582.aspx
     opcode = OID_GEN_DRIVER_VERSION; // OID_GEN_VENDOR_DRIVER_VERSION
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
@@ -165,7 +162,6 @@ PPH_STRING NetworkAdapterQueryName(
     IO_STATUS_BLOCK isb;
     WCHAR adapterName[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
 
-    // https://msdn.microsoft.com/en-us/library/ff569584.aspx
     opcode = OID_GEN_FRIENDLY_NAME;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
@@ -225,7 +221,6 @@ NTSTATUS NetworkAdapterQueryStatistics(
     IO_STATUS_BLOCK isb;
     NDIS_STATISTICS_INFO result;
 
-    // https://msdn.microsoft.com/en-us/library/ff569640.aspx
     opcode = OID_GEN_STATISTICS;
 
     memset(&result, 0, sizeof(NDIS_STATISTICS_INFO));
@@ -233,7 +228,7 @@ NTSTATUS NetworkAdapterQueryStatistics(
     result.Header.Revision = NDIS_STATISTICS_INFO_REVISION_1;
     result.Header.Size = NDIS_SIZEOF_STATISTICS_INFO_REVISION_1;
 
-    status = NtDeviceIoControlFile(
+    if (NT_SUCCESS(status = NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -244,9 +239,10 @@ NTSTATUS NetworkAdapterQueryStatistics(
         sizeof(NDIS_OID),
         &result,
         sizeof(result)
-        );
-
-    *Info = result;
+        )))
+    {
+        *Info = result;
+    }
 
     return status;
 }
@@ -261,7 +257,6 @@ NTSTATUS NetworkAdapterQueryLinkState(
     IO_STATUS_BLOCK isb;
     NDIS_LINK_STATE result;
 
-    // https://msdn.microsoft.com/en-us/library/ff569595.aspx
     opcode = OID_GEN_LINK_STATE; // OID_GEN_MEDIA_CONNECT_STATUS;
 
     memset(&result, 0, sizeof(NDIS_LINK_STATE));
@@ -269,7 +264,7 @@ NTSTATUS NetworkAdapterQueryLinkState(
     result.Header.Revision = NDIS_LINK_STATE_REVISION_1;
     result.Header.Size = NDIS_SIZEOF_LINK_STATE_REVISION_1;
 
-    status = NtDeviceIoControlFile(
+    if (NT_SUCCESS(status = NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -280,9 +275,10 @@ NTSTATUS NetworkAdapterQueryLinkState(
         sizeof(NDIS_OID),
         &result,
         sizeof(result)
-        );
-
-    *State = result;
+        )))
+    {
+        *State = result;
+    }
 
     return status;
 }
@@ -294,10 +290,12 @@ BOOLEAN NetworkAdapterQueryMediaType(
 {
     NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
-    NDIS_PHYSICAL_MEDIUM adapterMediaType = NdisPhysicalMediumUnspecified;
+    NDIS_MEDIUM adapterType;
+    NDIS_PHYSICAL_MEDIUM adapterMediaType;
 
-    // https://msdn.microsoft.com/en-us/library/ff569622.aspx
     opcode = OID_GEN_PHYSICAL_MEDIUM_EX;
+    adapterMediaType = NdisPhysicalMediumUnspecified;
+    memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -313,12 +311,9 @@ BOOLEAN NetworkAdapterQueryMediaType(
         )))
     {
         *Medium = adapterMediaType;
+        return TRUE;
     }
 
-    if (adapterMediaType != NdisPhysicalMediumUnspecified)
-        return TRUE;
-
-    // https://msdn.microsoft.com/en-us/library/ff569621.aspx
     opcode = OID_GEN_PHYSICAL_MEDIUM;
     adapterMediaType = NdisPhysicalMediumUnspecified;
     memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
@@ -337,13 +332,47 @@ BOOLEAN NetworkAdapterQueryMediaType(
         )))
     {
         *Medium = adapterMediaType;
+        return TRUE;
     }
 
-    if (adapterMediaType != NdisPhysicalMediumUnspecified)
-        return TRUE;
+    opcode = OID_GEN_MEDIA_SUPPORTED; // OID_GEN_MEDIA_IN_USE
+    adapterType = NdisMediumMax;
+    memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
-    //NDIS_MEDIUM adapterMediaType = NdisMediumMax;
-    //opcode = OID_GEN_MEDIA_IN_USE;
+    if (NT_SUCCESS(NtDeviceIoControlFile(
+        DeviceHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        IOCTL_NDIS_QUERY_GLOBAL_STATS,
+        &opcode,
+        sizeof(NDIS_OID),
+        &adapterType,
+        sizeof(adapterType)
+        )))
+    {
+        switch (adapterType)
+        {
+        case NdisMedium802_3:
+            *Medium = NdisPhysicalMedium802_3;
+            break;
+        case NdisMedium802_5:
+            *Medium = NdisPhysicalMedium802_5;
+            break;
+        case NdisMediumWirelessWan:
+            *Medium = NdisPhysicalMediumWirelessLan;
+            break;
+        case NdisMediumWiMAX:
+            *Medium = NdisPhysicalMediumWiMax;
+            break;
+        default:
+            *Medium = NdisPhysicalMediumOther;
+            break;
+        }
+
+        return TRUE;
+    }
 
     return FALSE;
 }
@@ -358,7 +387,6 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
     IO_STATUS_BLOCK isb;
     NDIS_LINK_SPEED result;
 
-    // https://msdn.microsoft.com/en-us/library/ff569593.aspx
     opcode = OID_GEN_LINK_SPEED;
 
     memset(&result, 0, sizeof(NDIS_LINK_SPEED));
@@ -436,6 +464,59 @@ BOOLEAN QueryInterfaceRow(
 
     return result;
 }
+
+
+PWSTR MediumTypeToString(
+    _In_ NDIS_PHYSICAL_MEDIUM MediumType
+    )
+{
+    switch (MediumType)
+    {
+    case NdisPhysicalMediumWirelessLan:
+        return L"Wireless LAN";
+    case NdisPhysicalMediumCableModem:
+        return L"Cable Modem";
+    case NdisPhysicalMediumPhoneLine:
+        return L"Phone Line";
+    case NdisPhysicalMediumPowerLine:
+        return L"Power Line";
+    case NdisPhysicalMediumDSL:      // includes ADSL and UADSL (G.Lite)
+        return L"DSL";
+    case NdisPhysicalMediumFibreChannel:
+        return L"Fibre";
+    case NdisPhysicalMedium1394:
+        return L"1394";
+    case NdisPhysicalMediumWirelessWan:
+        return L"Wireless WAN";
+    case NdisPhysicalMediumNative802_11:
+        return L"Native802_11";
+    case NdisPhysicalMediumBluetooth:
+        return L"Bluetooth";
+    case NdisPhysicalMediumInfiniband:
+        return L"Infiniband";
+    case NdisPhysicalMediumWiMax:
+        return L"WiMax";
+    case NdisPhysicalMediumUWB:
+        return L"UWB";
+    case NdisPhysicalMedium802_3:
+        return L"Ethernet";
+    case NdisPhysicalMedium802_5:
+        return L"802_5";
+    case NdisPhysicalMediumIrda:
+        return L"Infrared";
+    case NdisPhysicalMediumWiredWAN:
+        return L"Wired WAN";
+    case NdisPhysicalMediumWiredCoWan:
+        return L"Wired CoWan";
+    case NdisPhysicalMediumOther:
+        return L"Other";
+    case NdisPhysicalMediumNative802_15_4:
+        return L"Native802_15_";
+    }
+
+    return L"N/A";
+}
+
 
 //BOOLEAN NetworkAdapterQueryInternet(
 //    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,

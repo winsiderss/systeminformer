@@ -90,7 +90,7 @@ static VOID CstFailWith(
     )
 {
     wprintf(L"%s\n", Message);
-    RtlExitUserProcess(1);
+    exit(1);
 }
 
 DECLSPEC_NORETURN
@@ -101,7 +101,7 @@ static VOID CstFailWithStatus(
     )
 {
     wprintf(L"%s: %s\n", Message, PhGetStatusMessage(Status, Win32Result)->Buffer);
-    RtlExitUserProcess(1);
+    exit(1);
 }
 
 static VOID CstExportKey(

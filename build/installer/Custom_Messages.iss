@@ -24,10 +24,12 @@
 en.comp_Main_App              =Main application
 en.comp_PE_Viewer             =PE Viewer
 en.comp_Plugins               =Plugins
+en.comp_CommonUtil            =Common Utils 
 en.comp_DotNetTools           =.NET Tools
 en.comp_ExtendedNotifications =Extended Notifications
 en.comp_ExtendedServices      =Extended Services
 en.comp_ExtendedTools         =Extended Tools
+en.comp_ExtraPlugins          =Extra Plugins
 en.comp_HardwareDevices       =Hardware Devices
 en.comp_NetworkTools          =Network Tools
 en.comp_OnlineChecks          =Online Checks

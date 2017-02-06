@@ -37,7 +37,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, PhGetIntegerSetting(SETTING_NAME_PING_SIZE), FALSE);
-            SetDlgItemInt(hwndDlg, IDC_MINSCALING, PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING), FALSE);
+            SetDlgItemInt(hwndDlg, IDC_MAXHOPS, PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS), FALSE);
         }
         break;
     case WM_COMMAND:
@@ -45,17 +45,19 @@ INT_PTR CALLBACK OptionsDlgProc(
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
                 {
-                    ULONG pingPacketLength = GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE);
-                    ULONG minGraphScaling = GetDlgItemInt(hwndDlg, IDC_MINSCALING, NULL, FALSE);
+                    PhSetIntegerSetting(SETTING_NAME_PING_SIZE, GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE));
+                    PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, GetDlgItemInt(hwndDlg, IDC_MAXHOPS, NULL, FALSE));
 
-                    PhSetIntegerSetting(SETTING_NAME_PING_SIZE, pingPacketLength);
-                    PhSetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING, minGraphScaling);
-
-                    EndDialog(hwndDlg, IDOK);
+                    EndDialog(hwndDlg, IDCANCEL);
+                }
+                break;
+            case IDC_GEOIP:
+                {
+                    if (PhGetOwnTokenAttributes().Elevated)
+                    {
+                        ShowGeoIPUpdateDialog(NULL);
+                    }
                 }
                 break;
             }

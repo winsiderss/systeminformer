@@ -40,9 +40,9 @@
 #define IDC_TEXTOPTIONS                 1010
 #define IDC_MOVEUP                      1011
 #define IDC_MOVEDOWN                    1012
-#define IDC_THEMEOPTIONS                1013
 #define IDC_RESET                       1014
 #define IDC_ENABLE_AUTOHIDE_MENU        1015
+#define IDC_ENABLE_AUTOCOMPLETE         1016
 #define ID_SEARCH                       40011
 
 // Next default values for new objects
@@ -50,8 +50,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        146
-#define _APS_NEXT_COMMAND_VALUE         40016
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_COMMAND_VALUE         40012
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           11010
 #endif
 #endif

@@ -515,6 +515,14 @@ EXPORTS
 	PhOpenLsaPolicy
 	PhSidToStringSid
 
+; mapimg
+	PhGetMappedImageCfg
+	PhGetMappedImageCfgEntry
+	PhGetMappedImageLoadConfig32
+	PhGetMappedImageLoadConfig64
+	PhInitializeMappedImage
+	PhLoadMappedImage
+
 ; secedit
 	PhCreateSecurityPage
 	PhEditSecurity

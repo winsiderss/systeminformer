@@ -409,13 +409,16 @@ VOID AddProcessAppDomains(
             Context->ProcessItem->ProcessId
             );
 
-        for (ULONG i = 0; i < processAppDomains->Count; i++)
+        if (processAppDomains)
         {
-            PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
-            PhFree(processAppDomains->Items[i]);
-        }
+            for (ULONG i = 0; i < processAppDomains->Count; i++)
+            {
+                PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
+                PhFree(processAppDomains->Items[i]);
+            }
 
-        PhDereferenceObject(processAppDomains);
+            PhDereferenceObject(processAppDomains);
+        }
     }
     else
     {
@@ -425,13 +428,16 @@ VOID AddProcessAppDomains(
             Context->ProcessItem->ProcessId
             );
 
-        for (ULONG i = 0; i < processAppDomains->Count; i++)
+        if (processAppDomains)
         {
-            PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
-            PhFree(processAppDomains->Items[i]);
-        }
+            for (ULONG i = 0; i < processAppDomains->Count; i++)
+            {
+                PhAddListViewItem(Context->AppDomainsLv, MAXINT, processAppDomains->Items[i], NULL);
+                PhFree(processAppDomains->Items[i]);
+            }
 
-        PhDereferenceObject(processAppDomains);
+            PhDereferenceObject(processAppDomains);
+        }
     }
 
     SendMessage(Context->AppDomainsLv, WM_SETREDRAW, TRUE, 0);
