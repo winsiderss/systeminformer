@@ -7,7 +7,6 @@
 #define IDD_PEEXPORTS                   104
 #define IDD_LIBEXPORTS                  105
 #define IDD_PECLR                       106
-#define IDD_PEEXPORTS1                  107
 #define IDD_PELOADCONFIG                107
 #define IDD_PECFG                       108
 #define IDC_TARGETMACHINE               1003
@@ -22,7 +21,6 @@
 #define IDC_FILE                        1011
 #define IDC_FLAGS                       1012
 #define IDC_COMPANYNAME                 1012
-#define IDC_EDIT1                       1013
 #define IDC_VERSION                     1013
 #define IDC_VERSIONSTRING               1014
 #define IDC_IMAGEBASE                   1015
