@@ -3,7 +3,7 @@
  *   Main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2013-2016 dmex
+ * Copyright (C) 2013-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -51,6 +51,24 @@ VOID NTAPI ShowOptionsCallback(
     ShowOptionsDialog((HWND)Parameter);
 }
 
+HRESULT CALLBACK ElevateActionCallbackProc(
+    _In_ HWND hwnd,
+    _In_ UINT uNotification,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
+    )
+{
+    switch (uNotification)
+    {
+    case TDN_CREATED:
+        SendMessage(hwnd, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
+        break;
+    }
+
+    return S_OK;
+}
+
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -90,14 +108,23 @@ VOID NTAPI MenuItemCallback(
             {
                 PWSTR terminator = NULL;
 
-                if (NT_SUCCESS(RtlIpv4StringToAddress(selectedChoice->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                if (NT_SUCCESS(RtlIpv4StringToAddress(
+                    selectedChoice->Buffer, 
+                    TRUE, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.InAddr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                     ShowPingWindowFromAddress(RemoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddress(selectedChoice->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                if (NT_SUCCESS(RtlIpv6StringToAddress(
+                    selectedChoice->Buffer, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.In6Addr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                     ShowPingWindowFromAddress(RemoteEndpoint);
@@ -126,14 +153,23 @@ VOID NTAPI MenuItemCallback(
             {
                 PWSTR terminator = NULL;
 
-                if (NT_SUCCESS(RtlIpv4StringToAddress(selectedChoice->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                if (NT_SUCCESS(RtlIpv4StringToAddress(
+                    selectedChoice->Buffer, 
+                    TRUE, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.InAddr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                     ShowTracertWindowFromAddress(RemoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddress(selectedChoice->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                if (NT_SUCCESS(RtlIpv6StringToAddress(
+                    selectedChoice->Buffer, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.In6Addr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                     ShowTracertWindowFromAddress(RemoteEndpoint);
@@ -162,14 +198,23 @@ VOID NTAPI MenuItemCallback(
             {
                 PWSTR terminator = NULL;
 
-                if (NT_SUCCESS(RtlIpv4StringToAddress(selectedChoice->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                if (NT_SUCCESS(RtlIpv4StringToAddress(
+                    selectedChoice->Buffer, 
+                    TRUE, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.InAddr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                     ShowWhoisWindowFromAddress(RemoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddress(selectedChoice->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                if (NT_SUCCESS(RtlIpv6StringToAddress(
+                    selectedChoice->Buffer, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.In6Addr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                     ShowWhoisWindowFromAddress(RemoteEndpoint);
@@ -182,7 +227,57 @@ VOID NTAPI MenuItemCallback(
         {
             if (PhGetOwnTokenAttributes().Elevated)
             {
-                ShowGeoIPUpdateDialog(PhMainWndHandle);
+                ShowGeoIPUpdateDialog(NULL);
+            }
+            else
+            {
+                TASKDIALOGCONFIG config = { sizeof(config) };
+                TASKDIALOG_BUTTON buttons[1];
+                INT button;
+
+                config.dwFlags = TDF_CAN_BE_MINIMIZED;
+                config.pszWindowTitle = L"Process Hacker";
+                config.pszMainIcon = TD_ERROR_ICON;
+                config.pszMainInstruction = L"Unable to update the GeoIP database.";
+                config.pszContent = L"You will need to provide administrator permission. "
+                    L"Click Continue to complete this operation.";
+                config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+
+                buttons[0].nButtonID = IDYES;
+                buttons[0].pszButtonText = L"Continue";
+
+                config.cButtons = 1;
+                config.pButtons = buttons;
+                config.nDefaultButton = IDYES;
+
+                config.pfCallback = ElevateActionCallbackProc;
+
+                if (TaskDialogIndirect(
+                    &config,
+                    &button,
+                    NULL,
+                    NULL
+                    ) == S_OK && button == IDYES)
+                {
+                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+
+                    if (PhShellProcessHacker(
+                        PhMainWndHandle,
+                        NULL,
+                        SW_SHOW,
+                        PH_SHELL_EXECUTE_ADMIN,
+                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                        0,
+                        NULL
+                        ))
+                    {
+                        ProcessHacker_Destroy(PhMainWndHandle);
+                    }
+                    else
+                    {
+                        ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+                    }
+                }
             }
         }
         break;
@@ -456,13 +551,12 @@ VOID NTAPI TreeNewMessageCallback(
             if (GeoDbLoaded && extension->RemoteCountryCode && extension->RemoteCountryName)
             {
                 if (!extension->CountryIcon)
-                {  
+                {
                     INT resourceCode;
-                    
+                    HBITMAP countryBitmap;
+
                     if ((resourceCode = LookupResourceCode(extension->RemoteCountryCode)) != 0)
                     {
-                        HBITMAP countryBitmap;
-
                         if (countryBitmap = LoadImageFromResources(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             extension->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
