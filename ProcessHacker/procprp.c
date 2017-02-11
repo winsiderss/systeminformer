@@ -164,10 +164,8 @@ INT CALLBACK PhpPropSheetProc(
 
             PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
 
-            propSheetContext->OldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
-
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)propSheetContext);
+            SetWindowSubclass(hwndDlg, PhpPropSheetWndProc, 0, (ULONG_PTR)propSheetContext);
 
             if (MinimumSize.left == -1)
             {
@@ -199,11 +197,12 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam, 
+    _In_ UINT_PTR uIdSubclass, 
+    _In_ ULONG_PTR dwRefData
     )
 {
-    PPH_PROCESS_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hwnd);
-    WNDPROC oldWndProc = propSheetContext->OldWndProc;
+    PPH_PROCESS_PROPSHEETCONTEXT propSheetContext = (PPH_PROCESS_PROPSHEETCONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -233,10 +232,10 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhDeleteLayoutManager(&propSheetContext->LayoutManager);
-
+            RemoveWindowSubclass(hwnd, PhpPropSheetWndProc, uIdSubclass);
             RemoveProp(hwnd, PhMakeContextAtom());
+
+            PhDeleteLayoutManager(&propSheetContext->LayoutManager);
             PhFree(propSheetContext);
         }
         break;
@@ -267,7 +266,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(

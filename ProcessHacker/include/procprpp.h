@@ -9,7 +9,6 @@
 
 typedef struct _PH_PROCESS_PROPSHEETCONTEXT
 {
-    WNDPROC OldWndProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
@@ -34,7 +33,9 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     );
 
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
