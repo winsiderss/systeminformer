@@ -3,6 +3,7 @@
  *   tree new (tree list control)
  *
  * Copyright (C) 2011-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -5774,12 +5775,8 @@ VOID PhTnpInitializeTooltips(
 
     // Hook the header control window procedures so we can forward mouse messages to the tooltip
     // control.
-    Context->FixedHeaderOldWndProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
-    SetProp(Context->FixedHeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
-    SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
-    Context->HeaderOldWndProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
-    SetProp(Context->HeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
-    SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
+    SetWindowSubclass(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc, 0, (ULONG_PTR)Context);
+    SetWindowSubclass(Context->HeaderHandle, PhTnpHeaderHookWndProc, 0, (ULONG_PTR)Context);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
@@ -6066,38 +6063,21 @@ VOID PhTnpGetHeaderTooltipText(
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
 }
 
-PWSTR PhTnpMakeContextAtom(
-    VOID
-    )
-{
-    PH_DEFINE_MAKE_ATOM(L"PhLib_TreeNewContext");
-}
-
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     )
 {
-    PPH_TREENEW_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    context = (PPH_TREENEW_CONTEXT)GetProp(hwnd, PhTnpMakeContextAtom());
-
-    if (hwnd == context->FixedHeaderHandle)
-        oldWndProc = context->FixedHeaderOldWndProc;
-    else
-        oldWndProc = context->HeaderOldWndProc;
+    PPH_TREENEW_CONTEXT context = (PPH_TREENEW_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            RemoveProp(hwnd, PhTnpMakeContextAtom());
-        }
+        RemoveWindowSubclass(hwnd, PhTnpHeaderHookWndProc, uIdSubclass);
         break;
     case WM_MOUSEMOVE:
         {
@@ -6183,7 +6163,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhTnpDetectDrag(

@@ -129,8 +129,6 @@ typedef struct _PH_TREENEW_CONTEXT
     HFONT TooltipFont;
     HFONT NewTooltipFont;
     ULONG TooltipColumnId;
-    WNDPROC FixedHeaderOldWndProc;
-    WNDPROC HeaderOldWndProc;
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
@@ -722,15 +720,14 @@ VOID PhTnpGetHeaderTooltipText(
     _Out_ PWSTR *Text
     );
 
-PWSTR PhTnpMakeContextAtom(
-    VOID
-    );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     );
 
 // Drag selection

@@ -132,6 +132,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
         break;
     case WM_DESTROY:
         {
+            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
             PhpFreeHexEditContext(context);
         }
         break;

@@ -3,6 +3,7 @@
  *   mini information window
  *
  * Copyright (C) 2015-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -60,7 +61,6 @@ static PH_LAYOUT_MANAGER PhMipLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 static PH_STRINGREF DownArrowPrefix = PH_STRINGREF_INIT(L"\u25be ");
-static WNDPROC SectionControlOldWndProc;
 
 static PPH_LIST SectionList;
 static PH_MINIINFO_PARAMETERS CurrentParameters;
@@ -464,8 +464,7 @@ VOID PhMipOnInitDialog(
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PIN), NULL,
         PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-    SectionControlOldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
-    SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
+    SetWindowSubclass(GetDlgItem(PhMipWindow, IDC_SECTION), PhMipSectionControlHookWndProc, 0, 0);
 
     Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
 }
@@ -1145,11 +1144,16 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     )
 {
     switch (uMsg)
     {
+    case WM_DESTROY:
+        RemoveWindowSubclass(hwnd, PhMipSectionControlHookWndProc, uIdSubclass);
+        break;
     case WM_SETCURSOR:
         {
             SetCursor(LoadCursor(NULL, IDC_HAND));
@@ -1157,7 +1161,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
         return TRUE;
     }
 
-    return CallWindowProc(SectionControlOldWndProc, hwnd, uMsg, wParam, lParam);
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
 }
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(

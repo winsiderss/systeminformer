@@ -3,6 +3,7 @@
  *   options window
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -44,7 +45,9 @@ LRESULT CALLBACK PhpOptionsWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     );
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
@@ -87,7 +90,6 @@ static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
 static BOOLEAN RestartRequired;
 static POINT StartLocation;
-static WNDPROC OldWndProc;
 
 // General
 static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
@@ -261,8 +263,7 @@ static VOID PhpPageInit(
         RECT rect;
 
         optionsWindow = GetParent(hwndDlg);
-        OldWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
-        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PhpOptionsWndProc);
+        SetWindowSubclass(optionsWindow, PhpOptionsWndProc, 0, 0);
 
         // Create the Reset button.
         GetClientRect(optionsWindow, &clientRect);
@@ -306,11 +307,16 @@ LRESULT CALLBACK PhpOptionsWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
     )
 {
     switch (uMsg)
     {
+    case WM_DESTROY:
+        RemoveWindowSubclass(hwnd, PhpOptionsWndProc, uIdSubclass);
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
@@ -348,7 +354,7 @@ LRESULT CALLBACK PhpOptionsWndProc(
         break;
     }
 
-    return CallWindowProc(OldWndProc, hwnd, uMsg, wParam, lParam);
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \

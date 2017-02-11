@@ -926,13 +926,14 @@ LRESULT CALLBACK PhpGraphWndProc(
         break;
     case WM_DESTROY:
         {
+            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
+
             if (context->TooltipHandle)
                 DestroyWindow(context->TooltipHandle);
 
             PhpDeleteFadeOutContext(context);
             PhpDeleteBufferedContext(context);
             PhpFreeGraphContext(context);
-            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
         break;
     case WM_STYLECHANGED:

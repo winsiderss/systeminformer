@@ -132,8 +132,8 @@ LRESULT CALLBACK PhpColorBoxWndProc(
         break;
     case WM_DESTROY:
         {
-            PhpFreeColorBoxContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
+            PhpFreeColorBoxContext(context);
         }
         break;
     case WM_PAINT:
