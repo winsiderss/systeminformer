@@ -3,6 +3,7 @@
  *   UI actions
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -114,7 +115,7 @@ BOOLEAN PhpShowElevatePrompt(
 
     config.pfCallback = PhpElevateActionCallbackProc;
 
-    if (TaskDialogIndirect_Import()(
+    if (TaskDialogIndirect(
         &config,
         &button,
         NULL,
@@ -170,7 +171,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
     if (elevationLevel == NeverElevateAction)
         return FALSE;
 
-    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_Import())
+    if (elevationLevel == PromptElevateAction)
     {
         if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
             return FALSE;
@@ -270,7 +271,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
         return TRUE;
     }
 
-    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_Import())
+    if (elevationLevel == PromptElevateAction)
     {
         if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
             return FALSE;
