@@ -147,6 +147,7 @@ INT CALLBACK PvpPropSheetProc(
 
             PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
 
+            SetProp(hwndDlg, L"PvContext", (HANDLE)propSheetContext);
             SetWindowSubclass(hwndDlg, PvpPropSheetWndProc, 0, (ULONG_PTR)propSheetContext);
 
             if (MinimumSize.left == -1)
@@ -168,6 +169,13 @@ INT CALLBACK PvpPropSheetProc(
     return 0;
 }
 
+PPV_PROPSHEETCONTEXT PvpGetPropSheetContext(
+    _In_ HWND hwnd
+    )
+{
+    return (PPV_PROPSHEETCONTEXT)GetProp(hwnd, L"PvContext");
+}
+
 LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -177,7 +185,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ ULONG_PTR dwRefData
     )
 {
-    PPV_PROPSHEETCONTEXT propSheetContext = dwRefData;
+    PPV_PROPSHEETCONTEXT propSheetContext = (PPV_PROPSHEETCONTEXT)dwRefData;
 
     switch (uMsg)
     {
