@@ -123,9 +123,8 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG MemGraphEnabled : 1;
         ULONG CommitGraphEnabled : 1;
         ULONG IoGraphEnabled : 1;
-        ULONG AutoComplete : 1;
 
-        ULONG Spare : 20;
+        ULONG Spare : 21;
     };
 } TOOLSTATUS_CONFIG;
 

@@ -393,9 +393,6 @@ VOID CustomizeLoadToolbarSettings(
     Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_AUTOHIDE_MENU),
         ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
 
-    Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_AUTOCOMPLETE),
-        ToolStatusConfig.AutoComplete ? BST_CHECKED : BST_UNCHECKED);
-
     if (!ToolStatusConfig.SearchBoxEnabled)
     {
         ComboBox_Enable(searchboxCombo, FALSE);
@@ -543,10 +540,14 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             ToolbarLoadSettings();
             CustomizeFreeToolbarItems(context);
 
+            if (context->BrushHot)
+                DeleteObject(context->BrushHot);
+
+            if (context->BrushPushed)
+                DeleteObject(context->BrushPushed);
+
             if (context->FontHandle)
-            {
                 DeleteObject(context->FontHandle);
-            }
         }
         break;
     case WM_COMMAND:
@@ -794,16 +795,6 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                             SetMenu(PhMainWndHandle, MainMenu);
                             DrawMenuBar(PhMainWndHandle);
                         }
-                    }
-                }
-                break;
-            case IDC_ENABLE_AUTOCOMPLETE:
-                {
-                    if (GET_WM_COMMAND_CMD(wParam, lParam) == BN_CLICKED)
-                    {
-                        ToolStatusConfig.AutoComplete = !ToolStatusConfig.AutoComplete;
-
-                        PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
                     }
                 }
                 break;

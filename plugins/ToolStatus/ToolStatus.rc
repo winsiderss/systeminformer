@@ -102,7 +102,7 @@ BEGIN
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,59,157,18
 END
 
-IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 201
+IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Customize Toolbar"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -121,11 +121,9 @@ BEGIN
     COMBOBOX        IDC_SEARCHOPTIONS,56,155,113,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Enable modern icons",IDC_ENABLE_MODERN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,188,139,83,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,188,165,157,10
-    PUSHBUTTON      "Reset",IDC_RESET,258,180,50,14
-    DEFPUSHBUTTON   "Close",IDCANCEL,312,180,50,14
-    CONTROL         "Enable search auto-complete",IDC_ENABLE_AUTOCOMPLETE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,188,152,109,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,188,152,157,10
+    PUSHBUTTON      "Reset",IDC_RESET,258,167,50,14
+    DEFPUSHBUTTON   "Close",IDCANCEL,312,167,50,14
 END
 
 IDD_CUSTOMIZE_SB DIALOGEX 0, 0, 373, 142
@@ -167,7 +165,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 362
         TOPMARGIN, 7
-        BOTTOMMARGIN, 194
+        BOTTOMMARGIN, 181
     END
 
     IDD_CUSTOMIZE_SB, DIALOG
@@ -214,6 +212,7 @@ IDB_CROSS_MODERN        PNG                     "resources\\cross_modern.png"
 IDB_FIND_MODERN         PNG                     "resources\\find_modern.png"
 
 IDB_POWER_MODERN        PNG                     "resources\\lightbulb_off_modern.png"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
