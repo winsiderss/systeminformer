@@ -100,8 +100,6 @@ VOID WeShowWindowsDialog(
     _In_ PWE_WINDOW_SELECTOR Selector
     );
 
-#define WM_WE_PLUSMINUS (WM_APP + 1)
-
 // wndprp
 
 VOID WeShowWindowProperties(

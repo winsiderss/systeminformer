@@ -119,7 +119,7 @@ VOID WepFillWindowInfo(
     Node->HasChildren = !!FindWindowEx(hwnd, NULL, NULL, NULL);
 }
 
-VOID WepAddChildWindowNode(
+PWE_WINDOW_NODE WepAddChildWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_opt_ PWE_WINDOW_NODE ParentNode,
     _In_ HWND hwnd
@@ -129,21 +129,26 @@ VOID WepAddChildWindowNode(
 
     childNode = WeAddWindowNode(Context);
     childNode->WindowHandle = hwnd;
-    WepFillWindowInfo(childNode);
 
-    childNode->Node.Expanded = FALSE;
+    WepFillWindowInfo(childNode);
 
     if (ParentNode)
     {
         // This is a child node.
+        childNode->Node.Expanded = FALSE;
         childNode->Parent = ParentNode;
+
         PhAddItemList(ParentNode->Children, childNode);
     }
     else
     {
         // This is a root node.
+        childNode->Node.Expanded = TRUE;
+
         PhAddItemList(Context->NodeRootList, childNode);
     }
+
+    return childNode;
 }
 
 VOID WepAddChildWindows(
@@ -171,7 +176,12 @@ VOID WepAddChildWindows(
             (!FilterThreadId || UlongToHandle(threadId) == FilterThreadId)
             )
         {
-            WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
+            PWE_WINDOW_NODE childNode = WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
+
+            if (childNode->HasChildren)
+            {
+                WepAddChildWindows(Context, childNode, childWindow, NULL, NULL);
+            }
         }
 
         i++;
@@ -210,7 +220,6 @@ VOID WepRefreshWindows(
 {
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     WeClearWindowTree(&Context->TreeContext);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     switch (Context->Selector.Type)
     {
@@ -227,7 +236,6 @@ VOID WepRefreshWindows(
             WepAddChildWindows(Context, desktopNode, desktopNode->WindowHandle, NULL, NULL);
 
             desktopNode->HasChildren = TRUE;
-            desktopNode->Opened = TRUE;
         }
         break;
     case WeWindowSelectorThread:
@@ -247,6 +255,7 @@ VOID WepRefreshWindows(
         break;
     }
 
+    TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
@@ -401,7 +410,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
 
                         TreeNew_NodesStructured(context->TreeNewHandle);
-                       // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
+                        // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
                     }
                 }
                 break;
@@ -743,19 +752,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     case WM_SIZING:
         {
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
-        }
-        break;
-    case WM_WE_PLUSMINUS:
-        {
-            PWE_WINDOW_NODE node = (PWE_WINDOW_NODE)lParam;
-
-            if (!node->Opened)
-            {
-                TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
-                WepAddChildWindows(context, node, node->WindowHandle, NULL, NULL);
-                node->Opened = TRUE;
-                TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
-            }
         }
         break;
     }

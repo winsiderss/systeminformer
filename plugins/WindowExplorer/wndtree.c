@@ -151,7 +151,7 @@ VOID WeInitializeWindowTree(
     PhAddTreeNewColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
 
     TreeNew_SetTriState(hwnd, TRUE);
-    TreeNew_SetSort(hwnd, 0, NoSortOrder);
+    TreeNew_SetSort(hwnd, WEWNTLC_CLASS, NoSortOrder);
 
     settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
     PhCmLoadSettings(hwnd, &settings->sr);
@@ -233,7 +233,7 @@ PWE_WINDOW_NODE WeAddWindowNode(
     if (Context->FilterSupport.FilterList)
         windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
 
-    TreeNew_NodesStructured(Context->TreeNewHandle);
+    //TreeNew_NodesStructured(Context->TreeNewHandle);
 
     return windowNode;
 }
@@ -477,11 +477,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_PROPERTIES, 0);
         }
         return TRUE;
-    case TreeNewNodeExpanding:
-        {
-            SendMessage(context->ParentWindowHandle, WM_WE_PLUSMINUS, 0, (LPARAM)Parameter1);
-        }
-        return FALSE;
     case TreeNewContextMenu:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;

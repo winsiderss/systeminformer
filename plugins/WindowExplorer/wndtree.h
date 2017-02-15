@@ -20,9 +20,8 @@ typedef struct _WE_WINDOW_NODE
         struct
         {
             ULONG HasChildren : 1;
-            ULONG Opened : 1;
             ULONG WindowVisible : 1;
-            ULONG Spare : 29;
+            ULONG Spare : 30;
         };
     };
 
