@@ -282,7 +282,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG *processHeaps32;
 #endif
 
-        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {
             PhpSetMemoryRegionType(List, basicInfo.PebBaseAddress, TRUE, PebRegion);
 
