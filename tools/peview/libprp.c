@@ -67,7 +67,7 @@ VOID PvLibProperties(
     propSheetPage.pfnDlgProc = PvpLibExportsDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-    PropertySheet(&propSheetHeader);
+    PhModalPropertySheet(&propSheetHeader);
 
     PhUnloadMappedArchive(&PvMappedArchive);
 }
