@@ -7,14 +7,16 @@
 
 #define PHNETLC_PROCESS 0
 #define PHNETLC_LOCALADDRESS 1
-#define PHNETLC_LOCALPORT 2
-#define PHNETLC_REMOTEADDRESS 3
-#define PHNETLC_REMOTEPORT 4
-#define PHNETLC_PROTOCOL 5
-#define PHNETLC_STATE 6
-#define PHNETLC_OWNER 7
-#define PHNETLC_TIMESTAMP 8
-#define PHNETLC_MAXIMUM 9
+#define PHNETLC_LOCALHOSTNAME 2
+#define PHNETLC_LOCALPORT 3
+#define PHNETLC_REMOTEADDRESS 4
+#define PHNETLC_REMOTEHOSTNAME 5
+#define PHNETLC_REMOTEPORT 6
+#define PHNETLC_PROTOCOL 7
+#define PHNETLC_STATE 8
+#define PHNETLC_OWNER 9
+#define PHNETLC_TIMESTAMP 10
+#define PHNETLC_MAXIMUM 11
 
 // begin_phapppub
 typedef struct _PH_NETWORK_NODE
@@ -30,8 +32,6 @@ typedef struct _PH_NETWORK_NODE
 
     LONG UniqueId;
     PPH_STRING ProcessNameText;
-    PH_STRINGREF LocalAddressText;
-    PH_STRINGREF RemoteAddressText;
     PPH_STRING TimeStampText;
 
     PPH_STRING TooltipText;

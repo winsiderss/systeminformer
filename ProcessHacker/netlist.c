@@ -66,10 +66,6 @@ PPH_STRING PhpGetNetworkItemProcessName(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
-VOID PhpUpdateNetworkNodeAddressStrings(
-    _In_ PPH_NETWORK_NODE NetworkNode
-    );
-
 static HWND NetworkTreeListHandle;
 static ULONG NetworkTreeListSortColumn;
 static PH_SORT_ORDER NetworkTreeListSortOrder;
@@ -130,8 +126,10 @@ VOID PhInitializeNetworkTreeList(
     // Default columns
     PhAddTreeNewColumn(hwnd, PHNETLC_PROCESS, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALADDRESS, TRUE, L"Local address", 120, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, TRUE, L"Local hostname", 120, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_RIGHT, 2, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEADDRESS, TRUE, L"Remote address", 120, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, TRUE, L"Remote hostname", 120, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_RIGHT, 4, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 6, 0);
@@ -223,7 +221,6 @@ PPH_NETWORK_NODE PhAddNetworkNode(
     networkNode->Node.TextCacheSize = PHNETLC_MAXIMUM;
 
     networkNode->ProcessNameText = PhpGetNetworkItemProcessName(NetworkItem);
-    PhpUpdateNetworkNodeAddressStrings(networkNode);
 
     PhAddEntryHashtable(NetworkNodeHashtable, &networkNode);
     PhAddItemList(NetworkNodeList, networkNode);
@@ -312,7 +309,6 @@ VOID PhUpdateNetworkNode(
     )
 {
     memset(NetworkNode->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
-    PhpUpdateNetworkNodeAddressStrings(NetworkNode);
     PhClearReference(&NetworkNode->TooltipText);
 
     PhInvalidateTreeNewNode(&NetworkNode->Node, TN_CACHE_ICON);
@@ -374,7 +370,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalAddress)
 {
-    sortResult = PhCompareStringRef(&node1->LocalAddressText, &node2->LocalAddressText, TRUE);
+    sortResult = PhCompareStringZ(networkItem1->LocalAddressString, networkItem2->LocalAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LocalHostname)
+{
+    sortResult = PhCompareStringWithNull(networkItem1->LocalHostString, networkItem2->LocalHostString, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -386,7 +388,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteAddress)
 {
-    sortResult = PhCompareStringRef(&node1->RemoteAddressText, &node2->RemoteAddressText, TRUE);
+    sortResult = PhCompareStringZ(networkItem1->RemoteAddressString, networkItem2->RemoteAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RemoteHostname)
+{
+    sortResult = PhCompareStringWithNull(networkItem1->RemoteHostString, networkItem2->RemoteHostString, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -445,8 +453,10 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(LocalAddress),
+                    SORT_FUNCTION(LocalHostname),
                     SORT_FUNCTION(LocalPort),
                     SORT_FUNCTION(RemoteAddress),
+                    SORT_FUNCTION(RemoteHostname),
                     SORT_FUNCTION(RemotePort),
                     SORT_FUNCTION(Protocol),
                     SORT_FUNCTION(State),
@@ -500,13 +510,25 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 getCellText->Text = node->ProcessNameText->sr;
                 break;
             case PHNETLC_LOCALADDRESS:
-                getCellText->Text = node->LocalAddressText;
+                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalAddressString);
+                break;
+            case PHNETLC_LOCALHOSTNAME:
+                if (networkItem->LocalHostString)
+                    getCellText->Text = networkItem->LocalHostString->sr;
+                else
+                    PhInitializeEmptyStringRef(&getCellText->Text);
                 break;
             case PHNETLC_LOCALPORT:
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
                 break;
             case PHNETLC_REMOTEADDRESS:
-                getCellText->Text = node->RemoteAddressText;
+                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemoteAddressString);
+                break;
+            case PHNETLC_REMOTEHOSTNAME:
+                if (networkItem->RemoteHostString)
+                    getCellText->Text = networkItem->RemoteHostString->sr;
+                else
+                    PhInitializeEmptyStringRef(&getCellText->Text);
                 break;
             case PHNETLC_REMOTEPORT:
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
@@ -679,21 +701,6 @@ PPH_STRING PhpGetNetworkItemProcessName(
         PhInitFormatS(&format[0], L"Unknown process");
 
     return PhFormat(format, 4, 96);
-}
-
-VOID PhpUpdateNetworkNodeAddressStrings(
-    _In_ PPH_NETWORK_NODE NetworkNode
-    )
-{
-    if (NetworkNode->NetworkItem->LocalHostString)
-        NetworkNode->LocalAddressText = NetworkNode->NetworkItem->LocalHostString->sr;
-    else
-        PhInitializeStringRefLongHint(&NetworkNode->LocalAddressText, NetworkNode->NetworkItem->LocalAddressString);
-
-    if (NetworkNode->NetworkItem->RemoteHostString)
-        NetworkNode->RemoteAddressText = NetworkNode->NetworkItem->RemoteHostString->sr;
-    else
-        PhInitializeStringRefLongHint(&NetworkNode->RemoteAddressText, NetworkNode->NetworkItem->RemoteAddressString);
 }
 
 PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
