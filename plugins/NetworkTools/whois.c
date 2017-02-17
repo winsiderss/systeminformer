@@ -29,8 +29,13 @@ VOID RichEditAppendText(
     _In_ PWSTR Text
     )
 {
+    SendMessage(RichEditHandle, WM_SETREDRAW, FALSE, 0);
+
     SendMessage(RichEditHandle, EM_REPLACESEL, FALSE, (LPARAM)Text);
     SendMessage(RichEditHandle, EM_LINESCROLL, 0, -1000);
+
+    SendMessage(RichEditHandle, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(RichEditHandle, NULL, FALSE);
 }
 
 PPH_STRING TrimString(

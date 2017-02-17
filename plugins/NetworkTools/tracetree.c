@@ -24,15 +24,15 @@
 #include "tracert.h"
 #include <commonutil.h>
 
-#define SORT_FUNCTION(Column) PmPoolTreeNewCompare##Column
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PmPoolTreeNewCompare##Column( \
+#define SORT_FUNCTION(Column) TracertTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl TracertTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
     ) \
 { \
-    PPOOLTAG_ROOT_NODE node1 = *(PPOOLTAG_ROOT_NODE*)_elem1; \
-    PPOOLTAG_ROOT_NODE node2 = *(PPOOLTAG_ROOT_NODE*)_elem2; \
+    PTRACERT_ROOT_NODE node1 = *(PTRACERT_ROOT_NODE*)_elem1; \
+    PTRACERT_ROOT_NODE node2 = *(PTRACERT_ROOT_NODE*)_elem2; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
@@ -99,46 +99,46 @@ BOOLEAN TracertNodeHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PPOOLTAG_ROOT_NODE poolTagNode1 = *(PPOOLTAG_ROOT_NODE *)Entry1;
-    PPOOLTAG_ROOT_NODE poolTagNode2 = *(PPOOLTAG_ROOT_NODE *)Entry2;
+    PTRACERT_ROOT_NODE node1 = *(PTRACERT_ROOT_NODE *)Entry1;
+    PTRACERT_ROOT_NODE node2 = *(PTRACERT_ROOT_NODE *)Entry2;
 
-    return poolTagNode1->TTL == poolTagNode2->TTL;
+    return node1->TTL == node2->TTL;
 }
 
 ULONG TracertNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (*(PPOOLTAG_ROOT_NODE*)Entry)->TTL;
+    return (*(PTRACERT_ROOT_NODE*)Entry)->TTL;
 }
 
 VOID DestroyTracertNode(
-    _In_ PPOOLTAG_ROOT_NODE PoolTagNode
+    _In_ PTRACERT_ROOT_NODE Node
     )
 {
-   PhClearReference(&PoolTagNode->TtlString);
-   PhClearReference(&PoolTagNode->Ping1String);
-   PhClearReference(&PoolTagNode->Ping2String);
-   PhClearReference(&PoolTagNode->Ping3String);
-   PhClearReference(&PoolTagNode->Ping4String);
-   PhClearReference(&PoolTagNode->CountryString);
-   PhClearReference(&PoolTagNode->HostnameString);
-   PhClearReference(&PoolTagNode->IpAddressString);
-   PhClearReference(&PoolTagNode->RemoteCountryCode);
-   PhClearReference(&PoolTagNode->RemoteCountryName);
+   PhClearReference(&Node->TtlString);
+   PhClearReference(&Node->Ping1String);
+   PhClearReference(&Node->Ping2String);
+   PhClearReference(&Node->Ping3String);
+   PhClearReference(&Node->Ping4String);
+   PhClearReference(&Node->CountryString);
+   PhClearReference(&Node->HostnameString);
+   PhClearReference(&Node->IpAddressString);
+   PhClearReference(&Node->RemoteCountryCode);
+   PhClearReference(&Node->RemoteCountryName);
    
-   PhDereferenceObject(PoolTagNode);
+   PhDereferenceObject(Node);
 }
 
-PPOOLTAG_ROOT_NODE AddTracertNode(
+PTRACERT_ROOT_NODE AddTracertNode(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG TTL
     )
 {
-    PPOOLTAG_ROOT_NODE tracertNode;
+    PTRACERT_ROOT_NODE tracertNode;
 
-    tracertNode = PhCreateAlloc(sizeof(POOLTAG_ROOT_NODE));
-    memset(tracertNode, 0, sizeof(POOLTAG_ROOT_NODE));
+    tracertNode = PhCreateAlloc(sizeof(TRACERT_ROOT_NODE));
+    memset(tracertNode, 0, sizeof(TRACERT_ROOT_NODE));
 
     PhInitializeTreeNewNode(&tracertNode->Node);
 
@@ -154,18 +154,18 @@ PPOOLTAG_ROOT_NODE AddTracertNode(
     return tracertNode;
 }
 
-PPOOLTAG_ROOT_NODE FindTracertNode(
+PTRACERT_ROOT_NODE FindTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG TTL
     )
 {
-    POOLTAG_ROOT_NODE lookupTracertNode;
-    PPOOLTAG_ROOT_NODE lookupTracertNodePtr = &lookupTracertNode;
-    PPOOLTAG_ROOT_NODE *tracertNode;
+    TRACERT_ROOT_NODE lookupTracertNode;
+    PTRACERT_ROOT_NODE lookupTracertNodePtr = &lookupTracertNode;
+    PTRACERT_ROOT_NODE *tracertNode;
 
     lookupTracertNode.TTL = TTL;
 
-    tracertNode = (PPOOLTAG_ROOT_NODE*)PhFindEntryHashtable(
+    tracertNode = (PTRACERT_ROOT_NODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
         &lookupTracertNodePtr
         );
@@ -178,35 +178,34 @@ PPOOLTAG_ROOT_NODE FindTracertNode(
 
 VOID RemoveTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE PoolTagNode
+    _In_ PTRACERT_ROOT_NODE Node
     )
 {
     ULONG index = 0;
 
-    PhRemoveEntryHashtable(Context->NodeHashtable, &PoolTagNode);
+    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
 
-    if ((index = PhFindItemList(Context->NodeList, PoolTagNode)) != -1)
+    if ((index = PhFindItemList(Context->NodeList, Node)) != -1)
     {
         PhRemoveItemList(Context->NodeList, index);
     }
 
-    DestroyTracertNode(PoolTagNode);
-
+    DestroyTracertNode(Node);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID UpdateTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE PoolTagNode
+    _In_ PTRACERT_ROOT_NODE Node
     )
 {
-    memset(PoolTagNode->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
+    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
 
-    PhInvalidateTreeNewNode(&PoolTagNode->Node, TN_CACHE_COLOR);
+    PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-BOOLEAN NTAPI PmPoolTagTreeNewCallback(
+BOOLEAN NTAPI TracertTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
@@ -214,10 +213,8 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     _In_opt_ PVOID Context
     )
 {
-    PNETWORK_TRACERT_CONTEXT context;
-    PPOOLTAG_ROOT_NODE node;
-
-    context = Context;
+    PNETWORK_TRACERT_CONTEXT context = Context;
+    PTRACERT_ROOT_NODE node;
 
     switch (Message)
     {
@@ -225,7 +222,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
-            node = (PPOOLTAG_ROOT_NODE)getChildren->Node;
+            node = (PTRACERT_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
             {
@@ -257,7 +254,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-            node = (PPOOLTAG_ROOT_NODE)isLeaf->Node;
+            node = (PTRACERT_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
         }
@@ -265,7 +262,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-            node = (PPOOLTAG_ROOT_NODE)getCellText->Node;
+            node = (PTRACERT_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
             {
@@ -277,77 +274,69 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
                 break;
             case TREE_COLUMN_ITEM_PING1:
                 {
-                    if (node->PingList[0]== ULONG_MAX)
+                    if (node->PingList[0])
                     {
-                        PhMoveReference(&node->Ping1String, PhFormatString(L"*"));
-                        getCellText->Text = node->Ping1String->sr;
-                    }
-                    //else if (node->Ping1 == ULONG_MAX - 1)
-                    //{
-                    //    PhMoveReference(&node->Ping1String, PhFormatString(L"<1 ms"));
-                    //    getCellText->Text = node->Ping1String->sr;
-                    //}
-                    else if (node->PingList[0])
-                    {
-                        PhMoveReference(&node->Ping1String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[1], TRUE)->Buffer));
-                        getCellText->Text = node->Ping1String->sr;
+                        if (node->PingList[0] == ULONG_MAX)
+                        {
+                            PhMoveReference(&node->Ping1String, PhFormatString(L"*"));
+                            getCellText->Text = node->Ping1String->sr;
+                        }
+                        else
+                        {
+                            PhMoveReference(&node->Ping1String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[1], TRUE)->Buffer));
+                            getCellText->Text = node->Ping1String->sr;
+                        }
                     }
                 }
                 break;
             case TREE_COLUMN_ITEM_PING2:
                 {
-                    if (node->PingList[1] == ULONG_MAX)
+                    if (node->PingList[1])
                     {
-                        PhMoveReference(&node->Ping2String, PhFormatString(L"*"));
-                        getCellText->Text = node->Ping2String->sr;
-                    }
-                    //else if (node->Ping2 == ULONG_MAX - 1)
-                    //{
-                        //PhMoveReference(&node->Ping2String, PhFormatString(L"<1 ms"));
-                        //getCellText->Text = node->Ping2String->sr;
-                    //}
-                    else if (node->PingList[1])
-                    {
-                        PhMoveReference(&node->Ping2String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[2], TRUE)->Buffer));
-                        getCellText->Text = node->Ping2String->sr;
+                        if (node->PingList[1] == ULONG_MAX)
+                        {
+                            PhMoveReference(&node->Ping2String, PhFormatString(L"*"));
+                            getCellText->Text = node->Ping2String->sr;
+                        }
+                        else
+                        {
+                            PhMoveReference(&node->Ping2String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[2], TRUE)->Buffer));
+                            getCellText->Text = node->Ping2String->sr;
+                        }
                     }
                 }
                 break;
             case TREE_COLUMN_ITEM_PING3:
                 {
-                    if (node->PingList[2] == ULONG_MAX)
+                    if (node->PingList[2])
                     {
-                        PhMoveReference(&node->Ping3String, PhFormatString(L"*"));
-                        getCellText->Text = node->Ping3String->sr;
-                    }
-                    //else if (node->Ping3 == ULONG_MAX - 1)
-                    //{
-                    //    PhMoveReference(&node->Ping3String, PhFormatString(L"<1 ms"));
-                    //    getCellText->Text = node->Ping3String->sr;
-                    //}
-                    else if (node->PingList[2])
-                    {
-                        PhMoveReference(&node->Ping3String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[3], TRUE)->Buffer));
-                        getCellText->Text = node->Ping3String->sr;
+                        if (node->PingList[2] == ULONG_MAX)
+                        {
+                            PhMoveReference(&node->Ping3String, PhFormatString(L"*"));
+                            getCellText->Text = node->Ping3String->sr;
+                        }
+                        else
+                        {
+                            PhMoveReference(&node->Ping3String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[3], TRUE)->Buffer));
+                            getCellText->Text = node->Ping3String->sr;
+                        }
                     }
                 }
                 break;
             case TREE_COLUMN_ITEM_PING4:
                 {
-                    if (node->PingList[3] == ULONG_MAX)
+                    if (node->PingList[3])
                     {
-                        PhMoveReference(&node->Ping4String, PhFormatString(L"*"));
-                        getCellText->Text = node->Ping4String->sr;
-                    }
-                    //else  if (node->Ping4 == ULONG_MAX - 1)
-                    //{
-                    //    PhMoveReference(&node->Ping4String, PhFormatString(L"<1 ms"));
-                    //    getCellText->Text = node->Ping4String->sr;
-                    //}
-                    else if (node->PingList[3])
-                    {
-                        PhMoveReference(&node->Ping4String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[4], TRUE)->Buffer));
-                        getCellText->Text = node->Ping4String->sr;
+                        if (node->PingList[3] == ULONG_MAX)
+                        {
+                            PhMoveReference(&node->Ping4String, PhFormatString(L"*"));
+                            getCellText->Text = node->Ping4String->sr;
+                        }
+                        else
+                        {
+                            PhMoveReference(&node->Ping4String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[3], TRUE)->Buffer));
+                            getCellText->Text = node->Ping4String->sr;
+                        }
                     }
                 }
                 break;
@@ -370,17 +359,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-            node = (PPOOLTAG_ROOT_NODE)getNodeColor->Node;
-
-            //switch (node->PoolItem->Type)
-            //{
-            //case TPOOLTAG_TREE_ITEM_TYPE_OBJECT:
-            //    getNodeColor->BackColor = RGB(204, 255, 255);
-            //    break;
-            //case TPOOLTAG_TREE_ITEM_TYPE_DRIVER:
-            //    getNodeColor->BackColor = RGB(170, 204, 255);
-            //    break; 
-            //}
+            node = (PTRACERT_ROOT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
         }
@@ -399,7 +378,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
             SendMessage(
                 context->WindowHandle,
                 WM_COMMAND, 
-                POOL_TABLE_SHOWCONTEXTMENU, 
+                TRACERT_SHOWCONTEXTMENU, 
                 (LPARAM)mouseEvent
                 );
         }
@@ -426,7 +405,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
             HDC hdc = customDraw->Dc;
             RECT rect = customDraw->CellRect;
 
-            node = (PPOOLTAG_ROOT_NODE)customDraw->Node;
+            node = (PTRACERT_ROOT_NODE)customDraw->Node;
 
             // Check if this is the country column
             if (customDraw->Column->Id != TREE_COLUMN_ITEM_COUNTRY)
@@ -515,11 +494,11 @@ VOID ClearTracertTree(
     PhClearList(Context->NodeList);
 }
 
-PPOOLTAG_ROOT_NODE GetSelectedTracertNode(
+PTRACERT_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
-    PPOOLTAG_ROOT_NODE windowNode = NULL;
+    PTRACERT_ROOT_NODE windowNode = NULL;
     ULONG i;
 
     for (i = 0; i < Context->NodeList->Count; i++)
@@ -535,8 +514,8 @@ PPOOLTAG_ROOT_NODE GetSelectedTracertNode(
 
 VOID GetSelectedTracertNodes(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _Out_ PPOOLTAG_ROOT_NODE **PoolTags,
-    _Out_ PULONG NumberOfPoolTags
+    _Out_ PTRACERT_ROOT_NODE **TracertNodes,
+    _Out_ PULONG NumberOfTracertNodes
     )
 {
     PPH_LIST list;
@@ -546,7 +525,7 @@ VOID GetSelectedTracertNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        PPOOLTAG_ROOT_NODE node = (PPOOLTAG_ROOT_NODE)Context->NodeList->Items[i];
+        PTRACERT_ROOT_NODE node = (PTRACERT_ROOT_NODE)Context->NodeList->Items[i];
 
         if (node->Node.Selected)
         {
@@ -554,8 +533,8 @@ VOID GetSelectedTracertNodes(
         }
     }
 
-    *PoolTags = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
-    *NumberOfPoolTags = list->Count;
+    *TracertNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfTracertNodes = list->Count;
 
     PhDereferenceObject(list);
 }
@@ -566,7 +545,7 @@ VOID InitializeTracertTree(
 {
     Context->NodeList = PhCreateList(100);
     Context->NodeHashtable = PhCreateHashtable(
-        sizeof(PPOOLTAG_ROOT_NODE),
+        sizeof(PTRACERT_ROOT_NODE),
         TracertNodeHashtableEqualFunction,
         TracertNodeHashtableHashFunction,
         100
@@ -574,7 +553,7 @@ VOID InitializeTracertTree(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
-    TreeNew_SetCallback(Context->TreeNewHandle, PmPoolTagTreeNewCallback, Context);
+    TreeNew_SetCallback(Context->TreeNewHandle, TracertTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, TRUE, L"TTL", 30, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TRUE, L"Hostname", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_HOSTNAME, 0);

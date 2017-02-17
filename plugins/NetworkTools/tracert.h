@@ -29,9 +29,9 @@
 #define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
 #define DEFAULT_TIMEOUT 1000
 #define MIN_INTERVAL    500 //1000
-#define POOL_TABLE_SHOWCONTEXTMENU (WM_APP + 9849)
+#define TRACERT_SHOWCONTEXTMENU (WM_APP + 1)
 
-typedef enum _POOLTAG_TREE_COLUMN_ITEM_NAME
+typedef enum _TRACERT_TREE_COLUMN_ITEM_NAME
 {
     TREE_COLUMN_ITEM_TTL,
     TREE_COLUMN_ITEM_HOSTNAME,
@@ -42,15 +42,15 @@ typedef enum _POOLTAG_TREE_COLUMN_ITEM_NAME
     TREE_COLUMN_ITEM_IPADDR,
     TREE_COLUMN_ITEM_COUNTRY,
     TREE_COLUMN_ITEM_MAXIMUM
-} POOLTAG_TREE_COLUMN_ITEM_NAME;
+} TRACERT_TREE_COLUMN_ITEM_NAME;
 
-typedef struct _POOLTAG_ROOT_NODE
+typedef struct _TRACERT_ROOT_NODE
 {
     PH_TREENEW_NODE Node;
 
     BOOLEAN HostnameValid;
     ULONG TTL;
-    ULONG PingList[10];
+    ULONG PingList[MAX_PINGS + 1];
 
     HICON CountryIcon;
 
@@ -66,7 +66,7 @@ typedef struct _POOLTAG_ROOT_NODE
     PPH_STRING RemoteCountryName;
     PPH_STRING RemoteCityName;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
-} POOLTAG_ROOT_NODE, *PPOOLTAG_ROOT_NODE;
+} TRACERT_ROOT_NODE, *PTRACERT_ROOT_NODE;
 
 typedef struct _TRACERT_RESOLVE_WORKITEM
 {
@@ -74,7 +74,7 @@ typedef struct _TRACERT_RESOLVE_WORKITEM
     SOCKADDR_STORAGE SocketAddress;
     HWND WindowHandle;
 
-    PPOOLTAG_ROOT_NODE Node;
+    PTRACERT_ROOT_NODE Node;
 
     WCHAR SocketAddressHostname[NI_MAXHOST];
 } TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
@@ -87,19 +87,19 @@ VOID DeleteTracertTree(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     );
 
-PPOOLTAG_ROOT_NODE FindTracertNode(
+PTRACERT_ROOT_NODE FindTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ ULONG PoolTag
+    _In_ ULONG TTL
     );
 
-PPOOLTAG_ROOT_NODE AddTracertNode(
+PTRACERT_ROOT_NODE AddTracertNode(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG TTL
     );
 
 VOID UpdateTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE WindowNode
+    _In_ PTRACERT_ROOT_NODE WindowNode
     );
 
 struct _PH_TN_FILTER_SUPPORT*
@@ -108,7 +108,7 @@ TracertGetFilterSupportTreeList(
     VOID
     );
 
-PPOOLTAG_ROOT_NODE GetSelectedTracertNode(
+PTRACERT_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     );
 

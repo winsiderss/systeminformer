@@ -56,7 +56,7 @@ PPH_STRING TracertGetErrorMessage(
 
 VOID TracertUpdateTime(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE Node,
+    _In_ PTRACERT_ROOT_NODE Node,
     _In_ INT SubIndex,
     _In_ ULONG RoundTripTime
     ) 
@@ -161,18 +161,19 @@ NTSTATUS TracertHostnameLookupCallback(
 
 VOID TracertQueueHostLookup(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE Node,
+    _In_ PTRACERT_ROOT_NODE Node,
     _In_ PVOID SocketAddress
     ) 
 {
+    ULONG addressStringLength = INET_ADDRSTRLEN;
+    WCHAR addressString[INET_ADDRSTRLEN] = L"";
+
     if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
         IN_ADDR sockAddrIn;
         PTRACERT_RESOLVE_WORKITEM resolve;
         PPH_STRING remoteCountryCode;
         PPH_STRING remoteCountryName;
-        ULONG addressStringLength = INET_ADDRSTRLEN;
-        WCHAR addressString[INET_ADDRSTRLEN] = L"";
 
         memset(&sockAddrIn, 0, sizeof(IN_ADDR));
         memcpy(&sockAddrIn, SocketAddress, sizeof(IN_ADDR));
@@ -208,8 +209,6 @@ VOID TracertQueueHostLookup(
     {
         IN6_ADDR sockAddrIn6;
         PTRACERT_RESOLVE_WORKITEM resolve;
-        ULONG addressStringLength = INET6_ADDRSTRLEN;
-        WCHAR addressString[INET6_ADDRSTRLEN] = L"";
 
         memset(&sockAddrIn6, 0, sizeof(IN6_ADDR));
         memcpy(&sockAddrIn6, SocketAddress, sizeof(IN6_ADDR));
@@ -295,7 +294,7 @@ NTSTATUS NetworkTracertThreadStart(
         if (context->Cancel)
             break;
 
-        PPOOLTAG_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
+        PTRACERT_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
 
         TreeNew_NodesStructured(context->TreeNewHandle);
 
@@ -482,18 +481,27 @@ VOID ShowMenu(
         {
             PH_IP_ENDPOINT RemoteEndpoint;
             PWSTR terminator = NULL;
-            PPOOLTAG_ROOT_NODE node;
+            PTRACERT_ROOT_NODE node;
 
             if (node = GetSelectedTracertNode(Context))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                if (NT_SUCCESS(RtlIpv4StringToAddress(
+                    node->IpAddressString->Buffer, 
+                    TRUE, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.InAddr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                     ShowPingWindowFromAddress(RemoteEndpoint);
                     break;
                 }
 
-                if (NT_SUCCESS(RtlIpv6StringToAddress(node->IpAddressString->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                if (NT_SUCCESS(RtlIpv6StringToAddress(
+                    node->IpAddressString->Buffer, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.In6Addr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                     ShowPingWindowFromAddress(RemoteEndpoint);
@@ -506,18 +514,27 @@ VOID ShowMenu(
         {
             PH_IP_ENDPOINT RemoteEndpoint;
             PWSTR terminator = NULL;
-            PPOOLTAG_ROOT_NODE node;
+            PTRACERT_ROOT_NODE node;
 
             if (node = GetSelectedTracertNode(Context))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                if (NT_SUCCESS(RtlIpv4StringToAddress(
+                    node->IpAddressString->Buffer, 
+                    TRUE, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.InAddr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                     ShowTracertWindowFromAddress(RemoteEndpoint);
                     break;
                 }
     
-                if (NT_SUCCESS(RtlIpv6StringToAddress(node->IpAddressString->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                if (NT_SUCCESS(RtlIpv6StringToAddress(
+                    node->IpAddressString->Buffer, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.In6Addr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                     ShowTracertWindowFromAddress(RemoteEndpoint);
@@ -530,18 +547,27 @@ VOID ShowMenu(
         {
             PH_IP_ENDPOINT RemoteEndpoint;
             PWSTR terminator = NULL;
-            PPOOLTAG_ROOT_NODE node;
+            PTRACERT_ROOT_NODE node;
 
             if (node = GetSelectedTracertNode(Context))
             {
-                if (NT_SUCCESS(RtlIpv4StringToAddress(node->IpAddressString->Buffer, TRUE, &terminator, &RemoteEndpoint.Address.InAddr)))
+                if (NT_SUCCESS(RtlIpv4StringToAddress(
+                    node->IpAddressString->Buffer, 
+                    TRUE, 
+                    &terminator, 
+                    &RemoteEndpoint.Address.InAddr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                     ShowWhoisWindowFromAddress(RemoteEndpoint);
                     break;
                 }
     
-                if (NT_SUCCESS(RtlIpv6StringToAddress(node->IpAddressString->Buffer, &terminator, &RemoteEndpoint.Address.In6Addr)))
+                if (NT_SUCCESS(RtlIpv6StringToAddress(
+                    node->IpAddressString->Buffer,
+                    &terminator, 
+                    &RemoteEndpoint.Address.In6Addr
+                    )))
                 {
                     RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                     ShowWhoisWindowFromAddress(RemoteEndpoint);
@@ -637,10 +663,10 @@ INT_PTR CALLBACK TracertDlgProc(
             case IDCANCEL:
                 DestroyWindow(hwndDlg);
                 break;
-            case POOL_TABLE_SHOWCONTEXTMENU:
+            case TRACERT_SHOWCONTEXTMENU:
                 {
                     PPH_EMENU menu;
-                    PPOOLTAG_ROOT_NODE selectedNode;
+                    PTRACERT_ROOT_NODE selectedNode;
                     PPH_EMENU_ITEM selectedItem;
                     PPH_TREENEW_MOUSE_EVENT mouseEvent = (PPH_TREENEW_MOUSE_EVENT)lParam;
 
