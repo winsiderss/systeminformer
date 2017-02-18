@@ -44,32 +44,8 @@ VOID NcAreaInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    LOGFONT logFont;
-
-    if (Context->WindowFont)
-        DeleteObject(Context->WindowFont);
-
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-    {
-        Context->WindowFont = CreateFont(
-            -PhMultiplyDivideSigned(10, PhGlobalDpi, 72),
-            0,
-            0,
-            0,
-            FW_MEDIUM,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            logFont.lfFaceName
-            );
-
-        SendMessage(Context->WindowHandle, WM_SETFONT, (WPARAM)Context->WindowFont, TRUE);
-    }
+    if (Context->WindowFont) DeleteObject(Context->WindowFont);
+    Context->WindowFont = CommonCreateFont(10, FW_MEDIUM, Context->WindowHandle);
 }
 
 VOID NcAreaInitializeTheme(

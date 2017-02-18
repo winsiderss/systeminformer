@@ -111,7 +111,7 @@ VOID RaiseUploadError(
 
     if (message)
     {
-        PhSwapReference(&Context->ErrorString, PhFormatString(
+        PhMoveReference(&Context->ErrorString, PhFormatString(
             L"[%lu] %s",
             ErrorCode,
             PhGetString(message)
@@ -121,7 +121,7 @@ VOID RaiseUploadError(
     }
     else
     {
-        PhSwapReference(&Context->ErrorString, PhFormatString(
+        PhMoveReference(&Context->ErrorString, PhFormatString(
             L"[%lu] %s",
             ErrorCode,
             Error
@@ -843,7 +843,7 @@ NTSTATUS UploadFileThreadStart(
 
                     if (redirectUrl = GetJsonValueAsString(jsonRootObject, "permalink"))
                     {
-                        PhSwapReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
+                        PhMoveReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
                     }
 
                     CleanupJsonParser(jsonRootObject);
@@ -858,7 +858,7 @@ NTSTATUS UploadFileThreadStart(
 
                         if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Buffer, &bufferLength))
                         {
-                            PhSwapReference(&context->LaunchCommand, PhDuplicateString(buffer));
+                            PhMoveReference(&context->LaunchCommand, PhDuplicateString(buffer));
                         }
 
                         PhDereferenceObject(buffer);
@@ -883,7 +883,7 @@ NTSTATUS UploadFileThreadStart(
                 {
                     if (redirectUrl = GetJsonValueAsString(rootJsonObject, "redirecturl"))
                     {
-                        PhSwapReference(&context->LaunchCommand, PhFormatString(L"http://virusscan.jotti.org%hs", redirectUrl));
+                        PhMoveReference(&context->LaunchCommand, PhFormatString(L"http://virusscan.jotti.org%hs", redirectUrl));
                     }
 
                     CleanupJsonParser(rootJsonObject);
@@ -1053,7 +1053,7 @@ NTSTATUS UploadCheckThreadStart(
             if (PhIsNullOrEmptyString(context->KeyString))
             {
                 // Create the default launch URL
-                PhSwapReference(&context->LaunchCommand, PhFormatString(
+                PhMoveReference(&context->LaunchCommand, PhFormatString(
                     L"https://www.virustotal.com/file/%s/analysis/",
                     PhGetString(hashString)
                     ));
@@ -1093,12 +1093,12 @@ NTSTATUS UploadCheckThreadStart(
                     context->LastAnalysisDate = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_date"));
                     context->LastAnalysisAgo = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_ago"));
 
-                    PhSwapReference(&context->FirstAnalysisDate, VirusTotalStringToTime(context->FirstAnalysisDate));
-                    PhSwapReference(&context->LastAnalysisDate, VirusTotalStringToTime(context->LastAnalysisDate));
+                    PhMoveReference(&context->FirstAnalysisDate, VirusTotalStringToTime(context->FirstAnalysisDate));
+                    PhMoveReference(&context->LastAnalysisDate, VirusTotalStringToTime(context->LastAnalysisDate));
                     
                     if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
                     {
-                        PhSwapReference(&context->ReAnalyseUrl, PhFormatString(
+                        PhMoveReference(&context->ReAnalyseUrl, PhFormatString(
                             L"%s%s", 
                             L"https://www.virustotal.com",
                             PhGetString(context->ReAnalyseUrl)
@@ -1107,7 +1107,7 @@ NTSTATUS UploadCheckThreadStart(
 
                     if (context->VtApiUpload && !PhIsNullOrEmptyString(context->KeyString))
                     {
-                        PhSwapReference(&context->UploadUrl, PhFormatString(
+                        PhMoveReference(&context->UploadUrl, PhFormatString(
                             L"%s%s?apikey=%s&resource=%s",
                             L"https://www.virustotal.com",
                             L"/vtapi/v2/file/scan",

@@ -1205,7 +1205,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhCmLoadSettings(tnHandle, &settings->sr);
             PhDereferenceObject(settings);
 
-            PhSwapReference(&context->TnErrorMessage, PhCreateString(L"Loading .NET assemblies..."));
+            PhMoveReference(&context->TnErrorMessage, PhCreateString(L"Loading .NET assemblies..."));
             TreeNew_SetEmptyText(tnHandle, &context->TnErrorMessage->sr, 0);
 
             if (
@@ -1221,7 +1221,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             }
             else
             {
-                PhSwapReference(&context->TnErrorMessage,
+                PhMoveReference(&context->TnErrorMessage,
                     PhCreateString(L"Unable to start the event tracing session because the process is suspended.")
                     );
                 TreeNew_SetEmptyText(tnHandle, &context->TnErrorMessage->sr, 0);
@@ -1300,7 +1300,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             }
             else
             {
-                PhSwapReference(&context->TnErrorMessage,
+                PhMoveReference(&context->TnErrorMessage,
                     PhConcatStrings2(L"Unable to start the event tracing session: ", PhGetStringOrDefault(PhGetWin32Message(result), L"Unknown error"))
                     );
                 TreeNew_SetEmptyText(context->TnHandle, &context->TnErrorMessage->sr, 0);

@@ -91,7 +91,7 @@ VOID ProcessesUpdatedCallback(
                     extension->ResultValid = TRUE;
 
                     extension->Positives = object->Positives;
-                    PhSwapReference(&extension->VirusTotalResult, PhDuplicateString(object->Result));
+                    PhMoveReference(&extension->VirusTotalResult, PhDuplicateString(object->Result));
                 }
             }
 

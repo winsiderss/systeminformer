@@ -354,7 +354,7 @@ NTSTATUS UpdateDownloadThread(
         // Strip the left and right curly brackets.
         guidSubString = PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2);
 
-        PhSwapReference(&randomGuidString, guidSubString);
+        PhMoveReference(&randomGuidString, guidSubString);
     }
 
     // Append the tempath to our string: %TEMP%RandomString\\processhacker-%lu.%lu-setup.exe

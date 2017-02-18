@@ -61,7 +61,7 @@ VOID UpdateTreeView(
     _In_ PWCT_CONTEXT Context
     )
 {
-    //PhSwapReference(&Context->TreeText, PhCreateString(L"Loading Plugins..."));
+    //PhMoveReference(&Context->TreeText, PhCreateString(L"Loading Plugins..."));
     //TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->TreeText->sr, 0);
 
     PhApplyTreeNewFilters(GetPluginListFilterSupport(Context));
@@ -240,8 +240,6 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            LOGFONT logFont;
-   
             context->DialogHandle = hwndDlg;
             context->PluginMenuActiveId = IDC_INSTALLED;
             context->PluginMenuActive = GetDlgItem(hwndDlg, IDC_INSTALLED);
@@ -250,43 +248,8 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
             context->SearchboxText = PhReferenceEmptyString();
 
             CreateSearchControl(hwndDlg, context->SearchHandle, L"Search Plugins (Ctrl+K)");
-
-            if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-            {
-                context->NormalFontHandle = CreateFont(
-                    -PhMultiplyDivideSigned(-14, PhGlobalDpi, 72),
-                    0,
-                    0,
-                    0,
-                    FW_NORMAL,
-                    FALSE,
-                    FALSE,
-                    FALSE,
-                    ANSI_CHARSET,
-                    OUT_DEFAULT_PRECIS,
-                    CLIP_DEFAULT_PRECIS,
-                    CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-                    DEFAULT_PITCH,
-                    logFont.lfFaceName
-                    );
-
-                context->BoldFontHandle = CreateFont(
-                    -PhMultiplyDivideSigned(-16, PhGlobalDpi, 72),
-                    0,
-                    0,
-                    0,
-                    FW_BOLD,
-                    FALSE,
-                    FALSE,
-                    FALSE,
-                    ANSI_CHARSET,
-                    OUT_DEFAULT_PRECIS,
-                    CLIP_DEFAULT_PRECIS,
-                    CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-                    DEFAULT_PITCH,
-                    logFont.lfFaceName
-                    );
-            }
+            context->NormalFontHandle = CommonCreateFont(-14, FW_NORMAL, NULL);
+            context->BoldFontHandle = CommonCreateFont(-16, FW_BOLD, NULL);
       
             PhCenterWindow(hwndDlg, PhMainWndHandle);
             InitializePluginsTree(context, hwndDlg, context->TreeNewHandle);

@@ -706,7 +706,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
                         entry->Found = result->Found;
                         entry->Positives = result->Positives;
 
-                        PhSwapReference(&entry->FileResult, PhDuplicateString(result->DetectionRatio));
+                        PhMoveReference(&entry->FileResult, PhDuplicateString(result->DetectionRatio));
 
                         if (!FindProcessDbObject(&entry->FileName->sr))
                         {

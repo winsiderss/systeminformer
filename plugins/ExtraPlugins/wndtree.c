@@ -427,8 +427,6 @@ VOID InitializePluginsTree(
     _In_ HWND TreeNewHandle
     )
 {
-    LOGFONT logFont;
-
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPLUGIN_NODE),
         PluginsNodeHashtableCompareFunction,
@@ -441,42 +439,8 @@ VOID InitializePluginsTree(
     Context->TreeNewHandle = TreeNewHandle;
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-    {
-        Context->TitleFontHandle = CreateFont(
-            -PhMultiplyDivideSigned(-14, PhGlobalDpi, 72),
-            0,
-            0,
-            0,
-            FW_BOLD,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            logFont.lfFaceName
-            );
-
-        Context->NormalFontHandle = CreateFont(
-            -PhMultiplyDivideSigned(-10, PhGlobalDpi, 72),
-            0,
-            0,
-            0,
-            FW_NORMAL,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            logFont.lfFaceName
-            );
-    }
+    Context->NormalFontHandle = CommonCreateFont(-10, FW_NORMAL, NULL);
+    Context->TitleFontHandle = CommonCreateFont(-14, FW_BOLD, NULL);
 
     TreeNew_SetCallback(TreeNewHandle, PluginsTreeNewCallback, Context);
     TreeNew_SetRowHeight(TreeNewHandle, 48);
