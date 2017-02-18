@@ -344,7 +344,7 @@ NTSTATUS GeoIPUpdateThread(
 
     if (randomGuidString = PhFormatGuid(&randomGuid))
     {
-        PhSwapReference(&randomGuidString, PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2));
+        PhMoveReference(&randomGuidString, PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2));
     }
 
     // Append the tempath to our string: %TEMP%RandomString\\GeoLite2-Country.mmdb.gz

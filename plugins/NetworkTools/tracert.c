@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -54,43 +54,6 @@ PPH_STRING TracertGetErrorMessage(
     return message;
 }
 
-VOID TracertUpdateTime(
-    _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PTRACERT_ROOT_NODE Node,
-    _In_ INT SubIndex,
-    _In_ ULONG RoundTripTime
-    ) 
-{ 
-    if (RoundTripTime)
-    {
-        Node->PingList[SubIndex] = RoundTripTime;
-
-        UpdateTracertNode(Context, Node);
-    } 
-    else 
-    { 
-        Node->PingList[SubIndex] = ULONG_MAX;
-
-        switch (SubIndex)
-        {
-        case 0:
-            Node->Ping1String = PhFormatString(L"<1 ms");
-            break;
-        case 1:
-            Node->Ping2String = PhFormatString(L"<1 ms");
-            break;
-        case 2:
-            Node->Ping3String = PhFormatString(L"<1 ms");
-            break;
-        case 3:
-            Node->Ping4String = PhFormatString(L"<1 ms");
-            break;
-        }
-
-        UpdateTracertNode(Context, Node);
-    } 
-} 
-
 NTSTATUS TracertHostnameLookupCallback(
     _In_ PVOID Parameter
     )
@@ -109,8 +72,7 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            resolve->Node->HostnameString = PhCreateString(resolve->SocketAddressHostname);
-            resolve->Node->HostnameValid = TRUE;
+            PhMoveReference(&resolve->Node->HostnameString, PhCreateString(resolve->SocketAddressHostname));
         }
         else
         {
@@ -138,8 +100,7 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            resolve->Node->HostnameString = PhCreateString(resolve->SocketAddressHostname);
-            resolve->Node->HostnameValid = TRUE;
+            PhMoveReference(&resolve->Node->HostnameString, PhCreateString(resolve->SocketAddressHostname));
         }
         else
         {
@@ -165,6 +126,8 @@ VOID TracertQueueHostLookup(
     _In_ PVOID SocketAddress
     ) 
 {
+    PPH_STRING remoteCountryCode;
+    PPH_STRING remoteCountryName;
     ULONG addressStringLength = INET_ADDRSTRLEN;
     WCHAR addressString[INET_ADDRSTRLEN] = L"";
 
@@ -172,8 +135,6 @@ VOID TracertQueueHostLookup(
     {
         IN_ADDR sockAddrIn;
         PTRACERT_RESOLVE_WORKITEM resolve;
-        PPH_STRING remoteCountryCode;
-        PPH_STRING remoteCountryName;
 
         memset(&sockAddrIn, 0, sizeof(IN_ADDR));
         memcpy(&sockAddrIn, SocketAddress, sizeof(IN_ADDR));
@@ -193,17 +154,17 @@ VOID TracertQueueHostLookup(
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
 
-        if (LookupSockAddrCountryCode(
+        PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
+
+        if (LookupSockInAddr4CountryCode(
             sockAddrIn,
             &remoteCountryCode,
             &remoteCountryName
             ))
         {
-            PhSwapReference(&Node->RemoteCountryCode, remoteCountryCode);
-            PhSwapReference(&Node->RemoteCountryName, remoteCountryName);
+            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
-
-        PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
     }
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
@@ -212,7 +173,7 @@ VOID TracertQueueHostLookup(
 
         memset(&sockAddrIn6, 0, sizeof(IN6_ADDR));
         memcpy(&sockAddrIn6, SocketAddress, sizeof(IN6_ADDR));
-       
+
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
             Node->IpAddressString = PhCreateString(addressString);
@@ -229,6 +190,16 @@ VOID TracertQueueHostLookup(
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
 
         PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
+
+        if (LookupSockInAddr6CountryCode(
+            sockAddrIn6,
+            &remoteCountryCode,
+            &remoteCountryName
+            ))
+        {
+            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
+        }
     }
 }
 
@@ -277,16 +248,16 @@ NTSTATUS NetworkTracertThreadStart(
     {
         ((PSOCKADDR_IN)&destinationAddress)->sin_family = AF_INET;
         ((PSOCKADDR_IN)&destinationAddress)->sin_addr = context->RemoteEndpoint.Address.InAddr;
-        //((PSOCKADDR_IN)&destinationAddress)->sin_port = (USHORT)context->RemoteEndpoint.Port;//_byteswap_ushort((USHORT)Context->RemoteEndpoint.Port);
+        //((PSOCKADDR_IN)&destinationAddress)->sin_port = (USHORT)context->RemoteEndpoint.Port;
     }
     else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
         ((PSOCKADDR_IN6)&destinationAddress)->sin6_family = AF_INET6;
         ((PSOCKADDR_IN6)&destinationAddress)->sin6_addr = context->RemoteEndpoint.Address.In6Addr;
-        //((PSOCKADDR_IN6)&destinationAddress)->sin6_port = (USHORT)context->RemoteEndpoint.Port;//_byteswap_ushort((USHORT)Context->RemoteEndpoint.Port);
+        //((PSOCKADDR_IN6)&destinationAddress)->sin6_port = (USHORT)context->RemoteEndpoint.Port;
     }
 
-    for (INT i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
+    for (ULONG i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
     {
         IN_ADDR last4ReplyAddress = in4addr_any;
         IN6_ADDR last6ReplyAddress = in6addr_any;
@@ -296,9 +267,7 @@ NTSTATUS NetworkTracertThreadStart(
 
         PTRACERT_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
 
-        TreeNew_NodesStructured(context->TreeNewHandle);
-
-        for (INT ii = 0; ii < MAX_PINGS; ii++)
+        for (ULONG ii = 0; ii < DEFAULT_MAXIMUM_PINGS; ii++)
         {
             if (context->Cancel)
                 break;
@@ -326,12 +295,7 @@ NTSTATUS NetworkTracertThreadStart(
                 {
                     PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
-                    TracertUpdateTime(
-                        context,
-                        node,
-                        ii,
-                        reply4->RoundTripTime
-                        );
+                    memcpy(&last4ReplyAddress, &reply4->Address, sizeof(IN_ADDR));
 
                     TracertQueueHostLookup(
                         context,
@@ -339,24 +303,30 @@ NTSTATUS NetworkTracertThreadStart(
                         &reply4->Address
                         );
 
-                    memcpy(&last4ReplyAddress, &reply4->Address, sizeof(IN_ADDR));
+                    node->PingStatus[ii] = reply4->Status;
+                    node->PingList[ii] = reply4->RoundTripTime;
+                    UpdateTracertNode(context, node);
 
-                    if (reply4->Status == IP_HOP_LIMIT_EXCEEDED)
+                    if (reply4->Status == IP_HOP_LIMIT_EXCEEDED && reply4->RoundTripTime < MIN_INTERVAL)
                     {
-                        if (reply4->RoundTripTime < MIN_INTERVAL)
-                        {
-                            //LARGE_INTEGER interval;
-                            //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply4->RoundTripTime));
-                        }
+                        //LARGE_INTEGER interval;
+                        //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply4->RoundTripTime));
                     }
-                    else if (reply4->Status != IP_SUCCESS)
-                    {
-                        node->PingList[ii] = ULONG_MAX;
-                    }
+
+                    //if (reply4->Status != IP_REQ_TIMED_OUT)
+                    //{
+                    //    PPH_STRING errorMessage;
+                    //
+                    //    if (errorMessage = TracertGetErrorMessage(reply4->Status))
+                    //    {
+                    //        node->IpAddressString = errorMessage;
+                    //    }
+                    //}
                 }
                 else
                 {
-                    node->PingList[ii] = ULONG_MAX;
+                    node->PingStatus[ii] = IP_REQ_TIMED_OUT;
+                    UpdateTracertNode(context, node);
                 }
 
                 PhFree(icmpReplyBuffer);
@@ -384,20 +354,17 @@ NTSTATUS NetworkTracertThreadStart(
                 {
                     PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
 
-                    TracertUpdateTime(
-                        context,
-                        node,
-                        ii,
-                        reply6->RoundTripTime
-                        );
+                    memcpy(&last6ReplyAddress, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
 
                     TracertQueueHostLookup(
                         context,
                         node,
                         &reply6->Address.sin6_addr
                         );
-
-                    memcpy(&last6ReplyAddress, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
+              
+                    node->PingStatus[ii] = reply6->Status;
+                    node->PingList[ii] = reply6->RoundTripTime;
+                    UpdateTracertNode(context, node);
 
                     if (reply6->Status == IP_HOP_LIMIT_EXCEEDED)
                     {
@@ -407,36 +374,11 @@ NTSTATUS NetworkTracertThreadStart(
                             //NtDelayExecution(FALSE, PhTimeoutFromMilliseconds(&interval, MIN_INTERVAL - reply6->RoundTripTime));
                         }
                     }
-                    else if (reply6->Status != IP_SUCCESS)
-                    {
-                        node->PingList[ii] = ULONG_MAX;
-
-                        if (reply6->Status != IP_REQ_TIMED_OUT)
-                        {
-                            PPH_STRING errorMessage;
-
-                            if (errorMessage = PH_AUTO(TracertGetErrorMessage(reply6->Status)))
-                            {
-                                node->IpAddressString = errorMessage;
-                            }
-                        }
-                    }
                 }
                 else
                 {
-                    ULONG errorCode = GetLastError();
-
-                    node->PingList[ii] = ULONG_MAX;
-
-                    if (errorCode != IP_REQ_TIMED_OUT)
-                    {
-                        PPH_STRING errorMessage;
-
-                        if (errorMessage = PH_AUTO(TracertGetErrorMessage(errorCode)))
-                        {
-                            node->IpAddressString = errorMessage;
-                        }
-                    }
+                    node->PingStatus[ii] = IP_REQ_TIMED_OUT;
+                    UpdateTracertNode(context, node);
                 }
 
                 PhFree(icmpReplyBuffer);

@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert header
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,23 +23,23 @@
 #ifndef _TRACERT_H_
 #define _TRACERT_H_
 
-#define MAX_PINGS  4
-#define DEFAULT_MAXIMUM_HOPS        40 
-#define DEFAULT_SEND_SIZE           64
-#define DEFAULT_RECEIVE_SIZE      ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE)) 
+#define DEFAULT_MAXIMUM_PINGS 4
+#define DEFAULT_MAXIMUM_HOPS 40
+#define DEFAULT_SEND_SIZE 64
+#define DEFAULT_RECEIVE_SIZE ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE))
 #define DEFAULT_TIMEOUT 1000
-#define MIN_INTERVAL    500 //1000
+#define MIN_INTERVAL 500 //1000
 #define TRACERT_SHOWCONTEXTMENU (WM_APP + 1)
 
 typedef enum _TRACERT_TREE_COLUMN_ITEM_NAME
 {
     TREE_COLUMN_ITEM_TTL,
-    TREE_COLUMN_ITEM_HOSTNAME,
     TREE_COLUMN_ITEM_PING1,
     TREE_COLUMN_ITEM_PING2,
     TREE_COLUMN_ITEM_PING3,
     TREE_COLUMN_ITEM_PING4,
     TREE_COLUMN_ITEM_IPADDR,
+    TREE_COLUMN_ITEM_HOSTNAME,
     TREE_COLUMN_ITEM_COUNTRY,
     TREE_COLUMN_ITEM_MAXIMUM
 } TRACERT_TREE_COLUMN_ITEM_NAME;
@@ -48,17 +48,14 @@ typedef struct _TRACERT_ROOT_NODE
 {
     PH_TREENEW_NODE Node;
 
-    BOOLEAN HostnameValid;
     ULONG TTL;
-    ULONG PingList[MAX_PINGS + 1];
+    ULONG PingStatus[DEFAULT_MAXIMUM_PINGS];
+    ULONG PingList[DEFAULT_MAXIMUM_PINGS];
+    PPH_STRING PingString[DEFAULT_MAXIMUM_PINGS];
 
     HICON CountryIcon;
 
     PPH_STRING TtlString;
-    PPH_STRING Ping1String;
-    PPH_STRING Ping2String;
-    PPH_STRING Ping3String;
-    PPH_STRING Ping4String;
     PPH_STRING CountryString; 
     PPH_STRING HostnameString;
     PPH_STRING IpAddressString;

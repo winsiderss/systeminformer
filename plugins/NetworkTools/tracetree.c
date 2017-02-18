@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -117,16 +117,15 @@ VOID DestroyTracertNode(
     )
 {
    PhClearReference(&Node->TtlString);
-   PhClearReference(&Node->Ping1String);
-   PhClearReference(&Node->Ping2String);
-   PhClearReference(&Node->Ping3String);
-   PhClearReference(&Node->Ping4String);
    PhClearReference(&Node->CountryString);
    PhClearReference(&Node->HostnameString);
    PhClearReference(&Node->IpAddressString);
    PhClearReference(&Node->RemoteCountryCode);
    PhClearReference(&Node->RemoteCountryName);
-   
+ 
+   for (ULONG i = 0; i < DEFAULT_MAXIMUM_PINGS; i++)
+       PhClearReference(&Node->PingString[i]);
+
    PhDereferenceObject(Node);
 }
 
@@ -143,6 +142,7 @@ PTRACERT_ROOT_NODE AddTracertNode(
     PhInitializeTreeNewNode(&tracertNode->Node);
 
     tracertNode->TTL = TTL;
+    memset(tracertNode->PingStatus, STATUS_FAIL_CHECK, sizeof(tracertNode->PingStatus));
 
     memset(tracertNode->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
     tracertNode->Node.TextCache = tracertNode->TextCache;
@@ -150,6 +150,8 @@ PTRACERT_ROOT_NODE AddTracertNode(
 
     PhAddEntryHashtable(Context->NodeHashtable, &tracertNode);
     PhAddItemList(Context->NodeList, tracertNode);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     return tracertNode;
 }
@@ -203,6 +205,39 @@ VOID UpdateTracertNode(
 
     PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
     TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID UpdateTracertNodePingText(
+    _In_ PTRACERT_ROOT_NODE Node, 
+    _In_ PPH_TREENEW_GET_CELL_TEXT CellText,
+    _In_ ULONG Index
+    )
+{
+    if (Node->PingStatus[Index] == IP_HOP_LIMIT_EXCEEDED ||
+        Node->PingStatus[Index] == IP_SUCCESS)
+    {
+        if (Node->PingList[Index])
+        {
+            PhMoveReference(
+                &Node->PingString[Index], 
+                PhFormatString(L"%s ms", PhaFormatUInt64(Node->PingList[Index], TRUE)->Buffer)
+                );
+
+            CellText->Text = Node->PingString[Index]->sr;
+        }
+        else
+        {
+            PhInitializeStringRef(&CellText->Text, L"<1 ms");
+        }
+    }
+    else if (Node->PingStatus[Index] == IP_REQ_TIMED_OUT)
+    {
+        PhInitializeStringRef(&CellText->Text, L"*");
+    }
+    else
+    {
+        PhInitializeEmptyStringRef(&CellText->Text);
+    }
 }
 
 BOOLEAN NTAPI TracertTreeNewCallback(
@@ -273,72 +308,16 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                 }
                 break;
             case TREE_COLUMN_ITEM_PING1:
-                {
-                    if (node->PingList[0])
-                    {
-                        if (node->PingList[0] == ULONG_MAX)
-                        {
-                            PhMoveReference(&node->Ping1String, PhFormatString(L"*"));
-                            getCellText->Text = node->Ping1String->sr;
-                        }
-                        else
-                        {
-                            PhMoveReference(&node->Ping1String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[1], TRUE)->Buffer));
-                            getCellText->Text = node->Ping1String->sr;
-                        }
-                    }
-                }
+                UpdateTracertNodePingText(node, getCellText, 0);
                 break;
             case TREE_COLUMN_ITEM_PING2:
-                {
-                    if (node->PingList[1])
-                    {
-                        if (node->PingList[1] == ULONG_MAX)
-                        {
-                            PhMoveReference(&node->Ping2String, PhFormatString(L"*"));
-                            getCellText->Text = node->Ping2String->sr;
-                        }
-                        else
-                        {
-                            PhMoveReference(&node->Ping2String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[2], TRUE)->Buffer));
-                            getCellText->Text = node->Ping2String->sr;
-                        }
-                    }
-                }
+                UpdateTracertNodePingText(node, getCellText, 1);
                 break;
             case TREE_COLUMN_ITEM_PING3:
-                {
-                    if (node->PingList[2])
-                    {
-                        if (node->PingList[2] == ULONG_MAX)
-                        {
-                            PhMoveReference(&node->Ping3String, PhFormatString(L"*"));
-                            getCellText->Text = node->Ping3String->sr;
-                        }
-                        else
-                        {
-                            PhMoveReference(&node->Ping3String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[3], TRUE)->Buffer));
-                            getCellText->Text = node->Ping3String->sr;
-                        }
-                    }
-                }
+                UpdateTracertNodePingText(node, getCellText, 2);
                 break;
             case TREE_COLUMN_ITEM_PING4:
-                {
-                    if (node->PingList[3])
-                    {
-                        if (node->PingList[3] == ULONG_MAX)
-                        {
-                            PhMoveReference(&node->Ping4String, PhFormatString(L"*"));
-                            getCellText->Text = node->Ping4String->sr;
-                        }
-                        else
-                        {
-                            PhMoveReference(&node->Ping4String, PhFormatString(L"%s ms", PhaFormatUInt64(node->PingList[3], TRUE)->Buffer));
-                            getCellText->Text = node->Ping4String->sr;
-                        }
-                    }
-                }
+                UpdateTracertNodePingText(node, getCellText, 3);
                 break;
             case TREE_COLUMN_ITEM_COUNTRY:
                 getCellText->Text = PhGetStringRef(node->CountryString);
@@ -556,12 +535,12 @@ VOID InitializeTracertTree(
     TreeNew_SetCallback(Context->TreeNewHandle, TracertTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, TRUE, L"TTL", 30, PH_ALIGN_LEFT, -2, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TRUE, L"Hostname", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_HOSTNAME, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING2, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING2, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING3, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING3, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_IPADDR, TRUE, L"IP Address", 120, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_IPADDR, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TRUE, L"Hostname", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_HOSTNAME, 0);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, TREE_COLUMN_ITEM_COUNTRY, TRUE, L"Country", 130, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
 
     //for (INT i = 0; i < MAX_PINGS; i++)

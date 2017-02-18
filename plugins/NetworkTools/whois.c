@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Whois dialog
  *
- * Copyright (C) 2013-2016 dmex
+ * Copyright (C) 2013-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,16 +24,20 @@
 #include <commonutil.h>
 #include <richedit.h>
 
-VOID RichEditAppendText(
+VOID RichEditSetText(
     _In_ HWND RichEditHandle,
     _In_ PWSTR Text
     )
 {
     SendMessage(RichEditHandle, WM_SETREDRAW, FALSE, 0);
 
+    // Update the Richedit text.
     SendMessage(RichEditHandle, EM_REPLACESEL, FALSE, (LPARAM)Text);
+    // NOTE: EM_LINESCROLL and WM_VSCROLL won't update the scroll position 
+    //  if the Richedit control doesn't have keyboard focus (e.g. SetFocus).
     SendMessage(RichEditHandle, WM_VSCROLL, SB_TOP, 0);
 
+    // Redraw the Richedit with the new text.
     SendMessage(RichEditHandle, WM_SETREDRAW, TRUE, 0);
     InvalidateRect(RichEditHandle, NULL, FALSE);
 }
@@ -122,9 +126,11 @@ BOOLEAN WhoisExtractServerUrl(
 
     if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponce, 0, L"whois:")) == -1)
         return FALSE;
-    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponce, whoisServerHostnameIndex, L"\n") - whoisServerHostnameIndex) == -1)
+    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponce, whoisServerHostnameIndex, L"\n")) == -1)
         return FALSE;
-
+    if ((whoisServerHostnameLength = whoisServerHostnameLength - whoisServerHostnameIndex) == 0)
+        return FALSE;
+ 
     whoisServerName = PhSubstring(
         WhoisResponce,
         whoisServerHostnameIndex + wcslen(L"whois:"),
@@ -198,7 +204,7 @@ BOOLEAN WhoisExtractReferralServer(
 BOOLEAN WhoisQueryServer(
     _In_ PWSTR WhoisServerAddress,
     _In_ PWSTR WhoisServerPort,
-    _In_ PWSTR QueryString, 
+    _In_ PWSTR WhoisQueryAddress, 
     _In_ PPH_STRING* response
     )
 {
@@ -208,19 +214,10 @@ BOOLEAN WhoisQueryServer(
     ADDRINFOW hints;
     ULONG whoisResponceLength = 0;
     PSTR whoisResponce = NULL;
-    CHAR whoisQuery[PAGE_SIZE] = "";
+    PPH_BYTES whoisQuery = NULL;
 
     if (!WhoisServerPort)
         WhoisServerPort = L"43";
-
-    if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
-    {
-        _snprintf_s(whoisQuery, sizeof(whoisQuery), _TRUNCATE, "n %S\r\n", QueryString);
-    }
-    else
-    {
-        _snprintf_s(whoisQuery, sizeof(whoisQuery), _TRUNCATE, "%S\r\n", QueryString);
-    }
 
     if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
         return FALSE;
@@ -235,6 +232,11 @@ BOOLEAN WhoisQueryServer(
         WSACleanup();
         return FALSE;
     }
+
+    if (PhEqualStringZ(WhoisServerAddress, L"whois.arin.net", TRUE))
+        whoisQuery = FormatAnsiString("n %S\r\n", WhoisQueryAddress);
+    else
+        whoisQuery = FormatAnsiString("%S\r\n", WhoisQueryAddress);
 
     for (addrInfo = result; addrInfo; addrInfo = addrInfo->ai_next)
     {
@@ -253,7 +255,7 @@ BOOLEAN WhoisQueryServer(
             continue;
         }
 
-        if (send(socketHandle, whoisQuery, (INT)strlen(whoisQuery), 0) == SOCKET_ERROR)
+        if (send(socketHandle, whoisQuery->Buffer, (INT)whoisQuery->Length, 0) == SOCKET_ERROR)
         {
             closesocket(socketHandle);
             continue;
@@ -268,6 +270,7 @@ BOOLEAN WhoisQueryServer(
 
     FreeAddrInfo(result);
     WSACleanup();
+    PhDereferenceObject(whoisQuery);
 
     if (whoisResponce)
     {
@@ -282,7 +285,7 @@ NTSTATUS NetworkWhoisThreadStart(
     _In_ PVOID Parameter
     )
 {
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
+    PNETWORK_WHOIS_CONTEXT context = (PNETWORK_WHOIS_CONTEXT)Parameter;
     PH_STRING_BUILDER sb;
     PPH_STRING whoisResponse = NULL;
     PPH_STRING whoisReferralResponse = NULL;
@@ -304,8 +307,6 @@ NTSTATUS NetworkWhoisThreadStart(
         goto CleanupExit;
     }
 
-    PostMessage(context->WindowHandle, WM_TRACERT_UPDATE, (WPARAM)PhDuplicateString(whoisServerName), 0);
-
     if (WhoisQueryServer(
         PhGetString(whoisServerName),
         L"43",
@@ -319,7 +320,12 @@ NTSTATUS NetworkWhoisThreadStart(
             &whoisReferralServerPort
             ))
         {
-            PhAppendFormatStringBuilder(&sb, L"%s referred the request to: %s\n", PhGetString(whoisServerName), PhGetString(whoisReferralServerName));
+            PhAppendFormatStringBuilder(
+                &sb, 
+                L"%s referred the request to: %s\n", 
+                PhGetString(whoisServerName), 
+                PhGetString(whoisReferralServerName)
+                );
 
             if (WhoisQueryServer(
                 PhGetString(whoisReferralServerName),
@@ -328,8 +334,8 @@ NTSTATUS NetworkWhoisThreadStart(
                 &whoisReferralResponse
                 ))
             {
-                PhAppendFormatStringBuilder(&sb, L"\n%s\n", whoisReferralResponse->Buffer);
-                PhAppendFormatStringBuilder(&sb, L"\nOriginal request to %s:\n%s\n", PhGetString(whoisServerName), whoisResponse->Buffer);
+                PhAppendFormatStringBuilder(&sb, L"\n%s\n", PhGetString(whoisReferralResponse));
+                PhAppendFormatStringBuilder(&sb, L"\nOriginal request to %s:\n%s\n", PhGetString(whoisServerName), PhGetString(whoisResponse));
                 PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
                 goto CleanupExit;
             }
@@ -346,8 +352,7 @@ CleanupExit:
     PhClearReference(&whoisServerName);
     PhClearReference(&whoisReferralServerName);
     PhClearReference(&whoisReferralServerPort);
-    
-    PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
+
     return STATUS_SUCCESS;
 }
 
@@ -358,16 +363,16 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PNETWORK_OUTPUT_CONTEXT context;
+    PNETWORK_WHOIS_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PNETWORK_OUTPUT_CONTEXT)lParam;
+        context = (PNETWORK_WHOIS_CONTEXT)lParam;
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PNETWORK_OUTPUT_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PNETWORK_WHOIS_CONTEXT)GetProp(hwndDlg, L"Context");
 
         if (uMsg == WM_DESTROY)
         {
@@ -387,36 +392,26 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PH_RECTANGLE windowRectangle;
             HANDLE dialogThread;
 
-            context->WindowHandle = hwndDlg;
-            context->StatusHandle = GetDlgItem(hwndDlg, IDC_STATUS);
-            context->WhoisHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+            SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetWindowText(context->WindowHandle, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
+            context->WindowHandle = hwndDlg;
+            context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
 
             // Reset the border style for richedit uxtheme borders
-            PhSetWindowStyle(context->WhoisHandle, WS_BORDER, WS_BORDER);
-            PhSetWindowExStyle(context->WhoisHandle, WS_EX_CLIENTEDGE, ~WS_EX_CLIENTEDGE);
-
-            context->FontHandle = CommonCreateFont(-15, FW_MEDIUM, context->StatusHandle);
-            context->FontHandle = CommonCreateFont(-11, FW_MEDIUM, context->WhoisHandle);
-
+            PhSetWindowStyle(context->RichEditHandle, WS_BORDER, WS_BORDER);
+            PhSetWindowExStyle(context->RichEditHandle, WS_EX_CLIENTEDGE, ~WS_EX_CLIENTEDGE);
             //SendMessage(context->OutputHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
-            SendMessage(context->WhoisHandle, EM_SETEVENTMASK, 0, SendMessage(context->WhoisHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
-            SendMessage(context->WhoisHandle, EM_AUTOURLDETECT, AURL_ENABLEURL, 0);
-            SendMessage(context->WhoisHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
+            SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
+            SendMessage(context->RichEditHandle, EM_AUTOURLDETECT, AURL_ENABLEURL, 0);
+            SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
+            context->FontHandle = CommonCreateFont(-11, FW_MEDIUM, context->RichEditHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, context->WhoisHandle, NULL, PH_ANCHOR_ALL);
-
-            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_POSITION);
-            windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_SIZE, TRUE).Pair;
-            if (windowRectangle.Position.X != 0 || windowRectangle.Position.Y != 0)
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
-            else
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);      
+            PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
 
             if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                 NtClose(dialogThread);
@@ -461,7 +456,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                         textRange.chrg = link->chrg;
                         textRange.lpstrText = buffer;
 
-                        if (SendMessage(context->WhoisHandle, EM_GETTEXTRANGE, 0, (LPARAM)&textRange))
+                        if (SendMessage(context->RichEditHandle, EM_GETTEXTRANGE, 0, (LPARAM)&textRange))
                         {
                             if (PhCountStringZ(buffer) > 4)
                             {
@@ -481,28 +476,17 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PPH_STRING whoisString = PH_AUTO((PPH_STRING)lParam);
             PPH_STRING trimString = PH_AUTO(TrimString2(whoisString));
 
-            RichEditAppendText(context->WhoisHandle, trimString->Buffer);
+            RichEditSetText(context->RichEditHandle, trimString->Buffer);
         }
         break;
-    case NTM_RECEIVEDFINISH:
+    case WM_TRACERT_UPDATE:
         {
             PPH_STRING windowText = PH_AUTO(PhGetWindowText(context->WindowHandle));
 
             if (windowText)
             {
-                Static_SetText(context->WindowHandle, 
+                Static_SetText(context->WindowHandle,
                     PhaFormatString(L"%s Finished.", windowText->Buffer)->Buffer);
-            }
-        }
-        break;
-    case WM_TRACERT_UPDATE:
-        {
-            PPH_STRING serverText = PH_AUTO((PPH_STRING)wParam);
-
-            if (serverText)
-            {
-                Static_SetText(context->StatusHandle, 
-                    PhaFormatString(L"Authoritative answer from: %s", serverText->Buffer)->Buffer);
             }
         }
         break;
@@ -565,10 +549,10 @@ VOID ShowWhoisWindow(
     )
 {
     HANDLE dialogThread;
-    PNETWORK_OUTPUT_CONTEXT context;
+    PNETWORK_WHOIS_CONTEXT context;
 
-    context = (PNETWORK_OUTPUT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_OUTPUT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+    context = (PNETWORK_WHOIS_CONTEXT)PhCreateAlloc(sizeof(NETWORK_WHOIS_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_WHOIS_CONTEXT));
 
     context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
 
@@ -592,10 +576,10 @@ VOID ShowWhoisWindowFromAddress(
     )
 {
     HANDLE dialogThread;
-    PNETWORK_OUTPUT_CONTEXT context;
+    PNETWORK_WHOIS_CONTEXT context;
 
-    context = (PNETWORK_OUTPUT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_OUTPUT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+    context = (PNETWORK_WHOIS_CONTEXT)PhCreateAlloc(sizeof(NETWORK_WHOIS_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_WHOIS_CONTEXT));
 
     context->RemoteEndpoint = RemoteEndpoint;
 

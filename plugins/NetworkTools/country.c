@@ -2,7 +2,7 @@
  * Process Hacker Network Tools  -
  *   IP Country support
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -186,7 +186,7 @@ BOOLEAN LookupCountryCode(
     return FALSE;
 }
 
-BOOLEAN LookupSockAddrCountryCode(
+BOOLEAN LookupSockInAddr4CountryCode(
     _In_ IN_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
     _Out_ PPH_STRING *CountryName
@@ -217,6 +217,97 @@ BOOLEAN LookupSockAddrCountryCode(
     mmdb_result = MMDB_lookup_sockaddr(
         &GeoDb,
         (PSOCKADDR)&ipv4SockAddr,
+        &mmdb_error
+        );
+
+    if (mmdb_error == 0 && mmdb_result.found_entry)
+    {
+        memset(&mmdb_entry, 0, sizeof(MMDB_entry_data_s));
+
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "iso_code", NULL) == MMDB_SUCCESS)
+        {
+            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
+            {
+                countryCode = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+            }
+        }
+
+        if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "country", "names", "en", NULL) == MMDB_SUCCESS)
+        {
+            if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_UTF8_STRING)
+            {
+                countryName = PhConvertUtf8ToUtf16Ex((PCHAR)mmdb_entry.utf8_string, mmdb_entry.data_size);
+            }
+        }
+
+        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
+        //{
+        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+        //    {
+        //        *CityLatitude = mmdb_entry.double_value;
+        //    }
+        //}
+
+        //if (MMDB_get_value(&mmdb_result.entry, &mmdb_entry, "location", "longitude", NULL) == MMDB_SUCCESS)
+        //{
+        //    if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
+        //    {
+        //        *CityLongitude = mmdb_entry.double_value;
+        //    }
+        //}
+    }
+
+    if (countryCode && countryName)
+    {
+        *CountryCode = countryCode;
+        *CountryName = countryName;
+        return TRUE;
+    }
+
+    if (countryCode)
+    {
+        PhDereferenceObject(countryCode);
+    }
+
+    if (countryName)
+    {
+        PhDereferenceObject(countryName);
+    }
+
+    return FALSE;
+}
+
+BOOLEAN LookupSockInAddr6CountryCode(
+    _In_ IN6_ADDR RemoteAddress,
+    _Out_ PPH_STRING *CountryCode,
+    _Out_ PPH_STRING *CountryName
+    )
+{
+    PPH_STRING countryCode = NULL;
+    PPH_STRING countryName = NULL;
+    MMDB_entry_data_s mmdb_entry;
+    MMDB_lookup_result_s mmdb_result;
+    SOCKADDR_IN6 ipv6SockAddr;
+    INT mmdb_error = 0;
+
+    if (!GeoDbLoaded)
+        return FALSE;
+
+    if (IN6_IS_ADDR_UNSPECIFIED(&RemoteAddress))
+        return FALSE;
+
+    if (IN6_IS_ADDR_LOOPBACK(&RemoteAddress))
+        return FALSE;
+
+    memset(&ipv6SockAddr, 0, sizeof(SOCKADDR_IN6));
+    memset(&mmdb_result, 0, sizeof(MMDB_lookup_result_s));
+
+    ipv6SockAddr.sin6_family = AF_INET6;
+    ipv6SockAddr.sin6_addr = RemoteAddress;
+
+    mmdb_result = MMDB_lookup_sockaddr(
+        &GeoDb,
+        (PSOCKADDR)&ipv6SockAddr,
         &mmdb_error
         );
 

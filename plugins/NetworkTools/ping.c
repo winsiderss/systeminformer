@@ -32,7 +32,7 @@ NTSTATUS NetworkPingThreadStart(
     _In_ PVOID Parameter
     )
 {
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Parameter;
+    PNETWORK_PING_CONTEXT context = (PNETWORK_PING_CONTEXT)Parameter;
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     ULONG icmpCurrentPingMs = 0;
     ULONG icmpReplyCount = 0;
@@ -63,7 +63,7 @@ NTSTATUS NetworkPingThreadStart(
         SOCKADDR_IN6 icmp6RemoteAddr = { 0 };
         PICMPV6_ECHO_REPLY2 icmp6ReplyStruct = NULL;
 
-        // Create ICMPv6 handle.
+        // TODO: Cache handle.
         if ((icmpHandle = Icmp6CreateFile()) == INVALID_HANDLE_VALUE)
             goto CleanupExit;
 
@@ -138,7 +138,7 @@ NTSTATUS NetworkPingThreadStart(
         BOOLEAN icmpPacketSignature = FALSE;
         PICMP_ECHO_REPLY icmpReplyStruct = NULL;
 
-        // Create ICMPv4 handle.
+        // TODO: Cache handle.
         if ((icmpHandle = IcmpCreateFile()) == INVALID_HANDLE_VALUE)
             goto CleanupExit;
 
@@ -240,14 +240,14 @@ VOID NTAPI NetworkPingUpdateHandler(
     _In_opt_ PVOID Context
     )
 {
-    PNETWORK_OUTPUT_CONTEXT context = (PNETWORK_OUTPUT_CONTEXT)Context;
+    PNETWORK_PING_CONTEXT context = (PNETWORK_PING_CONTEXT)Context;
 
     // Queue up the next ping request
     PhQueueItemWorkQueue(&context->PingWorkQueue, NetworkPingThreadStart, (PVOID)context);
 }
 
 VOID NetworkPingUpdateGraph(
-    _In_ PNETWORK_OUTPUT_CONTEXT Context
+    _In_ PNETWORK_PING_CONTEXT Context
     )
 {
     Context->PingGraphState.Valid = FALSE;
@@ -265,16 +265,16 @@ INT_PTR CALLBACK NetworkPingWndProc(
     _In_ LPARAM lParam
     )
 {
-    PNETWORK_OUTPUT_CONTEXT context = NULL;
+    PNETWORK_PING_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PNETWORK_OUTPUT_CONTEXT)lParam;
+        context = (PNETWORK_PING_CONTEXT)lParam;
         SetProp(hwndDlg, L"Context", (HANDLE)context);
     }
     else
     {
-        context = (PNETWORK_OUTPUT_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PNETWORK_PING_CONTEXT)GetProp(hwndDlg, L"Context");
     }
 
     if (context == NULL)
@@ -291,6 +291,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
@@ -316,7 +317,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhInitializeCircularBuffer_ULONG(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
 
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_PANEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_PANEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT| PH_LAYOUT_FORCE_INVALIDATE);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_AVG), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MIN), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_MAX), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
@@ -561,10 +562,10 @@ VOID ShowPingWindow(
     )
 {
     HANDLE dialogThread;
-    PNETWORK_OUTPUT_CONTEXT context;
+    PNETWORK_PING_CONTEXT context;
 
-    context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+    context = (PNETWORK_PING_CONTEXT)PhAllocate(sizeof(NETWORK_PING_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_PING_CONTEXT));
 
     if (NetworkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         RtlIpv4AddressToString(&NetworkItem->RemoteEndpoint.Address.InAddr, context->IpAddressString);
@@ -584,10 +585,10 @@ VOID ShowPingWindowFromAddress(
     )
 {
     HANDLE dialogThread;
-    PNETWORK_OUTPUT_CONTEXT context;
+    PNETWORK_PING_CONTEXT context;
 
-    context = (PNETWORK_OUTPUT_CONTEXT)PhAllocate(sizeof(NETWORK_OUTPUT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_OUTPUT_CONTEXT));
+    context = (PNETWORK_PING_CONTEXT)PhAllocate(sizeof(NETWORK_PING_CONTEXT));
+    memset(context, 0, sizeof(NETWORK_PING_CONTEXT));
 
     if (RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {

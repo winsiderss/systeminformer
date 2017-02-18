@@ -436,8 +436,8 @@ VOID NTAPI NetworkNodeCreateCallback(
             &remoteCountryName
             ))
         {
-            PhSwapReference(&extension->RemoteCountryCode, remoteCountryCode);
-            PhSwapReference(&extension->RemoteCountryName, remoteCountryName);
+            PhMoveReference(&extension->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&extension->RemoteCountryName, remoteCountryName);
         }
 
         extension->CountryValid = TRUE;
@@ -461,7 +461,7 @@ VOID UpdateNetworkNode(
                     if (Node->NetworkItem->LocalEndpoint.Port == ResolvedPortsTable[x].Port)
                     {
                         //PhAppendFormatStringBuilder(&stringBuilder, L"%s,", ResolvedPortsTable[x].Name);
-                        PhSwapReference(&Extension->LocalServiceName, PhCreateString(ResolvedPortsTable[x].Name));
+                        PhMoveReference(&Extension->LocalServiceName, PhCreateString(ResolvedPortsTable[x].Name));
                         break;
                     }
                 }
@@ -479,7 +479,7 @@ VOID UpdateNetworkNode(
                     if (Node->NetworkItem->RemoteEndpoint.Port == ResolvedPortsTable[x].Port)
                     {
                         //PhAppendFormatStringBuilder(&stringBuilder, L"%s,", ResolvedPortsTable[x].Name);
-                        PhSwapReference(&Extension->RemoteServiceName, PhCreateString(ResolvedPortsTable[x].Name));
+                        PhMoveReference(&Extension->RemoteServiceName, PhCreateString(ResolvedPortsTable[x].Name));
                         break;
                     }
                 }

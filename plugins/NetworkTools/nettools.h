@@ -3,7 +3,7 @@
  *   Main header
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2016 dmex
+ * Copyright (C) 2012-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -108,12 +108,11 @@ typedef enum _PH_NETWORK_ACTION
 #define PH_UPDATEFAILURE   (WM_APP + 506)
 #define WM_SHOWDIALOG      (WM_APP + 550)
 
-typedef struct _NETWORK_OUTPUT_CONTEXT
+typedef struct _NETWORK_PING_CONTEXT
 {
     HWND WindowHandle;
     HWND StatusHandle;
     HWND PingGraphHandle;
-    HWND WhoisHandle;
     HFONT FontHandle;
 
     ULONG CurrentPingMs;
@@ -135,7 +134,7 @@ typedef struct _NETWORK_OUTPUT_CONTEXT
 
     PH_IP_ENDPOINT RemoteEndpoint;
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
-} NETWORK_OUTPUT_CONTEXT, *PNETWORK_OUTPUT_CONTEXT;
+} NETWORK_PING_CONTEXT, *PNETWORK_PING_CONTEXT;
 
 // ping.c
 
@@ -149,6 +148,19 @@ VOID ShowPingWindowFromAddress(
 
 // whois.c
 
+typedef struct _NETWORK_WHOIS_CONTEXT
+{
+    HWND WindowHandle;
+    HWND RichEditHandle;
+    HFONT FontHandle;
+
+    PH_NETWORK_ACTION Action;
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    PH_IP_ENDPOINT RemoteEndpoint;
+    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
+} NETWORK_WHOIS_CONTEXT, *PNETWORK_WHOIS_CONTEXT;
+
 VOID ShowWhoisWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
@@ -158,20 +170,6 @@ VOID ShowWhoisWindowFromAddress(
     );
 
 // tracert.c
-
-VOID ShowTracertWindow(
-    _In_ PPH_NETWORK_ITEM NetworkItem
-    );
-
-VOID ShowTracertWindowFromAddress(
-    _In_ PH_IP_ENDPOINT RemoteEndpoint
-    );
-
-// options.c
-
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
-    );
 
 typedef struct _NETWORK_TRACERT_CONTEXT
 {
@@ -192,6 +190,20 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     PH_IP_ENDPOINT RemoteEndpoint;
     WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
+
+VOID ShowTracertWindow(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    );
+
+VOID ShowTracertWindowFromAddress(
+    _In_ PH_IP_ENDPOINT RemoteEndpoint
+    );
+
+// options.c
+
+VOID ShowOptionsDialog(
+    _In_opt_ HWND Parent
+    );
 
 // country.c
 typedef struct _NETWORK_EXTENSION
@@ -232,8 +244,14 @@ BOOLEAN LookupCountryCode(
     _Out_ PPH_STRING *CountryName
     );
 
-BOOLEAN LookupSockAddrCountryCode(
+BOOLEAN LookupSockInAddr4CountryCode(
     _In_ IN_ADDR RemoteAddress,
+    _Out_ PPH_STRING *CountryCode,
+    _Out_ PPH_STRING *CountryName
+    );
+
+BOOLEAN LookupSockInAddr6CountryCode(
+    _In_ IN6_ADDR RemoteAddress,
     _Out_ PPH_STRING *CountryCode,
     _Out_ PPH_STRING *CountryName
     );
@@ -286,12 +304,16 @@ VOID ShowInstallRestartDialog(
 #define INADDR_ANY (ULONG)0x00000000
 #define INADDR_LOOPBACK 0x7f000001
 
-FORCEINLINE BOOLEAN IN4_IS_ADDR_UNSPECIFIED(_In_ CONST IN_ADDR *a)
+FORCEINLINE 
+BOOLEAN 
+IN4_IS_ADDR_UNSPECIFIED(_In_ CONST IN_ADDR *a)
 {
     return (BOOLEAN)(a->s_addr == INADDR_ANY);
 }
 
-FORCEINLINE BOOLEAN IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
+FORCEINLINE 
+BOOLEAN 
+IN4_IS_ADDR_LOOPBACK(_In_ CONST IN_ADDR *a)
 {
     return (BOOLEAN)(*((PUCHAR)a) == 0x7f); // 127/8
 }
