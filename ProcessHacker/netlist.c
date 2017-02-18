@@ -126,10 +126,10 @@ VOID PhInitializeNetworkTreeList(
     // Default columns
     PhAddTreeNewColumn(hwnd, PHNETLC_PROCESS, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALADDRESS, TRUE, L"Local address", 120, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, TRUE, L"Local hostname", 120, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_RIGHT, 2, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEADDRESS, TRUE, L"Remote address", 120, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, TRUE, L"Remote hostname", 120, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_RIGHT, 4, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 6, 0);
@@ -513,10 +513,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalAddressString);
                 break;
             case PHNETLC_LOCALHOSTNAME:
-                if (networkItem->LocalHostString)
-                    getCellText->Text = networkItem->LocalHostString->sr;
-                else
-                    PhInitializeEmptyStringRef(&getCellText->Text);
+                getCellText->Text = PhGetStringRef(networkItem->LocalHostString);
                 break;
             case PHNETLC_LOCALPORT:
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
@@ -525,10 +522,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemoteAddressString);
                 break;
             case PHNETLC_REMOTEHOSTNAME:
-                if (networkItem->RemoteHostString)
-                    getCellText->Text = networkItem->RemoteHostString->sr;
-                else
-                    PhInitializeEmptyStringRef(&getCellText->Text);
+                getCellText->Text = PhGetStringRef(networkItem->RemoteHostString);
                 break;
             case PHNETLC_REMOTEPORT:
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
