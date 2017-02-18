@@ -619,15 +619,15 @@ LOGICAL DllMain(
             {
                 { IntegerPairSettingType, SETTING_NAME_PING_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PING_WINDOW_SIZE, L"@96|420,250" },
-                { IntegerSettingType, SETTING_NAME_PING_MINIMUM_SCALING, L"64" }, // 100ms minimum scaling
+                { IntegerSettingType, SETTING_NAME_PING_MINIMUM_SCALING, L"1F4" }, // 500ms minimum scaling
                 { IntegerSettingType, SETTING_NAME_PING_SIZE, L"20" }, // 32 byte packet
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|600,365" },
                 { StringSettingType, SETTING_NAME_TRACERT_LIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_TRACERT_HISTORY, L"" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"30" },
-                { IntegerPairSettingType, SETTING_NAME_OUTPUT_WINDOW_POSITION, L"0,0" },
-                { ScalableIntegerPairSettingType, SETTING_NAME_OUTPUT_WINDOW_SIZE, L"@96|600,365" },
+                { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

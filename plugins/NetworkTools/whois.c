@@ -32,7 +32,7 @@ VOID RichEditAppendText(
     SendMessage(RichEditHandle, WM_SETREDRAW, FALSE, 0);
 
     SendMessage(RichEditHandle, EM_REPLACESEL, FALSE, (LPARAM)Text);
-    SendMessage(RichEditHandle, EM_LINESCROLL, 0, -1000);
+    SendMessage(RichEditHandle, WM_VSCROLL, SB_TOP, 0);
 
     SendMessage(RichEditHandle, WM_SETREDRAW, TRUE, 0);
     InvalidateRect(RichEditHandle, NULL, FALSE);
@@ -127,8 +127,8 @@ BOOLEAN WhoisExtractServerUrl(
 
     whoisServerName = PhSubstring(
         WhoisResponce,
-        whoisServerHostnameIndex + PhCountStringZ(L"whois:"),
-        (ULONG)whoisServerHostnameLength - PhCountStringZ(L"whois:")
+        whoisServerHostnameIndex + wcslen(L"whois:"),
+        (ULONG)whoisServerHostnameLength - wcslen(L"whois:")
         );
 
     *WhoisServerAddress = TrimString(whoisServerName);
@@ -180,7 +180,7 @@ BOOLEAN WhoisExtractReferralServer(
     {
         *WhoisServerAddress = PhCreateString(urlHost);
 
-        if (PhCountStringZ(urlPort) > 2)
+        if (PhCountStringZ(urlPort) >= 2)
         {
             *WhoisServerPort = PhCreateString(urlPort);
         }
@@ -204,7 +204,7 @@ BOOLEAN WhoisQueryServer(
 {
     WSADATA winsockStartup;
     PADDRINFOW result = NULL;
-    PADDRINFOW ptr = NULL;
+    PADDRINFOW addrInfo = NULL;
     ADDRINFOW hints;
     ULONG whoisResponceLength = 0;
     PSTR whoisResponce = NULL;
@@ -236,14 +236,18 @@ BOOLEAN WhoisQueryServer(
         return FALSE;
     }
 
-    for (ptr = result; ptr; ptr = ptr->ai_next)
+    for (addrInfo = result; addrInfo; addrInfo = addrInfo->ai_next)
     {
-        SOCKET socketHandle = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        SOCKET socketHandle = socket(
+            addrInfo->ai_family, 
+            addrInfo->ai_socktype, 
+            addrInfo->ai_protocol
+            );
 
         if (socketHandle == INVALID_SOCKET)
             continue;
 
-        if (connect(socketHandle, ptr->ai_addr, (INT)ptr->ai_addrlen) == SOCKET_ERROR)
+        if (connect(socketHandle, addrInfo->ai_addr, (INT)addrInfo->ai_addrlen) == SOCKET_ERROR)
         {
             closesocket(socketHandle);
             continue;
@@ -315,7 +319,7 @@ NTSTATUS NetworkWhoisThreadStart(
             &whoisReferralServerPort
             ))
         {
-            PhAppendFormatStringBuilder(&sb, L"%s referred the request to: %s\n", whoisServerName->Buffer, whoisReferralServerName->Buffer);
+            PhAppendFormatStringBuilder(&sb, L"%s referred the request to: %s\n", PhGetString(whoisServerName), PhGetString(whoisReferralServerName));
 
             if (WhoisQueryServer(
                 PhGetString(whoisReferralServerName),
@@ -325,14 +329,14 @@ NTSTATUS NetworkWhoisThreadStart(
                 ))
             {
                 PhAppendFormatStringBuilder(&sb, L"\n%s\n", whoisReferralResponse->Buffer);
-                PhAppendFormatStringBuilder(&sb, L"\nOriginal request to %s:\n%s\n", whoisServerName->Buffer, whoisResponse->Buffer);
+                PhAppendFormatStringBuilder(&sb, L"\nOriginal request to %s:\n%s\n", PhGetString(whoisServerName), whoisResponse->Buffer);
                 PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
                 goto CleanupExit;
             }
         }
     }
 
-    PhAppendFormatStringBuilder(&sb, L"\n%s", whoisResponse->Buffer);
+    PhAppendFormatStringBuilder(&sb, L"\n%s", PhGetString(whoisResponse));
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhFinalStringBuilderString(&sb));
 
@@ -367,7 +371,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
-            PhSaveWindowPlacementToSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION, SETTING_NAME_OUTPUT_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
             RemoveProp(hwndDlg, L"Context");
             PhDereferenceObject(context);
@@ -383,7 +387,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
-//            PH_RECTANGLE windowRectangle;
+            PH_RECTANGLE windowRectangle;
             HANDLE dialogThread;
 
             context->WindowHandle = hwndDlg;
@@ -407,18 +411,12 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->WhoisHandle, NULL, PH_ANCHOR_ALL);
 
-            //windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION);
-            //windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_OUTPUT_WINDOW_SIZE, TRUE).Pair;
-            //if (windowRectangle.Position.X != 0 || windowRectangle.Position.Y != 0)
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_OUTPUT_WINDOW_POSITION, SETTING_NAME_OUTPUT_WINDOW_SIZE, hwndDlg);
-            //else
-            //    PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-            //if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-            //    RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
-            //else
-            //    RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
-
+            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_POSITION);
+            windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_SIZE, TRUE).Pair;
+            if (windowRectangle.Position.X != 0 || windowRectangle.Position.Y != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                 NtClose(dialogThread);
@@ -457,8 +455,8 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                         TEXTRANGE textRange;
 
                         length = (link->chrg.cpMax - link->chrg.cpMin) * sizeof(WCHAR);
-                        buffer = PhAllocate(length);
-                        memset(buffer, 0, length);
+                        buffer = PhAllocate(length + 1);
+                        memset(buffer, 0, length + 1);
 
                         textRange.chrg = link->chrg;
                         textRange.lpstrText = buffer;

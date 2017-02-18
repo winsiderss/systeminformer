@@ -440,7 +440,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                             HDC hdc = Graph_GetBufferedContext(context->PingGraphHandle);
 
                             PhMoveReference(&context->PingGraphState.Text,
-                                PhFormatString(L"Ping: %lums", context->CurrentPingMs)
+                                PhFormatString(L"%lu ms", context->CurrentPingMs)
                                 );
 
                             SelectObject(hdc, PhApplicationFont);
@@ -459,7 +459,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                         if (!context->PingGraphState.Valid)
                         {
                             ULONG i;
-                            FLOAT max = (FLOAT)context->MaxPingTimeout; // minimum scaling (1000ms)
+                            FLOAT max = (FLOAT)context->MaxPingTimeout; // minimum scaling
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
@@ -495,8 +495,10 @@ INT_PTR CALLBACK NetworkPingWndProc(
                             {
                                 ULONG pingMs = PhGetItemCircularBuffer_ULONG(&context->PingHistory, getTooltipText->Index);
 
-                                PhMoveReference(&context->PingGraphState.TooltipText,
-                                    PhFormatString(L"Ping: %lums", pingMs)
+                                PhMoveReference(&context->PingGraphState.TooltipText, PhFormatString(
+                                    L"%lu ms\n%s", 
+                                    pingMs,
+                                    PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->Buffer)
                                     );
                             }
 
