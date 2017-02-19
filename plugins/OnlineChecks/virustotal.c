@@ -730,10 +730,10 @@ CleanupExit:
             //    PhClearReference(&result->FileHash);
             //    PhClearReference(&result->DetectionRatio);
             //
-            //    PhFree(result);
+                PhFree(result);
             }
             
-            //PhDereferenceObject(virusTotalResults);
+            PhDereferenceObject(virusTotalResults);
         }
         
         if (rootJsonObject)

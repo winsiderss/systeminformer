@@ -431,6 +431,21 @@ LONG NTAPI VirusTotalModuleNodeSortFunction(
     return PhCompareStringWithNull(extension1->VirusTotalResult, extension2->VirusTotalResult, TRUE);
 }
 
+LONG NTAPI VirusTotalServiceNodeSortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PVOID Context
+    )
+{
+    PPH_SERVICE_NODE node1 = Node1;
+    PPH_SERVICE_NODE node2 = Node2;
+    PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
+    PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
+
+    return PhCompareStringWithNull(extension1->VirusTotalResult, extension2->VirusTotalResult, TRUE);
+}
+
 VOID NTAPI ProcessTreeNewInitializingCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -482,7 +497,7 @@ VOID NTAPI ServiceTreeNewInitializingCallback(
     column.CustomDraw = TRUE;
     column.Context = info->TreeNewHandle; // Context
 
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_SERVICE, NULL, VirusTotalModuleNodeSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_SERVICE, NULL, VirusTotalServiceNodeSortFunction);
 }
 
 VOID NTAPI TreeNewMessageCallback(
