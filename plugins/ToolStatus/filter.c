@@ -560,8 +560,8 @@ BOOLEAN NetworkTreeFilterCallback(
 }
 
 // NOTE: This function does not use the SCM due to major performance issues.
-// For now we just query this information from the registry but it might be out-of-sync 
-// until the SCM flushes its cache.
+// For now just query this information from the registry but it might be out-of-sync 
+// with any recent services changes until the SCM flushes its cache.
 NTSTATUS QueryServiceFileName(
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING *ServiceFileName,
@@ -573,7 +573,7 @@ NTSTATUS QueryServiceFileName(
 
     NTSTATUS status;
     HANDLE keyHandle;
-    ULONG serviceType;
+    ULONG serviceType = 0;
     PPH_STRING keyName;
     PPH_STRING binaryPath;
     PPH_STRING fileName;

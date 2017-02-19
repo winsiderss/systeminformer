@@ -160,13 +160,15 @@ BOOLEAN WhoisExtractReferralServer(
 
     if ((whoisServerHostnameIndex = PhFindStringInString(WhoisResponce, 0, L"ReferralServer:")) == -1)
         return FALSE;
-    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponce, whoisServerHostnameIndex, L"\n") - whoisServerHostnameIndex) == -1)
+    if ((whoisServerHostnameLength = PhFindStringInString(WhoisResponce, whoisServerHostnameIndex, L"\n")) == -1)
+        return FALSE;
+    if ((whoisServerHostnameLength = whoisServerHostnameLength - whoisServerHostnameIndex) == 0)
         return FALSE;
 
     whoisServerName = PhSubstring(
         WhoisResponce,
-        whoisServerHostnameIndex + PhCountStringZ(L"ReferralServer:"),
-        (ULONG)whoisServerHostnameLength - PhCountStringZ(L"ReferralServer:")
+        whoisServerHostnameIndex + wcslen(L"ReferralServer:"),
+        (ULONG)whoisServerHostnameLength - wcslen(L"ReferralServer:")
         );
 
     whoisServerHostname = TrimString(whoisServerName);
