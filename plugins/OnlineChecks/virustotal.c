@@ -365,11 +365,7 @@ PSTR VirusTotalSendHttpRequest(
         goto CleanupExit;
     }
 
-    if (!WinHttpReceiveResponse(requestHandle, NULL))
-    {
-        goto CleanupExit;
-    }
-    else
+    if (WinHttpReceiveResponse(requestHandle, NULL))
     {
         BYTE buffer[PAGE_SIZE];
         ULONG allocatedLength;
@@ -513,11 +509,7 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
         goto CleanupExit;
     }
 
-    if (!WinHttpReceiveResponse(requestHandle, NULL))
-    {
-        goto CleanupExit;
-    }
-    else
+    if (WinHttpReceiveResponse(requestHandle, NULL))
     {
         BYTE buffer[PAGE_SIZE];
         ULONG allocatedLength;
@@ -599,10 +591,10 @@ CleanupExit:
             for (ULONG i = 0; i < jsonArrayList->Count; i++)
             {
                 PJSON_ARRAY_LIST_OBJECT object = jsonArrayList->Items[i];
-                BOOLEAN detected = GetJsonValueAsBool(object->Entry, "detected") == TRUE;
-                PSTR version = GetJsonValueAsString(object->Entry, "version");
-                PSTR result = GetJsonValueAsString(object->Entry, "result");
-                PSTR update = GetJsonValueAsString(object->Entry, "update");
+                //BOOLEAN detected = GetJsonValueAsBool(object->Entry, "detected") == TRUE;
+                //PSTR version = GetJsonValueAsString(object->Entry, "version");
+                //PSTR result = GetJsonValueAsString(object->Entry, "result");
+                //PSTR update = GetJsonValueAsString(object->Entry, "update");
 
                 PhFree(object);
             }
@@ -810,4 +802,115 @@ VOID CleanupVirusTotalProcessMonitor(
     {
         PhDereferenceObject(VirusTotalList);
     }
+}
+
+
+// NOTE: This function does not use the SCM due to major performance issues.
+// For now just query this information from the registry but it might be out-of-sync 
+// with any recent services changes until the SCM flushes its cache.
+NTSTATUS QueryServiceFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING *ServiceFileName,
+    _Out_ PPH_STRING *ServiceBinaryPath
+    )
+{   
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static PH_STRINGREF typeKeyName = PH_STRINGREF_INIT(L"Type");
+
+    NTSTATUS status;
+    HANDLE keyHandle;
+    ULONG serviceType = 0;
+    PPH_STRING keyName;
+    PPH_STRING binaryPath;
+    PPH_STRING fileName;
+
+    keyName = PhConcatStringRef2(&servicesKeyName, ServiceName);
+    binaryPath = NULL;
+    fileName = NULL;
+
+    if (NT_SUCCESS(status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        )))
+    {
+        PPH_STRING serviceImagePath;
+        PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+        if (NT_SUCCESS(status = PhQueryValueKey(
+            keyHandle,
+            &typeKeyName,
+            KeyValuePartialInformation,
+            &buffer
+            )))
+        {
+            if (
+                buffer->Type == REG_DWORD &&
+                buffer->DataLength == sizeof(ULONG)
+                )
+            {
+                serviceType = *(PULONG)buffer->Data;
+            }
+
+            PhFree(buffer);
+        }
+
+        if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&serviceImagePath->sr))
+            {
+                binaryPath = expandedString;
+                PhDereferenceObject(serviceImagePath);
+            }
+            else
+            {
+                binaryPath = serviceImagePath;
+            }
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PhGetServiceDllParameter(ServiceName, &fileName);
+
+        if (!fileName)
+        {
+            if (serviceType & SERVICE_WIN32)
+            {
+                PH_STRINGREF dummyFileName;
+                PH_STRINGREF dummyArguments;
+
+                PhParseCommandLineFuzzy(&binaryPath->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                if (!fileName)
+                    PhSwapReference(&fileName, binaryPath);
+            }
+            else
+            {
+                fileName = PhGetFileName(binaryPath);
+            }
+        }
+
+        *ServiceFileName = fileName;
+        *ServiceBinaryPath = binaryPath;
+    }
+    else
+    {
+        if (binaryPath)
+            PhDereferenceObject(binaryPath);
+    }
+   
+    PhDereferenceObject(keyName);
+
+    return status;
 }

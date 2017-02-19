@@ -1050,14 +1050,12 @@ NTSTATUS UploadCheckThreadStart(
 
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
 
-            if (PhIsNullOrEmptyString(context->KeyString))
-            {
+            //if (PhIsNullOrEmptyString(context->KeyString))
                 // Create the default launch URL
-                PhMoveReference(&context->LaunchCommand, PhFormatString(
-                    L"https://www.virustotal.com/file/%s/analysis/",
-                    PhGetString(hashString)
-                    ));
-            }
+            PhMoveReference(&context->LaunchCommand, PhFormatString(
+                L"https://www.virustotal.com/file/%s/analysis/",
+                PhGetString(hashString)
+                ));
 
             if (!(subRequestBuffer = PerformSubRequest(
                 context,

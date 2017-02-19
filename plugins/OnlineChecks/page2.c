@@ -66,7 +66,9 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
             else if (buttonID == IDYES)
             {
                 if (!PhIsNullOrEmptyString(context->LaunchCommand))
+                {
                     PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
+                }
             }
         }
         break;

@@ -3,7 +3,7 @@
  *   Main Program
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2016 dmex
+ * Copyright (C) 2012-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -33,9 +33,11 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModulesTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
 BOOLEAN VirusTotalScanningEnabled = FALSE;
 ULONG ProcessesUpdatedCount = 0;
@@ -65,18 +67,40 @@ VOID ProcessesUpdatedCallback(
     {
         PPROCESS_EXTENSION extension;
         PPH_STRING filePath = NULL;
-        PPH_PROCESS_ITEM processItem = NULL;
-        PPH_MODULE_ITEM moduleItem = NULL;
 
         extension = CONTAINING_RECORD(listEntry, PROCESS_EXTENSION, ListEntry);
 
-        if (processItem = extension->ProcessItem)
+        if (extension->ProcessItem)
         {
-            filePath = processItem->FileName;
+            filePath = extension->ProcessItem->FileName;
         }
-        else if (moduleItem = extension->ModuleItem)
+        else if (extension->ModuleItem)
         {
-            filePath = moduleItem->FileName;
+            filePath = extension->ModuleItem->FileName;
+        }
+        else if (extension->ServiceItem)
+        {
+            if (extension->FilePath)
+            {
+                filePath = extension->FilePath;
+            }
+            else
+            {
+                PPH_STRING serviceFileName = NULL;
+                PPH_STRING serviceBinaryPath = NULL;
+
+                if (NT_SUCCESS(QueryServiceFileName(
+                    &extension->ServiceItem->Name->sr,
+                    &serviceFileName,
+                    &serviceBinaryPath
+                    )))
+                {
+                    PhMoveReference(&extension->FilePath, serviceFileName);
+                    if (serviceBinaryPath) PhDereferenceObject(serviceBinaryPath);
+                }
+
+                filePath = extension->FilePath;
+            }
         }
 
         if (!PhIsNullOrEmptyString(filePath))
@@ -255,12 +279,16 @@ PPH_EMENU_ITEM CreateSendToMenu(
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", FileName), -1);
 
     if (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0))
+    {
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
+        PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
+        PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), insertIndex + 2);
+    }
     else
-        insertIndex = -1;
-
-    PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
-    PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), insertIndex + 2);
+    {
+        PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(Parent, sendToMenu, -1);
+    }
 
     return sendToMenu;
 }
@@ -305,6 +333,39 @@ VOID NTAPI ModuleMenuInitializingCallback(
     sendToMenu = CreateSendToMenu(menuInfo->Menu, moduleItem ? moduleItem->FileName : NULL);
 
     if (!moduleItem)
+    {
+        sendToMenu->Flags |= PH_EMENU_DISABLED;
+    }
+}
+
+VOID NTAPI ServiceMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_SERVICE_ITEM serviceItem;
+    PPH_EMENU_ITEM sendToMenu;
+    PPH_STRING serviceFileName = NULL;
+    PPH_STRING serviceBinaryPath = NULL;
+
+    if (menuInfo->u.Service.NumberOfServices == 1)
+        serviceItem = menuInfo->u.Service.Services[0];
+    else
+        serviceItem = NULL;
+
+    QueryServiceFileName(
+        &serviceItem->Name->sr,
+        &serviceFileName,
+        &serviceBinaryPath
+        );
+
+    if (serviceBinaryPath) PhDereferenceObject(serviceBinaryPath);
+
+    //  TODO: Possible serviceFileName string memory leak.
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, serviceFileName ? serviceFileName : NULL);
+
+    if (!serviceItem || !serviceFileName)
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
     }
@@ -385,7 +446,7 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     column.CustomDraw = TRUE;
     column.Context = info->TreeNewHandle; // Context
 
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_VIUSTOTAL, NULL, VirusTotalProcessNodeSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_PROCESS, NULL, VirusTotalProcessNodeSortFunction);
 }
 
 VOID NTAPI ModuleTreeNewInitializingCallback(
@@ -403,7 +464,25 @@ VOID NTAPI ModuleTreeNewInitializingCallback(
     column.CustomDraw = TRUE;
     column.Context = info->TreeNewHandle; // Context
 
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_VIUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
+}
+
+VOID NTAPI ServiceTreeNewInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
+    PH_TREENEW_COLUMN column;
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"VirusTotal";
+    column.Width = 140;
+    column.Alignment = PH_ALIGN_CENTER;
+    column.CustomDraw = TRUE;
+    column.Context = info->TreeNewHandle; // Context
+
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_SERVICE, NULL, VirusTotalModuleNodeSortFunction);
 }
 
 VOID NTAPI TreeNewMessageCallback(
@@ -421,7 +500,7 @@ VOID NTAPI TreeNewMessageCallback(
 
             switch (message->SubId)
             {
-            case NETWORK_COLUMN_ID_VIUSTOTAL:
+            case COLUMN_ID_VIUSTOTAL_PROCESS:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
                     PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
@@ -429,10 +508,18 @@ VOID NTAPI TreeNewMessageCallback(
                     getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
                 }
                 break;
-            case NETWORK_COLUMN_ID_VIUSTOTAL_MODULE:
+            case COLUMN_ID_VIUSTOTAL_MODULE:
                 {
                     PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)getCellText->Node;
                     PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
+
+                    getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
+                }
+                break;
+            case COLUMN_ID_VIUSTOTAL_SERVICE:
+                {
+                    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)getCellText->Node;
+                    PPROCESS_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
 
                     getCellText->Text = PhGetStringRef(extension->VirusTotalResult);
                 }
@@ -471,18 +558,25 @@ VOID NTAPI TreeNewMessageCallback(
 
             switch (message->SubId)
             {
-            case NETWORK_COLUMN_ID_VIUSTOTAL:
+            case COLUMN_ID_VIUSTOTAL_PROCESS:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)customDraw->Node;
 
                     extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
                 }
                 break;
-            case NETWORK_COLUMN_ID_VIUSTOTAL_MODULE:
+            case COLUMN_ID_VIUSTOTAL_MODULE:
                 {
                     PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)customDraw->Node;
 
                     extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
+                }
+                break;
+            case COLUMN_ID_VIUSTOTAL_SERVICE:
+                {
+                    PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)customDraw->Node;
+
+                    extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
                 }
                 break;
             }
@@ -580,6 +674,41 @@ VOID NTAPI ModuleItemDeleteCallback(
     PhReleaseQueuedLockExclusive(&ProcessesListLock);
 }
 
+VOID NTAPI ServiceItemCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_SERVICE_ITEM serviceItem = Object;
+    PPROCESS_EXTENSION extension = Extension;
+
+    memset(extension, 0, sizeof(PROCESS_EXTENSION));
+
+    extension->ServiceItem = serviceItem;
+    extension->VirusTotalResult = PhReferenceEmptyString();
+
+    PhAcquireQueuedLockExclusive(&ProcessesListLock);
+    InsertTailList(&ProcessListHead, &extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ProcessesListLock);
+}
+
+VOID NTAPI ServiceItemDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_SERVICE_ITEM serviceItem = Object;
+    PPROCESS_EXTENSION extension = Extension;
+
+    PhClearReference(&extension->VirusTotalResult);
+
+    PhAcquireQueuedLockExclusive(&ProcessesListLock);
+    RemoveEntryList(&extension->ListEntry);
+    PhReleaseQueuedLockExclusive(&ProcessesListLock);
+}
+
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,
@@ -644,6 +773,12 @@ LOGICAL DllMain(
                 NULL,
                 &ModuleMenuInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing),
+                ServiceMenuInitializingCallback,
+                NULL,
+                &ServiceMenuInitializingCallbackRegistration
+                );
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
@@ -671,6 +806,12 @@ LOGICAL DllMain(
                 NULL,
                 &ModulesTreeNewInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing),
+                ServiceTreeNewInitializingCallback,
+                NULL,
+                &ServiceTreeNewInitializingCallbackRegistration
+                );
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
@@ -693,6 +834,14 @@ LOGICAL DllMain(
                 sizeof(PROCESS_EXTENSION),
                 ModuleItemCreateCallback,
                 ModuleItemDeleteCallback
+                );
+
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmServiceItemType,
+                sizeof(PROCESS_EXTENSION),
+                ServiceItemCreateCallback,
+                ServiceItemDeleteCallback
                 );
 
             PhAddSettings(settings, ARRAYSIZE(settings));

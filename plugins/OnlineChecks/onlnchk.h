@@ -84,9 +84,11 @@ typedef struct _PROCESS_EXTENSION
     INT64 Retries;
     INT64 Positives;
     PPH_STRING VirusTotalResult;
+    PPH_STRING FilePath;
 
     PPH_PROCESS_ITEM ProcessItem;
     PPH_MODULE_ITEM ModuleItem;
+    PPH_SERVICE_ITEM ServiceItem;
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
 
 typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
@@ -216,8 +218,9 @@ VOID UploadToOnlineService(
 
 typedef enum _NETWORK_COLUMN_ID
 {
-    NETWORK_COLUMN_ID_VIUSTOTAL = 1,
-    NETWORK_COLUMN_ID_VIUSTOTAL_MODULE = 2,
+    COLUMN_ID_VIUSTOTAL_PROCESS = 1,
+    COLUMN_ID_VIUSTOTAL_MODULE = 2,
+    COLUMN_ID_VIUSTOTAL_SERVICE = 3
 } NETWORK_COLUMN_ID;
 
 NTSTATUS HashFileAndResetPosition(
@@ -255,6 +258,12 @@ VOID InitializeVirusTotalProcessMonitor(
 
 VOID CleanupVirusTotalProcessMonitor(
     VOID
+    );
+
+NTSTATUS QueryServiceFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING *ServiceFileName,
+    _Out_ PPH_STRING *ServiceBinaryPath
     );
 
 #endif
