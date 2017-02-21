@@ -120,9 +120,11 @@ PPROCESS_DB_OBJECT CreateProcessDbObject(
 
     PhInitializeStringRefLongHint(&object->FileName, FileName->Buffer);
 
+    PhReferenceObject(FileName);
+    PhReferenceObject(Result);
     object->Positives = Positives;
-    object->Hash = PhDuplicateString(FileName);
-    object->Result = PhDuplicateString(Result);
+    object->Hash = FileName;
+    object->Result = Result;
 
     realObject = PhAddEntryHashtableEx(ProcessObjectDb, &object, &added);
 

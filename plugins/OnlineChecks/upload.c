@@ -850,18 +850,18 @@ NTSTATUS UploadFileThreadStart(
                 }
                 else
                 {
-                    ULONG bufferLength = 0;
+                    ULONG httpUrlLength = 0;
 
-                    if (!WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, NULL, &bufferLength))
+                    if (!WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, NULL, &httpUrlLength))
                     {
-                        PPH_STRING buffer = PhCreateStringEx(NULL, bufferLength);
+                        PPH_STRING httpUrlString = PhCreateStringEx(NULL, httpUrlLength);
 
-                        if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, buffer->Buffer, &bufferLength))
+                        if (WinHttpQueryOption(requestHandle, WINHTTP_OPTION_URL, httpUrlString->Buffer, &httpUrlLength))
                         {
-                            PhMoveReference(&context->LaunchCommand, PhDuplicateString(buffer));
+                            PhSwapReference(&context->LaunchCommand, httpUrlString);
                         }
 
-                        PhDereferenceObject(buffer);
+                        PhDereferenceObject(httpUrlString);
                     }
                 }
             }
@@ -1323,8 +1323,9 @@ VOID UploadToOnlineService(
     context = (PUPLOAD_CONTEXT)PhCreateObject(sizeof(UPLOAD_CONTEXT), UploadContextType);
     memset(context, 0, sizeof(UPLOAD_CONTEXT));
 
+    PhReferenceObject(FileName);
     context->Service = Service;
-    context->FileName = PhDuplicateString(FileName);
+    context->FileName = FileName;
     context->BaseFileName = PhGetBaseName(context->FileName);
     context->KeyString = PhCreateString(VIRUSTOTAL_APIKEY);
 
