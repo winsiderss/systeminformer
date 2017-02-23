@@ -182,7 +182,7 @@ VOID PhMwpShowProcessProperties(
     PPH_PROCESS_PROPCONTEXT propContext;
 
     propContext = PhCreateProcessPropContext(
-        PhMainWndHandle,
+        NULL,
         ProcessItem
         );
 
