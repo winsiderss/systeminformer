@@ -88,10 +88,12 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="ndis.c" />
     <ClCompile Include="netoptions.c" />
+    <ClCompile Include="prpsh.c" />
     <ClCompile Include="storage.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />
+    <ClInclude Include="prpsh.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

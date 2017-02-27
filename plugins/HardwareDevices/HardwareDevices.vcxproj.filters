@@ -24,6 +24,7 @@
     <ClInclude Include="devices.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="prpsh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -62,6 +63,7 @@
     <ClCompile Include="disknotify.c">
       <Filter>Source Files\Disk</Filter>
     </ClCompile>
+    <ClCompile Include="prpsh.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

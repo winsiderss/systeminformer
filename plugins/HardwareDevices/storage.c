@@ -123,6 +123,68 @@ PPH_STRING DiskDriveQueryDosMountPoints(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+PPH_LIST DiskDriveQueryMountPointHandles(
+    _In_ ULONG DeviceNumber
+    )
+{
+    ULONG driveMask;
+    PPH_LIST deviceList;
+    WCHAR deviceNameBuffer[7] = L"\\\\.\\?:";
+
+    driveMask = DiskDriveQueryDeviceMap();
+    deviceList = PhCreateList(2);
+
+    for (INT i = 0; i < 26; i++)
+    {
+        if (driveMask & (1 << i))
+        {
+            HANDLE deviceHandle;
+
+            deviceNameBuffer[4] = (WCHAR)('A' + i);
+
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &deviceHandle,
+                deviceNameBuffer,
+                PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
+            {
+                ULONG deviceNumber = ULONG_MAX; // Note: Do not initialize to zero.
+                DEVICE_TYPE deviceType = 0;
+
+                if (NT_SUCCESS(DiskDriveQueryDeviceTypeAndNumber(
+                    deviceHandle,
+                    &deviceNumber,
+                    &deviceType
+                    )))
+                {
+                    // BUG: Device numbers are re-used on seperate device controllers and this
+                    // causes drive letters to be assigned to disks at those same indexes.
+                    // For now, just filter CD_ROM devices but we may need to be a lot more strict and 
+                    // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
+                    if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
+                    {
+                        PDISK_HANDLE_ENTRY entry;
+                        
+                        entry = PhAllocate(sizeof(DISK_HANDLE_ENTRY));
+                        memset(entry, 0, sizeof(DISK_HANDLE_ENTRY));
+
+                        entry->DeviceLetter = deviceNameBuffer[4];
+                        entry->DeviceHandle = deviceHandle;
+
+                        PhAddItemList(deviceList, entry);
+                    }
+                }
+            }
+        }
+    }
+
+    return deviceList;
+}
+
 BOOLEAN DiskDriveQueryAdapterInformation(
     _In_ HANDLE DeviceHandle
     )
@@ -593,11 +655,12 @@ PPH_STRING DiskDriveQueryGeometry(
     return PhReferenceEmptyString();
 }
 
-BOOLEAN DiskDriveQueryImminentFailure(
+NTSTATUS DiskDriveQueryImminentFailure(
     _In_ HANDLE DeviceHandle,
     _Out_ PPH_LIST* DiskSmartAttributes
     )
 {
+    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     STORAGE_PREDICT_FAILURE storagePredictFailure;
 
@@ -608,7 +671,7 @@ BOOLEAN DiskDriveQueryImminentFailure(
     // * This works without admin rights but doesn't support other features like logs and self-tests.
     // * It works for (S)ATA devices but not for USB.
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(status = NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -688,11 +751,9 @@ BOOLEAN DiskDriveQueryImminentFailure(
         }
 
         *DiskSmartAttributes = diskAttributeList;
-
-        return TRUE;
     }
 
-    return FALSE;
+    return status;
 }
 
 // requires admin
