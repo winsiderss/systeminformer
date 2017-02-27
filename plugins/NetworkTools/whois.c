@@ -397,7 +397,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             HANDLE dialogThread;
 
             SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->WindowHandle = hwndDlg;
             context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);

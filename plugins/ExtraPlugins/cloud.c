@@ -408,11 +408,6 @@ NTSTATUS SetupExtractBuild(
     )
 {
     static PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
-
-    mz_uint64 totalLength = 0;
-    mz_uint64 total_size = 0;
-    mz_uint64 downloadedBytes = 0;
-    PPH_STRING totalSizeStr = NULL;
     mz_bool status = MZ_FALSE;
     mz_zip_archive zip_archive;
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
@@ -425,21 +420,6 @@ NTSTATUS SetupExtractBuild(
     {
         goto error;
     }
-
-    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
-    {
-        mz_zip_archive_file_stat file_stat;
-
-        if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat))
-        {
-            //mz_zip_reader_end(&zip_archive);
-            break;
-        }
-
-        total_size += file_stat.m_uncomp_size;
-     }
-
-    totalSizeStr = PhFormatSize(total_size, -1);
 
     for (ULONG i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {

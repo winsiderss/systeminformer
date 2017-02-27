@@ -155,7 +155,6 @@ NTSTATUS NetworkPingThreadStart(
 
         InterlockedIncrement(&context->PingSentCount);
 
-        // First ping with no data...
         // Send ICMPv4 ping...
         icmpReplyCount = IcmpSendEcho2Ex(
             icmpHandle,

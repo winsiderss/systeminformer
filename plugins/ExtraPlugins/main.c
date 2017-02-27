@@ -218,11 +218,11 @@ VOID NTAPI LoadCallback(
                 //
                 //}
 
-                NtTerminateProcess(NtCurrentProcess(), EXIT_SUCCESS);
+                //NtTerminateProcess(NtCurrentProcess(), EXIT_SUCCESS);
             }
             else if (PhEqualString2(pluginCommandParam, L"UNINSTALL", TRUE))
             {
-                NtTerminateProcess(NtCurrentProcess(), EXIT_SUCCESS);
+                //NtTerminateProcess(NtCurrentProcess(), EXIT_SUCCESS);
             }
         }
     }

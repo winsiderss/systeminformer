@@ -48,13 +48,22 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
                 PhShellProcessHacker(
                     PhMainWndHandle,
-                    L"-plugin " PLUGIN_NAME L":INSTALL -plugin " PLUGIN_NAME L":hex64value",
+                    L"-v",
                     SW_SHOW,
                     0,
                     PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                     0,
                     NULL
                     );
+                //PhShellProcessHacker(
+                //    PhMainWndHandle,
+                //    L"-plugin " PLUGIN_NAME L":INSTALL -plugin " PLUGIN_NAME L":hex64value",
+                //    SW_SHOW,
+                //    0,
+                //    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                //    0,
+                //    NULL
+                //    );
                 ProcessHacker_Destroy(PhMainWndHandle);
             }
         }

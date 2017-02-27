@@ -547,18 +547,10 @@ VOID NTAPI TreeNewMessageCallback(
             PPH_TREENEW_CUSTOM_DRAW customDraw = message->Parameter1;
             PPROCESS_EXTENSION extension = NULL;
             PH_STRINGREF text;
-            SIZE textSize;
 
             if (!VirusTotalScanningEnabled)
             {
                 static PH_STRINGREF disabledText = PH_STRINGREF_INIT(L"Scanning disabled");
-
-                GetTextExtentPoint32(
-                    customDraw->Dc,
-                    disabledText.Buffer,
-                    (ULONG)disabledText.Length / 2,
-                    &textSize
-                    );
 
                 DrawText(
                     customDraw->Dc,
@@ -600,13 +592,6 @@ VOID NTAPI TreeNewMessageCallback(
                 break;
 
             text = PhGetStringRef(extension->VirusTotalResult);
-            GetTextExtentPoint32(
-                customDraw->Dc,
-                text.Buffer,
-                (ULONG)text.Length / 2,
-                &textSize
-                );
-
             DrawText(
                 customDraw->Dc,
                 text.Buffer,
