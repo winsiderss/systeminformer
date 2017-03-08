@@ -473,45 +473,41 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
                                 }
                                 else
                                 {
-                                    PPLUGIN_NODE selectedNode;
                                     PPLUGIN_NODE existingNode;
 
-                                    if (selectedNode = WeGetSelectedWindowNode(context))
+                                    if (selectedNode->State == PLUGIN_STATE_LOCAL)
                                     {
-                                        if (selectedNode->State == PLUGIN_STATE_LOCAL)
+                                        if (existingNode = FindTreeNode(
+                                            context,
+                                            PLUGIN_STATE_REMOTE,
+                                            selectedNode->InternalName
+                                            ))
                                         {
-                                            if (existingNode = FindTreeNode(
-                                                context,
-                                                PLUGIN_STATE_REMOTE,
-                                                selectedNode->InternalName
-                                                ))
+                                            if (StartInitialCheck(hwndDlg, existingNode, PLUGIN_ACTION_INSTALL))
                                             {
-                                                if (StartInitialCheck(hwndDlg, existingNode, PLUGIN_ACTION_INSTALL))
-                                                {
 
-                                                }
                                             }
-
-                                            UpdateTreeView(context);
                                         }
-                                        else 
+
+                                        UpdateTreeView(context);
+                                    }
+                                    else
+                                    {
+                                        if (StartInitialCheck(hwndDlg, selectedNode, PLUGIN_ACTION_INSTALL))
                                         {
-                                            if (StartInitialCheck(hwndDlg, selectedNode, PLUGIN_ACTION_INSTALL))
-                                            {
-                                               
-                                            }
 
-                                            if (existingNode = FindTreeNode(
-                                                context,
-                                                PLUGIN_STATE_REMOTE,
-                                                selectedNode->InternalName
-                                                ))
-                                            {
-                                                selectedNode->State = PLUGIN_STATE_RESTART;
-                                            }
+                                        }
 
-                                            UpdateTreeView(context);
-                                        }                           
+                                        if (existingNode = FindTreeNode(
+                                            context,
+                                            PLUGIN_STATE_REMOTE,
+                                            selectedNode->InternalName
+                                            ))
+                                        {
+                                            selectedNode->State = PLUGIN_STATE_RESTART;
+                                        }
+
+                                        UpdateTreeView(context);
                                     }
                                 }
                             }

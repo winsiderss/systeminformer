@@ -690,11 +690,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             ShowAvailableDialog(context);
         }
         break;
-    case PH_UPDATEISCURRENT:
-        {
-            ShowLatestVersionDialog(context);
-        }
-        break;
     case PH_UPDATENEWER:
         {
             ShowUninstallRestartDialog(context);

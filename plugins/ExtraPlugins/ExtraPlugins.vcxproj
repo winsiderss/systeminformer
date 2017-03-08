@@ -86,8 +86,6 @@
     <ClCompile Include="miniz\miniz.c" />
     <ClCompile Include="plugin.c" />
     <ClCompile Include="setup\page4.c" />
-    <ClCompile Include="setup\page1.c" />
-    <ClCompile Include="setup\page2.c" />
     <ClCompile Include="setup\page3.c" />
     <ClCompile Include="setup\page5.c" />
     <ClCompile Include="setup\updater.c" />

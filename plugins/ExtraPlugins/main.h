@@ -42,7 +42,6 @@
 #define IDD_WCT_MENUITEM 1000
 #define PH_UPDATEISERRORED (WM_APP + 501)
 #define PH_UPDATEAVAILABLE (WM_APP + 502)
-#define PH_UPDATEISCURRENT (WM_APP + 503)
 #define PH_UPDATENEWER     (WM_APP + 504)
 #define PH_UPDATESUCCESS   (WM_APP + 505)
 #define PH_UPDATEFAILURE   (WM_APP + 506)
@@ -280,20 +279,9 @@ VOID InstallPluginDialog(
     );
 
 VOID ShowAvailableDialog(_In_ PPH_UPDATER_CONTEXT Context);
-
-VOID ShowCheckingForUpdatesDialog(_In_ PPH_UPDATER_CONTEXT Context);
 VOID TaskDialogLinkClicked(_In_ PPH_UPDATER_CONTEXT Context);
-NTSTATUS UpdateDownloadThread(_In_ PVOID Parameter);
-
-// page2.c
-VOID ShowCheckingForUpdatesDialog(_In_ PPH_UPDATER_CONTEXT Context);
-// page3.c
-VOID ShowAvailableDialog(_In_ PPH_UPDATER_CONTEXT Context);
-// page4.c
 VOID ShowProgressDialog(_In_ PPH_UPDATER_CONTEXT Context);
-VOID ShowLatestVersionDialog(_In_ PPH_UPDATER_CONTEXT Context);
 VOID ShowPluginUninstallDialog(_In_ PPH_UPDATER_CONTEXT Context);
-
 VOID ShowUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN HashFailed,
@@ -303,6 +291,8 @@ VOID ShowUpdateFailedDialog(
 // page6.c
 VOID ShowInstallRestartDialog(_In_ PPH_UPDATER_CONTEXT Context);
 VOID ShowUninstallRestartDialog(_In_ PPH_UPDATER_CONTEXT Context);
+
+NTSTATUS UpdateDownloadThread(_In_ PVOID Parameter);
 NTSTATUS SetupExtractBuild(_In_ PVOID Parameter);
 
 BOOLEAN ReadRequestString(

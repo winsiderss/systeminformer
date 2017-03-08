@@ -94,6 +94,13 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
         }
         break;
     case TDN_BUTTON_CLICKED:
+        {
+            if ((INT)wParam == IDRETRY)
+            {
+                ShowAvailableDialog(context);
+                return S_FALSE;
+            }
+        }
         break;
     }
 
@@ -151,38 +158,6 @@ VOID ShowUninstallRestartDialog(
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
-
-VOID ShowLatestVersionDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    PPH_UPDATER_CONTEXT context;
-    TASKDIALOGCONFIG config;
-
-    context = (PPH_UPDATER_CONTEXT)Context;
-
-    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-    config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
-    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.hMainIcon = context->IconLargeHandle;
-
-    config.pszWindowTitle = L"Process Hacker - Plugin Manager";
-    config.pszMainInstruction = L"You're running the latest version.";
-    //config.pszContent = PhaFormatString(
-    //    L"Stable release build: v%lu.%lu.%lu\r\n\r\n<A HREF=\"executablestring\">View Changelog</A>",
-    //    context->CurrentMajorVersion,
-    //    context->CurrentMinorVersion,
-    //    context->CurrentRevisionVersion
-    //    )->Buffer;
-
-    config.cxWidth = 200;
-    config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
-
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
-}
-
 
 VOID ShowUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context,
