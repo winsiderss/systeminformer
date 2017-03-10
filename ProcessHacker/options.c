@@ -679,6 +679,7 @@ VOID PhpAdvancedPageLoad(
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetDlgItemCheckForSetting(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_UNLOADKERNELMODEDRIVERONEXIT, L"KphUnloadOnShutdown");
 
     if (WindowsVersion >= WINDOWS_7)
         SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
@@ -761,6 +762,7 @@ VOID PhpAdvancedPageSave(
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
+    SetSettingForDlgItemCheck(hwndDlg, IDC_UNLOADKERNELMODEDRIVERONEXIT, L"KphUnloadOnShutdown");
 
     if (WindowsVersion >= WINDOWS_7)
         SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
@@ -872,6 +874,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTLABEL), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_UNLOADKERNELMODEDRIVERONEXIT), FALSE);
             }
             else
             {

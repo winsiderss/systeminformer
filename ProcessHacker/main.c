@@ -287,6 +287,10 @@ INT WINAPI wWinMain(
     PhDrainAutoPool(&BaseAutoPool);
 
     result = PhMainMessageLoop();
+
+    if (PhGetIntegerSetting(L"KphUnloadOnShutdown"))
+        PhUnloadDriver(NULL, L"KProcessHacker3");
+
     RtlExitUserProcess(result);
 }
 
