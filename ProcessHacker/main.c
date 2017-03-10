@@ -289,7 +289,7 @@ INT WINAPI wWinMain(
     result = PhMainMessageLoop();
 
     if (PhGetIntegerSetting(L"KphUnloadOnShutdown"))
-        PhUnloadDriver(NULL, L"KProcessHacker3");
+        PhUnloadDriver(NULL, KPH_DEVICE_SHORT_NAME);
 
     RtlExitUserProcess(result);
 }
