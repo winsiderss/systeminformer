@@ -1,3 +1,6 @@
+# Build image.
+image: Visual Studio 2017
+
 # Version format.
 version: "3.0.{build}"
 
