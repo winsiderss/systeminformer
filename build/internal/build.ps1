@@ -125,9 +125,7 @@ function InitializeBuildEnvironment()
 
 function BuildSolution([string] $FileName)
 {
-    # Set msbuild path (TODO: Do we need the 32bit version of MSBuild for x86 builds?)
-    $msBuild = "${env:ProgramFiles(x86)}\MSBuild\14.0\bin\amd64\MSBuild.exe"
-    # Get base file name
+    $msBuild = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\amd64\MSBuild.exe"
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
 
     Write-Host "Building $baseName" -NoNewline -ForegroundColor Cyan
