@@ -38,10 +38,12 @@
 ipch/
 *.aps
 *.ncb
+*.nupkg
 *.opendb
 *.opensdf
 *.sdf
 *.db
+*.dll
 .vs/
 
 # Visual Studio profiler
