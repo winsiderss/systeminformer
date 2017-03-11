@@ -55,25 +55,18 @@ void growl_shutdown()
     }
 }
 
-/* dmex: modified to use a version of rand with security enhancements */
-char* gen_salt_alloc(int count)
+/* dmex: modified with enhancements */
+PPH_BYTES gen_salt_alloc(int count)
 {
-    char* salt = (char*)PhAllocateSafe(count + 1);
+    PPH_STRING saltString;
+    PPH_BYTES saltBytes;
 
-    if (salt)
-    {
-        int n;
-        int randSeed = 0;
+    saltString = PhCreateStringEx(NULL, count * 2 + 2);
+    PhGenerateRandomAlphaString(saltString->Buffer, (ULONG)saltString->Length / sizeof(WCHAR));
+    saltBytes = PhConvertUtf16ToUtf8(saltString->Buffer);
+    PhDereferenceObject(saltString);
 
-        rand_s(&randSeed);
-
-        for (n = 0; n < count; n++)
-            salt[n] = (randSeed % 255) + 1;
-
-        salt[n] = 0;
-    }
-
-    return salt;
+    return saltBytes;
 }
 
 char* gen_password_hash_alloc(const char* password, const char* salt) {
@@ -97,7 +90,7 @@ char* gen_password_hash_alloc(const char* password, const char* salt) {
 
 char *growl_generate_authheader_alloc(const char*const password)
 {
-    char* salt;
+    PPH_BYTES salt;
     char* salthash;
     char* keyhash;
     char* authheader = NULL;
@@ -105,9 +98,9 @@ char *growl_generate_authheader_alloc(const char*const password)
     if (password) {
         salt = gen_salt_alloc(8);
         if (salt) {
-            keyhash = gen_password_hash_alloc(password, salt);
+            keyhash = gen_password_hash_alloc(password, salt->Buffer);
             if (keyhash) {
-                salthash = string_to_hex_alloc(salt, 8);
+                salthash = string_to_hex_alloc(salt->Buffer, 8);
                 if (salthash) {
                     authheader = (char*)PhAllocateSafe(strlen(keyhash) + strlen(salthash) + 7);
                     if (authheader) {
@@ -117,7 +110,7 @@ char *growl_generate_authheader_alloc(const char*const password)
                 }
                 PhFree(keyhash);
             }
-            PhFree(salt);
+            PhDereferenceObject(salt);
         }
     }
 
