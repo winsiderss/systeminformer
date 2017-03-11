@@ -289,7 +289,7 @@ INT WINAPI wWinMain(
     result = PhMainMessageLoop();
 
     if (PhGetIntegerSetting(L"KphUnloadOnShutdown"))
-        PhUnloadDriver(NULL, KPH_DEVICE_SHORT_NAME);
+        KphUninstall(NULL);
 
     RtlExitUserProcess(result);
 }
@@ -571,8 +571,9 @@ VOID PhInitializeKph(
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
 
-    parameters.SecurityLevel = KphSecurityPrivilegeCheck;
+    parameters.SecurityLevel = KphSecuritySignatureCheck;
     parameters.CreateDynamicConfiguration = TRUE;
+
     KphConnect2Ex(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
 
     if (signature = PhpReadSignature(processhackerSigFileName->Buffer, &signatureSize))

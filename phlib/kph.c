@@ -103,10 +103,6 @@ NTSTATUS KphConnect2Ex(
     NTSTATUS status;
     WCHAR fullDeviceName[256];
     PH_FORMAT format[2];
-    SC_HANDLE scmHandle;
-    SC_HANDLE serviceHandle;
-    BOOLEAN started = FALSE;
-    BOOLEAN created = FALSE;
 
     if (!DeviceName)
         DeviceName = KPH_DEVICE_SHORT_NAME;
@@ -118,105 +114,19 @@ NTSTATUS KphConnect2Ex(
         return STATUS_NAME_TOO_LONG;
 
     // Try to open the device.
+
     status = KphConnect(fullDeviceName);
 
-    if (NT_SUCCESS(status) || status == STATUS_ADDRESS_ALREADY_EXISTS)
-        return status;
-
-    if (
-        status != STATUS_NO_SUCH_DEVICE &&
-        status != STATUS_NO_SUCH_FILE &&
-        status != STATUS_OBJECT_NAME_NOT_FOUND &&
-        status != STATUS_OBJECT_PATH_NOT_FOUND
-        )
+    if (status == STATUS_ADDRESS_ALREADY_EXISTS)
         return status;
 
     // Load the driver, and try again.
 
-    // Try to start the service, if it exists.
+    KphInstall(DeviceName, FileName);
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+    // Try to open the device again. 
 
-    if (scmHandle)
-    {
-        serviceHandle = OpenService(scmHandle, DeviceName, SERVICE_START);
-
-        if (serviceHandle)
-        {
-            if (StartService(serviceHandle, 0, NULL))
-                started = TRUE;
-
-            CloseServiceHandle(serviceHandle);
-        }
-
-        CloseServiceHandle(scmHandle);
-    }
-
-    if (!started && RtlDoesFileExists_U(FileName))
-    {
-        // Try to create the service.
-
-        scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
-
-        if (scmHandle)
-        {
-            serviceHandle = CreateService(
-                scmHandle,
-                DeviceName,
-                DeviceName,
-                SERVICE_ALL_ACCESS,
-                SERVICE_KERNEL_DRIVER,
-                SERVICE_DEMAND_START,
-                SERVICE_ERROR_IGNORE,
-                FileName,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
-                L""
-                );
-
-            if (serviceHandle)
-            {
-                created = TRUE;
-
-                // Set parameters if the caller supplied them. Note that we fail the entire function
-                // if this fails, because failing to set parameters like SecurityLevel may result in
-                // security vulnerabilities.
-                if (Parameters)
-                {
-                    status = KphSetParameters(DeviceName, Parameters);
-
-                    if (!NT_SUCCESS(status))
-                    {
-                        // Delete the service and fail.
-                        goto CreateAndConnectEnd;
-                    }
-                }
-
-                if (StartService(serviceHandle, 0, NULL))
-                    started = TRUE;
-            }
-
-            CloseServiceHandle(scmHandle);
-        }
-    }
-
-    if (started)
-    {
-        // Try to open the device again.
-        status = KphConnect(fullDeviceName);
-    }
-
-CreateAndConnectEnd:
-    if (created)
-    {
-        // "Delete" the service. Since we (may) have a handle to the device, the SCM will delete the
-        // service automatically when it is stopped (upon reboot). If we don't have a handle to the
-        // device, the service will get deleted immediately, which is a good thing anyway.
-        DeleteService(serviceHandle);
-        CloseServiceHandle(serviceHandle);
-    }
+    status = KphConnect(fullDeviceName);
 
     return status;
 }
@@ -273,7 +183,6 @@ NTSTATUS KphSetParameters(
     NTSTATUS status;
     HANDLE parametersKeyHandle = NULL;
     PPH_STRING parametersKeyName;
-    ULONG disposition;
     UNICODE_STRING valueName;
 
     if (!DeviceName)
@@ -292,7 +201,7 @@ NTSTATUS KphSetParameters(
         &parametersKeyName->sr,
         0,
         0,
-        &disposition
+        NULL
         );
     PhDereferenceObject(parametersKeyName);
 
@@ -303,7 +212,7 @@ NTSTATUS KphSetParameters(
     status = NtSetValueKey(parametersKeyHandle, &valueName, 0, REG_DWORD, &Parameters->SecurityLevel, sizeof(ULONG));
 
     if (!NT_SUCCESS(status))
-        goto SetValuesEnd;
+        goto CleanupExit;
 
     if (Parameters->CreateDynamicConfiguration)
     {
@@ -319,20 +228,12 @@ NTSTATUS KphSetParameters(
             status = NtSetValueKey(parametersKeyHandle, &valueName, 0, REG_BINARY, &configuration, sizeof(KPH_DYN_CONFIGURATION));
 
             if (!NT_SUCCESS(status))
-                goto SetValuesEnd;
+                goto CleanupExit;
         }
     }
 
     // Put more parameters here...
-
-SetValuesEnd:
-    if (!NT_SUCCESS(status))
-    {
-        // Delete the key if we created it.
-        if (disposition == REG_CREATED_NEW_KEY)
-            NtDeleteKey(parametersKeyHandle);
-    }
-
+CleanupExit:
     NtClose(parametersKeyHandle);
 
     return status;
@@ -343,7 +244,12 @@ NTSTATUS KphInstall(
     _In_ PWSTR FileName
     )
 {
-    return KphInstallEx(DeviceName, FileName, NULL);
+    KPH_PARAMETERS parameters;
+
+    parameters.SecurityLevel = KphSecuritySignatureCheck;
+    parameters.CreateDynamicConfiguration = TRUE;
+
+    return KphInstallEx(DeviceName, FileName, &parameters);
 }
 
 NTSTATUS KphInstallEx(
@@ -352,60 +258,112 @@ NTSTATUS KphInstallEx(
     _In_opt_ PKPH_PARAMETERS Parameters
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    SC_HANDLE scmHandle;
-    SC_HANDLE serviceHandle;
+    NTSTATUS status;
+    ULONG parameters;
+    HANDLE tokenHandle;
+    HANDLE keyHandle = NULL;
+    PPH_STRING keyName = NULL;
+    UNICODE_STRING fileName = { 0 };
+    UNICODE_STRING valueName;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     if (!DeviceName)
         DeviceName = KPH_DEVICE_SHORT_NAME;
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
-
-    if (!scmHandle)
-        return PhGetLastWin32ErrorAsNtStatus();
-
-    serviceHandle = CreateService(
-        scmHandle,
-        DeviceName,
-        DeviceName,
-        SERVICE_ALL_ACCESS,
-        SERVICE_KERNEL_DRIVER,
-        SERVICE_SYSTEM_START,
-        SERVICE_ERROR_IGNORE,
+    if (!RtlDosPathNameToNtPathName_U(
         FileName,
+        &fileName,
         NULL,
-        NULL,
-        NULL,
-        NULL,
-        L""
+        NULL
+        ))
+    {
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+    }
+
+    if (NT_SUCCESS(NtOpenProcessToken(
+        NtCurrentProcess(),
+        TOKEN_ADJUST_PRIVILEGES,
+        &tokenHandle
+        )))
+    {
+        PhSetTokenPrivilege(tokenHandle, SE_LOAD_DRIVER_NAME, NULL, SE_PRIVILEGE_ENABLED);
+        NtClose(tokenHandle);
+    }
+
+    keyName = PhConcatStrings(
+        2,
+        L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\",
+        DeviceName
         );
 
-    if (serviceHandle)
+    if (!PhStringRefToUnicodeString(&keyName->sr, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE, 
+        NULL, 
+        NULL
+        );
+
+    status = NtCreateKey(
+        &keyHandle,
+        KEY_ALL_ACCESS,
+        &objectAttributes,
+        0,
+        NULL,
+        0,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (Parameters)
     {
-        // See KphConnect2Ex for more details.
-        if (Parameters)
-        {
-            status = KphSetParameters(DeviceName, Parameters);
+        status = KphSetParameters(DeviceName, Parameters);
 
-            if (!NT_SUCCESS(status))
-            {
-                DeleteService(serviceHandle);
-                goto CreateEnd;
-            }
-        }
-
-        if (!StartService(serviceHandle, 0, NULL))
-            status = PhGetLastWin32ErrorAsNtStatus();
-
-CreateEnd:
-        CloseServiceHandle(serviceHandle);
-    }
-    else
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
-    CloseServiceHandle(scmHandle);
+    parameters = SERVICE_KERNEL_DRIVER;
+    RtlInitUnicodeString(&valueName, L"Type");
+    if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG))))
+        goto CleanupExit;
+
+    parameters = SERVICE_ERROR_NORMAL;
+    RtlInitUnicodeString(&valueName, L"ErrorControl");
+    if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG))))
+        goto CleanupExit;
+
+    parameters = SERVICE_DEMAND_START;
+    RtlInitUnicodeString(&valueName, L"Start");
+    if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG))))
+        goto CleanupExit;
+
+    RtlInitUnicodeString(&valueName, L"ImagePath");
+    if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_EXPAND_SZ, fileName.Buffer, (ULONG)fileName.MaximumLength)))
+        goto CleanupExit;
+
+    NtUnloadDriver(&objectName);
+    status = NtLoadDriver(&objectName);
+
+    if (status == STATUS_IMAGE_ALREADY_LOADED || status == STATUS_OBJECT_NAME_COLLISION)
+        status = STATUS_SUCCESS;
+
+CleanupExit:
+
+    if (keyHandle)
+        NtClose(keyHandle);
+   
+    if (keyName)
+        PhDereferenceObject(keyName);
+
+    if (fileName.Buffer)
+        RtlFreeHeap(GetProcessHeap(), 0, fileName.Buffer);
 
     return status;
 }
@@ -414,37 +372,53 @@ NTSTATUS KphUninstall(
     _In_opt_ PWSTR DeviceName
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    SC_HANDLE scmHandle;
-    SC_HANDLE serviceHandle;
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PPH_STRING keyName;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     if (!DeviceName)
         DeviceName = KPH_DEVICE_SHORT_NAME;
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+    keyName = PhConcatStrings(
+        2,
+        L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\",
+        DeviceName
+        );
 
-    if (!scmHandle)
-        return PhGetLastWin32ErrorAsNtStatus();
+    if (!PhStringRefToUnicodeString(&keyName->sr, &objectName))
+        return STATUS_NAME_TOO_LONG;
 
-    serviceHandle = OpenService(scmHandle, DeviceName, SERVICE_STOP | DELETE);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
 
-    if (serviceHandle)
+    if (!NT_SUCCESS(status = NtCreateKey(
+        &keyHandle,
+        KEY_ALL_ACCESS,
+        &objectAttributes,
+        0,
+        NULL,
+        0,
+        NULL
+        )))
     {
-        SERVICE_STATUS serviceStatus;
-
-        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
-
-        if (!DeleteService(serviceHandle))
-            status = PhGetLastWin32ErrorAsNtStatus();
-
-        CloseServiceHandle(serviceHandle);
+        PhDereferenceObject(keyName);
+        return status;
     }
-    else
+
+    if (NT_SUCCESS(status = NtUnloadDriver(&objectName)))
     {
-        status = PhGetLastWin32ErrorAsNtStatus();
+        NtDeleteKey(keyHandle);
     }
 
-    CloseServiceHandle(scmHandle);
+    PhDereferenceObject(keyName);
+    NtClose(keyHandle);
 
     return status;
 }
