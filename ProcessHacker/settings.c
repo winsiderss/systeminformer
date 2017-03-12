@@ -115,7 +115,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
-    PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"1");
+    PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
