@@ -2824,18 +2824,16 @@ NTSTATUS PhpUnloadDriver(
             static UNICODE_STRING imagePath = RTL_CONSTANT_STRING(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
 
             UNICODE_STRING valueName;
-            ULONG parameters;
+            ULONG dword;
 
             // Set up the required values.
-            parameters = SERVICE_ERROR_NORMAL;
+            dword = 1;
             RtlInitUnicodeString(&valueName, L"ErrorControl");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG));
-            parameters = SERVICE_DEMAND_START;
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
             RtlInitUnicodeString(&valueName, L"Start");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG));
-            parameters = SERVICE_KERNEL_DRIVER;
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
             RtlInitUnicodeString(&valueName, L"Type");
-            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG));
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
 
             // Use a bogus name.
             RtlInitUnicodeString(&valueName, L"ImagePath");

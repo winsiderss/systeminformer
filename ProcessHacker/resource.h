@@ -325,7 +325,6 @@
 #define IDC_ENABLEKERNELMODEDRIVER      1149
 #define IDC_CPU50                       1149
 #define IDC_CPU51                       1150
-#define IDC_UNLOADKERNELMODEDRIVERONEXIT 1150
 #define IDC_PEVIEWER                    1151
 #define IDC_CPU52                       1151
 #define IDC_CPU53                       1152
