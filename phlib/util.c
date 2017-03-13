@@ -4811,12 +4811,12 @@ BOOLEAN PhpSearchFilePath(
 
     // Make sure this is not a directory.
 
-    if (!NT_SUCCESS(RtlDosPathNameToNtPathName_U(
+    if (!RtlDosPathNameToNtPathName_U(
         Buffer,
         &fileName,
         NULL,
         NULL
-        )))
+        ))
         return FALSE;
 
     InitializeObjectAttributes(
