@@ -674,6 +674,7 @@ VOID PhpAdvancedPageLoad(
 
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetDlgItemCheckForSetting(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
@@ -688,9 +689,6 @@ VOID PhpAdvancedPageLoad(
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
         EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
-
-    if (!PhGetIntegerSetting(L"EnableKph"))
-        EnableWindow(GetDlgItem(hwndDlg, IDC_UNLOADKERNELMODEDRIVERONEXIT), FALSE);
 
     // Replace Task Manager
 
@@ -759,6 +757,7 @@ VOID PhpAdvancedPageSave(
 
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
+    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
@@ -866,6 +865,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 // Disable all controls except for Replace Task Manager.
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEWARNINGS), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEKERNELMODEDRIVER), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLESTAGE2), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLENETWORKRESOLVE), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_PROPAGATECPUUSAGE), FALSE);
@@ -912,11 +912,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
                     if (threadHandle)
                         NtClose(threadHandle);
-                }
-                break;
-            case IDC_ENABLEKERNELMODEDRIVER:
-                {
-                    EnableWindow(GetDlgItem(hwndDlg, IDC_UNLOADKERNELMODEDRIVERONEXIT), Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEKERNELMODEDRIVER)) == BST_CHECKED);
                 }
                 break;
             case IDC_SAMPLECOUNTAUTOMATIC:
