@@ -91,12 +91,7 @@ NTSTATUS KphConnect2(
     _In_ PWSTR FileName
     )
 {
-    KPH_PARAMETERS parameters;
-
-    parameters.SecurityLevel = KphSecuritySignatureCheck;
-    parameters.CreateDynamicConfiguration = TRUE;
-
-    return KphConnect2Ex(DeviceName, FileName, &parameters);
+    return KphConnect2Ex(DeviceName, FileName, NULL);
 }
 
 NTSTATUS KphConnect2Ex(
@@ -122,12 +117,12 @@ NTSTATUS KphConnect2Ex(
 
     status = KphConnect(fullDeviceName);
 
-    if (NT_SUCCESS(status) || status == STATUS_ADDRESS_ALREADY_EXISTS)
+    if (status == STATUS_ADDRESS_ALREADY_EXISTS)
         return status;
 
     // Load the driver, and try again.
 
-    KphInstallEx(DeviceName, FileName, Parameters);
+    KphInstall(DeviceName, FileName);
 
     // Try to open the device again. 
 
@@ -286,7 +281,7 @@ NTSTATUS KphInstallEx(
         return STATUS_OBJECT_NAME_NOT_FOUND;
     }
 
-    if (NT_SUCCESS(status = NtOpenProcessToken(
+    if (NT_SUCCESS(NtOpenProcessToken(
         NtCurrentProcess(),
         TOKEN_ADJUST_PRIVILEGES,
         &tokenHandle
@@ -295,9 +290,6 @@ NTSTATUS KphInstallEx(
         PhSetTokenPrivilege(tokenHandle, SE_LOAD_DRIVER_NAME, NULL, SE_PRIVILEGE_ENABLED);
         NtClose(tokenHandle);
     }
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
 
     keyName = PhConcatStrings(
         2,
@@ -347,7 +339,7 @@ NTSTATUS KphInstallEx(
     if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG))))
         goto CleanupExit;
 
-    parameters = SERVICE_AUTO_START;
+    parameters = SERVICE_DEMAND_START;
     RtlInitUnicodeString(&valueName, L"Start");
     if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_DWORD, &parameters, sizeof(ULONG))))
         goto CleanupExit;
