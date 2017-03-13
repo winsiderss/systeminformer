@@ -413,10 +413,10 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     ULONG newServiceType;
                     ULONG newServiceStartType;
                     ULONG newServiceErrorControl;
-                    PPH_STRING newServiceGroup;
-                    PPH_STRING newServiceBinaryPath;
-                    PPH_STRING newServiceUserAccount;
-                    PPH_STRING newServicePassword;
+                    PPH_STRING newServiceGroup = NULL;
+                    PPH_STRING newServiceBinaryPath = NULL;
+                    PPH_STRING newServiceUserAccount = NULL;
+                    PPH_STRING newServicePassword = NULL;
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
 
@@ -432,23 +432,15 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     newServiceStartType = PhGetServiceStartTypeInteger(newServiceStartTypeString->Buffer);
                     newServiceErrorControl = PhGetServiceErrorControlInteger(newServiceErrorControlString->Buffer);
 
-                    newServiceGroup = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
-                    newServiceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
-                    newServiceUserAccount = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
-
+                    if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP)))
+                        newServiceGroup = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
+                    if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_BINARYPATH))) 
+                        newServiceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+                    if (GetWindowTextLength(GetDlgItem(hwndDlg, IDC_USERACCOUNT))) 
+                        newServiceUserAccount = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
+                    
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK)) == BST_CHECKED)
-                    {
                         newServicePassword = PhGetWindowText(GetDlgItem(hwndDlg, IDC_PASSWORD));
-                    }
-                    else
-                    {
-                        newServicePassword = NULL;
-                    }
-
-                    if (newServiceType == SERVICE_KERNEL_DRIVER && newServiceUserAccount->Length == 0)
-                    {
-                        newServiceUserAccount = NULL;
-                    }
 
                     serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_CHANGE_CONFIG);
 
@@ -459,8 +451,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             newServiceType,
                             newServiceStartType,
                             newServiceErrorControl,
-                            newServiceBinaryPath->Buffer,
-                            newServiceGroup->Buffer,
+                            PhGetString(newServiceBinaryPath),
+                            PhGetString(newServiceGroup),
                             NULL,
                             NULL,
                             PhGetString(newServiceUserAccount),
@@ -502,8 +494,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                     newServiceType,
                                     newServiceStartType,
                                     newServiceErrorControl,
-                                    newServiceBinaryPath->Buffer,
-                                    newServiceGroup->Buffer,
+                                    PhGetString(newServiceBinaryPath),
+                                    PhGetString(newServiceGroup),
                                     NULL,
                                     NULL,
                                     PhGetString(newServiceUserAccount),
