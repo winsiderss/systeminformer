@@ -344,6 +344,7 @@ BOOLEAN QueryUpdateData(
         0
         )))
     {
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -366,6 +367,7 @@ BOOLEAN QueryUpdateData(
         0
         )))
     {
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -381,6 +383,7 @@ BOOLEAN QueryUpdateData(
             WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
             )))
         {
+            Context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
     }
@@ -396,6 +399,7 @@ BOOLEAN QueryUpdateData(
             WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
             )))
         {
+            Context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
     }
@@ -436,11 +440,15 @@ BOOLEAN QueryUpdateData(
         0
         ))
     {
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
     if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+    {
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
+    }
 
     if (!ReadRequestString(httpRequestHandle, &stringBuffer, &stringBufferLength))
         goto CleanupExit;
@@ -625,6 +633,7 @@ NTSTATUS UpdateCheckThread(
     ULONGLONG latestVersion = 0;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
+    context->ErrorCode = STATUS_SUCCESS;
 
     // Check if we have cached update data
     if (!context->HaveData)
@@ -798,6 +807,7 @@ NTSTATUS UpdateDownloadThread(
         &httpUrlComponents
         ))
     {
+        context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -831,6 +841,7 @@ NTSTATUS UpdateDownloadThread(
         0
         )))
     {
+        context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -853,6 +864,7 @@ NTSTATUS UpdateDownloadThread(
         0
         )))
     {
+        context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -866,6 +878,7 @@ NTSTATUS UpdateDownloadThread(
         WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
         )))
     {
+        context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -887,12 +900,18 @@ NTSTATUS UpdateDownloadThread(
         0
         ))
     {
+        context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
-    if (WinHttpReceiveResponse(httpRequestHandle, NULL))
+    if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
+    {
+        context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+    else
     {
         ULONG bytesDownloaded = 0;
         ULONG downloadedBytes = 0;
@@ -924,6 +943,7 @@ NTSTATUS UpdateDownloadThread(
             0
             ))
         {
+            context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
 

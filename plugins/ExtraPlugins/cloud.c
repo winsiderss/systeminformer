@@ -364,22 +364,19 @@ NTSTATUS QueryPluginsCallbackThread(
 
                 if (currentVersion < latestVersion)
                 {
-                    // User is running an older version
                     entry->State = PLUGIN_STATE_UPDATE;
                     PostMessage(context->DialogHandle, ID_UPDATE_ADD, 0, (LPARAM)entry);
                 }
             }
             else
             {
-                // Plugin waiting to load?
                 entry->State = PLUGIN_STATE_RESTART;
                 PostMessage(context->DialogHandle, ID_UPDATE_ADD, 0, (LPARAM)entry);
             }
         }
         else
-        {
-            // New plugin available for download
-            entry->State = PLUGIN_STATE_REMOTE;
+        {   
+            entry->State = PLUGIN_STATE_REMOTE; 
             PostMessage(context->DialogHandle, ID_UPDATE_ADD, 0, (LPARAM)entry);
         }
     }

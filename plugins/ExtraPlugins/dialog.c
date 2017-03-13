@@ -253,7 +253,7 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
       
             PhCenterWindow(hwndDlg, PhMainWndHandle);
             InitializePluginsTree(context, hwndDlg, context->TreeNewHandle);
-            PhAddTreeNewFilter(GetPluginListFilterSupport(context), (PPH_TN_FILTER_FUNCTION)ProcessTreeFilterCallback, context);
+            PhAddTreeNewFilter(GetPluginListFilterSupport(context), ProcessTreeFilterCallback, context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
@@ -264,7 +264,7 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOW_POSITION, SETTING_NAME_WINDOW_SIZE, hwndDlg);
 
             EnumerateLoadedPlugins(context);
-            SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhGetString(PhaFormatString(L"Disabled Plugins (%lu)", PhDisabledPluginsCount())));
+            SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhDisabledPluginsCount())->Buffer);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), QueryPluginsCallbackThread, context);
             UpdateTreeView(context);
 
@@ -627,9 +627,12 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
             {
                 PPLUGIN_NODE entry = (PPLUGIN_NODE)lParam;
 
-                PluginsAddTreeNode(context, entry);
+                TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
 
+                PluginsAddTreeNode(context, entry);
                 UpdateTreeView(context);
+
+                TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
             }
             break;
     case ID_UPDATE_COUNT:

@@ -55,7 +55,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
 
             if (buttonId == IDRETRY)
             {
-                ShowCheckingForUpdatesDialog(context);
+                ShowCheckForUpdatesDialog(context);
                 return S_FALSE;
             }
             else if (buttonId == IDYES)
@@ -244,7 +244,7 @@ VOID ShowUpdateFailedDialog(
     config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Error while downloading the update";
+    config.pszMainInstruction = L"Error downloading the update";
 
     if (SignatureFailed)
     {
@@ -256,7 +256,34 @@ VOID ShowUpdateFailedDialog(
     }
     else
     {
-        config.pszContent = L"Click Retry to download the update again.";
+        if (Context->ErrorCode)
+        {
+            PPH_STRING message;
+            
+            message = PhGetMessage(
+                GetModuleHandle(L"winhttp.dll"), 
+                0xb, 
+                GetUserDefaultLangID(), 
+                Context->ErrorCode
+                );
+
+            //if (PhIsNullOrEmptyString(message))
+            //    PhMoveReference(&message, PhGetNtMessage(Context->ErrorCode));
+
+            if (message)
+            {          
+                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, message->Buffer)->Buffer;
+                PhDereferenceObject(message);
+            }
+            else
+            {
+                config.pszContent = L"Click Retry to download the update again.";
+            }
+        }
+        else
+        {
+            config.pszContent = L"Click Retry to download the update again.";
+        }
     }
 
     config.cxWidth = 200;

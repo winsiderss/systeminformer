@@ -86,6 +86,7 @@ typedef struct _PH_UPDATER_CONTEXT
 
     HWND DialogHandle;
 
+    ULONG ErrorCode;
     ULONG MinorVersion;
     ULONG MajorVersion;
     ULONG RevisionVersion;
