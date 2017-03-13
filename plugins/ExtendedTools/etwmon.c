@@ -63,7 +63,7 @@ static GUID UdpIpGuid_I = { 0xbf3a50c5, 0xa9c9, 0x4988, { 0xa0, 0x05, 0x2d, 0xf0
 
 BOOLEAN EtEtwEnabled;
 static UNICODE_STRING EtpSharedKernelLoggerName = RTL_CONSTANT_STRING(KERNEL_LOGGER_NAME);
-static UNICODE_STRING EtpPrivateKernelLoggerName = RTL_CONSTANT_STRING(L"PhEtKernelLogger");
+static UNICODE_STRING EtpPrivateKernelLoggerName = RTL_CONSTANT_STRING(L"PhDbgKernelLogger");
 static TRACEHANDLE EtpSessionHandle;
 static PUNICODE_STRING EtpActualKernelLoggerName;
 static PGUID EtpActualSessionGuid;
@@ -75,7 +75,7 @@ static HANDLE EtpEtwMonitorThreadHandle;
 
 // ETW rundown layer
 
-static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhEtRundownLogger");
+static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhDbgRundownLogger");
 static TRACEHANDLE EtpRundownSessionHandle;
 static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties;
 static BOOLEAN EtpRundownActive;
@@ -142,7 +142,7 @@ VOID EtStartEtwSession(
     EtpTraceProperties->MinimumBuffers = 1;
     EtpTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpTraceProperties->FlushTimer = 1;
-    EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP;
+    EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DBGPRINT;
     EtpTraceProperties->LogFileNameOffset = 0;
     EtpTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
