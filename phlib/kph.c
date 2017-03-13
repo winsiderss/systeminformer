@@ -348,6 +348,7 @@ NTSTATUS KphInstallEx(
     if (!NT_SUCCESS(status = NtSetValueKey(keyHandle, &valueName, 0, REG_EXPAND_SZ, fileName.Buffer, (ULONG)fileName.MaximumLength)))
         goto CleanupExit;
 
+    NtUnloadDriver(&objectName);
     status = NtLoadDriver(&objectName);
 
     if (status == STATUS_IMAGE_ALREADY_LOADED || status == STATUS_OBJECT_NAME_COLLISION)
@@ -412,7 +413,9 @@ NTSTATUS KphUninstall(
     }
 
     if (NT_SUCCESS(status = NtUnloadDriver(&objectName)))
+    {
         NtDeleteKey(keyHandle);
+    }
 
     PhDereferenceObject(keyName);
     NtClose(keyHandle);
