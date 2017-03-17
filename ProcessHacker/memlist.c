@@ -747,22 +747,22 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         return TRUE;
     case TreeNewGetNodeColor:
         {
-            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-            PPH_MEMORY_ITEM memoryItem;
+            //PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            //PPH_MEMORY_ITEM memoryItem;
 
-            node = (PPH_MEMORY_NODE)getNodeColor->Node;
-            memoryItem = node->MemoryItem;
+            //node = (PPH_MEMORY_NODE)getNodeColor->Node;
+            //memoryItem = node->MemoryItem;
 
-            if (!memoryItem)
-                ; // Dummy
-            else if (PhCsUseColorRelocatedModules && (memoryItem->Protect & PAGE_EXECUTE_WRITECOPY))
-                getNodeColor->BackColor = PhCsColorRelocatedModules;
-            else if (PhCsUseColorRelocatedModules && (memoryItem->Protect & PAGE_EXECUTE_READWRITE))
-                getNodeColor->BackColor = PhCsColorRelocatedModules;
-            else if (PhCsUseColorSystemProcesses && (memoryItem->Type & MEM_PRIVATE))
-                getNodeColor->BackColor = PhCsColorSystemProcesses;
+            //if (!memoryItem)
+            //    ; // Dummy
+            //else if (PhCsUseColorRelocatedModules && (memoryItem->Protect & PAGE_EXECUTE_WRITECOPY))
+            //    getNodeColor->BackColor = PhCsColorRelocatedModules;
+            //else if (PhCsUseColorRelocatedModules && (memoryItem->Protect & PAGE_EXECUTE_READWRITE))
+            //    getNodeColor->BackColor = PhCsColorRelocatedModules;
+            //else if (PhCsUseColorSystemProcesses && (memoryItem->Type & MEM_PRIVATE))
+            //    getNodeColor->BackColor = PhCsColorSystemProcesses;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            //getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
