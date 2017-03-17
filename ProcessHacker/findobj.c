@@ -225,6 +225,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            PhDereferenceObject(context);
             RemoveProp(hwndDlg, PhMakeContextAtom());
         }
     }
@@ -280,7 +281,6 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhSetIntegerSetting(L"FindObjRegex", Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED);
             PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
             PhSaveListViewColumnsToSetting(L"FindObjListViewColumns", context->ListViewHandle);
-            //PostQuitMessage(0);
         }
         break;
     case WM_SHOWWINDOW:
