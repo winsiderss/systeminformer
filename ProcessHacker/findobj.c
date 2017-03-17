@@ -63,6 +63,27 @@ typedef struct _PHP_OBJECT_SEARCH_RESULT
     SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Info;
 } PHP_OBJECT_SEARCH_RESULT, *PPHP_OBJECT_SEARCH_RESULT;
 
+typedef struct _PHP_OBJECT_SEARCH_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    HWND FilterHandle;
+    PH_LAYOUT_MANAGER WindowLayoutManager;
+    RECT MinimumSize;
+
+    HANDLE SearchThreadHandle;
+    BOOLEAN SearchStop;
+    PPH_STRING SearchString;
+    pcre2_code *SearchRegexCompiledExpression;
+    pcre2_match_data *SearchRegexMatchData;
+    PPH_LIST SearchResults;
+    ULONG SearchResultsAddIndex;
+    PH_QUEUED_LOCK SearchResultsLock;// = PH_QUEUED_LOCK_INIT;
+
+    ULONG64 SearchPointer;
+    BOOLEAN UseSearchPointer;
+} PHP_OBJECT_SEARCH_CONTEXT, *PPHP_OBJECT_SEARCH_CONTEXT;
+
 INT_PTR CALLBACK PhpFindObjectsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -74,41 +95,21 @@ NTSTATUS PhpFindObjectsThreadStart(
     _In_ PVOID Parameter
     );
 
-HWND PhFindObjectsWindowHandle = NULL;
-HWND PhFindObjectsListViewHandle = NULL;
-static PH_LAYOUT_MANAGER WindowLayoutManager;
-static RECT MinimumSize;
-
-static HANDLE SearchThreadHandle = NULL;
-static BOOLEAN SearchStop;
-static PPH_STRING SearchString;
-static pcre2_code *SearchRegexCompiledExpression;
-static pcre2_match_data *SearchRegexMatchData;
-static PPH_LIST SearchResults = NULL;
-static ULONG SearchResultsAddIndex;
-static PH_QUEUED_LOCK SearchResultsLock = PH_QUEUED_LOCK_INIT;
-
-static ULONG64 SearchPointer;
-static BOOLEAN UseSearchPointer;
-
 VOID PhShowFindObjectsDialog(
     VOID
     )
 {
-    if (!PhFindObjectsWindowHandle)
-    {
-        PhFindObjectsWindowHandle = CreateDialog(
-            PhInstanceHandle,
-            MAKEINTRESOURCE(IDD_FINDOBJECTS),
-            PhMainWndHandle,
-            PhpFindObjectsDlgProc
-            );
-    }
+    HWND findObjectsWindowHandle = CreateDialog(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_FINDOBJECTS),
+        NULL,
+        PhpFindObjectsDlgProc
+        );
 
-    if (!IsWindowVisible(PhFindObjectsWindowHandle))
-        ShowWindow(PhFindObjectsWindowHandle, SW_SHOW);
+    if (!IsWindowVisible(findObjectsWindowHandle))
+        ShowWindow(findObjectsWindowHandle, SW_SHOW);
 
-    SetForegroundWindow(PhFindObjectsWindowHandle);
+    SetForegroundWindow(findObjectsWindowHandle);
 }
 
 VOID PhpInitializeFindObjMenu(
@@ -209,49 +210,67 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPHP_OBJECT_SEARCH_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhCreateAlloc(sizeof(PHP_OBJECT_SEARCH_CONTEXT));
+        memset(context, 0, sizeof(PHP_OBJECT_SEARCH_CONTEXT));
+
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+    }
+    else
+    {
+        context = (PPHP_OBJECT_SEARCH_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+
+        if (uMsg == WM_DESTROY)
+        {
+            RemoveProp(hwndDlg, PhMakeContextAtom());
+        }
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            HWND lvHandle;
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
+            context->FilterHandle = GetDlgItem(hwndDlg, IDC_FILTER);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            PhFindObjectsListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
+            PhInitializeLayoutManager(&context->WindowLayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->WindowLayoutManager, context->FilterHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->WindowLayoutManager, GetDlgItem(hwndDlg, IDC_REGEX), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->WindowLayoutManager, context->ListViewHandle,  NULL, PH_ANCHOR_ALL);
 
-            PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_FILTER),
-                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_REGEX),
-                NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK),
-                NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&WindowLayoutManager, lvHandle,
-                NULL, PH_ANCHOR_ALL);
-
-            MinimumSize.left = 0;
-            MinimumSize.top = 0;
-            MinimumSize.right = 150;
-            MinimumSize.bottom = 100;
-            MapDialogRect(hwndDlg, &MinimumSize);
+            context->MinimumSize.left = 0;
+            context->MinimumSize.top = 0;
+            context->MinimumSize.right = 150;
+            context->MinimumSize.bottom = 100;
+            MapDialogRect(hwndDlg, &context->MinimumSize);
 
             PhRegisterDialog(hwndDlg);
 
             PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
 
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Name");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Handle");
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Handle");
 
-            PhSetExtendedListView(lvHandle);
-            ExtendedListView_SetSortFast(lvHandle, TRUE);
-            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpObjectProcessCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpObjectTypeCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpObjectNameCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 3, PhpObjectHandleCompareFunction);
-            PhLoadListViewColumnsFromSetting(L"FindObjListViewColumns", lvHandle);
+            PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, PhpObjectProcessCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PhpObjectTypeCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 2, PhpObjectNameCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 3, PhpObjectHandleCompareFunction);
+            PhLoadListViewColumnsFromSetting(L"FindObjListViewColumns", context->ListViewHandle);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
         }
@@ -260,30 +279,21 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             PhSetIntegerSetting(L"FindObjRegex", Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED);
             PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
-            PhSaveListViewColumnsToSetting(L"FindObjListViewColumns", PhFindObjectsListViewHandle);
+            PhSaveListViewColumnsToSetting(L"FindObjListViewColumns", context->ListViewHandle);
+            //PostQuitMessage(0);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_FILTER), TRUE);
-            Edit_SetSel(GetDlgItem(hwndDlg, IDC_FILTER), 0, -1);
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->FilterHandle, TRUE);
+            Edit_SetSel(context->FilterHandle, 0, -1);
         }
         break;
-    case WM_CLOSE:
-        {
-            ShowWindow(hwndDlg, SW_HIDE);
-            // IMPORTANT
-            // Set the result to 0 so the default dialog message
-            // handler doesn't invoke IDCANCEL, which will send
-            // WM_CLOSE, creating an infinite loop.
-            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, 0);
-        }
-        return TRUE;
     case WM_SETCURSOR:
         {
-            if (SearchThreadHandle)
+            if (context->SearchThreadHandle)
             {
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                 return TRUE;
             }
@@ -296,25 +306,25 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             case IDOK:
                 {
                     // Don't continue if the user requested cancellation.
-                    if (SearchStop)
+                    if (context->SearchStop)
                         break;
 
-                    if (!SearchThreadHandle)
+                    if (!context->SearchThreadHandle)
                     {
                         ULONG i;
 
-                        PhMoveReference(&SearchString, PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTER)));
+                        PhMoveReference(&context->SearchString, PhGetWindowText(context->FilterHandle));
 
-                        if (SearchRegexCompiledExpression)
+                        if (context->SearchRegexCompiledExpression)
                         {
-                            pcre2_code_free(SearchRegexCompiledExpression);
-                            SearchRegexCompiledExpression = NULL;
+                            pcre2_code_free(context->SearchRegexCompiledExpression);
+                            context->SearchRegexCompiledExpression = NULL;
                         }
 
-                        if (SearchRegexMatchData)
+                        if (context->SearchRegexMatchData)
                         {
-                            pcre2_match_data_free(SearchRegexMatchData);
-                            SearchRegexMatchData = NULL;
+                            pcre2_match_data_free(context->SearchRegexMatchData);
+                            context->SearchRegexMatchData = NULL;
                         }
 
                         if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED)
@@ -322,16 +332,16 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                             int errorCode;
                             PCRE2_SIZE errorOffset;
 
-                            SearchRegexCompiledExpression = pcre2_compile(
-                                SearchString->Buffer,
-                                SearchString->Length / sizeof(WCHAR),
+                            context->SearchRegexCompiledExpression = pcre2_compile(
+                                context->SearchString->Buffer,
+                                context->SearchString->Length / sizeof(WCHAR),
                                 PCRE2_CASELESS | PCRE2_DOTALL,
                                 &errorCode,
                                 &errorOffset,
                                 NULL
                                 );
 
-                            if (!SearchRegexCompiledExpression)
+                            if (!context->SearchRegexCompiledExpression)
                             {
                                 PhShowError(hwndDlg, L"Unable to compile the regular expression: \"%s\" at position %zu.",
                                     PhGetStringOrDefault(PH_AUTO(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
@@ -340,18 +350,20 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                 break;
                             }
 
-                            SearchRegexMatchData = pcre2_match_data_create_from_pattern(SearchRegexCompiledExpression, NULL);
+                            context->SearchRegexMatchData = pcre2_match_data_create_from_pattern(context->SearchRegexCompiledExpression, NULL);
                         }
 
                         // Clean up previous results.
 
-                        ListView_DeleteAllItems(PhFindObjectsListViewHandle);
+                        ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+                        ListView_DeleteAllItems(context->ListViewHandle);
+                        ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-                        if (SearchResults)
+                        if (context->SearchResults)
                         {
-                            for (i = 0; i < SearchResults->Count; i++)
+                            for (i = 0; i < context->SearchResults->Count; i++)
                             {
-                                PPHP_OBJECT_SEARCH_RESULT searchResult = SearchResults->Items[i];
+                                PPHP_OBJECT_SEARCH_RESULT searchResult = context->SearchResults->Items[i];
 
                                 PhDereferenceObject(searchResult->TypeName);
                                 PhDereferenceObject(searchResult->Name);
@@ -362,36 +374,38 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                 PhFree(searchResult);
                             }
 
-                            PhDereferenceObject(SearchResults);
+                            PhDereferenceObject(context->SearchResults);
                         }
 
                         // Start the search.
 
-                        SearchResults = PhCreateList(128);
-                        SearchResultsAddIndex = 0;
+                        context->SearchResults = PhCreateList(128);
+                        context->SearchResultsAddIndex = 0;
 
-                        SearchThreadHandle = PhCreateThread(0, PhpFindObjectsThreadStart, NULL);
+                        PhReferenceObject(context);
+                        context->SearchThreadHandle = PhCreateThread(0, PhpFindObjectsThreadStart, context);
 
-                        if (!SearchThreadHandle)
+                        if (!context->SearchThreadHandle)
                         {
-                            PhClearReference(&SearchResults);
+                            PhDereferenceObject(context);
+                            PhClearReference(&context->SearchResults);
                             break;
                         }
 
                         SetDlgItemText(hwndDlg, IDOK, L"Cancel");
 
-                        SetCursor(LoadCursor(NULL, IDC_WAIT));
+                        SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
                     }
                     else
                     {
-                        SearchStop = TRUE;
+                        context->SearchStop = TRUE;
                         EnableWindow(GetDlgItem(hwndDlg, IDOK), FALSE);
                     }
                 }
                 break;
             case IDCANCEL:
                 {
-                    SendMessage(hwndDlg, WM_CLOSE, 0, 0);
+                    DestroyWindow(hwndDlg);
                 }
                 break;
             case ID_OBJECT_CLOSE:
@@ -401,7 +415,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     ULONG i;
 
                     PhGetSelectedListViewItemParams(
-                        PhFindObjectsListViewHandle,
+                        context->ListViewHandle,
                         &results,
                         &numberOfResults
                         );
@@ -438,8 +452,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                     DUPLICATE_CLOSE_SOURCE
                                     )))
                                 {
-                                    PhRemoveListViewItem(PhFindObjectsListViewHandle,
-                                        PhFindListViewItemByParam(PhFindObjectsListViewHandle, 0, results[i]));
+                                    PhRemoveListViewItem(context->ListViewHandle,
+                                        PhFindListViewItemByParam(context->ListViewHandle, 0, results[i]));
                                 }
 
                                 NtClose(processHandle);
@@ -464,7 +478,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             case ID_HANDLE_OBJECTPROPERTIES2:
                 {
                     PPHP_OBJECT_SEARCH_RESULT result =
-                        PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
+                        PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                     if (result)
                     {
@@ -485,7 +499,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             case ID_OBJECT_GOTOOWNINGPROCESS:
                 {
                     PPHP_OBJECT_SEARCH_RESULT result =
-                        PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
+                        PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                     if (result)
                     {
@@ -503,7 +517,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             case ID_OBJECT_PROPERTIES:
                 {
                     PPHP_OBJECT_SEARCH_RESULT result =
-                        PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
+                        PhGetSelectedListViewItemParam(context->ListViewHandle);
 
                     if (result)
                     {
@@ -536,7 +550,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 break;
             case ID_OBJECT_COPY:
                 {
-                    PhCopyListView(PhFindObjectsListViewHandle);
+                    PhCopyListView(context->ListViewHandle);
                 }
                 break;
             }
@@ -550,7 +564,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             {
             case NM_DBLCLK:
                 {
-                    if (header->hwndFrom == PhFindObjectsListViewHandle)
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
                         SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_PROPERTIES, 0);
                     }
@@ -558,7 +572,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 break;
             case LVN_KEYDOWN:
                 {
-                    if (header->hwndFrom == PhFindObjectsListViewHandle)
+                    if (header->hwndFrom == context->ListViewHandle)
                     {
                         LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)header;
 
@@ -570,7 +584,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                             break;
                         case 'A':
                             if (GetKeyState(VK_CONTROL) < 0)
-                                PhSetStateAllListViewItems(PhFindObjectsListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
+                                PhSetStateAllListViewItems(context->ListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
                             break;
                         case VK_DELETE:
                             SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_CLOSE, 0);
@@ -584,7 +598,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_CONTEXTMENU:
         {
-            if ((HWND)wParam == PhFindObjectsListViewHandle)
+            if ((HWND)wParam == context->ListViewHandle)
             {
                 POINT point;
                 PPHP_OBJECT_SEARCH_RESULT *results;
@@ -596,7 +610,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);
 
-                PhGetSelectedListViewItemParams(PhFindObjectsListViewHandle, &results, &numberOfResults);
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &results, &numberOfResults);
 
                 if (numberOfResults != 0)
                 {
@@ -624,28 +638,25 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&WindowLayoutManager);
+            PhLayoutManagerLayout(&context->WindowLayoutManager);
         }
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+            PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
         }
         break;
     case WM_PH_SEARCH_UPDATE:
         {
-            HWND lvHandle;
             ULONG i;
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
-            ExtendedListView_SetRedraw(lvHandle, FALSE);
+            PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
 
-            PhAcquireQueuedLockExclusive(&SearchResultsLock);
-
-            for (i = SearchResultsAddIndex; i < SearchResults->Count; i++)
+            for (i = context->SearchResultsAddIndex; i < context->SearchResults->Count; i++)
             {
-                PPHP_OBJECT_SEARCH_RESULT searchResult = SearchResults->Items[i];
+                PPHP_OBJECT_SEARCH_RESULT searchResult = context->SearchResults->Items[i];
                 CLIENT_ID clientId;
                 PPH_PROCESS_ITEM processItem;
                 PPH_STRING clientIdName;
@@ -658,7 +669,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 clientIdName = PhGetClientIdNameEx(&clientId, processItem ? processItem->ProcessName : NULL);
 
                 lvItemIndex = PhAddListViewItem(
-                    lvHandle,
+                    context->ListViewHandle,
                     MAXINT,
                     clientIdName->Buffer,
                     searchResult
@@ -676,16 +687,16 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     searchResult->ProcessName = NULL;
                 }
 
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, searchResult->TypeName->Buffer);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, searchResult->Name->Buffer);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, searchResult->HandleString);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, searchResult->TypeName->Buffer);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, searchResult->Name->Buffer);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, searchResult->HandleString);
             }
 
-            SearchResultsAddIndex = i;
+            context->SearchResultsAddIndex = i;
 
-            PhReleaseQueuedLockExclusive(&SearchResultsLock);
+            PhReleaseQueuedLockExclusive(&context->SearchResultsLock);
 
-            ExtendedListView_SetRedraw(lvHandle, TRUE);
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
         }
         break;
     case WM_PH_SEARCH_FINISHED:
@@ -695,12 +706,12 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             // Add any un-added items.
             SendMessage(hwndDlg, WM_PH_SEARCH_UPDATE, 0, 0);
 
-            NtWaitForSingleObject(SearchThreadHandle, FALSE, NULL);
-            NtClose(SearchThreadHandle);
-            SearchThreadHandle = NULL;
-            SearchStop = FALSE;
+            NtWaitForSingleObject(context->SearchThreadHandle, FALSE, NULL);
+            NtClose(context->SearchThreadHandle);
+            context->SearchThreadHandle = NULL;
+            context->SearchStop = FALSE;
 
-            ExtendedListView_SortItems(GetDlgItem(hwndDlg, IDC_RESULTS));
+            ExtendedListView_SortItems(context->ListViewHandle);
 
             SetDlgItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
@@ -723,32 +734,34 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 }
 
 static BOOLEAN MatchSearchString(
+    _In_ PPHP_OBJECT_SEARCH_CONTEXT Context,
     _In_ PPH_STRINGREF Input
     )
 {
-    if (SearchRegexCompiledExpression && SearchRegexMatchData)
+    if (Context->SearchRegexCompiledExpression && Context->SearchRegexMatchData)
     {
         return pcre2_match(
-            SearchRegexCompiledExpression,
+            Context->SearchRegexCompiledExpression,
             Input->Buffer,
             Input->Length / sizeof(WCHAR),
             0,
             0,
-            SearchRegexMatchData,
+            Context->SearchRegexMatchData,
             NULL
             ) >= 0;
     }
     else
     {
-        return PhFindStringInStringRef(Input, &SearchString->sr, TRUE) != -1;
+        return PhFindStringInStringRef(Input, &Context->SearchString->sr, TRUE) != -1;
     }
 }
 
 typedef struct _SEARCH_HANDLE_CONTEXT
 {
     BOOLEAN NeedToFree;
-    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
     HANDLE ProcessHandle;
+    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX HandleInfo;
+    PPHP_OBJECT_SEARCH_CONTEXT ParentContext;
 } SEARCH_HANDLE_CONTEXT, *PSEARCH_HANDLE_CONTEXT;
 
 static NTSTATUS NTAPI SearchHandleFunction(
@@ -759,7 +772,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
     PPH_STRING typeName;
     PPH_STRING bestObjectName;
 
-    if (!SearchStop && NT_SUCCESS(PhGetHandleInformation(
+    if (!context->ParentContext->SearchStop && NT_SUCCESS(PhGetHandleInformation(
         context->ProcessHandle,
         (HANDLE)context->HandleInfo->HandleValue,
         context->HandleInfo->ObjectTypeIndex,
@@ -774,8 +787,8 @@ static NTSTATUS NTAPI SearchHandleFunction(
         upperBestObjectName = PhDuplicateString(bestObjectName);
         _wcsupr(upperBestObjectName->Buffer);
 
-        if (MatchSearchString(&upperBestObjectName->sr) ||
-            (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer))
+        if (MatchSearchString(context->ParentContext, &upperBestObjectName->sr) ||
+            (context->ParentContext->UseSearchPointer && context->HandleInfo->Object == (PVOID)context->ParentContext->SearchPointer))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
@@ -788,15 +801,15 @@ static NTSTATUS NTAPI SearchHandleFunction(
             PhPrintPointer(searchResult->HandleString, (PVOID)searchResult->Handle);
             searchResult->Info = *context->HandleInfo;
 
-            PhAcquireQueuedLockExclusive(&SearchResultsLock);
+            PhAcquireQueuedLockExclusive(&context->ParentContext->SearchResultsLock);
 
-            PhAddItemList(SearchResults, searchResult);
+            PhAddItemList(context->ParentContext->SearchResults, searchResult);
 
             // Update the search results in batches of 40.
-            if (SearchResults->Count % 40 == 0)
-                PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
+            if (context->ParentContext->SearchResults->Count % 40 == 0)
+                PostMessage(context->ParentContext->WindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
 
-            PhReleaseQueuedLockExclusive(&SearchResultsLock);
+            PhReleaseQueuedLockExclusive(&context->ParentContext->SearchResultsLock);
         }
         else
         {
@@ -813,18 +826,25 @@ static NTSTATUS NTAPI SearchHandleFunction(
     return STATUS_SUCCESS;
 }
 
+typedef struct _SEARCH_MODULE_CONTEXT
+{
+    HANDLE ProcessId;
+    PPHP_OBJECT_SEARCH_CONTEXT ParentContext;
+} SEARCH_MODULE_CONTEXT, *PSEARCH_MODULE_CONTEXT;
+
 static BOOLEAN NTAPI EnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_opt_ PVOID Context
     )
 {
     PPH_STRING upperFileName;
+    PSEARCH_MODULE_CONTEXT context = Context;
 
     upperFileName = PhDuplicateString(Module->FileName);
     _wcsupr(upperFileName->Buffer);
 
-    if (MatchSearchString(&upperFileName->sr) ||
-        (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer))
+    if (MatchSearchString(context->ParentContext, &upperFileName->sr) ||
+        (context->ParentContext->UseSearchPointer && Module->BaseAddress == (PVOID)context->ParentContext->SearchPointer))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
         PWSTR typeName;
@@ -843,7 +863,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         }
 
         searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
-        searchResult->ProcessId = (HANDLE)Context;
+        searchResult->ProcessId = context->ProcessId;
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
@@ -851,15 +871,15 @@ static BOOLEAN NTAPI EnumModulesCallback(
         PhPrintPointer(searchResult->HandleString, Module->BaseAddress);
         memset(&searchResult->Info, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
 
-        PhAcquireQueuedLockExclusive(&SearchResultsLock);
+        PhAcquireQueuedLockExclusive(&context->ParentContext->SearchResultsLock);
 
-        PhAddItemList(SearchResults, searchResult);
+        PhAddItemList(context->ParentContext->SearchResults, searchResult);
 
         // Update the search results in batches of 40.
-        if (SearchResults->Count % 40 == 0)
-            PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
+        if (context->ParentContext->SearchResults->Count % 40 == 0)
+            PostMessage(context->ParentContext->WindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
 
-        PhReleaseQueuedLockExclusive(&SearchResultsLock);
+        PhReleaseQueuedLockExclusive(&context->ParentContext->SearchResultsLock);
     }
 
     PhDereferenceObject(upperFileName);
@@ -871,6 +891,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PPHP_OBJECT_SEARCH_CONTEXT context = Parameter;
     NTSTATUS status = STATUS_SUCCESS;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     PPH_HASHTABLE processHandleHashtable;
@@ -879,13 +900,13 @@ static NTSTATUS PhpFindObjectsThreadStart(
     ULONG i;
 
     // Refuse to search with no filter.
-    if (SearchString->Length == 0)
+    if (context->SearchString->Length == 0)
         goto Exit;
 
     // Try to get a search pointer from the search string.
-    UseSearchPointer = PhStringToInteger64(&SearchString->sr, 0, &SearchPointer);
+    context->UseSearchPointer = PhStringToInteger64(&context->SearchString->sr, 0, &context->SearchPointer);
 
-    _wcsupr(SearchString->Buffer);
+    _wcsupr(context->SearchString->Buffer);
 
     if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {
@@ -917,7 +938,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
             PVOID *processHandlePtr;
             HANDLE processHandle;
 
-            if (SearchStop)
+            if (context->SearchStop)
                 break;
 
             // Open a handle to the process if we don't already have one.
@@ -959,6 +980,9 @@ static NTSTATUS PhpFindObjectsThreadStart(
                 searchHandleContext->NeedToFree = TRUE;
                 searchHandleContext->HandleInfo = handleInfo;
                 searchHandleContext->ProcessHandle = processHandle;
+                searchHandleContext->ParentContext = context;
+
+                PhReferenceObject(context);
                 PhQueueItemWorkQueue(&workQueue, SearchHandleFunction, searchHandleContext);
             }
             else
@@ -968,6 +992,9 @@ static NTSTATUS PhpFindObjectsThreadStart(
                 searchHandleContext.NeedToFree = FALSE;
                 searchHandleContext.HandleInfo = handleInfo;
                 searchHandleContext.ProcessHandle = processHandle;
+                searchHandleContext.ParentContext = context;
+
+                PhReferenceObject(context);
                 SearchHandleFunction(&searchHandleContext);
             }
         }
@@ -997,12 +1024,20 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
         do
         {
+            SEARCH_MODULE_CONTEXT searchModuleContext;
+
+            searchModuleContext.ParentContext = context;
+            searchModuleContext.ProcessId = process->UniqueProcessId;
+
+            if (context->SearchStop)
+                break;
+
             PhEnumGenericModules(
                 process->UniqueProcessId,
                 NULL,
                 PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES,
                 EnumModulesCallback,
-                (PVOID)process->UniqueProcessId
+                &searchModuleContext
                 );
         } while (process = PH_NEXT_PROCESS(process));
 
@@ -1010,7 +1045,8 @@ static NTSTATUS PhpFindObjectsThreadStart(
     }
 
 Exit:
-    PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_FINISHED, status, 0);
+    PostMessage(context->WindowHandle, WM_PH_SEARCH_FINISHED, status, 0);
 
+    PhDereferenceObject(context);
     return STATUS_SUCCESS;
 }
