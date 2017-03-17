@@ -820,6 +820,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
         PhDereferenceObject(upperBestObjectName);
     }
 
+    PhDereferenceObject(context->ParentContext);
     if (context->NeedToFree)
         PhFree(context);
 
