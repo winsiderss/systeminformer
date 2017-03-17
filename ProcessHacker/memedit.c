@@ -126,6 +126,7 @@ VOID PhShowMemoryEditorDialog(
         PhAddElementAvlTree(&PhMemoryEditorSet, &context->Links);
 
         ShowWindow(context->WindowHandle, SW_SHOW);
+        SetForegroundWindow(context->WindowHandle);
     }
     else
     {
@@ -235,7 +236,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 NULL
                 )))
             {
-                PhShowStatus(PhMainWndHandle, L"Unable to read memory", status, 0);
+                PhShowStatus(NULL, L"Unable to read memory", status, 0);
                 return TRUE;
             }
 
