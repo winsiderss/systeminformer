@@ -325,36 +325,38 @@ VOID NTAPI NetworkMenuInitializingCallback(
     PhInsertEMenuItem(menuInfo->Menu, traceMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", networkItem), 0);
     PhInsertEMenuItem(menuInfo->Menu, pingMenu = PhPluginCreateEMenuItem(PluginInstance, 0, NETWORK_ACTION_PING, L"Ping", networkItem), 0);
 
-    if (!networkItem)
+    if (networkItem)
     {
-        whoisMenu->Flags |= PH_EMENU_DISABLED;
-        traceMenu->Flags |= PH_EMENU_DISABLED;
-        pingMenu->Flags |= PH_EMENU_DISABLED;
-    }
-    else if (PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
-    {
-        whoisMenu->Flags |= PH_EMENU_DISABLED;
-        traceMenu->Flags |= PH_EMENU_DISABLED;
-        pingMenu->Flags |= PH_EMENU_DISABLED;
-    }
-
-    if (networkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-    {
-        if (IN4_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.InAddr))
+        if (PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
         {
             whoisMenu->Flags |= PH_EMENU_DISABLED;
             traceMenu->Flags |= PH_EMENU_DISABLED;
             pingMenu->Flags |= PH_EMENU_DISABLED;
+        }
+        else if (networkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+        {
+            if (IN4_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.InAddr))
+            {
+                whoisMenu->Flags |= PH_EMENU_DISABLED;
+                traceMenu->Flags |= PH_EMENU_DISABLED;
+                pingMenu->Flags |= PH_EMENU_DISABLED;
+            }
+        }
+        else
+        {
+            if (IN6_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.In6Addr))
+            {
+                whoisMenu->Flags |= PH_EMENU_DISABLED;
+                traceMenu->Flags |= PH_EMENU_DISABLED;
+                pingMenu->Flags |= PH_EMENU_DISABLED;
+            }
         }
     }
     else
     {
-        if (IN6_IS_ADDR_LOOPBACK(&networkItem->RemoteEndpoint.Address.In6Addr))
-        {
-            whoisMenu->Flags |= PH_EMENU_DISABLED;
-            traceMenu->Flags |= PH_EMENU_DISABLED;
-            pingMenu->Flags |= PH_EMENU_DISABLED;
-        }
+        whoisMenu->Flags |= PH_EMENU_DISABLED;
+        traceMenu->Flags |= PH_EMENU_DISABLED;
+        pingMenu->Flags |= PH_EMENU_DISABLED;
     }
 }
 
