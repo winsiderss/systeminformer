@@ -151,14 +151,6 @@ BOOLEAN ProcessTreeFilterCallback(
     if (node->State != context->Type)
         return FALSE;
 
-    // Hide uninstalled plugins from the local tab
-    //if (node->Type == PLUGIN_VIEW_LOCAL && node->State == PLUGIN_STATE_UNINSTALLED)
-    //    return FALSE;
-
-    //// Hide installed plugins from the remote tab
-    //if (node->Type == PLUGIN_VIEW_REMOTE && node->State == PLUGIN_STATE_INSTALLED)
-    //    return FALSE;
-
     if (PhIsNullOrEmptyString(context->SearchboxText))
         return TRUE;
 
@@ -353,16 +345,22 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
                         }
                         else if (selectedNode->State == PLUGIN_STATE_REMOTE)
                         {
-                            if (StartInitialCheck(hwndDlg, selectedNode, PLUGIN_ACTION_INSTALL))
+                            if (PhGetOwnTokenAttributes().Elevated)
                             {
+                                if (StartInitialCheck(hwndDlg, selectedNode, PLUGIN_ACTION_INSTALL))
+                                {
 
+                                }
                             }
                         }
                         else if (selectedNode->State == PLUGIN_STATE_UPDATE)
                         {
-                            if (StartInitialCheck(hwndDlg, selectedNode, PLUGIN_ACTION_INSTALL))
+                            if (PhGetOwnTokenAttributes().Elevated)
                             {
+                                if (StartInitialCheck(hwndDlg, selectedNode, PLUGIN_ACTION_INSTALL))
+                                {
 
+                                }
                             }
                         }
                     }

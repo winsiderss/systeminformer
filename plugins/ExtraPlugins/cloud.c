@@ -2,7 +2,7 @@
 * Process Hacker Extra Plugins -
 *   Plugin Manager
 *
-* Copyright (C) 2016 dmex
+* Copyright (C) 2016-2017 dmex
 *
 * This file is part of Process Hacker.
 *
@@ -42,134 +42,6 @@ ULONGLONG ParseVersionString(
     PhStringToInteger64(&reservedPart, 10, &reservedInteger);
 
     return MAKE_VERSION_ULONGLONG(majorInteger, minorInteger, reservedInteger, revisionInteger);
-}
-
-HICON PluginDownloadImageThread(
-    _In_ PPH_STRING ImageDownloadUrl
-    )
-{
-    HINTERNET httpSessionHandle = NULL;
-    HINTERNET httpConnectionHandle = NULL;
-    HINTERNET httpRequestHandle = NULL;
-    PPH_STRING downloadHostPath = NULL;
-    PPH_STRING downloadUrlPath = NULL;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
-    ULONG xmlStringBufferLength = 0;
-    PSTR xmlStringBuffer = NULL;
-    URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
-
-    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
-    // Set lengths to non-zero
-    httpUrlComponents.dwSchemeLength = (ULONG)-1;
-    httpUrlComponents.dwHostNameLength = (ULONG)-1;
-    httpUrlComponents.dwUrlPathLength = (ULONG)-1;
-
-    if (!WinHttpCrackUrl(
-        PhGetStringOrEmpty(ImageDownloadUrl),
-        0,
-        0,
-        &httpUrlComponents
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    // Create the Host string.
-    downloadHostPath = PhCreateStringEx(
-        httpUrlComponents.lpszHostName,
-        httpUrlComponents.dwHostNameLength * sizeof(WCHAR)
-        );
-    if (PhIsNullOrEmptyString(downloadHostPath))
-        goto CleanupExit;
-
-    // Create the Path string.
-    downloadUrlPath = PhCreateStringEx(
-        httpUrlComponents.lpszUrlPath,
-        httpUrlComponents.dwUrlPathLength * sizeof(WCHAR)
-        );
-    if (PhIsNullOrEmptyString(downloadUrlPath))
-        goto CleanupExit;
-
-    if (!(httpSessionHandle = WinHttpOpen(
-        L"ExtraPlugins_1.0",
-        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxyConfig.lpszProxy,
-        proxyConfig.lpszProxyBypass,
-        0
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (!(httpConnectionHandle = WinHttpConnect(
-        httpSessionHandle,
-        L"wj32.org",
-        INTERNET_DEFAULT_HTTP_PORT,
-        0
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (!(httpRequestHandle = WinHttpOpenRequest(
-        httpConnectionHandle,
-        NULL,
-        L"/processhacker/plugins/list.php",
-        NULL,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (!WinHttpSendRequest(
-        httpRequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
-        WINHTTP_NO_REQUEST_DATA,
-        0,
-        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        0
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
-        goto CleanupExit;
-
-    if (!ReadRequestString(httpRequestHandle, &xmlStringBuffer, &xmlStringBufferLength))
-        goto CleanupExit;
-
-    //pluginDllPath = PhConcatStrings(3, PhGetString(PhGetApplicationDirectory()), L"Plugins\\", PhGetString(entry->FileName));
-    //PhInitializeStringRefLongHint(&pluginBaseName, PhGetString(entry->FileName));
-
-    //if (PhIsPluginDisabled(&pluginBaseName))
-    //    goto CleanupExit;
-
-    //if (RtlDoesFileExists_U(PhGetString(pluginDllPath)))
-    //{
-    //    
-    //}
-
-CleanupExit:
-
-    if (httpRequestHandle)
-        WinHttpCloseHandle(httpRequestHandle);
-
-    if (httpConnectionHandle)
-        WinHttpCloseHandle(httpConnectionHandle);
-
-    if (httpSessionHandle)
-        WinHttpCloseHandle(httpSessionHandle);
-
-    if (xmlStringBuffer)
-        PhFree(xmlStringBuffer);
-
-    return NULL;
 }
 
 NTSTATUS QueryPluginsCallbackThread(
@@ -257,7 +129,6 @@ NTSTATUS QueryPluginsCallbackThread(
 
         jvalue = JsonGetObjectArrayIndex(rootJsonObject, i);
         entry->Id = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_id"));
-        entry->Visible = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_visible"));
         entry->InternalName = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_internal_name"));
         entry->Name = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_name"));
         entry->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_version"));
@@ -296,6 +167,8 @@ NTSTATUS QueryPluginsCallbackThread(
 
         PPH_STRING directory = PhGetApplicationDirectory();
         pluginDllPath = PhConcatStrings(3, PhGetString(directory), L"Plugins\\", PhGetString(entry->FileName));
+        PhDereferenceObject(directory);
+
         PhInitializeStringRefLongHint(&pluginBaseName, PhGetString(entry->FileName));
    
         if (PhIsPluginDisabled(&pluginBaseName))
@@ -441,6 +314,11 @@ NTSTATUS SetupExtractBuild(
             fullSetupPath = PhGetFullPath(PhGetStringOrEmpty(extractPath), &indexOfFileName);
 
             SHCreateDirectoryEx(NULL, PhGetStringOrEmpty(fullSetupPath), NULL);
+
+            PhDereferenceObject(fullSetupPath);
+            PhDereferenceObject(extractPath);
+            PhDereferenceObject(directory);
+            PhDereferenceObject(fileName);
         }
         else
         {
@@ -449,7 +327,6 @@ NTSTATUS SetupExtractBuild(
             PPH_STRING fullSetupPath;
             PPH_STRING extractPath;
             PPH_STRING directoryPath;
-            //PPH_STRING baseNameString;
             PPH_STRING fileNameString;
             ULONG indexOfFileName = -1;
 
@@ -457,8 +334,6 @@ NTSTATUS SetupExtractBuild(
             directory = PhGetApplicationDirectory();
             extractPath = PhConcatStringRef3(&directory->sr, &pluginsDirectory, &fileName->sr);
             fullSetupPath = PhGetFullPath(PhGetStringOrEmpty(extractPath), &indexOfFileName);
-            //baseNameString = PhGetBaseName(fullSetupPath);
-            //fullSetupPath = PhGetFullPath(PhGetStringOrEmpty(fileName), &indexOfFileName);
             fileNameString = PhConcatStrings(2, fullSetupPath->Buffer, L".bak");
 
             if (indexOfFileName != -1)
@@ -480,8 +355,11 @@ NTSTATUS SetupExtractBuild(
                 goto error;
             }
 
+            PhDereferenceObject(fileNameString);
             PhDereferenceObject(fullSetupPath);
             PhDereferenceObject(extractPath);
+            PhDereferenceObject(directory);
+            PhDereferenceObject(fileName);
         }
     }
 

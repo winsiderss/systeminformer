@@ -309,6 +309,10 @@ VOID EnumerateLoadedPlugins(
 
         pluginInstance = CONTAINING_RECORD(links, PHAPP_PLUGIN, Links);
 
+        // HACK: Hide the CommonUtil plugin since it's a required dependency for multiple plugins.
+        if (PhEqualStringRef2(&pluginInstance->Name, L"ProcessHacker.CommonUtil", TRUE))
+            continue;
+
         PhInitializeStringRefLongHint(&pluginBaseName, PhGetPluginBaseName(pluginInstance));
 
         if (PhIsPluginDisabled(&pluginBaseName))
@@ -355,6 +359,7 @@ VOID EnumerateLoadedPlugins(
         entry->Name = PhCreateString(pluginInstance->Information.DisplayName);
         entry->Author = PhCreateString(pluginInstance->Information.Author);
         entry->Description = PhCreateString(pluginInstance->Information.Description);
+        entry->PluginOptions = pluginInstance->Information.HasOptions;
         entry->FilePath = PhCreateString2(&pluginInstance->FileName->sr);
         entry->FileName = PhGetBaseName(entry->FilePath);
     
@@ -364,8 +369,7 @@ VOID EnumerateLoadedPlugins(
 
         PhLargeIntegerToSystemTime(&utcTime, &basic.CreationTime);
         SystemTimeToTzSpecificLocalTime(NULL, &utcTime, &localTime);
-        entry->AddedTime = PhFormatDateTime(&localTime);
-        entry->PluginOptions = pluginInstance->Information.HasOptions;
+        entry->AddedTime = PhFormatDateTime(&localTime);     
 
         PluginsAddTreeNode(Context, entry);
     }

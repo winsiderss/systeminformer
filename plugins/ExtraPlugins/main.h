@@ -118,8 +118,6 @@ typedef struct _PLUGIN_NODE
 
     // Remote
     PPH_STRING Id;
-    PPH_STRING Visible;
-    
     PPH_STRING Name;
     PPH_STRING Version;
     PPH_STRING Author;
