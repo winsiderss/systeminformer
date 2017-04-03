@@ -767,7 +767,7 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
 
     // Create the directory if it does not exist.
-    if (fullSetupPath = PhGetFullPath(PhGetStringOrEmpty(context->SetupFilePath), &indexOfFileName))
+    if (fullSetupPath = PhGetFullPath(PhGetString(context->SetupFilePath), &indexOfFileName))
     {
         PPH_STRING directoryPath;
 
@@ -784,7 +784,7 @@ NTSTATUS UpdateDownloadThread(
     // Create output file
     if (!NT_SUCCESS(PhCreateFileWin32(
         &tempFileHandle,
-        PhGetStringOrEmpty(context->SetupFilePath),
+        PhGetString(context->SetupFilePath),
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
