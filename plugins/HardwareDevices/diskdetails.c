@@ -696,29 +696,9 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
 
                 dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDIT1), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-
                 PvDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            if (header->code == LVN_ITEMCHANGED)
-            {
-                PWSTR description;
-
-                if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
-                    description = SmartAttributeGetDescription((SMART_ATTRIBUTE_ID)PhGetSelectedListViewItemParam(context->ListViewHandle));
-                else
-                    description = L"";
-
-                SetDlgItemText(hwndDlg, IDC_EDIT1, description);
             }
         }
         break;
@@ -767,6 +747,7 @@ NTSTATUS ShowDiskDriveDetailsDialogThread(
         PhModalPropertySheet(&propContext->PropSheetHeader);
         PhDereferenceObject(propContext);
     }
+
     return STATUS_SUCCESS;
 }
 

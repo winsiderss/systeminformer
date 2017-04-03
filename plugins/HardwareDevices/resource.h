@@ -21,11 +21,9 @@
 #define IDC_SHOW_HIDDEN_ADAPTERS        1012
 #define IDD_DISKDRIVE_OPTIONS           1013
 #define IDD_DISKDRIVE_DIALOG            1014
-#define IDC_EDIT1                       1015
 #define IDD_DISKDRIVE_PANEL             1016
 #define IDD_DISKDRIVE_DETAILS_SMART     1017
 #define IDC_DISKDRIVE_LISTVIEW          1017
-#define IDC_DESCRIPTION                 1017
 #define IDC_DISKMOUNTPATH               1018
 #define IDC_STAT_BREAD                  1020
 #define IDC_STAT_BWRITE                 1021

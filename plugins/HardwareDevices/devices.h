@@ -846,10 +846,6 @@ PWSTR SmartAttributeGetText(
     _In_ SMART_ATTRIBUTE_ID AttributeId
     );
 
-PWSTR SmartAttributeGetDescription(
-    _In_ SMART_ATTRIBUTE_ID AttributeId
-    );
-
 // diskgraph.c
 
 VOID DiskDriveSysInfoInitializing(
