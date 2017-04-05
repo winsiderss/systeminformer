@@ -3,6 +3,7 @@
  *   KProcessHacker dynamic data definitions
  *
  * Copyright (C) 2011-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -166,6 +167,20 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.ObDecodeShift = 16;
         Package->StructData.ObAttributesShift = 17;
     }
+    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 15063)
+    {
+        Package->BuildNumber = 15063;
+        Package->ResultingNtVersion = PHNT_REDSTONE2;
+
+        Package->StructData.EgeGuid = 0x18;
+        Package->StructData.EpObjectTable = 0x418;
+        Package->StructData.EreGuidEntry = 0x20;
+        Package->StructData.HtHandleContentionEvent = 0x30;
+        Package->StructData.OtName = 0x10;
+        Package->StructData.OtIndex = 0x28;
+        Package->StructData.ObDecodeShift = 16;
+        Package->StructData.ObAttributesShift = 17;
+    }
     else
     {
         return STATUS_NOT_SUPPORTED;
@@ -285,6 +300,17 @@ NTSTATUS KphInitializeDynamicPackage(
     {
         Package->BuildNumber = 14393;
         Package->ResultingNtVersion = PHNT_REDSTONE;
+
+        Package->StructData.EgeGuid = 0xc;
+        Package->StructData.EpObjectTable = 0x154;
+        Package->StructData.EreGuidEntry = 0x10;
+        Package->StructData.OtName = 0x8;
+        Package->StructData.OtIndex = 0x14;
+    }
+    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 15063)
+    {
+        Package->BuildNumber = 15063;
+        Package->ResultingNtVersion = PHNT_REDSTONE2;
 
         Package->StructData.EgeGuid = 0xc;
         Package->StructData.EpObjectTable = 0x154;
