@@ -405,6 +405,51 @@ INT PhShowMessage_V(
     return result;
 }
 
+INT PhShowError2(
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Title,
+    _In_opt_ PWSTR Message
+    )
+{
+    if (TaskDialogIndirect_Import())
+    {
+        INT button;
+        TASKDIALOGCONFIG config = { sizeof(config) };
+
+        config.hwndParent = hWnd;
+        config.hInstance = PhLibImageBase;
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+        config.pszWindowTitle = PhApplicationName;
+        config.pszMainIcon = TD_ERROR_ICON;
+        config.pszMainInstruction = Title;
+        config.pszContent = Message;
+        
+        if (TaskDialogIndirect_Import()(
+            &config,
+            &button,
+            NULL,
+            NULL
+            ) == S_OK)
+        {
+            return button == IDCLOSE;
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+    else
+    {
+        return PhShowMessage(
+            hWnd,
+            MB_OK | MB_ICONERROR,
+            Title,
+            Message
+            ) == IDOK;
+    }
+}
+
 PPH_STRING PhGetStatusMessage(
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -468,7 +513,7 @@ VOID PhShowStatus(
 
     if (Message)
     {
-        PhShowError(hWnd, L"%s: %s", Message, statusMessage->Buffer);
+        PhShowError2(hWnd, Message, statusMessage->Buffer);
     }
     else
     {
@@ -517,7 +562,7 @@ BOOLEAN PhShowContinueStatus(
 
     if (Message)
     {
-        result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"%s: %s", Message, statusMessage->Buffer);
+        result = PhShowError2(hWnd, Message, statusMessage->Buffer);
     }
     else
     {

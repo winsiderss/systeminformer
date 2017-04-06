@@ -237,6 +237,15 @@ PhShowMessage_V(
 #define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
 PHLIBAPI
+INT
+NTAPI
+PhShowError2(
+    _In_ HWND hWnd, 
+    _In_opt_ PWSTR Title, 
+    _In_opt_ PWSTR Message
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetStatusMessage(
