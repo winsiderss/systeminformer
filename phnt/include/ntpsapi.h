@@ -671,7 +671,9 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
     struct
     {
         ULONG Eligible : 1;
-        ULONG Spare : 31;
+        ULONG ReleaseRepurposedMemResetCommit : 1;
+        ULONG ForceReleaseMemResetCommit : 1;
+        ULONG Spare : 29;
     };
     SIZE_T CommitDebt;
     SIZE_T CommittedMemResetSize;

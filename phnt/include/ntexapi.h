@@ -1626,8 +1626,13 @@ typedef struct _SYSTEM_LOCK_TABLE_ENTRY_INFO
     USHORT Reserved1;
     ULONG ExclusiveOwnerThreadId;
     ULONG ActiveCount;
+    USHORT CreatorBackTraceIndex;
+    HANDLE OwningThread;
+    LONG LockCount;
     ULONG ContentionCount;
     ULONG Reserved2[2];
+    ULONG EntryCount;
+    LONG RecursionCount;
     ULONG NumberOfSharedWaiters;
     ULONG NumberOfExclusiveWaiters;
 } SYSTEM_LOCK_TABLE_ENTRY_INFO, *PSYSTEM_LOCK_TABLE_ENTRY_INFO;
@@ -2084,6 +2089,7 @@ typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
 {
     GUID BootIdentifier;
     FIRMWARE_TYPE FirmwareType;
+    ULONGLONG BootFlags;
 } SYSTEM_BOOT_ENVIRONMENT_INFORMATION, *PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
 
 // private
@@ -2101,7 +2107,11 @@ typedef struct _SYSTEM_VERIFIER_INFORMATION_EX
     UNICODE_STRING PreviousBucketName;
     ULONG IrpCancelTimeoutMsec;
     ULONG VerifierExtensionEnabled;
+#ifdef _WIN64
     ULONG Reserved[1];
+#else
+    ULONG Reserved[3];
+#endif
 } SYSTEM_VERIFIER_INFORMATION_EX, *PSYSTEM_VERIFIER_INFORMATION_EX;
 
 // private
@@ -2119,7 +2129,7 @@ typedef struct _SYSTEM_SYSTEM_DISK_INFORMATION
 // private
 typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT
 {
-    LARGE_INTEGER Hits; // ULONG in WIN8
+    ULONGLONG Hits; // ULONG in WIN8
     UCHAR PercentFrequency;
 } SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT;
 
@@ -2248,6 +2258,13 @@ typedef struct _SYSTEM_VERIFIER_COUNTERS_INFORMATION
     SIZE_T PeakPagesForMdlBytes;
     SIZE_T ContiguousMemoryBytes;
     SIZE_T PeakContiguousMemoryBytes;
+    ULONG ExecutePoolTypes; // REDSTONE2
+    ULONG ExecutePageProtections;
+    ULONG ExecutePageMappings;
+    ULONG ExecuteWriteSections;
+    ULONG SectionAlignmentFailures;
+    ULONG UnsupportedRelocs;
+    ULONG IATInExecutableSection;
 } SYSTEM_VERIFIER_COUNTERS_INFORMATION, *PSYSTEM_VERIFIER_COUNTERS_INFORMATION;
 
 // private
