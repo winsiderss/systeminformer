@@ -275,7 +275,7 @@ BOOLEAN ProcessTreeFilterCallback(
         return TRUE;
     }
 
-    if (WordMatchStringZ(L"IsPicoProcess") && processNode->ProcessItem->IsPicoProcess)
+    if (WordMatchStringZ(L"IsPicoProcess") && processNode->ProcessItem->IsSubsystemProcess)
     {
         return TRUE;
     }
