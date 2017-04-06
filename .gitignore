@@ -136,17 +136,7 @@ tools/fixlib/bin/Debug/
 tools/fixlib/bin/Release/*
 !tools/fixlib/bin/Release/fixlib.exe
 
-!tools/GenerateHeader/GenerateHeader/bin/
-tools/GenerateHeader/GenerateHeader/bin/Debug/
-tools/GenerateHeader/GenerateHeader/bin/Release/*
-!tools/GenerateHeader/GenerateHeader/bin/Release/GenerateHeader.exe
-
 !tools/GenerateZw/GenerateZw/bin/
 tools/GenerateZw/GenerateZw/bin/Debug/
 tools/GenerateZw/GenerateZw/bin/Release/*
 !tools/GenerateZw/GenerateZw/bin/Release/GenerateZw.exe
-
-!tools/UpdateGitRevision/UpdateGitRevision/bin/
-tools/UpdateGitRevision/UpdateGitRevision/bin/Debug/
-tools/UpdateGitRevision/UpdateGitRevision/bin/Release/*
-!tools/UpdateGitRevision/UpdateGitRevision/bin/Release/UpdateGitRevision.exe
