@@ -1,1 +1,0 @@
-Based on https://github.com/SubtitleEdit/subtitleedit/tree/master/src/UpdateAssemblyInfo
