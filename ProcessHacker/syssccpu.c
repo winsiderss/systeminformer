@@ -861,8 +861,8 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
-        stateDistribution = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
-        stateDifference = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)PTR_ADD_OFFSET(differences, stateSize * i);
+        stateDistribution = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
+        stateDifference = PTR_ADD_OFFSET(differences, stateSize * i);
 
         if (stateDistribution->StateCount != 2)
         {
@@ -878,7 +878,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
             }
             else
             {
-                hitcountOld = (PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8)PTR_ADD_OFFSET(stateDistribution->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
+                hitcountOld = PTR_ADD_OFFSET(stateDistribution->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
                 stateDifference->States[j].Hits = hitcountOld->Hits;
                 stateDifference->States[j].PercentFrequency = hitcountOld->PercentFrequency;
             }
@@ -887,8 +887,8 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
-        stateDistribution = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
-        stateDifference = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)PTR_ADD_OFFSET(differences, stateSize * i);
+        stateDistribution = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
+        stateDifference = PTR_ADD_OFFSET(differences, stateSize * i);
 
         if (stateDistribution->StateCount != 2)
         {
@@ -904,7 +904,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
             }
             else
             {
-                hitcountOld = (PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8)PTR_ADD_OFFSET(stateDistribution->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
+                hitcountOld = PTR_ADD_OFFSET(stateDistribution->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
                 stateDifference->States[j].Hits -= hitcountOld->Hits;
             }
         }
@@ -917,7 +917,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
-        stateDifference = (PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION)PTR_ADD_OFFSET(differences, stateSize * i);
+        stateDifference = PTR_ADD_OFFSET(differences, stateSize * i);
 
         for (j = 0; j < 2; j++)
         {
