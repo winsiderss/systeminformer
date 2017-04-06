@@ -240,6 +240,8 @@ typedef enum _FILE_INFORMATION_CLASS
     FileDispositionInformationEx, // FILE_DISPOSITION_INFO_EX // since REDSTONE
     FileRenameInformationEx,
     FileRenameInformationExBypassAccessCheck,
+    FileDesiredStorageClassInformation, // FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
+    FileStatInformation, // FILE_STAT_INFORMATION
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -676,6 +678,21 @@ typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
     WCHAR ShortName[12];
     WCHAR FileName[1];
 } FILE_ID_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_EXTD_BOTH_DIR_INFORMATION;
+
+typedef struct _FILE_STAT_INFORMATION
+{
+    LARGE_INTEGER FileId;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG FileAttributes;
+    ULONG ReparseTag;
+    ULONG NumberOfLinks;
+    ULONG EffectiveAccess;
+} FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
 
 // NtQueryDirectoryFile types
 

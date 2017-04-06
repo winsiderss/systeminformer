@@ -126,6 +126,18 @@ typedef struct _PF_PRIVSOURCE_INFO
     SIZE_T TotalPrivatePages;
     ULONG SessionID;
     CHAR ImageName[16];
+    union {
+        ULONG_PTR WsSwapPages;                 // process only PF_PRIVSOURCE_QUERY_WS_SWAP_PAGES.
+        ULONG_PTR SessionPagedPoolPages;       // session only.
+        ULONG_PTR StoreSizePages;              // process only PF_PRIVSOURCE_QUERY_STORE_INFO.
+    };
+    ULONG_PTR WsTotalPages;         // process/session only.
+    ULONG DeepFreezeTimeMs;         // process only.
+    ULONG ModernApp : 1;            // process only.
+    ULONG DeepFrozen : 1;           // process only. If set, DeepFreezeTimeMs contains the time at which the freeze occurred
+    ULONG Foreground : 1;           // process only.
+    ULONG PerProcessStore : 1;      // process only.
+    ULONG Spare : 28;
 } PF_PRIVSOURCE_INFO, *PPF_PRIVSOURCE_INFO;
 
 #define PF_PRIVSOURCE_QUERY_REQUEST_VERSION 3
@@ -133,6 +145,7 @@ typedef struct _PF_PRIVSOURCE_INFO
 typedef struct _PF_PRIVSOURCE_QUERY_REQUEST
 {
     ULONG Version;
+    ULONG Flags;
     ULONG InfoCount;
     PF_PRIVSOURCE_INFO InfoArray[1];
 } PF_PRIVSOURCE_QUERY_REQUEST, *PPF_PRIVSOURCE_QUERY_REQUEST;

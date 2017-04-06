@@ -281,10 +281,10 @@ typedef struct _MMPFN_IDENTITY
         {
             ULONG_PTR CombinedPage;
         } e2;
-        PVOID FileObject; // mapped files
-        PVOID UniqueFileObjectKey;
-        PVOID ProtoPteAddress;
-        PVOID VirtualAddress;  // everything else
+        ULONG_PTR FileObject; // mapped files
+        ULONG_PTR UniqueFileObjectKey;
+        ULONG_PTR ProtoPteAddress;
+        ULONG_PTR VirtualAddress;  // everything else
     } u2;
 } MMPFN_IDENTITY, *PMMPFN_IDENTITY;
 
@@ -300,6 +300,7 @@ typedef enum _SECTION_INFORMATION_CLASS
     SectionImageInformation,
     SectionRelocationInformation, // name:wow64:whNtQuerySection_SectionRelocationInformation
     SectionOriginalBaseInformation, // PVOID BaseAddress
+    SectionInternalImageInformation, // SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
 
@@ -358,6 +359,23 @@ typedef struct _SECTION_IMAGE_INFORMATION
     ULONG ImageFileSize;
     ULONG CheckSum;
 } SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
+
+// symbols
+typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
+{
+    SECTION_IMAGE_INFORMATION SectionInformation;
+    union
+    {
+        ULONG ExtendedFlags;
+        struct
+        {
+            ULONG ImageReturnFlowGuardEnabled : 1;
+            ULONG ImageReturnFlowGuardStrict : 1;
+            ULONG ImageExportSuppressionEnabled : 1;
+            ULONG Reserved : 29;
+        };
+    };
+} SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _SECTION_INHERIT
@@ -608,7 +626,8 @@ typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionMoveMemory, // s: MEMORY_PARTITION_TRANSFER_INFORMATION
     SystemMemoryPartitionAddPagefile, // s: MEMORY_PARTITION_PAGEFILE_INFORMATION
     SystemMemoryPartitionCombineMemory, // q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
-    SystemMemoryPartitionInitialAddMemory // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+    SystemMemoryPartitionInitialAddMemory, // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+    SystemMemoryPartitionGetMemoryEvents // MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
 } MEMORY_PARTITION_INFORMATION_CLASS;
 
 // private
@@ -627,6 +646,10 @@ typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
     ULONG_PTR ZeroPages;
     ULONG_PTR FreePages;
     ULONG_PTR StandbyPages;
+    ULONG StandbyPageCountByPriority[8]; // since REDSTONE2
+    ULONG RepurposedPagesByPriority[8];
+    ULONG MaximumCommitLimit;
+    ULONG DonatedPagesToPartitions;
 } MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
 
 // private
@@ -669,6 +692,20 @@ typedef struct _MEMORY_PARTITION_INITIAL_ADD_INFORMATION
     ULONG_PTR NumberOfPagesAdded;
     MEMORY_PARTITION_PAGE_RANGE PartitionRanges[1];
 } MEMORY_PARTITION_INITIAL_ADD_INFORMATION, *PMEMORY_PARTITION_INITIAL_ADD_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
+{
+    union
+    {    
+        struct
+        {
+            ULONG CommitEvents : 1;
+            ULONG Spare : 31;
+        };
+        ULONG AllFlags;
+    };
+} MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION, *PMEMORY_PARTITION_MEMORY_EVENTS_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 

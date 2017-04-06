@@ -46,7 +46,9 @@ typedef struct _PEB
             ULONG ProcessUsingVEH : 1;
             ULONG ProcessUsingVCH : 1;
             ULONG ProcessUsingFTH : 1;
-            ULONG ReservedBits0 : 27;
+            ULONG ProcessPreviouslyThrottled : 1;
+            ULONG ProcessCurrentlyThrottled : 1;
+            ULONG ReservedBits0 : 25;
         };
     };
     union
@@ -303,7 +305,8 @@ typedef struct _TEB
             USHORT SessionAware : 1;
             USHORT LoadOwner : 1;
             USHORT LoaderWorker : 1;
-            USHORT SpareSameTebBits : 2;
+            USHORT SkipLoaderInit : 1;
+            USHORT SpareSameTebBits : 1;
         };
     };
 

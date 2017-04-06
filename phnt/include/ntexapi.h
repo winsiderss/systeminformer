@@ -1381,6 +1381,15 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSupportedProcessorArchitectures,
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
     SystemCodeIntegrityCertificateInformation, // q: SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
+    SystemPhysicalMemoryInformation, // q: SYSTEM_PHYSICAL_MEMORY_INFORMATION // since REDSTONE2
+    SystemControlFlowTransition,
+    SystemKernelDebuggingAllowed,
+    SystemActivityModerationExeState,
+    SystemActivityModerationUserSettings,
+    SystemCodeIntegrityPoliciesFullInformation,
+    SystemCodeIntegrityUnlockInformation, // 190
+    SystemIntegrityQuotaInformation,
+    SystemFlushInformation, // q: SYSTEM_FLUSH_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2662,6 +2671,23 @@ typedef struct _SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
 {
     HANDLE ImageFile;
 } SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION, *PSYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION;
+
+// private
+typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
+{
+    ULONGLONG TotalPhysicalBytes;
+    ULONGLONG LowestPhysicalAddress;
+    ULONGLONG HighestPhysicalAddress;
+} SYSTEM_PHYSICAL_MEMORY_INFORMATION, *PSYSTEM_PHYSICAL_MEMORY_INFORMATION;
+
+// private
+typedef struct _SYSTEM_FLUSH_INFORMATION
+{
+    ULONG SupportedFlushMethods;
+    ULONG ProcessorCacheFlushSize;
+    ULONGLONG SystemFlushCapabilities;
+    ULONGLONG Reserved[2];
+} SYSTEM_FLUSH_INFORMATION, *PSYSTEM_FLUSH_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 

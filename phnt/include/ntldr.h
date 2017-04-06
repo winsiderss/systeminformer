@@ -167,6 +167,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     ULONG ImplicitPathOptions;
     ULONG ReferenceCount;
     ULONG DependentLoadFlags;
+    UCHAR SigningLevel; // since REDSTONE2
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(
