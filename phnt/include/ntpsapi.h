@@ -172,6 +172,14 @@ typedef enum _PROCESSINFOCLASS
     ProcessIumChallengeResponse,
     ProcessChildProcessInformation, // PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,
+    ProcessSubsystemInformation, // since REDSTONE2
+    ProcessEnergyValues,
+    ProcessActivityThrottleState,
+    ProcessActivityThrottlePolicy,
+    ProcessWin32kSyscallFilterInformation,
+    ProcessDisableSystemAllowedCpuSets,
+    ProcessWakeInformation,
+    ProcessEnergyTrackingState,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -224,6 +232,9 @@ typedef enum _THREADINFOCLASS
     ThreadDynamicCodePolicyInfo,
     ThreadExplicitCaseSensitivity,
     ThreadWorkOnBehalfTicket,
+    ThreadSubsystemInformation, // since REDSTONE2
+    ThreadDbgkWerReportActive,
+    ThreadAttachContainer,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -267,7 +278,7 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
             ULONG IsBackground : 1;
             ULONG IsStronglyNamed : 1;
             ULONG IsSecureProcess : 1;
-            ULONG IsPicoProcess : 1;
+            ULONG IsSubsystemProcess : 1;
             ULONG SpareBits : 23;
         };
     };
@@ -609,6 +620,7 @@ typedef enum _PS_PROTECTED_SIGNER
     PsProtectedSignerWindows,
     PsProtectedSignerWinTcb,
     PsProtectedSignerWinSystem,
+    PsProtectedSignerApp,
     PsProtectedSignerMax
 } PS_PROTECTED_SIGNER;
 
@@ -662,6 +674,8 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
         ULONG Spare : 31;
     };
     SIZE_T CommitDebt;
+    SIZE_T CommittedMemResetSize;
+    SIZE_T RepurposedMemResetSize;
 } PROCESS_COMMIT_RELEASE_INFORMATION, *PPROCESS_COMMIT_RELEASE_INFORMATION;
 
 typedef struct _PROCESS_JOB_MEMORY_INFO
@@ -700,6 +714,8 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
     PVOID FirstArgument;
     USHORT SystemCallNumber;
+    USHORT Reserved; // since REDSTONE2
+    ULONG64 WaitTime;
 } THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
 // private

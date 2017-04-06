@@ -168,7 +168,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG AddedEventSent : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
-            ULONG IsPicoProcess : 1;
+            ULONG IsSubsystemProcess : 1;
 
             ULONG Spare : 15;
         };

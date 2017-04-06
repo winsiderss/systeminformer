@@ -107,7 +107,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsWow64Valid : 1;       
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
-            ULONG IsPicoProcess : 1;
+            ULONG IsSubsystemProcess : 1;
 
             ULONG Spare : 23;
         };
@@ -1002,7 +1002,7 @@ VOID PhpProcessQueryStage1(
         {
             Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
             Data->IsSecureProcess = basicInfo.IsSecureProcess;
-            Data->IsPicoProcess = basicInfo.IsPicoProcess;
+            Data->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
             Data->IsWow64 = basicInfo.IsWow64Process;
             Data->IsWow64Valid = TRUE;
         }
@@ -1316,7 +1316,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsWow64Valid = Data->IsWow64Valid;
     processItem->IsProtectedProcess = Data->IsProtectedProcess;
     processItem->IsSecureProcess = Data->IsSecureProcess;
-    processItem->IsPicoProcess = Data->IsPicoProcess;
+    processItem->IsSubsystemProcess = Data->IsSubsystemProcess;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 }
