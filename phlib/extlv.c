@@ -164,7 +164,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 {
                     HWND headerHandle;
 
-                    headerHandle = (HWND)DefSubclassProc(hwnd, LVM_GETHEADER, 0, 0);
+                    headerHandle = (HWND)SendMessage(hwnd, LVM_GETHEADER, 0, 0);
 
                     if (header->hwndFrom == headerHandle)
                     {
@@ -352,7 +352,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 {
                     if (i != column)
                     {
-                        if (DefSubclassProc(hwnd, LVM_GETCOLUMN, i, (LPARAM)&lvColumn))
+                        if (SendMessage(hwnd, LVM_GETCOLUMN, i, (LPARAM)&lvColumn))
                         {
                             availableWidth -= lvColumn.cx;
                         }
@@ -366,10 +366,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 }
 
                 if (availableWidth >= 40)
-                    return DefSubclassProc(hwnd, LVM_SETCOLUMNWIDTH, column, availableWidth);
+                    return SendMessage(hwnd, LVM_SETCOLUMNWIDTH, column, availableWidth);
             }
 
-            return DefSubclassProc(hwnd, LVM_SETCOLUMNWIDTH, column, width);
+            return SendMessage(hwnd, LVM_SETCOLUMNWIDTH, column, width);
         }
         break;
     case ELVM_SETCOMPAREFUNCTION:
@@ -549,13 +549,9 @@ static INT PhpExtendedListViewCompareFunc(
     yItem.iItem = y;
     yItem.iSubItem = 0;
 
-    // Don't use SendMessage/ListView_* because it will call our new window procedure, which will
-    // use GetProp. This calls NtUserGetProp, and obviously having a system call in a comparison
-    // function is very, very bad for performance.
-
-    if (!DefWindowProc(context->Handle, LVM_GETITEM, 0, (LPARAM)&xItem))
+    if (!SendMessage(context->Handle, LVM_GETITEM, 0, (LPARAM)&xItem))
         return 0;
-    if (!DefWindowProc(context->Handle, LVM_GETITEM, 0, (LPARAM)&yItem))
+    if (!SendMessage(context->Handle, LVM_GETITEM, 0, (LPARAM)&yItem))
         return 0;
 
     // First, do tri-state sorting.
@@ -717,7 +713,7 @@ static INT PhpDefaultCompareListViewItems(
     item.cchTextMax = 260;
 
     xText[0] = 0;
-    DefWindowProc(Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
+    SendMessage(Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
 
     // Get the Y item text.
 
@@ -726,7 +722,7 @@ static INT PhpDefaultCompareListViewItems(
     item.cchTextMax = 260;
 
     yText[0] = 0;
-    DefWindowProc(Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
+    SendMessage(Context->Handle, LVM_GETITEM, 0, (LPARAM)&item);
 
     // Compare them.
 
