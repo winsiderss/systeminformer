@@ -231,6 +231,7 @@ INT_PTR CALLBACK PhpJobPageProc(
 
             PhAddListViewColumn(limitsLv, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(limitsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Value");
+            PhLoadListViewColumnsFromSetting(L"JobListViewColumns", limitsLv);
 
             SetDlgItemText(hwndDlg, IDC_NAME, L"Unknown");
 
@@ -383,6 +384,9 @@ INT_PTR CALLBACK PhpJobPageProc(
                 NtClose(jobHandle);
             }
         }
+        break;
+    case WM_DESTROY:
+        PhSaveListViewColumnsToSetting(L"JobListViewColumns", GetDlgItem(hwndDlg, IDC_LIMITS));
         break;
     case WM_COMMAND:
         {
