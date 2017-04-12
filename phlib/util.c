@@ -418,7 +418,7 @@ INT PhShowError2(
 
         config.hwndParent = hWnd;
         config.hInstance = PhLibImageBase;
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
         config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = TD_ERROR_ICON;
