@@ -1294,64 +1294,6 @@ LRESULT CALLBACK MainWndSubclassProc(
             }
         }
         break;
-    case WM_MEASUREITEM:
-        {
-            LPMEASUREITEMSTRUCT drawInfo = (LPMEASUREITEMSTRUCT)lParam;
-
-            if (drawInfo->CtlType == ODT_COMBOBOX)
-            {
-                drawInfo->itemHeight = 16;
-            }
-        }
-        break;
-    case WM_DRAWITEM:
-        {
-            LPDRAWITEMSTRUCT drawInfo = (LPDRAWITEMSTRUCT)lParam;
-
-            if (drawInfo->hwndItem == SearchboxHandle && drawInfo->CtlType == ODT_COMBOBOX)
-            {
-                INT length;
-                PPH_STRING text;
-
-                if (!(length = ComboBox_GetLBTextLen(drawInfo->hwndItem, drawInfo->itemID)))
-                    break;
-
-                SetBkMode(drawInfo->hDC, TRANSPARENT);
-
-                if ((drawInfo->itemState & CDIS_SELECTED) == CDIS_SELECTED)
-                {
-                    SetTextColor(drawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                    SetDCBrushColor(drawInfo->hDC, RGB(78, 78, 78));
-
-                    FillRect(drawInfo->hDC, &drawInfo->rcItem, GetStockObject(DC_BRUSH));
-                }
-                else
-                {
-                    SetTextColor(drawInfo->hDC, RGB(0x0, 0x0, 0x0));
-                    SetDCBrushColor(drawInfo->hDC, RGB(0xff, 0xff, 0xff));
-
-                    FillRect(drawInfo->hDC, &drawInfo->rcItem, GetStockObject(DC_BRUSH));
-
-                    //SetDCBrushColor(drawInfo->hDC, RGB(0xff, RGB(43, 43, 43));
-                    //SetTextColor(drawInfo->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                }
-
-                text = PhCreateStringEx(NULL, length * sizeof(WCHAR));
-                ComboBox_GetLBText(drawInfo->hwndItem, drawInfo->itemID, text->Buffer);
-
-                drawInfo->rcItem.left += 5;
-                DrawText(
-                    drawInfo->hDC,
-                    text->Buffer,
-                    (INT)text->Length / sizeof(WCHAR),
-                    &drawInfo->rcItem,
-                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_WORD_ELLIPSIS
-                    );
-
-                PhDereferenceObject(text);
-            }
-        }
-        break;
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
