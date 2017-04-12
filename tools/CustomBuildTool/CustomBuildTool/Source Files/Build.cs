@@ -1,18 +1,12 @@
-﻿using ICSharpCode.SharpZipLib.Zip;
-using System;
-using System.Diagnostics;
+﻿using System;
 using System.IO;
 using System.Net.Http;
-using System.Runtime.Serialization;
 using System.Security;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CustomBuildTool
 {
-    [System.Security.SuppressUnmanagedCodeSecurity]
+    [SuppressUnmanagedCodeSecurity]
     public static class Build
     {
         private static DateTime TimeStart;
@@ -129,6 +123,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("MsBuild not installed.\r\nExiting...\r\n");
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -152,6 +147,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Error while setting the root directory: " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -159,6 +155,15 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Unable to find project root directory... Exiting.");
+                Console.ForegroundColor = ConsoleColor.White;
+                return false;
+            }
+
+            if (!File.Exists(GitExePath))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Git not installed... Exiting.");
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -172,6 +177,7 @@ namespace CustomBuildTool
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Error creating output directory. " + ex);
+                    Console.ForegroundColor = ConsoleColor.White;
                     return false;
                 }
             }
@@ -227,6 +233,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -244,6 +251,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -261,6 +269,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
             
@@ -286,6 +295,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -326,6 +336,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -349,6 +360,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -372,6 +384,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -863,7 +876,7 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[ERROR] " + ex.ToString());
-                Console.ForegroundColor = ConsoleColor.Red;
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
