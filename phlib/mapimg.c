@@ -221,7 +221,7 @@ NTSTATUS PhMapViewOfEntireFile(
         SECTION_ALL_ACCESS,
         NULL,
         &size,
-        ReadOnly ? PAGE_EXECUTE_READ : PAGE_EXECUTE_READWRITE,
+        ReadOnly ? PAGE_READONLY : PAGE_READWRITE,
         SEC_COMMIT,
         FileHandle
         );
@@ -244,7 +244,7 @@ NTSTATUS PhMapViewOfEntireFile(
         &viewSize,
         ViewShare,
         0,
-        ReadOnly ? PAGE_EXECUTE_READ : PAGE_EXECUTE_READWRITE
+        ReadOnly ? PAGE_READONLY : PAGE_READWRITE
         );
 
     if (!NT_SUCCESS(status))
