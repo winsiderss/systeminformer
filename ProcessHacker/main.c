@@ -253,7 +253,7 @@ INT WINAPI wWinMain(
         OBJECT_ATTRIBUTES oa;
         UNICODE_STRING mutantName;
 
-        RtlInitUnicodeString(&mutantName, L"\\BaseNamedObjects\\ProcessHacker2Mutant");
+        RtlInitUnicodeString(&mutantName, L"\\BaseNamedObjects\\ProcessHackerMutant");
         InitializeObjectAttributes(
             &oa,
             &mutantName,
@@ -651,7 +651,7 @@ VOID PhpInitializeSettings(
         // 3. Default location
         if (!PhSettingsFileName)
         {
-            PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+            PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
         }
 
         if (PhSettingsFileName)

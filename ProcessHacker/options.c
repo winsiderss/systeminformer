@@ -409,7 +409,7 @@ static VOID ReadCurrentUserRun(
         0
         )))
     {
-        if (value = PhQueryRegistryString(keyHandle, L"Process Hacker 2"))
+        if (value = PhQueryRegistryString(keyHandle, L"Process Hacker"))
         {
             PH_STRINGREF fileName;
             PH_STRINGREF arguments;
@@ -453,7 +453,7 @@ static VOID WriteCurrentUserRun(
     {
         UNICODE_STRING valueName;
 
-        RtlInitUnicodeString(&valueName, L"Process Hacker 2");
+        RtlInitUnicodeString(&valueName, L"Process Hacker");
 
         if (Present)
         {
