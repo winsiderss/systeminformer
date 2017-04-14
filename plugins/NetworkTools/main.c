@@ -399,13 +399,13 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_COUNTRY, NULL, NetworkServiceSortFunction);
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
-    column.Text = L"Local Service";
+    column.Text = L"Local service";
     column.Width = 140;
     column.Alignment = PH_ALIGN_LEFT;
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_LOCAL_SERVICE, NULL, NetworkServiceSortFunction);
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
-    column.Text = L"Remote Service";
+    column.Text = L"Remote service";
     column.Width = 140;
     column.Alignment = PH_ALIGN_LEFT;
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_SERVICE, NULL, NetworkServiceSortFunction);
