@@ -92,7 +92,7 @@ INT WINAPI wWinMain(
         };
         PVOID fileDialog;
 
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
         fileDialog = PhCreateOpenFileDialog();
         PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
@@ -112,7 +112,7 @@ INT WINAPI wWinMain(
     {
         PPH_STRING targetFileName;
 
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         targetFileName = PvResolveShortcutTarget(PvFileName);
 
         if (targetFileName)

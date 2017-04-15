@@ -204,7 +204,7 @@ NTSTATUS PhpBaseThreadStart(
 
     // Initialization code
 
-    result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     // Call the user-supplied function.
     status = context.StartAddress(context.Parameter);
