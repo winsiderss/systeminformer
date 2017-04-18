@@ -975,10 +975,20 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                     ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
                     ADD_VALUE(L"CFG Function table entry count", PhaFormatUInt64((Config)->GuardCFFunctionCount, TRUE)->Buffer); \
-                    ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
-                    ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
-                    ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
-                    ADD_VALUE(L"CFG LongJump table entry count", PhaFormatUInt64((Config)->GuardLongJumpTargetCount, TRUE)->Buffer); \
+                    if ((Config)->Size >= (ULONG) FIELD_OFFSET(Type, GuardAddressTakenIatEntryTable) \
+                            + sizeof((Config)->GuardAddressTakenIatEntryTable) \
+                            + sizeof((Config)->GuardAddressTakenIatEntryCount)) \
+                    { \
+                                ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
+                                ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
+                    } \
+                    if ((Config)->Size >= (ULONG) FIELD_OFFSET(Type, GuardLongJumpTargetTable) \
+                            + sizeof((Config)->GuardLongJumpTargetTable) \
+                            + sizeof((Config)->GuardLongJumpTargetCount))\
+                    { \
+                        ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
+                        ADD_VALUE(L"CFG LongJump table entry count", PhaFormatUInt64((Config)->GuardLongJumpTargetCount, TRUE)->Buffer); \
+                    } \
                 } \
             }
 
