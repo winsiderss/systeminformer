@@ -402,6 +402,65 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         }
     }
 
+#ifdef _WIN64
+    // Locate CFG Bitmap for 64-bit process
+    if (!isWow64)
+    {
+        BOOL bFoundCfgBitmap = FALSE;
+        size_t CurrentAllocationSize = 0;
+        PVOID CurrentAllocationBase = NULL;
+        PPH_MEMORY_ITEM CfgBitmapMemoryItem = NULL;
+
+
+        // Find CFG Bitmap based on access protection and peculiar size.
+        for (PLIST_ENTRY listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
+        {
+            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+
+            if (memoryItem->AllocationBase != CurrentAllocationBase)
+            {
+                CurrentAllocationSize = memoryItem->RegionSize;
+                CurrentAllocationBase = memoryItem->AllocationBase;
+                CfgBitmapMemoryItem = memoryItem->AllocationBaseItem; // candidate for cfg bitmap
+            }
+            else
+            {
+                CurrentAllocationSize += memoryItem->RegionSize;
+
+
+                if ((memoryItem->AllocationBaseItem->Type == MEM_MAPPED) &&
+                    (memoryItem->AllocationBaseItem->State == MEM_RESERVE) &&
+                    (memoryItem->AllocationBaseItem->Protect == 0x00) &&
+                    (CurrentAllocationSize == 0x0000020000000000)) // CFG bitmap is 2 To reserved memory for the base allocation.
+                {
+                    bFoundCfgBitmap = TRUE;
+                    break;
+                }
+            }
+        }
+
+        // Tagging memory items
+        if (bFoundCfgBitmap)
+        {
+            PLIST_ENTRY listEntry = &CfgBitmapMemoryItem->ListEntry;
+            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+
+            while (memoryItem->AllocationBaseItem == CfgBitmapMemoryItem)
+            {
+                // NB : we could do a finer tagging since each MEM_COMMIT memory
+                // map is the CFG bitmap of a loaded module. However that would
+                // imply to heavily rely on reverse-engineer results, and might be
+                // brittle to changes made by Windows dev teams.
+                memoryItem->RegionType = CfgBitmapRegion;
+
+                listEntry = listEntry->Flink;
+                memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+            }
+
+        }
+    }
+#endif /* _WIN64 */
+
     // Mapped file, heap segment, unusable
     for (listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
     {
