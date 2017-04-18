@@ -36,6 +36,7 @@
 #include <memprv.h>
 #include <phplug.h>
 #include <procprv.h>
+#include <settings.h>
 
 static PH_STRINGREF EmptyMemoryText = PH_STRINGREF_INIT(L"There are no memory regions to display.");
 
@@ -251,7 +252,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhLoadSettingsMemoryList(&memoryContext->ListContext);
-            PhSetOptionsMemoryList(&memoryContext->ListContext, TRUE);
+            PhSetOptionsMemoryList(&memoryContext->ListContext, !!PhGetIntegerSetting(L"HideFreeRegions"));
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS),
                 memoryContext->ListContext.HideFreeRegions ? BST_CHECKED : BST_UNCHECKED);
 
@@ -541,6 +542,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     BOOLEAN hide;
 
                     hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS)) == BST_CHECKED;
+                    PhSetIntegerSetting(L"HideFreeRegions", hide);
                     PhSetOptionsMemoryList(&memoryContext->ListContext, hide);
                 }
                 break;

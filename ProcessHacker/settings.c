@@ -103,6 +103,7 @@ VOID PhSettingsInitialization(
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
     PhpAddScalableIntegerPairSetting(L"HiddenProcessesWindowSize", L"@96|520,400");
     PhpAddIntegerSetting(L"HideDriverServices", L"0");
+    PhpAddIntegerSetting(L"HideFreeRegions", L"1");
     PhpAddIntegerSetting(L"HideOnClose", L"0");
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideOtherUserProcesses", L"0");
