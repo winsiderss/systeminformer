@@ -406,58 +406,68 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     // Locate CFG Bitmap for 64-bit process
     if (!isWow64)
     {
-        BOOL bFoundCfgBitmap = FALSE;
-        size_t CurrentAllocationSize = 0;
-        PVOID CurrentAllocationBase = NULL;
-        PPH_MEMORY_ITEM CfgBitmapMemoryItem = NULL;
+		typedef struct _LDR_INIT_BLOCK
+		{
+			ULONG cbSize;
+			PVOID Unknown1[21];
+			PVOID CfgBitmapAddress;
+			PVOID Unknown2[3];
+		} LDR_INIT_BLOCK, *PLDR_INIT_BLOCK;
 
 
-        // Find CFG Bitmap based on access protection and peculiar size.
-        for (PLIST_ENTRY listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
-        {
-            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+		LDR_INIT_BLOCK ldrInitBlock = { 0 };
+		PVOID  ldrInitBlockAddress = NULL;
+		PPH_MEMORY_ITEM cfgBitmapMemoryItem;
+		PPH_STRING ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
+		NTSTATUS status;
+		
 
-            if (memoryItem->AllocationBase != CurrentAllocationBase)
-            {
-                CurrentAllocationSize = memoryItem->RegionSize;
-                CurrentAllocationBase = memoryItem->AllocationBase;
-                CfgBitmapMemoryItem = memoryItem->AllocationBaseItem; // candidate for cfg bitmap
-            }
-            else
-            {
-                CurrentAllocationSize += memoryItem->RegionSize;
+		status = PhGetProcedureAddressRemote(
+			ProcessHandle,
+			ntdllFileName->Buffer,
+			"LdrSystemDllInitBlock",
+			0,
+			&ldrInitBlockAddress,
+			NULL
+		);
 
+		if (NT_SUCCESS(status)) {
 
-                if ((memoryItem->AllocationBaseItem->Type == MEM_MAPPED) &&
-                    (memoryItem->AllocationBaseItem->State == MEM_RESERVE) &&
-                    (memoryItem->AllocationBaseItem->Protect == 0x00) &&
-                    (CurrentAllocationSize == 0x0000020000000000)) // CFG bitmap is 2 To reserved memory for the base allocation.
-                {
-                    bFoundCfgBitmap = TRUE;
-                    break;
-                }
-            }
-        }
+			status = NtReadVirtualMemory(
+				ProcessHandle,
+				ldrInitBlockAddress,
+				&ldrInitBlock,
+				sizeof(ldrInitBlock),
+				NULL
+			);
+		}
 
-        // Tagging memory items
-        if (bFoundCfgBitmap)
-        {
-            PLIST_ENTRY listEntry = &CfgBitmapMemoryItem->ListEntry;
-            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+		PhDereferenceObject(ntdllFileName);
 
-            while (memoryItem->AllocationBaseItem == CfgBitmapMemoryItem)
-            {
-                // NB : we could do a finer tagging since each MEM_COMMIT memory
-                // map is the CFG bitmap of a loaded module. However that would
-                // imply to heavily rely on reverse-engineer results, and might be
-                // brittle to changes made by Windows dev teams.
-                memoryItem->RegionType = CfgBitmapRegion;
+		if (!NT_SUCCESS(status))
+			return FALSE;
 
-                listEntry = listEntry->Flink;
-                memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
-            }
+		if (ldrInitBlock.cbSize == sizeof(LDR_INIT_BLOCK))
+		{
+			if (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, ldrInitBlock.CfgBitmapAddress))
+			{
+				// Tagging memory items
+				PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
+				PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
 
-        }
+				while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
+				{
+					// NB : we could do a finer tagging since each MEM_COMMIT memory
+					// map is the CFG bitmap of a loaded module. However that would
+					// imply to heavily rely on reverse-engineer results, and might be
+					// brittle to changes made by Windows dev teams.
+					memoryItem->RegionType = CfgBitmapRegion;
+
+					listEntry = listEntry->Flink;
+					memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+				}
+			}
+		}
     }
 #endif /* _WIN64 */
 
