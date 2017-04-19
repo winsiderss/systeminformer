@@ -12,17 +12,28 @@
 #define PHTHTLC_STARTADDRESS 3
 #define PHTHTLC_PRIORITY 4
 #define PHTHTLC_SERVICE 5
-
-#define PHTHTLC_MAXIMUM 6
+#define PHTHTLC_KERNELTIME 6
+#define PHTHTLC_USERTIME 7
+#define PHTHTLC_CYCLES 8
+#define PHTHTLC_STATE 9
+#define PHTHTLC_STARTED 10
+#define PHTHTLC_STARTMODULE 11
+#define PHTHTLC_BASEPRIORITY 12
+#define PHTHTLC_IOPRIORITY 13
+#define PHTHTLC_PAGEPRIORITY 14
+#define PHTHTLC_IDEALPROCESSOR 15
+#define PHTHTLC_NAME 16
+#define PHTHTLC_MAXIMUM 17
 
 // begin_phapppub
 typedef struct _PH_THREAD_NODE
 {
     PH_TREENEW_NODE Node;
-
     PH_SH_STATE ShState;
 
+    BOOLEAN ThreadLimited;
     HANDLE ThreadId;
+    HANDLE ThreadHandle;
     PPH_THREAD_ITEM ThreadItem;
 // end_phapppub
 
@@ -34,6 +45,19 @@ typedef struct _PH_THREAD_NODE
     PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
     PPH_STRING StartAddressText;
     PPH_STRING PriorityText;
+    PPH_STRING KernelTimeText;
+    PPH_STRING UserTimeText;
+    PPH_STRING ContextSwitchText;
+    PPH_STRING CyclesText;
+    PPH_STRING StateText;
+    PPH_STRING StartedText;
+    PPH_STRING StartModuleText;
+    PPH_STRING BasePriorityText;
+    PPH_STRING IoPriorityText;
+    PPH_STRING PagePriorityText;
+    PPH_STRING IdealProcessorText;
+    PPH_STRING NameText;
+
 // begin_phapppub
 } PH_THREAD_NODE, *PPH_THREAD_NODE;
 // end_phapppub
