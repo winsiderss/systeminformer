@@ -402,75 +402,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         }
     }
 
-#ifdef _WIN64
-    // Locate CFG Bitmap for 64-bit process
-    if (!isWow64)
-    {
-		typedef struct _LDR_INIT_BLOCK
-		{
-			ULONG cbSize;
-			PVOID Unknown1[21];
-			PVOID CfgBitmapAddress;
-			PVOID Unknown2[3];
-		} LDR_INIT_BLOCK, *PLDR_INIT_BLOCK;
-
-
-		LDR_INIT_BLOCK ldrInitBlock = { 0 };
-		PVOID  ldrInitBlockAddress = NULL;
-		PPH_MEMORY_ITEM cfgBitmapMemoryItem;
-		PPH_STRING ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
-		NTSTATUS status;
-		
-
-		status = PhGetProcedureAddressRemote(
-			ProcessHandle,
-			ntdllFileName->Buffer,
-			"LdrSystemDllInitBlock",
-			0,
-			&ldrInitBlockAddress,
-			NULL
-		);
-
-		if (NT_SUCCESS(status)) {
-
-			status = NtReadVirtualMemory(
-				ProcessHandle,
-				ldrInitBlockAddress,
-				&ldrInitBlock,
-				sizeof(ldrInitBlock),
-				NULL
-			);
-		}
-
-		PhDereferenceObject(ntdllFileName);
-
-		if (!NT_SUCCESS(status))
-			return FALSE;
-
-		if (ldrInitBlock.cbSize == sizeof(LDR_INIT_BLOCK))
-		{
-			if (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, ldrInitBlock.CfgBitmapAddress))
-			{
-				// Tagging memory items
-				PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
-				PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
-
-				while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
-				{
-					// NB : we could do a finer tagging since each MEM_COMMIT memory
-					// map is the CFG bitmap of a loaded module. However that would
-					// imply to heavily rely on reverse-engineer results, and might be
-					// brittle to changes made by Windows dev teams.
-					memoryItem->RegionType = CfgBitmapRegion;
-
-					listEntry = listEntry->Flink;
-					memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
-				}
-			}
-		}
-    }
-#endif /* _WIN64 */
-
     // Mapped file, heap segment, unusable
     for (listEntry = List->ListHead.Flink; listEntry != &List->ListHead; listEntry = listEntry->Flink)
     {
@@ -555,6 +486,62 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
         }
     }
+
+#ifdef _WIN64
+    // CFG bitmaps for 64-bit processes
+    if (!isWow64)
+    {
+        LDR_INIT_BLOCK ldrInitBlock = { 0 };
+        PVOID ldrInitBlockBaseAddress = NULL;
+        PPH_MEMORY_ITEM cfgBitmapMemoryItem;
+        PPH_STRING ntdllFileName;
+
+        ntdllFileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\System32\\ntdll.dll");
+        status = PhGetProcedureAddressRemote(
+            ProcessHandle,
+            ntdllFileName->Buffer,
+            "LdrSystemDllInitBlock",
+            0,
+            &ldrInitBlockBaseAddress,
+            NULL
+            );
+
+        if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
+        {
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                ldrInitBlockBaseAddress,
+                &ldrInitBlock,
+                sizeof(LDR_INIT_BLOCK),
+                NULL
+                );
+        }
+
+        PhDereferenceObject(ntdllFileName);
+
+        if (NT_SUCCESS(status) && ldrInitBlock.Size == sizeof(LDR_INIT_BLOCK))
+        {
+            if (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, ldrInitBlock.CfgBitmapAddress))
+            {
+                PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
+                PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+
+                // Tagging memory items
+                while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
+                {
+                    // NB : we could do a finer tagging since each MEM_COMMIT memory
+                    // map is the CFG bitmap of a loaded module. However that would
+                    // imply to heavily rely on reverse-engineer results, and might be
+                    // brittle to changes made by Windows dev teams.
+                    memoryItem->RegionType = CfgBitmapRegion;
+
+                    listEntry = listEntry->Flink;
+                    memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+                }
+            }
+        }
+    }
+#endif
 
     PhFree(processes);
 

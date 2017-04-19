@@ -468,6 +468,25 @@ LdrUnregisterDllNotification(
 
 // end_msdn
 
+// rev
+typedef struct _LDR_INIT_BLOCK
+{
+    ULONG Size;
+    PVOID Unknown1[21];
+    PVOID CfgBitmapAddress;
+    PVOID Unknown2[3];
+} LDR_INIT_BLOCK, *PLDR_INIT_BLOCK;
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+// rev
+NTSYSAPI
+PLDR_INIT_BLOCK
+NTAPI
+LdrSystemDllInitBlock(
+    VOID
+    );
+#endif
+
 // Load as data table
 
 #if (PHNT_VERSION >= PHNT_VISTA)
