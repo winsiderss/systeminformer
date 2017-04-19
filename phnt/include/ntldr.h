@@ -474,7 +474,8 @@ typedef struct _LDR_INIT_BLOCK
     ULONG Size;
     PVOID Unknown1[21];
     PVOID CfgBitmapAddress;
-    PVOID Unknown2[3];
+    ULONG_PTR CfgBitmapSize;
+    PVOID Unknown2[2];
 } LDR_INIT_BLOCK, *PLDR_INIT_BLOCK;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
