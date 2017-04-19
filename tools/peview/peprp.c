@@ -975,14 +975,14 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                     ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
                     ADD_VALUE(L"CFG Function table entry count", PhaFormatUInt64((Config)->GuardCFFunctionCount, TRUE)->Buffer); \
-                    if ((Config)->Size >= (ULONG) FIELD_OFFSET(Type, GuardAddressTakenIatEntryTable) \
+                    if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardAddressTakenIatEntryTable) \
                             + sizeof((Config)->GuardAddressTakenIatEntryTable) \
                             + sizeof((Config)->GuardAddressTakenIatEntryCount)) \
                     { \
                                 ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
                                 ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
                     } \
-                    if ((Config)->Size >= (ULONG) FIELD_OFFSET(Type, GuardLongJumpTargetTable) \
+                    if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardLongJumpTargetTable) \
                             + sizeof((Config)->GuardLongJumpTargetTable) \
                             + sizeof((Config)->GuardLongJumpTargetCount))\
                     { \
@@ -1083,41 +1083,36 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
     )
 {
-    static UNICODE_STRING SymbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
-    NTSTATUS status;
-    WCHAR buffer[512];
-    PWSTR dbghelpPath = L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll";
-    
-    UNICODE_STRING SymbolPathVar = 
+    static UNICODE_STRING symbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
+    PPH_STRING symbolSearchPath;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+    WCHAR buffer[512] = L"";
+    UNICODE_STRING symbolPathUs =
     {
         .Buffer = buffer,
         .MaximumLength = sizeof(buffer)
     };
-    PPH_STRING SymbolCache;
-    PPH_SYMBOL_PROVIDER SymbolProv;
-
-    *SymbolProvider = NULL;
 
     if (!PhSymbolProviderInitialization())
-        return FALSE;		
+        return FALSE;
 
-    PvpLoadDbgHelpFromPath(dbghelpPath);
-    SymbolProv = PhCreateSymbolProvider(NULL);
+    PvpLoadDbgHelpFromPath(L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll");
+    symbolProvider = PhCreateSymbolProvider(NULL);
 
-    // Load user symcache path from _NT_SYMBOL_PATH has set it
-    
-    if (NT_SUCCESS(status = RtlQueryEnvironmentVariable_U(NULL, &SymbolPathVarName, &SymbolPathVar)))
+    // Load symbol path from _NT_SYMBOL_PATH if configured by the user.    
+    if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &symbolPathVarName, &symbolPathUs)))
     {
-        SymbolCache = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", SymbolPathVar.Buffer);
+        symbolSearchPath = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", symbolPathUs.Buffer);
     }
     else
     {
-        SymbolCache = PhFormatString(L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols");
+        symbolSearchPath = PhCreateString(L"SRV**http://msdl.microsoft.com/download/symbols");
     }
 
-    PhSetSearchPathSymbolProvider(SymbolProv, SymbolCache->Buffer);
+    PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
+    PhDereferenceObject(symbolSearchPath);
 
-    *SymbolProvider = SymbolProv;
+    *SymbolProvider = symbolProvider;
     return TRUE;
 }
 
@@ -1170,10 +1165,10 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
                 for (ULONGLONG i = 0; i < cfgConfig.NumberOfGuardFunctionEntries; i++)
                 {
                     INT lvItemIndex;
-                    PPH_STRING symbol;
-                    PPH_STRING symbolName;
                     ULONG64 displacement;
-                    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel;
+                    PPH_STRING symbol;
+                    PPH_STRING symbolName = NULL;
+                    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
                     IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
 
                     // Parse cfg entry : if it fails, just skip it ?
