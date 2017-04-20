@@ -624,8 +624,8 @@ NTSTATUS PhGetMappedImageExports(
             );
         PhpMappedImageProbe(
             MappedImage,
-            Exports->OrdinalTable,
-            exportDirectory->NumberOfFunctions * sizeof(USHORT)
+            Exports->OrdinalTable,  // ordinal list for named exports
+            exportDirectory->NumberOfNames * sizeof(USHORT)
             );
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -648,18 +648,31 @@ NTSTATUS PhGetMappedImageExportEntry(
     _Out_ PPH_MAPPED_IMAGE_EXPORT_ENTRY Entry
     )
 {
+    ULONG nameIndex = 0;
+    BOOLEAN exportByName = FALSE;
     PSTR name;
 
     if (Index >= Exports->ExportDirectory->NumberOfFunctions)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    Entry->Ordinal = Exports->OrdinalTable[Index] + (USHORT)Exports->ExportDirectory->Base;
+    Entry->Ordinal = (USHORT)Index + (USHORT)Exports->ExportDirectory->Base;
 
-    if (Index < Exports->ExportDirectory->NumberOfNames)
+    // look into named exports ordinal list.
+    for (nameIndex = 0; nameIndex  < Exports->ExportDirectory->NumberOfNames; nameIndex++)
+    {
+        if (Index == Exports->OrdinalTable[nameIndex])
+        {
+            exportByName = TRUE;
+            break;
+        }
+    }
+
+
+    if (exportByName)
     {
         name = PhMappedImageRvaToVa(
             Exports->MappedImage,
-            Exports->NamePointerTable[Index],
+            Exports->NamePointerTable[nameIndex],
             NULL
             );
 
