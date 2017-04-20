@@ -519,9 +519,17 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
         PhDereferenceObject(ntdllFileName);
 
-        if (NT_SUCCESS(status) && ldrInitBlock.Size == sizeof(LDR_INIT_BLOCK))
+        if (NT_SUCCESS(status))
         {
-            if (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, ldrInitBlock.CfgBitmapAddress))
+            PVOID cfgBitmapAddress = NULL;
+
+            // TODO: Remove this code once most users have updated their machines.
+            if (ldrInitBlock.Size == sizeof(LDR_INIT_BLOCK))
+                cfgBitmapAddress = ldrInitBlock.CfgBitmapAddress; // 15063
+            else if (ldrInitBlock.Size == 128)
+                cfgBitmapAddress = ldrInitBlock.Unknown1[11]; // 14393
+
+            if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
             {
                 PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
                 PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
