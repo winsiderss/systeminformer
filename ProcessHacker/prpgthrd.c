@@ -591,7 +591,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             if (WINDOWS_HAS_CYCLE_TIME)
             {
                 HANDLE processHandle;
-                PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
 
                 // We make a distinction between PROCESS_QUERY_INFORMATION and PROCESS_QUERY_LIMITED_INFORMATION since
                 // the latter can be used when opening audiodg.exe even though we can't access its threads using
@@ -611,7 +610,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     threadsContext->ListContext.UseCycleTime = TRUE;
 
                     // We can't use cycle time for protected processes (without KProcessHacker).
-                    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &extendedBasicInfo)) && extendedBasicInfo.IsProtectedProcess)
+                    if (processItem->IsProtectedProcess)
                     {
                         threadsContext->ListContext.UseCycleTime = FALSE;
                     }

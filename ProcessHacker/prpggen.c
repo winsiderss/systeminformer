@@ -386,16 +386,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     }
                 }
                 else
-                {
-                    PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
-
-                    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(
-                        processHandle,
-                        &extendedBasicInfo
-                        )))
-                    {
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION, extendedBasicInfo.IsProtectedProcess ? L"Yes" : L"None");
-                    }
+                { 
+                    SetDlgItemText(hwndDlg, IDC_PROTECTION, processItem->IsProtectedProcess ? L"Yes" : L"None");
                 }
             }
 
