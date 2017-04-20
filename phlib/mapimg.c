@@ -658,7 +658,7 @@ NTSTATUS PhGetMappedImageExportEntry(
     Entry->Ordinal = (USHORT)Index + (USHORT)Exports->ExportDirectory->Base;
 
     // look into named exports ordinal list.
-    for (nameIndex = 0; nameIndex  < Exports->ExportDirectory->NumberOfNames; nameIndex++)
+    for (nameIndex = 0; nameIndex < Exports->ExportDirectory->NumberOfNames; nameIndex++)
     {
         if (Index == Exports->OrdinalTable[nameIndex])
         {
