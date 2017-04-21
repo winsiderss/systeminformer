@@ -270,26 +270,25 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(
+    _In_ PPH_PROCESS_PROPSHEETCONTEXT Context,
     _In_ HWND hwnd
     )
 {
-    PPH_PROCESS_PROPSHEETCONTEXT propSheetContext = PhpGetPropSheetContext(hwnd);
-
-    if (!propSheetContext->LayoutInitialized)
+    if (!Context->LayoutInitialized)
     {
         HWND tabControlHandle;
         PPH_LAYOUT_ITEM tabControlItem;
         PPH_LAYOUT_ITEM tabPageItem;
 
         tabControlHandle = PropSheet_GetTabControl(hwnd);
-        tabControlItem = PhAddLayoutItem(&propSheetContext->LayoutManager, tabControlHandle,
+        tabControlItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle,
             NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
-        tabPageItem = PhAddLayoutItem(&propSheetContext->LayoutManager, tabControlHandle,
+        tabPageItem = PhAddLayoutItem(&Context->LayoutManager, tabControlHandle,
             NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
 
-        propSheetContext->TabPageItem = tabPageItem;
+        Context->TabPageItem = tabPageItem;
 
-        PhAddLayoutItem(&propSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL),
+        PhAddLayoutItem(&Context->LayoutManager, GetDlgItem(hwnd, IDCANCEL),
             NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
         // Hide the OK button.
@@ -297,7 +296,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         // Set the Cancel button's text to "Close".
         SetDlgItemText(hwnd, IDCANCEL, L"Close");
 
-        propSheetContext->LayoutInitialized = TRUE;
+        Context->LayoutInitialized = TRUE;
 
         return TRUE;
     }
@@ -474,7 +473,7 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
     propSheetContext = PhpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
-    doLayoutStage2 = PhpInitializePropSheetLayoutStage1(parent);
+    doLayoutStage2 = PhpInitializePropSheetLayoutStage1(propSheetContext, parent);
 
     if (ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT)
         realParentItem = ParentItem;
