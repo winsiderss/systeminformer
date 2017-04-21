@@ -54,6 +54,53 @@ namespace CustomBuildTool
                 return;
             }
 
+            if (ProgramArgs.ContainsKey("-cleansdk"))
+            {
+                if (!Build.InitializeBuildEnvironment(false))
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
+                if (!Build.BuildSolution("ProcessHacker.sln"))
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
+                PrintColorMessage("Copying SDK headers...", ConsoleColor.Cyan);
+                if (!Build.CopyPluginSdkHeaders())
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
+                PrintColorMessage("Copying version headers...", ConsoleColor.Cyan);
+                if (!Build.CopyVersionHeader())
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
+                PrintColorMessage("Building sdk resource header...", ConsoleColor.Cyan);
+                if (!Build.FixupResourceHeader())
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
+                PrintColorMessage("Copying plugin linker files...", ConsoleColor.Cyan);
+                if (!Build.CopyLibFiles())
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
+                Build.CleanupBuildEnvironment();
+                Build.ShowBuildStats();
+                return;
+            }
+
             if (ProgramArgs.ContainsKey("-sdk"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
