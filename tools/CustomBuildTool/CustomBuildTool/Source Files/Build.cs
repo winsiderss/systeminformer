@@ -192,19 +192,23 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(bool ShowVersion = false)
         {
-            string currentBranch = Win32.ExecCommand(GitExePath, "rev-parse --abbrev-ref HEAD");
-            string currentCommitTag = Win32.ExecCommand(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD
             string currentGitTag = Win32.ExecCommand(GitExePath, "describe --abbrev=0 --tags --always");
             string latestGitRevision = Win32.ExecCommand(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
-            //string latestGitCount = Win32.GitExecCommand("rev-list --count " + BuildBranch);         
-            string buildMessageColor = Win32.ExecCommand(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
 
             BuildMessage = Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
             BuildRevision = latestGitRevision.Trim();
+            if (string.IsNullOrEmpty(BuildRevision))
+                BuildRevision = "0";
+
             BuildVersion = "3.0." + BuildRevision; // TODO: Remove hard-coded major/minor version.
 
             if (ShowVersion)
             {
+                string currentBranch = Win32.ExecCommand(GitExePath, "rev-parse --abbrev-ref HEAD");
+                string currentCommitTag = Win32.ExecCommand(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD
+                //string latestGitCount = Win32.GitExecCommand("rev-list --count " + BuildBranch);         
+                string buildMessageColor = Win32.ExecCommand(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
+
                 Console.WriteLine("Branch: " + currentBranch);
                 Console.WriteLine("Version: " + BuildVersion);
                 Console.WriteLine("Commit: " + currentCommitTag);
@@ -901,7 +905,8 @@ namespace CustomBuildTool
             if (!string.IsNullOrEmpty(error32))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] ");
+                Console.WriteLine("[ERROR] " + error32);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 
@@ -921,7 +926,8 @@ namespace CustomBuildTool
             if (!string.IsNullOrEmpty(error64))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] ");
+                Console.WriteLine("[ERROR] " + error64);
+                Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
 

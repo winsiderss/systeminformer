@@ -105,7 +105,6 @@ Desktop.ini
 ##########################
 
 build/installer/*.exe
-ProcessHacker/include/phapprev.h
 ProcessHacker/sdk/phapppub.h
 plugins-extra/
 /sdk/
