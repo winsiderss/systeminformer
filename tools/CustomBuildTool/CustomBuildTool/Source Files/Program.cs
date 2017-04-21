@@ -21,14 +21,14 @@ namespace CustomBuildTool
 
             ProgramArgs = ParseArgs(args);
 
-            if (!Build.InitializeBuildEnvironment())
-            {
-                Build.CleanupBuildEnvironment();
-                return;
-            }
-
             if (ProgramArgs.ContainsKey("-updaterev"))
             {
+                if (!Build.InitializeBuildEnvironment(false))
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
                 PrintColorMessage("Updating header version...", ConsoleColor.Cyan);
                 Build.ShowBuildEnvironment();
                 Build.UpdateHeaderFileVersion();
@@ -37,6 +37,12 @@ namespace CustomBuildTool
 
             if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
+                if (!Build.InitializeBuildEnvironment(false))
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
                 PrintColorMessage("Building public headers...", ConsoleColor.Cyan);
                 Build.BuildPublicHeaderFiles();
                 return;
@@ -50,6 +56,12 @@ namespace CustomBuildTool
 
             if (ProgramArgs.ContainsKey("-sdk"))
             {
+                if (!Build.InitializeBuildEnvironment(false))
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
                 PrintColorMessage("Copying SDK headers...", ConsoleColor.Cyan);
                 if (!Build.CopyPluginSdkHeaders())
                 {
@@ -85,6 +97,12 @@ namespace CustomBuildTool
 
             if (ProgramArgs.ContainsKey("-exe"))
             {
+                if (!Build.InitializeBuildEnvironment(false))
+                {
+                    Build.CleanupBuildEnvironment();
+                    return;
+                }
+
                 if (!Build.BuildBinZip())
                 {
                     Build.CleanupBuildEnvironment();
@@ -99,6 +117,12 @@ namespace CustomBuildTool
 
                 Build.BuildSrcZip();
                 Build.BuildSdkZip();
+                return;
+            }
+
+            if (!Build.InitializeBuildEnvironment(true))
+            {
+                Build.CleanupBuildEnvironment();
                 return;
             }
 

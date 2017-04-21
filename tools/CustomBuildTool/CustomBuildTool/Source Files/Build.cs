@@ -113,7 +113,7 @@ namespace CustomBuildTool
         };
 #endregion
 
-        public static bool InitializeBuildEnvironment()
+        public static bool InitializeBuildEnvironment(bool CheckDependencies)
         {
             TimeStart = DateTime.Now;
             GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\cmd\\git.exe");
@@ -159,12 +159,15 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (!File.Exists(GitExePath))
+            if (CheckDependencies)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Git not installed... Exiting.");
-                Console.ForegroundColor = ConsoleColor.White;
-                return false;
+                if (!File.Exists(GitExePath))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Git not installed... Exiting.");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    return false;
+                }
             }
 
             if (!Directory.Exists(BuildOutputFolder))
