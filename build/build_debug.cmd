@@ -1,6 +1,5 @@
 @echo off
 
-chdir ..\
-tools\CustomBuildTool\CustomBuildTool\bin\Debug\CustomBuildTool.exe -debug
+CustomBuildTool.exe -debug
 
 pause
