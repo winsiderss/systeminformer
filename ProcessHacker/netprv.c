@@ -61,39 +61,6 @@ typedef struct _PHP_RESOLVE_CACHE_ITEM
     PPH_STRING HostString;
 } PHP_RESOLVE_CACHE_ITEM, *PPHP_RESOLVE_CACHE_ITEM;
 
-typedef DWORD (WINAPI *_GetExtendedTcpTable)(
-    _Out_writes_bytes_opt_(*pdwSize) PVOID pTcpTable,
-    _Inout_ PDWORD pdwSize,
-    _In_ BOOL bOrder,
-    _In_ ULONG ulAf,
-    _In_ TCP_TABLE_CLASS TableClass,
-    _In_ ULONG Reserved
-    );
-
-typedef DWORD (WINAPI *_GetExtendedUdpTable)(
-    _Out_writes_bytes_opt_(*pdwSize) PVOID pUdpTable,
-    _Inout_ PDWORD pdwSize,
-    _In_ BOOL bOrder,
-    _In_ ULONG ulAf,
-    _In_ UDP_TABLE_CLASS TableClass,
-    _In_ ULONG Reserved
-    );
-
-typedef int (WSAAPI *_WSAStartup)(
-    _In_ WORD wVersionRequested,
-    _Out_ LPWSADATA lpWSAData
-    );
-
-typedef INT (WSAAPI *_GetNameInfoW)(
-    _In_reads_bytes_(SockaddrLength) const SOCKADDR *pSockaddr,
-    _In_ socklen_t SockaddrLength,
-    _Out_writes_opt_(NodeBufferSize) PWCHAR pNodeBuffer,
-    _In_ DWORD NodeBufferSize,
-    _Out_writes_opt_(ServiceBufferSize) PWCHAR pServiceBuffer,
-    _In_ DWORD ServiceBufferSize,
-    _In_ INT Flags
-    );
-
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -132,20 +99,14 @@ PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemModifiedEvent);
 PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemRemovedEvent);
 PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemsUpdatedEvent);
 
-BOOLEAN PhEnableNetworkProviderResolve = TRUE;
-
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhNetworkProviderWorkQueue;
 SLIST_HEADER PhNetworkItemQueryListHead;
 
+BOOLEAN PhEnableNetworkProviderResolve = TRUE;
+static BOOLEAN NetworkImportDone = FALSE;
 static PPH_HASHTABLE PhpResolveCacheHashtable;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
-
-static BOOLEAN NetworkImportDone = FALSE;
-static _GetExtendedTcpTable GetExtendedTcpTable_I;
-static _GetExtendedUdpTable GetExtendedUdpTable_I;
-static _WSAStartup WSAStartup_I;
-static _GetNameInfoW GetNameInfoW_I;
 
 BOOLEAN PhNetworkProviderInitialization(
     VOID
@@ -333,9 +294,6 @@ PPH_STRING PhGetHostNameFromAddress(
     socklen_t length;
     PPH_STRING hostName;
 
-    if (!GetNameInfoW_I)
-        return NULL;
-
     if (Address->Type == PH_IPV4_NETWORK_TYPE)
     {
         ipv4Address.sin_family = AF_INET;
@@ -361,7 +319,7 @@ PPH_STRING PhGetHostNameFromAddress(
 
     hostName = PhCreateStringEx(NULL, 128);
 
-    if (GetNameInfoW_I(
+    if (GetNameInfoW(
         address,
         length,
         hostName->Buffer,
@@ -375,7 +333,7 @@ PPH_STRING PhGetHostNameFromAddress(
         PhDereferenceObject(hostName);
         hostName = PhCreateStringEx(NULL, NI_MAXHOST * 2);
 
-        if (GetNameInfoW_I(
+        if (GetNameInfoW(
             address,
             length,
             hostName->Buffer,
@@ -509,22 +467,9 @@ VOID PhNetworkProviderUpdate(
     if (!NetworkImportDone)
     {
         WSADATA wsaData;
-        HMODULE iphlpapi;
-        HMODULE ws2_32;
-
-        iphlpapi = LoadLibrary(L"iphlpapi.dll");
-        GetExtendedTcpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
-        GetExtendedUdpTable_I = PhGetProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
-        ws2_32 = LoadLibrary(L"ws2_32.dll");
-        WSAStartup_I = PhGetProcedureAddress(ws2_32, "WSAStartup", 0);
-        GetNameInfoW_I = PhGetProcedureAddress(ws2_32, "GetNameInfoW", 0);
 
         // Make sure WSA is initialized.
-        if (WSAStartup_I)
-        {
-            WSAStartup_I(WINSOCK_VERSION, &wsaData);
-        }
-
+        WSAStartup(WINSOCK_VERSION, &wsaData);
         NetworkImportDone = TRUE;
     }
 
@@ -847,16 +792,13 @@ BOOLEAN PhGetNetworkConnections(
     ULONG index = 0;
     PPH_NETWORK_CONNECTION connections;
 
-    if (!GetExtendedTcpTable_I || !GetExtendedUdpTable_I)
-        return FALSE;
-
     // TCP IPv4
 
     tableSize = 0;
-    GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedTcpTable_I(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)
+    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)
     {
         tcp4Table = table;
         count += tcp4Table->dwNumEntries;
@@ -870,7 +812,7 @@ BOOLEAN PhGetNetworkConnections(
     // TCP IPv6
 
     tableSize = 0;
-    GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
 
     // Note: On Windows XP, GetExtendedTcpTable had a bug where it calculated the required buffer size
     // for IPv6 TCP_TABLE_OWNER_MODULE_ALL requests incorrectly, causing it to return the wrong size
@@ -887,7 +829,7 @@ BOOLEAN PhGetNetworkConnections(
 
     table = PhAllocate(tableSize);
 
-    if (GetExtendedTcpTable_I(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)
+    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)
     {
         tcp6Table = table;
         count += tcp6Table->dwNumEntries;
@@ -901,10 +843,10 @@ BOOLEAN PhGetNetworkConnections(
     // UDP IPv4
 
     tableSize = 0;
-    GetExtendedUdpTable_I(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
+    GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedUdpTable_I(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == 0)
+    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == 0)
     {
         udp4Table = table;
         count += udp4Table->dwNumEntries;
@@ -918,10 +860,10 @@ BOOLEAN PhGetNetworkConnections(
     // UDP IPv6
 
     tableSize = 0;
-    GetExtendedUdpTable_I(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
+    GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedUdpTable_I(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == 0)
+    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == 0)
     {
         udp6Table = table;
         count += udp6Table->dwNumEntries;
