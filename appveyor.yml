@@ -32,7 +32,7 @@ test: off
 
 # Run custom build script.
 build_script:
-- ps: .\build\internal\build.ps1
+- cmd: .\build\build_appveyor.cmd
 
 # Setup build notifications.
 notifications:
