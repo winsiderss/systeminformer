@@ -90,13 +90,4 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     _In_ SI_PAGE_TYPE uPage
     );
 
-typedef HPROPSHEETPAGE (WINAPI *_CreateSecurityPage)(
-    _In_ LPSECURITYINFO psi
-    );
-
-typedef BOOL (WINAPI *_EditSecurity)(
-    _In_ HWND hwndOwner,
-    _In_ LPSECURITYINFO psi
-    );
-
 #endif

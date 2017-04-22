@@ -42,26 +42,6 @@ static ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_PropertySheetPageCallback
 };
 
-static PH_INITONCE SecurityEditorInitOnce = PH_INITONCE_INIT;
-static _CreateSecurityPage CreateSecurityPage_I;
-static _EditSecurity EditSecurity_I;
-
-FORCEINLINE VOID PhpSecurityEditorInitialization(
-    VOID
-    )
-{
-    if (PhBeginInitOnce(&SecurityEditorInitOnce))
-    {
-        HMODULE aclui;
-
-        aclui = LoadLibrary(L"aclui.dll");
-        CreateSecurityPage_I = PhGetProcedureAddress(aclui, "CreateSecurityPage", 0);
-        EditSecurity_I = PhGetProcedureAddress(aclui, "EditSecurity", 0);
-
-        PhEndInitOnce(&SecurityEditorInitOnce);
-    }
-}
-
 /**
  * Creates a security editor page.
  *
@@ -86,11 +66,6 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     ISecurityInformation *info;
     HPROPSHEETPAGE page;
 
-    PhpSecurityEditorInitialization();
-
-    if (!CreateSecurityPage_I)
-        return NULL;
-
     info = PhSecurityInformation_Create(
         ObjectName,
         GetObjectSecurity,
@@ -101,7 +76,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
         TRUE
         );
 
-    page = CreateSecurityPage_I(info);
+    page = CreateSecurityPage(info);
 
     PhSecurityInformation_Release(info);
 
@@ -133,11 +108,6 @@ VOID PhEditSecurity(
 {
     ISecurityInformation *info;
 
-    PhpSecurityEditorInitialization();
-
-    if (!EditSecurity_I)
-        return;
-
     info = PhSecurityInformation_Create(
         ObjectName,
         GetObjectSecurity,
@@ -148,7 +118,7 @@ VOID PhEditSecurity(
         FALSE
         );
 
-    EditSecurity_I(hWnd, info);
+    EditSecurity(hWnd, info);
 
     PhSecurityInformation_Release(info);
 }
