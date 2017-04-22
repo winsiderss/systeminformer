@@ -74,11 +74,6 @@ static BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     return TRUE;
 }
 
-VOID ac()
-{
-
-}
-
 INT CALLBACK MainPropSheet_Callback(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
