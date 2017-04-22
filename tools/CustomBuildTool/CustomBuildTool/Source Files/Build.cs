@@ -191,7 +191,26 @@ namespace CustomBuildTool
 
         public static void CleanupBuildEnvironment()
         {
-            //Console.WriteLine("Cleaning up...");
+            try
+            {
+                if (BuildNightly)
+                {
+                    if (File.Exists("build\\kph.key"))
+                        File.Delete("build\\kph.key");
+
+                    if (File.Exists("build\\nightly.key"))
+                        File.Delete("build\\nightly.key");
+                }
+
+                if (File.Exists("ProcessHacker\\include\\phapprev.h"))
+                    File.Delete("ProcessHacker\\include\\phapprev.h");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[CleanupBuildEnvironment] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
+            }
         }
 
         public static void ShowBuildEnvironment(bool ShowVersion = false)

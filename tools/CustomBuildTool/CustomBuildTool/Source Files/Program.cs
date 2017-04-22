@@ -21,13 +21,20 @@ namespace CustomBuildTool
 
             ProgramArgs = ParseArgs(args);
 
+            if (ProgramArgs.ContainsKey("-cleanup"))
+            {
+                if (!Build.InitializeBuildEnvironment(false))
+                    return;
+
+                PrintColorMessage("Cleanup build...", ConsoleColor.Cyan);
+                Build.CleanupBuildEnvironment();
+                return;
+            }
+
             if (ProgramArgs.ContainsKey("-updaterev"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Updating header version...", ConsoleColor.Cyan);
                 Build.ShowBuildEnvironment();
@@ -38,10 +45,7 @@ namespace CustomBuildTool
             if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Building public headers...", ConsoleColor.Cyan);
                 Build.BuildPublicHeaderFiles();
@@ -57,46 +61,31 @@ namespace CustomBuildTool
             if (ProgramArgs.ContainsKey("-cleansdk"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 if (!Build.BuildSolution("ProcessHacker.sln", true, true))
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Copying SDK headers...", ConsoleColor.Cyan);
+
                 if (!Build.CopyPluginSdkHeaders())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Copying version headers...", ConsoleColor.Cyan);
+
                 if (!Build.CopyVersionHeader())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Building sdk resource header...", ConsoleColor.Cyan);
+
                 if (!Build.FixupResourceHeader())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Copying plugin linker files...", ConsoleColor.Cyan);
-                if (!Build.CopyLibFiles())
-                {
-                    Build.CleanupBuildEnvironment();
-                    return;
-                }
 
-                Build.CleanupBuildEnvironment();
+                if (!Build.CopyLibFiles())
+                    return;
+
                 Build.ShowBuildStats();
                 return;
             }
@@ -105,39 +94,29 @@ namespace CustomBuildTool
             {
                 if (!Build.InitializeBuildEnvironment(false))
                 {
-                    Build.CleanupBuildEnvironment();
                     return;
                 }
 
                 PrintColorMessage("Copying SDK headers...", ConsoleColor.Cyan);
                 if (!Build.CopyPluginSdkHeaders())
                 {
-                    Build.CleanupBuildEnvironment();
                     return;
                 }
 
                 PrintColorMessage("Copying version headers...", ConsoleColor.Cyan);
                 if (!Build.CopyVersionHeader())
                 {
-                    Build.CleanupBuildEnvironment();
                     return;
                 }
 
                 PrintColorMessage("Building sdk resource header...", ConsoleColor.Cyan);
                 if (!Build.FixupResourceHeader())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 PrintColorMessage("Copying plugin linker files...", ConsoleColor.Cyan);
                 if (!Build.CopyLibFiles())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
-                Build.CleanupBuildEnvironment();
                 Build.ShowBuildStats();
                 return;
             }
@@ -145,22 +124,13 @@ namespace CustomBuildTool
             if (ProgramArgs.ContainsKey("-exe"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 if (!Build.BuildBinZip())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 if (!Build.BuildSetupExe())
-                {
-                    Build.CleanupBuildEnvironment();
                     return;
-                }
 
                 Build.BuildSrcZip();
                 Build.BuildSdkZip();
@@ -168,10 +138,7 @@ namespace CustomBuildTool
             }
 
             if (!Build.InitializeBuildEnvironment(true))
-            {
-                Build.CleanupBuildEnvironment();
                 return;
-            }
 
             PrintColorMessage("Setting up build environment...", ConsoleColor.Cyan);
             Build.ShowBuildEnvironment();
@@ -179,83 +146,71 @@ namespace CustomBuildTool
 
             if (!Build.BuildSolution("ProcessHacker.sln", true, true))
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Building KPH signature...", ConsoleColor.Cyan);
             if (!Build.BuildKphSignatureFile())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Copying text files...", ConsoleColor.Cyan);
             if (!Build.CopyTextFiles())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
             if (!Build.CopyKProcessHacker())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Copying SDK headers...", ConsoleColor.Cyan);
             if (!Build.CopyPluginSdkHeaders())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Copying version headers...", ConsoleColor.Cyan);
             if (!Build.CopyVersionHeader())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Building sdk resource header...", ConsoleColor.Cyan);
             if (!Build.FixupResourceHeader())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Copying plugin linker files...", ConsoleColor.Cyan);
             if (!Build.CopyLibFiles())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             if (!Build.BuildSolution("plugins\\Plugins.sln", true, true))
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Copying Wow64 support files...", ConsoleColor.Cyan);
             if (!Build.CopyWow64Files())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
             if (!Build.BuildSetupExe())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             PrintColorMessage("Building build-bin.zip...", ConsoleColor.Cyan);
             if (!Build.BuildBinZip())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
@@ -266,7 +221,6 @@ namespace CustomBuildTool
             PrintColorMessage("Building build-checksums.txt...", ConsoleColor.Cyan);
             if (!Build.BuildChecksumsFile())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
@@ -276,14 +230,11 @@ namespace CustomBuildTool
             PrintColorMessage("Moving build-setup.exe...", ConsoleColor.Cyan);
             if (!Build.MoveBuildFiles())
             {
-                Build.CleanupBuildEnvironment();
                 return;
             }
 
             Build.WebServiceUploadBuild();
             Build.WebServiceUpdateConfig();
-
-            Build.CleanupBuildEnvironment();
             Build.ShowBuildStats();
 
             Console.ReadKey();

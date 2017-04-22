@@ -105,11 +105,13 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\build_updaterev.bat</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Message>Cleaning up build...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -135,11 +137,13 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\build_updaterev.bat</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Message>Cleaning up build...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -172,11 +176,13 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\build_updaterev.bat</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Message>Cleaning up build...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -208,11 +214,13 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\build_updaterev.bat</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Message>Cleaning up build...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="about.c" />
