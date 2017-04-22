@@ -1,3 +1,5 @@
 @echo off
 
-CustomBuildTool.exe -nightly
+chdir ..\
+
+build\CustomBuildTool.exe -nightly
