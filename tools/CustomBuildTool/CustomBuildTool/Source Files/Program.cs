@@ -5,7 +5,8 @@ namespace CustomBuildTool
 {
     public static class Program
     {
-        private static Dictionary<string, string> ProgramArgs;
+        public static Dictionary<string, string> ProgramArgs;
+        public static bool BuildDebug = false;
 
         public static void PrintColorMessage(string Message, ConsoleColor Color)
         {
@@ -20,6 +21,7 @@ namespace CustomBuildTool
                 Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
             ProgramArgs = ParseArgs(args);
+            BuildDebug = ProgramArgs.ContainsKey("-debug");
 
             if (ProgramArgs.ContainsKey("-cleanup"))
             {

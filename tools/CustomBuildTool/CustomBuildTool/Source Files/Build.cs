@@ -214,7 +214,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static void ShowBuildEnvironment(bool ShowVersion = false)
+        public static void ShowBuildEnvironment()
         {
             string currentGitTag = Win32.ExecCommand(GitExePath, "describe --abbrev=0 --tags --always");
             string latestGitRevision = Win32.ExecCommand(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
@@ -227,7 +227,7 @@ namespace CustomBuildTool
             BuildVersion = "3.0." + BuildRevision; // TODO: Remove hard-coded major/minor version.
             BuildMessage = Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
             
-            if (ShowVersion)
+            if (Program.BuildDebug || BuildNightly)
             {
                 string currentBranch = Win32.ExecCommand(GitExePath, "rev-parse --abbrev-ref HEAD");
                 string currentCommitTag = Win32.ExecCommand(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD
