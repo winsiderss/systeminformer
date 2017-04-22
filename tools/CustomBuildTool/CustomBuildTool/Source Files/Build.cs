@@ -775,7 +775,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static async void UpdateBuildWebService()
+        public static async void WebServiceUpdateConfig()
         {
             string buildPostString;
             string buildPosturl;
@@ -839,6 +839,40 @@ namespace CustomBuildTool
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[UpdateBuildWebService] " + ex);
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+        }
+
+        public static void WebServiceUploadBuild()
+        {
+            string status;
+
+            if (!BuildNightly)
+                return;
+
+            Console.WriteLine("Uploading processhacker-build-setup.exe...");
+            status = Win32.ExecCommand(
+                "appveyor",
+                "PushArtifact " + BuildOutputFolder + "\\processhacker-build-setup.exe"
+                );
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[UploadBuildWebService] " + status);
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
+            Console.WriteLine("Uploading processhacker-build-bin.zip...");
+            status = Win32.ExecCommand(
+                "appveyor",
+                "PushArtifact " + BuildOutputFolder + "\\processhacker-build-bin.zip"
+                );
+
+            if (!string.IsNullOrEmpty(status))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[UploadBuildWebService] " + status);
                 Console.ForegroundColor = ConsoleColor.White;
             }
         }

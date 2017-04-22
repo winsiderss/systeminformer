@@ -280,7 +280,9 @@ namespace CustomBuildTool
                 return;
             }
 
-            Build.UpdateBuildWebService();
+            Build.WebServiceUploadBuild();
+            Build.WebServiceUpdateConfig();
+
             Build.CleanupBuildEnvironment();
             Build.ShowBuildStats();
 
