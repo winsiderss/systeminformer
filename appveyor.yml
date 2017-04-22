@@ -23,10 +23,6 @@ clone_folder: C:\projects\processhacker
 matrix:
   fast_finish: true
 
-# Install inno setup.
-install:
-  - choco install -y InnoSetup
-
 # Disable running any test assemblies.
 test: off
 
