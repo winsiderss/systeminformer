@@ -41,7 +41,7 @@
 #endif
 
 #ifndef PHNT_VERSION
-#define PHNT_VERSION PHNT_WINXP
+#define PHNT_VERSION PHNT_WIN7
 #endif
 
 // Options

@@ -3,6 +3,7 @@
  *   native wrapper and support functions
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -6096,13 +6097,13 @@ NTSTATUS PhCreateFileWin32Ex(
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-    if (!RtlDosPathNameToNtPathName_U(
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        ))
-        return STATUS_OBJECT_NAME_NOT_FOUND;
+        )))
+        return status;
 
     InitializeObjectAttributes(
         &oa,
@@ -6126,7 +6127,7 @@ NTSTATUS PhCreateFileWin32Ex(
         0
         );
 
-    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+    RtlFreeUnicodeString(&fileName);
 
     if (NT_SUCCESS(status))
     {
@@ -6154,13 +6155,13 @@ NTSTATUS PhQueryFullAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES oa;
 
-    if (!RtlDosPathNameToNtPathName_U(
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        ))
-        return STATUS_OBJECT_NAME_NOT_FOUND;
+        )))
+        return status;
 
     InitializeObjectAttributes(
         &oa,
@@ -6171,7 +6172,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
         );
 
     status = NtQueryFullAttributesFile(&oa, FileInformation);
-    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+    RtlFreeUnicodeString(&fileName);
 
     return status;
 }
