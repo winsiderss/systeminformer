@@ -62,7 +62,7 @@ namespace CustomBuildTool
                     return;
                 }
 
-                if (!Build.BuildSolution("ProcessHacker.sln"))
+                if (!Build.BuildSolution("ProcessHacker.sln", true, true))
                 {
                     Build.CleanupBuildEnvironment();
                     return;
@@ -177,7 +177,7 @@ namespace CustomBuildTool
             Build.ShowBuildEnvironment();
             Build.BuildSecureFiles();
 
-            if (!Build.BuildSolution("ProcessHacker.sln"))
+            if (!Build.BuildSolution("ProcessHacker.sln", true, true))
             {
                 Build.CleanupBuildEnvironment();
                 return;
@@ -232,7 +232,7 @@ namespace CustomBuildTool
                 return;
             }
 
-            if (!Build.BuildSolution("plugins\\Plugins.sln"))
+            if (!Build.BuildSolution("plugins\\Plugins.sln", true, true))
             {
                 Build.CleanupBuildEnvironment();
                 return;

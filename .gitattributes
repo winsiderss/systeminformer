@@ -1,10 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=crlf
 
-# Files that will always have CRLF line endings on checkout.
-*.sln text eol=crlf
-*.bat text eol=crlf
-
 # Custom for Visual Studio
 *.cs     diff=csharp
 *.sln    merge=union

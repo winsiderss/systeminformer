@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Resource Files\Images">
+      <UniqueIdentifier>{3f81aff6-dff1-4573-bb20-ac132fa9297b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Text">
+      <UniqueIdentifier>{de42287f-b6af-40c6-b76a-f56ee7dcf507}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\pages">
+      <UniqueIdentifier>{c394360d-d423-4249-a23e-70558948e7f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Binary">
+      <UniqueIdentifier>{fcf7dac9-ef61-47e6-8aae-818354f6b4df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\zip">
+      <UniqueIdentifier>{5c3f4462-038f-468f-8ab2-7e153d301c33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zip">
+      <UniqueIdentifier>{7a7dfb06-20d6-4ea2-8992-26ea6e6cf1d9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="page1.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="page2.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="page4.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="page3.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="extract.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="setup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="appsup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz\minizip.c">
+      <Filter>Source Files\zip</Filter>
+    </ClCompile>
+    <ClCompile Include="update.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\setup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\appsup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz.h">
+      <Filter>Header Files\zip</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\ProcessHacker.ico">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\ProcessHacker.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\Licence.txt">
+      <Filter>Resource Files\Text</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="resources\app.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\ClientBin\processhacker-build-bin.zip">
+      <Filter>Resource Files\Binary</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -10,6 +10,7 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
+        private static bool BuildNightly = false;
         private static string BuildBranch = "master";
         private static string BuildOutputFolder = "ClientBin";
         private static string BuildVersion;
@@ -24,8 +25,7 @@ namespace CustomBuildTool
         private static string MSBuildExePath;
         private static string CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
 
-        #region Build Config
-
+#region Build Config
         private static readonly string[] sdk_directories =
         {
             "sdk",
@@ -118,6 +118,7 @@ namespace CustomBuildTool
             TimeStart = DateTime.Now;
             GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\cmd\\git.exe");
             MSBuildExePath = Environment.ExpandEnvironmentVariables(VisualStudio.GetMsbuildFilePath());
+            BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
             if (!File.Exists(MSBuildExePath))
             {
@@ -190,7 +191,7 @@ namespace CustomBuildTool
 
         public static void CleanupBuildEnvironment()
         {
-            //Console.WriteLine(ANSI.HIGH_INTENSITY_CYAN + "Cleaning up..." + ANSI.SANE);
+            //Console.WriteLine("Cleaning up...");
         }
 
         public static void ShowBuildEnvironment(bool ShowVersion = false)
@@ -448,18 +449,16 @@ namespace CustomBuildTool
             string output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
             if (!string.IsNullOrEmpty(output))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] (Debug32) " + output);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("[WARN] (Debug32) " + output);
                 Console.ForegroundColor = ConsoleColor.White;
-                return false;
             }
             output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
             if (!string.IsNullOrEmpty(output))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] (Debug64) " + output);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("[WARN] (Debug64) " + output);
                 Console.ForegroundColor = ConsoleColor.White;
-                return false;
             }
 
             output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
@@ -529,25 +528,16 @@ namespace CustomBuildTool
         {
             try
             {
-                //if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
-                //    File.Delete(BuildOutputFolder + "\\processhacker-build-setup.exe");
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-setup.exe");
 
-                //string output = Win32.InnoSetupExecCommand(
-                //    InnoSetupExePath,
-                //    "build\\installer\\Process_Hacker_installer.iss"
-                //    );
+                if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", false, false))
+                    return false;
 
-                //if (!string.IsNullOrEmpty(output))
-                //{
-                //    Console.ForegroundColor = ConsoleColor.Red;
-                //    Console.Write("\t[ERROR] " + output);
-                //    return false;
-                //}
-
-                //File.Move(
-                //    "build\\installer\\processhacker-3.0-setup.exe", 
-                //    BuildOutputFolder + "\\processhacker-build-setup.exe"
-                //    );
+                File.Move(
+                    "tools\\CustomSetupTool\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe", 
+                    BuildOutputFolder + "\\processhacker-build-setup.exe"
+                    );
             }
             catch (Exception ex)
             {
@@ -586,6 +576,11 @@ namespace CustomBuildTool
             {
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
+
+                if (Directory.Exists("bin\\x32"))
+                    Directory.Delete("bin\\x32", true);
+                if (Directory.Exists("bin\\x64"))
+                    Directory.Delete("bin\\x64", true);
 
                 Directory.Move("bin\\Release32", "bin\\x32");
                 Directory.Move("bin\\Release64", "bin\\x64");
@@ -780,11 +775,14 @@ namespace CustomBuildTool
             return true;
         }
 
-
-
-
         public static async void UpdateBuildWebService()
         {
+            string buildPostString;
+            string buildPosturl;
+            string buildPostApiKey;
+
+            if (!BuildNightly)
+                return;
             if (string.IsNullOrEmpty(BuildSetupHash))
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
@@ -794,7 +792,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildMessage))
                 return;
 
-            string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
+            buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
                 Updated = TimeStart.ToString("o"),
                 Version = BuildVersion,
@@ -811,12 +809,12 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildPostString))
                 return;
 
-            string buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%");
-            string buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%");
+            buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%");
+            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%");
 
-            if (string.IsNullOrEmpty(buildPosturl))
+            if (string.IsNullOrEmpty(buildPosturl) && !string.Equals(buildPosturl, "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase))
                 return;
-            if (string.IsNullOrEmpty(buildPostApiKey))
+            if (string.IsNullOrEmpty(buildPostApiKey) && !string.Equals(buildPostApiKey, "%APPVEYOR_BUILD_KEY%", StringComparison.OrdinalIgnoreCase))
                 return;
 
             try
@@ -825,13 +823,14 @@ namespace CustomBuildTool
 
                 using (HttpClient client = new HttpClient())
                 {
-                    //client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
+                    client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
+
                     var response = await client.PostAsync(buildPosturl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
 
-                    //if (!response.IsSuccessStatusCode)
+                    if (!response.IsSuccessStatusCode)
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("[ERROR] " + response.ToString());
+                        Console.WriteLine("[UpdateBuildWebService] " + response.ToString());
                         Console.ForegroundColor = ConsoleColor.White;
                     }
                 }
@@ -839,11 +838,10 @@ namespace CustomBuildTool
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
+                Console.WriteLine("[UpdateBuildWebService] " + ex);
                 Console.ForegroundColor = ConsoleColor.White;
             }
         }
-
 
         public static bool UpdateHeaderFileVersion()
         {
@@ -871,7 +869,6 @@ namespace CustomBuildTool
             return true;
         }
 
-
         public static bool BuildPublicHeaderFiles()
         {
             try
@@ -891,15 +888,18 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildSolution(string Solution)
+        public static bool BuildSolution(string Solution, bool AllPlatforms, bool Verbose)
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write("Building " + Path.GetFileNameWithoutExtension(Solution) + " (");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("x32");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(")...");
-            Console.ForegroundColor = ConsoleColor.White;
+            if (Verbose)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("Building " + Path.GetFileNameWithoutExtension(Solution) + " (");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("x32");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine(")...");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
 
             string error32 = Win32.ExecCommand(
                 MSBuildExePath, 
@@ -914,25 +914,28 @@ namespace CustomBuildTool
                 return false;
             }
 
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write("Building " + Path.GetFileNameWithoutExtension(Solution) + " (");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("x64");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(")...");
-            Console.ForegroundColor = ConsoleColor.White;
-
-            string error64 = Win32.ExecCommand(
-                MSBuildExePath, 
-                "/m /nologo /verbosity:quiet /p:Configuration=Release /p:Platform=x64 " + Solution
-                );
-
-            if (!string.IsNullOrEmpty(error64))
+            if (AllPlatforms)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + error64);
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("Building " + Path.GetFileNameWithoutExtension(Solution) + " (");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("x64");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine(")...");
                 Console.ForegroundColor = ConsoleColor.White;
-                return false;
+
+                string error64 = Win32.ExecCommand(
+                    MSBuildExePath,
+                    "/m /nologo /verbosity:quiet /p:Configuration=Release /p:Platform=x64 " + Solution
+                    );
+
+                if (!string.IsNullOrEmpty(error64))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("[ERROR] " + error64);
+                    Console.ForegroundColor = ConsoleColor.White;
+                    return false;
+                }
             }
 
             return true;
