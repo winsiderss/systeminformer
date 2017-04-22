@@ -22,11 +22,6 @@
 #include <appsup.h>
 #include <workqueue.h>
 
-#define PH_UPDATENEWER     (WM_APP + 504)
-#define PH_UPDATESUCCESS   (WM_APP + 505)
-#define PH_UPDATEFAILURE   (WM_APP + 506)
-#define WM_SHOWDIALOG      (WM_APP + 550)
-
 typedef struct _PH_SETUP_UPDATE_CONTEXT
 {
     BOOLEAN FixedWindowStyles;
@@ -40,6 +35,7 @@ typedef struct _PH_SETUP_UPDATE_CONTEXT
     PPH_STRING SetupFilePath;
 } PH_SETUP_UPDATE_CONTEXT, *PPH_SETUP_UPDATE_CONTEXT;
 
+#define WM_SHOWDIALOG (WM_APP + 550)
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;

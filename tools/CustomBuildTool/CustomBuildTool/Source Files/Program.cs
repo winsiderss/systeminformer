@@ -123,6 +123,19 @@ namespace CustomBuildTool
                 return;
             }
 
+            if (ProgramArgs.ContainsKey("-bin"))
+            {
+                if (!Build.InitializeBuildEnvironment(false))
+                    return;
+
+                if (!Build.CopyTextFiles())
+                    return;
+                if (!Build.BuildBinZip())
+                    return;
+
+                return;
+            }
+
             if (ProgramArgs.ContainsKey("-exe"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
@@ -147,74 +160,50 @@ namespace CustomBuildTool
             Build.BuildSecureFiles();
 
             if (!Build.BuildSolution("ProcessHacker.sln", true, true))
-            {
                 return;
-            }
 
             PrintColorMessage("Building KPH signature...", ConsoleColor.Cyan);
             if (!Build.BuildKphSignatureFile())
-            {
                 return;
-            }
 
             PrintColorMessage("Copying text files...", ConsoleColor.Cyan);
             if (!Build.CopyTextFiles())
-            {
                 return;
-            }
 
             PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
             if (!Build.CopyKProcessHacker())
-            {
                 return;
-            }
 
             PrintColorMessage("Copying SDK headers...", ConsoleColor.Cyan);
             if (!Build.CopyPluginSdkHeaders())
-            {
                 return;
-            }
 
             PrintColorMessage("Copying version headers...", ConsoleColor.Cyan);
             if (!Build.CopyVersionHeader())
-            {
                 return;
-            }
 
             PrintColorMessage("Building sdk resource header...", ConsoleColor.Cyan);
             if (!Build.FixupResourceHeader())
-            {
                 return;
-            }
 
             PrintColorMessage("Copying plugin linker files...", ConsoleColor.Cyan);
             if (!Build.CopyLibFiles())
-            {
                 return;
-            }
 
             if (!Build.BuildSolution("plugins\\Plugins.sln", true, true))
-            {
                 return;
-            }
 
             PrintColorMessage("Copying Wow64 support files...", ConsoleColor.Cyan);
             if (!Build.CopyWow64Files())
-            {
                 return;
-            }
 
             PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
             if (!Build.BuildSetupExe())
-            {
                 return;
-            }
 
             PrintColorMessage("Building build-bin.zip...", ConsoleColor.Cyan);
             if (!Build.BuildBinZip())
-            {
                 return;
-            }
 
             //Build.BuildSrcZip();
             //Build.BuildSdkZip();

@@ -18,7 +18,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- //#define DEBUG_EXTRACT
+//#define DEBUG_EXTRACT
 #include <setup.h>
 #include <appsup.h>
 #include "miniz\miniz.h"
@@ -305,13 +305,17 @@ BOOLEAN SetupExtractBuild(
 #endif
     }
 
-CleanupExit:
     mz_zip_reader_end(&zip_archive);
-
 #ifdef DEBUG_EXTRACT
     Sleep(1000);
 #endif
-
     return TRUE;
+
+CleanupExit:
+    mz_zip_reader_end(&zip_archive);
+#ifdef DEBUG_EXTRACT
+    Sleep(1000);
+#endif
+    return FALSE;
 }
 
