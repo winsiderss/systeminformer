@@ -489,7 +489,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildKey))
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] (missing build keys).");
+                Console.WriteLine("[BuildSecureFiles] (missing build key).");
                 Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
@@ -497,7 +497,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(vtBuildKey))
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] (missing build keys).");
+                Console.WriteLine("[BuildSecureFiles] (missing vt build key).");
                 Console.ForegroundColor = ConsoleColor.White;
                 return false;
             }
@@ -781,8 +781,6 @@ namespace CustomBuildTool
             string buildPosturl;
             string buildPostApiKey;
 
-            if (!BuildNightly)
-                return;
             if (string.IsNullOrEmpty(BuildSetupHash))
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
@@ -812,9 +810,9 @@ namespace CustomBuildTool
             buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%");
             buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%");
 
-            if (string.IsNullOrEmpty(buildPosturl) && !string.Equals(buildPosturl, "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(buildPosturl))
                 return;
-            if (string.IsNullOrEmpty(buildPostApiKey) && !string.Equals(buildPostApiKey, "%APPVEYOR_BUILD_KEY%", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(buildPostApiKey))
                 return;
 
             try
@@ -845,35 +843,35 @@ namespace CustomBuildTool
 
         public static void WebServiceUploadBuild()
         {
-            string status;
-
-            if (!BuildNightly)
-                return;
-
-            Console.WriteLine("Uploading processhacker-build-setup.exe...");
-            status = Win32.ExecCommand(
-                "appveyor",
-                "PushArtifact " + BuildOutputFolder + "\\processhacker-build-setup.exe"
-                );
-
-            if (!string.IsNullOrEmpty(status))
+            if (BuildNightly)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[UploadBuildWebService] " + status);
-                Console.ForegroundColor = ConsoleColor.White;
-            }
+                string status;
 
-            Console.WriteLine("Uploading processhacker-build-bin.zip...");
-            status = Win32.ExecCommand(
-                "appveyor",
-                "PushArtifact " + BuildOutputFolder + "\\processhacker-build-bin.zip"
-                );
+                Console.WriteLine("Uploading processhacker-build-setup.exe...");
+                status = Win32.ExecCommand(
+                    "appveyor",
+                    "PushArtifact " + BuildOutputFolder + "\\processhacker-build-setup.exe"
+                    );
 
-            if (!string.IsNullOrEmpty(status))
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[UploadBuildWebService] " + status);
-                Console.ForegroundColor = ConsoleColor.White;
+                if (!string.IsNullOrEmpty(status))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("[UploadBuildWebService] " + status);
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+
+                Console.WriteLine("Uploading processhacker-build-bin.zip...");
+                status = Win32.ExecCommand(
+                    "appveyor",
+                    "PushArtifact " + BuildOutputFolder + "\\processhacker-build-bin.zip"
+                    );
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("[UploadBuildWebService] " + status);
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
             }
         }
 
