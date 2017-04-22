@@ -1,3 +1,5 @@
 @echo off
 
-CustomBuildTool.exe -updaterev
+chdir ..\
+
+build\CustomBuildTool.exe -updaterev
