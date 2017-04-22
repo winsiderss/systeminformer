@@ -17,7 +17,7 @@ pull_requests:
 skip_tags: true
   
 # Set the clone directory on the buildbot.
-clone_folder: C:\projects\processhacker2
+clone_folder: C:\projects\processhacker
   
 # Immediately finish build if something fails.
 matrix:
@@ -32,7 +32,7 @@ test: off
 
 # Run custom build script.
 build_script:
-- cmd: .\build\build_appveyor.cmd
+- cmd: .\build\CustomBuildTool.exe
 
 # Setup build notifications.
 notifications:
