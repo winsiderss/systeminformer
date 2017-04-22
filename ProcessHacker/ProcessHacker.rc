@@ -2495,9 +2495,10 @@ BEGIN
     "9",            ID_DIGIT9,              VIRTKEY, NOINVERT
     "B",            IDC_BACK,               VIRTKEY, ALT, NOINVERT
     VK_BACK,        IDC_BACK,               VIRTKEY, NOINVERT
+    VK_F6,          IDC_PAUSE,              VIRTKEY, NOINVERT
     VK_PAUSE,       IDC_PAUSE,              VIRTKEY, NOINVERT
     VK_F5,          IDC_REFRESH,            VIRTKEY, NOINVERT
-    VK_F6,          IDC_PAUSE,              VIRTKEY, NOINVERT
+    VK_F11,         IDC_MAXSCREEN,             VIRTKEY, NOINVERT
 END
 
 

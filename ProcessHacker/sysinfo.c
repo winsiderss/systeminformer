@@ -562,6 +562,39 @@ VOID PhSipOnCommand(
             ProcessHacker_SetUpdateAutomatically(PhMainWndHandle, !ProcessHacker_GetUpdateAutomatically(PhMainWndHandle));
         }
         break;
+    case IDC_MAXSCREEN:
+        {                
+            static WINDOWPLACEMENT windowLayout = { sizeof(WINDOWPLACEMENT) };
+            ULONG windowStyle = (ULONG)GetWindowLongPtr(PhSipWindow, GWL_STYLE);
+
+            if (windowStyle & WS_OVERLAPPEDWINDOW)
+            {
+                MONITORINFO info = { sizeof(MONITORINFO) };
+
+                if (
+                    GetWindowPlacement(PhSipWindow, &windowLayout) &&
+                    GetMonitorInfo(MonitorFromWindow(PhSipWindow, MONITOR_DEFAULTTOPRIMARY), &info)
+                    )
+                {
+                    PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, 0);
+                    SetWindowPos(
+                        PhSipWindow, 
+                        HWND_TOP, 
+                        info.rcMonitor.left, info.rcMonitor.top, 
+                        info.rcMonitor.right - info.rcMonitor.left, 
+                        info.rcMonitor.bottom - info.rcMonitor.top,
+                        SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+                        );
+                }
+            }
+            else
+            {
+                PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, WS_OVERLAPPEDWINDOW);
+                SetWindowPlacement(PhSipWindow, &windowLayout);
+                SetWindowPos(PhSipWindow, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+            }
+        }
+        break;
     }
 
     if (SectionList && Id >= ID_DIGIT1 && Id <= ID_DIGIT9)
