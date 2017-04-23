@@ -30,9 +30,6 @@ test: off
 build_script:
 - cmd: .\build\CustomBuildTool.exe
 
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  
 # Setup build notifications.
 notifications:
 - provider: Email
