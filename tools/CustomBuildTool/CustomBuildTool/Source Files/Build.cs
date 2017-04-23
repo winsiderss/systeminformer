@@ -120,14 +120,6 @@ namespace CustomBuildTool
             MSBuildExePath = Environment.ExpandEnvironmentVariables(VisualStudio.GetMsbuildFilePath());
             BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
-            if (!File.Exists(MSBuildExePath))
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("MsBuild not installed.\r\nExiting...\r\n");
-                Console.ForegroundColor = ConsoleColor.White;
-                return false;
-            }
-
             try
             {
                 DirectoryInfo info = new DirectoryInfo(".");
@@ -146,17 +138,19 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error while setting the root directory: " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("Error while setting the root directory: " + ex, ConsoleColor.Red);
                 return false;
             }
 
             if (!File.Exists("ProcessHacker.sln"))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Unable to find project root directory... Exiting.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("Unable to find project root directory... Exiting.", ConsoleColor.Red);
+                return false;
+            }
+
+            if (!File.Exists(MSBuildExePath))
+            {
+                Program.PrintColorMessage("MsBuild not installed.\r\nExiting...\r\n", ConsoleColor.Red);
                 return false;
             }
 
@@ -164,9 +158,7 @@ namespace CustomBuildTool
             {
                 if (!File.Exists(GitExePath))
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Git not installed... Exiting.");
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Program.PrintColorMessage("Git not installed... Exiting.", ConsoleColor.Red);
                     return false;
                 }
             }
@@ -179,9 +171,7 @@ namespace CustomBuildTool
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Error creating output directory. " + ex);
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Program.PrintColorMessage("Error creating output directory. " + ex, ConsoleColor.Red);
                     return false;
                 }
             }
@@ -208,13 +198,11 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[CleanupBuildEnvironment] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[CleanupBuildEnvironment] " + ex, ConsoleColor.Red);
             }
         }
 
-        public static void ShowBuildEnvironment()
+        public static void ShowBuildEnvironment(bool ShowBuildInfo)
         {
             string currentGitTag = Win32.ExecCommand(GitExePath, "describe --abbrev=0 --tags --always");
             string latestGitRevision = Win32.ExecCommand(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
@@ -226,18 +214,32 @@ namespace CustomBuildTool
 
             BuildVersion = "3.0." + BuildRevision; // TODO: Remove hard-coded major/minor version.
             BuildMessage = Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
-            
-            if (Program.BuildDebug || BuildNightly)
+
+            if (ShowBuildInfo)
             {
                 string currentBranch = Win32.ExecCommand(GitExePath, "rev-parse --abbrev-ref HEAD");
                 string currentCommitTag = Win32.ExecCommand(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD
                 //string latestGitCount = Win32.GitExecCommand("rev-list --count " + BuildBranch);         
-                string buildMessageColor = Win32.ExecCommand(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
+                string buildMessageColor = !BuildNightly ? 
+                    Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit") :
+                    Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %<(65,trunc)%s (%h)\" --abbrev-commit");
 
-                Console.WriteLine("Branch: " + currentBranch);
-                Console.WriteLine("Version: " + BuildVersion);
-                Console.WriteLine("Commit: " + currentCommitTag);
-                Console.WriteLine("Message: " + buildMessageColor + Environment.NewLine);
+                if (!string.IsNullOrEmpty(currentBranch))
+                {
+                    Program.PrintColorMessage(Environment.NewLine + "Branch: ", ConsoleColor.Cyan, false);
+                    Program.PrintColorMessage(currentBranch, ConsoleColor.White);
+                }
+
+                if (!string.IsNullOrEmpty(BuildVersion))
+                {
+                    Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
+                    Program.PrintColorMessage(BuildVersion, ConsoleColor.White);
+                }
+
+                Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage(currentCommitTag + Environment.NewLine, ConsoleColor.White);
+
+                Console.WriteLine(buildMessageColor + Environment.NewLine);
             }
         }
 
@@ -260,9 +262,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -278,9 +278,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -296,9 +294,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
             
@@ -322,9 +318,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -363,9 +357,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -387,9 +379,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -411,9 +401,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -422,35 +410,29 @@ namespace CustomBuildTool
 
         public static bool BuildKphSignatureFile()
         {
+            string output;
+
             if (!File.Exists(CustomSignToolPath))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] CustomSignTool not found.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
                 return true;
             }
 
             if (!File.Exists("build\\kph.key"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] kph.key not found.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
                 return true;
             }
 
             if (!File.Exists("bin\\Release32\\ProcessHacker.exe"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] Release32\\ProcessHacker.exe not found.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[SKIPPED] Release32\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
                 return true;
             }
 
             if (!File.Exists("bin\\Release64\\ProcessHacker.exe"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] Release64\\ProcessHacker.exe not found.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[SKIPPED] Release64\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
                 return true;
             }
 
@@ -466,35 +448,25 @@ namespace CustomBuildTool
             File.Create("bin\\Release32\\ProcessHacker.sig").Dispose();
             File.Create("bin\\Release64\\ProcessHacker.sig").Dispose();
 
-            string output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
-            if (!string.IsNullOrEmpty(output))
+            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig")))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[WARN] (Debug32) " + output);
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-            output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
-            if (!string.IsNullOrEmpty(output))
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[WARN] (Debug64) " + output);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
             }
 
-            output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
-            if (!string.IsNullOrEmpty(output))
+            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig")))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] (Release32) " + output);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
+            }
+
+            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig")))
+            {
+                Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red);
                 return false;
             }
-            output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
-            if (!string.IsNullOrEmpty(output))
+
+            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig")))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] (Release64) " + output);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red);
                 return false;
             }
 
@@ -508,17 +480,13 @@ namespace CustomBuildTool
 
             if (string.IsNullOrEmpty(buildKey))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[BuildSecureFiles] (missing build key).");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[BuildSecureFiles] (missing build key).", ConsoleColor.Yellow);
                 return false;
             }
 
             if (string.IsNullOrEmpty(vtBuildKey))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[BuildSecureFiles] (missing vt build key).");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[BuildSecureFiles] (missing vt build key).", ConsoleColor.Yellow);
                 return false;
             }
 
@@ -561,9 +529,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -581,9 +547,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -612,9 +576,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -625,8 +587,7 @@ namespace CustomBuildTool
         {
             if (!File.Exists(GitExePath))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] Git not installed.");
+                Program.PrintColorMessage("[SKIPPED] Git not installed.", ConsoleColor.Yellow);
                 return false;
             }
 
@@ -637,8 +598,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -653,8 +613,7 @@ namespace CustomBuildTool
 
             if (!string.IsNullOrEmpty(output))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + output);
+                Program.PrintColorMessage("[ERROR] " + output, ConsoleColor.Red);
                 return false;
             }
             
@@ -670,8 +629,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -711,9 +669,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
             
@@ -724,25 +680,19 @@ namespace CustomBuildTool
         {
             if (!File.Exists(CustomSignToolPath))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] CustomSignTool not found.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
                 return true;
             }
 
             if (!File.Exists("build\\nightly.key"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] nightly.key not found.");
-                Console.ForegroundColor = ConsoleColor.White;
-                return false;
+                Program.PrintColorMessage("[SKIPPED] nightly.key not found.", ConsoleColor.Yellow);
+                return true;
             }
 
             if (!File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[SKIPPED] build-setup.exe not found.");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[SKIPPED] build-setup.exe not found.", ConsoleColor.Yellow);
                 return false;
             }
 
@@ -773,8 +723,7 @@ namespace CustomBuildTool
                     }
                     catch (Exception ex)
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("[ERROR] " + ex);
+                        Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                         return false;
                     }
                 }
@@ -847,37 +796,26 @@ namespace CustomBuildTool
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("[UpdateBuildWebService] " + response.ToString());
-                        Console.ForegroundColor = ConsoleColor.White;
+                        Program.PrintColorMessage("[UpdateBuildWebService] " + response.ToString(), ConsoleColor.Red);
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[UpdateBuildWebService] " + ex);
-                Console.ForegroundColor = ConsoleColor.White;
-            }
+            catch (Exception) { }
         }
 
         public static void WebServiceUploadBuild()
         {
             if (BuildNightly)
             {
-                string status;
-
                 Console.WriteLine("Uploading processhacker-build-setup.exe...");
-                status = Win32.ExecCommand(
+                string status = Win32.ExecCommand(
                     "appveyor",
                     "PushArtifact " + BuildOutputFolder + "\\processhacker-build-setup.exe"
                     );
 
                 if (!string.IsNullOrEmpty(status))
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("[UploadBuildWebService] " + status);
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Program.PrintColorMessage("[UploadBuildWebService] " + status, ConsoleColor.Red);
                 }
 
                 Console.WriteLine("Uploading processhacker-build-bin.zip...");
@@ -888,9 +826,7 @@ namespace CustomBuildTool
 
                 if (!string.IsNullOrEmpty(status))
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("[UploadBuildWebService] " + status);
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Program.PrintColorMessage("[UploadBuildWebService] " + status, ConsoleColor.Red);
                 }
             }
         }
@@ -913,9 +849,8 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[ERROR] " + ex.ToString());
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex.ToString(), ConsoleColor.Yellow);
+                return false;
             }
 
             return true;
@@ -931,9 +866,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + ex.ToString());
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + ex.ToString(), ConsoleColor.Red);
                 return false;
             }
 
@@ -944,13 +877,9 @@ namespace CustomBuildTool
         {
             if (Verbose)
             {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write("Building " + Path.GetFileNameWithoutExtension(Solution) + " (");
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write("x32");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(")...");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage("x32", ConsoleColor.Green, false);
+                Program.PrintColorMessage(")...", ConsoleColor.Cyan);
             }
 
             string error32 = Win32.ExecCommand(
@@ -960,21 +889,15 @@ namespace CustomBuildTool
 
             if (!string.IsNullOrEmpty(error32))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("[ERROR] " + error32);
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red);
                 return false;
             }
 
             if (AllPlatforms)
             {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write("Building " + Path.GetFileNameWithoutExtension(Solution) + " (");
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write("x64");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(")...");
-                Console.ForegroundColor = ConsoleColor.White;
+                Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage("x64", ConsoleColor.Green, false);
+                Program.PrintColorMessage(")...", ConsoleColor.Cyan);
 
                 string error64 = Win32.ExecCommand(
                     MSBuildExePath,
@@ -983,9 +906,7 @@ namespace CustomBuildTool
 
                 if (!string.IsNullOrEmpty(error64))
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("[ERROR] " + error64);
-                    Console.ForegroundColor = ConsoleColor.White;
+                    Program.PrintColorMessage("[ERROR] " + error64, ConsoleColor.Red);
                     return false;
                 }
             }

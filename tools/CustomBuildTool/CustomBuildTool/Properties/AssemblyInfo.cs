@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CustomBuildTool")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Custom Build Tool")]
+[assembly: AssemblyDescription("Custom Build Tool")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("CustomBuildTool")]
+[assembly: AssemblyCompany("Process Hacker")]
+[assembly: AssemblyProduct("Custom Build Tool")]
 [assembly: AssemblyCopyright("Copyright © 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
