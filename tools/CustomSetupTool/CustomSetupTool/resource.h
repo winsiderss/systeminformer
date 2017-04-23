@@ -29,6 +29,7 @@
 #define IDC_INSTALL_DIRECTORY           1065
 #define IDC_INSTALL_SUBSTATUS           1065
 #define IDC_RESET_CHECK                 1066
+#define IDC_DEVBUILDS_CHECK             1066
 #define IDC_RESET_CHECK2                1067
 #define IDC_SHORTCUT_CHECK              1068
 #define IDC_STATIC1                     1069

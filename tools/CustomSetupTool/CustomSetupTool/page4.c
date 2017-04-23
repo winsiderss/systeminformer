@@ -153,10 +153,10 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
         break;
     case WM_UPDATE_SETUP:
         {
-            PWSTR currentFile = (PWSTR)lParam;
+            PPH_STRING currentFile = (PPH_STRING)lParam;
 
             SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS),
-                PhaConcatStrings2(L"Extracting: ", currentFile)->Buffer
+                PhaConcatStrings2(L"Extracting: ", currentFile->Buffer)->Buffer
                 );
             SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), PhaFormatString(
                 L"Progress: %s of %s (%.2f%%)",
@@ -165,6 +165,8 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
                 (FLOAT)((double)ExtractCurrentLength / (double)ExtractTotalLength) * 100
                 )->Buffer);
             SendMessage(GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS), PBM_SETPOS, (WPARAM)ExtractCurrentLength, 0);
+
+            PhDereferenceObject(currentFile);
         }
         break;
     case WM_END_SETUP:

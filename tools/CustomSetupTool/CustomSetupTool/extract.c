@@ -18,70 +18,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//#define DEBUG_EXTRACT
 #include <setup.h>
 #include <appsup.h>
 #include "miniz\miniz.h"
-
-SETUP_REMOVE_FILE SetupRemoveFiles[] =
-{
-    { L"plugins\\NetAdapters.dll" },
-};
-
-SETUP_EXTRACT_FILE SetupFiles_X32[] =
-{
-    { "CHANGELOG.txt",                          L"CHANGELOG.txt" },
-    { "COPYRIGHT.txt",                          L"COPYRIGHT.txt" },
-    { "LICENSE.txt",                            L"LICENSE.txt" },
-    { "README.txt",                             L"README.txt" },
-    { "x32/peview.exe",                         L"peview.exe" },
-    { "x32/ProcessHacker.exe",                  L"ProcessHacker.exe" },
-    { "x32/ProcessHacker.sig",                  L"ProcessHacker.sig" },
-    { "x32/kprocesshacker.sys",                 L"kprocesshacker.sys" },
-    { "x32/plugins/CommonUtil.dll",             L"plugins\\CommonUtil.dll" },
-    { "x32/plugins/DotNetTools.dll",            L"plugins\\DotNetTools.dll" },
-    { "x32/plugins/ExtendedNotifications.dll",  L"plugins\\ExtendedNotifications.dll" },
-    { "x32/plugins/ExtendedServices.dll",       L"plugins\\ExtendedServices.dll" },
-    { "x32/plugins/ExtendedTools.dll",          L"plugins\\ExtendedTools.dll" },
-    { "x32/plugins/ExtraPlugins.dll",           L"plugins\\ExtraPlugins.dll" },
-    { "x32/plugins/HardwareDevices.dll",        L"plugins\\HardwareDevices.dll" },
-    { "x32/plugins/NetworkTools.dll",           L"plugins\\NetworkTools.dll" },
-    { "x32/plugins/OnlineChecks.dll",           L"plugins\\OnlineChecks.dll" },
-    { "x32/plugins/SbieSupport.dll",            L"plugins\\SbieSupport.dll" },
-    { "x32/plugins/ToolStatus.dll",             L"plugins\\ToolStatus.dll" },
-    { "x32/plugins/Updater.dll",                L"plugins\\Updater.dll" },
-    { "x32/plugins/UserNotes.dll",              L"plugins\\UserNotes.dll" },
-    { "x32/plugins/WindowExplorer.dll",         L"plugins\\WindowExplorer.dll" },
-};
-
-SETUP_EXTRACT_FILE SetupFiles_X64[] =
-{
-    { "CHANGELOG.txt",                          L"CHANGELOG.txt" },
-    { "COPYRIGHT.txt",                          L"COPYRIGHT.txt" },
-    { "LICENSE.txt",                            L"LICENSE.txt" },
-    { "README.txt",                             L"README.txt" },
-    { "x64/peview.exe",                         L"peview.exe" },
-    { "x64/ProcessHacker.exe",                  L"ProcessHacker.exe" },
-    { "x64/ProcessHacker.sig",                  L"ProcessHacker.sig" },
-    { "x64/kprocesshacker.sys",                 L"kprocesshacker.sys" },
-    { "x64/plugins/CommonUtil.dll",             L"plugins\\CommonUtil.dll" },
-    { "x64/plugins/DotNetTools.dll",            L"plugins\\DotNetTools.dll" },
-    { "x64/plugins/ExtendedNotifications.dll",  L"plugins\\ExtendedNotifications.dll" },
-    { "x64/plugins/ExtendedServices.dll",       L"plugins\\ExtendedServices.dll" },
-    { "x64/plugins/ExtendedTools.dll",          L"plugins\\ExtendedTools.dll" },
-    { "x64/plugins/ExtraPlugins.dll",           L"plugins\\ExtraPlugins.dll" },
-    { "x64/plugins/HardwareDevices.dll",        L"plugins\\HardwareDevices.dll" },
-    { "x64/plugins/NetworkTools.dll",           L"plugins\\NetworkTools.dll" },
-    { "x64/plugins/OnlineChecks.dll",           L"plugins\\OnlineChecks.dll" },
-    { "x64/plugins/SbieSupport.dll",            L"plugins\\SbieSupport.dll" },
-    { "x64/plugins/ToolStatus.dll",             L"plugins\\ToolStatus.dll" },
-    { "x64/plugins/Updater.dll",                L"plugins\\Updater.dll" },
-    { "x64/plugins/UserNotes.dll",              L"plugins\\UserNotes.dll" },
-    { "x64/plugins/WindowExplorer.dll",         L"plugins\\WindowExplorer.dll" },
-
-    { "x32/ProcessHacker.exe",                  L"x86\\ProcessHacker.exe" },
-    { "x32/plugins/DotNetTools.dll",            L"x86\\plugins\\DotNetTools.dll" },
-};
 
 PVOID GetZipResourceData(
     _In_ PULONG resourceLength
@@ -110,26 +49,6 @@ CleanupExit:
     return resourceBuffer;
 }
 
-PVOID GetExtractData(
-    _In_ USHORT ProcessorArchitecture
-    )
-{
-    if (ProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-        return SetupFiles_X64;
-    else
-        return SetupFiles_X32;
-}
-
-ULONG GetExtractDataLength(
-    _In_ USHORT ProcessorArchitecture
-    )
-{    
-    if (ProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-        return ARRAYSIZE(SetupFiles_X64);
-    else
-        return ARRAYSIZE(SetupFiles_X32);
-}
-
 BOOLEAN SetupExtractBuild(
     _In_ PVOID Arguments
     )
@@ -138,8 +57,6 @@ BOOLEAN SetupExtractBuild(
     ULONG64 totalLength = 0;
     ULONG64 currentLength = 0;
     mz_zip_archive zip_archive = { 0 };
-    ULONG extractDataLength;
-    PSETUP_EXTRACT_FILE extractData;
     PVOID resourceBuffer;
     ULONG resourceLength;
     SYSTEM_INFO info;
@@ -152,34 +69,32 @@ BOOLEAN SetupExtractBuild(
     if (!(status = mz_zip_reader_init_mem(&zip_archive, resourceBuffer, resourceLength, 0)))
         goto CleanupExit;
 
-    extractData = GetExtractData(info.wProcessorArchitecture);
-    extractDataLength = GetExtractDataLength(info.wProcessorArchitecture);
-
-    for (ULONG i = 0; i < ARRAYSIZE(SetupRemoveFiles); i++)
-    {
-        SetupDeleteDirectoryFile(SetupRemoveFiles[i].FileName);
-    }
+    // Remove outdated files
+    //for (ULONG i = 0; i < ARRAYSIZE(SetupRemoveFiles); i++)
+    //    SetupDeleteDirectoryFile(SetupRemoveFiles[i].FileName);
 
     if (!CreateDirectoryPath(PhGetString(SetupInstallPath)))
         goto CleanupExit;
 
-    for (ULONG i = 0; i < extractDataLength; i++)
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
-        mz_uint zipFileIndex;
         mz_zip_archive_file_stat zipFileStat;
 
-        if ((zipFileIndex = mz_zip_reader_locate_file(
-            &zip_archive,
-            extractData[i].FileName,
-            NULL,
-            0
-            )) == -1)
-        {
-            goto CleanupExit;
-        }
+        if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
+            continue;
 
-        if (!mz_zip_reader_file_stat(&zip_archive, zipFileIndex, &zipFileStat))
-            goto CleanupExit;
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        {
+            if (strstr(zipFileStat.m_filename, "x32\\"))
+                continue;
+        }
+        else
+        {
+            if (strstr(zipFileStat.m_filename, "x64\\"))
+                continue;
+            if (strstr(zipFileStat.m_filename, "x86\\"))
+                continue;
+        }
 
         totalLength += zipFileStat.m_uncomp_size;
         InterlockedExchange64(&ExtractTotalLength, totalLength);
@@ -187,39 +102,36 @@ BOOLEAN SetupExtractBuild(
 
     SendMessage(Arguments, WM_START_SETUP, 0, 0);
 
-#ifdef DEBUG_EXTRACT
-    Sleep(1000);
-#endif
-
-    for (ULONG i = 0; i < extractDataLength; i++)
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
         IO_STATUS_BLOCK isb;
         HANDLE fileHandle;
         ULONG indexOfFileName = -1;
+        PPH_STRING fileName;
         PPH_STRING fullSetupPath;
         PPH_STRING extractPath;
         PVOID buffer;
-        mz_ulong zipFileCrc32 = MZ_CRC32_INIT;
-        mz_uint zipFileIndex;
-        mz_zip_archive_file_stat zipFileStat;
+        mz_ulong zipFileCrc32 = 0;
         ULONG bufferLength = 0;
+        mz_zip_archive_file_stat zipFileStat;
 
-        if ((zipFileIndex = mz_zip_reader_locate_file(
-            &zip_archive,
-            extractData[i].FileName,
-            NULL,
-            0
-            )) == -1)
+        if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
+            continue;
+
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            goto CleanupExit;
+            if (strstr(zipFileStat.m_filename, "x32\\"))
+                continue;
         }
-
-        if (!mz_zip_reader_file_stat(&zip_archive, zipFileIndex, &zipFileStat))
-            goto CleanupExit;
+        else
+        {
+            if (strstr(zipFileStat.m_filename, "x64\\"))
+                continue;
+        }
 
         if (!(buffer = mz_zip_reader_extract_to_heap(
             &zip_archive,
-            zipFileIndex,
+            zipFileStat.m_file_index,
             &bufferLength,
             0
             )))
@@ -230,13 +142,28 @@ BOOLEAN SetupExtractBuild(
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, bufferLength)) != zipFileStat.m_crc32)
             goto CleanupExit;
 
-        extractPath = PhConcatStrings(
-            2, 
-            PhGetString(SetupInstallPath), 
-            extractData[i].ExtractFileName
-            );
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        {
+            ULONG_PTR index;
 
-        // Create the directory if it does not exist.
+            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
+
+            if ((index = PhFindStringInString(fileName, 0, L"x64\\")) != -1)
+                PhMoveReference(&fileName, PhSubstring(fileName, index, fileName->Length - index));
+        }
+        else
+        {
+            ULONG_PTR index;
+
+            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
+
+            if ((index = PhFindStringInString(fileName, 0, L"x32\\")) != -1)
+                PhMoveReference(&fileName, PhSubstring(fileName, index, fileName->Length - index));
+        }
+
+        extractPath = PhConcatStrings(3, PhGetString(SetupInstallPath), L"\\", PhGetString(fileName));
+        //OutputDebugString(PhFormatString(L"%s\r\n", extractPath->Buffer)->Buffer);
+
         if (fullSetupPath = PhGetFullPath(extractPath->Buffer, &indexOfFileName))
         {
             PPH_STRING directoryPath;
@@ -293,29 +220,19 @@ BOOLEAN SetupExtractBuild(
             goto CleanupExit;
 
         currentLength += bufferLength;
-        InterlockedExchange64(&ExtractCurrentLength, currentLength);
 
-        SendMessage(Arguments, WM_UPDATE_SETUP, 0, (LPARAM)extractData[i].ExtractFileName);
+        InterlockedExchange64(&ExtractCurrentLength, currentLength);
+        SendMessage(Arguments, WM_UPDATE_SETUP, 0, (LPARAM)extractPath);
 
         NtClose(fileHandle);
         mz_free(buffer);
-
-#ifdef DEBUG_EXTRACT
-        Sleep(200);
-#endif
     }
 
     mz_zip_reader_end(&zip_archive);
-#ifdef DEBUG_EXTRACT
-    Sleep(1000);
-#endif
     return TRUE;
 
 CleanupExit:
     mz_zip_reader_end(&zip_archive);
-#ifdef DEBUG_EXTRACT
-    Sleep(1000);
-#endif
     return FALSE;
 }
 
