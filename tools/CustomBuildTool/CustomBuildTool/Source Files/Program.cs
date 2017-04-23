@@ -236,10 +236,6 @@ namespace CustomBuildTool
             if (!Build.BuildUpdateSignature())
                 return;
 
-            PrintColorMessage("Moving build-setup.exe...", ConsoleColor.Cyan);
-            if (!Build.MoveBuildFiles())
-                return;
-
             Build.WebServiceUploadBuild();
             Build.WebServiceUpdateConfig();
             Build.ShowBuildStats();

@@ -476,7 +476,8 @@ namespace CustomBuildTool
         public static bool BuildSecureFiles()
         {
             string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty);
-            string vtBuildKey = Environment.ExpandEnvironmentVariables("%VIRUSTOTAL_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty);
+            string kphKey = Environment.ExpandEnvironmentVariables("%KPH_BUILD_KEY%").Replace("%KPH_BUILD_KEY%", string.Empty);
+            string vtBuildKey = Environment.ExpandEnvironmentVariables("%VIRUSTOTAL_BUILD_KEY%").Replace("%VIRUSTOTAL_BUILD_KEY%", string.Empty);
 
             if (!BuildNightly)
                 return true;
@@ -486,15 +487,20 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("[Build] (missing build key).", ConsoleColor.Yellow);
                 return false;
             }
-
+            if (string.IsNullOrEmpty(kphKey))
+            {
+                Program.PrintColorMessage("[Build] (missing kph key).", ConsoleColor.Yellow);
+                return false;
+            }
             if (string.IsNullOrEmpty(vtBuildKey))
             {
-                Program.PrintColorMessage("[Build] (missing VT build key).", ConsoleColor.Yellow);
+                Program.PrintColorMessage("[Build] (missing VT key).", ConsoleColor.Yellow);
                 return false;
             }
 
             try
             {
+                Verify.Decrypt("build\\kph.s", "build\\kph.key", kphKey);
                 Verify.Decrypt("build\\nightly.s", "build\\nightly.key", buildKey);
                 Verify.Decrypt("plugins\\OnlineChecks\\virustotal.s", "plugins\\OnlineChecks\\virustotal.h", vtBuildKey);
             }
@@ -698,46 +704,6 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool MoveBuildFiles()
-        {
-            string[] releaseFiles =
-            {
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
-            };
-
-            foreach (string file in releaseFiles)
-            {
-                if (File.Exists(file))
-                {
-                    try
-                    {
-                        File.Delete(file);
-                    }
-                    catch (Exception ex)
-                    {
-                        Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                        return false;
-                    }
-                }
-            }
-
-            //if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
-            //File.Move(BuildOutputFolder + "\\processhacker-build-setup.exe",
-            //          BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe");
-            //
-            //if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
-            //File.Move(BuildOutputFolder + "\\processhacker-build-bin.zip",
-            //          BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip");
-            //
-            //if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
-            //File.Move(BuildOutputFolder + "\\processhacker-build-checksums.txt",
-            //          BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt");
-
-            return true;
-        }
-
         public static async void WebServiceUpdateConfig()
         {
             string buildPostString;
@@ -802,28 +768,69 @@ namespace CustomBuildTool
 
         public static void WebServiceUploadBuild()
         {
-            if (BuildNightly)
+            string[] buildFileArray =
             {
-                Console.WriteLine("Uploading processhacker-build-setup.exe...");
-                string status = Win32.ExecCommand(
-                    "appveyor",
-                    "PushArtifact " + BuildOutputFolder + "\\processhacker-build-setup.exe"
-                    );
+                BuildOutputFolder + "\\processhacker-build-setup.exe",
+                BuildOutputFolder + "\\processhacker-build-bin.zip",
+                BuildOutputFolder + "\\processhacker-build-checksums.txt"
+            };
+            string[] releaseFileArray =
+            {
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
+            };
 
-                if (!string.IsNullOrEmpty(status))
+            if (!BuildNightly)
+                return;
+
+            for (int i = 0; i < releaseFileArray.Length; i++)
+            {
+                if (File.Exists(releaseFileArray[i]))
                 {
-                    Program.PrintColorMessage("[UploadBuildWebService] " + status, ConsoleColor.Red);
+                    try
+                    {
+                        File.Delete(releaseFileArray[i]);
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+                    }
                 }
+            }
 
-                Console.WriteLine("Uploading processhacker-build-bin.zip...");
-                status = Win32.ExecCommand(
-                    "appveyor",
-                    "PushArtifact " + BuildOutputFolder + "\\processhacker-build-bin.zip"
-                    );
-
-                if (!string.IsNullOrEmpty(status))
+            for (int i = 0; i < buildFileArray.Length; i++)
+            {
+                if (File.Exists(buildFileArray[i]))
                 {
-                    Program.PrintColorMessage("[UploadBuildWebService] " + status, ConsoleColor.Red);
+                    try
+                    {
+                        File.Move(buildFileArray[i], releaseFileArray[i]);
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+                    }
+                }
+            }
+
+            for (int i = 0; i < releaseFileArray.Length; i++)
+            {
+                if (File.Exists(releaseFileArray[i]))
+                {
+                    Console.WriteLine("Uploading " + releaseFileArray[i] + "...");
+
+                    try
+                    {
+                        string status = Win32.ExecCommand("appveyor", "PushArtifact " + releaseFileArray[i]);
+
+                        if (!string.IsNullOrEmpty(status))
+                            Program.PrintColorMessage("[AppveyorUpload] " + status, ConsoleColor.Red);
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+                    }
                 }
             }
         }
