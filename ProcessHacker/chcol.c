@@ -131,6 +131,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             context->InactiveList = GetDlgItem(hwndDlg, IDC_INACTIVE);
             context->ActiveList = GetDlgItem(hwndDlg, IDC_ACTIVE);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
             {
