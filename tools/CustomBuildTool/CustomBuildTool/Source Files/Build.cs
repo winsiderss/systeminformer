@@ -712,9 +712,6 @@ namespace CustomBuildTool
             string buildPosturl;
             string buildPostApiKey;
 
-            if (!BuildNightly)
-                return;
-
             if (string.IsNullOrEmpty(BuildSetupHash))
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
@@ -765,7 +762,10 @@ namespace CustomBuildTool
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[UpdateBuildWebService] " + ex, ConsoleColor.Red);
+            }
         }
 
         public static void WebServiceUploadBuild()
