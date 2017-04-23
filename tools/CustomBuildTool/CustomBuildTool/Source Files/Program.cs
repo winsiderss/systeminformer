@@ -89,7 +89,7 @@ namespace CustomBuildTool
                 if (!Build.CopyLibFiles())
                     return;
 
-                Build.ShowBuildStats();
+                Build.ShowBuildStats(false);
                 return;
             }
 
@@ -114,7 +114,7 @@ namespace CustomBuildTool
                 if (!Build.CopyLibFiles())
                     return;
 
-                Build.ShowBuildStats();
+                Build.ShowBuildStats(false);
                 return;
             }
 
@@ -151,7 +151,7 @@ namespace CustomBuildTool
                 if (!Build.BuildBinZip())
                     return;
 
-                Build.ShowBuildStats();
+                Build.ShowBuildStats(false);
                 return;
             }
 
@@ -238,9 +238,7 @@ namespace CustomBuildTool
 
             Build.WebServiceUploadBuild();
             Build.WebServiceUpdateConfig();
-            Build.ShowBuildStats();
-
-            Console.ReadKey();
+            Build.ShowBuildStats(true);
         }
 
         private static Dictionary<string, string> ParseArgs(string[] args)

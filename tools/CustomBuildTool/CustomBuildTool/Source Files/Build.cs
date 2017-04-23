@@ -243,12 +243,14 @@ namespace CustomBuildTool
             }
         }
 
-        public static void ShowBuildStats()
+        public static void ShowBuildStats(bool block)
         {
             TimeSpan buildTime = DateTime.Now - TimeStart;
+
             Console.WriteLine();
             Console.WriteLine("Build Time: " + buildTime.Minutes + " minute(s), " + buildTime.Seconds + " second(s)");
             Console.WriteLine("Build complete.");
+            if (!BuildNightly && block) Console.ReadKey();
         }
 
         public static bool CopyTextFiles()
