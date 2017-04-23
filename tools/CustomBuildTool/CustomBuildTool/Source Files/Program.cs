@@ -236,7 +236,7 @@ namespace CustomBuildTool
             if (!Build.BuildUpdateSignature())
                 return;
 
-            Build.WebServiceUploadBuild();
+            Build.AppveyorUploadBuildFiles();
             Build.WebServiceUpdateConfig();
             Build.ShowBuildStats(true);
         }

@@ -239,7 +239,10 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(currentCommitTag + Environment.NewLine, ConsoleColor.White);
 
-                Console.WriteLine(buildMessageColor + Environment.NewLine);
+                if (!BuildNightly)
+                {
+                    Console.WriteLine(buildMessageColor + Environment.NewLine);
+                }
             }
         }
 
@@ -706,7 +709,8 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static async void WebServiceUpdateConfig()
+
+        public static void WebServiceUpdateConfig()
         {
             string buildPostString;
             string buildPosturl;
@@ -746,6 +750,8 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildPostApiKey))
                 return;
 
+            Program.PrintColorMessage("Updating Build WebService... " + BuildVersion, ConsoleColor.Cyan);
+
             try
             {
                 System.Net.ServicePointManager.Expect100Continue = false;
@@ -754,11 +760,13 @@ namespace CustomBuildTool
                 {
                     client.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
 
-                    var response = await client.PostAsync(buildPosturl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
+                    var httpTask = client.PostAsync(buildPosturl, new StringContent(buildPostString, Encoding.UTF8, "application/json"));
 
-                    if (!response.IsSuccessStatusCode)
+                    httpTask.Wait();
+
+                    if (!httpTask.Result.IsSuccessStatusCode)
                     {
-                        Program.PrintColorMessage("[UpdateBuildWebService] " + response.ToString(), ConsoleColor.Red);
+                        Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result.ToString(), ConsoleColor.Red);
                     }
                 }
             }
@@ -768,7 +776,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static void WebServiceUploadBuild()
+        public static void AppveyorUploadBuildFiles()
         {
             string[] buildFileArray =
             {
@@ -824,18 +832,16 @@ namespace CustomBuildTool
 
                     try
                     {
-                        string status = Win32.ExecCommand("appveyor", "PushArtifact " + releaseFileArray[i]);
-
-                        if (!string.IsNullOrEmpty(status))
-                            Program.PrintColorMessage("[AppveyorUpload] " + status, ConsoleColor.Red);
+                        Win32.ExecCommand("appveyor", "PushArtifact " + releaseFileArray[i]);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+                        
                     }
                 }
             }
         }
+
 
         public static bool UpdateHeaderFileVersion()
         {
