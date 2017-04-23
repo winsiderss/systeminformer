@@ -450,12 +450,12 @@ namespace CustomBuildTool
 
             if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig")))
             {
-                Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
+                //Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
             }
 
             if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig")))
             {
-                Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
+                //Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
             }
 
             if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig")))
@@ -475,38 +475,33 @@ namespace CustomBuildTool
 
         public static bool BuildSecureFiles()
         {
-            string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%");
-            string vtBuildKey = Environment.ExpandEnvironmentVariables("%VIRUSTOTAL_BUILD_KEY%");
+            string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty);
+            string vtBuildKey = Environment.ExpandEnvironmentVariables("%VIRUSTOTAL_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty);
+
+            if (!BuildNightly)
+                return true;
 
             if (string.IsNullOrEmpty(buildKey))
             {
-                Program.PrintColorMessage("[BuildSecureFiles] (missing build key).", ConsoleColor.Yellow);
+                Program.PrintColorMessage("[Build] (missing build key).", ConsoleColor.Yellow);
                 return false;
             }
 
             if (string.IsNullOrEmpty(vtBuildKey))
             {
-                Program.PrintColorMessage("[BuildSecureFiles] (missing vt build key).", ConsoleColor.Yellow);
+                Program.PrintColorMessage("[Build] (missing VT build key).", ConsoleColor.Yellow);
                 return false;
             }
 
             try
             {
-                Verify.Decrypt(
-                    "build\\nightly.s",
-                    "build\\nightly.key",
-                    buildKey
-                    );
-
-                Verify.Decrypt(
-                    "plugins\\OnlineChecks\\virustotal.s",
-                    "plugins\\OnlineChecks\\virustotal.h",
-                    vtBuildKey
-                    );
+                Verify.Decrypt("build\\nightly.s", "build\\nightly.key", buildKey);
+                Verify.Decrypt("plugins\\OnlineChecks\\virustotal.s", "plugins\\OnlineChecks\\virustotal.h", vtBuildKey);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                Program.PrintColorMessage("[ERROR] (Verify) " + ex, ConsoleColor.Red);
+                return false;
             }
 
             return true;
@@ -543,7 +538,7 @@ namespace CustomBuildTool
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-sdk.zip"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-sdk.zip");
 
-                Zip.CreateCompressedFolder(BuildOutputFolder + "\\processhacker-build-sdk.zip", ".\\sdk");
+                Zip.CreateCompressedFolder("sdk", BuildOutputFolder + "\\processhacker-build-sdk.zip");
             }
             catch (Exception ex)
             {
@@ -569,7 +564,7 @@ namespace CustomBuildTool
                 Directory.Move("bin\\Release32", "bin\\x32");
                 Directory.Move("bin\\Release64", "bin\\x64");
 
-                Zip.CreateCompressedFolder(BuildOutputFolder + "\\processhacker-build-bin.zip", "bin");
+                Zip.CreateCompressedFolder("bin", BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 Directory.Move("bin\\x32", "bin\\Release32");
                 Directory.Move("bin\\x64", "bin\\Release64");
@@ -626,19 +621,18 @@ namespace CustomBuildTool
             {
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-pdb.zip"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-pdb.zip");
+
+                // *.pdb    # Include only PDB files
+                // Debug32  # Ignore junk directories
+                // Debug64 
+                // Obj
+                //Zip.CreateCompressedFolder("sdk", BuildOutputFolder + "\\processhacker-build-pdb.zip");
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
-
-            //    "-ir!*.pdb" //# Include only PDB files
-            //    "-xr!Debug32 " + //# Ignore junk directories
-            //    "-xr!Debug64 " +
-            //    "-xr!Obj "
-
-            //Zip.CreateCompressedFolder(BuildOutputFolder + "\\processhacker-build-pdb.zip", "sdk");
 
             return true;
         }
@@ -750,6 +744,9 @@ namespace CustomBuildTool
             string buildPosturl;
             string buildPostApiKey;
 
+            if (!BuildNightly)
+                return;
+
             if (string.IsNullOrEmpty(BuildSetupHash))
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
@@ -776,8 +773,8 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildPostString))
                 return;
 
-            buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%");
-            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%");
+            buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
+            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
 
             if (string.IsNullOrEmpty(buildPosturl))
                 return;

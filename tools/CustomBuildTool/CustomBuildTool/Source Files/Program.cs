@@ -151,6 +151,7 @@ namespace CustomBuildTool
                 if (!Build.BuildBinZip())
                     return;
 
+                Build.ShowBuildStats();
                 return;
             }
 

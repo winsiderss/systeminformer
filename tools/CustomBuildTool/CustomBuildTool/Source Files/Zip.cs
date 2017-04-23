@@ -1,72 +1,67 @@
 ﻿using System;
 using System.IO;
-using ICSharpCode.SharpZipLib.Zip;
+using System.IO.Compression;
+using System.Text;
 
 namespace CustomBuildTool
 {
     public static class Zip
     {
-        public static void CreateCompressedFolder(string outPathname, string folderName)
+        // https://github.com/phofman/zip/blob/master/src/ZipFile.cs
+        private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
         {
-            using (FileStream fs = File.Create(outPathname))
-            using (ZipOutputStream zipStream = new ZipOutputStream(fs))
+            if (names == null || names.Length == 0)
+                return new string[0];
+
+            if (includeBaseName)
+                sourceFolder = Path.GetDirectoryName(sourceFolder);
+
+            int length = string.IsNullOrEmpty(sourceFolder) ? 0 : sourceFolder.Length;
+            if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
+                length++;
+
+            var result = new string[names.Length];
+            for (int i = 0; i < names.Length; i++)
             {
-                zipStream.SetLevel(9);
-
-                int folderOffset = folderName.Length + (folderName.EndsWith("\\", StringComparison.OrdinalIgnoreCase) ? 0 : 1);
-
-                CompressFolder(folderName, zipStream, folderOffset);
-
-                zipStream.IsStreamOwner = true;
+                result[i] = names[i].Substring(length);
             }
+
+            return result;
         }
 
-        private static void CompressFolder(string path, ZipOutputStream zipStream, int folderOffset)
+        public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName)
         {
-            string[] files = Directory.GetFiles(path);
+            if (string.IsNullOrEmpty(sourceDirectoryName))
+                throw new ArgumentNullException("sourceDirectoryName");
 
-            foreach (string filename in files)
+            if (string.IsNullOrEmpty(destinationArchiveFileName))
+                throw new ArgumentNullException("destinationArchiveFileName");
+
+            string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
+            string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
+
+            using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
             {
-                //    "-x!*.pdb " +  // # Ignore junk files
-                //    "-x!*.iobj " +
-                //    "-x!*.ipdb " +
-                //    "-x!*.exp " +
-                //    "-x!*.lib "
-                if (filename.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                    filename.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                    filename.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                    filename.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                    filename.EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
+                for (int i = 0; i < filesToAdd.Length; i++)
                 {
-                    continue;
-                }
+                    // Ignore junk files
+                    if (filesToAdd[i].EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
 
-                FileInfo fi = new FileInfo(filename);
-                string entryName = filename.Substring(folderOffset);
-                entryName = ZipEntry.CleanName(entryName);
+                    // Ignore junk directories
+                    if (filesToAdd[i].Contains("bin\\Debug")) // Debug32 Debug64
+                    {
+                        continue;
+                    }
 
-                ZipEntry newEntry = new ZipEntry(entryName);
-                newEntry.DateTime = fi.LastWriteTime;
-                newEntry.Size = fi.Length;
-
-                zipStream.PutNextEntry(newEntry);
-
-                using (FileStream streamReader = File.OpenRead(filename))
-                {
-                    streamReader.CopyTo(zipStream);
-                }
-
-                zipStream.CloseEntry();
-            }
-
-            string[] folders = Directory.GetDirectories(path);
-            foreach (string folder in folders)
-            {                
-                //    "-xr!Debug32 " + // # Ignore junk directories
-                //    "-xr!Debug64 " +
-                if (!folder.Contains("bin\\Debug"))
-                {
-                    CompressFolder(folder, zipStream, folderOffset);
+                    archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
                 }
             }
         }
