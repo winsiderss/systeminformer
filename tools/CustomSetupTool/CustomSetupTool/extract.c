@@ -149,7 +149,7 @@ BOOLEAN SetupExtractBuild(
             fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
             if ((index = PhFindStringInString(fileName, 0, L"x64\\")) != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, index, fileName->Length - index));
+                PhMoveReference(&fileName, PhSubstring(fileName, index, (fileName->Length / 2) - index));
         }
         else
         {
@@ -158,7 +158,7 @@ BOOLEAN SetupExtractBuild(
             fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
             if ((index = PhFindStringInString(fileName, 0, L"x32\\")) != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, index, fileName->Length - index));
+                PhMoveReference(&fileName, PhSubstring(fileName, index, (fileName->Length / 2) - index));
         }
 
         extractPath = PhConcatStrings(3, PhGetString(SetupInstallPath), L"\\", PhGetString(fileName));
