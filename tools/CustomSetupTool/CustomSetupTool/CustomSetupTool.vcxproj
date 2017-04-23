@@ -69,16 +69,11 @@
       <SubSystem>Windows</SubSystem>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
-    <PreBuildEvent>
-      <Command>..\..\..\build\CustomBuildTool.exe -bin</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Message>Building setup.exe...</Message>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>..\..\..\build\CustomBuildTool.exe -cleanup</Command>
-      <Message>Cleaning up build...</Message>
-    </PostBuildEvent>
+    <PreBuildEvent />
+    <PreBuildEvent />
+    <PostBuildEvent />
+    <PreBuildEvent />
+    <PreBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -107,16 +102,11 @@
       <SetChecksum>true</SetChecksum>
       <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
-    <PreBuildEvent>
-      <Command>..\..\..\build\CustomBuildTool.exe -bin</Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Message>Building setup.exe...</Message>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>..\..\..\build\CustomBuildTool.exe -cleanup</Command>
-      <Message>Cleaning up build...</Message>
-    </PostBuildEvent>
+    <PreBuildEvent />
+    <PreBuildEvent />
+    <PostBuildEvent />
+    <PreBuildEvent />
+    <PreBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="extract.c" />
