@@ -2962,7 +2962,10 @@ VOID PhTnpProcessSortColumn(
     {
         Context->SortColumn = NewColumn->Id;
 
-        if (!NewColumn->SortDescending)
+        // First click on Name after sorting by another column returns to tree mode
+        if (NewColumn->Id == 0)
+            Context->SortOrder = NoSortOrder;
+        else if (!NewColumn->SortDescending)
             Context->SortOrder = AscendingSortOrder;
         else
             Context->SortOrder = DescendingSortOrder;
