@@ -607,7 +607,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                                 info.hWnd = hwndDlg;
                                 PhVerifyFileWithAdditionalCatalog(
                                     &info,
-                                    PhGetString(processItem->PackageFullName),
+                                    processItem->PackageFullName,
                                     NULL
                                     );
                             }

@@ -294,7 +294,7 @@ NTSTATUS PhpModuleQueryWorker(
 
     data->VerifyResult = PhVerifyFileCached(
         data->ModuleItem->FileName,
-        PhGetString(data->ModuleProvider->PackageFullName),
+        data->ModuleProvider->PackageFullName,
         &data->VerifySignerName,
         FALSE
         );

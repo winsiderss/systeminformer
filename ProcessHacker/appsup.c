@@ -229,119 +229,75 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )
 {
-    static _GetPackageFullName getPackageFullName = NULL;
+    static UNICODE_STRING attributeName = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
 
-    LONG result;
-    PPH_STRING name;
-    ULONG nameLength;
+    HANDLE tokenHandle;
+    PPH_STRING packageFullName = NULL;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    ULONG i;
 
-    if (!getPackageFullName)
-        getPackageFullName = PhGetModuleProcAddress(L"kernel32.dll", "GetPackageFullName");
-    if (!getPackageFullName)
-        return NULL;
+    // Reverse-engineered from GetPackageFullName (kernel32.dll).
 
-    nameLength = 101;
-    name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
-
-    result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
+    if (NT_SUCCESS(NtOpenProcessToken(
+        ProcessHandle, 
+        TOKEN_QUERY, 
+        &tokenHandle
+        )))
     {
-        PhDereferenceObject(name);
-        name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
+        if (NT_SUCCESS(PhQueryTokenVariableSize(
+            tokenHandle, 
+            TokenSecurityAttributes, 
+            &info
+            )))
+        {
+            for (i = 0; i < info->AttributeCount; i++)
+            {
+                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
 
-        result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
-    }
+                if (RtlEqualUnicodeString(&attribute->Name, &attributeName, FALSE))
+                {
+                    packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
+                }
+            }
 
-    if (result == ERROR_SUCCESS)
-    {
-        PhTrimToNullTerminatorString(name);
-        return name;
+            PhFree(info);
+        }
+
+        NtClose(tokenHandle);
     }
-    else
-    {
-        PhDereferenceObject(name);
-        return NULL;
-    }
+    
+    return packageFullName;
 }
 
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
+PPH_STRING PhGetPackagePathFromFullName(
+    _In_ PPH_STRING PackageFullName
     )
 {
-    static _PackageIdFromFullName packageIdFromFullName = NULL;
+    static PH_STRINGREF packagesKeyName = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages\\");
 
-    LONG result;
-    PVOID packageIdBuffer;
-    ULONG packageIdBufferSize;
+    HANDLE keyHandle;
+    PPH_STRING keyName;
+    PPH_STRING packagePath = NULL;
 
-    if (!packageIdFromFullName)
-        packageIdFromFullName = PhGetModuleProcAddress(L"kernel32.dll", "PackageIdFromFullName");
-    if (!packageIdFromFullName)
-        return NULL;
+    // Reverse-engineered from GetPackagePath (kernel32.dll).
 
-    packageIdBufferSize = 100;
-    packageIdBuffer = PhAllocate(packageIdBufferSize);
+    keyName = PhConcatStringRef2(&packagesKeyName, &PackageFullName->sr);
 
-    result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyName->sr,
+        0
+        )))
     {
-        PhFree(packageIdBuffer);
-        packageIdBuffer = PhAllocate(packageIdBufferSize);
-
-        result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
+        packagePath = PhQueryRegistryString(keyHandle, L"PackageRootFolder");
+        NtClose(keyHandle);
     }
 
-    if (result == ERROR_SUCCESS)
-    {
-        return packageIdBuffer;
-    }
-    else
-    {
-        PhFree(packageIdBuffer);
-        return NULL;
-    }
-}
+    PhDereferenceObject(keyName);
 
-PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
-    )
-{
-    static _GetPackagePath getPackagePath = NULL;
-
-    LONG result;
-    PPH_STRING path;
-    ULONG pathLength;
-
-    if (!getPackagePath)
-        getPackagePath = PhGetModuleProcAddress(L"kernel32.dll", "GetPackagePath");
-    if (!getPackagePath)
-        return NULL;
-
-    pathLength = 101;
-    path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
-
-    result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
-    {
-        PhDereferenceObject(path);
-        path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
-
-        result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
-    }
-
-    if (result == ERROR_SUCCESS)
-    {
-        PhTrimToNullTerminatorString(path);
-        return path;
-    }
-    else
-    {
-        PhDereferenceObject(path);
-        return NULL;
-    }
+    return packagePath;
 }
 
 /**

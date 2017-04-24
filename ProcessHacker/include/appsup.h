@@ -28,12 +28,8 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
-    );
-
-PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
+PPH_STRING PhGetPackagePathFromFullName(
+    _In_ PPH_STRING PackageFullName
     );
 
 // begin_phapppub

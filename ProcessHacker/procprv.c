@@ -675,7 +675,7 @@ INT NTAPI PhpVerifyCacheCompareFunction(
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
     _In_ PPH_VERIFY_FILE_INFO Information,
-    _In_opt_ PWSTR PackageFullName,
+    _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName
     )
 {
@@ -688,18 +688,12 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
 
     if (PackageFullName)
     {
-        PACKAGE_ID *packageId;
         PPH_STRING packagePath;
 
-        if (packageId = PhPackageIdFromFullName(PackageFullName))
+        if (packagePath = PhGetPackagePathFromFullName(PackageFullName))
         {
-            if (packagePath = PhGetPackagePath(packageId))
-            {
-                additionalCatalogFileName = PhConcatStringRef2(&packagePath->sr, &codeIntegrityFileName);
-                PhDereferenceObject(packagePath);
-            }
-
-            PhFree(packageId);
+            additionalCatalogFileName = PhConcatStringRef2(&packagePath->sr, &codeIntegrityFileName);
+            PhDereferenceObject(packagePath);
         }
     }
 
@@ -746,7 +740,7 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
  */
 VERIFY_RESULT PhVerifyFileCached(
     _In_ PPH_STRING FileName,
-    _In_opt_ PWSTR PackageFullName,
+    _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName,
     _In_ BOOLEAN CachedOnly
     )
@@ -1189,7 +1183,7 @@ VOID PhpProcessQueryStage2(
 
         Data->VerifyResult = PhVerifyFileCached(
             processItem->FileName,
-            PhGetString(packageFullName),
+            packageFullName,
             &Data->VerifySignerName,
             FALSE
             );
