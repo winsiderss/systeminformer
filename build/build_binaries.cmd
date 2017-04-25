@@ -1,5 +1,5 @@
 @echo off
 
-CustomBuildTool.exe -bin
+..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -bin
 
 pause

@@ -2,7 +2,13 @@ Process Hacker
 
 3.0
  * HIGHLIGHTS:
+   * New Process Hacker setup.
+   * Added F11 hotkey for fullscreen System Information window.
  * OTHER CHANGES:
+* Updated Updater plugin:
+     * New design and layout.
+* Updated WindowExplorer plugin:
+     * Added Windows process properties page.
  * NOTE:
    * Support for Windows XP and Vista has been dropped. For those platforms, use Process Hacker 2.38.
    * This release has significant internal code changes. Please make sure all plugins are up-to-date.

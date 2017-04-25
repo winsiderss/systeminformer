@@ -12,6 +12,6 @@
  set KPH_BUILD_KEY=%KPH_BUILD_KEY%
  set NIGHTLY_BUILD_KEY=%NIGHTLY_BUILD_KEY%
 
-CustomBuildTool.exe -release
+..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -release
 
 pause

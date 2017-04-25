@@ -183,18 +183,7 @@ namespace CustomBuildTool
         {
             try
             {
-                // BUG
-                if (File.Exists("ProcessHacker\\include\\phapprev.h"))
-                    File.Delete("ProcessHacker\\include\\phapprev.h");
 
-                File.WriteAllText("ProcessHacker\\include\\phapprev.h",
-@"#ifndef PHAPPREV_H 
-#define PHAPPREV_H 
-
-#define PHAPP_VERSION_REVISION 0
-
-#endif // PHAPPREV_H
-");
             }
             catch (Exception ex)
             {

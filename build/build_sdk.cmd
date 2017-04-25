@@ -1,3 +1,3 @@
 @echo off
 
-CustomBuildTool.exe -sdk
+..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -sdk

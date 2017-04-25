@@ -101,7 +101,6 @@ Desktop.ini
 ##########################
 
 build/installer/*.exe
-ProcessHacker/include/phapprev.h
 ProcessHacker/sdk/phapppub.h
 plugins-extra/
 /sdk/
@@ -120,6 +119,13 @@ plugins/SamplePlugin/bin/Release32/*
 plugins/SamplePlugin/bin/Release64/*
 !plugins/SamplePlugin/bin/Release64/SamplePlugin.dll
 plugins/OnlineChecks/virustotal.h
+
+!tools/CustomBuildTool/bin/
+tools/CustomBuildTool/bin/Debug*/
+tools/CustomBuildTool/bin/Release*/*
+!tools/CustomBuildTool/bin/Release/CustomBuildTool.exe
+!tools/CustomBuildTool/bin/Release/CustomBuildTool.exe.config
+!tools/CustomBuildTool/bin/Release/CustomBuildTool.pdb
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/
