@@ -105,11 +105,11 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
       <Message>Cleaning up build...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -137,11 +137,11 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
       <Message>Cleaning up build...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -176,11 +176,11 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
       <Message>Cleaning up build...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -214,11 +214,11 @@
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <PreBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -updaterev</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -updaterev</Command>
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\build\CustomBuildTool.exe -cleanup</Command>
+      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
       <Message>Cleaning up build...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
