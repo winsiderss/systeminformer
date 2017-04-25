@@ -218,6 +218,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhFindObjectsListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
 
+            PhCreateSearchControl(hwndDlg, GetDlgItem(hwndDlg, IDC_FILTER), NULL);
+
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_FILTER),
                 NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);

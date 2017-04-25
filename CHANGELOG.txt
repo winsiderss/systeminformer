@@ -3,6 +3,7 @@ Process Hacker
 3.0
  * HIGHLIGHTS:
    * New Process Hacker setup.
+   * New process properties handle search.
    * Added F11 hotkey for fullscreen System Information window.
  * OTHER CHANGES:
 * Updated Updater plugin:

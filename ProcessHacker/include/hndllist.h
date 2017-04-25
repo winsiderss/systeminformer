@@ -43,14 +43,16 @@ typedef struct _PH_HANDLE_LIST_CONTEXT
     HWND ParentWindowHandle;
     HWND TreeNewHandle;
     ULONG TreeNewSortColumn;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
-    BOOLEAN HideUnnamedHandles;
 
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
 
     BOOLEAN EnableStateHighlighting;
+    BOOLEAN HideUnnamedHandles;
+
     PPH_POINTER_LIST NodeStateList;
 } PH_HANDLE_LIST_CONTEXT, *PPH_HANDLE_LIST_CONTEXT;
 
@@ -96,6 +98,11 @@ VOID PhRemoveHandleNode(
 VOID PhUpdateHandleNode(
     _In_ PPH_HANDLE_LIST_CONTEXT Context,
     _In_ PPH_HANDLE_NODE HandleNode
+    );
+
+VOID PhExpandAllHandleNodes(
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ BOOLEAN Expand
     );
 
 VOID PhTickHandleNodes(

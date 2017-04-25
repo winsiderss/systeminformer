@@ -255,6 +255,7 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
+    HWND SearchboxHandle;
 // end_phapppub
 
     union
@@ -271,6 +272,9 @@ typedef struct _PH_HANDLES_CONTEXT
     BOOLEAN SelectedHandleInherit;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
+
+    PPH_STRING SearchboxText;
+    PPH_TN_FILTER_ENTRY FilterEntry;
 // begin_phapppub
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 // end_phapppub

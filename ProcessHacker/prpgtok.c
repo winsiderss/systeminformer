@@ -65,8 +65,6 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
             if (!GetProp(hwndDlg, PhMakeContextAtom())) // LayoutInitialized
             {
                 PPH_LAYOUT_ITEM dialogItem;
-                HWND groupsLv;
-                HWND privilegesLv;
 
                 // This is a big violation of abstraction...
 
@@ -80,10 +78,6 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_APPCONTAINERSID),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_GROUPS),
-                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVILEGES),
-                    dialogItem, PH_ANCHOR_ALL);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSTRUCTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INTEGRITY),
@@ -92,22 +86,6 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
                 PhDoPropPageLayout(hwndDlg);
-
-                groupsLv = GetDlgItem(hwndDlg, IDC_GROUPS);
-                privilegesLv = GetDlgItem(hwndDlg, IDC_PRIVILEGES);
-
-                if (ListView_GetItemCount(groupsLv) != 0)
-                {
-                    ListView_SetColumnWidth(groupsLv, 0, LVSCW_AUTOSIZE);
-                    ExtendedListView_SetColumnWidth(groupsLv, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
-                }
-
-                if (ListView_GetItemCount(privilegesLv) != 0)
-                {
-                    ListView_SetColumnWidth(privilegesLv, 0, LVSCW_AUTOSIZE);
-                    ListView_SetColumnWidth(privilegesLv, 1, LVSCW_AUTOSIZE);
-                    ExtendedListView_SetColumnWidth(privilegesLv, 2, ELVSCW_AUTOSIZE_REMAININGSPACE);
-                }
 
                 SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)TRUE);
             }

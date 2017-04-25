@@ -603,6 +603,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,88,10
     CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0x2,7,21,246,232,WS_EX_CLIENTEDGE
+    EDITTEXT        IDC_HANDLESEARCH,110,4,143,14,ES_AUTOHSCROLL
 END
 
 IDD_PROCENVIRONMENT DIALOGEX 0, 0, 260, 260
@@ -723,7 +724,7 @@ CAPTION "Find Handles or DLLs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Filter:",IDC_STATIC,7,9,20,8
-    EDITTEXT        IDC_FILTER,32,8,223,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_FILTER,32,8,224,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Find",IDOK,300,7,50,14
     CONTROL         "",IDC_RESULTS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,26,343,200
     CONTROL         "&Regex",IDC_REGEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,261,9,36,10
@@ -746,8 +747,8 @@ BEGIN
     LTEXT           "Unknown",IDC_VIRTUALIZED,209,29,44,8
     LTEXT           "App container SID:",IDC_STATIC,7,40,62,8
     EDITTEXT        IDC_APPCONTAINERSID,75,40,178,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    CONTROL         "",IDC_GROUPS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,53,246,84
-    CONTROL         "",IDC_PRIVILEGES,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,142,246,83
+    CONTROL         "",IDC_GROUPS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,53,246,112
+    CONTROL         "",IDC_PRIVILEGES,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,168,246,57
     LTEXT           "To view capabilities, claims and other attributes, click Advanced.",IDC_INSTRUCTION,7,228,206,8
     PUSHBUTTON      "Integrity",IDC_INTEGRITY,149,239,50,14
     PUSHBUTTON      "Advanced",IDC_ADVANCED,203,239,50,14
@@ -2508,8 +2509,11 @@ END
 //
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
+
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
+
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
+
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 
 
@@ -2591,6 +2595,16 @@ BEGIN
     0
 END
 
+IDD_PROCHANDLES AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_OBJTOKEN AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2598,6 +2612,7 @@ END
 //
 
 IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
+
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 
 #endif    // English (Australia) resources
