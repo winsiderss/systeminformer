@@ -56,14 +56,6 @@ typedef struct _EDIT_CONTEXT
     HBRUSH BrushHot;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
-HBITMAP PhpSearchLoadPngImageFromResources(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    );
-
 HICON PhpSearchBitmapToIcon(
     _In_ HBITMAP BitmapHandle,
     _In_ INT Width,
@@ -91,7 +83,7 @@ VOID PhpSearchInitializeFont(
     if (Context->WindowFont) 
         DeleteObject(Context->WindowFont);
 
-    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, Context->WindowHandle);
+    Context->WindowFont = PhCreateCommonFont(PH_SCALE_DPI(10), FW_MEDIUM, Context->WindowHandle);
 }
 
 VOID PhpSearchInitializeTheme(
@@ -522,7 +514,7 @@ HICON PhpSearchBitmapToIcon(
 VOID PhCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
+    _In_opt_ PWSTR BannerText
     )
 {
     PEDIT_CONTEXT context;
@@ -536,7 +528,8 @@ VOID PhCreateSearchControl(
     PhpSearchInitializeImages(context);
 
     // Set initial text
-    Edit_SetCueBannerText(context->WindowHandle, BannerText);
+    if (BannerText)
+        Edit_SetCueBannerText(context->WindowHandle, BannerText);
 
     // Set our window context data.
     SetProp(context->WindowHandle, L"SearchBoxContext", (HANDLE)context);

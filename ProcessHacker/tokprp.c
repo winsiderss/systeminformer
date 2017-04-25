@@ -50,6 +50,7 @@ typedef struct _TOKEN_PAGE_CONTEXT
 
     HWND GroupsListViewHandle;
     HWND PrivilegesListViewHandle;
+    PPH_HSPLITTER_CONTEXT HSplitterContext;
 
     PTOKEN_GROUPS Groups;
     PTOKEN_PRIVILEGES Privileges;
@@ -423,6 +424,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSetControlTheme(groupsLv, L"explorer");
             PhSetControlTheme(privilegesLv, L"explorer");
 
+            tokenPageContext->HSplitterContext = PhInitializeHSplitterSupport(
+                hwndDlg, 
+                tokenPageContext->GroupsListViewHandle, 
+                tokenPageContext->PrivilegesListViewHandle
+                );
+
             PhAddListViewColumn(groupsLv, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
             PhAddListViewColumn(groupsLv, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
 
@@ -432,7 +439,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             PhSetExtendedListView(groupsLv);
             ExtendedListView_SetItemColorFunction(groupsLv, PhpTokenGroupColorFunction);
-
             PhSetExtendedListView(privilegesLv);
             ExtendedListView_SetItemColorFunction(privilegesLv, PhpTokenPrivilegeColorFunction);
 
@@ -576,6 +582,19 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     ExtendedListView_SortItems(privilegesLv);
                 }
 
+                if (ListView_GetItemCount(groupsLv) != 0)
+                {
+                    ListView_SetColumnWidth(groupsLv, 0, LVSCW_AUTOSIZE);
+                    ExtendedListView_SetColumnWidth(groupsLv, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                }
+
+                if (ListView_GetItemCount(privilegesLv) != 0)
+                {
+                    ListView_SetColumnWidth(privilegesLv, 0, LVSCW_AUTOSIZE);
+                    ListView_SetColumnWidth(privilegesLv, 1, LVSCW_AUTOSIZE);
+                    ExtendedListView_SetColumnWidth(privilegesLv, 2, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                }
+
                 NtClose(tokenHandle);
             }
         }
@@ -584,6 +603,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
         {
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
+            if (tokenPageContext->HSplitterContext) PhDeleteHSplitterSupportSupport(tokenPageContext->HSplitterContext);
         }
         break;
     case WM_COMMAND:
@@ -914,6 +934,27 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
                     PhDestroyEMenu(menu);
                 }
+            }
+        }
+        break;
+    case WM_SIZE:
+        PhHSplitterHandleWmSize(tokenPageContext->HSplitterContext, LOWORD(lParam), HIWORD(lParam));
+        return 0;
+    case WM_LBUTTONDOWN:
+        PhHSplitterHandleLButtonDown(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
+        return 0;
+    case WM_LBUTTONUP:
+        PhHSplitterHandleLButtonUp(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
+        return 0;
+    case WM_MOUSEMOVE:
+        PhHSplitterHandleMouseMove(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
+        return 0;
+    case WM_NCMOUSELEAVE:
+        {
+            //if (context->Hot)
+            {
+                //context->Hot = FALSE;
+                //RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
             }
         }
         break;

@@ -208,6 +208,78 @@ VOID PhShowHandleContextMenu(
     PhFree(handles);
 }
 
+static BOOLEAN PhpWordMatchHandleStringRef(
+    _In_ PPH_STRING SearchText,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = SearchText->sr;
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhpWordMatchHandleStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhpWordMatchHandleStringRef(SearchText, &text);
+}
+
+BOOLEAN PhpHandleTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = Context;
+    PPH_HANDLE_NODE processNode = (PPH_HANDLE_NODE)Node;
+    PPH_HANDLE_ITEM handleItem = processNode->HandleItem;
+
+    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
+        return FALSE;
+
+    if (PhIsNullOrEmptyString(handlesContext->SearchboxText))
+        return TRUE;
+
+    if (!PhIsNullOrEmptyString(handleItem->TypeName))
+    {
+        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->TypeName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(handleItem->ObjectName))
+    {
+        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->ObjectName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(handleItem->BestObjectName))
+    {
+        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->BestObjectName->sr))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -276,6 +348,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
             handlesContext->WindowHandle = hwndDlg;
 
+            handlesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_HANDLESEARCH);
+            PhCreateSearchControl(hwndDlg, handlesContext->SearchboxHandle, L"Search Handles (Ctrl+K)");
+
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
@@ -284,6 +359,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhInitializeProviderEventQueue(&handlesContext->EventQueue, 100);
             handlesContext->LastRunStatus = -1;
             handlesContext->ErrorMessage = NULL;
+            handlesContext->SearchboxText = PhReferenceEmptyString();
+            handlesContext->FilterEntry = PhAddTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, PhpHandleTreeFilterCallback, handlesContext);
 
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectCreate);
 
@@ -353,11 +430,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             if (!propPageContext->LayoutInitialized)
             {
                 PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
-                    dialogItem, PH_ANCHOR_ALL);
+                
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_HANDLESEARCH), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
 
@@ -367,9 +443,35 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
 
-            switch (id)
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != handlesContext->SearchboxHandle)
+                        break;
+
+                    newSearchboxText = PhGetWindowText(handlesContext->SearchboxHandle);
+
+                    if (!PhEqualString(handlesContext->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        // Cache the current search text for our callback.
+                        PhMoveReference(&handlesContext->SearchboxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(handlesContext->SearchboxText))
+                        {
+                            // Expand any hidden nodes to make search results visible.
+                            PhExpandAllHandleNodes(&handlesContext->ListContext, TRUE);
+                        }
+
+                        PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+                    }
+                }
+                break;
+            }
+
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:
                 {
@@ -409,9 +511,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                         // Toggle the appropriate bit.
 
-                        if (id == ID_HANDLE_PROTECTED)
+                        if (GET_WM_COMMAND_ID(wParam, lParam) == ID_HANDLE_PROTECTED)
                             attributes ^= OBJ_PROTECT_CLOSE;
-                        else if (id == ID_HANDLE_INHERIT)
+                        else if (GET_WM_COMMAND_ID(wParam, lParam) == ID_HANDLE_INHERIT)
                             attributes ^= OBJ_INHERIT;
 
                         PhReferenceObject(handleItem);
@@ -434,7 +536,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         info.TypeName = handleItem->TypeName;
                         info.BestObjectName = handleItem->BestObjectName;
 
-                        if (id == ID_HANDLE_OBJECTPROPERTIES1)
+                        if (GET_WM_COMMAND_ID(wParam, lParam) == ID_HANDLE_OBJECTPROPERTIES1)
                             PhShowHandleObjectProperties1(hwndDlg, &info);
                         else
                             PhShowHandleObjectProperties2(hwndDlg, &info);
@@ -467,9 +569,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     BOOLEAN hide;
 
                     hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
-                    
-                    PhSetIntegerSetting(L"HideUnnamedHandles", hide);
+
+                    PhSetIntegerSetting(L"HideUnnamedHandles", hide); 
                     PhSetOptionsHandleList(&handlesContext->ListContext, hide);
+                    PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
                 }
                 break;
             }

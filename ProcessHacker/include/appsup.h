@@ -499,4 +499,71 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
 #define SWP_SHOWWINDOW_ONLY (SWP_NO_ACTIVATE_MOVE_SIZE_ZORDER | SWP_SHOWWINDOW)
 #define SWP_HIDEWINDOW_ONLY (SWP_NO_ACTIVATE_MOVE_SIZE_ZORDER | SWP_HIDEWINDOW)
 
+// splitter
+
+typedef struct _PH_HSPLITTER_CONTEXT
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Hot : 1;
+            ULONG Pushed : 1;
+            ULONG Moved : 1;
+            ULONG DragMode : 1;
+            ULONG Spare : 28;
+        };
+    };
+
+    ULONG Height;
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPH_LAYOUT_ITEM Topitem;
+    PPH_LAYOUT_ITEM Bottomitem;
+} PH_HSPLITTER_CONTEXT, *PPH_HSPLITTER_CONTEXT;
+
+PPH_HSPLITTER_CONTEXT PhInitializeHSplitterSupport(
+    _In_ HWND Parent,
+    _In_ HWND TopChild,
+    _In_ HWND BottomChild
+    );
+
+VOID PhDeleteHSplitterSupportSupport(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context
+    );
+
+VOID PhHSplitterHandleWmSize(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context,
+    _In_ INT Width,
+    _In_ INT Height
+    );
+
+VOID PhHSplitterHandleLButtonDown(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context,
+    _In_ HWND hwnd,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhHSplitterHandleLButtonUp(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context,
+    _In_ HWND hwnd,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhHSplitterHandleMouseMove(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context,
+    _In_ HWND hwnd,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhHSplitterHandleMouseLeave(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context,
+    _In_ HWND hwnd,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 #endif

@@ -532,6 +532,7 @@
 #define IDC_DELETE                      1382
 #define IDC_EDIT                        1383
 #define IDC_NEW                         1384
+#define IDC_HANDLESEARCH                1385
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -742,9 +743,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        227
+#define _APS_NEXT_RESOURCE_VALUE        228
 #define _APS_NEXT_COMMAND_VALUE         40295
-#define _APS_NEXT_CONTROL_VALUE         1385
+#define _APS_NEXT_CONTROL_VALUE         1387
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif

@@ -109,6 +109,8 @@ VOID PhInitializeHandleList(
     TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHHNTLC_MAXIMUM, PhpHandleTreeNewPostSortFunction);
+
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, hwnd, Context->NodeList);
 }
 
 VOID PhDeleteHandleList(
@@ -177,39 +179,9 @@ VOID PhSetOptionsHandleList(
     _In_ BOOLEAN HideUnnamedHandles
     )
 {
-    ULONG i;
-    BOOLEAN modified;
-
     if (Context->HideUnnamedHandles != HideUnnamedHandles)
     {
         Context->HideUnnamedHandles = HideUnnamedHandles;
-
-        modified = FALSE;
-
-        for (i = 0; i < Context->NodeList->Count; i++)
-        {
-            PPH_HANDLE_NODE node = Context->NodeList->Items[i];
-            BOOLEAN visible;
-
-            visible = TRUE;
-
-            if (HideUnnamedHandles && PhIsNullOrEmptyString(node->HandleItem->BestObjectName))
-                visible = FALSE;
-
-            if (node->Node.Visible != visible)
-            {
-                node->Node.Visible = visible;
-                modified = TRUE;
-
-                if (!visible)
-                    node->Node.Selected = FALSE;
-            }
-        }
-
-        if (modified)
-        {
-            TreeNew_NodesStructured(Context->TreeNewHandle);
-        }
     }
 }
 
@@ -248,8 +220,8 @@ PPH_HANDLE_NODE PhAddHandleNode(
     PhAddEntryHashtable(Context->NodeHashtable, &handleNode);
     PhAddItemList(Context->NodeList, handleNode);
 
-    if (Context->HideUnnamedHandles && PhIsNullOrEmptyString(HandleItem->BestObjectName))
-        handleNode->Node.Visible = FALSE;
+    if (Context->TreeFilterSupport.FilterList)
+        handleNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &handleNode->Node);
 
     PhEmCallObjectOperation(EmHandleNodeType, handleNode, EmObjectCreate);
 
@@ -344,6 +316,29 @@ VOID PhUpdateHandleNode(
 
     PhInvalidateTreeNewNode(&HandleNode->Node, TN_CACHE_COLOR);
     TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID PhExpandAllHandleNodes(
+    _In_ PPH_HANDLE_LIST_CONTEXT Context,
+    _In_ BOOLEAN Expand
+    )
+{
+    ULONG i;
+    BOOLEAN needsRestructure = FALSE;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_HANDLE_NODE node = Context->NodeList->Items[i];
+
+        if (node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhTickHandleNodes(
