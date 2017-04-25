@@ -44,46 +44,6 @@
 
 extern PPH_PLUGIN PluginInstance;
 
-typedef struct _EDIT_CONTEXT
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Hot : 1;
-            ULONG Pushed : 1;
-            ULONG Spare : 30;
-        };
-    };
-   
-    LONG CXWidth;
-    INT CXBorder;
-    INT ImageWidth;
-    INT ImageHeight;
-    HWND WindowHandle;
-    HFONT WindowFont;
-    HICON BitmapActive;
-    HICON BitmapInactive;
-    HBRUSH BrushNormal;
-    HBRUSH BrushPushed;
-    HBRUSH BrushHot;
-} EDIT_CONTEXT, *PEDIT_CONTEXT;
-
-VOID UtilCreateSearchControl(
-    _In_ HWND Parent,
-    _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
-    );
-
-HBITMAP UtilLoadImageFromResources(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    );
-
 HICON BitmapToIcon(
     _In_ HBITMAP BitmapHandle,
     _In_ INT Width,

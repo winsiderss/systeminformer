@@ -121,6 +121,10 @@
 #define IDI_PENCIL                      218
 #define IDI_MAGNIFIER                   219
 #define IDD_EDITENV                     221
+#define IDB_SEARCH_ACTIVE               223
+#define IDB_SEARCH_INACTIVE             224
+#define IDB_SEARCH_ACTIVE_BMP           225
+#define IDB_SEARCH_INACTIVE_BMP         226
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -738,7 +742,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        223
+#define _APS_NEXT_RESOURCE_VALUE        227
 #define _APS_NEXT_COMMAND_VALUE         40295
 #define _APS_NEXT_CONTROL_VALUE         1385
 #define _APS_NEXT_SYMED_VALUE           169

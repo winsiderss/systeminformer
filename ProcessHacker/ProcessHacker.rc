@@ -2498,7 +2498,7 @@ BEGIN
     VK_F6,          IDC_PAUSE,              VIRTKEY, NOINVERT
     VK_PAUSE,       IDC_PAUSE,              VIRTKEY, NOINVERT
     VK_F5,          IDC_REFRESH,            VIRTKEY, NOINVERT
-    VK_F11,         IDC_MAXSCREEN,             VIRTKEY, NOINVERT
+    VK_F11,         IDC_MAXSCREEN,          VIRTKEY, NOINVERT
 END
 
 
@@ -2508,8 +2508,9 @@ END
 //
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
-
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
+IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
+IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2589,6 +2590,15 @@ IDD_EDITENV AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
+IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -735,7 +735,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //                NULL
     //            );
     //
-    //            CommonCreateFont(-11, hwndEdit);
+    //            PhCreateCommonFont(-11, hwndEdit);
     //
     //            // Add text to the window.
     //            SendMessage(hwndEdit, WM_SETTEXT, 0, (LPARAM)L"TEST");

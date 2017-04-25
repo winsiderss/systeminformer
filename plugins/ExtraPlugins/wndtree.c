@@ -314,7 +314,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                         {
                             HBITMAP bitmapActive;
 
-                            if (bitmapActive = LoadImageFromResources(PluginInstance->DllBase, 17, 17, MAKEINTRESOURCE(IDB_SETTINGS_PNG), TRUE))
+                            if (bitmapActive = PhLoadPngImageFromResource(PluginInstance->DllBase, 17, 17, MAKEINTRESOURCE(IDB_SETTINGS_PNG), TRUE))
                             {
                                 node->Icon = CommonBitmapToIcon(bitmapActive, 17, 17);
                                 DeleteObject(bitmapActive);
@@ -439,8 +439,8 @@ VOID InitializePluginsTree(
     Context->TreeNewHandle = TreeNewHandle;
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
-    Context->NormalFontHandle = CommonCreateFont(-10, FW_NORMAL, NULL);
-    Context->TitleFontHandle = CommonCreateFont(-14, FW_BOLD, NULL);
+    Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL);
+    Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL);
 
     TreeNew_SetCallback(TreeNewHandle, PluginsTreeNewCallback, Context);
     TreeNew_SetRowHeight(TreeNewHandle, 48);

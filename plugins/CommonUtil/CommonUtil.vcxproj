@@ -92,8 +92,6 @@
     <ClCompile Include="json-c\random_seed.c" />
     <ClCompile Include="json.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="png.c" />
-    <ClCompile Include="searchbox.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="json-c\arraylist.h" />
@@ -118,12 +116,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\active_search.bmp" />
-    <Image Include="resources\active_search.png" />
-    <Image Include="resources\inactive_search.bmp" />
-    <Image Include="resources\inactive_search.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -442,7 +442,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN), FALSE);
             }
             else
             {
@@ -458,7 +458,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN), FALSE);
             }
             else
             {
@@ -474,7 +474,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_FIND_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_FIND_MODERN), FALSE);
             }
             else
             {
@@ -490,7 +490,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN), FALSE);
             }
             else
             {
@@ -506,7 +506,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN), FALSE);
             }
             else
             {
@@ -522,7 +522,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN), FALSE);
             }
             else
             {
@@ -538,7 +538,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CROSS_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CROSS_MODERN), FALSE);
             }
             else
             {
@@ -554,7 +554,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN), FALSE);
             }
             else
             {
@@ -570,7 +570,7 @@ HBITMAP ToolbarGetImage(
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = LoadImageFromResources(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_POWER_MODERN), FALSE);
+                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_POWER_MODERN), FALSE);
             }
             else
             {

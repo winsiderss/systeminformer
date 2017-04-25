@@ -40,7 +40,7 @@ BOOLEAN CreateSearchboxControl(
         NULL
         ))
     {
-        CreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
+        PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
         return TRUE;
     }
 

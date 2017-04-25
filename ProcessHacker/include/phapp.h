@@ -605,6 +605,70 @@ NTSTATUS PhInvokeRunAsService(
     _In_ PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
+// searchbox
+
+// begin_phapppub
+PHAPPAPI
+VOID
+NTAPI
+PhCreateSearchControl(
+    _In_ HWND Parent,
+    _In_ HWND WindowHandle,
+    _In_ PWSTR BannerText
+    );
+
+PHAPPAPI
+HBITMAP 
+NTAPI
+PhLoadPngImageFromResource(
+    _In_ PVOID DllBase,
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN RGBAImage
+    );
+
+FORCEINLINE
+HFONT
+PhCreateCommonFont(
+    _In_ LONG Size,
+    _In_ INT Weight,
+    _In_opt_ HWND hwnd
+    )
+{
+    HFONT fontHandle;
+    LOGFONT logFont;
+
+    if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+        return NULL;
+
+    fontHandle = CreateFont(
+        -PhMultiplyDivideSigned(Size, PhGlobalDpi, 72),
+        0,
+        0,
+        0,
+        Weight,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
+        DEFAULT_PITCH,
+        logFont.lfFaceName
+        );
+
+    if (!fontHandle)
+        return NULL;
+
+    if (hwnd)
+        SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
+
+    return fontHandle;
+}
+// end_phapppub
+
 // sessmsg
 
 VOID PhShowSessionSendMessageDialog(

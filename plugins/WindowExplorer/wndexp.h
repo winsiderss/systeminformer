@@ -2,6 +2,7 @@
 #define WNDEXP_H
 
 #include <phdk.h>
+#include <phapppub.h>
 #include "wndtree.h"
 
 extern BOOLEAN IsHookClient;

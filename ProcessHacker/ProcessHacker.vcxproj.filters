@@ -408,6 +408,9 @@
     <ClCompile Include="mwpgnet.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="searchbox.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
@@ -632,6 +635,18 @@
       <Filter>Resources</Filter>
     </Image>
     <Image Include="resources\magnifier.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\active_search.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\active_search.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.png">
       <Filter>Resources</Filter>
     </Image>
   </ItemGroup>
