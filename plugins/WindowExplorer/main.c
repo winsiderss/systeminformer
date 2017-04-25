@@ -23,46 +23,6 @@
 #include "wndexp.h"
 #include "resource.h"
 
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessPropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
 BOOLEAN IsHookClient;
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -71,133 +31,8 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
-LOGICAL DllMain(
-    _In_ HINSTANCE Instance,
-    _In_ ULONG Reason,
-    _Reserved_ PVOID Reserved
-    )
-{
-    switch (Reason)
-    {
-    case DLL_PROCESS_ATTACH:
-        {
-            PPH_PLUGIN_INFORMATION info;
-            BOOLEAN isClient;
-
-            isClient = FALSE;
-
-            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhLibImageBase"))
-            {
-                isClient = TRUE;
-            }
-            else
-            {
-                // WindowExplorer appears to be loading within Process Hacker. However, if there is
-                // already a server instance, the the hook will be active, and our DllMain routine
-                // will most likely be called before the plugin system is even initialized. Attempting
-                // to register a plugin would result in an access violation, so load as a client for now.
-                if (WeIsServerActive())
-                    isClient = TRUE;
-            }
-
-            if (isClient)
-            {
-                // This DLL is being loaded not as a Process Hacker plugin, but as a hook.
-                IsHookClient = TRUE;
-                WeHookClientInitialization();
-
-                break;
-            }
-
-            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
-
-            if (!PluginInstance)
-                return FALSE;
-
-            info->DisplayName = L"Window Explorer";
-            info->Author = L"wj32";
-            info->Description = L"View and manipulate windows.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1116";
-            info->HasOptions = FALSE;
-
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-            //    ShowOptionsCallback,
-            //    NULL,
-            //    &PluginShowOptionsCallbackRegistration
-            //    );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
-                MenuItemCallback,
-                NULL,
-                &PluginMenuItemCallbackRegistration
-                );
-
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
-                MainMenuInitializingCallback,
-                NULL,
-                &MainMenuInitializingCallbackRegistration
-                );
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
-            //    ProcessPropertiesInitializingCallback,
-            //    NULL,
-            //    &ProcessPropertiesInitializingCallbackRegistration
-            //    );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
-                ProcessMenuInitializingCallback,
-                NULL,
-                &ProcessMenuInitializingCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing),
-                ThreadMenuInitializingCallback,
-                NULL,
-                &ThreadMenuInitializingCallbackRegistration
-                );
-
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"0" },
-                    { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
-                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
-                    { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"@96|690,540" }
-                };
-
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            }
-        }
-        break;
-    case DLL_PROCESS_DETACH:
-        {
-            if (IsHookClient)
-            {
-                WeHookClientUninitialization();
-            }
-        }
-        break;
-    }
-
-    return TRUE;
-}
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -332,34 +167,18 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
-}
+    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
+    BOOLEAN isGuiProcess = TRUE;
 
-VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-    PPH_PROCESS_ITEM processItem;
-    ULONG flags;
-    PPH_EMENU_ITEM miscMenu;
+    // enum threads, IsGuiThread, isGuiProcess=TRUE
 
-    if (menuInfo->u.Process.NumberOfProcesses == 1)
-        processItem = menuInfo->u.Process.Processes[0];
-    else
-        processItem = NULL;
-
-    flags = 0;
-
-    if (!processItem)
-        flags = PH_EMENU_DISABLED;
-
-    miscMenu = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0);
-
-    if (miscMenu)
+    if (isGuiProcess)
     {
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WINDOWS, L"Windows", processItem), -1);
+        WE_WINDOW_SELECTOR selector;
+
+        selector.Type = WeWindowSelectorProcess;
+        selector.Process.ProcessId = propContext->ProcessItem->ProcessId;
+        WeShowWindowsPropPage(propContext, &selector);
     }
 }
 
@@ -387,4 +206,120 @@ VOID NTAPI ThreadMenuInitializingCallback(
         L"Windows", threadItem), insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
+}
+
+LOGICAL DllMain(
+    _In_ HINSTANCE Instance,
+    _In_ ULONG Reason,
+    _Reserved_ PVOID Reserved
+    )
+{
+    switch (Reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        {
+            BOOLEAN isClient;
+            PPH_PLUGIN_INFORMATION info;
+            PH_SETTING_CREATE settings[] =
+            {
+                { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"1" },
+                { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"@96|690,540" }
+            };
+
+            isClient = FALSE;
+
+            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhLibImageBase"))
+            {
+                isClient = TRUE;
+            }
+            else
+            {
+                // WindowExplorer appears to be loading within Process Hacker. However, if there is
+                // already a server instance, the the hook will be active, and our DllMain routine
+                // will most likely be called before the plugin system is even initialized. Attempting
+                // to register a plugin would result in an access violation, so load as a client for now.
+                if (WeIsServerActive())
+                    isClient = TRUE;
+            }
+
+            if (isClient)
+            {
+                // This DLL is being loaded not as a Process Hacker plugin, but as a hook.
+                IsHookClient = TRUE;
+                WeHookClientInitialization();
+
+                break;
+            }
+
+            PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
+
+            if (!PluginInstance)
+                return FALSE;
+
+            info->DisplayName = L"Window Explorer";
+            info->Author = L"wj32";
+            info->Description = L"View and manipulate windows.";
+            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1116";
+            info->HasOptions = FALSE;
+
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
+                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+            //    ShowOptionsCallback,
+            //    NULL,
+            //    &PluginShowOptionsCallbackRegistration
+            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+                MainMenuInitializingCallback,
+                NULL,
+                &MainMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
+                ProcessPropertiesInitializingCallback,
+                NULL,
+                &ProcessPropertiesInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing),
+                ThreadMenuInitializingCallback,
+                NULL,
+                &ThreadMenuInitializingCallbackRegistration
+                );
+
+            PhAddSettings(settings, ARRAYSIZE(settings));    
+        }
+        break;
+    case DLL_PROCESS_DETACH:
+        {
+            if (IsHookClient)
+            {
+                WeHookClientUninitialization();
+            }
+        }
+        break;
+    }
+
+    return TRUE;
 }

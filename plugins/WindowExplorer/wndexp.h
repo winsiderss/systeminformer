@@ -100,6 +100,11 @@ VOID WeShowWindowsDialog(
     _In_ PWE_WINDOW_SELECTOR Selector
     );
 
+VOID WeShowWindowsPropPage(
+    _In_ PPH_PLUGIN_PROCESS_PROPCONTEXT Context,
+    _In_ PWE_WINDOW_SELECTOR Selector
+    );
+
 // wndprp
 
 VOID WeShowWindowProperties(
