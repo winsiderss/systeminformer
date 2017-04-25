@@ -28,7 +28,7 @@ test: off
 
 # Run custom build script.
 build_script:
-- cmd: .\build\CustomBuildTool.exe
+- cmd: tools\CustomBuildTool\bin\Release\CustomBuildTool.exe
 
 # Setup build notifications.
 notifications:
