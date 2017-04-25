@@ -50,7 +50,7 @@ CleanupExit:
 }
 
 BOOLEAN SetupExtractBuild(
-    _In_ PVOID Arguments
+    _In_ PSETUP_PROGRESS_THREAD Context
     )
 {
     mz_bool status = MZ_FALSE;
@@ -72,9 +72,6 @@ BOOLEAN SetupExtractBuild(
     // Remove outdated files
     //for (ULONG i = 0; i < ARRAYSIZE(SetupRemoveFiles); i++)
     //    SetupDeleteDirectoryFile(SetupRemoveFiles[i].FileName);
-
-    if (!CreateDirectoryPath(PhGetString(SetupInstallPath)))
-        goto CleanupExit;
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
@@ -100,7 +97,7 @@ BOOLEAN SetupExtractBuild(
         InterlockedExchange64(&ExtractTotalLength, totalLength);
     }
 
-    SendMessage(Arguments, WM_START_SETUP, 0, 0);
+    SendMessage(Context->DialogHandle, WM_START_SETUP, 0, 0);
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
@@ -218,7 +215,7 @@ BOOLEAN SetupExtractBuild(
         currentLength += bufferLength;
 
         InterlockedExchange64(&ExtractCurrentLength, currentLength);
-        SendMessage(Arguments, WM_UPDATE_SETUP, 0, (LPARAM)extractPath);
+        SendMessage(Context->DialogHandle, WM_UPDATE_SETUP, 0, (LPARAM)extractPath);
 
         NtClose(fileHandle);
         mz_free(buffer);

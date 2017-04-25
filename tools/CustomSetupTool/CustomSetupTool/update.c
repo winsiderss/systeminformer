@@ -24,7 +24,6 @@
 
 typedef struct _PH_SETUP_UPDATE_CONTEXT
 {
-    BOOLEAN FixedWindowStyles;
     HWND DialogHandle;
     HICON IconSmallHandle;
     HICON IconLargeHandle;
@@ -35,7 +34,7 @@ typedef struct _PH_SETUP_UPDATE_CONTEXT
     PPH_STRING SetupFilePath;
 } PH_SETUP_UPDATE_CONTEXT, *PPH_SETUP_UPDATE_CONTEXT;
 
-#define WM_SHOWDIALOG (WM_APP + 550)
+#define WM_TASKDIALOGINIT (WM_APP + 550)
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
@@ -56,23 +55,22 @@ NTSTATUS SetupUpdateBuild(
     SetupCreateUninstallFile();
     //SetupSetWindowsOptions();
 
-    if (!SetupExtractBuild(Context->DialogHandle))
+    if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
     if (SetupInstallKphService)
         SetupInstallKph();
 
-    if (SetupExecuteProcessHacker(Context->DialogHandle))
-    {
-        PostMessage(Context->DialogHandle, WM_QUIT, 0, 0);
-    }
+    if (!SetupExecuteProcessHacker(Context->DialogHandle))
+        goto CleanupExit;
 
+    PostMessage(Context->DialogHandle, WM_QUIT, 0, 0);
     PhDereferenceObject(Context);  
     return STATUS_SUCCESS;
 
 CleanupExit:
 
-    //PostMessage(Context->DialogHandle, IDD_ERROR, 0, 0);
+    PostMessage(Context->DialogHandle, IDD_ERROR, 0, 0);
     PhDereferenceObject(Context);
     return STATUS_FAIL_CHECK;
 }
@@ -117,29 +115,29 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_SETUP_UPDATE_CONTEXT Context
     )
 {
-    //HICON largeIcon;
-    //HICON smallIcon;
+    HICON largeIcon;
+    HICON smallIcon;
 
-    //largeIcon = PhLoadIcon(
-    //    NtCurrentPeb()->ImageBaseAddress,
-    //    MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-    //    PH_LOAD_ICON_SIZE_LARGE,
-    //    GetSystemMetrics(SM_CXICON),
-    //    GetSystemMetrics(SM_CYICON)
-    //    );
-    //smallIcon = PhLoadIcon(
-    //    NtCurrentPeb()->ImageBaseAddress,
-    //    MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-    //    PH_LOAD_ICON_SIZE_LARGE,
-    //    GetSystemMetrics(SM_CXSMICON),
-    //    GetSystemMetrics(SM_CYSMICON)
-    //    );
+    largeIcon = PhLoadIcon(
+        NtCurrentPeb()->ImageBaseAddress,
+        MAKEINTRESOURCE(IDI_ICON1),
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON)
+        );
+    smallIcon = PhLoadIcon(
+        NtCurrentPeb()->ImageBaseAddress,
+        MAKEINTRESOURCE(IDI_ICON1),
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXSMICON),
+        GetSystemMetrics(SM_CYSMICON)
+        );
 
-    //Context->IconLargeHandle = largeIcon;
-    //Context->IconSmallHandle = smallIcon;
+    Context->IconLargeHandle = largeIcon;
+    Context->IconSmallHandle = smallIcon;
 
-    //SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
-    //SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
 }
 
 VOID TaskDialogLinkClicked(
@@ -162,12 +160,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
-        {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
-        }
-        break;
-    case WM_SHOWDIALOG:
+    case WM_TASKDIALOGINIT:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -177,26 +170,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    //case PH_UPDATESUCCESS:
-    //    {
-    //        ShowInstallRestartDialog(context);
-    //    }
-    //    break;
-    //case PH_UPDATEFAILURE:
-    //    {
-    //       // if ((BOOLEAN)wParam)
-    //          //  ShowUpdateFailedDialog(context, TRUE, FALSE);
-    //       // else if ((BOOLEAN)lParam)
-    //           // ShowUpdateFailedDialog(context, FALSE, TRUE);
-    //        //else
-    //            //ShowUpdateFailedDialog(context, FALSE, FALSE);
-    //    }
-    //    break;
-    //case PH_UPDATEISERRORED:
-    //    {
-    //        //ShowUpdateFailedDialog(context, FALSE, FALSE);
-    //    }
-    //    break;
+    case WM_NCDESTROY:
+        {
+            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+        }
+        break;
     }
 
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
@@ -241,8 +219,7 @@ VOID ShowCheckForUpdatesDialog(
     config.pfCallback = CheckingForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pszWindowTitle = PhApplicationName;
-    //config.pszMainInstruction = L"Updating Process Hacker...";
-    config.pszContent = PhaFormatString(L"Updating to version %lu.%lu.%lu...", PHAPP_VERSION_MAJOR, PHAPP_VERSION_MINOR, PHAPP_VERSION_REVISION)->Buffer;
+    config.pszMainInstruction = PhaFormatString(L"Updating to version %lu.%lu.%lu...", PHAPP_VERSION_MAJOR, PHAPP_VERSION_MINOR, PHAPP_VERSION_REVISION)->Buffer;
     config.cxWidth = 200;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
@@ -273,7 +250,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Navigate to the first page
             ShowCheckForUpdatesDialog(context);
 
-            PostMessage(hwndDlg, WM_SHOWDIALOG, 0, 0);
+            SendMessage(hwndDlg, WM_TASKDIALOGINIT, 0, 0);
         }
         break;
     }

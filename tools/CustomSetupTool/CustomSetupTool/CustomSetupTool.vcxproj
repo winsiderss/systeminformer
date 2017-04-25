@@ -118,6 +118,7 @@
     <ClCompile Include="page3.c" />
     <ClCompile Include="page4.c" />
     <ClCompile Include="setup.c" />
+    <ClCompile Include="uninstall.c" />
     <ClCompile Include="update.c" />
   </ItemGroup>
   <ItemGroup>

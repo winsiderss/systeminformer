@@ -97,7 +97,33 @@ NTSTATUS SetupCreateUninstallKey(
     return status;
 }
 
-VOID SetupFindInstallDirectory(VOID)
+NTSTATUS SetupDeleteUninstallKey(
+    VOID
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &UninstallKeyName,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = NtDeleteKey(keyHandle);
+        NtClose(keyHandle);
+    }
+
+    return status;
+}
+
+VOID SetupFindInstallDirectory(
+    VOID
+    )
 {
     // Find the current installation path.
     SetupInstallPath = GetProcessHackerInstallPath();
@@ -207,7 +233,9 @@ VOID SetupInstallKph(
     PhDereferenceObject(clientPath);
 }
 
-ULONG SetupUninstallKph(VOID)
+ULONG SetupUninstallKph(
+    VOID
+    )
 {
     ULONG status = ERROR_SUCCESS;
     SC_HANDLE scmHandle;
@@ -273,7 +301,7 @@ VOID SetupSetWindowsOptions(
 
     if (SetupResetSettings)
     {
-        PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+        PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
 
         SetupDeleteDirectoryFile(settingsFileName->Buffer);
         PhDereferenceObject(settingsFileName);
@@ -359,6 +387,68 @@ VOID SetupSetWindowsOptions(
     }
 }
 
+VOID SetupDeleteWindowsOptions(
+    VOID
+    )
+{
+    static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+    static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+    PPH_STRING startmenuFolderString;
+    HANDLE keyHandle;
+
+    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
+    {
+        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDereferenceObject(startmenuFolderString);
+    }
+
+    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk"))
+    {
+        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDereferenceObject(startmenuFolderString);
+    }
+
+    if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"));
+    {
+        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDereferenceObject(startmenuFolderString);
+    }
+
+    if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+    {
+        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDereferenceObject(startmenuFolderString);
+    }
+
+    //PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
+    //SetupDeleteDirectoryFile(settingsFileName->Buffer);
+    //PhDereferenceObject(settingsFileName);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &TaskMgrImageOptionsKeyName,
+        0
+        )))
+    {
+        NtDeleteKey(keyHandle);
+        NtClose(keyHandle);
+    }
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        0
+        )))
+    {
+        NtDeleteKey(keyHandle);
+        NtClose(keyHandle);
+    }
+}
+
 BOOLEAN SetupExecuteProcessHacker(
     _In_ HWND Parent
     )
@@ -383,4 +473,23 @@ BOOLEAN SetupExecuteProcessHacker(
 
     PhDereferenceObject(clientPath);
     return success;
+}
+
+VOID SetupUpgradeSettingsFile(
+    VOID
+    )
+{
+    PPH_STRING settingsFilePath;
+    PPH_STRING oldSettingsFileName;
+    
+    settingsFilePath = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
+    oldSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+
+    if (!RtlDoesFileExists_U(settingsFilePath->Buffer))
+    {
+        CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
+    }
+
+    PhDereferenceObject(oldSettingsFileName);
+    PhDereferenceObject(settingsFilePath);
 }

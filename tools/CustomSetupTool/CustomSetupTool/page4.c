@@ -41,24 +41,25 @@ NTSTATUS SetupProgressThread(
     if (!SetupUninstallKph())
         goto CleanupExit;
 
-    // Remove the previous installation.
-    if (SetupResetSettings)
-        RemoveDirectoryPath(PhGetString(SetupInstallPath));
-
     // Create the install folder path.
     if (!CreateDirectoryPath(PhGetString(SetupInstallPath)))
         goto CleanupExit;
+
+    SetupUpgradeSettingsFile();
+
+    // Remove the previous installation.
+    if (SetupResetSettings)
+        RemoveDirectoryPath(PhGetString(SetupInstallPath));
 
     // Create the ARP uninstall entries.
     SetupCreateUninstallKey();
     // Create the uninstaller.
     SetupCreateUninstallFile();
-
-    //
+    // Create autorun and shortcuts.
     SetupSetWindowsOptions();
 
     // Setup new installation.
-    if (!SetupExtractBuild(Context->DialogHandle))
+    if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
     // Install updated kernel driver

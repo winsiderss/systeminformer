@@ -128,6 +128,7 @@ typedef struct _SETUP_PROGRESS_THREAD
 {
     HWND DialogHandle;
     HWND PropSheetHandle;
+    HICON PropSheetIcon;
 } SETUP_PROGRESS_THREAD, *PSETUP_PROGRESS_THREAD;
 
 extern BOOLEAN SetupRunning;
@@ -148,7 +149,15 @@ NTSTATUS SetupCreateUninstallKey(
     VOID
     );
 
+NTSTATUS SetupDeleteUninstallKey(
+    VOID
+    );
+
 VOID SetupSetWindowsOptions(
+    VOID
+    );
+
+VOID SetupDeleteWindowsOptions(
     VOID
     );
 
@@ -160,15 +169,25 @@ BOOLEAN SetupExecuteProcessHacker(
     _In_ HWND Parent
     );
 
+VOID SetupUpgradeSettingsFile(
+    VOID
+    );
+
 // extract.c
 
 BOOLEAN SetupExtractBuild(
-    _In_ PVOID Arguments
+    _In_ PSETUP_PROGRESS_THREAD Context
     );
 
  // update.c
 
 VOID SetupShowUpdateDialog(
+    VOID
+    );
+
+// uninstall.c
+
+VOID SetupShowUninstallDialog(
     VOID
     );
 

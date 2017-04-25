@@ -63,6 +63,9 @@
     <ClCompile Include="update.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="uninstall.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\setup.h">
