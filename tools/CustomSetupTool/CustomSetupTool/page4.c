@@ -59,7 +59,7 @@ NTSTATUS SetupProgressThread(
     SetupSetWindowsOptions();
 
     // Setup new installation.
-    if (!SetupExtractBuild(Context))
+    if (!SetupExtractBuild(Context->DialogHandle))
         goto CleanupExit;
 
     // Install updated kernel driver

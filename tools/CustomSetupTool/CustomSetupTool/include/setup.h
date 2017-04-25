@@ -176,7 +176,7 @@ VOID SetupUpgradeSettingsFile(
 // extract.c
 
 BOOLEAN SetupExtractBuild(
-    _In_ PSETUP_PROGRESS_THREAD Context
+    _In_ HWND Context
     );
 
  // update.c

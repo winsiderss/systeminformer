@@ -1015,12 +1015,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
-        {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
-        }
-        break;
-    case WM_SHOWDIALOG:
+    case WM_INITDIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -1028,6 +1023,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
                 ShowWindow(hwndDlg, SW_SHOW);
 
             SetForegroundWindow(hwndDlg);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
         }
         break;
     case PH_UPDATEAVAILABLE:
@@ -1201,7 +1201,7 @@ VOID ShowUpdateDialog(
         PhWaitForEvent(&InitializedEvent, NULL);
     }
 
-    PostMessage(UpdateDialogHandle, WM_SHOWDIALOG, 0, 0);
+    PostMessage(UpdateDialogHandle, WM_INITDIALOG, 0, 0);
 }
 
 VOID StartInitialCheck(
