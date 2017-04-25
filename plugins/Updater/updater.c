@@ -231,39 +231,19 @@ BOOLEAN ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-    {
-        PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
+    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
 
-        PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '.', &revisionPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, '.', &revisionPart, &remaining);
 
-        PhStringToInteger64(&majorPart, 10, &majorInteger);
-        PhStringToInteger64(&minorPart, 10, &minorInteger);
-        PhStringToInteger64(&revisionPart, 10, &revisionInteger);
+    PhStringToInteger64(&majorPart, 10, &majorInteger);
+    PhStringToInteger64(&minorPart, 10, &minorInteger);
+    PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
-        Context->MajorVersion = (ULONG)majorInteger;
-        Context->MinorVersion = (ULONG)minorInteger;
-        Context->RevisionVersion = (ULONG)revisionInteger;
-    }
-    else
-    {
-        PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
-        PhInitializeStringRef(&revisionPart, PhGetStringOrEmpty(Context->RevVersion));
-
-        PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
-        PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
-
-        PhStringToInteger64(&majorPart, 10, &majorInteger);
-        PhStringToInteger64(&minorPart, 10, &minorInteger);
-        PhStringToInteger64(&revisionPart, 10, &revisionInteger);
-
-        Context->MajorVersion = (ULONG)majorInteger;
-        Context->MinorVersion = (ULONG)minorInteger;
-        Context->RevisionVersion = (ULONG)revisionInteger;
-    }
-
+    Context->MajorVersion = (ULONG)majorInteger;
+    Context->MinorVersion = (ULONG)minorInteger;
+    Context->RevisionVersion = (ULONG)revisionInteger;
     return TRUE;
 }
 
@@ -338,7 +318,7 @@ BOOLEAN QueryUpdateData(
     // Open the HTTP session with the system proxy configuration if available
     if (!(httpSessionHandle = WinHttpOpen(
         NULL,
-        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
         proxyConfig.lpszProxy,
         proxyConfig.lpszProxyBypass,
         0
@@ -371,37 +351,18 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    if (!(httpRequestHandle = WinHttpOpenRequest(
+        httpConnectionHandle,
+        NULL,
+        L"/processhacker/plugins/nightly.php",
+        NULL,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
+        )))
     {
-        if (!(httpRequestHandle = WinHttpOpenRequest(
-            httpConnectionHandle,
-            NULL,
-            L"/processhacker/plugins/nightly.php",
-            NULL,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
-            )))
-        {
-            Context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
-    }
-    else
-    {
-        if (!(httpRequestHandle = WinHttpOpenRequest(
-            httpConnectionHandle,
-            NULL,
-            L"/processhacker/update.php",
-            NULL,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
-            )))
-        {
-            Context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
     }
 
     if (WindowsVersion >= WINDOWS_7)
@@ -457,67 +418,26 @@ BOOLEAN QueryUpdateData(
     if (stringBuffer == NULL || stringBuffer[0] == '\0')
         goto CleanupExit;
 
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-    {
-        if (!(jsonObject = CreateJsonParser(stringBuffer)))
-            goto CleanupExit;
+    if (!(jsonObject = CreateJsonParser(stringBuffer)))
+        goto CleanupExit;
 
-        Context->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
-        Context->RevVersion = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
-        Context->RelDate = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "updated"));
-        Context->Size = PhFormatSize(GetJsonValueAsUlong(jsonObject, "size"), 2);
-        Context->Hash = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "hash_setup"));
-        Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
-        Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
-        Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
-        Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
+    Context->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
+    Context->RevVersion = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
+    Context->RelDate = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "updated"));
+    Context->Size = PhFormatSize(GetJsonValueAsUlong(jsonObject, "size"), 2);
+    Context->Hash = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "hash_setup"));
+    Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
+    Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
+    Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
+    Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
 
-        CleanupJsonParser(jsonObject);
+    CleanupJsonParser(jsonObject);
 
-        if (PhIsNullOrEmptyString(Context->Signature))
-            goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->Signature))
+        goto CleanupExit;
 
-        if (!ParseVersionString(Context))
-            goto CleanupExit;
-    }
-    else
-    {
-        xmlNode = mxmlLoadString(NULL, stringBuffer, MXML_OPAQUE_CALLBACK);
-
-        if (xmlNode == NULL || xmlNode->type != MXML_ELEMENT)
-            goto CleanupExit;
-
-        Context->Version = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "ver", NULL, NULL, MXML_DESCEND)
-            );
-        Context->RevVersion = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "rev", NULL, NULL, MXML_DESCEND)
-            );
-        Context->RelDate = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "reldate", NULL, NULL, MXML_DESCEND)
-            );
-        Context->Size = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "size", NULL, NULL, MXML_DESCEND)
-            );
-        Context->Hash = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "sha2", NULL, NULL, MXML_DESCEND)
-            );
-        Context->Signature = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "sig", NULL, NULL, MXML_DESCEND)
-            );
-        Context->ReleaseNotesUrl = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "relnotes", NULL, NULL, MXML_DESCEND)
-            );
-        Context->SetupFileDownloadUrl = UpdaterGetOpaqueXmlNodeText(
-            mxmlFindElement(xmlNode->child, xmlNode, "setupurl", NULL, NULL, MXML_DESCEND)
-            );
-        
-        if (PhIsNullOrEmptyString(Context->Signature))
-            goto CleanupExit;
-
-        if (!ParseVersionString(Context))
-            goto CleanupExit;
-    }
+    if (!ParseVersionString(Context))
+        goto CleanupExit;
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;

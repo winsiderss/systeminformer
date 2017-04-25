@@ -52,15 +52,8 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
                     return S_FALSE;
                 }
                 else
-                {
-                    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-                    {
-                        PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/nightly.php", NULL);
-                    }
-                    else
-                    {
-                        PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/downloads.php", NULL);
-                    }
+                {  
+                    PhShellExecute(hwndDlg, L"https://wj32.org/processhacker/nightly.php", NULL); 
                 }
             }
         }
@@ -68,6 +61,7 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
     case TDN_HYPERLINK_CLICKED:
         {
             TaskDialogLinkClicked(context);
+            return S_FALSE;
         }
         break;
     }
@@ -91,34 +85,18 @@ VOID ShowAvailableDialog(
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowAvailableCallbackProc;
+
     config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszMainInstruction = L"A newer build of Process Hacker is available.";
+    config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
+        Context->MajorVersion,
+        Context->MinorVersion,
+        Context->RevisionVersion,
+        PhGetStringOrEmpty(Context->Size)
+        )->Buffer;
 
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-    {
-        config.pszMainInstruction = L"A new Process Hacker nightly build is available";
-        config.pszContent = PhaFormatString(L"Build: %lu.%lu.%lu\r\nDownload size: %s",
-            Context->MajorVersion,
-            Context->MinorVersion,
-            Context->RevisionVersion,
-            PhGetStringOrEmpty(Context->Size)
-            )->Buffer;
-
-        if (PhIsNullOrEmptyString(Context->BuildMessage))
-            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-        else
-            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
-    }
-    else
-    {
-        config.pszMainInstruction = L"A new Process Hacker release is available";
-        config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s",
-            Context->MajorVersion,
-            Context->MinorVersion,
-            Context->RevisionVersion,
-            PhGetStringOrEmpty(Context->Size)
-            )->Buffer;
-        config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-    }
+    //if (!PhIsNullOrEmptyString(Context->BuildMessage))
+    //    config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

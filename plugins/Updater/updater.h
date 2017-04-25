@@ -48,7 +48,6 @@
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
-#define SETTING_NAME_NIGHTLY_BUILD (PLUGIN_NAME L".NightlyBuilds")
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \
@@ -215,6 +214,12 @@ BOOLEAN UpdaterVerifySignature(
 
 VOID UpdaterDestroyHash(
     _Inout_ PUPDATER_HASH_CONTEXT Context
+    );
+
+// info.c
+
+VOID ShowLinkDialog(
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 #endif

@@ -91,11 +91,6 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK, L"1" },
                 { StringSettingType, SETTING_NAME_LAST_CHECK, L"0" }, 
-#ifdef VIRUSTOTAL_API
-                { IntegerSettingType, SETTING_NAME_NIGHTLY_BUILD, L"1" }
-#else 
-                { IntegerSettingType, SETTING_NAME_NIGHTLY_BUILD, L"0" }
-#endif
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

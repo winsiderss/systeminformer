@@ -92,6 +92,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     case TDN_HYPERLINK_CLICKED:
         {
             TaskDialogLinkClicked(context);
+            return S_FALSE;
         }
         break;
     }
@@ -128,6 +129,10 @@ VOID ShowLatestVersionDialog(
     )
 {
     TASKDIALOGCONFIG config;
+    LARGE_INTEGER time;
+    SYSTEMTIME systemTime = { 0 };
+    PIMAGE_DOS_HEADER imageDosHeader;
+    PIMAGE_NT_HEADERS imageNtHeader;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -137,52 +142,22 @@ VOID ShowLatestVersionDialog(
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
+    
+    // HACK
+    imageDosHeader = (PIMAGE_DOS_HEADER)NtCurrentPeb()->ImageBaseAddress;
+    imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, (ULONG)imageDosHeader->e_lfanew);
+    RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
+    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-    {
-        LARGE_INTEGER time;
-        SYSTEMTIME systemTime = { 0 };
-        PIMAGE_DOS_HEADER imageDosHeader;
-        PIMAGE_NT_HEADERS imageNtHeader;
-
-        // HACK
-        imageDosHeader = (PIMAGE_DOS_HEADER)NtCurrentPeb()->ImageBaseAddress;
-        imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, (ULONG)imageDosHeader->e_lfanew);
-       
-        RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
-        PhLargeIntegerToLocalSystemTime(&systemTime, &time);
-
-        config.pszMainInstruction = L"You're running the latest nightly build";
-        config.pszContent = PhaFormatString(
-            L"Version: v%lu.%lu.%lu\r\nCompiled: %s",
-            Context->CurrentMajorVersion,
-            Context->CurrentMinorVersion,
-            Context->CurrentRevisionVersion,
-            PhaFormatDateTime(&systemTime)->Buffer
-            )->Buffer;
-
-        if (PhIsNullOrEmptyString(Context->BuildMessage))
-            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-        else
-            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
-    }
-    else
-    {
-        config.pszMainInstruction = L"You're running the latest version";
-        config.pszContent = PhaFormatString(
-            L"Stable release build: v%lu.%lu.%lu\r\n\r\n",
-            Context->CurrentMajorVersion,
-            Context->CurrentMinorVersion,
-            Context->CurrentRevisionVersion
-            )->Buffer;
-
-        if (PhIsNullOrEmptyString(Context->BuildMessage))
-            config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-        else
-            config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
-    }
+    config.pszMainInstruction = L"You're running the latest version.";
+    config.pszContent = PhaFormatString(
+        L"Version: v%lu.%lu.%lu\r\nCompiled: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
+        Context->CurrentMajorVersion,
+        Context->CurrentMinorVersion,
+        Context->CurrentRevisionVersion,
+        PhaFormatDateTime(&systemTime)->Buffer
+        )->Buffer;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -200,27 +175,13 @@ VOID ShowNewerVersionDialog(
     config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-    {
-        config.pszMainInstruction = L"You're running the latest nightly build";
-        config.pszContent = PhaFormatString(
-            L"Pre-release build: v%lu.%lu.%lu\r\n",
-            Context->CurrentMajorVersion,
-            Context->CurrentMinorVersion,
-            Context->CurrentRevisionVersion
-            )->Buffer;
-    }
-    else
-    {
-        config.pszMainInstruction = L"You're running a pre-release version!";
-        config.pszContent = PhaFormatString(
-            L"Pre-release build: v%lu.%lu.%lu\r\n",
-            Context->CurrentMajorVersion,
-            Context->CurrentMinorVersion,
-            Context->CurrentRevisionVersion
-            )->Buffer;
-    }
+    config.pszMainInstruction = L"You're running a pre-release build.";
+    config.pszContent = PhaFormatString(
+        L"Pre-release build: v%lu.%lu.%lu\r\n",
+        Context->CurrentMajorVersion,
+        Context->CurrentMinorVersion,
+        Context->CurrentRevisionVersion
+        )->Buffer;
 
     config.cxWidth = 200;
     config.pfCallback = FinalTaskDialogCallbackProc;

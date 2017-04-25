@@ -46,6 +46,7 @@ HRESULT CALLBACK ShowProgressCallbackProc(
     case TDN_HYPERLINK_CLICKED:
         {
             TaskDialogLinkClicked(context);
+            return S_FALSE;
         }
         break;
     }
@@ -61,7 +62,7 @@ VOID ShowProgressDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
@@ -75,11 +76,7 @@ VOID ShowProgressDialog(
         Context->RevisionVersion
         )->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
-
-    if (PhIsNullOrEmptyString(Context->BuildMessage))
-        config.pszExpandedInformation = L"<A HREF=\"executablestring\">View Changelog</A>";
-    else
-        config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+    config.pszExpandedInformation = L"<A HREF=\"changelog.txt\">View Changelog</A>";
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
