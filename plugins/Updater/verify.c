@@ -70,35 +70,17 @@ PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
+    if (!NT_SUCCESS(BCryptImportKeyPair(
+        hashContext->SignAlgHandle,
+        NULL,
+        BCRYPT_ECCPUBLIC_BLOB,
+        &hashContext->KeyHandle,
+        UpdaterTrustedNightlyPublicKey,
+        sizeof(UpdaterTrustedNightlyPublicKey),
+        0
+        )))
     {
-        if (!NT_SUCCESS(BCryptImportKeyPair(
-            hashContext->SignAlgHandle,
-            NULL,
-            BCRYPT_ECCPUBLIC_BLOB,
-            &hashContext->KeyHandle,
-            UpdaterTrustedNightlyPublicKey,
-            sizeof(UpdaterTrustedNightlyPublicKey),
-            0
-            )))
-        {
-            goto CleanupExit;
-        }
-    }
-    else
-    {
-        if (!NT_SUCCESS(BCryptImportKeyPair(
-            hashContext->SignAlgHandle,
-            NULL,
-            BCRYPT_ECCPUBLIC_BLOB,
-            &hashContext->KeyHandle,
-            UpdaterTrustedPublicKey,
-            sizeof(UpdaterTrustedPublicKey),
-            0
-            )))
-        {
-            goto CleanupExit;
-        }
+        goto CleanupExit;
     }
 
     // Open the hash algorithm and allocate memory for the hash object.

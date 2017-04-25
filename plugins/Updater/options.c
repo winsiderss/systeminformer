@@ -37,9 +37,6 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK))
                 Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
-
-            if (PhGetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD))
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_NIGHTLY), BST_CHECKED);
         }
         break;
     case WM_COMMAND:
@@ -50,9 +47,6 @@ INT_PTR CALLBACK OptionsDlgProc(
                 {
                     PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
-
-                    PhSetIntegerSetting(SETTING_NAME_NIGHTLY_BUILD,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_NIGHTLY)) == BST_CHECKED);
 
                     EndDialog(hwndDlg, IDCANCEL);
                 }
