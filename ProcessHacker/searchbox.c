@@ -1,8 +1,8 @@
 /*
- * Process Hacker CommonUtil Plugin
- *   Subclassed Edit control
+ * Process Hacker -
+ *   Searchbox control
  *
- * Copyright (C) 2012-2016 dmex
+ * Copyright (C) 2012-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,12 +21,56 @@
  *
  */
 
-#include "main.h"
+#include <phapp.h>
+#include <settings.h>
+#define CINTERFACE
+#define COBJMACROS
+#include <windowsx.h>
 #include <uxtheme.h>
 #include <vssym32.h>
-#include <Wincodec.h>
+#include <wincodec.h>
 
-VOID NcAreaFreeTheme(
+typedef struct _EDIT_CONTEXT
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Hot : 1;
+            ULONG Pushed : 1;
+            ULONG Spare : 30;
+        };
+    };
+
+    LONG CXWidth;
+    INT CXBorder;
+    INT ImageWidth;
+    INT ImageHeight;
+    HWND WindowHandle;
+    HFONT WindowFont;
+    HICON BitmapActive;
+    HICON BitmapInactive;
+    HBRUSH BrushNormal;
+    HBRUSH BrushPushed;
+    HBRUSH BrushHot;
+} EDIT_CONTEXT, *PEDIT_CONTEXT;
+
+HBITMAP PhpSearchLoadPngImageFromResources(
+    _In_ PVOID DllBase,
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN RGBAImage
+    );
+
+HICON PhpSearchBitmapToIcon(
+    _In_ HBITMAP BitmapHandle,
+    _In_ INT Width,
+    _In_ INT Height
+    );
+
+VOID PhpSearchFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
@@ -40,17 +84,19 @@ VOID NcAreaFreeTheme(
         DeleteObject(Context->BrushPushed);
 }
 
-VOID NcAreaInitializeFont(
+VOID PhpSearchInitializeFont(
     _Inout_ PEDIT_CONTEXT Context
     )
 {
-    if (Context->WindowFont) DeleteObject(Context->WindowFont);
-    Context->WindowFont = CommonCreateFont(10, FW_MEDIUM, Context->WindowHandle);
+    if (Context->WindowFont) 
+        DeleteObject(Context->WindowFont);
+
+    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, Context->WindowHandle);
 }
 
-VOID NcAreaInitializeTheme(
+VOID PhpSearchInitializeTheme(
     _Inout_ PEDIT_CONTEXT Context
-)
+    )
 {
     Context->CXWidth = PhMultiplyDivide(20, PhGlobalDpi, 96);
     Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
@@ -89,42 +135,42 @@ VOID NcAreaInitializeTheme(
     }
 }
 
-VOID NcAreaInitializeImages(
+VOID PhpSearchInitializeImages(
     _Inout_ PEDIT_CONTEXT Context
-)
+    )
 {
     HBITMAP bitmap;
 
     Context->ImageWidth = GetSystemMetrics(SM_CXSMICON) + 4;
     Context->ImageHeight = GetSystemMetrics(SM_CYSMICON) + 4;
 
-    if (bitmap = LoadImageFromResources(PluginInstance->DllBase, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
+    if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
     {
-        Context->BitmapActive = BitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        Context->BitmapActive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
         DeleteObject(bitmap);
     }
-    else if (bitmap = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
+    else if (bitmap = LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
     {
-        Context->BitmapActive = BitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        Context->BitmapActive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
         DeleteObject(bitmap);
     }
 
-    if (bitmap = LoadImageFromResources(PluginInstance->DllBase, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
+    if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
     {
-        Context->BitmapInactive = BitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        Context->BitmapInactive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
         DeleteObject(bitmap);
     }
-    else if (bitmap = LoadImage(PluginInstance->DllBase, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
+    else if (bitmap = LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_BMP), IMAGE_BITMAP, 0, 0, 0))
     {
-        Context->BitmapInactive = BitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
+        Context->BitmapInactive = PhpSearchBitmapToIcon(bitmap, Context->ImageWidth, Context->ImageHeight);
         DeleteObject(bitmap);
     }
 }
 
-VOID NcAreaGetButtonRect(
+VOID PhpSearchGetButtonRect(
     _Inout_ PEDIT_CONTEXT Context,
     _Inout_ PRECT ButtonRect
-)
+    )
 {
     ButtonRect->left = (ButtonRect->right - Context->CXWidth) - Context->CXBorder - 1; // offset left border by 1
     ButtonRect->bottom -= Context->CXBorder;
@@ -132,7 +178,7 @@ VOID NcAreaGetButtonRect(
     ButtonRect->top += Context->CXBorder;
 }
 
-VOID NcAreaDrawButton(
+VOID PhpSearchDrawButton(
     _Inout_ PEDIT_CONTEXT Context,
     _In_ RECT ButtonRect
     )
@@ -207,14 +253,14 @@ VOID NcAreaDrawButton(
     ReleaseDC(Context->WindowHandle, hdc);
 }
 
-LRESULT CALLBACK NcAreaWndSubclassProc(
+LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ UINT_PTR uIdSubclass,
     _In_ ULONG_PTR dwRefData
-)
+    )
 {
     PEDIT_CONTEXT context;
 
@@ -224,12 +270,12 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            NcAreaFreeTheme(context);
+            PhpSearchFreeTheme(context);
 
             if (context->WindowFont)
                 DeleteObject(context->WindowFont);
 
-            RemoveWindowSubclass(hWnd, NcAreaWndSubclassProc, uIdSubclass);
+            RemoveWindowSubclass(hWnd, PhpSearchWndSubclassProc, uIdSubclass);
             RemoveProp(hWnd, L"SearchBoxContext");
             PhFree(context);
         }
@@ -261,10 +307,10 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
             // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &windowRect);
+            PhpSearchGetButtonRect(context, &windowRect);
 
             // Draw the button.
-            NcAreaDrawButton(context, windowRect);
+            PhpSearchDrawButton(context, windowRect);
         }
         return 0;
     case WM_NCHITTEST:
@@ -280,7 +326,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &windowRect);
+            PhpSearchGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
             if (PtInRect(&windowRect, windowPoint))
@@ -302,7 +348,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &windowRect);
+            PhpSearchGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
             if (PtInRect(&windowRect, windowPoint))
@@ -328,7 +374,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &windowRect);
+            PhpSearchGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
             if (PtInRect(&windowRect, windowPoint))
@@ -362,9 +408,9 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         {
-            NcAreaFreeTheme(context);
-            NcAreaInitializeTheme(context);
-            NcAreaInitializeFont(context);
+            PhpSearchFreeTheme(context);
+            PhpSearchInitializeTheme(context);
+            PhpSearchInitializeFont(context);
 
             // Reset the client area margins.
             SendMessage(hWnd, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
@@ -389,7 +435,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
             GetWindowRect(hWnd, &windowRect);
 
             // Get the position of the inserted button.
-            NcAreaGetButtonRect(context, &windowRect);
+            PhpSearchGetButtonRect(context, &windowRect);
 
             // Check that the mouse is within the inserted button.
             if (PtInRect(&windowRect, windowPoint) && !context->Hot)
@@ -433,7 +479,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
                 GetWindowRect(hWnd, &windowRect);
 
                 // Get the position of the inserted button.
-                NcAreaGetButtonRect(context, &windowRect);
+                PhpSearchGetButtonRect(context, &windowRect);
 
                 // Check that the mouse is within the inserted button.
                 context->Pushed = PtInRect(&windowRect, windowPoint);
@@ -447,7 +493,7 @@ LRESULT CALLBACK NcAreaWndSubclassProc(
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
-HICON BitmapToIcon(
+HICON PhpSearchBitmapToIcon(
     _In_ HBITMAP BitmapHandle,
     _In_ INT Width,
     _In_ INT Height
@@ -473,7 +519,7 @@ HICON BitmapToIcon(
     return icon;
 }
 
-VOID UtilCreateSearchControl(
+VOID PhCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
     _In_ PWSTR BannerText
@@ -486,8 +532,8 @@ VOID UtilCreateSearchControl(
 
     context->WindowHandle = WindowHandle;
 
-    //NcAreaInitializeTheme(context);
-    NcAreaInitializeImages(context);
+    //PhpSearchInitializeTheme(context);
+    PhpSearchInitializeImages(context);
 
     // Set initial text
     Edit_SetCueBannerText(context->WindowHandle, BannerText);
@@ -496,8 +542,173 @@ VOID UtilCreateSearchControl(
     SetProp(context->WindowHandle, L"SearchBoxContext", (HANDLE)context);
 
     // Subclass the Edit control window procedure.
-    SetWindowSubclass(context->WindowHandle, NcAreaWndSubclassProc, 0, (ULONG_PTR)context);
+    SetWindowSubclass(context->WindowHandle, PhpSearchWndSubclassProc, 0, (ULONG_PTR)context);
 
     // Initialize the theme parameters.
     SendMessage(context->WindowHandle, WM_THEMECHANGED, 0, 0);
+}
+
+HBITMAP PhLoadPngImageFromResource(
+    _In_ PVOID DllBase,
+    _In_ UINT Width,
+    _In_ UINT Height,
+    _In_ PCWSTR Name,
+    _In_ BOOLEAN RGBAImage
+    )
+{
+    BOOLEAN success = FALSE;
+    UINT frameCount = 0;
+    ULONG resourceLength = 0;
+    HGLOBAL resourceHandle = NULL;
+    HRSRC resourceHandleSource = NULL;
+    WICInProcPointer resourceBuffer = NULL;
+    HDC screenHdc = NULL;
+    HDC bufferDc = NULL;
+    BITMAPINFO bitmapInfo = { 0 };
+    HBITMAP bitmapHandle = NULL;
+    PVOID bitmapBuffer = NULL;
+    IWICStream* wicStream = NULL;
+    IWICBitmapSource* wicBitmapSource = NULL;
+    IWICBitmapDecoder* wicDecoder = NULL;
+    IWICBitmapFrameDecode* wicFrame = NULL;
+    IWICImagingFactory* wicFactory = NULL;
+    IWICBitmapScaler* wicScaler = NULL;
+    WICPixelFormatGUID pixelFormat;
+    WICRect rect = { 0, 0, Width, Height };
+
+    // Create the ImagingFactory
+    if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
+        goto CleanupExit;
+
+    // Find the resource
+    if ((resourceHandleSource = FindResource(DllBase, Name, L"PNG")) == NULL)
+        goto CleanupExit;
+
+    // Get the resource length
+    resourceLength = SizeofResource(DllBase, resourceHandleSource);
+
+    // Load the resource
+    if ((resourceHandle = LoadResource(DllBase, resourceHandleSource)) == NULL)
+        goto CleanupExit;
+
+    if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
+        goto CleanupExit;
+
+    // Create the Stream
+    if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
+        goto CleanupExit;
+
+    // Initialize the Stream from Memory
+    if (FAILED(IWICStream_InitializeFromMemory(wicStream, resourceBuffer, resourceLength)))
+        goto CleanupExit;
+
+    if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
+        goto CleanupExit;
+
+    if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+        goto CleanupExit;
+
+    // Get the Frame count
+    if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
+        goto CleanupExit;
+
+    // Get the Frame
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
+        goto CleanupExit;
+
+    // Get the WicFrame image format
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    // Check if the image format is supported:
+    if (IsEqualGUID(&pixelFormat, RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA))
+    {
+        wicBitmapSource = (IWICBitmapSource*)wicFrame;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
+
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
+            goto CleanupExit;
+
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicFrame,
+            RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0,
+            WICBitmapPaletteTypeCustom
+            )))
+        {
+            IWICFormatConverter_Release(wicFormatConverter);
+            goto CleanupExit;
+        }
+
+        // Convert the image to the correct format:
+        IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource);
+
+        // Cleanup the converter.
+        IWICFormatConverter_Release(wicFormatConverter);
+
+        // Dispose the old frame now that the converted frame is in wicBitmapSource.
+        IWICBitmapFrameDecode_Release(wicFrame);
+    }
+
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = rect.Width;
+    bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    bufferDc = CreateCompatibleDC(screenHdc);
+    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+
+    // Check if it's the same rect as the requested size.
+    //if (width != rect.Width || height != rect.Height)
+    if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, (PBYTE)bitmapBuffer)))
+        goto CleanupExit;
+
+    success = TRUE;
+
+CleanupExit:
+
+    if (wicScaler)
+        IWICBitmapScaler_Release(wicScaler);
+
+    if (bufferDc)
+        DeleteDC(bufferDc);
+
+    if (screenHdc)
+        DeleteDC(screenHdc);
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+
+    if (wicStream)
+        IWICStream_Release(wicStream);
+
+    if (wicDecoder)
+        IWICBitmapDecoder_Release(wicDecoder);
+
+    if (wicFactory)
+        IWICImagingFactory_Release(wicFactory);
+
+    if (resourceHandle)
+        FreeResource(resourceHandle);
+
+    if (success)
+    {
+        return bitmapHandle;
+    }
+
+    DeleteObject(bitmapHandle);
+    return NULL;
 }

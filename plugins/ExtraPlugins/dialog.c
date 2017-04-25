@@ -239,9 +239,9 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_SEARCHBOX);
             context->SearchboxText = PhReferenceEmptyString();
 
-            CreateSearchControl(hwndDlg, context->SearchHandle, L"Search Plugins (Ctrl+K)");
-            context->NormalFontHandle = CommonCreateFont(-14, FW_NORMAL, NULL);
-            context->BoldFontHandle = CommonCreateFont(-16, FW_BOLD, NULL);
+            PhCreateSearchControl(hwndDlg, context->SearchHandle, L"Search Plugins (Ctrl+K)");
+            context->NormalFontHandle = PhCreateCommonFont(-14, FW_NORMAL, NULL);
+            context->BoldFontHandle = PhCreateCommonFont(-16, FW_BOLD, NULL);
       
             PhCenterWindow(hwndDlg, PhMainWndHandle);
             InitializePluginsTree(context, hwndDlg, context->TreeNewHandle);

@@ -295,7 +295,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
             context->MaxPingTimeout = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
-            context->FontHandle = CommonCreateFont(-15, FW_MEDIUM, context->StatusHandle);
+            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, context->StatusHandle);
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,

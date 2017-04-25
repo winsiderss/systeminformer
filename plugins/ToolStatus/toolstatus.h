@@ -28,6 +28,7 @@
 #define COBJMACROS
 #define INITGUID
 #include <phdk.h>
+#include <phapppub.h>
 #include <phappresource.h>
 #include <windowsx.h>
 #include <uxtheme.h>

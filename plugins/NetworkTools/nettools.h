@@ -28,6 +28,7 @@
 #define COBJMACROS
 #include <windowsx.h>
 #include <phdk.h>
+#include <phapppub.h>
 #include <phappresource.h>
 #include <workqueue.h>
 #include <windowsx.h>

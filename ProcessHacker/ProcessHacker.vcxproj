@@ -95,7 +95,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -109,8 +109,10 @@
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
-      <Message>Cleaning up build...</Message>
+      <Command>
+      </Command>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -127,7 +129,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -141,8 +143,10 @@
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
-      <Message>Cleaning up build...</Message>
+      <Command>
+      </Command>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -163,7 +167,7 @@
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -180,8 +184,10 @@
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
-      <Message>Cleaning up build...</Message>
+      <Command>
+      </Command>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -201,7 +207,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -218,8 +224,10 @@
       <Message>Generating revision number...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleanup</Command>
-      <Message>Cleaning up build...</Message>
+      <Command>
+      </Command>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -322,6 +330,7 @@
     <ClCompile Include="prpgthrd.c" />
     <ClCompile Include="prpgtok.c" />
     <ClCompile Include="runas.c" />
+    <ClCompile Include="searchbox.c" />
     <ClCompile Include="sessprp.c" />
     <ClCompile Include="sessshad.c" />
     <ClCompile Include="settings.c" />
@@ -428,7 +437,11 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resources\active_search.bmp" />
+    <Image Include="resources\active_search.png" />
     <Image Include="resources\folder.ico" />
+    <Image Include="resources\inactive_search.bmp" />
+    <Image Include="resources\inactive_search.png" />
     <Image Include="resources\magnifier.ico" />
     <Image Include="resources\pencil.ico" />
     <Image Include="resources\pin.ico" />

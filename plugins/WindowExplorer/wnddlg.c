@@ -353,7 +353,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             SetWindowText(hwndDlg, PH_AUTO_T(PH_STRING, WepGetWindowTitleForSelector(&context->Selector))->Buffer);
 
-            CreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
 
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
 
@@ -788,7 +788,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
 
-            CreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
 
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
 

@@ -409,7 +409,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
             SendMessage(context->RichEditHandle, EM_AUTOURLDETECT, AURL_ENABLEURL, 0);
             SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
-            context->FontHandle = CommonCreateFont(-11, FW_MEDIUM, context->RichEditHandle);
+            context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);      

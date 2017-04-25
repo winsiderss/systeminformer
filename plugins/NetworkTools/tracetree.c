@@ -411,7 +411,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     {
                         HBITMAP countryBitmap;
 
-                        if (countryBitmap = LoadImageFromResources(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
+                        if (countryBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             node->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
                         }

@@ -580,7 +580,7 @@ VOID NTAPI TreeNewMessageCallback(
 
                     if ((resourceCode = LookupResourceCode(extension->RemoteCountryCode)) != 0)
                     {
-                        if (countryBitmap = LoadImageFromResources(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
+                        if (countryBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             extension->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
                         }

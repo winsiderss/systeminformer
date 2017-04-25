@@ -27,10 +27,6 @@ PPH_PLUGIN PluginInstance;
 COMMONUTIL_INTERFACE PluginInterface =
 {
     COMMONUTIL_INTERFACE_VERSION,
-
-    UtilCreateSearchControl,
-    UtilLoadImageFromResources,
-
     UtilCreateJsonParser,
     UtilCleanupJsonParser,
     UtilGetJsonValueAsString,

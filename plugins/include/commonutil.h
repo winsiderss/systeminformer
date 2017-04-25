@@ -27,20 +27,6 @@
 #define COMMONUTIL_PLUGIN_NAME L"ProcessHacker.CommonUtil"
 #define COMMONUTIL_INTERFACE_VERSION 1
 
-typedef VOID (NTAPI *PUTIL_CREATE_SEARCHBOX_CONTROL)(
-    _In_ HWND Parent,
-    _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
-    );
-
-typedef HBITMAP (NTAPI *PUTIL_CREATE_IMAGE_FROM_RESOURCE)(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    );
-
 typedef PVOID (NTAPI *PUTIL_CREATE_JSON_PARSER)(
     _In_ PSTR JsonString
     );
@@ -123,10 +109,6 @@ typedef PPH_LIST (NTAPI *PUTIL_GET_JSON_OBJECT_ARRAY_LIST)(
 typedef struct _COMMONUTIL_INTERFACE
 {
     ULONG Version;
-
-    PUTIL_CREATE_SEARCHBOX_CONTROL CreateSearchControl;
-    PUTIL_CREATE_IMAGE_FROM_RESOURCE CreateImageFromResource;
-
     PUTIL_CREATE_JSON_PARSER CreateJsonParser;
     PUTIL_CLEANUP_JSON_PARSER CleanupJsonParser;
     PUTIL_GET_JSON_VALUE_STRING GetJsonValueAsString;
@@ -144,65 +126,6 @@ typedef struct _COMMONUTIL_INTERFACE
     PUTIL_GET_JSON_OBJECT_ARRAY_INDEX JsonGetObjectArrayIndex;
     PUTIL_GET_JSON_OBJECT_ARRAY_LIST JsonGetObjectArrayList;
 } COMMONUTIL_INTERFACE, *P_COMMONUTIL_INTERFACE;
-
-FORCEINLINE
-VOID 
-CreateSearchControl(
-    _In_ HWND Parent,
-    _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
-    )
-{
-    PPH_PLUGIN toolStatusPlugin;
-
-    if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
-    {
-        P_COMMONUTIL_INTERFACE Interface;
-
-        if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
-        {
-            if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
-            {
-                Interface->CreateSearchControl(Parent, WindowHandle, BannerText);
-            }
-        }
-    }
-}
-
-FORCEINLINE
-HBITMAP LoadImageFromResources(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    )
-{
-    static PUTIL_CREATE_IMAGE_FROM_RESOURCE createImageFromResource = NULL;
-
-    if (!createImageFromResource)
-    {
-        PPH_PLUGIN toolStatusPlugin;
-
-        if (toolStatusPlugin = PhFindPlugin(COMMONUTIL_PLUGIN_NAME))
-        {
-            P_COMMONUTIL_INTERFACE Interface;
-
-            if (Interface = PhGetPluginInformation(toolStatusPlugin)->Interface)
-            {
-                if (Interface->Version <= COMMONUTIL_INTERFACE_VERSION)
-                {
-                    createImageFromResource = Interface->CreateImageFromResource;
-                }
-            }
-        }
-    }
-
-    if (createImageFromResource)
-        return createImageFromResource(DllBase, Width, Height, Name, RGBAImage);
-    else
-        return NULL;
-}
 
 FORCEINLINE
 PVOID
@@ -644,46 +567,6 @@ FormatAnsiString(
     va_start(argptr, Format);
 
     return FormatAnsiString_V(Format, argptr);
-}
-
-FORCEINLINE
-HFONT
-CommonCreateFont(
-    _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd
-    )
-{
-    LOGFONT logFont;
-
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-    {
-        HFONT fontHandle = CreateFont(
-            -PhMultiplyDivideSigned(Size, PhGlobalDpi, 72),
-            0,
-            0,
-            0,
-            Weight,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            logFont.lfFaceName
-            );
-        
-        if (hwnd)
-        {
-            SendMessage(hwnd, WM_SETFONT, (WPARAM)fontHandle, TRUE);
-        }
-
-        return fontHandle;
-    }
-
-    return NULL;
 }
 
 FORCEINLINE

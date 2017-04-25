@@ -579,7 +579,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
-            context->FontHandle = CommonCreateFont(-15, FW_MEDIUM, GetDlgItem(hwndDlg, IDC_STATUS));
+            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, GetDlgItem(hwndDlg, IDC_STATUS));
 
             InitializeTracertTree(context);
 
