@@ -55,7 +55,7 @@ NTSTATUS SetupUpdateBuild(
     SetupCreateUninstallFile();
     //SetupSetWindowsOptions();
 
-    if (!SetupExtractBuild(Context))
+    if (!SetupExtractBuild(Context->DialogHandle))
         goto CleanupExit;
 
     if (SetupInstallKphService)

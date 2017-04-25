@@ -50,7 +50,7 @@ CleanupExit:
 }
 
 BOOLEAN SetupExtractBuild(
-    _In_ PSETUP_PROGRESS_THREAD Context
+    _In_ HWND Context
     )
 {
     mz_bool status = MZ_FALSE;
@@ -97,7 +97,7 @@ BOOLEAN SetupExtractBuild(
         InterlockedExchange64(&ExtractTotalLength, totalLength);
     }
 
-    SendMessage(Context->DialogHandle, WM_START_SETUP, 0, 0);
+    SendMessage(Context, WM_START_SETUP, 0, 0);
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
@@ -215,7 +215,7 @@ BOOLEAN SetupExtractBuild(
         currentLength += bufferLength;
 
         InterlockedExchange64(&ExtractCurrentLength, currentLength);
-        SendMessage(Context->DialogHandle, WM_UPDATE_SETUP, 0, (LPARAM)extractPath);
+        SendMessage(Context, WM_UPDATE_SETUP, 0, (LPARAM)extractPath);
 
         NtClose(fileHandle);
         mz_free(buffer);
