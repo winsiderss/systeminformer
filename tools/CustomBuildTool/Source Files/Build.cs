@@ -206,13 +206,23 @@ namespace CustomBuildTool
 
             if (ShowBuildInfo)
             {
+                string buildMessage = string.Empty;
+
+                if (BuildNightly)
+                {
+                    buildMessage = Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
+                }
+                else
+                {
+                    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
+                    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+                    buildMessage = Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
+                }
+
                 string currentBranch = Win32.ExecCommand(GitExePath, "rev-parse --abbrev-ref HEAD");
                 string currentCommitTag = Win32.ExecCommand(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD
                 //string latestGitCount = Win32.GitExecCommand("rev-list --count " + BuildBranch);         
-                string buildMessageColor = !BuildNightly ? 
-                    Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit") :
-                    Win32.ExecCommand(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %<(65,trunc)%s (%h)\" --abbrev-commit");
-
+       
                 if (!string.IsNullOrEmpty(currentBranch))
                 {
                     Program.PrintColorMessage(Environment.NewLine + "Branch: ", ConsoleColor.Cyan, false);
@@ -228,9 +238,9 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(currentCommitTag + Environment.NewLine, ConsoleColor.White);
 
-                if (!BuildNightly)
+                if (!BuildNightly && !string.IsNullOrEmpty(buildMessage))
                 {
-                    Console.WriteLine(buildMessageColor + Environment.NewLine);
+                    Console.WriteLine(buildMessage + Environment.NewLine);
                 }
             }
         }

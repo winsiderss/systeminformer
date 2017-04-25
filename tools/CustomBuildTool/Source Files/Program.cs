@@ -22,9 +22,6 @@ namespace CustomBuildTool
 
         public static void Main(string[] args)
         {
-            if (Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode))
-                Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
             ProgramArgs = ParseArgs(args);
             BuildDebug = ProgramArgs.ContainsKey("-debug");
 
