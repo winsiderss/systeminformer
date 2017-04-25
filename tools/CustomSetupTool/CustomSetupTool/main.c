@@ -182,6 +182,7 @@ INT WINAPI wWinMain(
         }
         break;
     case SETUP_COMMAND_UNINSTALL:
+        SetupShowUninstallDialog();
         break;
     case SETUP_COMMAND_UPDATE:
         SetupShowUpdateDialog();
