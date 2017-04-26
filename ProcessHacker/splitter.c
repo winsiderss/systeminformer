@@ -26,6 +26,8 @@
 #include <settings.h>
 #include <windowsx.h>
 
+#define SPLITTER_PADDING 6
+#define SPLITTER_MIN_HEIGHT 200
 static INT nSplitterPos = 250;
 static INT SplitterOffset = -4;
 
@@ -63,7 +65,8 @@ VOID PhHSplitterHandleWmSize(
     )
 {
     // HACK: Use the PH layout manager as the 'splitter' control by abusing layout margins.
-#define SPLITTER_PADDING 6
+    // TODO: Check min_height and adjust splitter position if invisible. 
+
     // Set the bottom margin of the top control.
     Context->Topitem->Margin.bottom = Height - nSplitterPos - SPLITTER_PADDING;
     // Set the top margin of the bottom control.
@@ -95,10 +98,10 @@ VOID PhHSplitterHandleLButtonDown(
     // Adjust the coordinates (start from 0,0).
     OffsetRect(&rect, -rect.left, -rect.top);
 
-    if (pt.y < 0) 
-        pt.y = 0;
-    if (pt.y > rect.bottom - 4)
-        pt.y = rect.bottom - 4;
+    if (pt.y < Context->Topitem->OrigRect.top * 2)
+        pt.y = Context->Topitem->OrigRect.top * 2;
+    if (pt.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
+        pt.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
 
     Context->DragMode = TRUE;
 
@@ -137,10 +140,10 @@ VOID PhHSplitterHandleLButtonUp(
     // Adjust the coordinates (start from 0,0).
     OffsetRect(&rect, -rect.left, -rect.top);
 
-    if (pt.y < 0) 
-        pt.y = 0;
-    if (pt.y > rect.bottom - 4)
-        pt.y = rect.bottom - 4;
+    if (pt.y < Context->Topitem->OrigRect.top * 2)
+        pt.y = Context->Topitem->OrigRect.top * 2;
+    if (pt.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
+        pt.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
 
     hdc = GetWindowDC(hwnd);
     DrawXorBar(hdc, 1, SplitterOffset - 2, rect.right - 2, 4);
@@ -177,50 +180,50 @@ VOID PhHSplitterHandleMouseMove(
     RECT windowRect;
     POINT windowPoint;
 
-    //if (Context->DragMode == FALSE)
-    //    return;
-    
     windowPoint.x = GET_X_LPARAM(lParam);
     windowPoint.y = GET_Y_LPARAM(lParam);
 
     GetWindowRect(hwnd, &windowRect);
     ClientToScreen(hwnd, &windowPoint);
 
-    windowPoint.x -= windowRect.left;
-    windowPoint.y -= windowRect.top;
+    if (Context->DragMode)
+   {
+        windowPoint.x -= windowRect.left;
+        windowPoint.y -= windowRect.top;
 
-    OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+        OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
 
-    if (windowPoint.y < 0)
-        windowPoint.y = 0;
-    if (windowPoint.y > windowRect.bottom - 4)
-        windowPoint.y = windowRect.bottom - 4;
+        if (windowPoint.y < Context->Topitem->OrigRect.top * 2)
+            windowPoint.y = Context->Topitem->OrigRect.top * 2;
+        if (windowPoint.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
+            windowPoint.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
 
-    if (windowPoint.y != SplitterOffset)
-    {
-        hdc = GetWindowDC(hwnd);
-
-        if (wParam & MK_LBUTTON)
+        if (windowPoint.y != SplitterOffset)
         {
-            DrawXorBar(hdc, 1, SplitterOffset - 2, windowRect.right - 2, 4);
-            DrawXorBar(hdc, 1, windowPoint.y - 2, windowRect.right - 2, 4);
+            hdc = GetWindowDC(hwnd);
+
+            if (wParam & MK_LBUTTON)
+            {
+                DrawXorBar(hdc, 1, SplitterOffset - 2, windowRect.right - 2, 4);
+                DrawXorBar(hdc, 1, windowPoint.y - 2, windowRect.right - 2, 4);
+            }
+            else
+            {
+                TRACKMOUSEEVENT trackMouseEvent;
+
+                trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+                trackMouseEvent.dwFlags = TME_LEAVE;
+                trackMouseEvent.hwndTrack = hwnd;
+                trackMouseEvent.dwHoverTime = 0;
+
+                SetCursor(LoadCursor(NULL, IDC_SIZENS));
+
+                TrackMouseEvent(&trackMouseEvent);
+            }
+
+            ReleaseDC(hwnd, hdc);
+            SplitterOffset = windowPoint.y;
         }
-        else
-        {
-            TRACKMOUSEEVENT trackMouseEvent;
-
-            trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
-            trackMouseEvent.dwFlags = TME_LEAVE;
-            trackMouseEvent.hwndTrack = hwnd;
-            trackMouseEvent.dwHoverTime = 0;
-
-            SetCursor(LoadCursor(NULL, IDC_SIZENS));
-
-            TrackMouseEvent(&trackMouseEvent);
-        }
-
-        ReleaseDC(hwnd, hdc);
-        SplitterOffset = windowPoint.y;
     }
 }
 
