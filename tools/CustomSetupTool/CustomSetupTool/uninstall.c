@@ -66,6 +66,9 @@ NTSTATUS SetupUninstallBuild(
     // Remove autorun and shortcuts.
     SetupDeleteWindowsOptions();
 
+    // Remove the uninstaller.
+    SetupDeleteUninstallFile();
+
     // Remove the previous installation.
     if (!RemoveDirectoryPath(PhGetString(SetupInstallPath)))
         goto CleanupExit;

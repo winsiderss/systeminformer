@@ -45,6 +45,7 @@ NTSTATUS SetupProgressThread(
     if (!CreateDirectoryPath(PhGetString(SetupInstallPath)))
         goto CleanupExit;
 
+    // Upgrade the 2.x settings file.
     SetupUpgradeSettingsFile();
 
     // Remove the previous installation.

@@ -190,6 +190,77 @@ VOID SetupCreateUninstallFile(
     PhDereferenceObject(uninstallFilePath);
 }
 
+VOID SetupDeleteUninstallFile(
+    VOID
+    )
+{
+    PPH_STRING uninstallFilePath;
+
+    // NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer
+    uninstallFilePath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker-setup.exe");
+
+    if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
+    {
+        ULONG indexOfFileName = -1;
+        GUID randomGuid;
+        PPH_STRING setupTempPath = NULL;
+        PPH_STRING randomGuidString = NULL;
+        PPH_STRING fullSetupPath = NULL;
+        PPH_STRING tempFilePath = NULL;
+
+        setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
+        if (PhIsNullOrEmptyString(setupTempPath))
+            goto CleanupExit;
+        if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
+            goto CleanupExit;
+        if (PhIsNullOrEmptyString(setupTempPath))
+            goto CleanupExit;
+
+        // Generate random guid for our directory path.
+        PhGenerateGuid(&randomGuid);
+
+        if (randomGuidString = PhFormatGuid(&randomGuid))
+        {
+            PPH_STRING guidSubString;
+
+            // Strip the left and right curly brackets.
+            guidSubString = PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2);
+            PhMoveReference(&randomGuidString, guidSubString);
+        }
+
+        // Append the tempath to our string: %TEMP%RandomString\\processhacker-setup.exe
+        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-setup.exe
+        tempFilePath = PhFormatString(
+            L"%s%s\\processhacker-setup.exe",
+            PhGetStringOrEmpty(setupTempPath),
+            PhGetStringOrEmpty(randomGuidString)
+            );
+        if (PhIsNullOrEmptyString(tempFilePath))
+            goto CleanupExit;
+
+        // Create the directory if it does not exist.
+        if (fullSetupPath = PhGetFullPath(PhGetString(tempFilePath), &indexOfFileName))
+        {
+            PPH_STRING directoryPath;
+
+            if (indexOfFileName == -1)
+                goto CleanupExit;
+
+            if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
+            {
+                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
+                PhDereferenceObject(directoryPath);
+            }
+        }
+
+        MoveFile(uninstallFilePath->Buffer, fullSetupPath->Buffer);
+    }
+
+CleanupExit:
+
+    PhDereferenceObject(uninstallFilePath);
+}
+
 VOID SetupInstallKph(
     VOID
     )
@@ -485,11 +556,11 @@ VOID SetupUpgradeSettingsFile(
     settingsFilePath = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
     oldSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
 
-    if (!RtlDoesFileExists_U(settingsFilePath->Buffer))
-    {
-        CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
-    }
-
+    if (RtlDoesFileExists_U(settingsFilePath->Buffer))
+        SetupDeleteDirectoryFile(settingsFilePath->Buffer);
+ 
+    CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
+    
     PhDereferenceObject(oldSettingsFileName);
     PhDereferenceObject(settingsFilePath);
 }

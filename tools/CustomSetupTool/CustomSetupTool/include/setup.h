@@ -165,6 +165,10 @@ VOID SetupCreateUninstallFile(
     VOID
     );
 
+VOID SetupDeleteUninstallFile(
+    VOID
+    );
+
 BOOLEAN SetupExecuteProcessHacker(
     _In_ HWND Parent
     );
