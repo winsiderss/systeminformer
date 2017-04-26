@@ -28,8 +28,6 @@
 
 #define SPLITTER_PADDING 6
 #define SPLITTER_MIN_HEIGHT 200
-static INT nSplitterPos = 250;
-static INT SplitterOffset = -4;
 
 VOID DrawXorBar(HDC hdc, INT x1, INT y1, INT width, INT height);
 
@@ -45,6 +43,9 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
     memset(context, 0, sizeof(PH_HSPLITTER_CONTEXT));
 
     PhInitializeLayoutManager(&context->LayoutManager, Parent);
+
+    context->SplitterOffset = -4;
+    context->SplitterPosition = 250;
     context->Topitem = PhAddLayoutItem(&context->LayoutManager, TopChild, NULL, PH_ANCHOR_ALL);
     context->Bottomitem = PhAddLayoutItem(&context->LayoutManager, BottomChild, NULL, PH_ANCHOR_ALL);
 
@@ -65,12 +66,12 @@ VOID PhHSplitterHandleWmSize(
     )
 {
     // HACK: Use the PH layout manager as the 'splitter' control by abusing layout margins.
-    // TODO: Check min_height and adjust splitter position if invisible. 
+    // TODO: Check min_height and adjust second control if invisible. 
 
     // Set the bottom margin of the top control.
-    Context->Topitem->Margin.bottom = Height - nSplitterPos - SPLITTER_PADDING;
+    Context->Topitem->Margin.bottom = Height - Context->SplitterPosition - SPLITTER_PADDING;
     // Set the top margin of the bottom control.
-    Context->Bottomitem->Margin.top = nSplitterPos + SPLITTER_PADDING * 2;
+    Context->Bottomitem->Margin.top = Context->SplitterPosition + SPLITTER_PADDING * 2;
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 }
@@ -104,14 +105,13 @@ VOID PhHSplitterHandleLButtonDown(
         pt.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
 
     Context->DragMode = TRUE;
-
     SetCapture(hwnd);
 
     hdc = GetWindowDC(hwnd);
     DrawXorBar(hdc, 1, pt.y - 2, rect.right - 2, 4);
     ReleaseDC(hwnd, hdc);
 
-    SplitterOffset = pt.y;
+    Context->SplitterOffset = pt.y;
 }
 
 VOID PhHSplitterHandleLButtonUp(
@@ -128,7 +128,7 @@ VOID PhHSplitterHandleLButtonUp(
     pt.x = GET_X_LPARAM(lParam);
     pt.y = GET_Y_LPARAM(lParam);
     
-    if (Context->DragMode == FALSE)
+    if (!Context->DragMode)
         return;
 
     GetWindowRect(hwnd, &rect);
@@ -146,22 +146,20 @@ VOID PhHSplitterHandleLButtonUp(
         pt.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
 
     hdc = GetWindowDC(hwnd);
-    DrawXorBar(hdc, 1, SplitterOffset - 2, rect.right - 2, 4);
+    DrawXorBar(hdc, 1, Context->SplitterOffset - 2, rect.right - 2, 4);
     ReleaseDC(hwnd, hdc);
 
-    SplitterOffset = pt.y;
+    Context->SplitterOffset = pt.y;
 
     Context->DragMode = FALSE;
 
     GetWindowRect(hwnd, &rect);
-
     pt.x += rect.left;
     pt.y += rect.top;
-
     ScreenToClient(hwnd, &pt);
     GetClientRect(hwnd, &rect);
 
-    nSplitterPos = pt.y;
+    Context->SplitterPosition = pt.y;
 
     // position the child controls
     PhHSplitterHandleWmSize(Context, rect.right, rect.bottom);
@@ -187,7 +185,7 @@ VOID PhHSplitterHandleMouseMove(
     ClientToScreen(hwnd, &windowPoint);
 
     if (Context->DragMode)
-   {
+    {
         windowPoint.x -= windowRect.left;
         windowPoint.y -= windowRect.top;
 
@@ -198,13 +196,13 @@ VOID PhHSplitterHandleMouseMove(
         if (windowPoint.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
             windowPoint.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
 
-        if (windowPoint.y != SplitterOffset)
+        if (windowPoint.y != Context->SplitterOffset)
         {
             hdc = GetWindowDC(hwnd);
 
             if (wParam & MK_LBUTTON)
             {
-                DrawXorBar(hdc, 1, SplitterOffset - 2, windowRect.right - 2, 4);
+                DrawXorBar(hdc, 1, Context->SplitterOffset - 2, windowRect.right - 2, 4);
                 DrawXorBar(hdc, 1, windowPoint.y - 2, windowRect.right - 2, 4);
             }
             else
@@ -222,7 +220,7 @@ VOID PhHSplitterHandleMouseMove(
             }
 
             ReleaseDC(hwnd, hdc);
-            SplitterOffset = windowPoint.y;
+            Context->SplitterOffset = windowPoint.y;
         }
     }
 }
