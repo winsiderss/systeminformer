@@ -22,16 +22,16 @@
  */
 
 #include <phapp.h>
+#include <splitter.h>
 #include <settings.h>
 #include <windowsx.h>
 
 static INT nSplitterPos = 250;
-static INT nSplitterBorder = 6;
 static INT SplitterOffset = -4;
 
 VOID DrawXorBar(HDC hdc, INT x1, INT y1, INT width, INT height);
 
-PPH_HSPLITTER_CONTEXT PhInitializeHSplitterSupport(
+PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
     _In_ HWND Parent,
     _In_ HWND TopChild,
     _In_ HWND BottomChild
@@ -43,14 +43,13 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitterSupport(
     memset(context, 0, sizeof(PH_HSPLITTER_CONTEXT));
 
     PhInitializeLayoutManager(&context->LayoutManager, Parent);
-
     context->Topitem = PhAddLayoutItem(&context->LayoutManager, TopChild, NULL, PH_ANCHOR_ALL);
     context->Bottomitem = PhAddLayoutItem(&context->LayoutManager, BottomChild, NULL, PH_ANCHOR_ALL);
 
     return context;
 }
 
-VOID PhDeleteHSplitterSupportSupport(
+VOID PhDeleteHSplitter(
     _Inout_ PPH_HSPLITTER_CONTEXT Context
     )
 {
@@ -64,12 +63,11 @@ VOID PhHSplitterHandleWmSize(
     )
 {
     // HACK: Use the PH layout manager as the 'splitter' control by abusing layout margins.
-
+#define SPLITTER_PADDING 6
     // Set the bottom margin of the top control.
-    Context->Topitem->Margin.bottom = Height - nSplitterPos - nSplitterBorder;
-
+    Context->Topitem->Margin.bottom = Height - nSplitterPos - SPLITTER_PADDING;
     // Set the top margin of the bottom control.
-    Context->Bottomitem->Margin.top = nSplitterPos + nSplitterBorder * 2;
+    Context->Bottomitem->Margin.top = nSplitterPos + SPLITTER_PADDING * 2;
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 }
@@ -209,21 +207,16 @@ VOID PhHSplitterHandleMouseMove(
         }
         else
         {
-            //if (!Context->Hot)
-            {
-                TRACKMOUSEEVENT trackMouseEvent;
+            TRACKMOUSEEVENT trackMouseEvent;
 
-                trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
-                trackMouseEvent.dwFlags = TME_LEAVE;
-                trackMouseEvent.hwndTrack = hwnd;
-                trackMouseEvent.dwHoverTime = 0;
+            trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+            trackMouseEvent.dwFlags = TME_LEAVE;
+            trackMouseEvent.hwndTrack = hwnd;
+            trackMouseEvent.dwHoverTime = 0;
 
-                Context->Hot = TRUE;
+            SetCursor(LoadCursor(NULL, IDC_SIZENS));
 
-                SetCursor(LoadCursor(NULL, IDC_SIZENS));
-
-                TrackMouseEvent(&trackMouseEvent);
-            }
+            TrackMouseEvent(&trackMouseEvent);
         }
 
         ReleaseDC(hwnd, hdc);
@@ -238,13 +231,8 @@ VOID PhHSplitterHandleMouseLeave(
     _In_ LPARAM lParam
     )
 {
-    if (Context->Hot)
-    {
-        Context->Hot = FALSE;
-
-        // Reset the original cursor.
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
-    }
+    // Reset the original cursor.
+    SetCursor(LoadCursor(NULL, IDC_ARROW));
 }
 
 // http://www.catch22.net/tuts/splitter-windows

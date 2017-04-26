@@ -3,6 +3,7 @@
  *   handle list
  *
  * Copyright (C) 2011-2013 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -95,12 +96,12 @@ VOID PhInitializeHandleList(
     // Default columns
     PhAddTreeNewColumn(hwnd, PHHNTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, PHHNTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, PHHNTLC_HANDLE, TRUE, L"Handle", 80, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(hwnd, PHHNTLC_GRANTEDACCESSSYMBOLIC, TRUE, L"Granted access (symbolic)", 140, PH_ALIGN_LEFT, 2, 0);
 
+    PhAddTreeNewColumn(hwnd, PHHNTLC_HANDLE, FALSE, L"Handle", 80, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHHNTLC_OBJECTADDRESS, FALSE, L"Object address", 80, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHHNTLC_ATTRIBUTES, FALSE, L"Attributes", 120, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHHNTLC_GRANTEDACCESS, FALSE, L"Granted access", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeNewColumn(hwnd, PHHNTLC_GRANTEDACCESSSYMBOLIC, FALSE, L"Granted access (symbolic)", 140, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHHNTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHHNTLC_FILESHAREACCESS, FALSE, L"File share access", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
 

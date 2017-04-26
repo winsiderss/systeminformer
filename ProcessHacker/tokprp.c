@@ -3,6 +3,7 @@
  *   token properties
  *
  * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,13 +22,13 @@
  */
 
 #include <phapp.h>
-
-#include <uxtheme.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 #include <lsasup.h>
 #include <secedit.h>
+#include <splitter.h>
+
+#include <uxtheme.h>
 
 typedef struct _ATTRIBUTE_NODE
 {
@@ -424,7 +425,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSetControlTheme(groupsLv, L"explorer");
             PhSetControlTheme(privilegesLv, L"explorer");
 
-            tokenPageContext->HSplitterContext = PhInitializeHSplitterSupport(
+            tokenPageContext->HSplitterContext = PhInitializeHSplitter(
                 hwndDlg, 
                 tokenPageContext->GroupsListViewHandle, 
                 tokenPageContext->PrivilegesListViewHandle
@@ -582,19 +583,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     ExtendedListView_SortItems(privilegesLv);
                 }
 
-                if (ListView_GetItemCount(groupsLv) != 0)
-                {
-                    ListView_SetColumnWidth(groupsLv, 0, LVSCW_AUTOSIZE);
-                    ExtendedListView_SetColumnWidth(groupsLv, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
-                }
-
-                if (ListView_GetItemCount(privilegesLv) != 0)
-                {
-                    ListView_SetColumnWidth(privilegesLv, 0, LVSCW_AUTOSIZE);
-                    ListView_SetColumnWidth(privilegesLv, 1, LVSCW_AUTOSIZE);
-                    ExtendedListView_SetColumnWidth(privilegesLv, 2, ELVSCW_AUTOSIZE_REMAININGSPACE);
-                }
-
                 NtClose(tokenHandle);
             }
         }
@@ -603,7 +591,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
         {
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
-            if (tokenPageContext->HSplitterContext) PhDeleteHSplitterSupportSupport(tokenPageContext->HSplitterContext);
+            if (tokenPageContext->HSplitterContext) PhDeleteHSplitter(tokenPageContext->HSplitterContext);
         }
         break;
     case WM_COMMAND:
@@ -902,6 +890,19 @@ INT_PTR CALLBACK PhpTokenPageProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
+                    if (ListView_GetItemCount(tokenPageContext->GroupsListViewHandle) != 0)
+                    {
+                        ListView_SetColumnWidth(tokenPageContext->GroupsListViewHandle, 0, LVSCW_AUTOSIZE);
+                        ExtendedListView_SetColumnWidth(tokenPageContext->GroupsListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                    }
+
+                    if (ListView_GetItemCount(tokenPageContext->PrivilegesListViewHandle) != 0)
+                    {
+                        ListView_SetColumnWidth(tokenPageContext->PrivilegesListViewHandle, 0, LVSCW_AUTOSIZE);
+                        ListView_SetColumnWidth(tokenPageContext->PrivilegesListViewHandle, 1, LVSCW_AUTOSIZE);
+                        ExtendedListView_SetColumnWidth(tokenPageContext->PrivilegesListViewHandle, 2, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                    }
+
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_SESSIONID));
                     return TRUE;
                 }
@@ -939,24 +940,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_SIZE:
         PhHSplitterHandleWmSize(tokenPageContext->HSplitterContext, LOWORD(lParam), HIWORD(lParam));
-        return 0;
+        break;
     case WM_LBUTTONDOWN:
         PhHSplitterHandleLButtonDown(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
-        return 0;
+        break;
     case WM_LBUTTONUP:
         PhHSplitterHandleLButtonUp(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
-        return 0;
+        break;
     case WM_MOUSEMOVE:
         PhHSplitterHandleMouseMove(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
-        return 0;
-    case WM_NCMOUSELEAVE:
-        {
-            //if (context->Hot)
-            {
-                //context->Hot = FALSE;
-                //RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-            }
-        }
         break;
     }
 

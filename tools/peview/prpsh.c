@@ -232,7 +232,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ HWND hwnd
     )
 {
-    if (!Context->LayoutInitialized)
+    if (!PropSheetContext->LayoutInitialized)
     {
         HWND tabControlHandle;
         PPH_LAYOUT_ITEM tabControlItem;
