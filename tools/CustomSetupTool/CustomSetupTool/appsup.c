@@ -630,7 +630,7 @@ BOOLEAN RemoveDirectoryPath(_In_ PWSTR DirPath)
     FindClose(findHandle);
 
     // Delete the parent directory
-    SetupDeleteDirectoryFile(DirPath);
+    RemoveDirectory(DirPath);
 
     PhDereferenceObject(findPath);
     return TRUE;
