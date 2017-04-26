@@ -397,7 +397,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             HANDLE dialogThread;
 
             SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->WindowHandle = hwndDlg;
             context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
@@ -412,8 +411,12 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);      
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
                 NtClose(dialogThread);
