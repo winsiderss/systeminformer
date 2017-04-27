@@ -30,8 +30,6 @@
 #include <ph.h>
 #include <mapimg.h>
 
-#include <delayimp.h>
-
 VOID PhpMappedImageProbe(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID Address,
@@ -951,11 +949,11 @@ NTSTATUS PhGetMappedImageImportDll(
     }
     else
     {
-        ImportDll->DelayDescriptor = &((PImgDelayDescr)Imports->DelayDescriptorTable)[Index];
+        ImportDll->DelayDescriptor = &((PIMAGE_DELAYLOAD_DESCRIPTOR)Imports->DelayDescriptorTable)[Index];
 
         ImportDll->Name = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
-            ((PImgDelayDescr)ImportDll->DelayDescriptor)->rvaDLLName,
+            ((PIMAGE_DELAYLOAD_DESCRIPTOR)ImportDll->DelayDescriptor)->DllNameRVA,
             NULL
             );
 
@@ -966,7 +964,7 @@ NTSTATUS PhGetMappedImageImportDll(
 
         ImportDll->LookupTable = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
-            ((PImgDelayDescr)ImportDll->DelayDescriptor)->rvaINT,
+            ((PIMAGE_DELAYLOAD_DESCRIPTOR)ImportDll->DelayDescriptor)->ImportNameTableRVA,
             NULL
             );
     }
@@ -1137,7 +1135,7 @@ NTSTATUS PhGetMappedImageDelayImports(
 {
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
-    PImgDelayDescr descriptor;
+    PIMAGE_DELAYLOAD_DESCRIPTOR descriptor;
     ULONG i;
 
     Imports->MappedImage = MappedImage;
@@ -1171,9 +1169,9 @@ NTSTATUS PhGetMappedImageDelayImports(
     {
         while (TRUE)
         {
-            PhpMappedImageProbe(MappedImage, descriptor, sizeof(ImgDelayDescr));
+            PhpMappedImageProbe(MappedImage, descriptor, sizeof(PIMAGE_DELAYLOAD_DESCRIPTOR));
 
-            if (descriptor->rvaIAT == 0 && descriptor->rvaINT == 0)
+            if (descriptor->ImportAddressTableRVA == 0 && descriptor->ImportNameTableRVA == 0)
                 break;
 
             descriptor++;

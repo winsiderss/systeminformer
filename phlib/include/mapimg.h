@@ -203,7 +203,7 @@ typedef struct _PH_MAPPED_IMAGE_IMPORTS
     union
     {
         PIMAGE_IMPORT_DESCRIPTOR DescriptorTable;
-        PVOID DelayDescriptorTable;
+        PIMAGE_DELAYLOAD_DESCRIPTOR DelayDescriptorTable;
     };
 } PH_MAPPED_IMAGE_IMPORTS, *PPH_MAPPED_IMAGE_IMPORTS;
 
@@ -217,7 +217,7 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
     union
     {
         PIMAGE_IMPORT_DESCRIPTOR Descriptor;
-        PVOID DelayDescriptor;
+        PIMAGE_DELAYLOAD_DESCRIPTOR DelayDescriptor;
     };
     PVOID *LookupTable;
 } PH_MAPPED_IMAGE_IMPORT_DLL, *PPH_MAPPED_IMAGE_IMPORT_DLL;
