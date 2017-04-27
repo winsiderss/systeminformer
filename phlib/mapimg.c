@@ -949,11 +949,11 @@ NTSTATUS PhGetMappedImageImportDll(
     }
     else
     {
-        ImportDll->DelayDescriptor = &((PIMAGE_DELAYLOAD_DESCRIPTOR)Imports->DelayDescriptorTable)[Index];
+        ImportDll->DelayDescriptor = &Imports->DelayDescriptorTable[Index];
 
         ImportDll->Name = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
-            ((PIMAGE_DELAYLOAD_DESCRIPTOR)ImportDll->DelayDescriptor)->DllNameRVA,
+            ImportDll->DelayDescriptor->DllNameRVA,
             NULL
             );
 
@@ -964,7 +964,7 @@ NTSTATUS PhGetMappedImageImportDll(
 
         ImportDll->LookupTable = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
-            ((PIMAGE_DELAYLOAD_DESCRIPTOR)ImportDll->DelayDescriptor)->ImportNameTableRVA,
+            ImportDll->DelayDescriptor->ImportNameTableRVA,
             NULL
             );
     }
@@ -978,9 +978,9 @@ NTSTATUS PhGetMappedImageImportDll(
 
     if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        PULONG entry;
+        PIMAGE_THUNK_DATA32 entry;
 
-        entry = (PULONG)ImportDll->LookupTable;
+        entry = (PIMAGE_THUNK_DATA32)ImportDll->LookupTable;
 
         __try
         {
@@ -989,10 +989,10 @@ NTSTATUS PhGetMappedImageImportDll(
                 PhpMappedImageProbe(
                     ImportDll->MappedImage,
                     entry,
-                    sizeof(ULONG)
+                    sizeof(IMAGE_THUNK_DATA32)
                     );
 
-                if (*entry == 0)
+                if (entry->u1.AddressOfData == 0)
                     break;
 
                 entry++;
@@ -1006,9 +1006,9 @@ NTSTATUS PhGetMappedImageImportDll(
     }
     else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        PULONG64 entry;
+        PIMAGE_THUNK_DATA64 entry;
 
-        entry = (PULONG64)ImportDll->LookupTable;
+        entry = (PIMAGE_THUNK_DATA64)ImportDll->LookupTable;
 
         __try
         {
@@ -1017,10 +1017,10 @@ NTSTATUS PhGetMappedImageImportDll(
                 PhpMappedImageProbe(
                     ImportDll->MappedImage,
                     entry,
-                    sizeof(ULONG64)
+                    sizeof(IMAGE_THUNK_DATA64)
                     );
 
-                if (*entry == 0)
+                if (entry->u1.AddressOfData == 0)
                     break;
 
                 entry++;
@@ -1055,15 +1055,15 @@ NTSTATUS PhGetMappedImageImportEntry(
 
     if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        ULONG entry;
+        IMAGE_THUNK_DATA32 entry;
 
-        entry = ((PULONG)ImportDll->LookupTable)[Index];
+        entry = ((PIMAGE_THUNK_DATA32)ImportDll->LookupTable)[Index];
 
         // Is this entry using an ordinal?
-        if (entry & IMAGE_ORDINAL_FLAG32)
+        if (IMAGE_SNAP_BY_ORDINAL32(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)IMAGE_ORDINAL32(entry);
+            Entry->Ordinal = (USHORT)IMAGE_ORDINAL32(entry.u1.Ordinal);
 
             return STATUS_SUCCESS;
         }
@@ -1071,22 +1071,22 @@ NTSTATUS PhGetMappedImageImportEntry(
         {
             importByName = PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
-                entry,
+                entry.u1.AddressOfData,
                 NULL
                 );
         }
     }
     else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        ULONG64 entry;
+        IMAGE_THUNK_DATA64 entry;
 
-        entry = ((PULONG64)ImportDll->LookupTable)[Index];
+        entry = ((PIMAGE_THUNK_DATA64)ImportDll->LookupTable)[Index];
 
         // Is this entry using an ordinal?
-        if (entry & IMAGE_ORDINAL_FLAG64)
+        if (IMAGE_SNAP_BY_ORDINAL64(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)IMAGE_ORDINAL64(entry);
+            Entry->Ordinal = (USHORT)IMAGE_ORDINAL64(entry.u1.Ordinal);
 
             return STATUS_SUCCESS;
         }
@@ -1094,7 +1094,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         {
             importByName = PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
-                (ULONG)entry,
+                (ULONG)entry.u1.AddressOfData,
                 NULL
                 );
         }
