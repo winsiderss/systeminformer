@@ -28,7 +28,7 @@ test: off
 
 # Run custom build script.
 build_script:
-- cmd: tools\CustomBuildTool\bin\Release\CustomBuildTool.exe
+- cmd: tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -appveyor
 
 # Setup build notifications.
 notifications:
