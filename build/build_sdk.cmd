@@ -1,3 +1,3 @@
 @echo off
 
-..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -sdk
+start /B /W "" "..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" "-sdk"
