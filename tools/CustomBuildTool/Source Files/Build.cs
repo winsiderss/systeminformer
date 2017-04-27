@@ -181,6 +181,8 @@ namespace CustomBuildTool
 
         public static void CleanupBuildEnvironment()
         {
+            Program.PrintColorMessage("Cleaning up build environment...", ConsoleColor.Cyan);
+
             try
             {
 
@@ -193,6 +195,8 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(bool ShowBuildInfo)
         {
+            Program.PrintColorMessage("Setting up build environment...", ConsoleColor.Cyan);
+
             string currentGitTag = Win32.ExecCommand(GitExePath, "describe --abbrev=0 --tags --always");
             string latestGitRevision = Win32.ExecCommand(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
 
@@ -257,6 +261,8 @@ namespace CustomBuildTool
 
         public static bool CopyTextFiles()
         {
+            Program.PrintColorMessage("Copying text files...", ConsoleColor.Cyan);
+
             try
             {
                 File.Copy("README.md", "bin\\README.txt", true);
@@ -275,6 +281,8 @@ namespace CustomBuildTool
 
         public static bool CopyKProcessHacker(bool DebugBuild)
         {
+            Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
+
             try
             {
                 if (DebugBuild)
@@ -299,6 +307,8 @@ namespace CustomBuildTool
 
         public static bool CopyLibFiles(bool DebugBuild)
         {
+            Program.PrintColorMessage("Copying Plugin SDK linker files...", ConsoleColor.Cyan);
+
             try
             {
                 if (DebugBuild)
@@ -323,6 +333,8 @@ namespace CustomBuildTool
 
         public static bool CopyWow64Files(bool DebugBuild)
         {
+            Program.PrintColorMessage("Copying Wow64 support files...", ConsoleColor.Cyan);
+
             try
             {
                 if (DebugBuild)
@@ -361,6 +373,8 @@ namespace CustomBuildTool
 
         public static bool CopyPluginSdkHeaders()
         {
+            Program.PrintColorMessage("Copying Plugin SDK headers...", ConsoleColor.Cyan);
+
             try
             {
                 foreach (string folder in sdk_directories)
@@ -400,6 +414,8 @@ namespace CustomBuildTool
 
         public static bool CopyVersionHeader()
         {
+            Program.PrintColorMessage("Copying Plugin SDK version header...", ConsoleColor.Cyan);
+
             try
             {
                 HeaderGen gen = new HeaderGen();
@@ -422,6 +438,8 @@ namespace CustomBuildTool
 
         public static bool FixupResourceHeader()
         {
+            Program.PrintColorMessage("Building Plugin SDK resource header...", ConsoleColor.Cyan);
+
             try
             {
                 string phappContent = File.ReadAllText("sdk\\include\\phappresource.h");
@@ -445,6 +463,8 @@ namespace CustomBuildTool
         public static bool BuildKphSignatureFile(bool DebugBuild)
         {
             string output;
+
+            Program.PrintColorMessage("Building KPH signature...", ConsoleColor.Cyan);
 
             if (!File.Exists(CustomSignToolPath))
             {
@@ -572,11 +592,13 @@ namespace CustomBuildTool
 
         public static bool BuildSetupExe()
         {
+            Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
+
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", false, false, false))
+                return false;
+
             try
             {
-                if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", false, false, false))
-                    return false;
-
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-setup.exe");
 
@@ -596,6 +618,8 @@ namespace CustomBuildTool
 
         public static bool BuildSdkZip()
         {
+            Program.PrintColorMessage("Building build-sdk.zip...", ConsoleColor.Cyan);
+
             try
             {
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-sdk.zip"))
@@ -614,6 +638,8 @@ namespace CustomBuildTool
 
         public static bool BuildBinZip()
         {
+            Program.PrintColorMessage("Building build-bin.zip...", ConsoleColor.Cyan);
+
             try
             {
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
@@ -643,6 +669,8 @@ namespace CustomBuildTool
 
         public static bool BuildSrcZip()
         {
+            Program.PrintColorMessage("Building build-src.zip...", ConsoleColor.Cyan);
+
             if (!File.Exists(GitExePath))
             {
                 Program.PrintColorMessage("[SKIPPED] Git not installed.", ConsoleColor.Yellow);
@@ -702,6 +730,8 @@ namespace CustomBuildTool
 
         public static bool BuildChecksumsFile()
         {
+            Program.PrintColorMessage("Building build-checksums.txt...", ConsoleColor.Cyan);
+
             try
             {
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
@@ -735,6 +765,8 @@ namespace CustomBuildTool
 
         public static bool BuildUpdateSignature()
         {
+            Program.PrintColorMessage("Building release signature...", ConsoleColor.Cyan);
+
             if (!File.Exists(CustomSignToolPath))
             {
                 Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
@@ -901,6 +933,8 @@ namespace CustomBuildTool
 
         public static bool UpdateHeaderFileVersion()
         {
+            Program.PrintColorMessage("Updating Process Hacker build revision...", ConsoleColor.Cyan);
+
             try
             {
                 if (File.Exists("ProcessHacker\\include\\phapprev.h"))
@@ -926,6 +960,8 @@ namespace CustomBuildTool
 
         public static bool BuildPublicHeaderFiles()
         {
+            Program.PrintColorMessage("Building public SDK headers...", ConsoleColor.Cyan);
+
             try
             {
                 HeaderGen gen = new HeaderGen();
