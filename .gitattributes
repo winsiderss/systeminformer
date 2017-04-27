@@ -1,5 +1,5 @@
 # Auto detect text files
-* text=crlf
+* text=auto
 
 # Custom for Visual Studio
 *.cs     diff=csharp
@@ -16,6 +16,7 @@
 *.cmd eol=crlf
 *.csproj eol=crlf
 *.h eol=crlf
+*.md eol=crlf
 *.manifest eol=crlf
 *.rc eol=crlf
 *.sln eol=crlf
