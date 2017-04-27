@@ -737,11 +737,13 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhSetListViewStyle(context->AppDomainsLv, FALSE, TRUE);
             PhSetControlTheme(context->AppDomainsLv, L"explorer");
             PhAddListViewColumn(context->AppDomainsLv, 0, 0, 0, LVCFMT_LEFT, 300, L"Application domain");
+            PhSetExtendedListView(context->AppDomainsLv);
 
             PhSetListViewStyle(context->CountersLv, FALSE, TRUE);
             PhSetControlTheme(context->CountersLv, L"explorer");
             PhAddListViewColumn(context->CountersLv, 0, 0, 0, LVCFMT_LEFT, 250, L"Counter");
             PhAddListViewColumn(context->CountersLv, 1, 1, 1, LVCFMT_RIGHT, 140, L"Value");
+            PhSetExtendedListView(context->CountersLv);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, context->CountersLv);
 
             if (PhGetIntegerSetting(SETTING_NAME_DOT_NET_SHOW_BYTE_SIZE))
@@ -869,6 +871,8 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DOTNET_PERF_SHOWBYTES), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
             }
+
+            ExtendedListView_SetColumnWidth(context->AppDomainsLv, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_COMMAND:
@@ -932,6 +936,11 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             {
                 UpdateCounterData(hwndDlg, context);
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            ExtendedListView_SetColumnWidth(context->AppDomainsLv, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     }
