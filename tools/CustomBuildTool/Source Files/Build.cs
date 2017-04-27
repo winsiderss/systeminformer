@@ -273,12 +273,20 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CopyKProcessHacker()
+        public static bool CopyKProcessHacker(bool DebugBuild)
         {
             try
             {
-                File.Copy("KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Release32\\kprocesshacker.sys", true);
-                File.Copy("KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Release64\\kprocesshacker.sys", true);
+                if (DebugBuild)
+                {
+                    File.Copy("KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Debug32\\kprocesshacker.sys", true);
+                    File.Copy("KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Debug64\\kprocesshacker.sys", true);
+                }
+                else
+                {
+                    File.Copy("KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Release32\\kprocesshacker.sys", true);
+                    File.Copy("KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Release64\\kprocesshacker.sys", true);
+                }
             }
             catch (Exception ex)
             {
@@ -289,12 +297,20 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CopyLibFiles()
+        public static bool CopyLibFiles(bool DebugBuild)
         {
             try
             {
-                File.Copy("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
-                File.Copy("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                if (DebugBuild)
+                {
+                    File.Copy("bin\\Debug32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
+                    File.Copy("bin\\Debug64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                }
+                else
+                {
+                    File.Copy("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
+                    File.Copy("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                }
             }
             catch (Exception ex)
             {
@@ -305,20 +321,34 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CopyWow64Files()
+        public static bool CopyWow64Files(bool DebugBuild)
         {
             try
             {
-                if (!Directory.Exists("bin\\Release64\\x86"))
-                    Directory.CreateDirectory("bin\\Release64\\x86");
+                if (DebugBuild)
+                {
+                    if (!Directory.Exists("bin\\Debug64\\x86"))
+                        Directory.CreateDirectory("bin\\Debug64\\x86");
+                    if (!Directory.Exists("bin\\Debug64\\x86\\plugins"))
+                        Directory.CreateDirectory("bin\\Debug64\\x86\\plugins");
 
-                if (!Directory.Exists("bin\\Release64\\x86\\plugins"))
-                    Directory.CreateDirectory("bin\\Release64\\x86\\plugins");
+                    File.Copy("bin\\Debug32\\ProcessHacker.exe", "bin\\Debug64\\x86\\ProcessHacker.exe", true);
+                    File.Copy("bin\\Debug32\\ProcessHacker.pdb", "bin\\Debug64\\x86\\ProcessHacker.pdb", true);
+                    File.Copy("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll", true);
+                    File.Copy("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb", true);
+                }
+                else
+                {
+                    if (!Directory.Exists("bin\\Release64\\x86"))
+                        Directory.CreateDirectory("bin\\Release64\\x86");
+                    if (!Directory.Exists("bin\\Release64\\x86\\plugins"))
+                        Directory.CreateDirectory("bin\\Release64\\x86\\plugins");
 
-                File.Copy("bin\\Release32\\ProcessHacker.exe", "bin\\Release64\\x86\\ProcessHacker.exe", true);
-                File.Copy("bin\\Release32\\ProcessHacker.pdb", "bin\\Release64\\x86\\ProcessHacker.pdb", true);
-                File.Copy("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll", true);
-                File.Copy("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb", true);
+                    File.Copy("bin\\Release32\\ProcessHacker.exe", "bin\\Release64\\x86\\ProcessHacker.exe", true);
+                    File.Copy("bin\\Release32\\ProcessHacker.pdb", "bin\\Release64\\x86\\ProcessHacker.pdb", true);
+                    File.Copy("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll", true);
+                    File.Copy("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb", true);
+                }
             }
             catch (Exception ex)
             {
@@ -412,7 +442,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildKphSignatureFile()
+        public static bool BuildKphSignatureFile(bool DebugBuild)
         {
             string output;
 
@@ -428,50 +458,73 @@ namespace CustomBuildTool
                 return true;
             }
 
-            if (!File.Exists("bin\\Release32\\ProcessHacker.exe"))
+            if (DebugBuild)
             {
-                Program.PrintColorMessage("[SKIPPED] Release32\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
-                return true;
+                if (!File.Exists("bin\\Debug32\\ProcessHacker.exe"))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Debug32\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    return true;
+                }
+
+                if (!File.Exists("bin\\Debug64\\ProcessHacker.exe"))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Debug64\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    return true;
+                }
+
+                if (File.Exists("bin\\Debug32\\ProcessHacker.sig"))
+                    File.Delete("bin\\Debug32\\ProcessHacker.sig");
+                if (File.Exists("bin\\Debug64\\ProcessHacker.sig"))
+                    File.Delete("bin\\Debug64\\ProcessHacker.sig");
+
+                File.Create("bin\\Debug32\\ProcessHacker.sig").Dispose();
+                File.Create("bin\\Debug64\\ProcessHacker.sig").Dispose();
+
+                if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig")))
+                {
+                    Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig")))
+                {
+                    Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
+                    return false;
+                }
             }
-
-            if (!File.Exists("bin\\Release64\\ProcessHacker.exe"))
+            else
             {
-                Program.PrintColorMessage("[SKIPPED] Release64\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
-                return true;
-            }
+                if (!File.Exists("bin\\Release32\\ProcessHacker.exe"))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Release32\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    return true;
+                }
 
-            if (File.Exists("bin\\Debug32\\ProcessHacker.sig"))
-                File.Delete("bin\\Debug32\\ProcessHacker.sig");
-            if (File.Exists("bin\\Debug64\\ProcessHacker.sig"))
-                File.Delete("bin\\Debug64\\ProcessHacker.sig");
-            if (File.Exists("bin\\Release32\\ProcessHacker.sig"))
-                File.Delete("bin\\Release32\\ProcessHacker.sig");
-            if (File.Exists("bin\\Release64\\ProcessHacker.sig"))
-                File.Delete("bin\\Release64\\ProcessHacker.sig");
+                if (!File.Exists("bin\\Release64\\ProcessHacker.exe"))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Release64\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    return true;
+                }
 
-            File.Create("bin\\Release32\\ProcessHacker.sig").Dispose();
-            File.Create("bin\\Release64\\ProcessHacker.sig").Dispose();
+                if (File.Exists("bin\\Release32\\ProcessHacker.sig"))
+                    File.Delete("bin\\Release32\\ProcessHacker.sig");
+                if (File.Exists("bin\\Release64\\ProcessHacker.sig"))
+                    File.Delete("bin\\Release64\\ProcessHacker.sig");
 
-            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig")))
-            {
-                //Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
-            }
+                File.Create("bin\\Release32\\ProcessHacker.sig").Dispose();
+                File.Create("bin\\Release64\\ProcessHacker.sig").Dispose();
 
-            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig")))
-            {
-                //Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
-            }
+                if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig")))
+                {
+                    Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red);
+                    return false;
+                }
 
-            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig")))
-            {
-                Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red);
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig")))
-            {
-                Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red);
-                return false;
+                if (!string.IsNullOrEmpty(output = Win32.ExecCommand(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig")))
+                {
+                    Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red);
+                    return false;
+                }
             }
 
             return true;
@@ -521,11 +574,11 @@ namespace CustomBuildTool
         {
             try
             {
+                if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", false, false, false))
+                    return false;
+
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-setup.exe");
-
-                if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", false, false))
-                    return false;
 
                 File.Move(
                     "tools\\CustomSetupTool\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe", 
@@ -775,7 +828,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static void AppveyorUploadBuildFiles()
+        public static bool AppveyorUploadBuildFiles()
         {
             string[] buildFileArray =
             {
@@ -791,7 +844,7 @@ namespace CustomBuildTool
             };
 
             if (!BuildNightly)
-                return;
+                return false;
 
             for (int i = 0; i < releaseFileArray.Length; i++)
             {
@@ -804,6 +857,7 @@ namespace CustomBuildTool
                     catch (Exception ex)
                     {
                         Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+                        return false;
                     }
                 }
             }
@@ -819,6 +873,7 @@ namespace CustomBuildTool
                     catch (Exception ex)
                     {
                         Program.PrintColorMessage("[WebServiceUploadBuild] " + ex, ConsoleColor.Red);
+                        return false;
                     }
                 }
             }
@@ -833,14 +888,16 @@ namespace CustomBuildTool
                     {
                         Win32.ExecCommand("appveyor", "PushArtifact " + releaseFileArray[i]);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        
+                        Program.PrintColorMessage("[WebServicePushArtifact] " + ex, ConsoleColor.Red);
+                        return false;
                     }
                 }
             }
-        }
 
+            return true;
+        }
 
         public static bool UpdateHeaderFileVersion()
         {
@@ -884,7 +941,7 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildSolution(string Solution, bool AllPlatforms, bool Verbose)
+        public static bool BuildSolution(string Solution, bool Build64bit, bool BuildDebug, bool Verbose)
         {
             if (Verbose)
             {
@@ -895,7 +952,7 @@ namespace CustomBuildTool
 
             string error32 = Win32.ExecCommand(
                 MSBuildExePath, 
-                "/m /nologo /verbosity:quiet /p:Configuration=Release /p:Platform=Win32 " + Solution
+                "/m /nologo /verbosity:quiet /p:Configuration=" + (BuildDebug ? "Debug" : "Release") + " /p:Platform=Win32 " + Solution
                 );
 
             if (!string.IsNullOrEmpty(error32))
@@ -904,7 +961,7 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (AllPlatforms)
+            if (Build64bit)
             {
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage("x64", ConsoleColor.Green, false);
@@ -912,7 +969,7 @@ namespace CustomBuildTool
 
                 string error64 = Win32.ExecCommand(
                     MSBuildExePath,
-                    "/m /nologo /verbosity:quiet /p:Configuration=Release /p:Platform=x64 " + Solution
+                    "/m /nologo /verbosity:quiet /p:Configuration=" + (BuildDebug ? "Debug" : "Release") + " /p:Platform=x64 " + Solution
                     );
 
                 if (!string.IsNullOrEmpty(error64))

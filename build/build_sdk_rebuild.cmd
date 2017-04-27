@@ -1,5 +1,5 @@
 @echo off
 
-..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -cleansdk
+start /B /W "" "..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" "-cleansdk"
 
 pause

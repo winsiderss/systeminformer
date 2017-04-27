@@ -89,11 +89,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="Resource Files\App.config" />
     <None Include="Resource Files\app.manifest">
       <SubType>Designer</SubType>
     </None>
-    <None Include="Resource Files\packages.config" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6">

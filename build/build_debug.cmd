@@ -1,5 +1,5 @@
 @echo off
 
-..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -debug
+start /B /W "" "..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" "-debug"
 
 pause
