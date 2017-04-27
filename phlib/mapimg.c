@@ -986,11 +986,7 @@ NTSTATUS PhGetMappedImageImportDll(
         {
             while (TRUE)
             {
-                PhpMappedImageProbe(
-                    ImportDll->MappedImage,
-                    entry,
-                    sizeof(IMAGE_THUNK_DATA32)
-                    );
+                PhpMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA32));
 
                 if (entry->u1.AddressOfData == 0)
                     break;
@@ -1014,11 +1010,7 @@ NTSTATUS PhGetMappedImageImportDll(
         {
             while (TRUE)
             {
-                PhpMappedImageProbe(
-                    ImportDll->MappedImage,
-                    entry,
-                    sizeof(IMAGE_THUNK_DATA64)
-                    );
+                PhpMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA64));
 
                 if (entry->u1.AddressOfData == 0)
                     break;
@@ -1109,11 +1101,7 @@ NTSTATUS PhGetMappedImageImportEntry(
 
     __try
     {
-        PhpMappedImageProbe(
-            ImportDll->MappedImage,
-            importByName,
-            sizeof(IMAGE_IMPORT_BY_NAME)
-            );
+        PhpMappedImageProbe(ImportDll->MappedImage, importByName, sizeof(IMAGE_IMPORT_BY_NAME));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
