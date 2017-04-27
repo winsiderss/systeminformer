@@ -117,6 +117,17 @@ VOID PvPeProperties(
             );
         PvAddPropPage(propContext, newPage);
 
+        // Load Config page
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
+        {
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PELOADCONFIG),
+                PvpPeLoadConfigDlgProc,
+                NULL
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
         // Imports page
         if ((NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0) ||
             (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)) && imports.NumberOfDlls != 0))
@@ -135,17 +146,6 @@ VOID PvPeProperties(
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEEXPORTS),
                 PvpPeExportsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
-
-        // Load Config page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PELOADCONFIG),
-                PvpPeLoadConfigDlgProc,
                 NULL
                 );
             PvAddPropPage(propContext, newPage);
@@ -554,10 +554,9 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
 
                     PhPrintPointer(pointer, UlongToPtr(PvMappedImage.Sections[i].VirtualAddress));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
 
-                    PhPrintPointer(pointer, UlongToPtr(PvMappedImage.Sections[i].SizeOfRawData));
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhaFormatSize(PvMappedImage.Sections[i].SizeOfRawData, -1)->Buffer);
                 }
             }
         }
