@@ -5123,6 +5123,17 @@ RtlSidHashLookup(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeriveCapabilitySidsFromName(
+    _Inout_ PUNICODE_STRING UnicodeString,
+    _Out_ PSID CapabilityGroupSid,
+    _Out_ PSID CapabilitySid,
+    );
+#endif
+
 // Security Descriptors
 
 NTSYSAPI
