@@ -739,11 +739,7 @@ NTSTATUS PhGetMappedImageExportFunction(
     }
     else
     {
-        Function->Function = PhMappedImageRvaToVa(
-            Exports->MappedImage,
-            rva,
-            NULL
-            );
+        Function->Function = UlongToPtr(rva);
         Function->ForwardedName = NULL;
     }
 
