@@ -852,13 +852,22 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         }
                         else
                         {
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed)", NULL);
+                            if (exportFunction.Function)
+                                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed)", NULL);
+                            else
+                                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed variable)", NULL);        
                         }
 
                         PhPrintUInt32(number, exportEntry.Ordinal);
                         PhSetListViewSubItem(lvHandle, lvItemIndex, 1, number);
 
-                        if (!exportFunction.ForwardedName)
+                        if (exportFunction.ForwardedName)
+                        {
+                            name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
+                            PhDereferenceObject(name);
+                        }
+                        else
                         {
                             if ((ULONG_PTR)exportFunction.Function >= (ULONG_PTR)PvMappedImage.ViewBase)
                                 PhPrintPointer(pointer, PTR_SUB_OFFSET(exportFunction.Function, PvMappedImage.ViewBase));
@@ -866,12 +875,6 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                                 PhPrintPointer(pointer, exportFunction.Function);
 
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
-                        }
-                        else
-                        {
-                            name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
-                            PhDereferenceObject(name);
                         }
                     }
                 }
