@@ -5406,7 +5406,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
 
             do
             {
-                baseAddress = (PVOID)((ULONG_PTR)baseAddress + basicInfo.RegionSize);
+                baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
                 allocationSize += basicInfo.RegionSize;
 
                 if (!NT_SUCCESS(NtQueryVirtualMemory(
@@ -5464,7 +5464,7 @@ VOID PhpEnumGenericMappedFilesAndImages(
         }
         else
         {
-            baseAddress = (PVOID)((ULONG_PTR)baseAddress + basicInfo.RegionSize);
+            baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
 
             if (!NT_SUCCESS(NtQueryVirtualMemory(
                 ProcessHandle,
