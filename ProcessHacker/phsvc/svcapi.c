@@ -863,7 +863,7 @@ NTSTATUS PhSvcpUnpackBuffer(
     if (offset & (Alignment - 1))
         return STATUS_DATATYPE_MISALIGNMENT;
 
-    *OffsetInBuffer = (PVOID)((ULONG_PTR)CapturedBuffer + offset);
+    *OffsetInBuffer = PTR_ADD_OFFSET(CapturedBuffer, offset);
 
     return STATUS_SUCCESS;
 }
@@ -897,8 +897,8 @@ NTSTATUS PhSvcpUnpackStringZ(
     if (offset & 1)
         return STATUS_DATATYPE_MISALIGNMENT;
 
-    start = (PWCHAR)((ULONG_PTR)CapturedBuffer + offset);
-    end = (PWCHAR)((ULONG_PTR)CapturedBuffer + (PackedData->Length & -2));
+    start = (PWCHAR)PTR_ADD_OFFSET(CapturedBuffer, offset);
+    end = (PWCHAR)PTR_ADD_OFFSET(CapturedBuffer, (PackedData->Length & -2));
     remainingPart.Buffer = start;
     remainingPart.Length = (end - start) * sizeof(WCHAR);
 
