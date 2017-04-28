@@ -827,7 +827,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 220, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Ordinal");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"VA");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"RVA");
             PhSetExtendedListView(lvHandle);
 
             if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
@@ -869,11 +869,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         }
                         else
                         {
-                            if ((ULONG_PTR)exportFunction.Function >= (ULONG_PTR)PvMappedImage.ViewBase)
-                                PhPrintPointer(pointer, PTR_SUB_OFFSET(exportFunction.Function, PvMappedImage.ViewBase));
-                            else
-                                PhPrintPointer(pointer, exportFunction.Function);
-
+                            PhPrintPointer(pointer, exportFunction.Function);
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
                         }
                     }
