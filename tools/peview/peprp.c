@@ -844,7 +844,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         WCHAR number[PH_INT32_STR_LEN_1];
                         WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                        // TODO: user32.dll and some other libraries have many (unnamed) exports with invalid RVA,
+                        // TODO: user32.dll and some other dlls have many (unnamed) exports with (invalid) 0x0 RVA,
                         //  they might be exported variables or caused by incorrect math, ignore these entries 
                         //  until more information is available.
                         if (!exportFunction.Function)
