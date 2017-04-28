@@ -844,6 +844,12 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         WCHAR number[PH_INT32_STR_LEN_1];
                         WCHAR pointer[PH_PTR_STR_LEN_1];
 
+                        // TODO: user32.dll and some other libraries have many (unnamed) exports with invalid RVA,
+                        //  they might be exported variables or caused by incorrect math, ignore these entries 
+                        //  until more information is available.
+                        if (!exportFunction.Function)
+                            continue;
+
                         if (exportEntry.Name)
                         {
                             name = PhZeroExtendToUtf16(exportEntry.Name);
@@ -852,10 +858,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         }
                         else
                         {
-                            if (exportFunction.Function)
-                                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed)", NULL);
-                            else
-                                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed variable)", NULL);        
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed)", NULL);        
                         }
 
                         PhPrintUInt32(number, exportEntry.Ordinal);
