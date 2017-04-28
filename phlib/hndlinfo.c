@@ -142,12 +142,13 @@ NTSTATUS PhpGetObjectBasicInformation(
     }
     else
     {
+        ULONG returnLength;
         status = NtQueryObject(
             Handle,
             ObjectBasicInformation,
             BasicInformation,
             sizeof(OBJECT_BASIC_INFORMATION),
-            NULL
+            &returnLength
             );
 
         if (NT_SUCCESS(status))
@@ -1394,7 +1395,7 @@ NTSTATUS PhEnumObjectTypes(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize;
+    ULONG bufferSize, returnLength;
 
     bufferSize = 0x1000;
     buffer = PhAllocate(bufferSize);
@@ -1404,7 +1405,7 @@ NTSTATUS PhEnumObjectTypes(
         ObjectTypesInformation,
         buffer,
         bufferSize,
-        NULL
+        &returnLength
         )) == STATUS_INFO_LENGTH_MISMATCH)
     {
         PhFree(buffer);
