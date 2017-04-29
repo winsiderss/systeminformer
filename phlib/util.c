@@ -1627,6 +1627,10 @@ PPH_STRING PhGetFileVersionInfoString(
     {
         PPH_STRING string;
 
+        // Check if the string has a valid length.
+        if (length <= sizeof(WCHAR))
+            return NULL;
+
         string = PhCreateStringEx((PWCHAR)buffer, length * sizeof(WCHAR));
         // length may include the null terminator.
         PhTrimToNullTerminatorString(string);
