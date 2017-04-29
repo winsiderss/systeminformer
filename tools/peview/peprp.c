@@ -1145,7 +1145,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
 
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT ,  40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 100, L"RVA");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT , 250, L"Name");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT , 100, L"Flags");
             PhSetExtendedListView(lvHandle);
@@ -1173,23 +1173,18 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
                     PPH_STRING symbolName = NULL;
                     PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
                     IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
+                    WCHAR number[PH_INT64_STR_LEN_1];
+                    WCHAR pointer[PH_PTR_STR_LEN_1];
 
                     // Parse cfg entry : if it fails, just skip it ?
                     if (!NT_SUCCESS(PhGetMappedImageCfgEntry(&cfgConfig, i, ControlFlowGuardFunction, &cfgFunctionEntry)))
                         continue;
-            
-                    lvItemIndex = PhAddListViewItem(
-                        lvHandle, 
-                        MAXINT, 
-                        PhaFormatString(L"%I64u", i)->Buffer,
-                        NULL
-                        );
-                    PhSetListViewSubItem(
-                        lvHandle, 
-                        lvItemIndex, 
-                        1, 
-                        PhaFormatString(L"0x%08x", cfgFunctionEntry.Rva)->Buffer
-                        );
+
+                    PhPrintUInt64(number, i + 1);
+                    lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
+
+                    PhPrintPointer(pointer, UlongToPtr(cfgFunctionEntry.Rva));
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
 
                     // Resolve name based on public symbols
                     if (!(symbol = PhGetSymbolFromAddress(
