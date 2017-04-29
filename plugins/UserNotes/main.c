@@ -1331,7 +1331,7 @@ LOGICAL DllMain(
         PPH_PLUGIN_INFORMATION info;
         PH_SETTING_CREATE settings[] =
         {
-            { StringSettingType, SETTING_NAME_DATABASE_PATH, L"%APPDATA%\\Process Hacker 2\\usernotesdb.xml" },
+            { StringSettingType, SETTING_NAME_DATABASE_PATH, L"%APPDATA%\\Process Hacker\\usernotesdb.xml" },
             { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" }
         };
 
