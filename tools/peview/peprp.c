@@ -316,7 +316,7 @@ FORCEINLINE PWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
     )
 {
-    if (String)
+    if (!PhIsNullOrEmptyString(String))
         return String->Buffer;
     else
         return L"N/A";
