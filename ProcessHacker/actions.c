@@ -2807,7 +2807,7 @@ BOOLEAN PhUiUnloadModule(
                     L"Unable to unload ",
                     Module->Name->Buffer,
                     L". Make sure Process Hacker is running with "
-                    L"administrative privileges. Error"
+                    L"administrative privileges."
                     )->Buffer,
                     status,
                     0
