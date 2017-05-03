@@ -1213,16 +1213,17 @@ ULONG PhCheckSumMappedImage(
     return checkSum;
 }
 
-NTSTATUS PhGetMappedImageCfg(
+NTSTATUS PhGetMappedImageCfg64(
     _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
     PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-
+    
     if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig64(MappedImage, &config64)))
         return status;
+    
 
     // Not every load configuration defines CFG characteristics
     if (config64->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardFlags))
@@ -1244,7 +1245,7 @@ NTSTATUS PhGetMappedImageCfg(
     CfgConfig->NumberOfGuardFunctionEntries = config64->GuardCFFunctionCount;
     CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
         MappedImage,
-        (ULONG)(config64->GuardCFFunctionTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+        (ULONG) (ULONG_PTR) PTR_SUB_OFFSET(config64->GuardCFFunctionTable , MappedImage->NtHeaders->OptionalHeader.ImageBase),
         NULL
         );
 
@@ -1331,6 +1332,142 @@ NTSTATUS PhGetMappedImageCfg(
     }
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageCfg32(
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+)
+{
+    NTSTATUS status;
+    PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+
+    if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig32(MappedImage, &config32)))
+        return status;
+    
+
+    // Not every load configuration defines CFG characteristics
+    if (config32->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardFlags))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    CfgConfig->MappedImage = MappedImage;
+    CfgConfig->EntrySize = sizeof(FIELD_OFFSET(IMAGE_CFG_ENTRY, Rva)) +
+        (ULONG)((config32->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT);
+    CfgConfig->CfgInstrumented = !!(config32->GuardFlags & IMAGE_GUARD_CF_INSTRUMENTED);
+    CfgConfig->WriteIntegrityChecks = !!(config32->GuardFlags & IMAGE_GUARD_CFW_INSTRUMENTED);
+    CfgConfig->CfgFunctionTablePresent = !!(config32->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT);
+    CfgConfig->SecurityCookieUnused = !!(config32->GuardFlags & IMAGE_GUARD_SECURITY_COOKIE_UNUSED);
+    CfgConfig->ProtectDelayLoadedIat = !!(config32->GuardFlags & IMAGE_GUARD_PROTECT_DELAYLOAD_IAT);
+    CfgConfig->DelayLoadInDidatSection = !!(config32->GuardFlags & IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION);
+    CfgConfig->EnableExportSuppression = !!(config32->GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION);
+    CfgConfig->HasExportSuppressionInfos = !!(config32->GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT);
+    CfgConfig->CfgLongJumpTablePresent = !!(config32->GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT);
+
+    CfgConfig->NumberOfGuardFunctionEntries = config32->GuardCFFunctionCount;
+    CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
+        MappedImage,
+        (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardCFFunctionTable , MappedImage->NtHeaders32->OptionalHeader.ImageBase),
+        NULL
+    );
+    
+    if (CfgConfig->GuardFunctionTable && CfgConfig->NumberOfGuardFunctionEntries)
+    {
+        __try
+        {
+            PhpMappedImageProbe(
+                MappedImage,
+                CfgConfig->GuardFunctionTable,
+                (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardFunctionEntries)
+            );
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+
+    CfgConfig->NumberOfGuardAdressIatEntries = 0;
+    CfgConfig->GuardAdressIatTable = 0;
+
+    if (
+        config32->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardAddressTakenIatEntryTable) +
+        sizeof(config32->GuardAddressTakenIatEntryTable) +
+        sizeof(config32->GuardAddressTakenIatEntryCount)
+        )
+    {
+        CfgConfig->NumberOfGuardAdressIatEntries = config32->GuardAddressTakenIatEntryCount;
+        CfgConfig->GuardAdressIatTable = PhMappedImageRvaToVa(
+            MappedImage,
+            (ULONG)(config32->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            NULL
+        );
+
+        if (CfgConfig->GuardAdressIatTable && CfgConfig->NumberOfGuardAdressIatEntries)
+        {
+            __try
+            {
+                PhpMappedImageProbe(
+                    MappedImage,
+                    CfgConfig->GuardAdressIatTable,
+                    (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
+                );
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+        }
+    }
+
+    CfgConfig->NumberOfGuardLongJumpEntries = 0;
+    CfgConfig->GuardLongJumpTable = 0;
+
+    if (
+        config32->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardLongJumpTargetTable) +
+        sizeof(config32->GuardLongJumpTargetTable) +
+        sizeof(config32->GuardLongJumpTargetCount)
+        )
+    {
+        CfgConfig->NumberOfGuardLongJumpEntries = config32->GuardLongJumpTargetCount;
+        CfgConfig->GuardLongJumpTable = PhMappedImageRvaToVa(
+            MappedImage,
+            (ULONG)(config32->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            NULL
+        );
+
+        if (CfgConfig->GuardLongJumpTable && CfgConfig->NumberOfGuardLongJumpEntries)
+        {
+            __try
+            {
+                PhpMappedImageProbe(
+                    MappedImage,
+                    CfgConfig->GuardLongJumpTable,
+                    (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardLongJumpEntries)
+                );
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageCfg(
+    _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+)
+{
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        return PhGetMappedImageCfg32(CfgConfig, MappedImage);
+    }
+    else
+    {
+        return PhGetMappedImageCfg64(CfgConfig, MappedImage);
+    }
 }
 
 NTSTATUS PhGetMappedImageCfgEntry(

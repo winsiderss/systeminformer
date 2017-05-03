@@ -21,7 +21,8 @@ typedef enum _PH_MEMORY_REGION_TYPE
     Heap32Region,
     HeapSegmentRegion,
     HeapSegment32Region,
-    CfgBitmapRegion
+    CfgBitmapRegion,
+    CfgBitmap32Region
 } PH_MEMORY_REGION_TYPE;
 
 typedef struct _PH_MEMORY_ITEM
