@@ -3,6 +3,7 @@
  *   mapped image
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1220,10 +1221,9 @@ NTSTATUS PhGetMappedImageCfg64(
 {
     NTSTATUS status;
     PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-    
+
     if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig64(MappedImage, &config64)))
         return status;
-    
 
     // Not every load configuration defines CFG characteristics
     if (config64->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardFlags))
@@ -1245,7 +1245,7 @@ NTSTATUS PhGetMappedImageCfg64(
     CfgConfig->NumberOfGuardFunctionEntries = config64->GuardCFFunctionCount;
     CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
         MappedImage,
-        (ULONG) (ULONG_PTR) PTR_SUB_OFFSET(config64->GuardCFFunctionTable , MappedImage->NtHeaders->OptionalHeader.ImageBase),
+        (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config64->GuardCFFunctionTable, MappedImage->NtHeaders->OptionalHeader.ImageBase),
         NULL
         );
 
@@ -1289,7 +1289,7 @@ NTSTATUS PhGetMappedImageCfg64(
                     MappedImage,
                     CfgConfig->GuardAdressIatTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
-                );
+                    );
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -1337,7 +1337,7 @@ NTSTATUS PhGetMappedImageCfg64(
 NTSTATUS PhGetMappedImageCfg32(
     _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
-)
+    )
 {
     NTSTATUS status;
     PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
@@ -1345,7 +1345,6 @@ NTSTATUS PhGetMappedImageCfg32(
     if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig32(MappedImage, &config32)))
         return status;
     
-
     // Not every load configuration defines CFG characteristics
     if (config32->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardFlags))
         return STATUS_INVALID_VIEW_SIZE;
@@ -1368,7 +1367,7 @@ NTSTATUS PhGetMappedImageCfg32(
         MappedImage,
         (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardCFFunctionTable , MappedImage->NtHeaders32->OptionalHeader.ImageBase),
         NULL
-    );
+        );
     
     if (CfgConfig->GuardFunctionTable && CfgConfig->NumberOfGuardFunctionEntries)
     {
@@ -1378,7 +1377,7 @@ NTSTATUS PhGetMappedImageCfg32(
                 MappedImage,
                 CfgConfig->GuardFunctionTable,
                 (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardFunctionEntries)
-            );
+                );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -1400,7 +1399,7 @@ NTSTATUS PhGetMappedImageCfg32(
             MappedImage,
             (ULONG)(config32->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
             NULL
-        );
+            );
 
         if (CfgConfig->GuardAdressIatTable && CfgConfig->NumberOfGuardAdressIatEntries)
         {
@@ -1410,7 +1409,7 @@ NTSTATUS PhGetMappedImageCfg32(
                     MappedImage,
                     CfgConfig->GuardAdressIatTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
-                );
+                    );
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -1433,7 +1432,7 @@ NTSTATUS PhGetMappedImageCfg32(
             MappedImage,
             (ULONG)(config32->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
             NULL
-        );
+            );
 
         if (CfgConfig->GuardLongJumpTable && CfgConfig->NumberOfGuardLongJumpEntries)
         {
@@ -1443,7 +1442,7 @@ NTSTATUS PhGetMappedImageCfg32(
                     MappedImage,
                     CfgConfig->GuardLongJumpTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardLongJumpEntries)
-                );
+                    );
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -1458,7 +1457,7 @@ NTSTATUS PhGetMappedImageCfg32(
 NTSTATUS PhGetMappedImageCfg(
     _Out_ PPH_MAPPED_IMAGE_CFG CfgConfig,
     _In_ PPH_MAPPED_IMAGE MappedImage
-)
+    )
 {
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {

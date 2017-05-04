@@ -517,7 +517,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     PhDereferenceObject(ntdllFileName);
 
-    if (NT_SUCCESS(status))
+    if (NT_SUCCESS(status) && ldrInitBlock.Size)
     {
         PVOID cfgBitmapAddress = NULL;
 
@@ -549,9 +549,9 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
     if (isWow64)
     {
-        LDR_INIT_BLOCK ldrInitBlock = { 0 };
-        PVOID ldrInitBlockBaseAddress = NULL;
-        PPH_MEMORY_ITEM cfgBitmapMemoryItem;
+        LDR_INIT_BLOCK ldrInitBlock32 = { 0 };
+        PVOID ldrInitBlockBaseAddress32 = NULL;
+        PPH_MEMORY_ITEM cfgBitmapMemoryItem32;
         PPH_STRING ntdllWow64FileName;
 
         ntdllWow64FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
@@ -560,40 +560,40 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             ntdllWow64FileName->Buffer,
             "LdrSystemDllInitBlock",
             0,
-            &ldrInitBlockBaseAddress,
+            &ldrInitBlockBaseAddress32,
             NULL
-        );
+            );
 
-        if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
+        if (NT_SUCCESS(status) && ldrInitBlockBaseAddress32)
         {
             status = NtReadVirtualMemory(
                 ProcessHandle,
-                ldrInitBlockBaseAddress,
-                &ldrInitBlock,
+                ldrInitBlockBaseAddress32,
+                &ldrInitBlock32,
                 sizeof(LDR_INIT_BLOCK),
                 NULL
-            );
+                );
         }
 
         PhDereferenceObject(ntdllWow64FileName);
 
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status) && ldrInitBlock32.Size)
         {
             PVOID cfgBitmapAddress = NULL;
 
             // TODO: Remove this code once most users have updated their machines.
-            if (ldrInitBlock.Size == sizeof(LDR_INIT_BLOCK))
-                cfgBitmapAddress = ldrInitBlock.CfgBitmapAddress; // 15063
-            else if (ldrInitBlock.Size == 128)
-                cfgBitmapAddress = ldrInitBlock.Unknown1[11]; // 14393
+            if (ldrInitBlock32.Size == sizeof(LDR_INIT_BLOCK))
+                cfgBitmapAddress = ldrInitBlock32.CfgBitmapAddress; // 15063
+            else if (ldrInitBlock32.Size == 128)
+                cfgBitmapAddress = ldrInitBlock32.Unknown1[11]; // 14393
 
-            if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
+            if (cfgBitmapAddress && (cfgBitmapMemoryItem32 = PhLookupMemoryItemList(List, cfgBitmapAddress)))
             {
-                PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
+                PLIST_ENTRY listEntry = &cfgBitmapMemoryItem32->ListEntry;
                 PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
 
                 // Tagging memory items
-                while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
+                while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem32)
                 {
                     memoryItem->RegionType = CfgBitmap32Region;
 
@@ -602,7 +602,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
             }
         }
-
     }
 #endif
 
