@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   Statusbar Customize Dialog
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -321,8 +321,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->FontHandle = CommonDuplicateFont((HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhMultiplyDivide(22, PhGlobalDpi, 96)); // BitmapHeight
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
 

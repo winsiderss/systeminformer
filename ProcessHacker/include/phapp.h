@@ -87,7 +87,7 @@ extern PH_STARTUP_PARAMETERS PhStartupParameters;
 extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 
-#define PH_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
+#define PH_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96) // phapppub
 
 // begin_phapppub
 PHAPPAPI

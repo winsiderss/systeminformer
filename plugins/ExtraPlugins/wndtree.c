@@ -2,7 +2,7 @@
  * Process Hacker Extra Plugins -
  *   Plugin Manager
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -307,16 +307,20 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                     PH_STRINGREF text;
                     SIZE nameSize;
                     SIZE textSize;
-                    
+                    SIZE imageSize;
+
+                    imageSize.cx = PH_SCALE_DPI(17);
+                    imageSize.cy = PH_SCALE_DPI(17);
+
                     if (node->PluginOptions)
                     {
                         if (!node->Icon)
                         {
                             HBITMAP bitmapActive;
 
-                            if (bitmapActive = PhLoadPngImageFromResource(PluginInstance->DllBase, 17, 17, MAKEINTRESOURCE(IDB_SETTINGS_PNG), TRUE))
+                            if (bitmapActive = PhLoadPngImageFromResource(PluginInstance->DllBase, imageSize.cx, imageSize.cy, MAKEINTRESOURCE(IDB_SETTINGS_PNG), TRUE))
                             {
-                                node->Icon = CommonBitmapToIcon(bitmapActive, 17, 17);
+                                node->Icon = CommonBitmapToIcon(bitmapActive, imageSize.cx, imageSize.cy);
                                 DeleteObject(bitmapActive);
                             }
                         }
@@ -325,11 +329,11 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                         {
                             DrawIconEx(
                                 customDraw->Dc,
-                                rect.left + 5,
-                                rect.top + ((rect.bottom - rect.top) - 17) / 2,
+                                rect.left + PH_SCALE_DPI(5),
+                                rect.top + ((rect.bottom - rect.top) - imageSize.cy) / 2,
                                 node->Icon,
-                                17,
-                                17,
+                                imageSize.cx,
+                                imageSize.cy,
                                 0,
                                 NULL,
                                 DI_NORMAL
@@ -337,12 +341,10 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                         }
                     }
 
-                    rect.left += 19;
-                    rect.left += 8;
-
-                    rect.top += 5;
-                    rect.right -= 5;
-                    rect.bottom -= 8;
+                    rect.left += PH_SCALE_DPI(27);
+                    rect.top += PH_SCALE_DPI(5);
+                    rect.right -= PH_SCALE_DPI(5);
+                    rect.bottom -= PH_SCALE_DPI(8);
 
                     // top
                     SetTextColor(customDraw->Dc, RGB(0x0, 0x0, 0x0));
@@ -443,7 +445,7 @@ VOID InitializePluginsTree(
     Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL);
 
     TreeNew_SetCallback(TreeNewHandle, PluginsTreeNewCallback, Context);
-    TreeNew_SetRowHeight(TreeNewHandle, 48);
+    TreeNew_SetRowHeight(TreeNewHandle, PH_SCALE_DPI(48));
 
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_NAME, TRUE, L"Plugin", 80, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_NAME, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_AUTHOR, TRUE, L"Author", 80, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_AUTHOR, 0, 0);
