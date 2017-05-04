@@ -425,7 +425,9 @@ PPH_STRING PhpGetMemoryRegionUseText(
         return PhFormatString(L"Heap segment%s (ID %u)",
             type == HeapSegment32Region ? L" 32-bit" : L"", (ULONG)MemoryItem->u.HeapSegment.HeapItem->u.Heap.Index + 1);
     case CfgBitmapRegion:
-        return PhFormatString(L"CFG Bitmap");
+    case CfgBitmap32Region:
+        return PhFormatString(L"CFG Bitmap%s",
+            type == CfgBitmap32Region ? L" 32-bit" : L"");
     default:
         return PhReferenceEmptyString();
     }
