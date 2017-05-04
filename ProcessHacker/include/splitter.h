@@ -18,6 +18,7 @@ typedef struct _PH_HSPLITTER_CONTEXT
 
     LONG SplitterOffset;
     LONG SplitterPosition;
+    ULONG SplitterLayoutCount;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM Topitem;
     PPH_LAYOUT_ITEM Bottomitem;

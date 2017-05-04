@@ -45,7 +45,7 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
     PhInitializeLayoutManager(&context->LayoutManager, Parent);
 
     context->SplitterOffset = -4;
-    context->SplitterPosition = 250;
+    context->SplitterPosition = PhGetIntegerSetting(L"TokenSplitterPosition");
     context->Topitem = PhAddLayoutItem(&context->LayoutManager, TopChild, NULL, PH_ANCHOR_ALL);
     context->Bottomitem = PhAddLayoutItem(&context->LayoutManager, BottomChild, NULL, PH_ANCHOR_ALL);
 
@@ -56,6 +56,8 @@ VOID PhDeleteHSplitter(
     _Inout_ PPH_HSPLITTER_CONTEXT Context
     )
 {
+    PhSetIntegerSetting(L"TokenSplitterPosition", Context->SplitterPosition);
+
     PhDeleteLayoutManager(&Context->LayoutManager);
 }
 
@@ -66,7 +68,18 @@ VOID PhHSplitterHandleWmSize(
     )
 {
     // HACK: Use the PH layout manager as the 'splitter' control by abusing layout margins.
-    // TODO: Check min_height and adjust second control if invisible. 
+
+    if (Context->SplitterLayoutCount >= 2)
+    {            
+        // BUG: If the window is maximized and you move the splitter to the bottom, restoring the window causes
+        // the bottom control to get moved outside the visible area... Just move the splitter back up.
+        if ((Context->Bottomitem->Rect.bottom - Context->Bottomitem->Rect.top) <= 100)
+            Context->SplitterPosition = Context->Topitem->Rect.bottom - Context->Topitem->Rect.top - SPLITTER_PADDING;
+    }
+    else
+    {
+        Context->SplitterLayoutCount++;
+    }
 
     // Set the bottom margin of the top control.
     Context->Topitem->Margin.bottom = Height - Context->SplitterPosition - SPLITTER_PADDING;
