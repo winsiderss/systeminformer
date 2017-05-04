@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   Toolbar Customize Dialog
  *
- * Copyright (C) 2015-2016 dmex
+ * Copyright (C) 2015-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -519,7 +519,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
 
-            context->CXWidth = 16;
+            context->CXWidth = PH_SCALE_DPI(16);
             context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
             context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
             context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));

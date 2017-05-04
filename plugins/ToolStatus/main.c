@@ -2,8 +2,8 @@
  * Process Hacker ToolStatus -
  *   main program
  *
- * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2011-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -712,7 +712,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                         if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
                         {
                             if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), 22);
+                                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), 22);
 
                             if (!IsWindowVisible(SearchboxHandle))
                                 ShowWindow(SearchboxHandle, SW_SHOW);

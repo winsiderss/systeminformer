@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main toolbar
  *
- * Copyright (C) 2011-2016 dmex
+ * Copyright (C) 2011-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -109,6 +109,10 @@ VOID RebarLoadSettings(
 {
     if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
     {
+        // Enable scaling the Toolbar and images on high-DPI machines. 
+        ToolBarImageSize.cx = PH_SCALE_DPI(16);
+        ToolBarImageSize.cy = PH_SCALE_DPI(16);
+
         ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_COLOR32, 0, 0);
     }
 
@@ -141,7 +145,7 @@ VOID RebarLoadSettings(
             NULL
             );
 
-        // Set the toolbar info with no imagelist.
+        // Set the rebar info with no imagelist.
         SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
@@ -209,7 +213,7 @@ VOID RebarLoadSettings(
 
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhMultiplyDivide(180, PhGlobalDpi, 96), height);
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), height);
 
         if (!IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
