@@ -136,7 +136,7 @@ VOID ShowLatestVersionDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
@@ -158,6 +158,7 @@ VOID ShowLatestVersionDialog(
         Context->CurrentRevisionVersion,
         PhaFormatDateTime(&systemTime)->Buffer
         )->Buffer;
+    config.pszExpandedInformation = PhGetString(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -170,9 +171,12 @@ VOID ShowNewerVersionDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
+    config.cxWidth = 200;
+    config.pfCallback = FinalTaskDialogCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"You're running a pre-release build.";
@@ -182,10 +186,7 @@ VOID ShowNewerVersionDialog(
         Context->CurrentMinorVersion,
         Context->CurrentRevisionVersion
         )->Buffer;
-
-    config.cxWidth = 200;
-    config.pfCallback = FinalTaskDialogCallbackProc;
-    config.lpCallbackData = (LONG_PTR)Context;
+    config.pszExpandedInformation = PhGetString(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

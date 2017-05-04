@@ -61,6 +61,7 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->ReleaseNotesUrl);
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
+    PhClearReference(&Context->BuildMessage);
 
     if (Context->IconLargeHandle)
         DestroyIcon(Context->IconLargeHandle);
