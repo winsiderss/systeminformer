@@ -77,7 +77,7 @@ VOID ShowAvailableDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_EXPAND_FOOTER_AREA;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
@@ -94,9 +94,7 @@ VOID ShowAvailableDialog(
         Context->RevisionVersion,
         PhGetStringOrEmpty(Context->Size)
         )->Buffer;
-
-    //if (!PhIsNullOrEmptyString(Context->BuildMessage))
-    //    config.pszExpandedInformation = PhGetStringOrEmpty(Context->BuildMessage);
+    config.pszExpandedInformation = PhGetString(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
