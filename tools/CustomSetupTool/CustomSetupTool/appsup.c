@@ -476,50 +476,30 @@ BOOLEAN ShutdownProcessHacker(VOID)
     HANDLE processHandle;
     ULONG processID = 0;
 
-    windowHandle = FindWindow(L"ProcessHacker", NULL);
-    if (!windowHandle)
-        return TRUE;
-
-    GetWindowThreadProcessId(windowHandle, &processID);
-
-    SendMessageTimeout(
-        windowHandle,
-        WM_QUIT,
-        0,
-        0,
-        SMTO_ABORTIFHUNG | SMTO_BLOCK,
-        5000,
-        NULL
-        );
-
-    // Check the window handle again
-    windowHandle = FindWindow(L"ProcessHacker", NULL);
-    if (!windowHandle)
-        return TRUE;
-
-    GetWindowThreadProcessId(windowHandle, &processID);
-
-    if (NT_SUCCESS(PhOpenProcess(
-        &processHandle,
-        SYNCHRONIZE | PROCESS_TERMINATE,
-        ULongToHandle(processID)
-        )))
+    while (windowHandle = FindWindow(L"ProcessHacker", NULL))
     {
-        PostMessage(windowHandle, WM_QUIT, 0, 0);
+        GetWindowThreadProcessId(windowHandle, &processID);
 
-        if (WaitForSingleObject(processHandle, 10 * 1000) != WAIT_OBJECT_0)
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            SYNCHRONIZE | PROCESS_TERMINATE,
+            ULongToHandle(processID)
+            )))
         {
-            if (!NT_SUCCESS(NtTerminateProcess(processHandle, 1)))
-            {
-                NtClose(processHandle);
-                return FALSE;
-            }
-        }
+            PostMessage(windowHandle, WM_QUIT, 0, 0);
 
-        NtClose(processHandle);
+            // Wait for process exit.
+            if (WaitForSingleObject(processHandle, 10 * 1000) != WAIT_OBJECT_0)
+            {
+                // Timed out, kill the process.
+                NtTerminateProcess(processHandle, 1);
+            }
+
+            NtClose(processHandle);
+        }
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 BOOLEAN CreateDirectoryPath(_In_ PWSTR DirPath)
