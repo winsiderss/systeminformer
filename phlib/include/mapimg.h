@@ -10,7 +10,11 @@ typedef struct _PH_MAPPED_IMAGE
     PVOID ViewBase;
     SIZE_T Size;
 
-    PIMAGE_NT_HEADERS NtHeaders;
+    union {
+        PIMAGE_NT_HEADERS32 NtHeaders32;
+        PIMAGE_NT_HEADERS NtHeaders;
+    };
+
     ULONG NumberOfSections;
     PIMAGE_SECTION_HEADER Sections;
     USHORT Magic;
