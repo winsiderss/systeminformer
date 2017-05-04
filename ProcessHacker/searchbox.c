@@ -83,7 +83,7 @@ VOID PhpSearchInitializeFont(
     if (Context->WindowFont) 
         DeleteObject(Context->WindowFont);
 
-    Context->WindowFont = PhCreateCommonFont(PH_SCALE_DPI(10), FW_MEDIUM, Context->WindowHandle);
+    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, Context->WindowHandle);
 }
 
 VOID PhpSearchInitializeTheme(
