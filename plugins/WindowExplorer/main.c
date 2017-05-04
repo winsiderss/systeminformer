@@ -3,6 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -168,11 +169,11 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
-    BOOLEAN isGuiProcess = TRUE;
 
-    // enum threads, IsGuiThread, isGuiProcess=TRUE
-
-    if (isGuiProcess)
+    if (
+        propContext->ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID && 
+        propContext->ProcessItem->ProcessId != SYSTEM_PROCESS_ID
+        )
     {
         WE_WINDOW_SELECTOR selector;
 
