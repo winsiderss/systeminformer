@@ -242,13 +242,17 @@ PPH_STRING PluginGetVersionInfo(
 
             if (info->dwSignature == 0xfeef04bd)
             {
-                version = PhFormatString(
-                    L"%lu.%lu.%lu.%lu",
-                    (info->dwFileVersionMS >> 16) & 0xffff,
-                    (info->dwFileVersionMS >> 0) & 0xffff,
-                    (info->dwFileVersionLS >> 16) & 0xffff,
-                    (info->dwFileVersionLS >> 0) & 0xffff
-                    );
+                PH_FORMAT fileVersionFormat[7];
+
+                PhInitFormatU(&fileVersionFormat[0], info->dwFileVersionMS >> 16);
+                PhInitFormatC(&fileVersionFormat[1], '.');
+                PhInitFormatU(&fileVersionFormat[2], info->dwFileVersionMS & 0xffff);
+                PhInitFormatC(&fileVersionFormat[3], '.');
+                PhInitFormatU(&fileVersionFormat[4], info->dwFileVersionLS >> 16);
+                PhInitFormatC(&fileVersionFormat[5], '.');
+                PhInitFormatU(&fileVersionFormat[6], info->dwFileVersionLS & 0xffff);
+
+                version = PhFormat(fileVersionFormat, 7, 30);
             }
         }
 

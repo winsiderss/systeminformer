@@ -48,11 +48,9 @@ VOID ShowUninstallErrorDialog(
     );
 
 NTSTATUS SetupUninstallBuild(
-    _In_ PVOID Context
+    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
     )
 {
-    PPH_SETUP_UNINSTALL_CONTEXT context = Context;
-
     SetupFindInstallDirectory();
 
     // Stop Process Hacker.
@@ -76,11 +74,11 @@ NTSTATUS SetupUninstallBuild(
     // Remove the ARP uninstall entry.
     SetupDeleteUninstallKey();
 
-    ShowUninstallCompleteDialog(context);
+    ShowUninstallCompleteDialog(Context);
     return STATUS_SUCCESS;
 
 CleanupExit:
-    ShowUninstallErrorDialog(context);
+    ShowUninstallErrorDialog(Context);
     return STATUS_SUCCESS;
 }
 

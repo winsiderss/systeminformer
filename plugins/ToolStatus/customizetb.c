@@ -840,7 +840,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                 if (isFocused)
                 {
-                    FillRect(bufferDc, &bufferRect, context->BrushHot); // leak
+                    FillRect(bufferDc, &bufferRect, context->BrushHot);
                     //FrameRect(bufferDc, &bufferRect, GetStockBrush(BLACK_BRUSH));
 
                     if (!itemContext->IsVirtual)
