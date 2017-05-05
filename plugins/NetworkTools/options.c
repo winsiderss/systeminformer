@@ -53,12 +53,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 }
                 break;
             case IDC_GEOIP:
-                {
-                    if (PhGetOwnTokenAttributes().Elevated)
-                    {
-                        ShowGeoIPUpdateDialog(NULL);
-                    }
-                }
+                ShowGeoIPUpdateDialog(NULL);
                 break;
             }
         }

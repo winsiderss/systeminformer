@@ -224,62 +224,7 @@ VOID NTAPI MenuItemCallback(
         }
         break;
     case MAINMENU_ACTION_GEOIP_UPDATE:
-        {
-            if (PhGetOwnTokenAttributes().Elevated)
-            {
-                ShowGeoIPUpdateDialog(NULL);
-            }
-            else
-            {
-                TASKDIALOGCONFIG config = { sizeof(config) };
-                TASKDIALOG_BUTTON buttons[1];
-                INT button;
-
-                config.dwFlags = TDF_CAN_BE_MINIMIZED;
-                config.pszWindowTitle = L"Process Hacker";
-                config.pszMainIcon = TD_ERROR_ICON;
-                config.pszMainInstruction = L"Unable to update the GeoIP database.";
-                config.pszContent = L"You will need to provide administrator permission. "
-                    L"Click Continue to complete this operation.";
-                config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-
-                buttons[0].nButtonID = IDYES;
-                buttons[0].pszButtonText = L"Continue";
-
-                config.cButtons = 1;
-                config.pButtons = buttons;
-                config.nDefaultButton = IDYES;
-
-                config.pfCallback = ElevateActionCallbackProc;
-
-                if (TaskDialogIndirect(
-                    &config,
-                    &button,
-                    NULL,
-                    NULL
-                    ) == S_OK && button == IDYES)
-                {
-                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-
-                    if (PhShellProcessHacker(
-                        PhMainWndHandle,
-                        NULL,
-                        SW_SHOW,
-                        PH_SHELL_EXECUTE_ADMIN,
-                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                        0,
-                        NULL
-                        ))
-                    {
-                        ProcessHacker_Destroy(PhMainWndHandle);
-                    }
-                    else
-                    {
-                        ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
-                    }
-                }
-            }
-        }
+        ShowGeoIPUpdateDialog(NULL);
         break;
     }
 }
