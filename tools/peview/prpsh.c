@@ -127,7 +127,7 @@ INT CALLBACK PvpPropSheetProc(
         {
             if (lParam)
             {
-                if (((DLGTEMPLATEEX *)lParam)->signature == 0xffff)
+                if (((DLGTEMPLATEEX *)lParam)->signature == USHRT_MAX)
                 {
                     ((DLGTEMPLATEEX *)lParam)->style |= PROPSHEET_ADD_STYLE;
                 }
