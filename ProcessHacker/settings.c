@@ -184,7 +184,9 @@ VOID PhSettingsInitialization(
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
     PhpAddStringSetting(L"ThreadStackListViewColumns", L"");
     PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,380");
+    PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
     PhpAddIntegerSetting(L"TokenSplitterPosition", L"250");
+    PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
 
     // Colors are specified with R in the lowest byte, then G, then B.
