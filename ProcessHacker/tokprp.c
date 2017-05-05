@@ -442,6 +442,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             ExtendedListView_SetItemColorFunction(groupsLv, PhpTokenGroupColorFunction);
             PhSetExtendedListView(privilegesLv);
             ExtendedListView_SetItemColorFunction(privilegesLv, PhpTokenPrivilegeColorFunction);
+            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", groupsLv);
+            PhLoadListViewColumnsFromSetting(L"TokenPrivilegesListViewColumns", privilegesLv);
 
             SetDlgItemText(hwndDlg, IDC_USER, L"Unknown");
             SetDlgItemText(hwndDlg, IDC_USERSID, L"Unknown");
@@ -589,6 +591,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->GroupsListViewHandle);
+            PhSaveListViewColumnsToSetting(L"TokenPrivilegesListViewColumns", tokenPageContext->PrivilegesListViewHandle);
+
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
             if (tokenPageContext->HSplitterContext) PhDeleteHSplitter(tokenPageContext->HSplitterContext);
@@ -890,19 +895,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
-                    if (ListView_GetItemCount(tokenPageContext->GroupsListViewHandle) != 0)
-                    {
-                        ListView_SetColumnWidth(tokenPageContext->GroupsListViewHandle, 0, LVSCW_AUTOSIZE);
-                        ExtendedListView_SetColumnWidth(tokenPageContext->GroupsListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
-                    }
-
-                    if (ListView_GetItemCount(tokenPageContext->PrivilegesListViewHandle) != 0)
-                    {
-                        ListView_SetColumnWidth(tokenPageContext->PrivilegesListViewHandle, 0, LVSCW_AUTOSIZE);
-                        ListView_SetColumnWidth(tokenPageContext->PrivilegesListViewHandle, 1, LVSCW_AUTOSIZE);
-                        ExtendedListView_SetColumnWidth(tokenPageContext->PrivilegesListViewHandle, 2, ELVSCW_AUTOSIZE_REMAININGSPACE);
-                    }
-
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_SESSIONID));
                     return TRUE;
                 }
