@@ -1277,7 +1277,7 @@ NTSTATUS PhGetMappedImageCfg64(
         CfgConfig->NumberOfGuardAdressIatEntries = config64->GuardAddressTakenIatEntryCount;
         CfgConfig->GuardAdressIatTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(config64->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config64->GuardAddressTakenIatEntryTable, MappedImage->NtHeaders->OptionalHeader.ImageBase),
             NULL
             );
 
@@ -1310,7 +1310,7 @@ NTSTATUS PhGetMappedImageCfg64(
         CfgConfig->NumberOfGuardLongJumpEntries = config64->GuardLongJumpTargetCount;
         CfgConfig->GuardLongJumpTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(config64->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config64->GuardLongJumpTargetTable, MappedImage->NtHeaders->OptionalHeader.ImageBase),
             NULL
             );
 
@@ -1397,7 +1397,7 @@ NTSTATUS PhGetMappedImageCfg32(
         CfgConfig->NumberOfGuardAdressIatEntries = config32->GuardAddressTakenIatEntryCount;
         CfgConfig->GuardAdressIatTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(config32->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardAddressTakenIatEntryTable, MappedImage->NtHeaders32->OptionalHeader.ImageBase),
             NULL
             );
 
@@ -1430,7 +1430,7 @@ NTSTATUS PhGetMappedImageCfg32(
         CfgConfig->NumberOfGuardLongJumpEntries = config32->GuardLongJumpTargetCount;
         CfgConfig->GuardLongJumpTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(config32->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardLongJumpTargetTable, MappedImage->NtHeaders32->OptionalHeader.ImageBase),
             NULL
             );
 
