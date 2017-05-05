@@ -580,13 +580,11 @@ NTSTATUS GeoIPUpdateThread(
         }
 
         PPH_STRING path;
-        PPH_STRING directory;
         PPH_STRING fullSetupPath;
         PPH_BYTES mmdbGzPath;
         gzFile file;
 
-        directory = PH_AUTO(PhGetApplicationDirectory());
-        path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
+        path = PH_AUTO(PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
         mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath));
 
         if (RtlDoesFileExists_U(PhGetString(path)))
@@ -724,21 +722,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             ShowInstallRestartDialog(context);
         }
         break;
-    case PH_UPDATEFAILURE:
-        {
-           // if ((BOOLEAN)wParam)
-              //  ShowUpdateFailedDialog(context, TRUE, FALSE);
-           // else if ((BOOLEAN)lParam)
-               // ShowUpdateFailedDialog(context, FALSE, TRUE);
-            //else
-                //ShowUpdateFailedDialog(context, FALSE, FALSE);
-        }
-        break;
-    case PH_UPDATEISERRORED:
-        {
-            //ShowUpdateFailedDialog(context, FALSE, FALSE);
-        }
-        break;
     }
 
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
@@ -852,7 +835,7 @@ VOID ShowGeoIPUpdateDialog(
     _In_opt_ HWND Parent
     )
 {
-    HANDLE threadHandle = NULL;
+    HANDLE threadHandle;
 
     if (threadHandle = PhCreateThread(0, GeoIPUpdateDialogThread, Parent))
         NtClose(threadHandle);

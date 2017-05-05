@@ -32,10 +32,8 @@ VOID LoadGeoLiteDb(
     )
 {
     PPH_STRING path;
-    PPH_STRING directory;
 
-    directory = PH_AUTO(PhGetApplicationDirectory());
-    path = PhConcatStrings(2, PhGetString(directory), L"Plugins\\plugindata\\GeoLite2-Country.mmdb");
+    path = PH_AUTO(PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
 
     if (MMDB_open(PhGetString(path), MMDB_MODE_MMAP, &GeoDb) == MMDB_SUCCESS)
     {
