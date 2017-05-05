@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace CustomBuildTool
 {
@@ -16,48 +14,54 @@ namespace CustomBuildTool
 
     public class HeaderGen
     {
-        private string _baseDirectory;
-        private string[] _modes;
-        private string[] _files;
-        private string _outputFile;
-        private string _header = "";
-        private string _footer = "";
+        private string BaseDirectory;
+        private string[] Modes;
+        private string[] Files;
+        private string OutputFile;
+        private string Header;
+        private string Footer;
 
-        private string UnEscape(string text)
+        public HeaderGen()
         {
-            return text.Replace("\\r", "\r").Replace("\\n", "\n").Replace("\\\\", "\\");
-        }
-
-        public void LoadConfig(string fileName)
-        {
-            string[] lines = File.ReadAllLines(fileName);
-
-            foreach (string line in lines)
+            this.OutputFile = "..\\sdk\\phapppub.h";
+            this.BaseDirectory = "ProcessHacker\\include";
+            this.Modes = new[] { "phapppub" };
+            this.Files = new[]
             {
-                string[] split = line.Split(new char[] { '=' }, 2);
-
-                switch (split[0])
-                {
-                    case "base":
-                        _baseDirectory = split[1];
-                        break;
-                    case "modes":
-                        _modes = split[1].ToLowerInvariant().Split(';');
-                        break;
-                    case "in":
-                        _files = split[1].Split(';');
-                        break;
-                    case "out":
-                        _outputFile = split[1];
-                        break;
-                    case "header":
-                        _header = UnEscape(split[1]);
-                        break;
-                    case "footer":
-                        _footer = UnEscape(split[1]);
-                        break;
-                }
-            }
+                "phapp.h",
+                "appsup.h",
+                "phfwddef.h",
+                "procprv.h",
+                "srvprv.h",
+                "netprv.h",
+                "modprv.h",
+                "thrdprv.h",
+                "hndlprv.h",
+                "memprv.h",
+                "phuisup.h",
+                "colmgr.h",
+                "proctree.h",
+                "srvlist.h",
+                "netlist.h",
+                "thrdlist.h",
+                "modlist.h",
+                "hndllist.h",
+                "memlist.h",
+                "extmgr.h",
+                "mainwnd.h",
+                "notifico.h",
+                "settings.h",
+                "phplug.h",
+                "actions.h",
+                "procprp.h",
+                "procprpp.h",
+                "phsvccl.h",
+                "sysinfo.h",
+                "procgrp.h",
+                "miniinfo.h"
+            };
+            this.Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
+            this.Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
         }
 
         private List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
@@ -104,15 +108,15 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    bool blockMode = _modes.Any(modes.Contains);
-                    bool lineMode = _modes.Any(mode =>
-                        {
-                            int indexOfMarker = s.LastIndexOf("// " + mode);
-                            if (indexOfMarker == -1)
-                                return false;
+                    bool blockMode = this.Modes.Any(modes.Contains);
+                    bool lineMode = this.Modes.Any(mode =>
+                    {
+                        int indexOfMarker = s.LastIndexOf("// " + mode);
+                        if (indexOfMarker == -1)
+                            return false;
 
-                            return s.Substring(indexOfMarker).Trim().All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '/');
-                        });
+                        return s.Substring(indexOfMarker).Trim().All(c => char.IsLetterOrDigit(c) || c == ' ' || c == '/');
+                    });
 
                     if (blockMode || lineMode)
                     {
@@ -136,34 +140,31 @@ namespace CustomBuildTool
         {
             // Read in all header files.
 
-            var headerFiles = _files.Select(fileName =>
+            var headerFiles = this.Files.Select(fileName =>
             {
-                var fullFileName = _baseDirectory + "\\" + fileName;
+                var fullFileName = this.BaseDirectory + "\\" + fileName;
                 var lines = File.ReadAllLines(fullFileName).ToList();
 
                 return new HeaderFile { Name = Path.GetFileName(fullFileName).ToLowerInvariant(), Lines = lines };
-            }).ToDictionary(h => h.Name);
+            })
+            .ToDictionary(h => h.Name);
 
-            foreach (var h in headerFiles.Values)
+            foreach (HeaderFile h in headerFiles.Values)
             {
-                var partitions =
-                    h.Lines
-                    .Select(s =>
+                var partitions = h.Lines.Select(s =>
+                {
+                    var trimmed = s.Trim().ToLowerInvariant();
+
+                    if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
-                        var trimmed = s.Trim().ToLowerInvariant();
-
-                        if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
-                        {
-                            HeaderFile d;
-
-                            if (headerFiles.TryGetValue(trimmed.Remove(trimmed.Length - 1).Remove(0, "#include <".Length), out d))
-                                return Tuple.Create(s, d);
-                            else
-                                return Tuple.Create<string, HeaderFile>(s, null);
-                        }
-                        return Tuple.Create<string, HeaderFile>(s, null);
-                    })
-                    .ToLookup(p => p.Item2 != null);
+                        if (headerFiles.TryGetValue(trimmed.Remove(trimmed.Length - 1).Remove(0, "#include <".Length), out HeaderFile d))
+                            return Tuple.Create(s, d);
+                        else
+                            return Tuple.Create<string, HeaderFile>(s, null);
+                    }
+                    return Tuple.Create<string, HeaderFile>(s, null);
+                })
+                .ToLookup(p => p.Item2 != null);
 
                 h.Lines = partitions[false].Select(p => p.Item1).ToList();
                 h.Dependencies = partitions[true].Select(p => p.Item2).Distinct().ToList();
@@ -174,20 +175,20 @@ namespace CustomBuildTool
 
             // Generate the ordering.
 
-            var orderedHeaderFiles = OrderHeaderFiles(_files.Select(s => headerFiles[Path.GetFileName(s).ToLower()]).ToList());
+            var orderedHeaderFiles = OrderHeaderFiles(this.Files.Select(s => headerFiles[Path.GetFileName(s).ToLower()]).ToList());
 
             // Process each header file and remove irrelevant content.
-            foreach (var h in orderedHeaderFiles)
+            foreach (HeaderFile h in orderedHeaderFiles)
                 h.Lines = ProcessHeaderLines(h.Lines);
 
             // Write out the result.
-            StreamWriter sw = new StreamWriter(_baseDirectory + "\\" + _outputFile);
+            StreamWriter sw = new StreamWriter(this.BaseDirectory + "\\" + this.OutputFile);
 
             // Header
-            sw.Write(_header);
+            sw.Write(this.Header);
 
             // Header files
-            foreach (var h in orderedHeaderFiles)
+            foreach (HeaderFile h in orderedHeaderFiles)
             {
                 //Console.WriteLine("Header file: " + h.Name);
                 sw.WriteLine();
@@ -196,13 +197,13 @@ namespace CustomBuildTool
                 sw.WriteLine("//");
                 sw.WriteLine();
 
-                foreach (var line in h.Lines)
+                foreach (string line in h.Lines)
                     sw.WriteLine(line);
             }
 
             // Footer
 
-            sw.Write(_footer);
+            sw.Write(this.Footer);
 
             sw.Close();
         }

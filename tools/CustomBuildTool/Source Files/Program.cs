@@ -32,15 +32,6 @@ namespace CustomBuildTool
                 Build.CleanupBuildEnvironment();
                 return;
             }
-            else if (ProgramArgs.ContainsKey("-updaterev"))
-            {
-                if (!Build.InitializeBuildEnvironment(false))
-                    return;
-
-                Build.ShowBuildEnvironment(false);
-                Build.UpdateHeaderFileVersion();
-                return;
-            }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
@@ -103,7 +94,10 @@ namespace CustomBuildTool
                     return;
 
                 Build.ShowBuildEnvironment(false);
+
                 Build.BuildSecureFiles();
+
+                Build.UpdateHeaderFileVersion();
 
                 if (!Build.BuildSolution("ProcessHacker.sln", true, false, true))
                     return;
@@ -146,7 +140,10 @@ namespace CustomBuildTool
                     return;
 
                 Build.ShowBuildEnvironment(true);
+
                 Build.BuildSecureFiles();
+
+                Build.UpdateHeaderFileVersion();
 
                 if (!Build.BuildSolution("ProcessHacker.sln", true, true, true))
                     return;
@@ -181,7 +178,10 @@ namespace CustomBuildTool
                     return;
 
                 Build.ShowBuildEnvironment(false);
+
                 Build.BuildSecureFiles();
+
+                Build.UpdateHeaderFileVersion();
 
                 if (!Build.BuildSolution("ProcessHacker.sln", true, false, true))
                     return;
@@ -213,6 +213,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSetupExe())
                     return;
 
+                Build.BuildPdbZip();
+
                 Build.BuildSdkZip();
 
                 Build.BuildSrcZip();
@@ -223,7 +225,10 @@ namespace CustomBuildTool
                     return;
 
                 Build.ShowBuildEnvironment(false);
+
                 Build.BuildSecureFiles();
+
+                Build.UpdateHeaderFileVersion();
 
                 if (!Build.BuildSolution("ProcessHacker.sln", true, false, true))
                     return;

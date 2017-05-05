@@ -419,7 +419,6 @@ namespace CustomBuildTool
             try
             {
                 HeaderGen gen = new HeaderGen();
-                gen.LoadConfig("build\\phapppub_options.txt");
                 gen.Execute();
 
                 File.Copy("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", true);
@@ -965,7 +964,6 @@ namespace CustomBuildTool
             try
             {
                 HeaderGen gen = new HeaderGen();
-                gen.LoadConfig("build\\phapppub_options.txt");
                 gen.Execute();
             }
             catch (Exception ex)
