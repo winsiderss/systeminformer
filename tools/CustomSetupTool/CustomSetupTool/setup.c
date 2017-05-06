@@ -38,7 +38,7 @@ NTSTATUS SetupCreateUninstallKey(
 
     status = PhCreateKey(
         &keyHandle,
-        KEY_ALL_ACCESS,
+        KEY_ALL_ACCESS | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
         &UninstallKeyName,
         0,
@@ -106,7 +106,7 @@ NTSTATUS SetupDeleteUninstallKey(
 
     status = PhOpenKey(
         &keyHandle,
-        KEY_WRITE | DELETE,
+        KEY_WRITE | DELETE | KEY_WOW64_64KEY,
         PH_KEY_LOCAL_MACHINE,
         &UninstallKeyName,
         0
