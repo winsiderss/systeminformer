@@ -51,19 +51,16 @@ NTSTATUS QueryPluginsCallbackThread(
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
     ULONG xmlStringBufferLength = 0;
     PSTR xmlStringBuffer = NULL;
     PVOID rootJsonObject;
     PWCT_CONTEXT context = Parameter;
 
-    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
     if (!(httpSessionHandle = WinHttpOpen(
         L"ExtraPlugins_1.0",
-        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxyConfig.lpszProxy,
-        proxyConfig.lpszProxyBypass,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS,
         0
         )))
     {

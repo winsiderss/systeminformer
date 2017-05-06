@@ -962,7 +962,6 @@ NTSTATUS UploadCheckThreadStart(
     HANDLE fileHandle = NULL;
     PPH_STRING phVersion = NULL;
     PPH_STRING userAgent = NULL;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Parameter;
 
     //context->Extension = VirusTotalGetCachedResult(context->FileName);
@@ -1014,13 +1013,11 @@ NTSTATUS UploadCheckThreadStart(
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
-    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-
     if (!(context->HttpHandle = WinHttpOpen(
         userAgent->Buffer,
-        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxyConfig.lpszProxy,
-        proxyConfig.lpszProxyBypass,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS,
         0
         )))
     {
@@ -1030,7 +1027,6 @@ NTSTATUS UploadCheckThreadStart(
     if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
-
         WinHttpSetOption(context->HttpHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
     }
 

@@ -312,7 +312,6 @@ NTSTATUS UpdateDownloadThread(
     ULONG indexOfFileName = -1;
     GUID randomGuid;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
@@ -403,7 +402,7 @@ NTSTATUS UpdateDownloadThread(
     httpUrlComponents.dwUrlPathLength = (ULONG)-1;
 
     if (!WinHttpCrackUrl(
-        PhGetStringOrEmpty(context->FileDownloadUrl),
+        PhGetString(context->FileDownloadUrl),
         0,
         0,
         &httpUrlComponents
@@ -417,19 +416,14 @@ NTSTATUS UpdateDownloadThread(
     // Create the Path string.
     downloadUrlPath = PhCreateStringEx(httpUrlComponents.lpszUrlPath, httpUrlComponents.dwUrlPathLength * sizeof(WCHAR));
 
-
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
-
-
-    // Query the current system proxy
-    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
 
     // Open the HTTP session with the system proxy configuration if available
     if (!(httpSessionHandle = WinHttpOpen(
-        PhGetStringOrEmpty(userAgentString),
-        proxyConfig.lpszProxy != NULL ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxyConfig.lpszProxy,
-        proxyConfig.lpszProxyBypass,
+        PhGetString(userAgentString),
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS,
         0
         )))
     {
@@ -450,7 +444,7 @@ NTSTATUS UpdateDownloadThread(
 
     if (!(httpConnectionHandle = WinHttpConnect(
         httpSessionHandle,
-        PhGetStringOrEmpty(downloadHostPath),
+        PhGetString(downloadHostPath),
         httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
         0
         )))
@@ -461,7 +455,7 @@ NTSTATUS UpdateDownloadThread(
     if (!(httpRequestHandle = WinHttpOpenRequest(
         httpConnectionHandle,
         NULL,
-        PhGetStringOrEmpty(downloadUrlPath),
+        PhGetString(downloadUrlPath),
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,

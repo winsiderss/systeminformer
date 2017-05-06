@@ -286,20 +286,15 @@ PSTR VirusTotalSendHttpRequest(
     PPH_STRING userAgent = NULL;
     PPH_STRING keyString = NULL;
     PPH_STRING urlString = NULL;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
-#ifdef _DEBUG
-    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-#endif
-
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
-        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxyConfig.lpszProxy,
-        proxyConfig.lpszProxyBypass,
+        WINHTTP_ACCESS_TYPE_NO_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS,
         0
         )))
     {
@@ -332,7 +327,7 @@ PSTR VirusTotalSendHttpRequest(
     if (!(requestHandle = WinHttpOpenRequest(
         connectHandle,
         L"POST",
-        PhGetStringOrEmpty(urlString),
+        PhGetString(urlString),
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
@@ -432,20 +427,15 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
     PPH_STRING userAgent = NULL;
     PPH_STRING keyString = NULL;
     PPH_STRING urlString = NULL;
-    WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig = { 0 };
 
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
-#ifdef _DEBUG
-    WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig);
-#endif
-
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
-        proxyConfig.lpszProxy ? WINHTTP_ACCESS_TYPE_NAMED_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        proxyConfig.lpszProxy,
-        proxyConfig.lpszProxyBypass,
+        WINHTTP_ACCESS_TYPE_NO_PROXY,
+        WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS,
         0
         )))
     {
