@@ -76,7 +76,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(false))
                     return;
 
-                Build.ShowBuildEnvironment(false);
+                Build.ShowBuildEnvironment("bin", false);
                 Build.BuildSecureFiles();
                 Build.UpdateHeaderFileVersion();
 
@@ -118,7 +118,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
-                Build.ShowBuildEnvironment(true);
+                Build.ShowBuildEnvironment("debug", true);
                 Build.BuildSecureFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
@@ -158,7 +158,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
-                Build.ShowBuildEnvironment(true);
+                Build.ShowBuildEnvironment("release", true);
                 Build.BuildSecureFiles();
                 Build.UpdateHeaderFileVersion();
 
@@ -204,7 +204,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
-                Build.ShowBuildEnvironment(false);
+                Build.ShowBuildEnvironment("nightly", false);
                 Build.BuildSecureFiles();
                 Build.UpdateHeaderFileVersion();
 
@@ -252,7 +252,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
-                Build.ShowBuildEnvironment(true);
+                Build.ShowBuildEnvironment("appx", true);
                 Build.BuildSecureFiles();
                 Build.UpdateHeaderFileVersion();
 
@@ -285,7 +285,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(false))
                     return;
 
-                Build.ShowBuildEnvironment(true);
+                Build.ShowBuildEnvironment("appxcert", true);
 
                 Build.BuildAppxSignature();
 
@@ -341,5 +341,15 @@ namespace CustomBuildTool
                 Console.Write(Message);
             Console.ResetColor();
         }
+    }
+
+    [Flags]
+    public enum BuildFlags
+    {
+        None,
+        Build32bit = 0x1,
+        Build64bit = 0x2,
+        BuildDebug = 0x4,
+        BuildVerbose = 0x8
     }
 }

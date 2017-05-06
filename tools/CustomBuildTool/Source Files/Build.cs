@@ -220,9 +220,10 @@ namespace CustomBuildTool
             }
         }
 
-        public static void ShowBuildEnvironment(bool ShowBuildInfo)
+        public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo)
         {
-            Program.PrintColorMessage("Setting up build environment...", ConsoleColor.Cyan);
+            Program.PrintColorMessage("Build: ", ConsoleColor.Cyan, false);
+            Program.PrintColorMessage(Platform, ConsoleColor.White, false);
 
             string currentGitTag = Win32.ExecCommand(GitExePath, "describe --abbrev=0 --tags --always");
             string latestGitRevision = Win32.ExecCommand(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
@@ -497,176 +498,48 @@ namespace CustomBuildTool
             return true;
         }
 
-#region Appx Package
-        public static void BuildAppxPackage()
+        public static bool UpdateHeaderFileVersion()
         {
-            Program.PrintColorMessage("Building processhacker-build-package.appx...", ConsoleColor.Cyan);
-
             try
             {
-                StringBuilder sb = new StringBuilder(0x100);
-                int startIndex = "bin\\Release64\\".Length;
-                string[] filesToAdd;
+                if (File.Exists("ProcessHacker\\include\\phapprev.h"))
+                    File.Delete("ProcessHacker\\include\\phapprev.h");
 
-                File.WriteAllText("build\\AppxManifest.xml", Properties.Resources.AppxManifest.Replace("PH_APPX_VERSION", BuildLongVersion));
+                File.WriteAllText("ProcessHacker\\include\\phapprev.h",
+@"#ifndef PHAPPREV_H 
+#define PHAPPREV_H 
 
-                sb.AppendLine("[Files]");
-                sb.AppendLine("\"build\\AppxManifest.xml\" \"AppxManifest.xml\"");
-                sb.AppendLine("\"ProcessHacker\\resources\\ProcessHacker.png\" \"Assets\\ProcessHacker-44.png\"");
-                sb.AppendLine("\"ProcessHacker\\resources\\ProcessHacker.png\" \"Assets\\ProcessHacker-48.png\"");
-                sb.AppendLine("\"ProcessHacker\\resources\\ProcessHacker.png\" \"Assets\\ProcessHacker-150.png\"");
+#define PHAPP_VERSION_REVISION " + BuildRevision + @"
 
-                filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
-
-                for (int i = 0; i < filesToAdd.Length; i++)
-                {
-                    string filePath = filesToAdd[i];
-
-                    // Ignore junk files
-                    if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
-                        filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    sb.AppendLine("\"" + filePath + "\" \"" + filePath.Substring(startIndex) + "\"");
-                }
-
-                File.WriteAllText("build\\package.map", sb.ToString());
-
-                string error = Win32.ExecCommand(
-                    MakeAppxExePath,
-                    "pack /o /f build\\package.map /p " + BuildOutputFolder + "\\processhacker-build-package.appx"
-                    );
-
-                if (File.Exists("build\\AppxManifest.xml"))
-                    File.Delete("build\\AppxManifest.xml");
-                if (File.Exists("build\\package.map"))
-                    File.Delete("build\\package.map");
-
-                if (string.IsNullOrEmpty(error) || !error.EndsWith("Package creation succeeded.", StringComparison.OrdinalIgnoreCase))
-                {
-                    Program.PrintColorMessage("[ERROR] " + error, ConsoleColor.Red);
-                    return;
-                }
-
-                string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
-
-                error = Win32.ExecCommand(
-                    signToolExePath,
-                    "sign /v /fd SHA256 /a /f build\\appx.pfx /td SHA256 " + BuildOutputFolder + "\\processhacker-build-package.appx"
-                    );
-
-                if (string.IsNullOrEmpty(error) || error.Contains("Successfully signed"))
-                {
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.DarkGray);
-                    return;
-                }
+#endif // PHAPPREV_H
+");
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-            }        
-        }
-
-        public static bool BuildAppxSignature()
-        {
-            Program.PrintColorMessage("Building Appx Signature...", ConsoleColor.Cyan);
-
-            var makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeCert.exe");
-            var pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\Pvk2Pfx.exe");
-
-            try
-            {
-                if (File.Exists("build\\processhacker-appx.pvk"))
-                    File.Delete("build\\processhacker-appx.pvk");
-                if (File.Exists("build\\processhacker-appx.cer"))
-                    File.Delete("build\\processhacker-appx.cer");
-                if (File.Exists("build\\processhacker-appx.pfx"))
-                    File.Delete("build\\processhacker-appx.pfx");
-
-                string output = Win32.ExecCommand(makeCertExePath,
-                    "/n " +
-                    "\"CN=ProcessHacker, O=ProcessHacker, C=AU\" " +
-                    "/r /h 0 " +
-                    "/eku \"1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.13\" " +
-                    "/sv " +
-                    "build\\processhacker-appx.pvk " +
-                    "build\\processhacker-appx.cer "
-                    );
-
-                if (string.IsNullOrEmpty(output) || !output.Equals("Succeeded", StringComparison.OrdinalIgnoreCase))
-                {
-                    Program.PrintColorMessage("[MakeCert] " + output, ConsoleColor.Red);
-                    return false;
-                }
-
-                output = Win32.ExecCommand(pvk2PfxExePath,
-                    "/pvk build\\processhacker-appx.pvk " +
-                    "/spc build\\processhacker-appx.cer " +
-                    "/pfx build\\processhacker-appx.pfx "
-                    );
-
-                if (!string.IsNullOrEmpty(output))
-                {
-                    Program.PrintColorMessage("[Pvk2Pfx] " + output, ConsoleColor.Red);
-                    return false;
-                }
-
-                output = Win32.ExecCommand(CertUtilExePath,
-                    "-addStore TrustedPeople build\\processhacker-appx.cer"
-                    );
-
-                if (string.IsNullOrEmpty(output) || !output.Contains("command completed successfully"))
-                {
-                    Program.PrintColorMessage("[Certutil] " + output, ConsoleColor.Red);
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("[phapprev] " + ex.ToString(), ConsoleColor.Yellow);
                 return false;
             }
 
             return true;
         }
 
-        public static bool CleanupAppxSignature()
+        public static bool BuildPublicHeaderFiles()
         {
+            Program.PrintColorMessage("Building public SDK headers...", ConsoleColor.Cyan);
+
             try
             {
-                X509Store store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
-                store.Open(OpenFlags.ReadWrite);
-
-                foreach (X509Certificate2 c in store.Certificates)
-                {
-                    if (c.Subject.Equals("CN=ProcessHacker, O=ProcessHacker, C=AU", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine("Removing: {0}", c.Subject);
-                        store.Remove(c);
-                    }
-                }
-
-                if (File.Exists("build\\processhacker-appx.pvk"))
-                    File.Delete("build\\processhacker-appx.pvk");
-                if (File.Exists("build\\processhacker-appx.cer"))
-                    File.Delete("build\\processhacker-appx.cer");
-                if (File.Exists("build\\processhacker-appx.pfx"))
-                    File.Delete("build\\processhacker-appx.pfx");
+                HeaderGen gen = new HeaderGen();
+                gen.Execute();
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] " + ex.ToString(), ConsoleColor.Red);
                 return false;
             }
 
             return true;
         }
-#endregion
 
         public static bool BuildKphSignatureFile(bool DebugBuild)
         {
@@ -830,10 +703,9 @@ namespace CustomBuildTool
 
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-sdk.zip"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-sdk.zip");
+                File.Copy("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt", true);
 
-                Zip.CreateCompressedFolder("sdk", BuildOutputFolder + "\\processhacker-build-sdk.zip");
+                Zip.CreateCompressedSdkFromFolder("sdk\\", BuildOutputFolder + "\\processhacker-build-sdk.zip");
             }
             catch (Exception ex)
             {
@@ -889,25 +761,25 @@ namespace CustomBuildTool
             {
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-src.zip"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-src.zip");
+
+                string output = Win32.ExecCommand(
+                    GitExePath,
+                    "--git-dir=.git " +
+                    "--work-tree=.\\ archive " +
+                    "--format zip " +
+                    "--output " + BuildOutputFolder + "\\processhacker-build-src.zip " +
+                    BuildBranch
+                    );
+
+                if (!string.IsNullOrEmpty(output))
+                {
+                    Program.PrintColorMessage("[ERROR] " + output, ConsoleColor.Red);
+                    return false;
+                }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            string output = Win32.ExecCommand(
-                GitExePath,
-                "--git-dir=.git " +
-                "--work-tree=.\\ archive " +
-                "--format zip " +
-                "--output " + BuildOutputFolder + "\\processhacker-build-src.zip " + 
-                BuildBranch
-                );
-
-            if (!string.IsNullOrEmpty(output))
-            {
-                Program.PrintColorMessage("[ERROR] " + output, ConsoleColor.Red);
                 return false;
             }
             
@@ -996,7 +868,6 @@ namespace CustomBuildTool
 
             return true;
         }
-
 
         public static void WebServiceUpdateConfig()
         {
@@ -1135,51 +1006,6 @@ namespace CustomBuildTool
             return true;
         }
 
-
-        public static bool UpdateHeaderFileVersion()
-        {
-            try
-            {
-                if (File.Exists("ProcessHacker\\include\\phapprev.h"))
-                    File.Delete("ProcessHacker\\include\\phapprev.h");
-
-                File.WriteAllText("ProcessHacker\\include\\phapprev.h",
-@"#ifndef PHAPPREV_H 
-#define PHAPPREV_H 
-
-#define PHAPP_VERSION_REVISION " + BuildRevision + @"
-
-#endif // PHAPPREV_H
-");
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[phapprev] " + ex.ToString(), ConsoleColor.Yellow);
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool BuildPublicHeaderFiles()
-        {
-            Program.PrintColorMessage("Building public SDK headers...", ConsoleColor.Cyan);
-
-            try
-            {
-                HeaderGen gen = new HeaderGen();
-                gen.Execute();
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[ERROR] " + ex.ToString(), ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
-
         public static bool BuildSolution(string Solution, BuildFlags Flags)
         {
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
@@ -1190,9 +1016,11 @@ namespace CustomBuildTool
 
                 string error32 = Win32.ExecCommand(
                     MSBuildExePath,
-                    "/m /nologo /verbosity:quiet /p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " /p:Platform=Win32 " + Solution
+                    "/m /nologo /verbosity:quiet " +
+                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
+                    "/p:Platform=Win32" + (BuildNightly ? " /p:ExternalCompilerOptions=PH_BUILD_API" : string.Empty) + " " + Solution
                     );
-
+                
                 if (!string.IsNullOrEmpty(error32))
                 {
                     Program.PrintColorMessage("[ERROR] " + error32, ConsoleColor.Red, true, Flags);
@@ -1208,7 +1036,9 @@ namespace CustomBuildTool
 
                 string error64 = Win32.ExecCommand(
                     MSBuildExePath,
-                    "/m /nologo /verbosity:quiet /p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " /p:Platform=x64 /p:ExternalCompilerOptions=PH_BUILD_API " + Solution
+                    "/m /nologo /verbosity:quiet " +
+                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
+                    "/p:Platform=x64" + (BuildNightly ? " /p:ExternalCompilerOptions=PH_BUILD_API" : string.Empty) + " " + Solution
                     );
 
                 if (!string.IsNullOrEmpty(error64))
@@ -1220,18 +1050,172 @@ namespace CustomBuildTool
 
             return true;
         }
- 
-    }
 
+#region Appx Package
+        public static void BuildAppxPackage()
+        {
+            Program.PrintColorMessage("Building processhacker-build-package.appx...", ConsoleColor.Cyan);
 
+            try
+            {
+                StringBuilder sb = new StringBuilder(0x100);
+                int startIndex = "bin\\Release64\\".Length;
+                string[] filesToAdd;
 
-    [Flags]
-    public enum BuildFlags
-    {
-        None,
-        Build32bit = 0x1,
-        Build64bit = 0x2,
-        BuildDebug = 0x4,
-        BuildVerbose = 0x8
+                File.WriteAllText("build\\AppxManifest.xml", Properties.Resources.AppxManifest.Replace("PH_APPX_VERSION", BuildLongVersion));
+
+                sb.AppendLine("[Files]");
+                sb.AppendLine("\"build\\AppxManifest.xml\" \"AppxManifest.xml\"");
+                sb.AppendLine("\"ProcessHacker\\resources\\ProcessHacker.png\" \"Assets\\ProcessHacker-44.png\"");
+                sb.AppendLine("\"ProcessHacker\\resources\\ProcessHacker.png\" \"Assets\\ProcessHacker-48.png\"");
+                sb.AppendLine("\"ProcessHacker\\resources\\ProcessHacker.png\" \"Assets\\ProcessHacker-150.png\"");
+
+                filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
+
+                for (int i = 0; i < filesToAdd.Length; i++)
+                {
+                    string filePath = filesToAdd[i];
+
+                    // Ignore junk files
+                    if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    sb.AppendLine("\"" + filePath + "\" \"" + filePath.Substring(startIndex) + "\"");
+                }
+
+                File.WriteAllText("build\\package.map", sb.ToString());
+
+                string error = Win32.ExecCommand(
+                    MakeAppxExePath,
+                    "pack /o /f build\\package.map /p " + BuildOutputFolder + "\\processhacker-build-package.appx"
+                    );
+
+                Program.PrintColorMessage(error, ConsoleColor.Gray);
+
+                if (File.Exists("build\\AppxManifest.xml"))
+                    File.Delete("build\\AppxManifest.xml");
+                if (File.Exists("build\\package.map"))
+                    File.Delete("build\\package.map");
+
+                string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
+
+                error = Win32.ExecCommand(
+                    signToolExePath,
+                    "sign /v /fd SHA256 /a /f build\\appx.pfx /td SHA256 " + BuildOutputFolder + "\\processhacker-build-package.appx"
+                    );
+
+                if (!string.IsNullOrEmpty(error) && !error.Contains("Successfully signed"))
+                {
+                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.DarkGray);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+            }
+        }
+
+        public static bool BuildAppxSignature()
+        {
+            Program.PrintColorMessage("Building Appx Signature...", ConsoleColor.Cyan);
+
+            var makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeCert.exe");
+            var pvk2PfxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\Pvk2Pfx.exe");
+
+            try
+            {
+                if (File.Exists("build\\processhacker-appx.pvk"))
+                    File.Delete("build\\processhacker-appx.pvk");
+                if (File.Exists("build\\processhacker-appx.cer"))
+                    File.Delete("build\\processhacker-appx.cer");
+                if (File.Exists("build\\processhacker-appx.pfx"))
+                    File.Delete("build\\processhacker-appx.pfx");
+
+                string output = Win32.ExecCommand(makeCertExePath,
+                    "/n " +
+                    "\"CN=ProcessHacker, O=ProcessHacker, C=AU\" " +
+                    "/r /h 0 " +
+                    "/eku \"1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.13\" " +
+                    "/sv " +
+                    "build\\processhacker-appx.pvk " +
+                    "build\\processhacker-appx.cer "
+                    );
+
+                if (!string.IsNullOrEmpty(output) && !output.Equals("Succeeded", StringComparison.OrdinalIgnoreCase))
+                {
+                    Program.PrintColorMessage("[MakeCert] " + output, ConsoleColor.Red);
+                    return false;
+                }
+
+                output = Win32.ExecCommand(pvk2PfxExePath,
+                    "/pvk build\\processhacker-appx.pvk " +
+                    "/spc build\\processhacker-appx.cer " +
+                    "/pfx build\\processhacker-appx.pfx "
+                    );
+
+                if (!string.IsNullOrEmpty(output))
+                {
+                    Program.PrintColorMessage("[Pvk2Pfx] " + output, ConsoleColor.Red);
+                    return false;
+                }
+
+                output = Win32.ExecCommand(CertUtilExePath,
+                    "-addStore TrustedPeople build\\processhacker-appx.cer"
+                    );
+
+                if (!string.IsNullOrEmpty(output) && !output.Contains("command completed successfully"))
+                {
+                    Program.PrintColorMessage("[Certutil] " + output, ConsoleColor.Red);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool CleanupAppxSignature()
+        {
+            try
+            {
+                X509Store store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
+                store.Open(OpenFlags.ReadWrite);
+
+                foreach (X509Certificate2 c in store.Certificates)
+                {
+                    if (c.Subject.Equals("CN=ProcessHacker, O=ProcessHacker, C=AU", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine("Removing: {0}", c.Subject);
+                        store.Remove(c);
+                    }
+                }
+
+                if (File.Exists("build\\processhacker-appx.pvk"))
+                    File.Delete("build\\processhacker-appx.pvk");
+                if (File.Exists("build\\processhacker-appx.cer"))
+                    File.Delete("build\\processhacker-appx.cer");
+                if (File.Exists("build\\processhacker-appx.pfx"))
+                    File.Delete("build\\processhacker-appx.pfx");
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+#endregion
     }
 }
