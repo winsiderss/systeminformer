@@ -281,7 +281,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 // RCDATA
 //
 
-IDR_BIN_DATA            RCDATA                  "..\\..\\..\\ClientBin\\processhacker-build-bin.zip"
+IDR_BIN_DATA            RCDATA                  "..\\..\\..\\build\\processhacker-build-bin.zip"
 
 IDR_LICENCE_DATA        RCDATA                  "resources\\Licence.txt"
 

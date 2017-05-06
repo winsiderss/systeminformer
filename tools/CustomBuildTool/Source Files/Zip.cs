@@ -31,12 +31,6 @@ namespace CustomBuildTool
 
         public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName)
         {
-            if (string.IsNullOrEmpty(sourceDirectoryName))
-                throw new ArgumentNullException("sourceDirectoryName");
-
-            if (string.IsNullOrEmpty(destinationArchiveFileName))
-                throw new ArgumentNullException("destinationArchiveFileName");
-
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
@@ -60,6 +54,31 @@ namespace CustomBuildTool
                     {
                         continue;
                     }
+
+                    archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
+                }
+            }
+        }
+
+        public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
+        {
+            string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
+            string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
+
+            using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
+            {
+                for (int i = 0; i < filesToAdd.Length; i++)
+                {
+                    // Ignore junk files
+                    if (!filesToAdd[i].EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    // Ignore junk directories
+                    if (filesToAdd[i].Contains("bin\\Debug") || 
+                        filesToAdd[i].Contains("obj\\") || 
+                        filesToAdd[i].Contains("tests\\"))
+                        continue;
 
                     archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
                 }

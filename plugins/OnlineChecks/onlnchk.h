@@ -41,7 +41,7 @@
 #define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
 #define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
 
-#ifdef VIRUSTOTAL_API
+#ifdef PH_BUILD_API
 #include "virustotal.h"
 #else
 #define VIRUSTOTAL_URLPATH L""
