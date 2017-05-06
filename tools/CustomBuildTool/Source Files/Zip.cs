@@ -34,6 +34,9 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
+            if (File.Exists(destinationArchiveFileName))
+                File.Delete(destinationArchiveFileName);
+
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
             using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
             {
@@ -60,10 +63,31 @@ namespace CustomBuildTool
             }
         }
 
+        public static void CreateCompressedSdkFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
+        {
+            string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
+            string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
+
+            if (File.Exists(destinationArchiveFileName))
+                File.Delete(destinationArchiveFileName);
+
+            using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
+            {
+                for (int i = 0; i < filesToAdd.Length; i++)
+                {
+                    archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
+                }
+            }
+        }
+
         public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
+
+            if (File.Exists(destinationArchiveFileName))
+                File.Delete(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
             using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
