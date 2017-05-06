@@ -2,7 +2,7 @@
  * Process Hacker Online Checks -
  *   database functions
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,8 @@
 
 #ifndef DB_H
 #define DB_H
+
+extern PH_STRINGREF ProcessObjectDbHash;
 
 typedef struct _PROCESS_DB_OBJECT
 {
