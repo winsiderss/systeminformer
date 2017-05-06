@@ -465,6 +465,7 @@ namespace CustomBuildTool
 
                 File.Copy("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", true);
                 File.Copy("ProcessHacker\\sdk\\phdk.h", "sdk\\include\\phdk.h", true);
+                File.Copy("ProcessHacker\\mxml\\mxml.h", "sdk\\include\\mxml.h", true);
                 File.Copy("ProcessHacker\\resource.h", "sdk\\include\\phappresource.h", true);
             }
             catch (Exception ex)
