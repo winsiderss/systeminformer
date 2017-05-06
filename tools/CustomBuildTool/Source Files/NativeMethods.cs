@@ -33,6 +33,8 @@ namespace CustomBuildTool
         public const int STD_OUTPUT_HANDLE = -11;
         public const int STD_INPUT_HANDLE = -10;
         public const int STD_ERROR_HANDLE = -12;
+        public const int SW_HIDE = 0;
+        public const int SW_SHOW = 5;
 
         static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
 
@@ -42,6 +44,10 @@ namespace CustomBuildTool
         public static extern bool GetConsoleMode(IntPtr ConsoleHandle, out ConsoleMode Mode);
         [DllImport("kernel32.dll")]
         public static extern bool SetConsoleMode(IntPtr ConsoleHandle, ConsoleMode Mode);
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr GetConsoleWindow();
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);    
     }
 
     [Flags]
