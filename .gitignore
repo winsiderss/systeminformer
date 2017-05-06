@@ -8,8 +8,7 @@
 *.key
 
 # Build results
-*_i.c
-*_p.c
+*.appx
 *.ilk
 *.meta
 *.obj
@@ -24,6 +23,8 @@
 *.tlh
 *.tmp
 *.vspscc
+*_i.c
+*_p.c
 
 # Visual C++ cache files
 *.aps
@@ -52,7 +53,6 @@ publish
 [Bb]in
 [Oo]bj
 *.Cache
-ClientBin
 ~$*
 
 # Backup & report files
@@ -70,7 +70,8 @@ Desktop.ini
 ## Project specific rules
 ##########################
 
-build/installer/*.exe
+build/*.exe
+build/*.zip
 ProcessHacker/include/phapprev.h
 ProcessHacker/sdk/phapppub.h
 plugins-extra/
