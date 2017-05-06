@@ -121,16 +121,30 @@ BOOLEAN UpdaterInstalledUsingSetup(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
+    static PH_STRINGREF key2xName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
 
     HANDLE keyHandle = NULL;
 
-    // Check uninstall entries for the 'Process_Hacker2_is1' registry key.
+    // Check uninstall entries for the 'ProcessHacker' registry key.
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
         KEY_READ,
         PH_KEY_LOCAL_MACHINE,
         &keyName,
+        0
+        )))
+    {
+        NtClose(keyHandle);
+        return TRUE;
+    }
+
+    // Check uninstall entries for the 2.x branch 'Process_Hacker2_is1' registry key.
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &key2xName,
         0
         )))
     {
