@@ -185,7 +185,6 @@ VOID UploadContextDeleteProcedure(
     }
 
     PhClearReference(&context->ErrorString);
-    PhClearReference(&context->KeyString);
     PhClearReference(&context->FileName);
     PhClearReference(&context->BaseFileName);
     PhClearReference(&context->WindowFileName);
@@ -494,7 +493,7 @@ NTSTATUS UploadFileThreadStart(
     httpComponents.dwUrlPathLength = (ULONG)-1;
 
     if (!WinHttpCrackUrl(
-        PhGetStringOrEmpty(context->UploadUrl),
+        PhGetString(context->UploadUrl),
         0,
         0,
         &httpComponents
@@ -523,7 +522,7 @@ NTSTATUS UploadFileThreadStart(
 
     if (!NT_SUCCESS(status = PhCreateFileWin32(
         &fileHandle,
-        PhGetStringOrEmpty(context->FileName),
+        PhGetString(context->FileName),
         FILE_GENERIC_READ,
         0,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -549,7 +548,7 @@ NTSTATUS UploadFileThreadStart(
     if (!(requestHandle = WinHttpOpenRequest(
         connectHandle,
         L"POST",
-        PhGetStringOrEmpty(httpHostPath),
+        PhGetString(httpHostPath),
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
@@ -1046,8 +1045,6 @@ NTSTATUS UploadCheckThreadStart(
 
             subObjectName = PhConcatStrings2(L"/file/upload/?sha256=", hashString->Buffer);
 
-            //if (PhIsNullOrEmptyString(context->KeyString))
-                // Create the default launch URL
             PhMoveReference(&context->LaunchCommand, PhFormatString(
                 L"https://www.virustotal.com/file/%s/analysis/",
                 PhGetString(hashString)
@@ -1099,15 +1096,19 @@ NTSTATUS UploadCheckThreadStart(
                             ));
                     }
 
-                    if (context->VtApiUpload && !PhIsNullOrEmptyString(context->KeyString))
+                    if (context->VtApiUpload)
                     {
+                        PPH_BYTES resource = VirusTotalGetCachedDbHash();
+
                         PhMoveReference(&context->UploadUrl, PhFormatString(
-                            L"%s%s?apikey=%s&resource=%s",
+                            L"%s%s?apikey=%S&resource=%s",
                             L"https://www.virustotal.com",
                             L"/vtapi/v2/file/scan",
-                            PhGetString(context->KeyString),
+                            resource->Buffer,
                             PhGetString(hashString)
                             ));
+
+                        PhClearReference(&resource);
                     }
 
                     if (!PhIsNullOrEmptyString(context->UploadUrl))
@@ -1323,7 +1324,6 @@ VOID UploadToOnlineService(
     context->Service = Service;
     context->FileName = FileName;
     context->BaseFileName = PhGetBaseName(context->FileName);
-    context->KeyString = PhCreateString(VIRUSTOTAL_APIKEY);
 
     if (dialogThread = PhCreateThread(0, ShowUpdateDialogThread, (PVOID)context))
     {

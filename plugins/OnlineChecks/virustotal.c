@@ -101,7 +101,9 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
     return result;
 }
 
-VOID VirusTotalRemoveCacheResult(_In_ PPROCESS_EXTENSION Extension)
+VOID VirusTotalRemoveCacheResult(
+    _In_ PPROCESS_EXTENSION Extension
+    )
 {
     PhAcquireQueuedLockExclusive(&ProcessListLock);
 
@@ -175,6 +177,30 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResultFromHash(
 
     PhReleaseQueuedLockExclusive(&ProcessListLock);
     return NULL;
+}
+
+PPH_BYTES VirusTotalGetCachedDbHash(
+    VOID
+    )
+{
+    ULONG length;
+    PUCHAR buffer;
+    PPH_BYTES string;
+
+    length = (ULONG)ProcessObjectDbHash.Length / sizeof(WCHAR) / 2;
+
+    buffer = PhAllocate(length + 1);
+    memset(buffer, 0, length + 1);
+
+    PhHexStringToBuffer(&ProcessObjectDbHash, buffer);
+
+    string = PhCreateBytes(buffer);
+
+    for (SIZE_T i = 0; i < string->Length; i++)
+        string->Buffer[i] = string->Buffer[i] ^ 0x0D06F00D;
+
+    PhFree(buffer);
+    return string;
 }
 
 PPH_LIST VirusTotalJsonToResultList(
@@ -284,7 +310,6 @@ PSTR VirusTotalSendHttpRequest(
     PSTR subRequestBuffer = NULL;
     PPH_STRING phVersion = NULL;
     PPH_STRING userAgent = NULL;
-    PPH_STRING keyString = NULL;
     PPH_STRING urlString = NULL;
 
     phVersion = PhGetPhVersion();
@@ -292,7 +317,7 @@ PSTR VirusTotalSendHttpRequest(
 
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
-        WINHTTP_ACCESS_TYPE_NO_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -304,7 +329,6 @@ PSTR VirusTotalSendHttpRequest(
     if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
         WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
     }
 
@@ -318,11 +342,18 @@ PSTR VirusTotalSendHttpRequest(
         goto CleanupExit;
     }
 
-    keyString = PhCreateString(VIRUSTOTAL_APIKEY);
+    PPH_BYTES resourceString = VirusTotalGetCachedDbHash();
+
     urlString = PhFormatString(
-        L"/partners/sysinternals/file-reports?apikey=%s",
-        keyString->Buffer
+        L"%s%s%s%s%S",
+        L"/partners", 
+        L"/sysinternals",
+        L"/file-reports",
+        L"?apikey=",
+        resourceString->Buffer
         );
+
+    PhClearReference(&resourceString);
 
     if (!(requestHandle = WinHttpOpenRequest(
         connectHandle,
@@ -334,12 +365,10 @@ PSTR VirusTotalSendHttpRequest(
         WINHTTP_FLAG_SECURE
         )))
     {
-        PhClearReference(&keyString);
         PhClearReference(&urlString);
         goto CleanupExit;
     }
 
-    PhClearReference(&keyString);
     PhClearReference(&urlString);
 
     if (!WinHttpAddRequestHeaders(requestHandle, L"Content-Type: application/json", -1L, 0))
@@ -425,7 +454,6 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
     PSTR subRequestBuffer = NULL;
     PPH_STRING phVersion = NULL;
     PPH_STRING userAgent = NULL;
-    PPH_STRING keyString = NULL;
     PPH_STRING urlString = NULL;
 
     phVersion = PhGetPhVersion();
@@ -433,7 +461,7 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
 
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
-        WINHTTP_ACCESS_TYPE_NO_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -458,30 +486,34 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
         goto CleanupExit;
     }
 
-    keyString = PhCreateString(VIRUSTOTAL_APIKEY);
+    PPH_BYTES resourceString = VirusTotalGetCachedDbHash();
+
     urlString = PhFormatString(
-        L"/vtapi/v2/file/report?apikey=%s&resource=%s",
-        keyString->Buffer,
-        PhGetStringOrEmpty(FileHash)
+        L"%s%s%s%s%S%s%s",
+        L"/vtapi",
+        L"/v2",
+        L"/file",
+        L"/report",
+        L"?apikey=",
+        resourceString->Buffer,
+        L"&resource=",
+        PhGetString(FileHash)
         );
+
+    PhClearReference(&resourceString);
 
     if (!(requestHandle = WinHttpOpenRequest(
         connectHandle,
         L"POST",
-        PhGetStringOrEmpty(urlString),
+        PhGetString(urlString),
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
         WINHTTP_FLAG_SECURE
         )))
     {
-        PhClearReference(&keyString);
-        PhClearReference(&urlString);
         goto CleanupExit;
     }
-
-    PhClearReference(&keyString);
-    PhClearReference(&urlString);
 
     if (!WinHttpAddRequestHeaders(requestHandle, L"Content-Type: application/json", -1L, 0))
         goto CleanupExit;
@@ -535,6 +567,8 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
     }
 
 CleanupExit:
+
+    PhClearReference(&urlString);
 
     if (requestHandle)
         WinHttpCloseHandle(requestHandle);

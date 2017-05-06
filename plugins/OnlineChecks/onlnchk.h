@@ -41,13 +41,6 @@
 #define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
 #define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
 
-#ifdef PH_BUILD_API
-#include "virustotal.h"
-#else
-#define VIRUSTOTAL_URLPATH L""
-#define VIRUSTOTAL_APIKEY L""
-#endif
-
 #define UM_UPLOAD (WM_APP + 1)
 #define UM_EXISTS (WM_APP + 2)
 #define UM_LAUNCH (WM_APP + 3)
@@ -134,8 +127,6 @@ typedef struct _UPLOAD_CONTEXT
 
     PPH_STRING FileSize;
     PPH_STRING ErrorString;
-    PPH_STRING KeyString;
-
     PPH_STRING FileName;
     PPH_STRING BaseFileName;
     PPH_STRING WindowFileName;
@@ -250,6 +241,10 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
 
 PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResult(
     _In_ PPH_STRING FileName
+    );
+
+PPH_BYTES VirusTotalGetCachedDbHash(
+    VOID
     );
 
 VOID InitializeVirusTotalProcessMonitor(

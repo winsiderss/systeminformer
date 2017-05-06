@@ -49,7 +49,6 @@ VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-#ifdef PH_BUILD_API
     static ULONG ProcessesUpdatedCount = 0;
     PLIST_ENTRY listEntry;
 
@@ -132,7 +131,6 @@ VOID ProcessesUpdatedCallback(
 
         listEntry = listEntry->Flink;
     }
-#endif
 }
 
 VOID NTAPI LoadCallback(
