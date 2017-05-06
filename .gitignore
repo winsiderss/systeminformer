@@ -9,13 +9,16 @@
 
 # Build results
 *.appx
+*.cer
 *.ilk
 *.meta
 *.obj
 *.pch
 *.pdb
+*.pfx
 *.pgc
 *.pgd
+*.pvk
 *.rsp
 *.sbr
 *.tlb

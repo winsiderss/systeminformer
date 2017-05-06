@@ -222,8 +222,11 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo)
         {
-            Program.PrintColorMessage("Build: ", ConsoleColor.Cyan, false);
-            Program.PrintColorMessage(Platform, ConsoleColor.White, false);
+            if (ShowBuildInfo)
+            {
+                Program.PrintColorMessage("Build: ", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage(Platform, ConsoleColor.White, false);
+            }
 
             string currentGitTag = Win32.ExecCommand(GitExePath, "describe --abbrev=0 --tags --always");
             string latestGitRevision = Win32.ExecCommand(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
@@ -301,7 +304,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("[CopyTextFiles] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -462,7 +465,6 @@ namespace CustomBuildTool
 
                 File.Copy("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", true);
                 File.Copy("ProcessHacker\\sdk\\phdk.h", "sdk\\include\\phdk.h", true);
-                File.Copy("ProcessHacker\\mxml\\mxml.h", "sdk\\include\\mxml.h", true);
                 File.Copy("ProcessHacker\\resource.h", "sdk\\include\\phappresource.h", true);
             }
             catch (Exception ex)
@@ -1096,7 +1098,7 @@ namespace CustomBuildTool
                     "pack /o /f build\\package.map /p " + BuildOutputFolder + "\\processhacker-build-package.appx"
                     );
 
-                Program.PrintColorMessage(error, ConsoleColor.Gray);
+                Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
 
                 if (File.Exists("build\\AppxManifest.xml"))
                     File.Delete("build\\AppxManifest.xml");
@@ -1107,14 +1109,10 @@ namespace CustomBuildTool
 
                 error = Win32.ExecCommand(
                     signToolExePath,
-                    "sign /v /fd SHA256 /a /f build\\appx.pfx /td SHA256 " + BuildOutputFolder + "\\processhacker-build-package.appx"
+                    "sign /v /fd SHA256 /a /f build\\processhacker-appx.pfx /td SHA256 " + BuildOutputFolder + "\\processhacker-build-package.appx"
                     );
 
-                if (!string.IsNullOrEmpty(error) && !error.Contains("Successfully signed"))
-                {
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.DarkGray);
-                    return;
-                }
+                Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
             }
             catch (Exception ex)
             {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Principal;
 
 namespace CustomBuildTool
 {
@@ -204,7 +205,7 @@ namespace CustomBuildTool
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
-                Build.ShowBuildEnvironment("nightly", false);
+                Build.ShowBuildEnvironment("nightly", true);
                 Build.BuildSecureFiles();
                 Build.UpdateHeaderFileVersion();
 
@@ -282,6 +283,27 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-appxmakecert"))
             {
+                WindowsIdentity identity = WindowsIdentity.GetCurrent();
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+
+                if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
+                {
+                    Win32.ShowWindow(Win32.GetConsoleWindow(), Win32.SW_HIDE);
+
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName,
+                            Arguments = "-appxmakecert",
+                            Verb = "runas"
+                        });
+                    }
+                    catch (Exception) {  }
+
+                    return;
+                }
+
                 if (!Build.InitializeBuildEnvironment(false))
                     return;
 
