@@ -121,10 +121,10 @@ INT WINAPI wWinMain(
             PhMoveReference(&PvFileName, targetFileName);
     }
 
-    if (!PhEndsWithString2(PvFileName, L".lib", TRUE))
-        PvPeProperties();
-    else
+    if (PhEndsWithString2(PvFileName, L".lib", TRUE))
         PvLibProperties();
+    else
+        PvPeProperties();
 
     PeSaveSettings();
 

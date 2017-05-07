@@ -371,8 +371,6 @@ NTSTATUS PhGetMappedArchiveImportEntry(
 
     importHeader = (IMPORT_OBJECT_HEADER *)Member->Data;
 
-    if (Member->Type != NormalArchiveMemberType)
-        return STATUS_INVALID_PARAMETER;
     if (
         importHeader->Sig1 != IMAGE_FILE_MACHINE_UNKNOWN ||
         importHeader->Sig2 != IMPORT_OBJECT_HDR_SIG2
