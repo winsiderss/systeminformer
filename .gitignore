@@ -75,7 +75,7 @@ Desktop.ini
 
 build/*.exe
 build/*.zip
-ProcessHacker/include/phapprev.h
+build/*.h
 ProcessHacker/sdk/phapppub.h
 plugins-extra/
 /sdk/

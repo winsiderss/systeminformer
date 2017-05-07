@@ -26,6 +26,7 @@
 
 #include <phdk.h>
 #include <phappresource.h>
+#include <settings.h>
 #include <mxml.h>
 
 #include <windowsx.h>

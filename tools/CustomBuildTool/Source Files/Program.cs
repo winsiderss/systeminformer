@@ -14,11 +14,13 @@ namespace CustomBuildTool
 
             if (ProgramArgs.ContainsKey("-cleanup"))
             {
+                if (Restart("-cleanup"))
+                    return;
+
                 if (!Build.InitializeBuildEnvironment(true))
                     return;
 
                 Build.CleanupAppxSignature();
-
                 Build.CleanupBuildEnvironment();
 
                 Build.ShowBuildStats(true);
@@ -283,26 +285,8 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-appxmakecert"))
             {
-                WindowsIdentity identity = WindowsIdentity.GetCurrent();
-                WindowsPrincipal principal = new WindowsPrincipal(identity);
-
-                if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
-                {
-                    Win32.ShowWindow(Win32.GetConsoleWindow(), Win32.SW_HIDE);
-
-                    try
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName,
-                            Arguments = "-appxmakecert",
-                            Verb = "runas"
-                        });
-                    }
-                    catch (Exception) {  }
-
+                if (Restart("-appxmakecert"))
                     return;
-                }
 
                 if (!Build.InitializeBuildEnvironment(false))
                     return;
@@ -362,6 +346,30 @@ namespace CustomBuildTool
             else
                 Console.Write(Message);
             Console.ResetColor();
+        }
+
+        private static bool Restart(string Arguments)
+        {
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+
+            if (principal.IsInRole(WindowsBuiltInRole.Administrator))
+                return false;
+
+            Win32.ShowWindow(Win32.GetConsoleWindow(), Win32.SW_HIDE);
+
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName,
+                    Arguments = Arguments,
+                    Verb = "runas"
+                });
+            }
+            catch (Exception) { }
+
+            return true;
         }
     }
 

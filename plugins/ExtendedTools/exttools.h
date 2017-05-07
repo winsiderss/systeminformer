@@ -2,6 +2,7 @@
 #define EXTTOOLS_H
 
 #include <phdk.h>
+#include <settings.h>
 #include <windowsx.h>
 #include <math.h>
 

@@ -25,11 +25,12 @@
 
 #include <emenu.h>
 #include <verify.h>
+#include <settings.h>
 
 #include <extmgri.h>
 #include <modprv.h>
 #include <phplug.h>
-#include <settings.h>
+#include <phsettings.h>
 
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

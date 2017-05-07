@@ -27,10 +27,11 @@
 #include <windowsx.h>
 
 #include <colorbox.h>
+#include <settings.h>
 
 #include <mainwnd.h>
 #include <proctree.h>
-#include <settings.h>
+#include <phsettings.h>
 #include <sysinfo.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)

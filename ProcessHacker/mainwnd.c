@@ -34,6 +34,7 @@
 #include <symprv.h>
 #include <verify.h>
 #include <workqueue.h>
+#include <phsettings.h>
 
 #include <actions.h>
 #include <memsrch.h>

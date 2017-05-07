@@ -317,15 +317,6 @@
     <ClCompile Include="thrdprv.c" />
     <ClCompile Include="thrdstk.c" />
     <ClCompile Include="tokprp.c" />
-    <ClCompile Include="mxml\mxml-attr.c" />
-    <ClCompile Include="mxml\mxml-entity.c" />
-    <ClCompile Include="mxml\mxml-file.c" />
-    <ClCompile Include="mxml\mxml-index.c" />
-    <ClCompile Include="mxml\mxml-node.c" />
-    <ClCompile Include="mxml\mxml-private.c" />
-    <ClCompile Include="mxml\mxml-search.c" />
-    <ClCompile Include="mxml\mxml-set.c" />
-    <ClCompile Include="mxml\mxml-string.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\actions.h" />
@@ -353,6 +344,7 @@
     <ClInclude Include="include\procprp.h" />
     <ClInclude Include="include\procprv.h" />
     <ClInclude Include="include\proctree.h" />
+    <ClInclude Include="include\phsettings.h" />
     <ClInclude Include="include\splitter.h" />
     <ClInclude Include="include\srvlist.h" />
     <ClInclude Include="include\srvprv.h" />
@@ -361,11 +353,8 @@
     <ClInclude Include="include\thrdprv.h" />
     <ClInclude Include="include\phuisup.h" />
     <ClInclude Include="include\miniinfo.h" />
-    <ClInclude Include="mxml\config.h" />
     <ClInclude Include="include\hidnproc.h" />
     <ClInclude Include="include\memsrch.h" />
-    <ClInclude Include="mxml\mxml-private.h" />
-    <ClInclude Include="mxml\mxml.h" />
     <ClInclude Include="include\phapp.h" />
     <ClInclude Include="include\phsvc.h" />
     <ClInclude Include="include\phsvcapi.h" />
@@ -382,8 +371,6 @@
     <ClInclude Include="include\procprpp.h" />
     <ClInclude Include="include\memprv.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="include\settings.h" />
-    <ClInclude Include="include\settingsp.h" />
     <ClInclude Include="include\sysinfop.h" />
   </ItemGroup>
   <ItemGroup>

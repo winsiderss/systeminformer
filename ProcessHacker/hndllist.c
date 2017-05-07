@@ -26,11 +26,12 @@
 
 #include <emenu.h>
 #include <secedit.h>
+#include <settings.h>
 
 #include <extmgri.h>
 #include <hndlprv.h>
 #include <phplug.h>
-#include <settings.h>
+#include <phsettings.h>
 
 BOOLEAN PhpHandleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,

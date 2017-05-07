@@ -28,6 +28,7 @@
 #define COBJMACROS
 #include <phdk.h>
 #include <phappresource.h>
+#include <settings.h>
 #include <mxml.h>
 #include <commonutil.h>
 #include <workqueue.h>

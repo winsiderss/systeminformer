@@ -252,17 +252,6 @@ VOID PhSetListViewSubItem(
     );
 
 PHLIBAPI
-BOOLEAN PhLoadListViewColumnSettings(
-    _In_ HWND ListViewHandle,
-    _In_ PPH_STRING Settings
-    );
-
-PHLIBAPI
-PPH_STRING PhSaveListViewColumnSettings(
-    _In_ HWND ListViewHandle
-    );
-
-PHLIBAPI
 INT PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ INT Index,

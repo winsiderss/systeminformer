@@ -27,9 +27,10 @@
 #include <kphuser.h>
 #include <symprv.h>
 #include <workqueue.h>
+#include <settings.h>
 
 #include <procprv.h>
-#include <settings.h>
+#include <phsettings.h>
 
 static PPH_SYSINFO_SECTION MemorySection;
 static HWND MemoryDialog;

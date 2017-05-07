@@ -28,6 +28,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <verify.h>
+#include <phsettings.h>
 
 #include <actions.h>
 #include <phplug.h>

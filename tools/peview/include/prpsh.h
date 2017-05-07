@@ -37,6 +37,7 @@ typedef struct _PV_PROPSHEETCONTEXT
 typedef struct _PV_PROPCONTEXT
 {
     PPH_STRING Title;
+    PPH_STRING StartPage;
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE *PropSheetPages;
 } PV_PROPCONTEXT, *PPV_PROPCONTEXT;

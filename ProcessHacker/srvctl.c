@@ -23,6 +23,7 @@
 #include <phapp.h>
 
 #include <svcsup.h>
+#include <settings.h>
 
 #include <actions.h>
 #include <mainwnd.h>

@@ -24,12 +24,13 @@
 #include <thrdlist.h>
 
 #include <emenu.h>
+#include <settings.h>
 
 #include <extmgri.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprp.h>
 #include <procprpp.h>
-#include <settings.h>
 #include <thrdprv.h>
 
 BOOLEAN PhpThreadNodeHashtableEqualFunction(

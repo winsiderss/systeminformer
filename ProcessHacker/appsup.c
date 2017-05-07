@@ -30,13 +30,13 @@
 #include <emenu.h>
 #include <svcsup.h>
 #include <symprv.h>
+#include <settings.h>
 
 #include <actions.h>
 #include <phappres.h>
 #include <phsvccl.h>
-#include <settings.h>
+#include <phsettings.h>
 
-#include "mxml/mxml.h"
 #include "pcre/pcre2.h"
 
 typedef LONG (WINAPI *_GetPackageFullName)(
@@ -901,20 +901,6 @@ PPH_STRING PhUnescapeStringForDelimiter(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-PPH_STRING PhGetOpaqueXmlNodeText(
-    _In_ mxml_node_t *node
-    )
-{
-    if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
-    {
-        return PhConvertUtf8ToUtf16(node->child->value.opaque);
-    }
-    else
-    {
-        return PhReferenceEmptyString();
-    }
-}
-
 VOID PhSearchOnlineString(
     _In_ HWND hWnd,
     _In_ PWSTR String
@@ -1182,114 +1168,6 @@ VOID PhSetWindowOpacity(
         (BYTE)(255 * (100 - OpacityPercent) / 100),
         LWA_ALPHA
         );
-}
-
-VOID PhLoadWindowPlacementFromSetting(
-    _In_opt_ PWSTR PositionSettingName,
-    _In_opt_ PWSTR SizeSettingName,
-    _In_ HWND WindowHandle
-    )
-{
-    PH_RECTANGLE windowRectangle;
-
-    if (PositionSettingName && SizeSettingName)
-    {
-        RECT rectForAdjust;
-
-        windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
-        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE).Pair;
-        PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
-
-        // Let the window adjust for the minimum size if needed.
-        rectForAdjust = PhRectangleToRect(windowRectangle);
-        SendMessage(WindowHandle, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&rectForAdjust);
-        windowRectangle = PhRectToRectangle(rectForAdjust);
-
-        MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
-            windowRectangle.Width, windowRectangle.Height, FALSE);
-    }
-    else
-    {
-        PH_INTEGER_PAIR position;
-        PH_INTEGER_PAIR size;
-        ULONG flags;
-
-        flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER;
-
-        if (PositionSettingName)
-        {
-            position = PhGetIntegerPairSetting(PositionSettingName);
-            flags &= ~SWP_NOMOVE;
-        }
-        else
-        {
-            position.X = 0;
-            position.Y = 0;
-        }
-
-        if (SizeSettingName)
-        {
-            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE).Pair;
-            flags &= ~SWP_NOSIZE;
-        }
-        else
-        {
-            size.X = 16;
-            size.Y = 16;
-        }
-
-        SetWindowPos(WindowHandle, NULL, position.X, position.Y, size.X, size.Y, flags);
-    }
-}
-
-VOID PhSaveWindowPlacementToSetting(
-    _In_opt_ PWSTR PositionSettingName,
-    _In_opt_ PWSTR SizeSettingName,
-    _In_ HWND WindowHandle
-    )
-{
-    WINDOWPLACEMENT placement = { sizeof(placement) };
-    PH_RECTANGLE windowRectangle;
-    MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
-
-    GetWindowPlacement(WindowHandle, &placement);
-    windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
-
-    // The rectangle is in workspace coordinates. Convert the values back to screen coordinates.
-    if (GetMonitorInfo(MonitorFromRect(&placement.rcNormalPosition, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
-    {
-        windowRectangle.Left += monitorInfo.rcWork.left - monitorInfo.rcMonitor.left;
-        windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
-    }
-
-    if (PositionSettingName)
-        PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
-    if (SizeSettingName)
-        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size);
-}
-
-VOID PhLoadListViewColumnsFromSetting(
-    _In_ PWSTR Name,
-    _In_ HWND ListViewHandle
-    )
-{
-    PPH_STRING string;
-
-    string = PhGetStringSetting(Name);
-    PhLoadListViewColumnSettings(ListViewHandle, string);
-    PhDereferenceObject(string);
-}
-
-VOID PhSaveListViewColumnsToSetting(
-    _In_ PWSTR Name,
-    _In_ HWND ListViewHandle
-    )
-{
-    PPH_STRING string;
-
-    string = PhSaveListViewColumnSettings(ListViewHandle);
-    PhSetStringSetting2(Name, &string->sr);
-    PhDereferenceObject(string);
 }
 
 PPH_STRING PhGetPhVersion(

@@ -31,6 +31,7 @@
 #include <verify.h>
 #include <workqueue.h>
 #include <mxml.h>
+#include <settings.h>
 #include <windowsx.h>
 #include <winhttp.h>
 

@@ -23,6 +23,7 @@
 // NOTE: Copied from processhacker2\ProcessHacker\procprp.c
 
 #include <peview.h>
+#include <settings.h>
 
 PPH_OBJECT_TYPE PvpPropContextType;
 PPH_OBJECT_TYPE PvpPropPageContextType;
@@ -80,6 +81,7 @@ PPV_PROPCONTEXT PvCreatePropContext(
     memset(propContext, 0, sizeof(PV_PROPCONTEXT));
 
     propContext->Title = Caption;
+    propContext->StartPage = PhGetStringSetting(L"MainWindowPage");
     propContext->PropSheetPages = PhAllocate(sizeof(HPROPSHEETPAGE) * PV_PROPCONTEXT_MAXPAGES);
 
     memset(&propSheetHeader, 0, sizeof(PROPSHEETHEADER));
@@ -97,6 +99,9 @@ PPV_PROPCONTEXT PvCreatePropContext(
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = propContext->PropSheetPages;
 
+    propSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
+    propSheetHeader.pStartPage = propContext->StartPage->Buffer;
+
     memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
 
     return propContext;
@@ -110,7 +115,9 @@ VOID NTAPI PvpPropContextDeleteProcedure(
     PPV_PROPCONTEXT propContext = (PPV_PROPCONTEXT)Object;
 
     PhFree(propContext->PropSheetPages);
+
     PhDereferenceObject(propContext->Title);
+    PhDereferenceObject(propContext->StartPage);
 }
 
 INT CALLBACK PvpPropSheetProc(
@@ -189,6 +196,30 @@ LRESULT CALLBACK PvpPropSheetWndProc(
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            HWND tabControl;
+            TCITEM tabItem;
+            WCHAR text[128];
+
+            // Save the window position and size.
+
+            PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", hWnd);
+
+            // Save the selected tab.
+
+            tabControl = PropSheet_GetTabControl(hWnd);
+
+            tabItem.mask = TCIF_TEXT;
+            tabItem.pszText = text;
+            tabItem.cchTextMax = sizeof(text) / 2 - 1;
+
+            if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
+            {
+                PhSetStringSetting(L"MainWindowPage", text);
+            }
+        }
+        break;
     case WM_NCDESTROY:
         {
             RemoveWindowSubclass(hWnd, PvpPropSheetWndProc, uIdSubclass);
@@ -260,6 +291,32 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
     }
 
     return FALSE;
+}
+
+VOID PhpInitializePropSheetLayoutStage2(
+    _In_ HWND hwnd
+    )
+{
+    PH_RECTANGLE windowRectangle;
+
+    windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE).Pair;
+
+    if (windowRectangle.Size.X < MinimumSize.right)
+        windowRectangle.Size.X = MinimumSize.right;
+    if (windowRectangle.Size.Y < MinimumSize.bottom)
+        windowRectangle.Size.Y = MinimumSize.bottom;
+
+    PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
+
+    MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
+        windowRectangle.Width, windowRectangle.Height, FALSE);
+
+    // Implement cascading by saving an offsetted rectangle.
+    windowRectangle.Left += 20;
+    windowRectangle.Top += 20;
+
+    PhSetIntegerPairSetting(L"MainWindowPosition", windowRectangle.Position);
 }
 
 BOOLEAN PvAddPropPage(
@@ -378,13 +435,14 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     PPV_PROPSHEETCONTEXT propSheetContext;
     PPH_LAYOUT_MANAGER layoutManager;
     PPH_LAYOUT_ITEM realParentItem;
+    BOOLEAN doLayoutStage2;
     PPH_LAYOUT_ITEM item;
 
     parent = GetParent(hwnd);
     propSheetContext = PvpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
-    PhpInitializePropSheetLayoutStage1(propSheetContext, parent);
+    doLayoutStage2 = PhpInitializePropSheetLayoutStage1(propSheetContext, parent);
 
     if (ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT)
         realParentItem = ParentItem;
@@ -423,6 +481,9 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     {
         item = PhAddLayoutItem(layoutManager, Handle, realParentItem, Anchor);
     }
+
+    if (doLayoutStage2)
+        PhpInitializePropSheetLayoutStage2(parent);
 
     return item;
 }

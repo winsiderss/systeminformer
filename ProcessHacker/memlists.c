@@ -23,6 +23,7 @@
 #include <phapp.h>
 
 #include <emenu.h>
+#include <settings.h>
 
 #include <actions.h>
 #include <phsvccl.h>

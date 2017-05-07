@@ -34,13 +34,14 @@
 #include <emenu.h>
 #include <mapimg.h>
 #include <verify.h>
+#include <settings.h>
 
 #include <colmgr.h>
 #include <extmgri.h>
 #include <mainwnd.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
-#include <settings.h>
 
 typedef enum _PHP_AGGREGATE_TYPE
 {

@@ -26,6 +26,7 @@
 #include <emenu.h>
 #include <lsasup.h>
 #include <secedit.h>
+#include <settings.h>
 #include <splitter.h>
 
 #include <uxtheme.h>
