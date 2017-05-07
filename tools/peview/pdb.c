@@ -1955,12 +1955,12 @@ VOID PrintDataInfo(
     symDataKind = SymInfoDump_DataKindFromSymbolInfo(SymbolInfo);
     lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, symDataKind, NULL);
 
-    // Name
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, SymbolInfo->Name);
-
     // Address  
     SymInfoDump_SymbolLocationStr(SymbolInfo, pointer);
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, pointer);
+    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
+
+    // Name
+    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, SymbolInfo->Name);
 
     // Size
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
