@@ -194,11 +194,13 @@
     <ClCompile Include="libprp.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="misc.c" />
+    <ClCompile Include="pdb.c" />
     <ClCompile Include="peprp.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="settings.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\pdb.h" />
     <ClInclude Include="include\peview.h" />
     <ClInclude Include="include\prpsh.h" />
     <ClInclude Include="resource.h" />

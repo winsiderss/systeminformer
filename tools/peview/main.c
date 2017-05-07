@@ -89,7 +89,7 @@ INT WINAPI wWinMain(
     {
         static PH_FILETYPE_FILTER filters[] =
         {
-            { L"Supported files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi" },
+            { L"Supported files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi;*.pdb)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi;*.pdb" },
             { L"All files (*.*)", L"*.*" }
         };
         PVOID fileDialog;
@@ -123,6 +123,8 @@ INT WINAPI wWinMain(
 
     if (PhEndsWithString2(PvFileName, L".lib", TRUE))
         PvLibProperties();
+    //else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
+    //    PvPdbProperties();
     else
         PvPeProperties();
 
