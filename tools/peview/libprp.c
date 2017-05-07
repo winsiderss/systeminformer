@@ -38,9 +38,7 @@ VOID PvLibProperties(
     )
 {
     NTSTATUS status;
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[1];
+    PPV_PROPCONTEXT propContext;
 
     status = PhLoadMappedArchive(PvFileName->Buffer, NULL, TRUE, &PvMappedArchive);
 
@@ -50,24 +48,22 @@ VOID PvLibProperties(
         return;
     }
 
-    propSheetHeader.dwFlags =
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
-    propSheetHeader.hwndParent = NULL;
-    propSheetHeader.pszCaption = PvFileName->Buffer;
-    propSheetHeader.nPages = 0;
-    propSheetHeader.nStartPage = 0;
-    propSheetHeader.phpage = pages;
+    if (propContext = PvCreatePropContext(PvFileName))
+    {
+        PPV_PROPPAGECONTEXT newPage;
 
-    // Exports page
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_LIBEXPORTS);
-    propSheetPage.pfnDlgProc = PvpLibExportsDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+        // Lib page
+        newPage = PvCreatePropPageContext(
+            MAKEINTRESOURCE(IDD_LIBEXPORTS),
+            PvpLibExportsDlgProc,
+            NULL
+            );
+        PvAddPropPage(propContext, newPage);
 
-    PhModalPropertySheet(&propSheetHeader);
+        PhModalPropertySheet(&propContext->PropSheetHeader);
+
+        PhDereferenceObject(propContext);
+    }
 
     PhUnloadMappedArchive(&PvMappedArchive);
 }
@@ -79,6 +75,12 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -87,8 +89,6 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
             HWND lvHandle;
             PH_MAPPED_ARCHIVE_MEMBER member;
             PH_MAPPED_ARCHIVE_IMPORT_ENTRY importEntry;
-
-            PhCenterWindow(GetParent(hwndDlg), NULL);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
@@ -100,6 +100,7 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
             PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 60, L"Name type");
             PhSetExtendedListView(lvHandle);
             ExtendedListView_AddFallbackColumns(lvHandle, 4, fallbackColumns);
+            PhLoadListViewColumnsFromSetting(L"LibListViewColumns", lvHandle);
 
             member = *PvMappedArchive.LastStandardMember;
 
@@ -168,6 +169,28 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
             ExtendedListView_SortItems(lvHandle);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"LibListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
         }
         break;
     case WM_NOTIFY:

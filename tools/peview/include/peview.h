@@ -48,4 +48,22 @@ VOID PeSaveSettings(
     VOID
     );
 
+// symbols
+
+INT_PTR CALLBACK PvpSymbolsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PeDumpFileSymbols(
+    _In_ HWND ListViewHandle,
+    _In_ PWSTR FileName
+    );
+
+VOID PvPdbProperties(
+    VOID
+    );
+
 #endif
