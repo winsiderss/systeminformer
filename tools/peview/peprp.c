@@ -695,10 +695,10 @@ VOID PvpProcessImports(
                     PPH_STRING name;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
-                    if (!DelayImports)
-                        name = PhZeroExtendToUtf16(importDll.Name);
-                    else
+                    if (DelayImports)
                         name = PhFormatString(L"%S (Delay)", importDll.Name);
+                    else
+                        name = PhZeroExtendToUtf16(importDll.Name);
 
                     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, name->Buffer, NULL);
                     PhDereferenceObject(name);
