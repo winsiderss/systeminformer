@@ -9,6 +9,12 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Mini-XML">
+      <UniqueIdentifier>{7d0c2da2-811d-4844-9704-0c87067c7be1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mini-XML\Headers">
+      <UniqueIdentifier>{874b89c3-fb60-46f3-a62c-49ac88e3026d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basesup.c">
@@ -140,35 +146,35 @@
     <ClCompile Include="sha256.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mxml\mxml-attr.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-entity.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-file.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-index.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-node.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-private.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-search.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-set.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-string.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="settings.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-attr.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-entity.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-file.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-index.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-node.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-private.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-search.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-set.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-string.c">
+      <Filter>Mini-XML</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -346,17 +352,17 @@
     <ClInclude Include="sha256.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mxml\config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\mxml.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\mxml-private.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\settings.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\config.h">
+      <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml-private.h">
+      <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml.h">
+      <Filter>Mini-XML\Headers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
