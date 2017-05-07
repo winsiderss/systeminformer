@@ -444,6 +444,23 @@ namespace CustomBuildTool
                 {
                     File.Copy("phlib\\include\\" + file, "sdk\\include\\" + file, true);
                 }
+
+                // Copy readme
+                File.Copy("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt", true);
+                // Copy symbols
+                File.Copy("bin\\Release32\\ProcessHacker.pdb", "sdk\\dbg\\i386\\ProcessHacker.pdb", true);
+                File.Copy("bin\\Release64\\ProcessHacker.pdb", "sdk\\dbg\\amd64\\ProcessHacker.pdb", true);
+                File.Copy("KProcessHacker\\bin\\i386\\kprocesshacker.pdb", "sdk\\dbg\\i386\\kprocesshacker.pdb", true);
+                File.Copy("KProcessHacker\\bin\\amd64\\kprocesshacker.pdb", "sdk\\dbg\\amd64\\kprocesshacker.pdb", true);
+                // Copy libs
+                File.Copy("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
+                File.Copy("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                // Copy sample plugin
+                File.Copy("plugins\\SamplePlugin\\main.c", "sdk\\samples\\SamplePlugin\\main.c", true);
+                File.Copy("plugins\\SamplePlugin\\SamplePlugin.sln", "sdk\\samples\\SamplePlugin\\SamplePlugin.sln", true);
+                File.Copy("plugins\\SamplePlugin\\SamplePlugin.vcxproj", "sdk\\samples\\SamplePlugin\\SamplePlugin.vcxproj", true);
+                File.Copy("plugins\\SamplePlugin\\SamplePlugin.vcxproj.filters", "sdk\\samples\\SamplePlugin\\SamplePlugin.vcxproj.filters", true);
+                File.Copy("plugins\\SamplePlugin\\bin\\Release32\\SamplePlugin.dll", "sdk\\samples\\SamplePlugin\\bin\\Release32\\SamplePlugin.dll", true);
             }
             catch (Exception ex)
             {
@@ -708,7 +725,7 @@ namespace CustomBuildTool
             {
                 File.Copy("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt", true);
 
-                Zip.CreateCompressedSdkFromFolder("sdk\\", BuildOutputFolder + "\\processhacker-build-sdk.zip");
+                Zip.CreateCompressedSdkFromFolder("sdk", BuildOutputFolder + "\\processhacker-build-sdk.zip");
             }
             catch (Exception ex)
             {
