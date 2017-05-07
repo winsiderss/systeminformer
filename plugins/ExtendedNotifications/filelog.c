@@ -21,6 +21,7 @@
  */
 
 #include <phdk.h>
+#include <settings.h>
 #include "extnoti.h"
 
 VOID NTAPI LoggedCallback(

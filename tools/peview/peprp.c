@@ -344,8 +344,6 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PWSTR type;
             PH_STRING_BUILDER stringBuilder;
 
-            PhCenterWindow(GetParent(hwndDlg), NULL);
-
             // File version information
 
             {
@@ -755,6 +753,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Hint");
             PhSetExtendedListView(lvHandle);
             ExtendedListView_AddFallbackColumns(lvHandle, 3, fallbackColumns);
+            PhLoadListViewColumnsFromSetting(L"ImageImportsListViewColumns", lvHandle);
 
             if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
             {
@@ -769,6 +768,11 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             ExtendedListView_SortItems(lvHandle);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"ImageImportsListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     case WM_SHOWWINDOW:
@@ -824,10 +828,12 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 220, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"Ordinal");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"RVA");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"RVA");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 50, L"Ordinal");
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageExportsListViewColumns", lvHandle);
 
             if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
             {
@@ -849,31 +855,34 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         if (!exportFunction.Function)
                             continue;
 
-                        if (exportEntry.Name)
-                        {
-                            name = PhZeroExtendToUtf16(exportEntry.Name);
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, NULL);
-                            PhDereferenceObject(name);
-                        }
-                        else
-                        {
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, L"(unnamed)", NULL);        
-                        }
-
-                        PhPrintUInt32(number, exportEntry.Ordinal);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, number);
+                        PhPrintUInt64(number, i + 1);
+                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
 
                         if (exportFunction.ForwardedName)
                         {
                             name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, name->Buffer);
                             PhDereferenceObject(name);
                         }
                         else
                         {
                             PhPrintPointer(pointer, exportFunction.Function);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
                         }
+
+                        if (exportEntry.Name)
+                        {
+                            name = PhZeroExtendToUtf16(exportEntry.Name);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
+                            PhDereferenceObject(name);
+                        }
+                        else
+                        {
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+                        }
+
+                        PhPrintUInt32(number, exportEntry.Ordinal);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
                     }
                 }
             }
@@ -881,6 +890,11 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             ExtendedListView_SortItems(lvHandle);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"ImageExportsListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     case WM_SHOWWINDOW:
@@ -936,6 +950,8 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 220, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 170, L"Value");
+            PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageLoadCfgListViewColumns", lvHandle);
 
             #define ADD_VALUE(Name, Value) \
             { \
@@ -1010,6 +1026,11 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
             }
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"ImageLoadCfgListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     case WM_SHOWWINDOW:
@@ -1148,6 +1169,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Flags");
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageCfgListViewColumns", lvHandle);
 
             // Init symbol resolver
             if (PvpLoadDbgHelp(&symbolProvider))
@@ -1245,6 +1267,11 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(L"ImageCfgListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     case WM_SHOWWINDOW:

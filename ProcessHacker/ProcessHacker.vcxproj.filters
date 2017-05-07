@@ -16,17 +16,11 @@
     <Filter Include="PCRE">
       <UniqueIdentifier>{3fa0b151-12c1-4832-94fb-e16c52584b65}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Mini-XML">
-      <UniqueIdentifier>{eaabb14f-9091-4b18-8764-45c8350f4887}</UniqueIdentifier>
-    </Filter>
     <Filter Include="phsvc">
       <UniqueIdentifier>{84a3be0b-42cf-42ae-bcd3-16f165caa0db}</UniqueIdentifier>
     </Filter>
     <Filter Include="PCRE\Headers">
       <UniqueIdentifier>{e72b6c69-b510-4578-9ed5-34a16d8dffc1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Mini-XML\Headers">
-      <UniqueIdentifier>{c4b014d0-6bd0-4848-a23f-e639563d998e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Module">
       <UniqueIdentifier>{67c40321-0b28-4c16-8c48-dc0b64c148d7}</UniqueIdentifier>
@@ -165,9 +159,6 @@
     <ClCompile Include="sessprp.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="settings.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="srvcr.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -188,33 +179,6 @@
     </ClCompile>
     <ClCompile Include="tokprp.c">
       <Filter>Process Hacker</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-attr.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-entity.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-file.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-index.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-node.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-private.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-search.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-set.c">
-      <Filter>Mini-XML</Filter>
-    </ClCompile>
-    <ClCompile Include="mxml\mxml-string.c">
-      <Filter>Mini-XML</Filter>
     </ClCompile>
     <ClCompile Include="srvctl.c">
       <Filter>Process Hacker</Filter>
@@ -414,6 +378,9 @@
     <ClCompile Include="splitter.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="settings.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
@@ -435,12 +402,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="include\settings.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="include\settingsp.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phsvcapi.h">
@@ -505,15 +466,6 @@
     </ClInclude>
     <ClInclude Include="pcre\pcre2posix.h">
       <Filter>PCRE\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\config.h">
-      <Filter>Mini-XML\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\mxml-private.h">
-      <Filter>Mini-XML\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="mxml\mxml.h">
-      <Filter>Mini-XML\Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\notificop.h">
       <Filter>Headers</Filter>
@@ -585,6 +537,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\splitter.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsettings.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

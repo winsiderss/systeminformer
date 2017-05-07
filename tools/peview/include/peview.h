@@ -5,6 +5,8 @@
 #include <guisup.h>
 #include <prsht.h>
 #include <prpsh.h>
+#include <settings.h>
+
 #include "resource.h"
 
 extern PPH_STRING PvFileName;
@@ -34,6 +36,16 @@ VOID PvCopyListView(
 VOID PvHandleListViewNotifyForCopy(
     _In_ LPARAM lParam,
     _In_ HWND ListViewHandle
+    );
+
+// settings
+
+VOID PeInitializeSettings(
+    VOID
+    );
+
+VOID PeSaveSettings(
+    VOID
     );
 
 #endif

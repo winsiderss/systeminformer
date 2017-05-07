@@ -523,6 +523,33 @@ EXPORTS
 	PhInitializeMappedImage
 	PhLoadMappedImage
 
+; settings
+	PhAddSetting
+	PhAddSettings
+	PhClearIgnoredSettings
+	PhConvertIgnoredSettings	
+	PhGetIntegerSetting
+	PhGetIntegerPairSetting
+	PhGetScalableIntegerPairSetting
+	PhGetStringSetting
+	PhLoadSettings
+	PhLoadListViewColumnSettings
+	PhLoadListViewColumnsFromSetting
+	PhLoadWindowPlacementFromSetting
+	PhResetSettings
+	PhSaveListViewColumnSettings
+	PhSaveListViewColumnsToSetting
+	PhSaveWindowPlacementToSetting
+	PhSettingsInitialization
+	PhSetIntegerSetting
+	PhSetIntegerPairSetting
+	PhSetScalableIntegerPairSetting
+	PhSetScalableIntegerPairSetting2
+	PhSetStringSetting
+	PhSetStringSetting2
+	PhSaveSettings
+	PhUpdateCachedSettings
+
 ; secedit
 	PhCreateSecurityPage
 	PhEditSecurity
@@ -576,3 +603,12 @@ EXPORTS
 	PhQueueItemWorkQueue
 	PhQueueItemWorkQueueEx
 	PhWaitForWorkQueue
+
+; mxml
+	mxmlDelete
+	mxmlElementSetAttr
+	mxmlLoadFd
+	mxmlNewOpaque
+	mxmlNewElement
+	mxmlSaveFd
+	mxml_opaque_cb

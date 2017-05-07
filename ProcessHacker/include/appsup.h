@@ -124,12 +124,6 @@ PPH_STRING PhUnescapeStringForDelimiter(
     _In_ WCHAR Delimiter
     );
 
-typedef struct mxml_node_s mxml_node_t;
-
-PPH_STRING PhGetOpaqueXmlNodeText(
-    _In_ mxml_node_t *node
-    );
-
 // begin_phapppub
 PHAPPAPI
 VOID
@@ -221,40 +215,6 @@ VOID PhSetWindowOpacity(
 #define PH_ID_TO_OPACITY(Id) (100 - (((Id) - ID_OPACITY_10) + 1) * 10)
 
 // begin_phapppub
-PHAPPAPI
-VOID
-NTAPI
-PhLoadWindowPlacementFromSetting(
-    _In_opt_ PWSTR PositionSettingName,
-    _In_opt_ PWSTR SizeSettingName,
-    _In_ HWND WindowHandle
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhSaveWindowPlacementToSetting(
-    _In_opt_ PWSTR PositionSettingName,
-    _In_opt_ PWSTR SizeSettingName,
-    _In_ HWND WindowHandle
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhLoadListViewColumnsFromSetting(
-    _In_ PWSTR Name,
-    _In_ HWND ListViewHandle
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhSaveListViewColumnsToSetting(
-    _In_ PWSTR Name,
-    _In_ HWND ListViewHandle
-    );
-
 PHAPPAPI
 PPH_STRING
 NTAPI

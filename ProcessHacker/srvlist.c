@@ -26,12 +26,13 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <svcsup.h>
+#include <settings.h>
 
 #include <colmgr.h>
 #include <extmgri.h>
 #include <mainwnd.h>
 #include <phplug.h>
-#include <settings.h>
+#include <phsettings.h>
 #include <srvprv.h>
 
 BOOLEAN PhpServiceNodeHashtableEqualFunction(

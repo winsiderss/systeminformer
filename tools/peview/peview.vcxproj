@@ -196,6 +196,7 @@
     <ClCompile Include="misc.c" />
     <ClCompile Include="peprp.c" />
     <ClCompile Include="prpsh.c" />
+    <ClCompile Include="settings.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h" />

@@ -46,6 +46,7 @@
  */
 
 #include <phapp.h>
+#include <settings.h>
 #include <sysinfo.h>
 #include <sysinfop.h>
 
@@ -55,8 +56,8 @@
 
 #include <mainwnd.h>
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
-#include <settings.h>
 
 static HANDLE PhSipThread = NULL;
 HWND PhSipWindow = NULL;

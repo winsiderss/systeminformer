@@ -27,10 +27,11 @@
 #include <uxtheme.h>
 
 #include <kphuser.h>
+#include <settings.h>
 
 #include <phplug.h>
+#include <phsettings.h>
 #include <procprv.h>
-#include <settings.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;

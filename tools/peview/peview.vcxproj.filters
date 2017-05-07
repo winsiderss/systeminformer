@@ -30,6 +30,9 @@
     <ClCompile Include="prpsh.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="settings.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

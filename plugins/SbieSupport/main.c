@@ -21,6 +21,7 @@
  */
 
 #include <phdk.h>
+#include <settings.h>
 #include "resource.h"
 #include "sbiedll.h"
 

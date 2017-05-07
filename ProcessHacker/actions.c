@@ -36,6 +36,7 @@
 #include <apiimport.h>
 #include <kphuser.h>
 #include <svcsup.h>
+#include <settings.h>
 
 #include <hndlprv.h>
 #include <memprv.h>
@@ -43,7 +44,7 @@
 #include <netprv.h>
 #include <phsvccl.h>
 #include <procprv.h>
-#include <settings.h>
+#include <phsettings.h>
 #include <srvprv.h>
 #include <thrdprv.h>
 

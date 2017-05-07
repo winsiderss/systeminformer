@@ -3,6 +3,7 @@
 
 #include <phdk.h>
 #include <phapppub.h>
+#include <settings.h>
 #include "wndtree.h"
 
 extern BOOLEAN IsHookClient;

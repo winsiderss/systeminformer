@@ -30,6 +30,7 @@
 #include <phdk.h>
 #include <phapppub.h>
 #include <phappresource.h>
+#include <settings.h>
 #include <workqueue.h>
 #include <windowsx.h>
 #include <winsock2.h>

@@ -50,7 +50,6 @@ namespace CustomBuildTool
                 "extmgr.h",
                 "mainwnd.h",
                 "notifico.h",
-                "settings.h",
                 "phplug.h",
                 "actions.h",
                 "procprp.h",

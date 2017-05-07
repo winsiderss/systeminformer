@@ -108,6 +108,7 @@ namespace CustomBuildTool
             "queuedlock.h",
             "ref.h",
             "secedit.h",
+            "settings.h",
             "svcsup.h",
             "symprv.h",
             "templ.h",
@@ -436,14 +437,10 @@ namespace CustomBuildTool
 
                 // Copy the plugin SDK headers
                 foreach (string file in phnt_headers)
-                {
                     File.Copy("phnt\\include\\" + file, "sdk\\include\\" + file, true);
-                }
-
                 foreach (string file in phlib_headers)
-                {
                     File.Copy("phlib\\include\\" + file, "sdk\\include\\" + file, true);
-                }
+                File.Copy("phlib\\mxml\\mxml.h", "sdk\\include\\mxml.h", true);
 
                 // Copy readme
                 File.Copy("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt", true);
@@ -482,7 +479,6 @@ namespace CustomBuildTool
 
                 File.Copy("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", true);
                 File.Copy("ProcessHacker\\sdk\\phdk.h", "sdk\\include\\phdk.h", true);
-                File.Copy("ProcessHacker\\mxml\\mxml.h", "sdk\\include\\mxml.h", true);
                 File.Copy("ProcessHacker\\resource.h", "sdk\\include\\phappresource.h", true);
             }
             catch (Exception ex)
@@ -680,7 +676,7 @@ namespace CustomBuildTool
             {
                 Verify.Decrypt("build\\kph.s", "build\\kph.key", kphKey);
                 Verify.Decrypt("build\\nightly.s", "build\\nightly.key", buildKey);
-                Verify.Decrypt("plugins\\OnlineChecks\\virustotal.s", "plugins\\OnlineChecks\\virustotal.h", vtBuildKey);
+                Verify.Decrypt("build\\virustotal.s", "build\\virustotal.h", vtBuildKey);
             }
             catch (Exception ex)
             {
@@ -723,8 +719,6 @@ namespace CustomBuildTool
 
             try
             {
-                File.Copy("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt", true);
-
                 Zip.CreateCompressedSdkFromFolder("sdk", BuildOutputFolder + "\\processhacker-build-sdk.zip");
             }
             catch (Exception ex)
@@ -810,9 +804,6 @@ namespace CustomBuildTool
         {
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-pdb.zip"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-pdb.zip");
-
                 Zip.CreateCompressedPdbFromFolder(".\\", BuildOutputFolder + "\\processhacker-build-pdb.zip");
             }
             catch (Exception ex)

@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <settings.h>
 
 #include <windowsx.h>
 

@@ -46,7 +46,7 @@ static VOID PvpInitializeDpi(
     if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
     {
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        ReleaseDC(NULL, hdc);
+        DeleteDC(hdc);
     }
 }
 
@@ -68,6 +68,8 @@ INT WINAPI wWinMain(
 
     PhGuiSupportInitialization();
     PvpInitializeDpi();
+    PhSettingsInitialization();
+    PeInitializeSettings();
     PvPropInitialization();
 
     PhApplicationName = L"PE Viewer";
@@ -123,6 +125,8 @@ INT WINAPI wWinMain(
         PvPeProperties();
     else
         PvLibProperties();
+
+    PeSaveSettings();
 
     return 0;
 }

@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <notifico.h>
 
 #include <shellapi.h>
@@ -757,7 +758,7 @@ VOID PhNfpBeginBitmap2(
     {
         HDC screenHdc;
 
-        screenHdc = GetDC(NULL);
+        screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
         Context->Hdc = CreateCompatibleDC(screenHdc);
 
         memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
@@ -768,7 +769,7 @@ VOID PhNfpBeginBitmap2(
         Context->Header.biBitCount = 32;
         Context->Bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
-        ReleaseDC(NULL, screenHdc);
+        DeleteDC(screenHdc);
 
         Context->Initialized = TRUE;
     }

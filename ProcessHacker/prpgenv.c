@@ -28,6 +28,7 @@
 
 #include <cpysave.h>
 #include <emenu.h>
+#include <settings.h>
 
 #include <procprv.h>
 
