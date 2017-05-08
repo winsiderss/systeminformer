@@ -143,7 +143,7 @@
     <Text Include="resources\Licence.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\ClientBin\processhacker-build-bin.zip" />
+    <None Include="..\..\..\build\processhacker-build-bin.zip" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

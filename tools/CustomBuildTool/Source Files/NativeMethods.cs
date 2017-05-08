@@ -30,6 +30,21 @@ namespace CustomBuildTool
             return output;
         }
 
+        public static void ImageResizeFile(int size, string FileName, string OutName)
+        {
+            using (var src = System.Drawing.Image.FromFile(FileName))
+            using (var dst = new System.Drawing.Bitmap(size, size))
+            using (var g = System.Drawing.Graphics.FromImage(dst))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+
+                g.DrawImage(src, 0, 0, dst.Width, dst.Height);
+
+                dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
+            }
+        }
+
         public const int STD_OUTPUT_HANDLE = -11;
         public const int STD_INPUT_HANDLE = -10;
         public const int STD_ERROR_HANDLE = -12;

@@ -105,7 +105,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\ClientBin\processhacker-build-bin.zip">
+    <None Include="..\..\..\build\processhacker-build-bin.zip">
       <Filter>Resource Files\Binary</Filter>
     </None>
   </ItemGroup>

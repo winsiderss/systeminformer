@@ -57,6 +57,7 @@ BOOLEAN SetupExtractBuild(
     ULONG64 totalLength = 0;
     ULONG64 currentLength = 0;
     mz_zip_archive zip_archive = { 0 };
+    PPH_STRING extractPath = NULL;
     PVOID resourceBuffer;
     ULONG resourceLength;
     SYSTEM_INFO info;
@@ -94,8 +95,9 @@ BOOLEAN SetupExtractBuild(
         }
 
         totalLength += zipFileStat.m_uncomp_size;
-        InterlockedExchange64(&ExtractTotalLength, totalLength);
     }
+
+    InterlockedExchange64(&ExtractTotalLength, totalLength);
 
     SendMessage(Context, WM_START_SETUP, 0, 0);
 
@@ -106,7 +108,6 @@ BOOLEAN SetupExtractBuild(
         ULONG indexOfFileName = -1;
         PPH_STRING fileName;
         PPH_STRING fullSetupPath;
-        PPH_STRING extractPath;
         PVOID buffer;
         mz_ulong zipFileCrc32 = 0;
         ULONG bufferLength = 0;
@@ -213,19 +214,27 @@ BOOLEAN SetupExtractBuild(
             goto CleanupExit;
 
         currentLength += bufferLength;
-
         InterlockedExchange64(&ExtractCurrentLength, currentLength);
-        SendMessage(Context, WM_UPDATE_SETUP, 0, (LPARAM)extractPath);
+        SendMessage(Context, WM_UPDATE_SETUP, 0, (LPARAM)PhGetBaseName(extractPath));
 
         NtClose(fileHandle);
         mz_free(buffer);
     }
 
     mz_zip_reader_end(&zip_archive);
+
+    if (extractPath)
+        PhDereferenceObject(extractPath);
+
     return TRUE;
 
 CleanupExit:
+
     mz_zip_reader_end(&zip_archive);
+
+    if (extractPath)
+        PhDereferenceObject(extractPath);
+
     return FALSE;
 }
 

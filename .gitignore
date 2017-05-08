@@ -9,6 +9,7 @@
 
 # Build results
 *.appx
+*.appxbundle
 *.cer
 *.ilk
 *.meta
