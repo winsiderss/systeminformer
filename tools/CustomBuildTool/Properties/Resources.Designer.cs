@@ -63,16 +63,14 @@ namespace CustomBuildTool.Properties {
         /// <summary>
         ///   Looks up a localized string similar to &lt;?xml version=&apos;1.0&apos; encoding=&apos;utf-8&apos; standalone=&apos;yes&apos;?&gt;
         ///&lt;Package 
-        ///  xmlns=&quot;http://schemas.microsoft.com/appx/manifest/foundation/windows10&quot; 
-        ///  xmlns:uap=&quot;http://schemas.microsoft.com/appx/manifest/uap/windows10&quot;
-        ///  xmlns:rescap=&quot;http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities&quot;&gt;
-        ///  &lt;Identity
-        ///    Name=&quot;ProcessHacker&quot;
-        ///    Version=&quot;PH_APPX_VERSION&quot;
-        ///    ProcessorArchitecture=&quot;x86&quot;
-        ///    Publisher=&quot;CN=ProcessHacker, O=ProcessHacker, C=AU&quot; /&gt;
-        ///  &lt;Properties&gt;
-        ///    &lt;Displa [rest of string was truncated]&quot;;.
+        ///    xmlns=&quot;http://schemas.microsoft.com/appx/manifest/foundation/windows10&quot; 
+        ///    xmlns:uap=&quot;http://schemas.microsoft.com/appx/manifest/uap/windows10&quot;
+        ///    xmlns:rescap=&quot;http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities&quot;
+        ///    xmlns:desktop=&quot;http://schemas.microsoft.com/appx/manifest/desktop/windows10&quot;&gt;
+        ///    &lt;Identity
+        ///        Name=&quot;ProcessHacker&quot;
+        ///        Version=&quot;PH_APPX_VERSION&quot;
+        ///        ProcessorArchi [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string AppxManifest {
             get {

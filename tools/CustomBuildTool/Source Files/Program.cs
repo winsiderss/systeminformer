@@ -51,6 +51,11 @@ namespace CustomBuildTool
                 if (!Build.CopyLibFiles(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
+                Build.CopyRedistFiles(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose
+                    );
+
                 Build.ShowBuildStats(false);
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
@@ -154,6 +159,10 @@ namespace CustomBuildTool
                 if (!Build.CopyWow64Files(BuildFlags.BuildDebug))
                     return;
 
+                Build.CopyRedistFiles(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+
                 Build.ShowBuildStats(true);
             }
             else if (ProgramArgs.ContainsKey("-release"))
@@ -191,6 +200,8 @@ namespace CustomBuildTool
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
+
+                Build.CopyRedistFiles(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
 
                 if (!Build.BuildBinZip())
                     return;
@@ -259,7 +270,7 @@ namespace CustomBuildTool
                 Build.BuildSecureFiles();
                 Build.UpdateHeaderFileVersion();
 
-                if (!Build.BuildSolution("ProcessHacker.sln", BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.BuildSolution("ProcessHacker.sln", BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!Build.CopyTextFiles())
@@ -270,16 +281,16 @@ namespace CustomBuildTool
                     return;
                 if (!Build.FixupResourceHeader())
                     return;
-                if (!Build.CopyLibFiles(BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyLibFiles(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
 
-                Build.BuildAppxPackage();
+                Build.BuildAppxPackage(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
 
                 Build.ShowBuildStats(true);
             }
