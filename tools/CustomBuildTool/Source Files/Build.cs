@@ -208,7 +208,8 @@ namespace CustomBuildTool
 
             try
             {
-                Directory.Delete("build\\output", true);
+                if (Directory.Exists("build\\output"))
+                    Directory.Delete("build\\output", true);
 
                 for (int i = 0; i < cleanupFileArray.Length; i++)
                 {
