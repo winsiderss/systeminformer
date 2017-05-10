@@ -96,6 +96,8 @@ _StackWalk64 StackWalk64_I;
 _MiniDumpWriteDump MiniDumpWriteDump_I;
 _SymbolServerGetOptions SymbolServerGetOptions;
 _SymbolServerSetOptions SymbolServerSetOptions;
+_UnDecorateSymbolName UnDecorateSymbolName_I;
+_UnDecorateSymbolNameW UnDecorateSymbolNameW_I;
 
 BOOLEAN PhSymbolProviderInitialization(
     VOID
@@ -150,9 +152,11 @@ VOID PhSymbolProviderCompleteInitialization(
     MiniDumpWriteDump_I = PhGetProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
     SymbolServerGetOptions = PhGetProcedureAddress(symsrvHandle, "SymbolServerGetOptions", 0);
     SymbolServerSetOptions = PhGetProcedureAddress(symsrvHandle, "SymbolServerSetOptions", 0);
+    UnDecorateSymbolName_I = PhGetProcedureAddress(dbghelpHandle, "UnDecorateSymbolName", 0);
+    UnDecorateSymbolNameW_I = PhGetProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
 
     if (SymGetOptions_I && SymSetOptions_I)
-        SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED);
+        SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED | SYMOPT_UNDNAME);
 }
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
@@ -1757,4 +1761,64 @@ ResumeExit:
         NtClose(ProcessHandle);
 
     return status;
+}
+
+
+PPH_STRING PhUndecorateName(
+    _In_ HANDLE ProcessHandle,
+    _In_ PCSTR DecoratedName
+)
+{
+    PPH_STRING UndecoratedStr = NULL;
+    PSTR UndecoratedName = NULL;
+    DWORD CandidateSize = 512; // there is no way to know the resulting length of an undecorated name
+                               // if there is not enough place, the function does not fail. Instead it
+                               // return a truncated name.
+
+    if ((!SymInitialize_I) || (!UnDecorateSymbolName_I))
+        return NULL;
+    
+    
+    SymInitialize_I(ProcessHandle, NULL, TRUE);
+    
+    UndecoratedName = PhAllocate(CandidateSize*sizeof(CHAR));
+
+    DWORD Length = UnDecorateSymbolName_I(DecoratedName, UndecoratedName, CandidateSize, UNDNAME_COMPLETE);
+    if (Length > 0)
+    {
+        UndecoratedStr = PhZeroExtendToUtf16(UndecoratedName);
+    }
+        
+    PhFree(UndecoratedName);
+    return UndecoratedStr;
+}
+
+PPH_STRING PhUndecorateNameW(
+    _In_ HANDLE ProcessHandle,
+    _In_ PWSTR DecoratedName
+)
+{
+
+    PPH_STRING UndecoratedStr = NULL;
+    PWSTR  UndecoratedName = NULL;
+    DWORD CandidateSize = 512; // there is no way to know the resulting length of an undecorated name
+                               // if there is not enough place, the function does not fail. Instead it
+                               // return a truncated name.
+
+    if ((!SymInitialize_I) || (!UnDecorateSymbolNameW_I))
+        return NULL;
+
+
+    SymInitialize_I(ProcessHandle, NULL, TRUE);
+
+    UndecoratedName = PhAllocate(CandidateSize *sizeof(WCHAR));
+
+    if (UnDecorateSymbolNameW_I(DecoratedName, UndecoratedName, CandidateSize, UNDNAME_COMPLETE))
+    {
+        UndecoratedStr = PhCreateString(UndecoratedName);
+    }
+
+    PhFree(UndecoratedName);
+    return UndecoratedStr;
+
 }

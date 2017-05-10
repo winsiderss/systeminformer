@@ -167,4 +167,18 @@ typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     _In_ ULONG64 data
     );
 
+typedef DWORD(WINAPI *_UnDecorateSymbolName)(
+	_In_  PCSTR DecoratedName,
+	_Out_ PSTR  UnDecoratedName,
+	_In_  DWORD  UndecoratedLength,
+	_In_  DWORD  Flags
+	);
+
+typedef DWORD(WINAPI *_UnDecorateSymbolNameW)(
+	_In_  PCWSTR DecoratedName,
+	_Out_ PWSTR  UnDecoratedName,
+	_In_  DWORD  UndecoratedLength,
+	_In_  DWORD  Flags
+	);
+
 #endif
