@@ -244,4 +244,15 @@ DbgUiConvertStateChangeStructure(
     _Out_ struct _DEBUG_EVENT *DebugEvent
     );
 
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+EtwEventRegister(
+  _In_     LPCGUID         ProviderId,
+  _In_opt_ PENABLECALLBACK EnableCallback,
+  _In_opt_ PVOID           CallbackContext,
+  _Out_    PREGHANDLE      RegHandle
+  );
+
 #endif
