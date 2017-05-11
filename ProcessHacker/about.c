@@ -3,6 +3,7 @@
  *   about dialog
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -48,7 +49,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-#if (PHAPP_VERSION_REVISION != 0)
+#if (PHAPP_VERSION_REVISION != 0x0D06F00D)
             appName = PhFormatString(
                 L"Process Hacker %u.%u.%u",
                 PHAPP_VERSION_MAJOR,
@@ -67,12 +68,11 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             PhDereferenceObject(appName);
 
             SetDlgItemText(hwndDlg, IDC_CREDITS,
-                L"    Installer by XhmikosR\n"
                 L"Thanks to:\n"
-                L"    dmex\n"
-                L"    Donors - thank you for your support!\n"
-                L"    <a href=\"http://forum.sysinternals.com\">Sysinternals Forums</a>\n"
-                L"    <a href=\"http://www.reactos.org\">ReactOS</a>\n"
+                L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
+                L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
+                L"    <a href=\"https://github.com/xhmikosr\">XhmikosR</a>\n"
+                L"    Donors - thank you for your support!\n\n"
                 L"Process Hacker uses the following components:\n"
                 L"    <a href=\"http://www.minixml.org\">Mini-XML</a> by Michael Sweet\n"
                 L"    <a href=\"http://www.pcre.org\">PCRE</a>\n"
