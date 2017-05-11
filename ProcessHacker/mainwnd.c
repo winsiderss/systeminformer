@@ -342,12 +342,12 @@ BOOLEAN PhMwpInitializeWindowClass(
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = PhInstanceHandle;
-    wcex.hIcon = LoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+    wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(IDI_PROCESSHACKER));
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
     //wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
     wcex.lpszClassName = PH_MAINWND_CLASSNAME;
-    wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
+    wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PROCESSHACKER));
 
     if (!RegisterClassEx(&wcex))
         return FALSE;

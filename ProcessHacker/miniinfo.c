@@ -110,11 +110,11 @@ VOID PhPinMiniInformation(
             wcex.cbClsExtra = 0;
             wcex.cbWndExtra = 0;
             wcex.hInstance = PhInstanceHandle;
-            wcex.hIcon = LoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+            wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(IDI_PROCESSHACKER));
             wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
             wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
             wcex.lpszClassName = MIP_CONTAINER_CLASSNAME;
-            wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
+            wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PROCESSHACKER));
             RegisterClassEx(&wcex);
 
             PhMipContainerWindow = CreateWindow(
