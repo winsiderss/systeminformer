@@ -525,6 +525,13 @@ LdrGetFileNameFromLoadAsDataTable(
 
 #endif
 
+NTSYSAPI
+NTSTATUS 
+NTAPI 
+LdrDisableThreadCalloutsForDll(
+    _In_ PVOID DllImageBase
+    );
+    
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information
