@@ -1831,7 +1831,7 @@ VOID SymInfoDump_SymbolLocationStr(
     else
     {
         //_swprintf(Buffer, L"%16I64x", SymbolInfo->Address);
-        PhPrintPointer(Buffer, (PVOID)SymbolInfo->Address);
+        PhPrintPointer(Buffer, PTR_SUB_OFFSET(SymbolInfo->Address, SymbolInfo->ModBase));
     }
 }
 
