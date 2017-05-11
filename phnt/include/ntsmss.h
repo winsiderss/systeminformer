@@ -16,7 +16,7 @@ NTSTATUS
 NTAPI
 RtlSendMsgToSm(
   _In_  HANDLE ApiPortHandle,
-  _In_  PVOID MessageData
+  _In_  PPORT_MESSAGE MessageData
     );
 
 #endif
