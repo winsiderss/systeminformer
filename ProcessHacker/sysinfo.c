@@ -281,6 +281,9 @@ VOID PhSipOnInitDialog(
     VOID
     )
 {
+    SendMessage(PhSipWindow, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+    SendMessage(PhSipWindow, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
     PhInitializeLayoutManager(&WindowLayoutManager, PhSipWindow);
 
     PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDC_INSTRUCTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
