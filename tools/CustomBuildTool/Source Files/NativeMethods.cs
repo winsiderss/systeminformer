@@ -7,7 +7,7 @@ namespace CustomBuildTool
     [System.Security.SuppressUnmanagedCodeSecurity]
     public static class Win32
     {
-        public static string ExecCommand(string FileName, string args)
+        public static string ShellExecute(string FileName, string args)
         {
             string output = string.Empty;
             using (Process process = Process.Start(new ProcessStartInfo

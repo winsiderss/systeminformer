@@ -9,17 +9,37 @@ namespace CustomBuildTool
     {
         public static string GetMsbuildFilePath()
         {
-            VisualStudioInstance instance = FindVisualStudioInstance();
+            string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
 
-            if (instance != null)
+            // Note: vswere.exe was only released with build 15.0.26418.1
+            if (File.Exists(vswhere))
             {
-                if (File.Exists(instance.Path + "\\MSBuild\\15.0\\Bin\\MSBuild.exe"))
-                {
-                    return instance.Path + "\\MSBuild\\15.0\\Bin\\MSBuild.exe";
-                }
-            }
+                string vswhereResult = Win32.ShellExecute(vswhere,
+                    "-latest " +
+                    "-requires Microsoft.Component.MSBuild " +
+                    "-property installationPath "
+                    );
 
-            return null;
+                if (string.IsNullOrEmpty(vswhereResult))
+                    return null;
+
+                if (File.Exists(vswhereResult + "\\MSBuild\\15.0\\Bin\\MSBuild.exe"))
+                    return vswhereResult + "\\MSBuild\\15.0\\Bin\\MSBuild.exe";
+
+                return null;
+            }
+            else
+            {
+                VisualStudioInstance instance = FindVisualStudioInstance();
+
+                if (instance != null)
+                {
+                    if (File.Exists(instance.Path + "\\MSBuild\\15.0\\Bin\\MSBuild.exe"))
+                        return instance.Path + "\\MSBuild\\15.0\\Bin\\MSBuild.exe";
+                }
+
+                return null;
+            }
         }
 
         private static VisualStudioInstance FindVisualStudioInstance()
