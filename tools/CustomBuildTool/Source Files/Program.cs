@@ -23,7 +23,7 @@ namespace CustomBuildTool
                 Build.CleanupAppxSignature();
                 Build.CleanupBuildEnvironment();
 
-                Build.ShowBuildStats(true);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
@@ -56,7 +56,7 @@ namespace CustomBuildTool
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose
                     );
 
-                Build.ShowBuildStats(false);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {
@@ -77,7 +77,7 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                Build.ShowBuildStats(false);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-bin"))
             {
@@ -119,7 +119,7 @@ namespace CustomBuildTool
                 if (!Build.BuildBinZip())
                     return;
 
-                Build.ShowBuildStats(false);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
@@ -163,7 +163,7 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
 
-                Build.ShowBuildStats(true);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-release"))
             {
@@ -211,7 +211,7 @@ namespace CustomBuildTool
                 Build.BuildSdkZip();
                 Build.BuildSrcZip();
 
-                Build.ShowBuildStats(true);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
@@ -292,7 +292,7 @@ namespace CustomBuildTool
 
                 Build.BuildAppxPackage(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose);
 
-                Build.ShowBuildStats(true);
+                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-appxmakecert"))
             {
@@ -306,7 +306,7 @@ namespace CustomBuildTool
 
                 Build.BuildAppxSignature();
 
-                Build.ShowBuildStats(true);
+                Build.ShowBuildStats();
             }
             else
             {
