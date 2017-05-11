@@ -565,17 +565,12 @@ HICON PhLoadIcon(
     _In_opt_ ULONG Height
     )
 {
-    static _LoadIconMetric loadIconMetric;
-    static _LoadIconWithScaleDown loadIconWithScaleDown;
-
     PHP_ICON_ENTRY entry;
     PPHP_ICON_ENTRY actualEntry;
     HICON icon = NULL;
 
     if (PhBeginInitOnce(&SharedIconCacheInitOnce))
     {
-        loadIconMetric = (_LoadIconMetric)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconMetric");
-        loadIconWithScaleDown = (_LoadIconWithScaleDown)PhGetModuleProcAddress(L"comctl32.dll", "LoadIconWithScaleDown");
         SharedIconCacheHashtable = PhCreateHashtable(sizeof(PHP_ICON_ENTRY),
             SharedIconCacheHashtableEqualFunction, SharedIconCacheHashtableHashFunction, 10);
         PhEndInitOnce(&SharedIconCacheInitOnce);
@@ -601,13 +596,11 @@ HICON PhLoadIcon(
 
     if (Flags & (PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_SIZE_LARGE))
     {
-        if (loadIconMetric)
-            loadIconMetric(InstanceHandle, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
+        LoadIconMetric(InstanceHandle, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
     }
     else
     {
-        if (loadIconWithScaleDown)
-            loadIconWithScaleDown(InstanceHandle, Name, Width, Height, &icon);
+        LoadIconWithScaleDown(InstanceHandle, Name, Width, Height, &icon);
     }
 
     if (!icon && !(Flags & PH_LOAD_ICON_STRICT))

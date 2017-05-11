@@ -1,21 +1,6 @@
 #ifndef _PH_GUISUPP_H
 #define _PH_GUISUPP_H
 
-typedef HRESULT (WINAPI *_LoadIconMetric)(
-    _In_ HINSTANCE hinst,
-    _In_ PCWSTR pszName,
-    _In_ int lims,
-    _Out_ HICON *phico
-    );
-
-typedef HRESULT (WINAPI *_LoadIconWithScaleDown)(
-    _In_ HINSTANCE hinst,
-    _In_ PCWSTR pszName,
-    _In_ int cx,
-    _In_ int cy,
-    _Out_ HICON *phico
-    );
-
 typedef struct _PHP_ICON_ENTRY
 {
     HINSTANCE InstanceHandle;
