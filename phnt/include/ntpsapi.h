@@ -1174,12 +1174,11 @@ NtWaitForAlertByThreadId(
 
 // Attributes
 
-// begin_rev
+// private
 #define PS_ATTRIBUTE_NUMBER_MASK 0x0000ffff
-#define PS_ATTRIBUTE_THREAD 0x00010000 // can be used with threads
+#define PS_ATTRIBUTE_THREAD 0x00010000 // may be used with thread creation
 #define PS_ATTRIBUTE_INPUT 0x00020000 // input only
-#define PS_ATTRIBUTE_UNKNOWN 0x00040000
-// end_rev
+#define PS_ATTRIBUTE_ADDITIVE 0x00040000 // "accumulated" e.g. bitmasks, counters, etc.
 
 // private
 typedef enum _PS_ATTRIBUTE_NUM
@@ -1215,18 +1214,18 @@ typedef enum _PS_ATTRIBUTE_NUM
 
 // begin_rev
 
-#define PsAttributeValue(Number, Thread, Input, Unknown) \
+#define PsAttributeValue(Number, Thread, Input, Additive) \
     (((Number) & PS_ATTRIBUTE_NUMBER_MASK) | \
     ((Thread) ? PS_ATTRIBUTE_THREAD : 0) | \
     ((Input) ? PS_ATTRIBUTE_INPUT : 0) | \
-    ((Unknown) ? PS_ATTRIBUTE_UNKNOWN : 0))
+    ((Additive) ? PS_ATTRIBUTE_ADDITIVE : 0))
 
 #define PS_ATTRIBUTE_PARENT_PROCESS \
-    PsAttributeValue(PsAttributeParentProcess, FALSE, TRUE, TRUE)
+    PsAttributeValue(PsAttributeParentProcess, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_DEBUG_PORT \
-    PsAttributeValue(PsAttributeDebugPort, FALSE, TRUE, TRUE)
+    PsAttributeValue(PsAttributeDebugPort, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_TOKEN \
-    PsAttributeValue(PsAttributeToken, FALSE, TRUE, TRUE)
+    PsAttributeValue(PsAttributeToken, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_CLIENT_ID \
     PsAttributeValue(PsAttributeClientId, TRUE, FALSE, FALSE)
 #define PS_ATTRIBUTE_TEB_ADDRESS \
