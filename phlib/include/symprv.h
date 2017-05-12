@@ -296,6 +296,22 @@ PhWalkThreadStack(
     _In_opt_ PVOID Context
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhUndecorateName(
+	_In_ HANDLE ProcessHandle,
+	_In_ PCSTR DecoratedName
+);
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhUndecorateNameW(
+	_In_ HANDLE ProcessHandle,
+	_In_ PWSTR DecoratedName
+);
+
 #ifdef __cplusplus
 }
 #endif
