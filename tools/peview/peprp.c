@@ -31,6 +31,10 @@
 #include <shellapi.h>
 #include <symprv.h>
 
+BOOLEAN PvpLoadDbgHelp(
+    _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
+);
+
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
 
@@ -78,6 +82,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
 PH_MAPPED_IMAGE PvMappedImage;
 PIMAGE_COR20_HEADER PvImageCor20Header;
+PPH_SYMBOL_PROVIDER symbolProvider;
 
 HICON PvImageLargeIcon;
 PH_IMAGE_VERSION_INFO PvImageVersionInfo;
@@ -104,6 +109,10 @@ VOID PvPeProperties(
         PhShowStatus(NULL, L"Unable to load the PE file", status, 0);
         return;
     }
+
+    // Failing to load dbghelp is not critical : it just won't be possible
+    // to look up symbol names. No need to check the returned value.
+    PvpLoadDbgHelp(&symbolProvider);
 
     if (propContext = PvCreatePropContext(PvFileName))
     {
@@ -705,6 +714,8 @@ VOID PvpProcessImports(
                     PPH_STRING name;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
+
+
                     if (DelayImports)
                         name = PhFormatString(L"%S (Delay)", importDll.Name);
                     else
@@ -715,7 +726,12 @@ VOID PvpProcessImports(
 
                     if (importEntry.Name)
                     {
-                        name = PhZeroExtendToUtf16(importEntry.Name);
+                        name = PhUndecorateName(symbolProvider->ProcessHandle, importEntry.Name);
+                        if (!name)
+                        {
+                            name = PhZeroExtendToUtf16(importEntry.Name);
+                        }
+
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
                         PhDereferenceObject(name);
 
@@ -870,8 +886,14 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportFunction.ForwardedName)
                         {
-                            name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, name->Buffer);
+                            name = PhUndecorateName(symbolProvider->ProcessHandle, exportFunction.ForwardedName);
+                            if (!name)
+                            {
+                                name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+                            }
+
+
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, NULL);
                             PhDereferenceObject(name);
                         }
                         else
@@ -882,7 +904,11 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportEntry.Name)
                         {
-                            name = PhZeroExtendToUtf16(exportEntry.Name);
+                            name = PhUndecorateName(symbolProvider->ProcessHandle, exportEntry.Name);
+                            if (!name)
+                            {
+                                name = PhZeroExtendToUtf16(exportEntry.Name);
+                            }
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
                             PhDereferenceObject(name);
                         }
@@ -898,7 +924,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
-
+            
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
@@ -1295,7 +1321,6 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
     case WM_INITDIALOG:
         {
             HWND lvHandle;
-            PPH_SYMBOL_PROVIDER symbolProvider = NULL;
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
