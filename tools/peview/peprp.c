@@ -694,7 +694,8 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 VOID PvpProcessImports(
     _In_ HWND ListViewHandle,
     _In_ PPH_MAPPED_IMAGE_IMPORTS Imports,
-    _In_ BOOLEAN DelayImports
+    _In_ BOOLEAN DelayImports,
+    _Inout_ ULONG *Count
     )
 {
     PH_MAPPED_IMAGE_IMPORT_DLL importDll;
@@ -714,34 +715,39 @@ VOID PvpProcessImports(
                     PPH_STRING name;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
-
-
                     if (DelayImports)
                         name = PhFormatString(L"%S (Delay)", importDll.Name);
                     else
                         name = PhZeroExtendToUtf16(importDll.Name);
 
-                    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, name->Buffer, NULL);
+                    PhPrintUInt64(number, ++(*Count)); // HACK
+                    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
                     PhDereferenceObject(name);
 
                     if (importEntry.Name)
                     {
-                        name = PhUndecorateName(symbolProvider->ProcessHandle, importEntry.Name);
-                        if (!name)
-                        {
-                            name = PhZeroExtendToUtf16(importEntry.Name);
-                        }
+                        PPH_STRING importName = NULL;
 
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
-                        PhDereferenceObject(name);
+                        if (importEntry.Name[0] == '?')
+                            importName = PhUndecorateName(symbolProvider->ProcessHandle, importEntry.Name);
+                        else
+                            importName = PhZeroExtendToUtf16(importEntry.Name);
+
+                        if (!importName)
+                            importName = PhZeroExtendToUtf16(importEntry.Name);
+
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, importName->Buffer);
+                        PhDereferenceObject(importName);
 
                         PhPrintUInt32(number, importEntry.NameHint);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, number);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, number);
                     }
                     else
                     {
                         name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
                         PhDereferenceObject(name);
                     }
                 }
@@ -767,6 +773,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            ULONG count = 0;
             ULONG fallbackColumns[] = { 0, 1, 2 };
             HWND lvHandle;
             PH_MAPPED_IMAGE_IMPORTS imports;
@@ -774,21 +781,22 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 130, L"DLL");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 210, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Hint");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 130, L"DLL");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 210, L"Name");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 50, L"Hint");
             PhSetExtendedListView(lvHandle);
             ExtendedListView_AddFallbackColumns(lvHandle, 3, fallbackColumns);
             PhLoadListViewColumnsFromSetting(L"ImageImportsListViewColumns", lvHandle);
 
             if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
             {
-                PvpProcessImports(lvHandle, &imports, FALSE);
+                PvpProcessImports(lvHandle, &imports, FALSE, &count);
             }
 
             if (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)))
             {
-                PvpProcessImports(lvHandle, &imports, TRUE);
+                PvpProcessImports(lvHandle, &imports, TRUE, &count);
             }
 
             ExtendedListView_SortItems(lvHandle);
@@ -871,7 +879,6 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         )
                     {
                         INT lvItemIndex;
-                        PPH_STRING name;
                         WCHAR number[PH_INT32_STR_LEN_1];
                         WCHAR pointer[PH_PTR_STR_LEN_1];
 
@@ -886,15 +893,18 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportFunction.ForwardedName)
                         {
-                            name = PhUndecorateName(symbolProvider->ProcessHandle, exportFunction.ForwardedName);
-                            if (!name)
-                            {
-                                name = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-                            }
+                            PPH_STRING forwardName = NULL;
 
+                            if (exportFunction.ForwardedName[0] == '?')
+                                forwardName = PhUndecorateName(symbolProvider->ProcessHandle, exportFunction.ForwardedName);
+                            else
+                                forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
 
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer, NULL);
-                            PhDereferenceObject(name);
+                            if (!forwardName)
+                                forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, forwardName->Buffer, NULL);
+                            PhDereferenceObject(forwardName);
                         }
                         else
                         {
@@ -904,13 +914,18 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (exportEntry.Name)
                         {
-                            name = PhUndecorateName(symbolProvider->ProcessHandle, exportEntry.Name);
-                            if (!name)
-                            {
-                                name = PhZeroExtendToUtf16(exportEntry.Name);
-                            }
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, name->Buffer);
-                            PhDereferenceObject(name);
+                            PPH_STRING exportName = NULL;
+
+                            if (exportEntry.Name[0] == '?')
+                                exportName = PhUndecorateName(symbolProvider->ProcessHandle, exportEntry.Name);
+                            else
+                                exportName = PhZeroExtendToUtf16(exportEntry.Name);
+
+                            if (!exportName)
+                                exportName = PhZeroExtendToUtf16(exportEntry.Name);
+
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, exportName->Buffer);
+                            PhDereferenceObject(exportName);
                         }
                         else
                         {
