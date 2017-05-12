@@ -276,10 +276,21 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
             if (data->EnableControlFlowGuard)
             {
                 if (ShortDescription)
-                    *ShortDescription = PhCreateString(L"CF Guard");
+                {
+                    PhInitializeStringBuilder(&sb, 50);
+                    if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict ");
+                    PhAppendStringBuilder2(&sb, L"CF Guard");
+                    *ShortDescription = PhFinalStringBuilderString(&sb);
+                }
 
                 if (LongDescription)
-                    *LongDescription = PhCreateString(L"Control Flow Guard (CFG) is enabled for the process.\r\n");
+                {
+                    PhInitializeStringBuilder(&sb, 100);
+                    PhAppendStringBuilder2(&sb, L"Control Flow Guard (CFG) is enabled for the process.\r\n");
+                    if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict CFG : only CFG modules can be loaded.\r\n");
+                    if (data->EnableExportSuppression) PhAppendStringBuilder2(&sb, L"Dll Exports can be marked as CFG invalid targets.\r\n");
+                    *LongDescription = PhFinalStringBuilderString(&sb);
+                }
 
                 result = TRUE;
             }
@@ -327,7 +338,12 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     *ShortDescription = PhCreateString(L"Non-system fonts disabled");
 
                 if (LongDescription)
-                    *LongDescription = PhCreateString(L"Non-system fonts cannot be used in this process.\r\n");
+                {
+                    PhInitializeStringBuilder(&sb, 100);
+                    PhAppendStringBuilder2(&sb, L"Non-system fonts cannot be used in this process.\r\n");
+                    if (data->AuditNonSystemFontLoading) PhAppendStringBuilder2(&sb, L"Loading a non-system font in this process will trigger an ETW event.\r\n");
+                    *LongDescription = PhFinalStringBuilderString(&sb);
+                }
 
                 result = TRUE;
             }
