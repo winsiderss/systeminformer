@@ -250,14 +250,16 @@ BOOLEAN PhpHandleTreeFilterCallback(
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = Context;
-    PPH_HANDLE_NODE processNode = (PPH_HANDLE_NODE)Node;
-    PPH_HANDLE_ITEM handleItem = processNode->HandleItem;
+    PPH_HANDLE_NODE handleNode = (PPH_HANDLE_NODE)Node;
+    PPH_HANDLE_ITEM handleItem = handleNode->HandleItem;
 
-    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
+    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->ObjectName))
         return FALSE;
 
     if (PhIsNullOrEmptyString(handlesContext->SearchboxText))
         return TRUE;
+
+    // handle properties
 
     if (!PhIsNullOrEmptyString(handleItem->TypeName))
     {
@@ -274,6 +276,40 @@ BOOLEAN PhpHandleTreeFilterCallback(
     if (!PhIsNullOrEmptyString(handleItem->BestObjectName))
     {
         if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->BestObjectName->sr))
+            return TRUE;
+    }
+
+    if (handleItem->HandleString[0])
+    {
+        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->HandleString))
+            return TRUE;
+    }
+
+    if (handleItem->ObjectString[0])
+    {
+        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->ObjectString))
+            return TRUE;
+    }
+
+    if (handleItem->GrantedAccessString[0])
+    {
+        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
+            return TRUE;
+    }
+
+    // TODO: Add search for handleItem->Attributes
+
+    // node properties
+
+    if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
+    {
+        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleNode->GrantedAccessSymbolicText->sr))
+            return TRUE;
+    }
+
+    if (handleNode->FileShareAccessText[0])
+    {
+        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
             return TRUE;
     }
 
