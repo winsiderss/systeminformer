@@ -83,14 +83,14 @@ BOOLEAN SetupExtractBuild(
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (strstr(zipFileStat.m_filename, "x32\\"))
+            if (!strncmp(zipFileStat.m_filename, "x32\\", 4))
                 continue;
         }
         else
         {
-            if (strstr(zipFileStat.m_filename, "x64\\"))
+            if (!strncmp(zipFileStat.m_filename, "x64\\", 4))
                 continue;
-            if (strstr(zipFileStat.m_filename, "x86\\"))
+            if (!strncmp(zipFileStat.m_filename, "x86\\", 4))
                 continue;
         }
 
@@ -118,13 +118,25 @@ BOOLEAN SetupExtractBuild(
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (strstr(zipFileStat.m_filename, "x32\\"))
+            if (!strncmp(zipFileStat.m_filename, "x32\\", 4))
                 continue;
+
+            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
+
+            if (PhFindStringInString(fileName, 0, L"x64\\") != -1)
+                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
         }
         else
         {
-            if (strstr(zipFileStat.m_filename, "x64\\"))
+            if (!strncmp(zipFileStat.m_filename, "x64\\", 4))
                 continue;
+            if (!strncmp(zipFileStat.m_filename, "x86\\", 4))
+                continue;
+
+            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
+
+            if (PhFindStringInString(fileName, 0, L"x32\\") != -1)
+                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
         }
 
         if (!(buffer = mz_zip_reader_extract_to_heap(
@@ -139,21 +151,6 @@ BOOLEAN SetupExtractBuild(
 
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, bufferLength)) != zipFileStat.m_crc32)
             goto CleanupExit;
-
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-        {
-            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
-
-            if (PhFindStringInString(fileName, 0, L"x64\\") != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
-        }
-        else
-        {
-            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
-
-            if (PhFindStringInString(fileName, 0, L"x32\\") != -1)
-                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
-        }
 
         extractPath = PhConcatStrings(3, PhGetString(SetupInstallPath), L"\\", PhGetString(fileName));
         //OutputDebugString(PhFormatString(L"%s\r\n", extractPath->Buffer)->Buffer);

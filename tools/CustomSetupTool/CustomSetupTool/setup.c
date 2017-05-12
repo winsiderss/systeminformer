@@ -265,7 +265,7 @@ VOID SetupInstallKph(
     VOID
     )
 {
-    PPH_STRING clientPath = PhFormatString(L"%s\\ProcessHacker.exe", PhGetString(SetupInstallPath));
+    PPH_STRING clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
 
     if (RtlDoesFileExists_U(PhGetString(clientPath)))
     {

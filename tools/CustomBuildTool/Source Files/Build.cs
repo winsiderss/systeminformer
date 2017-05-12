@@ -277,7 +277,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(currentCommitTag + Environment.NewLine, ConsoleColor.White);
 
-                if (!BuildNightly && !string.IsNullOrEmpty(buildMessage))
+                if (!string.IsNullOrEmpty(buildMessage))
                 {
                     Console.WriteLine(buildMessage + Environment.NewLine);
                 }
