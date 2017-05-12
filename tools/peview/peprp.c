@@ -33,7 +33,7 @@
 
 BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
-);
+    );
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
@@ -882,12 +882,6 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         WCHAR number[PH_INT32_STR_LEN_1];
                         WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                        // TODO: user32.dll and some other dlls have many (unnamed) exports with (invalid) 0x0 RVA,
-                        //  they might be exported variables or caused by incorrect math, ignore these entries 
-                        //  until more information is available.
-                        if (!exportFunction.Function)
-                            continue;
-
                         PhPrintUInt64(number, i + 1);
                         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
 
@@ -903,7 +897,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                             if (!forwardName)
                                 forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
 
-                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, forwardName->Buffer, NULL);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, forwardName->Buffer);
                             PhDereferenceObject(forwardName);
                         }
                         else
