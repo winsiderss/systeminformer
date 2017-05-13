@@ -489,7 +489,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
 #ifdef _WIN64
 
-    LDR_INIT_BLOCK ldrInitBlock = { 0 };
+    PS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock = { 0 };
     PVOID ldrInitBlockBaseAddress = NULL;
     PPH_MEMORY_ITEM cfgBitmapMemoryItem;
     PPH_STRING ntdllFileName;
@@ -510,7 +510,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             ProcessHandle,
             ldrInitBlockBaseAddress,
             &ldrInitBlock,
-            sizeof(LDR_INIT_BLOCK),
+            sizeof(PS_SYSTEM_DLL_INIT_BLOCK),
             NULL
             );
     }
@@ -520,24 +520,23 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     if (NT_SUCCESS(status) && ldrInitBlock.Size)
     {
         PVOID cfgBitmapAddress = NULL;
+        PVOID cfgBitmapWow64Address = NULL;
 
-        // TODO: Remove this code once most users have updated their machines.
-        if (ldrInitBlock.Size == sizeof(LDR_INIT_BLOCK))
-            cfgBitmapAddress = ldrInitBlock.CfgBitmapAddress; // 15063
-        else if (ldrInitBlock.Size == 128)
-            cfgBitmapAddress = ldrInitBlock.Unknown1[11]; // 14393
+        if (ldrInitBlock.Size == sizeof(PS_SYSTEM_DLL_INIT_BLOCK))
+        {
+            cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
+            cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;
+        }
 
         if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
         {
             PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
             PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
 
-            // Tagging memory items
             while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
             {
-                // NB : we could do a finer tagging since each MEM_COMMIT memory
-                // map is the CFG bitmap of a loaded module. However that would
-                // imply to heavily rely on reverse-engineer results, and might be
+                // lucasg: We could do a finer tagging since each MEM_COMMIT memory
+                // map is the CFG bitmap of a loaded module. However that might be
                 // brittle to changes made by Windows dev teams.
                 memoryItem->RegionType = CfgBitmapRegion;
 
@@ -545,61 +544,19 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
             }
         }
-    }
 
-    if (isWow64)
-    {
-        LDR_INIT_BLOCK ldrInitBlock32 = { 0 };
-        PVOID ldrInitBlockBaseAddress32 = NULL;
-        PPH_MEMORY_ITEM cfgBitmapMemoryItem32;
-        PPH_STRING ntdllWow64FileName;
-
-        ntdllWow64FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
-        status = PhGetProcedureAddressRemote(
-            ProcessHandle,
-            ntdllWow64FileName->Buffer,
-            "LdrSystemDllInitBlock",
-            0,
-            &ldrInitBlockBaseAddress32,
-            NULL
-            );
-
-        if (NT_SUCCESS(status) && ldrInitBlockBaseAddress32)
+        // Note: Wow64 processes on 64bit also have CfgBitmap regions.
+        if (isWow64 && cfgBitmapWow64Address && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapWow64Address)))
         {
-            status = NtReadVirtualMemory(
-                ProcessHandle,
-                ldrInitBlockBaseAddress32,
-                &ldrInitBlock32,
-                sizeof(LDR_INIT_BLOCK),
-                NULL
-                );
-        }
+            PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
+            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
 
-        PhDereferenceObject(ntdllWow64FileName);
-
-        if (NT_SUCCESS(status) && ldrInitBlock32.Size)
-        {
-            PVOID cfgBitmapAddress = NULL;
-
-            // TODO: Remove this code once most users have updated their machines.
-            if (ldrInitBlock32.Size == sizeof(LDR_INIT_BLOCK))
-                cfgBitmapAddress = ldrInitBlock32.CfgBitmapAddress; // 15063
-            else if (ldrInitBlock32.Size == 128)
-                cfgBitmapAddress = ldrInitBlock32.Unknown1[11]; // 14393
-
-            if (cfgBitmapAddress && (cfgBitmapMemoryItem32 = PhLookupMemoryItemList(List, cfgBitmapAddress)))
+            while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
             {
-                PLIST_ENTRY listEntry = &cfgBitmapMemoryItem32->ListEntry;
-                PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+                memoryItem->RegionType = CfgBitmap32Region;
 
-                // Tagging memory items
-                while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem32)
-                {
-                    memoryItem->RegionType = CfgBitmap32Region;
-
-                    listEntry = listEntry->Flink;
-                    memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
-                }
+                listEntry = listEntry->Flink;
+                memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
             }
         }
     }
