@@ -51,11 +51,6 @@ namespace CustomBuildTool
                 if (!Build.CopyLibFiles(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                Build.CopyRedistFiles(
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
-                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose
-                    );
-
                 Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
@@ -242,11 +237,6 @@ namespace CustomBuildTool
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
-
-                Build.CopyRedistFiles(
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
-                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose
-                    );
 
                 if (!Build.BuildBinZip())
                     return;
