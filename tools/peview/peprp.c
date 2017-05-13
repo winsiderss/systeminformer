@@ -1158,6 +1158,7 @@ BOOLEAN PvpLoadDbgHelp(
     UNICODE_STRING symbolPathUs =
     {
         .Buffer = buffer,
+        .Length = sizeof(buffer) - sizeof(UNICODE_NULL),
         .MaximumLength = sizeof(buffer)
     };
 
