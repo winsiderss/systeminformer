@@ -468,20 +468,40 @@ LdrUnregisterDllNotification(
 
 // end_msdn
 
-// rev
-typedef struct _LDR_INIT_BLOCK
+// private
+typedef struct _PS_MITIGATION_OPTIONS_MAP
+{
+    ULONG_PTR Map[2];
+} PS_MITIGATION_OPTIONS_MAP, *PPS_MITIGATION_OPTIONS_MAP;
+
+// private
+typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 {
     ULONG Size;
-    PVOID Unknown1[21];
-    PVOID CfgBitmapAddress;
-    ULONG_PTR CfgBitmapSize;
-    PVOID Unknown2[2];
-} LDR_INIT_BLOCK, *PLDR_INIT_BLOCK;
+    ULONG_PTR SystemDllWowRelocation;
+    ULONG_PTR SystemDllNativeRelocation;
+    ULONG_PTR Wow64SharedInformation[16];
+    ULONG RngData;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG CfgOverride : 1;
+            ULONG Reserved : 31;
+        };
+    };
+    PS_MITIGATION_OPTIONS_MAP MitigationOptionsMap;
+    ULONG_PTR CfgBitMap;
+    ULONG_PTR CfgBitMapSize;
+    ULONG_PTR Wow64CfgBitMap;
+    ULONG_PTR Wow64CfgBitMapSize;
+} PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 // rev
 NTSYSAPI
-PLDR_INIT_BLOCK
+PPS_SYSTEM_DLL_INIT_BLOCK
 NTAPI
 LdrSystemDllInitBlock(
     VOID
