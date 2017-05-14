@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -191,6 +191,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cfgprp.c" />
+    <ClCompile Include="clrprp.c" />
+    <ClCompile Include="ldprp.c" />
+    <ClCompile Include="expprp.c" />
+    <ClCompile Include="impprp.c" />
     <ClCompile Include="libprp.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="misc.c" />

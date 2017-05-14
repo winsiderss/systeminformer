@@ -385,61 +385,61 @@ typedef struct _PDB_SYMBOL_CONTEXT
     PPH_LIST UdtList;
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;
 
-BOOLEAN SymInfoDump_DumpBasicType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, BaseTypeInfo* Info);
-BOOLEAN SymInfoDump_DumpPointerType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, PointerTypeInfo* Info);
-BOOLEAN SymInfoDump_DumpTypedef(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypedefInfo* Info);
-BOOLEAN SymInfoDump_DumpEnum(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, EnumInfo* Info);
-BOOLEAN SymInfoDump_DumpArrayType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ArrayTypeInfo* Info);
-BOOLEAN SymInfoDump_DumpUDT(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info);
-BOOLEAN SymInfoDump_DumpUDTClass(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, UdtClassInfo* Info);
-BOOLEAN SymInfoDump_DumpUDTUnion(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, UdtUnionInfo* Info);
-BOOLEAN SymInfoDump_DumpFunctionType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, FunctionTypeInfo* Info);
-BOOLEAN SymInfoDump_DumpFunctionArgType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, FunctionArgTypeInfo* Info);
-BOOLEAN SymInfoDump_DumpBaseClass(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, BaseClassInfo* Info);
-BOOLEAN SymInfoDump_DumpData(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, DataInfo* Info);
-BOOLEAN SymInfoDump_DumpType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info);
-BOOLEAN SymInfoDump_DumpSymbolType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info, ULONG* TypeIndex);
+BOOLEAN SymbolInfo_DumpBasicType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, BaseTypeInfo* Info);
+BOOLEAN SymbolInfo_DumpPointerType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, PointerTypeInfo* Info);
+BOOLEAN SymbolInfo_DumpTypedef(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypedefInfo* Info);
+BOOLEAN SymbolInfo_DumpEnum(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, EnumInfo* Info);
+BOOLEAN SymbolInfo_DumpArrayType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ArrayTypeInfo* Info);
+BOOLEAN SymbolInfo_DumpUDT(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info);
+BOOLEAN SymbolInfo_DumpUDTClass(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, UdtClassInfo* Info);
+BOOLEAN SymbolInfo_DumpUDTUnion(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, UdtUnionInfo* Info);
+BOOLEAN SymbolInfo_DumpFunctionType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, FunctionTypeInfo* Info);
+BOOLEAN SymbolInfo_DumpFunctionArgType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, FunctionArgTypeInfo* Info);
+BOOLEAN SymbolInfo_DumpBaseClass(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, BaseClassInfo* Info);
+BOOLEAN SymbolInfo_DumpData(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, DataInfo* Info);
+BOOLEAN SymbolInfo_DumpType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info);
+BOOLEAN SymbolInfo_DumpSymbolType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, TypeInfo* Info, ULONG* TypeIndex);
 
-BOOLEAN SymInfoDump_CheckTag(
+BOOLEAN SymbolInfo_CheckTag(
     _Inout_ PPDB_SYMBOL_CONTEXT Context, 
     _In_ ULONG Index, 
     _In_ ULONG Tag
     );
 
-BOOLEAN SymInfoDump_SymbolSize(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG64* Size);
-BOOLEAN SymInfoDump_ArrayElementTypeIndex(_Inout_ PPDB_SYMBOL_CONTEXT Context, ULONG ArrayIndex, ULONG* ElementTypeIndex);
-BOOLEAN SymInfoDump_ArrayDims(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG64* pDims, ULONG* Dims, _In_ ULONG MaxDims);
-BOOLEAN SymInfoDump_UdtVariables(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pVars, ULONG* Vars, _In_ ULONG MaxVars);
-BOOLEAN SymInfoDump_UdtFunctions(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pFuncs, ULONG* Funcs, _In_ ULONG MaxFuncs);
-BOOLEAN SymInfoDump_UdtBaseClasses(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pBases, ULONG* Bases, _In_ ULONG MaxBases);
-BOOLEAN SymInfoDump_UdtUnionMembers(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pMembers, ULONG* Members, _In_ ULONG MaxMembers);
-BOOLEAN SymInfoDump_FunctionArguments(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pArgs, ULONG* Args, _In_ ULONG MaxArgs);
-BOOLEAN SymInfoDump_Enumerators(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pEnums, ULONG* Enums, _In_ ULONG MaxEnums);
-BOOLEAN SymInfoDump_TypeDefType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* UndTypeIndex);
-BOOLEAN SymInfoDump_PointerType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* UndTypeIndex, ULONG* NumPointers);
+BOOLEAN SymbolInfo_SymbolSize(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG64* Size);
+BOOLEAN SymbolInfo_ArrayElementTypeIndex(_Inout_ PPDB_SYMBOL_CONTEXT Context, ULONG ArrayIndex, ULONG* ElementTypeIndex);
+BOOLEAN SymbolInfo_ArrayDims(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG64* pDims, ULONG* Dims, _In_ ULONG MaxDims);
+BOOLEAN SymbolInfo_UdtVariables(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pVars, ULONG* Vars, _In_ ULONG MaxVars);
+BOOLEAN SymbolInfo_UdtFunctions(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pFuncs, ULONG* Funcs, _In_ ULONG MaxFuncs);
+BOOLEAN SymbolInfo_UdtBaseClasses(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pBases, ULONG* Bases, _In_ ULONG MaxBases);
+BOOLEAN SymbolInfo_UdtUnionMembers(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pMembers, ULONG* Members, _In_ ULONG MaxMembers);
+BOOLEAN SymbolInfo_FunctionArguments(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pArgs, ULONG* Args, _In_ ULONG MaxArgs);
+BOOLEAN SymbolInfo_Enumerators(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* pEnums, ULONG* Enums, _In_ ULONG MaxEnums);
+BOOLEAN SymbolInfo_TypeDefType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* UndTypeIndex);
+BOOLEAN SymbolInfo_PointerType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, ULONG* UndTypeIndex, ULONG* NumPointers);
 
-BOOLEAN SymInfoDump_GetTypeNameHelper(
+BOOLEAN SymbolInfo_GetTypeNameHelper(
     _In_ ULONG Index,
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _Out_ PWSTR *VarName,
     _Out_ PWSTR *TypeName
     );
-BOOLEAN SymInfoDump_GetTypeName(
+BOOLEAN SymbolInfo_GetTypeName(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _In_ PWSTR pVarName,
     _In_ PWSTR pTypeName,
     _In_ ULONG MaxChars
     );
-PWSTR SymInfoDump_TagStr(enum SymTagEnum Tag);
-PWSTR SymInfoDump_BaseTypeStr(BasicType Type, ULONG64 Length);
-PWSTR SymInfoDump_CallConvStr(CV_call_e CallConv);
-PWSTR SymInfoDump_DataKindFromSymbolInfo(_In_ PSYMBOL_INFOW rSymbol);
-PWSTR SymInfoDump_DataKindStr(DataKind dataKind);
-VOID SymInfoDump_SymbolLocationStr(PSYMBOL_INFOW rSymbol, PWSTR pBuffer);
-PWSTR SymInfoDump_RegisterStr(CV_HREG_e RegCode);
-PWSTR SymInfoDump_UdtKindStr(UdtKind KindType);
-PWSTR SymInfoDump_LocationTypeStr(LocationType LocType);
+PWSTR SymbolInfo_TagStr(enum SymTagEnum Tag);
+PWSTR SymbolInfo_BaseTypeStr(BasicType Type, ULONG64 Length);
+PWSTR SymbolInfo_CallConvStr(CV_call_e CallConv);
+PWSTR SymbolInfo_DataKindFromSymbolInfo(_In_ PSYMBOL_INFOW rSymbol);
+PWSTR SymbolInfo_DataKindStr(DataKind dataKind);
+VOID SymbolInfo_SymbolLocationStr(PSYMBOL_INFOW rSymbol, PWSTR pBuffer);
+PWSTR SymbolInfo_RegisterStr(CV_HREG_e RegCode);
+PWSTR SymbolInfo_UdtKindStr(UdtKind KindType);
+PWSTR SymbolInfo_LocationTypeStr(LocationType LocType);
 
 
 VOID PrintDataInfo(
