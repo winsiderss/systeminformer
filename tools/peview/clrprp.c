@@ -23,6 +23,39 @@
 
 #include <peview.h>
 
+// CLR structure reference:
+// https://github.com/dotnet/coreclr/blob/master/src/md/inc/mdfileformat.h
+// https://github.com/dotnet/coreclr/blob/master/src/utilcode/pedecoder.cpp
+// https://github.com/dotnet/coreclr/blob/master/src/debug/daccess/nidump.cpp
+
+#define STORAGE_MAGIC_SIG   0x424A5342  // BSJB
+
+#include <pshpack1.h>
+typedef struct _STORAGESIGNATURE
+{
+    ULONG Signature;
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    ULONG ExtraData;        // Offset to next structure of information
+    ULONG VersionLength;    // Length of version string
+    UCHAR VersionString[1]; // dmex: added for convenience.
+} STORAGESIGNATURE, *PSTORAGESIGNATURE;
+
+typedef struct _STORAGEHEADER
+{
+    BYTE Flags;     // STGHDR_xxx flags.
+    BYTE Reserved;
+    USHORT Streams; // How many streams are there.
+} STORAGEHEADER, *PSTORAGEHEADER;
+
+typedef struct _STORAGESTREAM
+{
+    ULONG Offset;  // Offset in file for this stream.
+    ULONG Size;    // Size of the file.
+    CHAR Name[32]; // Start of name, null terminated.
+} STORAGESTREAM, *PSTORAGESTREAM;
+#include <poppack.h>
+
 INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -40,12 +73,21 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PH_STRING_BUILDER stringBuilder;
+            HWND lvHandle;
             PPH_STRING string;
-            PVOID metaData;
-            ULONG versionStringLength;
+            PH_STRING_BUILDER stringBuilder;
+            PSTORAGESIGNATURE metaData;
 
-            string = PhaFormatString(L"%u.%u", PvImageCor20Header->MajorRuntimeVersion,
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"VA");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
+
+            string = PhaFormatString(
+                L"%u.%u", 
+                PvImageCor20Header->MajorRuntimeVersion,
                 PvImageCor20Header->MinorRuntimeVersion);
             SetDlgItemText(hwndDlg, IDC_RUNTIMEVERSION, string->Buffer);
 
@@ -93,25 +135,43 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 }
             }
 
-            versionStringLength = 0;
-
-            if (metaData)
+            if (metaData && metaData->VersionLength != 0)
             {
-                // Skip 12 bytes.
-                // First 4 bytes contains the length of the version string.
-                // The version string follows.
-                versionStringLength = *(PULONG)((PCHAR)metaData + 12);
-
-                // Make sure the length is valid.
-                if (versionStringLength >= 0x100)
-                    versionStringLength = 0;
-            }
-
-            if (versionStringLength != 0)
-            {
-                string = PhZeroExtendToUtf16Ex((PCHAR)metaData + 12 + 4, versionStringLength);
+                string = PhZeroExtendToUtf16Ex((PCHAR)metaData->VersionString, metaData->VersionLength);
                 SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
                 PhDereferenceObject(string);
+
+                {
+                    PSTORAGEHEADER storageHeader = PTR_ADD_OFFSET(metaData, (sizeof(STORAGESIGNATURE) - sizeof(UCHAR)) + metaData->VersionLength);
+                    PSTORAGESTREAM streamHeader = PTR_ADD_OFFSET(storageHeader, sizeof(STORAGEHEADER));
+
+                    for (USHORT i = 0; i < storageHeader->Streams; i++)
+                    {
+                        INT lvItemIndex;
+                        WCHAR sectionName[65];
+                        WCHAR pointer[PH_PTR_STR_LEN_1];
+
+                        if (PhCopyStringZFromBytes(
+                            streamHeader->Name, 
+                            sizeof(streamHeader->Name), 
+                            sectionName, 
+                            ARRAYSIZE(sectionName),
+                            NULL
+                            ))
+                        {
+                            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
+
+                            PhPrintPointer(pointer, UlongToPtr(streamHeader->Offset));
+
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhaFormatSize(streamHeader->Size, -1)->Buffer);
+                        }
+
+                        // Stream headers don't have fixed sizes...
+                        // The size is aligned up based on a variable length string at the end.
+                        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(FIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, 4));
+                    }
+                }
             }
             else
             {
@@ -123,8 +183,12 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
         {
             if (!propPageContext->LayoutInitialized)
             {
-                PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
 
                 PvDoPropPageLayout(hwndDlg);
 
