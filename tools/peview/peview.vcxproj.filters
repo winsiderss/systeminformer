@@ -36,6 +36,21 @@
     <ClCompile Include="pdb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="clrprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="expprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="impprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cfgprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ldprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

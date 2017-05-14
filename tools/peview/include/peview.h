@@ -3,13 +3,20 @@
 
 #include <ph.h>
 #include <guisup.h>
+#include <mapimg.h>
 #include <prsht.h>
 #include <prpsh.h>
 #include <settings.h>
+#include <symprv.h>
+
+#include <uxtheme.h>
 
 #include "resource.h"
 
 extern PPH_STRING PvFileName;
+extern PH_MAPPED_IMAGE PvMappedImage;
+extern PIMAGE_COR20_HEADER PvImageCor20Header;
+extern PPH_SYMBOL_PROVIDER PvSymbolProvider;
 
 // peprp
 
@@ -64,6 +71,43 @@ VOID PeDumpFileSymbols(
 
 VOID PvPdbProperties(
     VOID
+    );
+
+// 
+
+INT_PTR CALLBACK PvpPeImportsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeExportsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeClrDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeCgfDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 #endif

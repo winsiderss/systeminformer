@@ -73,10 +73,16 @@ typedef ULONG64 (WINAPI *_SymLoadModuleExW)(
     _In_ ULONG Flags
     );
 
-typedef BOOL(WINAPI *_SymGetModuleInfoW64)(
+typedef BOOL (WINAPI *_SymGetModuleInfoW64)(
     _In_ HANDLE hProcess,
     _In_ ULONG64 qwAddr,
     _Out_ PIMAGEHLP_MODULEW64 ModuleInfo
+    );
+
+typedef BOOL (WINAPI *_SymSetContext)(
+    _In_ HANDLE hProcess,
+    _In_ PIMAGEHLP_STACK_FRAME StackFrame,
+    _In_opt_ PIMAGEHLP_CONTEXT Context
     );
 
 _SymInitialize SymInitialize_I = NULL;
@@ -88,8 +94,9 @@ _SymSetOptions SymSetOptions_I = NULL;
 _SymLoadModuleExW SymLoadModuleExW_I = NULL;
 _SymGetModuleInfoW64 SymGetModuleInfoW64_I = NULL;
 _SymGetTypeInfo SymGetTypeInfo_I = NULL;
+_SymSetContext SymSetContext_I = NULL;
 
-BOOLEAN SymInfoDump_DumpBasicType(
+BOOLEAN SymbolInfo_DumpBasicType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ BaseTypeInfo *Info
@@ -98,7 +105,7 @@ BOOLEAN SymInfoDump_DumpBasicType(
     ULONG baseType = btNoType;
     ULONG64 length = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagBaseType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagBaseType))
         return FALSE;
 
     // Basic type ("basicType" in DIA)
@@ -114,7 +121,7 @@ BOOLEAN SymInfoDump_DumpBasicType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpPointerType(
+BOOLEAN SymbolInfo_DumpPointerType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ PointerTypeInfo* Info
@@ -123,7 +130,7 @@ BOOLEAN SymInfoDump_DumpPointerType(
     ULONG TypeIndex = 0;
     ULONG64 Length = 0;
  
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagPointerType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagPointerType))
         return FALSE;
 
     // Type index ("typeId" in DIA)
@@ -144,7 +151,7 @@ BOOLEAN SymInfoDump_DumpPointerType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpTypedef(
+BOOLEAN SymbolInfo_DumpTypedef(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ TypedefInfo* Info
@@ -153,7 +160,7 @@ BOOLEAN SymInfoDump_DumpTypedef(
     ULONG typeIndex = 0;
     PWSTR symbolName = NULL;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagTypedef))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagTypedef))
         return FALSE;
        
     // Type index ("typeId" in DIA)
@@ -173,7 +180,7 @@ BOOLEAN SymInfoDump_DumpTypedef(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpEnum(
+BOOLEAN SymbolInfo_DumpEnum(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ EnumInfo* Info
@@ -183,7 +190,7 @@ BOOLEAN SymInfoDump_DumpEnum(
     ULONG Nested = 0;
     PWSTR symbolName = NULL;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagEnum))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagEnum))
         return FALSE;
 
     // Name ("name" in DIA) 
@@ -203,7 +210,7 @@ BOOLEAN SymInfoDump_DumpEnum(
         return FALSE;
 
     // Enumerators 
-    if (!SymInfoDump_Enumerators(Context, Index, Info->Enums, &Info->NumEnums, ARRAYSIZE(Info->Enums)))
+    if (!SymbolInfo_Enumerators(Context, Index, Info->Enums, &Info->NumEnums, ARRAYSIZE(Info->Enums)))
         return FALSE;
 
     Info->TypeIndex = TypeIndex;
@@ -212,7 +219,7 @@ BOOLEAN SymInfoDump_DumpEnum(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpArrayType(
+BOOLEAN SymbolInfo_DumpArrayType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ArrayTypeInfo* Info
@@ -223,11 +230,11 @@ BOOLEAN SymInfoDump_DumpArrayType(
     ULONG indexTypeIndex = 0;
 
     // Check if it is really SymTagArrayType 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagArrayType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagArrayType))
         return FALSE;
 
     // Element type index 
-    if (!SymInfoDump_ArrayElementTypeIndex(Context, Index, &elementTypeIndex))
+    if (!SymbolInfo_ArrayElementTypeIndex(Context, Index, &elementTypeIndex))
         return FALSE;
 
     // Length ("length" in DIA) 
@@ -245,7 +252,7 @@ BOOLEAN SymInfoDump_DumpArrayType(
     if (length > 0)
     {
         // Dimensions 
-        if (!SymInfoDump_ArrayDims(
+        if (!SymbolInfo_ArrayDims(
             Context,
             Index, 
             Info->Dimensions,
@@ -264,7 +271,7 @@ BOOLEAN SymInfoDump_DumpArrayType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpUDT(
+BOOLEAN SymbolInfo_DumpUDT(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ TypeInfo* Info
@@ -273,7 +280,7 @@ BOOLEAN SymInfoDump_DumpUDT(
     ULONG UDTKind = 0;
     BOOLEAN result = FALSE;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     // Determine UDT kind (class/structure or union?)
@@ -284,22 +291,22 @@ BOOLEAN SymInfoDump_DumpUDT(
     {
     case UdtStruct:
         Info->UdtKind = TRUE;
-        result = SymInfoDump_DumpUDTClass(Context, Index, &Info->sUdtClassInfo);
+        result = SymbolInfo_DumpUDTClass(Context, Index, &Info->sUdtClassInfo);
         break;
     case UdtClass:
         Info->UdtKind = TRUE;
-        result = SymInfoDump_DumpUDTClass(Context, Index, &Info->sUdtClassInfo);
+        result = SymbolInfo_DumpUDTClass(Context, Index, &Info->sUdtClassInfo);
         break;
     case UdtUnion:
         Info->UdtKind = FALSE;
-        result = SymInfoDump_DumpUDTUnion(Context, Index, &Info->sUdtUnionInfo);
+        result = SymbolInfo_DumpUDTUnion(Context, Index, &Info->sUdtUnionInfo);
         break;
     }
 
     return result;
 }
 
-BOOLEAN SymInfoDump_DumpUDTClass(
+BOOLEAN SymbolInfo_DumpUDTClass(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ UdtClassInfo* Info
@@ -310,7 +317,7 @@ BOOLEAN SymInfoDump_DumpUDTClass(
     ULONG64 Length = 0;
     ULONG Nested = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     // Check if it is really a class or structure UDT ? 
@@ -337,15 +344,15 @@ BOOLEAN SymInfoDump_DumpUDTClass(
         return FALSE;
 
     // Member variables 
-    if (!SymInfoDump_UdtVariables(Context, Index, Info->Variables, &Info->NumVariables, ARRAYSIZE(Info->Variables)))
+    if (!SymbolInfo_UdtVariables(Context, Index, Info->Variables, &Info->NumVariables, ARRAYSIZE(Info->Variables)))
         return FALSE;
 
     // Member functions 
-    if (!SymInfoDump_UdtFunctions(Context, Index, Info->Functions, &Info->NumFunctions, ARRAYSIZE(Info->Functions)))
+    if (!SymbolInfo_UdtFunctions(Context, Index, Info->Functions, &Info->NumFunctions, ARRAYSIZE(Info->Functions)))
         return FALSE;
 
     // Base classes 
-    if (!SymInfoDump_UdtBaseClasses(Context, Index, Info->BaseClasses, &Info->NumBaseClasses, ARRAYSIZE(Info->BaseClasses)))
+    if (!SymbolInfo_UdtBaseClasses(Context, Index, Info->BaseClasses, &Info->NumBaseClasses, ARRAYSIZE(Info->BaseClasses)))
         return FALSE;
 
     Info->UDTKind = (UdtKind)UDTKind;
@@ -355,7 +362,7 @@ BOOLEAN SymInfoDump_DumpUDTClass(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpUDTUnion(
+BOOLEAN SymbolInfo_DumpUDTUnion(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ UdtUnionInfo *Info
@@ -366,7 +373,7 @@ BOOLEAN SymInfoDump_DumpUDTUnion(
     ULONG64 Length = 0;
     ULONG Nested = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     // Check if it is really a union UDT ? 
@@ -393,7 +400,7 @@ BOOLEAN SymInfoDump_DumpUDTUnion(
         return FALSE;
 
     // Union members 
-    if (!SymInfoDump_UdtUnionMembers(Context, Index, Info->Members, &Info->NumMembers, ARRAYSIZE(Info->Members)))
+    if (!SymbolInfo_UdtUnionMembers(Context, Index, Info->Members, &Info->NumMembers, ARRAYSIZE(Info->Members)))
         return FALSE;
 
     Info->UDTKind = (UdtKind)UDTKind;
@@ -403,7 +410,7 @@ BOOLEAN SymInfoDump_DumpUDTUnion(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpFunctionType(
+BOOLEAN SymbolInfo_DumpFunctionType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ FunctionTypeInfo *Info
@@ -414,7 +421,7 @@ BOOLEAN SymInfoDump_DumpFunctionType(
     ULONG CallConv = 0;
     ULONG ClassIndex = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagFunctionType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagFunctionType))
         return FALSE;
 
     // Index of the return type symbol ("typeId" in DIA)
@@ -479,7 +486,7 @@ BOOLEAN SymInfoDump_DumpFunctionType(
     */
 
     // Dump function arguments 
-    if (!SymInfoDump_FunctionArguments(Context, Index, Info->Args, &Info->NumArgs, ARRAYSIZE(Info->Args)))
+    if (!SymbolInfo_FunctionArguments(Context, Index, Info->Args, &Info->NumArgs, ARRAYSIZE(Info->Args)))
         return FALSE;
 
     // Is the function static ? (If it is a member function) 
@@ -496,7 +503,7 @@ BOOLEAN SymInfoDump_DumpFunctionType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpFunctionArgType(
+BOOLEAN SymbolInfo_DumpFunctionArgType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ FunctionArgTypeInfo *Info
@@ -504,7 +511,7 @@ BOOLEAN SymInfoDump_DumpFunctionArgType(
 {
     ULONG typeIndex = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagFunctionArgType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagFunctionArgType))
         return FALSE;
 
     // Index of the argument type ("typeId" in DIA)
@@ -516,7 +523,7 @@ BOOLEAN SymInfoDump_DumpFunctionArgType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpBaseClass(
+BOOLEAN SymbolInfo_DumpBaseClass(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ BaseClassInfo *Info
@@ -525,7 +532,7 @@ BOOLEAN SymInfoDump_DumpBaseClass(
     ULONG typeIndex = 0;
     ULONG virtualBase = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagBaseClass))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagBaseClass))
         return FALSE;
 
     // Base class UDT 
@@ -597,7 +604,7 @@ BOOLEAN SymInfoDump_DumpBaseClass(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpData(
+BOOLEAN SymbolInfo_DumpData(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ DataInfo *Info
@@ -607,7 +614,7 @@ BOOLEAN SymInfoDump_DumpData(
     ULONG TypeIndex = 0;
     ULONG dataKind = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagData))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagData))
         return FALSE;
 
     // Name ("name" in DIA) 
@@ -677,7 +684,7 @@ BOOLEAN SymInfoDump_DumpData(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_DumpType(
+BOOLEAN SymbolInfo_DumpType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ TypeInfo *Info
@@ -704,41 +711,41 @@ BOOLEAN SymInfoDump_DumpType(
     switch (tag)
     {
     case SymTagBaseType:
-        result = SymInfoDump_DumpBasicType(Context, Index, &Info->sBaseTypeInfo);
+        result = SymbolInfo_DumpBasicType(Context, Index, &Info->sBaseTypeInfo);
         break;
     case SymTagPointerType:
-        result = SymInfoDump_DumpPointerType(Context, Index, &Info->sPointerTypeInfo);
+        result = SymbolInfo_DumpPointerType(Context, Index, &Info->sPointerTypeInfo);
         break;
     case SymTagTypedef:
-        result = SymInfoDump_DumpTypedef(Context, Index, &Info->sTypedefInfo);
+        result = SymbolInfo_DumpTypedef(Context, Index, &Info->sTypedefInfo);
         break;
     case SymTagEnum:
-        result = SymInfoDump_DumpEnum(Context, Index, &Info->sEnumInfo);
+        result = SymbolInfo_DumpEnum(Context, Index, &Info->sEnumInfo);
         break;
     case SymTagArrayType:
-        result = SymInfoDump_DumpArrayType(Context, Index, &Info->sArrayTypeInfo);
+        result = SymbolInfo_DumpArrayType(Context, Index, &Info->sArrayTypeInfo);
         break;
     case SymTagUDT:
-        result = SymInfoDump_DumpUDT(Context, Index, Info);
+        result = SymbolInfo_DumpUDT(Context, Index, Info);
         break;
     case SymTagFunctionType:
-        result = SymInfoDump_DumpFunctionType(Context, Index, &Info->sFunctionTypeInfo);
+        result = SymbolInfo_DumpFunctionType(Context, Index, &Info->sFunctionTypeInfo);
         break;
     case SymTagFunctionArgType:
-        result = SymInfoDump_DumpFunctionArgType(Context, Index, &Info->sFunctionArgTypeInfo);
+        result = SymbolInfo_DumpFunctionArgType(Context, Index, &Info->sFunctionArgTypeInfo);
         break;
     case SymTagBaseClass:
-        result = SymInfoDump_DumpBaseClass(Context, Index, &Info->sBaseClassInfo);
+        result = SymbolInfo_DumpBaseClass(Context, Index, &Info->sBaseClassInfo);
         break;
     case SymTagData:
-        result = SymInfoDump_DumpData(Context, Index, &Info->sDataInfo);
+        result = SymbolInfo_DumpData(Context, Index, &Info->sDataInfo);
         break;
     }
 
     return result;
 }
 
-BOOLEAN SymInfoDump_DumpSymbolType(
+BOOLEAN SymbolInfo_DumpSymbolType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ TypeInfo *Info,
@@ -750,10 +757,10 @@ BOOLEAN SymInfoDump_DumpSymbolType(
         return FALSE;
 
     // Dump the type symbol 
-    return SymInfoDump_DumpType(Context, *TypeIndex, Info);
+    return SymbolInfo_DumpType(Context, *TypeIndex, Info);
 }
 
-BOOLEAN SymInfoDump_CheckTag(
+BOOLEAN SymbolInfo_CheckTag(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _In_ ULONG Tag
@@ -761,21 +768,13 @@ BOOLEAN SymInfoDump_CheckTag(
 {
     ULONG symTag = SymTagNull;
 
-    if (!SymGetTypeInfo_I(
-        NtCurrentProcess(),
-        Context->BaseAddress,
-        Index,
-        TI_GET_SYMTAG,
-        &symTag
-        ))
-    {
+    if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, Index, TI_GET_SYMTAG, &symTag))
         return FALSE;
-    }
 
     return symTag == Tag;
 }
 
-BOOLEAN SymInfoDump_SymbolSize(
+BOOLEAN SymbolInfo_SymbolSize(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG64* Size
@@ -793,7 +792,7 @@ BOOLEAN SymInfoDump_SymbolSize(
     else
     {
         // No, it does not - it can be SymTagTypedef 
-        if (!SymInfoDump_CheckTag(Context, Index, SymTagTypedef))
+        if (!SymbolInfo_CheckTag(Context, Index, SymTagTypedef))
         {
             // No, this symbol does not have length 
             return FALSE;
@@ -812,7 +811,7 @@ BOOLEAN SymInfoDump_SymbolSize(
 
                 index = tempIndex;
 
-            } while (SymInfoDump_CheckTag(Context, index, SymTagTypedef));
+            } while (SymbolInfo_CheckTag(Context, index, SymTagTypedef));
 
             // And get the length 
             if (SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, index, TI_GET_LENGTH, &length))
@@ -826,7 +825,7 @@ BOOLEAN SymInfoDump_SymbolSize(
     return FALSE;
 }
 
-BOOLEAN SymInfoDump_ArrayElementTypeIndex(
+BOOLEAN SymbolInfo_ArrayElementTypeIndex(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG ArrayIndex,
     _Inout_ ULONG* ElementTypeIndex
@@ -835,7 +834,7 @@ BOOLEAN SymInfoDump_ArrayElementTypeIndex(
     ULONG index;
     ULONG elementIndex = 0;
 
-    if (!SymInfoDump_CheckTag(Context, ArrayIndex, SymTagArrayType))
+    if (!SymbolInfo_CheckTag(Context, ArrayIndex, SymTagArrayType))
         return FALSE;
 
     // Get the array element type 
@@ -845,7 +844,7 @@ BOOLEAN SymInfoDump_ArrayElementTypeIndex(
     // If the array element type is SymTagArrayType, skip to its type 
     index = elementIndex;
 
-    while (SymInfoDump_CheckTag(Context, elementIndex, SymTagArrayType))
+    while (SymbolInfo_CheckTag(Context, elementIndex, SymTagArrayType))
     {
         if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, index, TI_GET_TYPEID, &elementIndex))
             return FALSE;
@@ -859,7 +858,7 @@ BOOLEAN SymInfoDump_ArrayElementTypeIndex(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_ArrayDims(
+BOOLEAN SymbolInfo_ArrayDims(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG64* pDims,
@@ -870,7 +869,7 @@ BOOLEAN SymInfoDump_ArrayDims(
     ULONG index;
     ULONG dimCount;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagArrayType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagArrayType))
         return FALSE;
 
     if (MaxDims <= 0)
@@ -901,7 +900,7 @@ BOOLEAN SymInfoDump_ArrayDims(
         }
 
         // Size of its type 
-        if (!SymInfoDump_SymbolSize(Context, typeIndex, &typeSize) || (typeSize == 0))
+        if (!SymbolInfo_SymbolSize(Context, typeIndex, &typeSize) || (typeSize == 0))
             return FALSE;
 
         // Size of the dimension 
@@ -925,7 +924,7 @@ BOOLEAN SymInfoDump_ArrayDims(
         }
 */
         // If the type symbol is not SymTagArrayType, we are done 
-        if (!SymInfoDump_CheckTag(Context, typeIndex, SymTagArrayType))
+        if (!SymbolInfo_CheckTag(Context, typeIndex, SymTagArrayType))
             break;
 
         index = typeIndex;
@@ -939,7 +938,7 @@ BOOLEAN SymInfoDump_ArrayDims(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_UdtVariables(
+BOOLEAN SymbolInfo_UdtVariables(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG* pVars,
@@ -949,7 +948,7 @@ BOOLEAN SymInfoDump_UdtVariables(
 {
     ULONG childrenLength = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     if (MaxVars <= 0)
@@ -979,7 +978,7 @@ BOOLEAN SymInfoDump_UdtVariables(
     // Enumerate children, looking for base classes, and copy their indexes.
     for (ULONG i = 0; i < childrenLength; i++)
     {
-        if (SymInfoDump_CheckTag(Context, params->ChildId[i], SymTagData))
+        if (SymbolInfo_CheckTag(Context, params->ChildId[i], SymTagData))
         {
             pVars[*Vars] = params->ChildId[i];
 
@@ -993,7 +992,7 @@ BOOLEAN SymInfoDump_UdtVariables(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_UdtFunctions(
+BOOLEAN SymbolInfo_UdtFunctions(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG* pFuncs,
@@ -1003,7 +1002,7 @@ BOOLEAN SymInfoDump_UdtFunctions(
 {
     ULONG childrenLength = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     if (MaxFuncs <= 0)
@@ -1034,7 +1033,7 @@ BOOLEAN SymInfoDump_UdtFunctions(
     // Enumerate children, looking for base classes, and copy their indexes.
     for (ULONG i = 0; i < childrenLength; i++)
     {
-        if (SymInfoDump_CheckTag(Context, params->ChildId[i], SymTagFunction))
+        if (SymbolInfo_CheckTag(Context, params->ChildId[i], SymTagFunction))
         {
             pFuncs[*Funcs] = params->ChildId[i];
 
@@ -1048,7 +1047,7 @@ BOOLEAN SymInfoDump_UdtFunctions(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_UdtBaseClasses(
+BOOLEAN SymbolInfo_UdtBaseClasses(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG* pBases,
@@ -1058,7 +1057,7 @@ BOOLEAN SymInfoDump_UdtBaseClasses(
 {
     ULONG childrenLength = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     if (MaxBases <= 0)
@@ -1089,7 +1088,7 @@ BOOLEAN SymInfoDump_UdtBaseClasses(
     // Enumerate children, looking for base classes, and copy their indexes.
     for (ULONG i = 0; i < childrenLength; i++)
     {
-        if (SymInfoDump_CheckTag(Context, params->ChildId[i], SymTagBaseClass))
+        if (SymbolInfo_CheckTag(Context, params->ChildId[i], SymTagBaseClass))
         {
             pBases[*Bases] = params->ChildId[i];
 
@@ -1103,7 +1102,7 @@ BOOLEAN SymInfoDump_UdtBaseClasses(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_UdtUnionMembers(
+BOOLEAN SymbolInfo_UdtUnionMembers(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG* pMembers,
@@ -1113,7 +1112,7 @@ BOOLEAN SymInfoDump_UdtUnionMembers(
 {
     ULONG childrenLength = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagUDT))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
 
     if (MaxMembers <= 0)
@@ -1144,7 +1143,7 @@ BOOLEAN SymInfoDump_UdtUnionMembers(
     // Enumerate children, looking for enumerators, and copy their indexes.
     for (ULONG i = 0; i < childrenLength; i++)
     {
-        if (SymInfoDump_CheckTag(Context, params->ChildId[i], SymTagData))
+        if (SymbolInfo_CheckTag(Context, params->ChildId[i], SymTagData))
         {
             pMembers[*Members] = params->ChildId[i];
 
@@ -1158,7 +1157,7 @@ BOOLEAN SymInfoDump_UdtUnionMembers(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_FunctionArguments(
+BOOLEAN SymbolInfo_FunctionArguments(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG* pArgs,
@@ -1168,7 +1167,7 @@ BOOLEAN SymInfoDump_FunctionArguments(
 {
     ULONG childrenLength = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagFunctionType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagFunctionType))
         return FALSE;
 
     if (MaxArgs <= 0)
@@ -1199,7 +1198,7 @@ BOOLEAN SymInfoDump_FunctionArguments(
     // Enumerate children, looking for enumerators, and copy their indexes.
     for (ULONG i = 0; i < childrenLength; i++)
     {
-        if (SymInfoDump_CheckTag(Context, params->ChildId[i], SymTagFunctionArgType))
+        if (SymbolInfo_CheckTag(Context, params->ChildId[i], SymTagFunctionArgType))
         {
             pArgs[*Args] = params->ChildId[i];
 
@@ -1213,7 +1212,7 @@ BOOLEAN SymInfoDump_FunctionArguments(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_Enumerators(
+BOOLEAN SymbolInfo_Enumerators(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG *pEnums,
@@ -1223,7 +1222,7 @@ BOOLEAN SymInfoDump_Enumerators(
 {
     ULONG childrenLength = 0;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagEnum))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagEnum))
         return FALSE;
 
     if (MaxEnums <= 0)
@@ -1254,7 +1253,7 @@ BOOLEAN SymInfoDump_Enumerators(
     // Enumerate children, looking for enumerators, and copy their indexes.
     for (ULONG i = 0; i < childrenLength; i++)
     {
-        if (SymInfoDump_CheckTag(Context, params->ChildId[i], SymTagData))
+        if (SymbolInfo_CheckTag(Context, params->ChildId[i], SymTagData))
         {
             pEnums[*Enums] = params->ChildId[i];
 
@@ -1268,7 +1267,7 @@ BOOLEAN SymInfoDump_Enumerators(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_TypeDefType(
+BOOLEAN SymbolInfo_TypeDefType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG *UndTypeIndex
@@ -1276,13 +1275,13 @@ BOOLEAN SymInfoDump_TypeDefType(
 {
     ULONG index;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagTypedef))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagTypedef))
         return FALSE;
 
     // Skip to the type behind the type definition 
     index = Index;
 
-    while (SymInfoDump_CheckTag(Context, index, SymTagTypedef))
+    while (SymbolInfo_CheckTag(Context, index, SymTagTypedef))
     {
         if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, index, TI_GET_TYPEID, UndTypeIndex))
             return FALSE;
@@ -1293,7 +1292,7 @@ BOOLEAN SymInfoDump_TypeDefType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_PointerType(
+BOOLEAN SymbolInfo_PointerType(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _Inout_ ULONG *UndTypeIndex,
@@ -1302,14 +1301,14 @@ BOOLEAN SymInfoDump_PointerType(
 {
     ULONG index;
 
-    if (!SymInfoDump_CheckTag(Context, Index, SymTagPointerType))
+    if (!SymbolInfo_CheckTag(Context, Index, SymTagPointerType))
         return FALSE;
 
     // Skip to the type pointer points to 
     *NumPointers = 0;
     index = Index;
 
-    while (SymInfoDump_CheckTag(Context, index, SymTagPointerType))
+    while (SymbolInfo_CheckTag(Context, index, SymTagPointerType))
     {
         if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, index, TI_GET_TYPEID, UndTypeIndex))
             return FALSE;
@@ -1322,7 +1321,7 @@ BOOLEAN SymInfoDump_PointerType(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_GetTypeNameHelper(
+BOOLEAN SymbolInfo_GetTypeNameHelper(
     _In_ ULONG Index,
     _Inout_ PPDB_SYMBOL_CONTEXT Obj,
     _Out_ PWSTR *VarName,
@@ -1332,7 +1331,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
     TypeInfo Info;
 
     // Get the type information 
-    if (!SymInfoDump_DumpType(Obj, Index, &Info))
+    if (!SymbolInfo_DumpType(Obj, Index, &Info))
     {
         return FALSE;
     }
@@ -1346,11 +1345,11 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
             // Yes, get the number of * to show 
             ULONG typeIndex = 0;
 
-            if (!SymInfoDump_PointerType(Obj, Index, &typeIndex, &numPointers))
+            if (!SymbolInfo_PointerType(Obj, Index, &typeIndex, &numPointers))
                 return FALSE;
 
             // Get more information about the type the pointer points to                
-            if (!SymInfoDump_DumpType(Obj, typeIndex, &Info))
+            if (!SymbolInfo_DumpType(Obj, typeIndex, &Info))
                 return FALSE;
 
             // Save the index of the type the pointer points to 
@@ -1362,7 +1361,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
         switch (Info.Tag)
         {
         case SymTagBaseType:
-            *TypeName = SymInfoDump_BaseTypeStr(Info.sBaseTypeInfo.BaseType, Info.sBaseTypeInfo.Length);
+            *TypeName = SymbolInfo_BaseTypeStr(Info.sBaseTypeInfo.BaseType, Info.sBaseTypeInfo.Length);
             break;
 
         case SymTagTypedef:
@@ -1399,12 +1398,12 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
                 }
 
                 // Print return value 
-                if (!SymInfoDump_GetTypeNameHelper(Info.sFunctionTypeInfo.RetTypeIndex, Obj, VarName, TypeName))
+                if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.RetTypeIndex, Obj, VarName, TypeName))
                     return FALSE;
 
                 // Print calling convention 
                 //TypeName += " ";
-                //TypeName += SymInfoDump_CallConvStr(Info.Info.sFunctionTypeInfo.CallConv);
+                //TypeName += SymbolInfo_CallConvStr(Info.Info.sFunctionTypeInfo.CallConv);
                 //TypeName += " ";
 
                 // If member function, save the class type index 
@@ -1415,7 +1414,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
                     /*
                       // It is not needed to print the class name here, because
                       // it is contained in the function name
-                      if( !SymInfoDump_GetTypeNameHelper( Info.Info.sFunctionTypeInfo.ClassIndex, Obj, VarName, TypeName ) )
+                      if( !SymbolInfo_GetTypeNameHelper( Info.Info.sFunctionTypeInfo.ClassIndex, Obj, VarName, TypeName ) )
                           return false;
 
                       TypeName += "::");
@@ -1428,7 +1427,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
                 //TypeName += " (";
                 for (ULONG i = 0; i < Info.sFunctionTypeInfo.NumArgs; i++)
                 {
-                    if (!SymInfoDump_GetTypeNameHelper(Info.sFunctionTypeInfo.Args[i], Obj, VarName, TypeName))
+                    if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.Args[i], Obj, VarName, TypeName))
                         return FALSE;
 
                     //if (i < (Info.sFunctionTypeInfo.NumArgs - 1))
@@ -1452,7 +1451,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
 
         case SymTagFunctionArgType:
             {   
-                if (!SymInfoDump_GetTypeNameHelper(Info.sFunctionArgTypeInfo.TypeIndex, Obj, VarName, TypeName))
+                if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionArgTypeInfo.TypeIndex, Obj, VarName, TypeName))
                     return FALSE;
             }
             break;
@@ -1460,7 +1459,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
         case SymTagArrayType:
             {
                 // Print element type name 
-                if (!SymInfoDump_GetTypeNameHelper(Info.sArrayTypeInfo.ElementTypeIndex, Obj, VarName, TypeName))
+                if (!SymbolInfo_GetTypeNameHelper(Info.sArrayTypeInfo.ElementTypeIndex, Obj, VarName, TypeName))
                     return FALSE;
 
                 //TypeName += " ";
@@ -1497,7 +1496,7 @@ BOOLEAN SymInfoDump_GetTypeNameHelper(
     return TRUE;
 }
 
-BOOLEAN SymInfoDump_GetTypeName(
+BOOLEAN SymbolInfo_GetTypeName(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Index,
     _In_ PWSTR pVarName,
@@ -1515,7 +1514,7 @@ BOOLEAN SymInfoDump_GetTypeName(
         VarName = pVarName;
 
     // Obtain the type name 
-    if (!SymInfoDump_GetTypeNameHelper(Index, Context, &VarName, &TypeName))
+    if (!SymbolInfo_GetTypeNameHelper(Index, Context, &VarName, &TypeName))
         return FALSE;
 
     if (!wcslen(TypeName))
@@ -1529,7 +1528,7 @@ BOOLEAN SymInfoDump_GetTypeName(
 
 ///////////////////////////////////////////////////////////////////////////////
 // Data-to-string conversion functions 
-PWSTR SymInfoDump_TagStr(
+PWSTR SymbolInfo_TagStr(
     _In_ enum SymTagEnum Tag
     )
 {
@@ -1603,7 +1602,7 @@ PWSTR SymInfoDump_TagStr(
 
 }
 
-PWSTR SymInfoDump_BaseTypeStr(
+PWSTR SymbolInfo_BaseTypeStr(
     _In_ BasicType Type, 
     _In_ ULONG64 Length
     )
@@ -1694,7 +1693,7 @@ PWSTR SymInfoDump_BaseTypeStr(
 
 }
 
-PWSTR SymInfoDump_CallConvStr(
+PWSTR SymbolInfo_CallConvStr(
     _In_ CV_call_e CallConv
     )
 {
@@ -1752,7 +1751,7 @@ PWSTR SymInfoDump_CallConvStr(
 
 }
 
-PWSTR SymInfoDump_DataKindFromSymbolInfo(
+PWSTR SymbolInfo_DataKindFromSymbolInfo(
     _In_ PSYMBOL_INFOW SymbolInfo
     )
 {
@@ -1761,10 +1760,10 @@ PWSTR SymInfoDump_DataKindFromSymbolInfo(
     if (!SymGetTypeInfo_I(NtCurrentProcess(), SymbolInfo->ModBase, SymbolInfo->Index, TI_GET_DATAKIND, &dataKindType))
         return L"UNKNOWN";
 
-    return SymInfoDump_DataKindStr(dataKindType);
+    return SymbolInfo_DataKindStr(dataKindType);
 }
 
-PWSTR SymInfoDump_DataKindStr(
+PWSTR SymbolInfo_DataKindStr(
     _In_ DataKind SymDataKind
     )
 {
@@ -1793,14 +1792,14 @@ PWSTR SymInfoDump_DataKindStr(
     return L"UNKNOWN";
 }
 
-VOID SymInfoDump_SymbolLocationStr(
+VOID SymbolInfo_SymbolLocationStr(
     _In_ PSYMBOL_INFOW SymbolInfo, 
     _In_ PWSTR Buffer
     )
 {
     if (SymbolInfo->Flags & SYMFLAG_REGISTER)
     {
-        PWSTR regString = SymInfoDump_RegisterStr((CV_HREG_e)SymbolInfo->Register);
+        PWSTR regString = SymbolInfo_RegisterStr(SymbolInfo->Register);
 
         if (regString)
             wcscpy(Buffer, regString);
@@ -1812,7 +1811,7 @@ VOID SymInfoDump_SymbolLocationStr(
     else if (SymbolInfo->Flags & SYMFLAG_REGREL)
     {
         WCHAR szReg[32];
-        PWSTR regString = SymInfoDump_RegisterStr((CV_HREG_e)SymbolInfo->Register);
+        PWSTR regString = SymbolInfo_RegisterStr(SymbolInfo->Register);
 
         if (regString)
             wcscpy(szReg, regString);
@@ -1830,12 +1829,11 @@ VOID SymInfoDump_SymbolLocationStr(
     }
     else
     {
-        //_swprintf(Buffer, L"%16I64x", SymbolInfo->Address);
         PhPrintPointer(Buffer, PTR_SUB_OFFSET(SymbolInfo->Address, SymbolInfo->ModBase));
     }
 }
 
-PWSTR SymInfoDump_RegisterStr(
+PWSTR SymbolInfo_RegisterStr(
     _In_ CV_HREG_e RegCode
     )
 {
@@ -1862,7 +1860,7 @@ PWSTR SymInfoDump_RegisterStr(
     return L"Unknown";
 }
 
-PWSTR SymInfoDump_UdtKindStr(
+PWSTR SymbolInfo_UdtKindStr(
     _In_ UdtKind KindType
     )
 {
@@ -1879,7 +1877,7 @@ PWSTR SymInfoDump_UdtKindStr(
     return L"UNKNOWN";
 }
 
-PWSTR SymInfoDump_LocationTypeStr(
+PWSTR SymbolInfo_LocationTypeStr(
     _In_ LocationType LocType
     )
 {
@@ -1952,11 +1950,11 @@ VOID PrintDataInfo(
         return;
 
     // Type
-    symDataKind = SymInfoDump_DataKindFromSymbolInfo(SymbolInfo);
+    symDataKind = SymbolInfo_DataKindFromSymbolInfo(SymbolInfo);
     lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, symDataKind, NULL);
 
     // Address  
-    SymInfoDump_SymbolLocationStr(SymbolInfo, pointer);
+    SymbolInfo_SymbolLocationStr(SymbolInfo, pointer);
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
 
     // Name
@@ -1966,7 +1964,7 @@ VOID PrintDataInfo(
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
 
     // Data 
-    //if (SymInfoDump_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
+    //if (SymbolInfo_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
     //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, szTypeName);
 
     // Flags: %x, SymbolInfo->Flags
@@ -1988,7 +1986,7 @@ VOID PrintFunctionInfo(
     lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, L"FUNCTION", NULL);
 
     // Address  
-    SymInfoDump_SymbolLocationStr(SymbolInfo, pointer);
+    SymbolInfo_SymbolLocationStr(SymbolInfo, pointer);
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
 
     // Name
@@ -1998,7 +1996,7 @@ VOID PrintFunctionInfo(
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
 
     // Data 
-    //if (SymInfoDump_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
+    //if (SymbolInfo_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
     //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, szTypeName);
 
     // Flags: %x, SymbolInfo->Flags
@@ -2007,8 +2005,8 @@ VOID PrintFunctionInfo(
     // Enumerate function parameters and local variables...
     //IMAGEHLP_STACK_FRAME sf;
     //sf.InstructionOffset = SymbolInfo->Address;
-    //SymSetContext(NtCurrentProcess(), &sf, 0);
-    //SymEnumSymbolsW(NtCurrentProcess(), 0, NULL, EnumCallbackProc, pTypeInfo);
+    //SymSetContext_I(NtCurrentProcess(), &sf, 0);
+    //SymEnumSymbolsW_I(NtCurrentProcess(), 0, NULL, EnumCallbackProc, Context);
 }
 
 VOID PrintDefaultInfo(
@@ -2026,7 +2024,7 @@ VOID PrintDefaultInfo(
     lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, L"SYMBOL", NULL);
 
     // Address  
-    SymInfoDump_SymbolLocationStr(SymbolInfo, pointer);
+    SymbolInfo_SymbolLocationStr(SymbolInfo, pointer);
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
 
     // Name
@@ -2036,7 +2034,7 @@ VOID PrintDefaultInfo(
     PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
 
     // Data 
-    //if (SymInfoDump_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
+    //if (SymbolInfo_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
     //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, szTypeName);
 
     // Flags: %x, SymbolInfo->Flags
@@ -2050,7 +2048,7 @@ VOID PrintClassInfo(
     )
 {
     // UDT kind 
-    //OutputDebugString(PhaFormatString(L"%s", SymInfoDump_UdtKindStr(Info->UDTKind))->Buffer);
+    //OutputDebugString(PhaFormatString(L"%s", SymbolInfo_UdtKindStr(Info->UDTKind))->Buffer);
     // Name 
     //OutputDebugString(PhaFormatString(L" %s \n", Info->Name)->Buffer);
     // Size 
@@ -2072,9 +2070,9 @@ VOID PrintClassInfo(
     {
         TypeInfo VarInfo;
 
-        if (!SymInfoDump_DumpType(Context, Info->Variables[i], &VarInfo))
+        if (!SymbolInfo_DumpType(Context, Info->Variables[i], &VarInfo))
         {
-            //_ASSERTE(!_T("SymInfoDump::DumpType() failed."));
+            //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
             // Continue with the next variable 
         }
         else if (VarInfo.Tag != SymTagData)
@@ -2095,7 +2093,7 @@ VOID PrintClassInfo(
             //#define cMaxTypeNameLen 1024
             //TCHAR szTypeName[cMaxTypeNameLen + 1] = _T("");
 
-            //if (SymInfoDump_GetTypeName(VarInfo.Info.sDataInfo.TypeIndex, W2T(VarInfo.Info.sDataInfo.Name), szTypeName, cMaxTypeNameLen))
+            //if (SymbolInfo_GetTypeName(VarInfo.Info.sDataInfo.TypeIndex, W2T(VarInfo.Info.sDataInfo.Name), szTypeName, cMaxTypeNameLen))
             //_tprintf(szTypeName);
             //else
             //_tprintf(_T("n/a"));
@@ -2141,9 +2139,9 @@ VOID PrintClassInfo(
     {
         TypeInfo baseInfo;
 
-        if (!SymInfoDump_DumpType(Context, Info->BaseClasses[i], &baseInfo))
+        if (!SymbolInfo_DumpType(Context, Info->BaseClasses[i], &baseInfo))
         {
-            //_ASSERTE(!_T("SymInfoDump::DumpType() failed."));
+            //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
             // Continue with the next base class 
         }
         else if (baseInfo.Tag != SymTagBaseClass)
@@ -2156,9 +2154,9 @@ VOID PrintClassInfo(
             // Obtain the name of the base class 
             TypeInfo BaseUdtInfo;
 
-            if (!SymInfoDump_DumpType(Context, baseInfo.sBaseClassInfo.TypeIndex, &BaseUdtInfo))
+            if (!SymbolInfo_DumpType(Context, baseInfo.sBaseClassInfo.TypeIndex, &BaseUdtInfo))
             {
-                //_ASSERTE(!_T("SymInfoDump::DumpType() failed."));
+                //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
                 // Continue with the next base class 
             }
             else if (BaseUdtInfo.Tag != SymTagUDT)
@@ -2194,7 +2192,7 @@ VOID PrintUserDefinedTypes(
     {
         index = PtrToUlong(Context->UdtList->Items[i]);
 
-        if (SymInfoDump_DumpType(Context, index, &info))
+        if (SymbolInfo_DumpType(Context, index, &info))
         {
             if (info.Tag == SymTagUDT)
             {
@@ -2208,9 +2206,9 @@ VOID PrintUserDefinedTypes(
                     {
                         TypeInfo baseInfo;
 
-                        if (!SymInfoDump_DumpType(Context, info.sUdtClassInfo.BaseClasses[i], &baseInfo))
+                        if (!SymbolInfo_DumpType(Context, info.sUdtClassInfo.BaseClasses[i], &baseInfo))
                         {
-                            //_ASSERTE(!_T("SymInfoDump::DumpType() failed."));
+                            //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
                             // Continue with the next base class 
                         }
                         else if (baseInfo.Tag != SymTagBaseClass)
@@ -2223,9 +2221,9 @@ VOID PrintUserDefinedTypes(
                             // Obtain information about the base class 
                             TypeInfo baseUdtInfo;
 
-                            if (!SymInfoDump_DumpType(Context, baseInfo.sBaseClassInfo.TypeIndex, &baseUdtInfo))
+                            if (!SymbolInfo_DumpType(Context, baseInfo.sBaseClassInfo.TypeIndex, &baseUdtInfo))
                             {
-                                //_ASSERTE(!_T("SymInfoDump::DumpType() failed."));
+                                //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
                                 // Continue with the next base class 
                             }
                             else if (baseUdtInfo.Tag != SymTagUDT)
@@ -2443,7 +2441,6 @@ VOID ShowSymbolInfo(
     //OutputDebugString(PhaFormatString(L"Public symbols: %s\n", info.Publics ? L"Available" : L"Not available")->Buffer);
 }
 
-
 VOID PeDumpFileSymbols(
     _In_ HWND ListViewHandle, 
     _In_ PWSTR FileName
@@ -2451,12 +2448,12 @@ VOID PeDumpFileSymbols(
 {
     HMODULE dbghelpHandle;
     HMODULE symsrvHandle;
-    ULONG64 symbolBaseAddress = 0;
+    ULONG64 symbolBaseAddress;
     ULONG64 baseAddress = 0;
     ULONG fileLength = 0;
 
     PdbLoadDbgHelpFromPath(L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll");
-      
+
     if (!(dbghelpHandle = GetModuleHandle(L"dbghelp.dll")))
         return;
 
@@ -2470,8 +2467,9 @@ VOID PeDumpFileSymbols(
     SymLoadModuleExW_I = PhGetProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
     SymGetModuleInfoW64_I = PhGetProcedureAddress(dbghelpHandle, "SymGetModuleInfoW64", 0);
     SymGetTypeInfo_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
+    SymSetContext_I = PhGetProcedureAddress(dbghelpHandle, "SymSetContext", 0);
 
-    SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME); // SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED
+    SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_ALLOW_ZERO_ADDRESS); // SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED
 
     if (!SymInitialize_I(NtCurrentProcess(), NULL, FALSE))
         return;
@@ -2498,7 +2496,7 @@ VOID PeDumpFileSymbols(
             context.BaseAddress = symbolBaseAddress;
             context.UdtList = PhCreateList(0x100);
 
-            ShowSymbolInfo(symbolBaseAddress);
+            //ShowSymbolInfo(symbolBaseAddress);
 
             SymEnumSymbolsW_I(NtCurrentProcess(), symbolBaseAddress, NULL, EnumCallbackProc, &context);
 
@@ -2560,7 +2558,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             HWND lvHandle;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"Type");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"VA");
