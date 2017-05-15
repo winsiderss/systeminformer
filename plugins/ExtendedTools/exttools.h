@@ -2,6 +2,7 @@
 #define EXTTOOLS_H
 
 #include <phdk.h>
+#include <phappresource.h>
 #include <settings.h>
 #include <windowsx.h>
 #include <math.h>
@@ -22,8 +23,13 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
 #define SETTING_NAME_GPU_NODE_BITMAP (PLUGIN_NAME L".GpuNodeBitmap")
 #define SETTING_NAME_GPU_LAST_NODE_COUNT (PLUGIN_NAME L".GpuLastNodeCount")
+#define SETTING_NAME_UNLOADED_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
+#define SETTING_NAME_UNLOADED_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
+#define SETTING_NAME_UNLOADED_COLUMNS (PLUGIN_NAME L".UnloadedListColumns")
 
 #define ET_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
+#define ET_LOAD_SHARED_ICON_SMALL(Name) PhLoadIcon(NtCurrentPeb()->ImageBaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0)
+#define ET_LOAD_SHARED_ICON_LARGE(Name) PhLoadIcon(NtCurrentPeb()->ImageBaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0)
 
 // Graph update message
 
@@ -536,7 +542,6 @@ BOOLEAN EtUiCancelIoThread(
 // unldll
 
 VOID EtShowUnloadedDllsDialog(
-    _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 

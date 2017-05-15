@@ -86,7 +86,7 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_PROCESS_UNLOADEDMODULES:
         {
-            EtShowUnloadedDllsDialog(PhMainWndHandle, menuItem->Context);
+            EtShowUnloadedDllsDialog(menuItem->Context);
         }
         break;
     case ID_PROCESS_WSWATCH:
@@ -604,7 +604,10 @@ LOGICAL DllMain(
                     { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
                     { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                     { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
-                    { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" }
+                    { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" },
+                    { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
+                    { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },
+                    { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
