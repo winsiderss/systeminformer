@@ -33,7 +33,7 @@ BOOLEAN EtGpuEnabled;
 static PPH_LIST EtpGpuAdapterList;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
-ULONG EtGpuTotalNodeCount;
+ULONG EtGpuTotalNodeCount = 0;
 ULONG EtGpuTotalSegmentCount;
 ULONG64 EtGpuDedicatedLimit;
 ULONG64 EtGpuSharedLimit;
@@ -273,6 +273,9 @@ BOOLEAN EtpInitializeD3DStatistics(
     }
 
     PhFree(deviceInterfaceList);
+
+    if (EtGpuTotalNodeCount == 0)
+        return FALSE;
 
     EtGpuNodeBitMapBuffer = PhAllocate(BYTES_NEEDED_FOR_BITS(EtGpuTotalNodeCount));
     RtlInitializeBitMap(&EtGpuNodeBitMap, EtGpuNodeBitMapBuffer, EtGpuTotalNodeCount);
