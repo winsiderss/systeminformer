@@ -67,7 +67,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 RtlSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
                 PhLargeIntegerToLocalSystemTime(&systemTime, &time); \
                 \
-                ADD_VALUE(L"Time stamp", PhaFormatDateTime(&systemTime)->Buffer); \
+                ADD_VALUE(L"Time stamp", (Config)->TimeDateStamp ? PhaFormatDateTime(&systemTime)->Buffer : L"0"); \
                 ADD_VALUE(L"Version", PhaFormatString(L"%u.%u", (Config)->MajorVersion, (Config)->MinorVersion)->Buffer); \
                 ADD_VALUE(L"Global flags to clear", PhaFormatString(L"0x%x", (Config)->GlobalFlagsClear)->Buffer); \
                 ADD_VALUE(L"Global flags to set", PhaFormatString(L"0x%x", (Config)->GlobalFlagsSet)->Buffer); \
@@ -85,7 +85,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
                 ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
                 \
-                if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardAddressTakenIatEntryTable)) \
+                if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardCFCheckFunctionPointer)) \
                 { \
                     ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
                     ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
@@ -101,7 +101,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                     } \
                     if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardLongJumpTargetTable) \
                             + sizeof((Config)->GuardLongJumpTargetTable) \
-                            + sizeof((Config)->GuardLongJumpTargetCount))\
+                            + sizeof((Config)->GuardLongJumpTargetCount)) \
                     { \
                         ADD_VALUE(L"CFG LongJump table", PhaFormatString(L"0x%Ix", (Config)->GuardLongJumpTargetTable)->Buffer); \
                         ADD_VALUE(L"CFG LongJump table entry count", PhaFormatUInt64((Config)->GuardLongJumpTargetCount, TRUE)->Buffer); \
