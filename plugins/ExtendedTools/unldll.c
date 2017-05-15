@@ -26,6 +26,7 @@ typedef struct _UNLOADED_DLLS_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     HWND ListViewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
     PVOID CapturedEventTrace;
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
@@ -37,7 +38,6 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
     );
 
 VOID EtShowUnloadedDllsDialog(
-    _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
@@ -49,7 +49,7 @@ VOID EtShowUnloadedDllsDialog(
     DialogBoxParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_UNLOADEDDLLS),
-        ParentWindowHandle,
+        NULL,
         EtpUnloadedDllsDlgProc,
         (LPARAM)&context
         );
@@ -305,6 +305,9 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
         {
             HWND lvHandle;
 
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)ET_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)ET_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -324,12 +327,31 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 3, EtpSizeCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 4, EtpTimeStampCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 5, EtpCheckSumCompareFunction);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_UNLOADED_COLUMNS, lvHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, lvHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_UNLOADED_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_UNLOADED_WINDOW_POSITION, SETTING_NAME_UNLOADED_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             if (!EtpRefreshUnloadedDlls(hwndDlg, context))
             {
                 EndDialog(hwndDlg, IDCANCEL);
                 return FALSE;
             }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(SETTING_NAME_UNLOADED_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_UNLOADED_WINDOW_POSITION, SETTING_NAME_UNLOADED_WINDOW_SIZE, hwndDlg);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
         }
         break;
     case WM_COMMAND:
@@ -349,6 +371,11 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     }
