@@ -253,7 +253,7 @@ BOOLEAN PhpHandleTreeFilterCallback(
     PPH_HANDLE_NODE handleNode = (PPH_HANDLE_NODE)Node;
     PPH_HANDLE_ITEM handleItem = handleNode->HandleItem;
 
-    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->ObjectName))
+    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
         return FALSE;
 
     if (PhIsNullOrEmptyString(handlesContext->SearchboxText))
