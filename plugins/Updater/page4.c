@@ -62,7 +62,7 @@ VOID ShowProgressDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR | TDF_EXPAND_FOOTER_AREA;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
@@ -76,7 +76,7 @@ VOID ShowProgressDialog(
         Context->RevisionVersion
         )->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
-    config.pszExpandedInformation = L"<A HREF=\"changelog.txt\">View Changelog</A>";
+    config.pszExpandedInformation = PhGetString(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
