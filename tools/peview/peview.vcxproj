@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -146,6 +146,7 @@
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <TreatWarningAsError>true</TreatWarningAsError>
       <StringPooling>true</StringPooling>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -175,6 +176,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
       <StringPooling>true</StringPooling>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -193,6 +195,7 @@
   <ItemGroup>
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="clrprp.c" />
+    <ClCompile Include="colmgr.c" />
     <ClCompile Include="ldprp.c" />
     <ClCompile Include="expprp.c" />
     <ClCompile Include="impprp.c" />
@@ -200,11 +203,13 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="misc.c" />
     <ClCompile Include="pdb.c" />
+    <ClCompile Include="pdbprp.c" />
     <ClCompile Include="peprp.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="settings.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="colmgr.h" />
     <ClInclude Include="include\pdb.h" />
     <ClInclude Include="include\peview.h" />
     <ClInclude Include="include\prpsh.h" />

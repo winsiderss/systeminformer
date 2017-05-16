@@ -71,6 +71,7 @@ INT WINAPI wWinMain(
     PhSettingsInitialization();
     PeInitializeSettings();
     PvPropInitialization();
+    PhTreeNewInitialization();
 
     PhApplicationName = L"PE Viewer";
 
@@ -123,8 +124,8 @@ INT WINAPI wWinMain(
 
     if (PhEndsWithString2(PvFileName, L".lib", TRUE))
         PvLibProperties();
-    //else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
-    //    PvPdbProperties();
+    else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
+        PvPdbProperties();
     else
         PvPeProperties();
 

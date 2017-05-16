@@ -21,6 +21,7 @@
  */
 
 #include <peview.h>
+#include <cpysave.h>
 #include <symprv.h>
 #include <pdb.h>
 #include <uxtheme.h>
@@ -691,9 +692,8 @@ BOOLEAN SymbolInfo_DumpType(
     )
 {
     ULONG tag = SymTagNull;
-    BOOLEAN result = FALSE;
 
-    // Get the symbol's tag 
+    // Get the symbol tag 
     if (!SymGetTypeInfo_I(
         NtCurrentProcess(),
         Context->BaseAddress,
@@ -711,38 +711,28 @@ BOOLEAN SymbolInfo_DumpType(
     switch (tag)
     {
     case SymTagBaseType:
-        result = SymbolInfo_DumpBasicType(Context, Index, &Info->sBaseTypeInfo);
-        break;
+        return SymbolInfo_DumpBasicType(Context, Index, &Info->sBaseTypeInfo);
     case SymTagPointerType:
-        result = SymbolInfo_DumpPointerType(Context, Index, &Info->sPointerTypeInfo);
-        break;
+        return SymbolInfo_DumpPointerType(Context, Index, &Info->sPointerTypeInfo);
     case SymTagTypedef:
-        result = SymbolInfo_DumpTypedef(Context, Index, &Info->sTypedefInfo);
-        break;
+        return SymbolInfo_DumpTypedef(Context, Index, &Info->sTypedefInfo);
     case SymTagEnum:
-        result = SymbolInfo_DumpEnum(Context, Index, &Info->sEnumInfo);
-        break;
+        return SymbolInfo_DumpEnum(Context, Index, &Info->sEnumInfo);
     case SymTagArrayType:
-        result = SymbolInfo_DumpArrayType(Context, Index, &Info->sArrayTypeInfo);
-        break;
+        return SymbolInfo_DumpArrayType(Context, Index, &Info->sArrayTypeInfo);
     case SymTagUDT:
-        result = SymbolInfo_DumpUDT(Context, Index, Info);
-        break;
+        return SymbolInfo_DumpUDT(Context, Index, Info);
     case SymTagFunctionType:
-        result = SymbolInfo_DumpFunctionType(Context, Index, &Info->sFunctionTypeInfo);
-        break;
+        return SymbolInfo_DumpFunctionType(Context, Index, &Info->sFunctionTypeInfo);
     case SymTagFunctionArgType:
-        result = SymbolInfo_DumpFunctionArgType(Context, Index, &Info->sFunctionArgTypeInfo);
-        break;
+        return SymbolInfo_DumpFunctionArgType(Context, Index, &Info->sFunctionArgTypeInfo);
     case SymTagBaseClass:
-        result = SymbolInfo_DumpBaseClass(Context, Index, &Info->sBaseClassInfo);
-        break;
+        return SymbolInfo_DumpBaseClass(Context, Index, &Info->sBaseClassInfo);
     case SymTagData:
-        result = SymbolInfo_DumpData(Context, Index, &Info->sDataInfo);
-        break;
+        return SymbolInfo_DumpData(Context, Index, &Info->sDataInfo);
     }
 
-    return result;
+    return FALSE;
 }
 
 BOOLEAN SymbolInfo_DumpSymbolType(
@@ -1325,7 +1315,7 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
     _In_ ULONG Index,
     _Inout_ PPDB_SYMBOL_CONTEXT Obj,
     _Out_ PWSTR *VarName,
-    _Out_ PWSTR *TypeName
+    _Inout_ PPH_STRING_BUILDER TypeName
     )
 {
     TypeInfo Info;
@@ -1361,11 +1351,13 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
         switch (Info.Tag)
         {
         case SymTagBaseType:
-            *TypeName = SymbolInfo_BaseTypeStr(Info.sBaseTypeInfo.BaseType, Info.sBaseTypeInfo.Length);
+            PhAppendStringBuilder2(TypeName, SymbolInfo_BaseTypeStr(Info.sBaseTypeInfo.BaseType, Info.sBaseTypeInfo.Length));
+            PhAppendStringBuilder2(TypeName, L" ");
             break;
 
         case SymTagTypedef:
-            *TypeName = _wcsdup(Info.sTypedefInfo.Name);
+            PhAppendStringBuilder2(TypeName, Info.sTypedefInfo.Name);
+            PhAppendStringBuilder2(TypeName, L" ");
             break;
 
         case SymTagUDT:
@@ -1373,7 +1365,8 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
                 if (Info.UdtKind)
                 {
                     // A class/structure 
-                    *TypeName = _wcsdup(Info.sUdtClassInfo.Name);
+                    PhAppendStringBuilder2(TypeName, Info.sUdtClassInfo.Name);
+                    PhAppendStringBuilder2(TypeName, L" ");
 
                     // Add the UDT and its base classes to the collection of UDT indexes 
                     PhAddItemList(Obj->UdtList, UlongToPtr(Index));
@@ -1381,30 +1374,30 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
                 else
                 {
                     // A union 
-                    *TypeName = _wcsdup(Info.sUdtUnionInfo.Name);
+                    PhAppendStringBuilder2(TypeName, Info.sUdtUnionInfo.Name);
+                    PhAppendStringBuilder2(TypeName, L" ");
                 }
             }
             break;
 
         case SymTagEnum:
-            *TypeName = _wcsdup(Info.sEnumInfo.Name);
+            PhAppendStringBuilder2(TypeName, Info.sEnumInfo.Name);
             break;
 
         case SymTagFunctionType:
             {
                 if (Info.sFunctionTypeInfo.MemberFunction && Info.sFunctionTypeInfo.StaticFunction)
                 {
-                    //*TypeName = L"static ";
+                    PhAppendStringBuilder2(TypeName, L"static ");
                 }
 
-                // Print return value 
+                // return value 
                 if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.RetTypeIndex, Obj, VarName, TypeName))
                     return FALSE;
 
-                // Print calling convention 
-                //TypeName += " ";
-                //TypeName += SymbolInfo_CallConvStr(Info.Info.sFunctionTypeInfo.CallConv);
-                //TypeName += " ";
+                // calling convention
+                PhAppendStringBuilder2(TypeName, SymbolInfo_CallConvStr(Info.sFunctionTypeInfo.CallConv));
+                PhAppendStringBuilder2(TypeName, L" ");
 
                 // If member function, save the class type index 
                 if (Info.sFunctionTypeInfo.MemberFunction)
@@ -1412,39 +1405,42 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
                     PhAddItemList(Obj->UdtList, UlongToPtr(Info.sFunctionTypeInfo.ClassIndex));
 
                     /*
-                      // It is not needed to print the class name here, because
-                      // it is contained in the function name
-                      if( !SymbolInfo_GetTypeNameHelper( Info.Info.sFunctionTypeInfo.ClassIndex, Obj, VarName, TypeName ) )
+                      // It is not needed to print the class name here, because it is contained in the function name
+                      if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.ClassIndex, Obj, VarName, TypeName))
                           return false;
-
                       TypeName += "::");
                     */
                 }
 
                 // Print that it is a function 
-                //TypeName += VarName;
+                PhAppendStringBuilder2(TypeName, *VarName);
+
                 // Print parameters 
-                //TypeName += " (";
+                PhAppendStringBuilder2(TypeName, L" (");
+
                 for (ULONG i = 0; i < Info.sFunctionTypeInfo.NumArgs; i++)
                 {
                     if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.Args[i], Obj, VarName, TypeName))
                         return FALSE;
 
-                    //if (i < (Info.sFunctionTypeInfo.NumArgs - 1))
-                    //TypeName += ", ";
+                    if (i < (Info.sFunctionTypeInfo.NumArgs - 1))
+                    {
+                        PhAppendStringBuilder2(TypeName, L", ");
+                    }
                 }
-                //TypeName += ")";
+
+                PhAppendStringBuilder2(TypeName, L") ");
 
                 // Print "this" adjustment value 
                 if (Info.sFunctionTypeInfo.MemberFunction && Info.sFunctionTypeInfo.ThisAdjust != 0)
                 {
                     WCHAR buffer[MAX_PATH + 1] = L"";
 
-                    //TypeName += "ThisAdjust: ";
                     _snwprintf(buffer, ARRAYSIZE(buffer), L"this+%u", Info.sFunctionTypeInfo.ThisAdjust);
-                    //TypeName += buffer;
 
-                    *TypeName = _wcsdup(buffer);
+                    PhAppendStringBuilder2(TypeName, L": ");
+                    PhAppendStringBuilder2(TypeName, buffer);
+                    PhAppendStringBuilder2(TypeName, L" ");
                 }
             }
             break;
@@ -1462,15 +1458,17 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
                 if (!SymbolInfo_GetTypeNameHelper(Info.sArrayTypeInfo.ElementTypeIndex, Obj, VarName, TypeName))
                     return FALSE;
 
-                //TypeName += " ";
-                //TypeName += VarName;
+                PhAppendStringBuilder2(TypeName, L" ");
+                //PhAppendStringBuilder2(TypeName, *VarName);
 
                 // Print dimensions 
                 for (ULONG i = 0; i < Info.sArrayTypeInfo.NumDimensions; i++)
                 {
-                    //WCHAR buffer[MAX_PATH + 1] = L"";
-                    //_snwprintf(buffer, cTempBufSize, "[%u]"), Info.Info.sArrayTypeInfo.Dimensions[i]);
-                    //TypeName += buffer;
+                    WCHAR buffer[MAX_PATH + 1] = L"";
+
+                    _snwprintf(buffer, ARRAYSIZE(buffer), L"[%I64u]", Info.sArrayTypeInfo.Dimensions[i]);
+
+                    PhAppendStringBuilder2(TypeName, buffer);
                 }
             }
             break;
@@ -1480,7 +1478,7 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
 
                 _snwprintf(buffer, ARRAYSIZE(buffer), L"Unknown(%lu)", Info.Tag);
 
-                *TypeName = _wcsdup(buffer);
+                PhAppendStringBuilder2(TypeName, buffer);
             }
             break;
         }
@@ -1488,8 +1486,8 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
         // If it is a pointer, display * characters 
         if (numPointers != 0)
         {
-            //for (ULONG i = 0; i < NumPointers; i++)
-            //    TypeName += "*";
+            for (ULONG i = 0; i < numPointers; i++)
+                PhAppendStringBuilder2(TypeName, L"*");
         }
     }
 
@@ -1498,30 +1496,22 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
 
 BOOLEAN SymbolInfo_GetTypeName(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
+    _Inout_ PPH_STRING_BUILDER TypeName,
     _In_ ULONG Index,
-    _In_ PWSTR pVarName,
-    _In_ PWSTR pTypeName,
-    _In_ ULONG MaxChars
+    _In_ PWSTR VarName
     )
 {
-    PWSTR VarName = NULL;
-    PWSTR TypeName = NULL;
+    PWSTR typeVarName = NULL;
 
-    if (!pTypeName)
-        return FALSE;
-
-    if (pVarName)
-        VarName = pVarName;
+    if (VarName)
+        typeVarName = VarName;
 
     // Obtain the type name 
-    if (!SymbolInfo_GetTypeNameHelper(Index, Context, &VarName, &TypeName))
-        return FALSE;
-
-    if (!wcslen(TypeName))
+    if (!SymbolInfo_GetTypeNameHelper(Index, Context, &typeVarName, TypeName))
         return FALSE;
 
     // Return the type name to the caller 
-    _snwprintf(pTypeName, MaxChars, L"%s", TypeName);
+    //_snwprintf(pTypeName, MaxChars, L"%s", TypeName.String->Buffer);
 
     return TRUE;
 }
@@ -1804,9 +1794,7 @@ VOID SymbolInfo_SymbolLocationStr(
         if (regString)
             wcscpy(Buffer, regString);
         else
-            _swprintf(Buffer, L"Reg%u", SymbolInfo->Register);
-
-        return;
+            _swprintf(Buffer, L"Reg+%u", SymbolInfo->Register);
     }
     else if (SymbolInfo->Flags & SYMFLAG_REGREL)
     {
@@ -1816,16 +1804,13 @@ VOID SymbolInfo_SymbolLocationStr(
         if (regString)
             wcscpy(szReg, regString);
         else
-            _swprintf(szReg, L"Reg%u", SymbolInfo->Register);
+            _swprintf(szReg, L"Reg+%u", SymbolInfo->Register);
 
-        _swprintf(Buffer, L"%s%+lu", szReg, (long)SymbolInfo->Address);
-
-        return;
+        _swprintf(Buffer, L"%s+%I64u", szReg, SymbolInfo->Address);
     }
     else if (SymbolInfo->Flags & SYMFLAG_FRAMEREL)
     {
         wcscpy(Buffer, L"N/A");
-        return;
     }
     else
     {
@@ -1918,127 +1903,148 @@ BOOL CALLBACK EnumCallbackProc(
     _In_ PVOID Context
     )
 {
-    if (!SymbolInfo) // Try to enumerate other symbols 
-        return TRUE;
-
-    switch (SymbolInfo->Tag)
+    if (SymbolInfo)
     {
-    case SymTagFunction:
-        PrintFunctionInfo(Context, SymbolInfo);
-        break;
-    case SymTagData:
-        PrintDataInfo(Context, SymbolInfo);
-        break;
-    default:
-        PrintDefaultInfo(Context, SymbolInfo);
-        break;
+        switch (SymbolInfo->Tag)
+        {
+        case SymTagFunction:
+            {
+                PPDB_SYMBOL_CONTEXT context = Context;
+                PH_STRING_BUILDER typeName;
+                PPV_SYMBOL_NODE symbol;
+
+                symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
+                symbol->Type = PV_SYMBOL_TYPE_FUNCTION;
+                symbol->Address = SymbolInfo->Address;
+                symbol->Size = SymbolInfo->Size;
+                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+                SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+
+                PhInitializeStringBuilder(&typeName, 0x100);
+
+                if (SymbolInfo_GetTypeName(context, &typeName, SymbolInfo->TypeIndex, SymbolInfo->Name))
+                    symbol->Data = PhFinalStringBuilderString(&typeName);
+
+                // Flags: %x, SymbolInfo->Flags
+                // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
+
+                PluginsAddTreeNode(context, symbol);
+
+                // Enumerate function parameters and local variables...
+                IMAGEHLP_STACK_FRAME sf;
+                sf.InstructionOffset = SymbolInfo->Address;
+                SymSetContext_I(NtCurrentProcess(), &sf, 0);
+                SymEnumSymbolsW_I(NtCurrentProcess(), 0, NULL, EnumCallbackProc, context);
+            }
+            break;
+        case SymTagData:
+            {
+                PPDB_SYMBOL_CONTEXT context = Context;
+                PH_STRING_BUILDER typeName;
+                PPV_SYMBOL_NODE symbol;
+                PWSTR symDataKind;
+                ULONG dataKindType = 0;
+
+                // TODO: Remove filter
+                if (!SymbolInfo->Address)
+                    break;
+  
+                if (!SymGetTypeInfo_I(NtCurrentProcess(), SymbolInfo->ModBase, SymbolInfo->Index, TI_GET_DATAKIND, &dataKindType))
+                    break;
+
+                // Type
+                symDataKind = SymbolInfo_DataKindStr(dataKindType);
+
+                // TODO: Remove filter
+                if (!wcscmp(symDataKind, L"LOCAL_VAR") ||
+                    !wcscmp(symDataKind, L"OBJECT_PTR") ||
+                    !wcscmp(symDataKind, L"PARAMETER"))
+                {
+                    break;
+                }
+
+                symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
+
+                switch (dataKindType)
+                {
+                case DataIsLocal:
+                    symbol->Type = PV_SYMBOL_TYPE_LOCAL_VAR;
+                    break;
+                case DataIsStaticLocal:
+                    symbol->Type = PV_SYMBOL_TYPE_STATIC_LOCAL_VAR;
+                    break;
+                case DataIsParam:
+                    symbol->Type = PV_SYMBOL_TYPE_PARAMETER;
+                    break;
+                case DataIsObjectPtr:
+                    symbol->Type = PV_SYMBOL_TYPE_OBJECT_PTR;
+                    break;
+                case DataIsFileStatic:
+                    symbol->Type = PV_SYMBOL_TYPE_STATIC_VAR;
+                    break;
+                case DataIsGlobal:
+                    symbol->Type = PV_SYMBOL_TYPE_GLOBAL_VAR;
+                    break;
+                case DataIsMember:
+                    symbol->Type = PV_SYMBOL_TYPE_MEMBER;
+                    break;
+                case DataIsStaticMember:
+                    symbol->Type = PV_SYMBOL_TYPE_STATIC_MEMBER;
+                    break;
+                case DataIsConstant:
+                    symbol->Type = PV_SYMBOL_TYPE_CONSTANT;
+                    break;
+                }
+
+                symbol->Address = SymbolInfo->Address;
+                symbol->Size = SymbolInfo->Size;
+                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+                SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+
+                PhInitializeStringBuilder(&typeName, 0x100);
+
+                // Data 
+                if (SymbolInfo_GetTypeName(context, &typeName, SymbolInfo->TypeIndex, SymbolInfo->Name))
+                    symbol->Data = PhFinalStringBuilderString(&typeName);
+
+                // Flags: %x, SymbolInfo->Flags
+                // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
+
+                PluginsAddTreeNode(context, symbol);
+            }
+            break;
+        default:
+            {
+                PPDB_SYMBOL_CONTEXT context = Context;
+                PH_STRING_BUILDER typeName;
+                PPV_SYMBOL_NODE symbol;
+
+                // TODO: Remove filter 
+                if (SymbolInfo->Tag != SymTagPublicSymbol)
+                    break;
+
+                symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
+                symbol->Type = PV_SYMBOL_TYPE_SYMBOL;
+                symbol->Address = SymbolInfo->Address;
+                symbol->Size = SymbolInfo->Size;
+                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+                SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+
+                PhInitializeStringBuilder(&typeName, 0x100);
+
+                if (SymbolInfo_GetTypeName(context, &typeName, SymbolInfo->TypeIndex, SymbolInfo->Name))
+                    symbol->Data = PhFinalStringBuilderString(&typeName);
+
+                // Flags: %x, SymbolInfo->Flags
+                // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
+
+                PluginsAddTreeNode(context, symbol);
+            }
+            break;
+        }
     }
 
     return TRUE;
-}
-
-VOID PrintDataInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context, 
-    _In_ PSYMBOL_INFOW SymbolInfo
-    )
-{
-    INT lvItemIndex;
-    PWSTR symDataKind;
-    WCHAR pointer[PH_PTR_STR_LEN_1] = L"";
-
-    if (SymbolInfo->Tag != SymTagData)
-        return;
-
-    // Type
-    symDataKind = SymbolInfo_DataKindFromSymbolInfo(SymbolInfo);
-    lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, symDataKind, NULL);
-
-    // Address  
-    SymbolInfo_SymbolLocationStr(SymbolInfo, pointer);
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
-
-    // Name
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, SymbolInfo->Name);
-
-    // Size
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
-
-    // Data 
-    //if (SymbolInfo_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
-    //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, szTypeName);
-
-    // Flags: %x, SymbolInfo->Flags
-    // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
-}
-
-VOID PrintFunctionInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context, 
-    _In_ PSYMBOL_INFOW SymbolInfo
-    )
-{
-    INT lvItemIndex;
-    WCHAR pointer[PH_PTR_STR_LEN_1] = L"";
-
-    if (SymbolInfo->Tag != SymTagFunction)
-        return;
-    
-    // Type
-    lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, L"FUNCTION", NULL);
-
-    // Address  
-    SymbolInfo_SymbolLocationStr(SymbolInfo, pointer);
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
-
-    // Name
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, SymbolInfo->Name);
-
-    // Size
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
-
-    // Data 
-    //if (SymbolInfo_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
-    //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, szTypeName);
-
-    // Flags: %x, SymbolInfo->Flags
-    // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
-
-    // Enumerate function parameters and local variables...
-    //IMAGEHLP_STACK_FRAME sf;
-    //sf.InstructionOffset = SymbolInfo->Address;
-    //SymSetContext_I(NtCurrentProcess(), &sf, 0);
-    //SymEnumSymbolsW_I(NtCurrentProcess(), 0, NULL, EnumCallbackProc, Context);
-}
-
-VOID PrintDefaultInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context, 
-    _In_ PSYMBOL_INFOW SymbolInfo
-    )
-{
-    INT lvItemIndex;
-    WCHAR pointer[PH_PTR_STR_LEN_1] = L"";
-
-    if (SymbolInfo->Tag != SymTagPublicSymbol)
-        return;
-    
-    // Type
-    lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, L"SYMBOL", NULL);
-
-    // Address  
-    SymbolInfo_SymbolLocationStr(SymbolInfo, pointer);
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer);
-
-    // Name
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, SymbolInfo->Name);
-
-    // Size
-    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%lu", SymbolInfo->Size)->Buffer);
-
-    // Data 
-    //if (SymbolInfo_GetTypeName(Context, SymbolInfo->TypeIndex, SymbolInfo->Name, szTypeName, cMaxTypeNameLen))
-    //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, szTypeName);
-
-    // Flags: %x, SymbolInfo->Flags
-    // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
 }
 
 VOID PrintClassInfo(
@@ -2047,133 +2053,174 @@ VOID PrintClassInfo(
     _In_ UdtClassInfo* Info
     )
 {
+    //INT lvItemIndex;
+
+    if (Info->UDTKind == UdtClass)
+    {
+        //PhAddItemList(L"CLASS", Info->Name)
+        //return;
+    }
+
     // UDT kind 
-    //OutputDebugString(PhaFormatString(L"%s", SymbolInfo_UdtKindStr(Info->UDTKind))->Buffer);
-    // Name 
-    //OutputDebugString(PhaFormatString(L" %s \n", Info->Name)->Buffer);
+    //lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, SymbolInfo_UdtKindStr(Info->UDTKind), NULL);
+    // Name
+    //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, Info->Name);
     // Size 
-    //OutputDebugString(PhaFormatString(L"Size: %I64u", Info->Length)->Buffer);
+    //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatSize(Info->Length, -1)->Buffer);
 
     // Nested 
-    //if (Info.Nested)
-    //OutputDebugString(L"  Nested");
+    //if (Info.Nested) OutputDebugString(L"  Nested");
     // Number of member variables 
     //OutputDebugString(PhaFormatString(L"  Variables: %d", Info->NumVariables)->Buffer);
     // Number of member functions 
     //OutputDebugString(PhaFormatString(L"  Functions: %d", Info->NumFunctions)->Buffer);
     // Number of base classes 
     //OutputDebugString(PhaFormatString(L"  Base classes: %d", Info->NumBaseClasses)->Buffer);
-    // Extended information about member variables 
-    //OutputDebugString(L"\n");
 
+    // Extended information about member variables 
     for (ULONG i = 0; i < Info->NumVariables; i++)
     {
         TypeInfo VarInfo;
 
         if (!SymbolInfo_DumpType(Context, Info->Variables[i], &VarInfo))
         {
-            //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
-            // Continue with the next variable 
+            // Continue
         }
         else if (VarInfo.Tag != SymTagData)
         {
-            //_ASSERTE(!_T("Unexpected symbol tag."));
-            // Continue with the next variable 
+            // Unexpected symbol tag.
         }
         else
         {
-            // Display information about the variable 
-            //_tprintf(_T("%s"), Context->DataKindStr(VarInfo.Info.sDataInfo.dataKind));
-
-            // Name 
-            //wprintf(L" %s \n", VarInfo.Info.sDataInfo.Name);
-            // Type name 
-            //_tprintf(_T("  Type:  "));
-
-            //#define cMaxTypeNameLen 1024
-            //TCHAR szTypeName[cMaxTypeNameLen + 1] = _T("");
-
-            //if (SymbolInfo_GetTypeName(VarInfo.Info.sDataInfo.TypeIndex, W2T(VarInfo.Info.sDataInfo.Name), szTypeName, cMaxTypeNameLen))
-            //_tprintf(szTypeName);
-            //else
-            //_tprintf(_T("n/a"));
-            //_tprintf(_T("\n"));
-
+            //INT lvItemSubIndex;
+            //PH_STRING_BUILDER typeName;
+            //
+            //PhInitializeStringBuilder(&typeName, 0x100);
+            //
+            //// Variable
+            //lvItemSubIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, SymbolInfo_DataKindStr(VarInfo.sDataInfo.dataKind), NULL);
+            //
+            //// Name 
+            //PhSetListViewSubItem(Context->ListviewHandle, lvItemSubIndex, 2, VarInfo.sDataInfo.Name);
+            //
+            //// Data 
+            //if (SymbolInfo_GetTypeName(Context, &typeName, VarInfo.sDataInfo.TypeIndex, VarInfo.sDataInfo.Name))
+            //    PhSetListViewSubItem(Context->ListviewHandle, lvItemSubIndex, 4, PhFinalStringBuilderString(&typeName)->Buffer);
+            //PhDeleteStringBuilder(&typeName);
             // Location 
-            switch (VarInfo.sDataInfo.dataKind)
-            {
-            case DataIsGlobal:
-            case DataIsStaticLocal:
-            case DataIsFileStatic:
-            case DataIsStaticMember:
-                {
-                    // Use Address 
-                    //_tprintf(_T("  Address: %16I64x"), VarInfo.Info.sDataInfo.Address);
-                }
-                break;
-            case DataIsLocal:
-            case DataIsParam:
-            case DataIsObjectPtr:
-            case DataIsMember:
-                {
-                    // Use Offset 
-                    //_tprintf(_T("  Offset: %8d"), (long)VarInfo.Info.sDataInfo.Offset);
-                }
-                break;
-            default:
-                break; // <OS-TODO> Add support for constants 
-            }
-
-            // Indices 
-            //_tprintf(_T("  Index: %8u  TypeIndex: %8u"), Index, VarInfo.Info.sDataInfo.TypeIndex);
-            //_tprintf(_T("\n"));
+            //switch (VarInfo.sDataInfo.dataKind)
+            //{
+            //case DataIsGlobal:
+            //case DataIsStaticLocal:
+            //case DataIsFileStatic:
+            //case DataIsStaticMember:
+            //    {
+            //        // Use Address 
+            //        // "  Address: %16I64x" VarInfo.sDataInfo.Address
+            //    }
+            //    break;
+            //case DataIsLocal:
+            //case DataIsParam:
+            //case DataIsObjectPtr:
+            //case DataIsMember:
+            //    {
+            //        // Use Offset 
+            //        // "  Offset: %8d" (long)VarInfo.sDataInfo.Offset
+            //    }
+            //    break;
+            //default:
+            //    break; // TODO Add support for constants
+            //}
+            //
+            // Indices "  Index: %8u  TypeIndex: %8u"  Index, VarInfo.sDataInfo.TypeIndex
         }
     }
 
-    // Extended information about member functions 
-    // <OS-TODO> Implement 
-    // Extended information about base classes 
-    // <OS-TODO> Implement 
+    // TODO Implement information about member functions 
+    for (ULONG i = 0; i < Info->NumFunctions; i++)
+    {
+        TypeInfo VarInfo;
 
+        if (!SymbolInfo_DumpType(Context, Info->Variables[i], &VarInfo))
+        {
+            // Continue
+        }
+        else if (VarInfo.Tag != SymTagFunction)
+        {
+            // Unexpected symbol tag.
+        }
+        else
+        {
+            //INT lvItemSubIndex;
+            //PH_STRING_BUILDER typeName;
+            //
+            //PhInitializeStringBuilder(&typeName, 0x100);
+            //
+            // Type
+            //lvItemSubIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, L"VARIABLE", NULL);
+
+            // Address  
+            // SymbolInfo_SymbolLocationStr(Context, VarInfo.sDataInfo.Address);
+            //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 1, pointer); VarInfo.sDataInfo.Address
+            //
+            // Name : SymbolInfo_DataKindStr(VarInfo.sDataInfo.dataKind)
+            //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, VarInfo.sDataInfo.Name);
+            //
+            // Size
+            //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, VarInfo.sDataInfo.Offset
+            //
+            // Data 
+            //if (SymbolInfo_GetTypeName(Context, &typeName, SymbolInfo->TypeIndex, SymbolInfo->Name))
+            //    PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 4, PhFinalStringBuilderString(&typeName)->Buffer);
+            //
+            // Flags: %x, SymbolInfo->Flags
+            // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
+            //
+            //PhDeleteStringBuilder(&typeName);
+            //
+            // Enumerate function parameters and local variables...
+            // IMAGEHLP_STACK_FRAME sf;
+            //sf.InstructionOffset = SymbolInfo->Address; VarInfo.sDataInfo.Offset
+            //SymSetContext_I(NtCurrentProcess(), &sf, 0);
+            //SymEnumSymbolsW_I(NtCurrentProcess(), 0, NULL, EnumCallbackProc, Context);
+        }
+    }
+
+    // TODO Implement information about base classes 
     for (ULONG i = 0; i < Info->NumBaseClasses; i++)
     {
         TypeInfo baseInfo;
 
         if (!SymbolInfo_DumpType(Context, Info->BaseClasses[i], &baseInfo))
         {
-            //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
-            // Continue with the next base class 
+            // Continue
         }
         else if (baseInfo.Tag != SymTagBaseClass)
         {
-            //_ASSERTE(!_T("Unexpected symbol tag."));
-            // Continue with the next base class 
+            // Unexpected symbol tag
         }
         else
         {
-            // Obtain the name of the base class 
             TypeInfo BaseUdtInfo;
 
+            // Obtain the next base class 
             if (!SymbolInfo_DumpType(Context, baseInfo.sBaseClassInfo.TypeIndex, &BaseUdtInfo))
             {
-                //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
-                // Continue with the next base class 
+                // Continue
             }
             else if (BaseUdtInfo.Tag != SymTagUDT)
             {
-                //_ASSERTE(!_T("Unexpected symbol tag."));
-                // Continue with the next base class 
+                // Unexpected symbol tag
             }
             else
             {
-                // Print the name of the base class 
                 if (baseInfo.sBaseClassInfo.Virtual)
                 {
-                    //wprintf(L"VIRTUAL_BASE_CLASS %s \n", BaseUdtInfo.Info.sUdtClassInfo.Name);
+                    //PhAddItemList(L"VIRTUAL_BASE_CLASS", BaseUdtInfo.sUdtClassInfo.Name)
                 }
                 else
                 {
-                    //wprintf(L"BASE_CLASS %s \n", BaseUdtInfo.Info.sUdtClassInfo.Name);
+                    //PhAddItemList(L"BASE_CLASS", BaseUdtInfo.sUdtClassInfo.Name)
                 }
             }
         }
@@ -2208,13 +2255,11 @@ VOID PrintUserDefinedTypes(
 
                         if (!SymbolInfo_DumpType(Context, info.sUdtClassInfo.BaseClasses[i], &baseInfo))
                         {
-                            //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
-                            // Continue with the next base class 
+                            // Continue
                         }
                         else if (baseInfo.Tag != SymTagBaseClass)
                         {
-                            //_ASSERTE(!_T("Unexpected symbol tag."));
-                            // Continue with the next base class 
+                            // Continue
                         }
                         else
                         {
@@ -2223,13 +2268,11 @@ VOID PrintUserDefinedTypes(
 
                             if (!SymbolInfo_DumpType(Context, baseInfo.sBaseClassInfo.TypeIndex, &baseUdtInfo))
                             {
-                                //_ASSERTE(!_T("SymbolInfo::DumpType() failed."));
-                                // Continue with the next base class 
+                                // Continue
                             }
                             else if (baseUdtInfo.Tag != SymTagUDT)
                             {
-                                //_ASSERTE(!_T("Unexpected symbol tag."));
-                                // Continue with the next base class 
+                                // Continue
                             }
                             else
                             {
@@ -2241,15 +2284,14 @@ VOID PrintUserDefinedTypes(
                 }
                 else
                 {
+                    //INT lvItemIndex;
                     // UDT kind 
-                    //printf("%s", Context->UdtKindStr(Info.Info.sUdtClassInfo.UDTKind));
-                    //
-                    // Name 
-                    //printf("%s", Info.Info.sUdtClassInfo.Name);
-                    //
+                    //lvItemIndex = PhAddListViewItem(Context->ListviewHandle, MAXINT, SymbolInfo_UdtKindStr(info.sUdtClassInfo.UDTKind), NULL);
+                    // Name
+                    //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 2, info.sUdtClassInfo.Name);
                     // Size 
-                    //printf("Size: %I64u", Info.Info.sUdtClassInfo.Length);
-                    //
+                    //PhSetListViewSubItem(Context->ListviewHandle, lvItemIndex, 3, PhaFormatString(L"%I64u", info.sUdtClassInfo.Length)->Buffer);
+
                     // Nested 
                     //if (Info.Info.sUdtClassInfo.Nested)
                     //    printf("Nested");
@@ -2262,11 +2304,13 @@ VOID PrintUserDefinedTypes(
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-BOOLEAN GetFileParamsSize(_In_ PWSTR pFileName, _Out_ ULONG* FileLength)
+BOOLEAN GetFileParamsSize(
+    _In_ PWSTR FileName, 
+    _Out_ ULONG *FileLength
+    )
 {
     HANDLE hFile = CreateFile(
-        pFileName,
+        FileName,
         GENERIC_READ,
         FILE_SHARE_READ,
         NULL,
@@ -2286,28 +2330,22 @@ BOOLEAN GetFileParamsSize(_In_ PWSTR pFileName, _Out_ ULONG* FileLength)
     return (*FileLength != INVALID_FILE_SIZE);
 }
 
-BOOLEAN GetFileParams(_In_ PWSTR pFileName, _Out_ ULONG64 *BaseAddress, _Out_ ULONG* FileLength)
+BOOLEAN GetFileParams(
+    _In_ PWSTR FileName, 
+    _Out_ ULONG64 *BaseAddress, 
+    _Out_ ULONG *FileLength
+    )
 {
     TCHAR szFileExt[_MAX_EXT] = { 0 };
 
-    _wsplitpath(pFileName, NULL, NULL, NULL, szFileExt);
+    _wsplitpath(FileName, NULL, NULL, NULL, szFileExt);
 
-    // Is it .PDB file ? 
     if (_wcsicmp(szFileExt, L".PDB") == 0)
-    {
-        // Yes, it is a .PDB file         
+    {   
         *BaseAddress = 0x10000000;
 
-        // Determine its size, and use a dummy base address.
-        // it can be any non-zero value, but if we load symbols                      
-        // from more than one file, memory regions specified      
-        // for different files should not overlap               
-        // (region is "base address + file size") 
-
-        if (!GetFileParamsSize(pFileName, FileLength))
-        {
+        if (!GetFileParamsSize(FileName, FileLength))
             return FALSE;
-        }
     }
     else
     {
@@ -2318,7 +2356,10 @@ BOOLEAN GetFileParams(_In_ PWSTR pFileName, _Out_ ULONG64 *BaseAddress, _Out_ UL
     return TRUE;
 }
 
-///////////////////////////////////////////////////////////////////////////////
+//
+// TODO: Move to pdbprp.c
+//
+
 VOID PdbLoadDbgHelpFromPath(
     _In_ PWSTR DbgHelpPath
     )
@@ -2361,7 +2402,6 @@ VOID PdbLoadDbgHelpFromPath(
     PhSymbolProviderCompleteInitialization(dbghelpModule);
 }
 
-
 VOID ShowSymbolInfo(
     _In_ ULONG64 BaseAddress
     )
@@ -2377,7 +2417,7 @@ VOID ShowSymbolInfo(
     switch (info.SymType)
     {
     case SymNone:
-        //OutputDebugString(L"No symbols available for the module.\r\n");
+        OutputDebugString(L"No symbols available for the module.\r\n");
         break;
     case SymExport:
         //OutputDebugString(L"Loaded symbols: Exports\r\n");
@@ -2441,9 +2481,8 @@ VOID ShowSymbolInfo(
     //OutputDebugString(PhaFormatString(L"Public symbols: %s\n", info.Publics ? L"Available" : L"Not available")->Buffer);
 }
 
-VOID PeDumpFileSymbols(
-    _In_ HWND ListViewHandle, 
-    _In_ PWSTR FileName
+NTSTATUS PeDumpFileSymbols(
+    _In_ PPDB_SYMBOL_CONTEXT Context
     )
 {
     HMODULE dbghelpHandle;
@@ -2455,7 +2494,7 @@ VOID PeDumpFileSymbols(
     PdbLoadDbgHelpFromPath(L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll");
 
     if (!(dbghelpHandle = GetModuleHandle(L"dbghelp.dll")))
-        return;
+        return 1;
 
     symsrvHandle = GetModuleHandle(L"symsrv.dll");
     SymInitialize_I = PhGetProcedureAddress(dbghelpHandle, "SymInitialize", 0);
@@ -2472,136 +2511,39 @@ VOID PeDumpFileSymbols(
     SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_ALLOW_ZERO_ADDRESS); // SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED
 
     if (!SymInitialize_I(NtCurrentProcess(), NULL, FALSE))
-        return;
+        return 1;
 
     if (!SymSetSearchPathW_I(NtCurrentProcess(), L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols"))
-        return;
+        goto CleanupExit;
 
-    if (GetFileParams(FileName, &baseAddress, &fileLength))
+    if (GetFileParams(PvFileName->Buffer, &baseAddress, &fileLength))
     {
         if ((symbolBaseAddress = SymLoadModuleExW_I(
-            NtCurrentProcess(), 
-            NULL, 
-            FileName, 
-            NULL, 
-            baseAddress, 
-            fileLength, 
-            NULL, 
+            NtCurrentProcess(),
+            NULL,
+            PvFileName->Buffer,
+            NULL,
+            baseAddress,
+            fileLength,
+            NULL,
             0
             )))
         {
-            PDB_SYMBOL_CONTEXT context;
+            Context->BaseAddress = symbolBaseAddress;
+            Context->UdtList = PhCreateList(0x100);
 
-            context.ListviewHandle = ListViewHandle;
-            context.BaseAddress = symbolBaseAddress;
-            context.UdtList = PhCreateList(0x100);
+            ShowSymbolInfo(symbolBaseAddress);
 
-            //ShowSymbolInfo(symbolBaseAddress);
-
-            SymEnumSymbolsW_I(NtCurrentProcess(), symbolBaseAddress, NULL, EnumCallbackProc, &context);
+            SymEnumSymbolsW_I(NtCurrentProcess(), symbolBaseAddress, NULL, EnumCallbackProc, Context);
 
             // Print information about used defined types 
-            //PrintUserDefinedTypes(&context);
+            PrintUserDefinedTypes(Context);
         }
     }
+
+CleanupExit:
 
     SymCleanup_I(NtCurrentProcess());
-}
 
-VOID PvPdbProperties(
-    VOID
-    )
-{
-    PPV_PROPCONTEXT propContext;
-
-    if (!RtlDoesFileExists_U(PvFileName->Buffer))
-    {
-        PhShowStatus(NULL, L"Unable to load the pdb file", STATUS_FILE_NOT_AVAILABLE, 0);
-        return;
-    }
-
-    if (propContext = PvCreatePropContext(PvFileName))
-    {
-        PPV_PROPPAGECONTEXT newPage;
-
-        // Symbols page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PESYMBOLS),
-            PvpSymbolsDlgProc,
-            NULL
-            );
-        PvAddPropPage(propContext, newPage);
-
-        PhModalPropertySheet(&propContext->PropSheetHeader);
-
-        PhDereferenceObject(propContext);
-    }
-}
-
-INT_PTR CALLBACK PvpSymbolsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    LPPROPSHEETPAGE propSheetPage;
-    PPV_PROPPAGECONTEXT propPageContext;
-
-    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            HWND lvHandle;
-
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"Type");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"VA");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 40, L"Size");
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"PdbListViewColumns", lvHandle);
-
-            PeDumpFileSymbols(lvHandle, PvFileName->Buffer);
-
-            ExtendedListView_SortItems(lvHandle);
-
-            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhSaveListViewColumnsToSetting(L"PdbListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
-    case WM_SHOWWINDOW:
-        {
-            if (!propPageContext->LayoutInitialized)
-            {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
-                    dialogItem, PH_ANCHOR_ALL);
-
-                PvDoPropPageLayout(hwndDlg);
-
-                propPageContext->LayoutInitialized = TRUE;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
-        }
-        break;
-    }
-
-    return FALSE;
+    return 0;
 }
