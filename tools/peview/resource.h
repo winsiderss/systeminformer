@@ -10,6 +10,11 @@
 #define IDD_PELOADCONFIG                107
 #define IDD_PECFG                       108
 #define IDD_PESYMBOLS                   109
+#define IDC_SYMBOLTREE                  110
+#define IDB_SEARCH_ACTIVE               111
+#define IDB_SEARCH_INACTIVE             112
+#define IDB_SEARCH_ACTIVE_BMP           113
+#define IDB_SEARCH_INACTIVE_BMP         114
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
@@ -17,6 +22,7 @@
 #define IDC_CHARACTERISTICS             1007
 #define IDC_LIST                        1008
 #define IDC_FILEICON                    1009
+#define IDC_SECTION                     1009
 #define IDC_TIMESTAMP                   1010
 #define IDC_RUNTIMEVERSION              1011
 #define IDC_FILE                        1011
@@ -26,6 +32,7 @@
 #define IDC_VERSIONSTRING               1014
 #define IDC_IMAGEBASE                   1015
 #define IDC_ENTRYPOINT                  1016
+#define IDC_SYMSEARCH                   1017
 #define IDC_NAME                        1044
 #define IDC_COMPANYNAME_LINK            1279
 
@@ -33,9 +40,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1017
-#define _APS_NEXT_SYMED_VALUE           101
+#define _APS_NEXT_CONTROL_VALUE         1019
+#define _APS_NEXT_SYMED_VALUE           116
 #endif
 #endif

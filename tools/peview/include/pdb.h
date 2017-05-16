@@ -112,15 +112,14 @@ typedef enum _CV_HREG_e
 {
     // Only a limited number of registers included here 
 
-    CV_REG_EAX      =  17,
-    CV_REG_ECX      =  18,
-    CV_REG_EDX      =  19,
-    CV_REG_EBX      =  20,
-    CV_REG_ESP      =  21,
-    CV_REG_EBP      =  22,
-    CV_REG_ESI      =  23,
-    CV_REG_EDI      =  24,
-
+    CV_REG_EAX =  17,
+    CV_REG_ECX =  18,
+    CV_REG_EDX =  19,
+    CV_REG_EBX =  20,
+    CV_REG_ESP =  21,
+    CV_REG_EBP =  22,
+    CV_REG_ESI =  23,
+    CV_REG_EDI =  24,
 } CV_HREG_e;
 
 // LocatonType, originally from CVCONST.H in DIA SDK 
@@ -361,8 +360,7 @@ typedef struct _TypeInfo
     // a class or a structure, "false" if the symbol is a union) 
     BOOL UdtKind; 
 
-    // Union of all type information structures
-    union // TypeInfoStructures 
+    union
     {
         BaseTypeInfo         sBaseTypeInfo;     // If Tag == SymTagBaseType 
         TypedefInfo          sTypedefInfo;      // If Tag == SymTagTypedef 
@@ -377,13 +375,6 @@ typedef struct _TypeInfo
         DataInfo             sDataInfo;         // If Tag == SymTagData 
     };
 } TypeInfo;
-
-typedef struct _PDB_SYMBOL_CONTEXT
-{
-    HWND ListviewHandle;
-    ULONG64 BaseAddress;
-    PPH_LIST UdtList;
-} PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;
 
 BOOLEAN SymbolInfo_DumpBasicType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, BaseTypeInfo* Info);
 BOOLEAN SymbolInfo_DumpPointerType(_Inout_ PPDB_SYMBOL_CONTEXT Context, _In_ ULONG Index, PointerTypeInfo* Info);
@@ -422,15 +413,16 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
     _In_ ULONG Index,
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
     _Out_ PWSTR *VarName,
-    _Out_ PWSTR *TypeName
+    _Inout_ PPH_STRING_BUILDER TypeName
     );
+
 BOOLEAN SymbolInfo_GetTypeName(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
+    _Inout_ PPH_STRING_BUILDER TypeName,
     _In_ ULONG Index,
-    _In_ PWSTR pVarName,
-    _In_ PWSTR pTypeName,
-    _In_ ULONG MaxChars
+    _In_ PWSTR VarName
     );
+
 PWSTR SymbolInfo_TagStr(enum SymTagEnum Tag);
 PWSTR SymbolInfo_BaseTypeStr(BasicType Type, ULONG64 Length);
 PWSTR SymbolInfo_CallConvStr(CV_call_e CallConv);
@@ -440,22 +432,6 @@ VOID SymbolInfo_SymbolLocationStr(PSYMBOL_INFOW rSymbol, PWSTR pBuffer);
 PWSTR SymbolInfo_RegisterStr(CV_HREG_e RegCode);
 PWSTR SymbolInfo_UdtKindStr(UdtKind KindType);
 PWSTR SymbolInfo_LocationTypeStr(LocationType LocType);
-
-
-VOID PrintDataInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PSYMBOL_INFOW SymbolInfo
-    );
-
-VOID PrintFunctionInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PSYMBOL_INFOW SymbolInfo
-    );
-
-VOID PrintDefaultInfo(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PSYMBOL_INFOW SymbolInfo
-    );
 
 VOID PrintClassInfo(
     _In_ PPDB_SYMBOL_CONTEXT Context, 
