@@ -111,6 +111,7 @@ typedef struct _PV_SYMBOL_NODE
     ULONG64 Address;    
     PPH_STRING Name;
     PPH_STRING Data;
+    PPH_STRING SizeText;
     WCHAR Pointer[PH_PTR_STR_LEN_1];
 
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];

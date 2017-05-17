@@ -621,6 +621,19 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             case TREE_COLUMN_ITEM_SYMBOL:
                 getCellText->Text = PhGetStringRef(node->Data);
                 break;
+            case TREE_COLUMN_ITEM_SIZE:
+                {
+                    if (node->Size != 0)
+                    {
+                        PH_FORMAT format[1];
+
+                        PhInitFormatSize(&format[0], node->Size);
+  
+                        PhMoveReference(&node->SizeText, PhFormat(format, 1, 0));
+                        getCellText->Text = node->SizeText->sr;
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
