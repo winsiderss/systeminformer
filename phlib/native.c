@@ -3136,6 +3136,24 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         }
     }
 
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        LDR_DDAG_NODE ldrDagNode = { 0 };
+
+        if (NT_SUCCESS(NtReadVirtualMemory(
+            ProcessHandle,
+            Entry->DdagNode,
+            &ldrDagNode,
+            sizeof(LDR_DDAG_NODE),
+            NULL
+            )))
+        {
+            // HACK: Fixup the module load count (64bit only).
+            // Temp fix until PhpModuleQueryWorker can be updated with Stage2. 
+            Entry->ObsoleteLoadCount = (USHORT)ldrDagNode.LoadCount;
+        }
+    }
+
     // Execute the callback.
     cont = parameters->Callback(Entry, parameters->Context);
 
