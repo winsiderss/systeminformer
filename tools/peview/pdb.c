@@ -1935,17 +1935,24 @@ BOOL CALLBACK EnumCallbackProc(
                 if (!SymbolInfo->Address)
                     break;
   
-                if (!SymGetTypeInfo_I(NtCurrentProcess(), SymbolInfo->ModBase, SymbolInfo->Index, TI_GET_DATAKIND, &dataKindType))
+                if (!SymGetTypeInfo_I(
+                    NtCurrentProcess(),
+                    SymbolInfo->ModBase,
+                    SymbolInfo->Index,
+                    TI_GET_DATAKIND,
+                    &dataKindType
+                    ))
+                {
                     break;
+                }
 
                 symDataKind = SymbolInfo_DataKindStr(dataKindType);
 
-                //if (dataKindType == DataIsLocal ||
-                //    dataKindType == DataIsObjectPtr ||
-                //    dataKindType == DataIsParam)
-                //{
-                //    break;
-                //}
+                if (
+                    dataKindType == DataIsLocal || 
+                    dataKindType == DataIsParam
+                    ) // || dataKindType == DataIsObjectPtr)
+                    break;
 
                 symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
                 memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
@@ -1990,8 +1997,6 @@ BOOL CALLBACK EnumCallbackProc(
                 symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
                 SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
 
-                // Flags: %x, SymbolInfo->Flags
-                // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
                 PhAcquireQueuedLockExclusive(&SearchResultsLock);
                 PhAddItemList(SearchResults, symbol);
                 PhReleaseQueuedLockExclusive(&SearchResultsLock);
@@ -2016,8 +2021,6 @@ BOOL CALLBACK EnumCallbackProc(
                 symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
                 SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
 
-                // Flags: %x, SymbolInfo->Flags
-                // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
                 PhAcquireQueuedLockExclusive(&SearchResultsLock);
                 PhAddItemList(SearchResults, symbol);
                 PhReleaseQueuedLockExclusive(&SearchResultsLock);
