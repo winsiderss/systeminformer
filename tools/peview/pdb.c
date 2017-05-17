@@ -2374,7 +2374,7 @@ NTSTATUS PeDumpFileSymbols(
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
+    HANDLE fileHandle = NULL;
     HMODULE dbghelpHandle;
     HMODULE symsrvHandle;
     ULONG64 baseAddress = 0;
@@ -2407,9 +2407,9 @@ NTSTATUS PeDumpFileSymbols(
         return 1;
 
     if (!SymSetSearchPathW_I(NtCurrentProcess(), L"SRV*C:\\symbols*http://msdl.microsoft.com/download/symbols"))
-        goto CleanupExit;
+        return 1;
 
-    status = PhCreateFileWin32(
+    if (!NT_SUCCESS(status = PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
         FILE_GENERIC_READ,
@@ -2417,16 +2417,11 @@ NTSTATUS PeDumpFileSymbols(
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
+        )))
+        return 1;
 
     if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) && fileSize.QuadPart == 0)
-    {
-        NtClose(fileHandle);
-        return status;
-    }
+        goto CleanupExit;
 
     if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
         baseAddress = 0x10000000;
@@ -2453,7 +2448,8 @@ CleanupExit:
 
     SymCleanup_I(NtCurrentProcess());
 
-    NtClose(fileHandle);
+    if (fileHandle)
+        NtClose(fileHandle);
 
     PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
 
