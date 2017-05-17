@@ -57,6 +57,9 @@
     <ClCompile Include="colmgr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="searchbox.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
@@ -87,5 +90,22 @@
     <Manifest Include="peview.manifest">
       <Filter>Resource Files</Filter>
     </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\ProcessHacker.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\active_search.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\active_search.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

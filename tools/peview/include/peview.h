@@ -12,7 +12,9 @@
 #include <symprv.h>
 #include <workqueue.h>
 
+#include <shlobj.h>
 #include <uxtheme.h>
+#include <windowsx.h>
 
 #include "resource.h"
 
@@ -60,6 +62,16 @@ VOID PeSaveSettings(
 
 // symbols
 
+#define WM_PV_SEARCH_FINISHED (WM_APP + 701)
+
+extern ULONG SearchResultsAddIndex;
+extern PPH_LIST SearchResults;
+extern PH_QUEUED_LOCK SearchResultsLock;
+
+VOID PvCreateSearchControl(
+    _In_ HWND WindowHandle,
+    _In_opt_ PWSTR BannerText
+    );
 
 typedef enum _WCT_TREE_COLUMN_ITEM_NAME
 {
@@ -67,12 +79,13 @@ typedef enum _WCT_TREE_COLUMN_ITEM_NAME
     TREE_COLUMN_ITEM_VA,
     TREE_COLUMN_ITEM_NAME,
     TREE_COLUMN_ITEM_SYMBOL,
+    TREE_COLUMN_ITEM_SIZE,
     TREE_COLUMN_ITEM_MAXIMUM
 } WCT_TREE_COLUMN_ITEM_NAME;
 
 typedef enum _PV_SYMBOL_TYPE
 {
-    PV_SYMBOL_TYPE_NONE,
+    PV_SYMBOL_TYPE_UNKNOWN,
     PV_SYMBOL_TYPE_FUNCTION,
     PV_SYMBOL_TYPE_SYMBOL,
     PV_SYMBOL_TYPE_LOCAL_VAR,
@@ -81,15 +94,17 @@ typedef enum _PV_SYMBOL_TYPE
     PV_SYMBOL_TYPE_OBJECT_PTR,
     PV_SYMBOL_TYPE_STATIC_VAR,
     PV_SYMBOL_TYPE_GLOBAL_VAR,
-    PV_SYMBOL_TYPE_MEMBER,
+    PV_SYMBOL_TYPE_STRUCT,
     PV_SYMBOL_TYPE_STATIC_MEMBER,
-    PV_SYMBOL_TYPE_CONSTANT
+    PV_SYMBOL_TYPE_CONSTANT,
+    PV_SYMBOL_TYPE_CLASS,
 } PV_SYMBOL_TYPE;
 
 typedef struct _PV_SYMBOL_NODE
 {
     PH_TREENEW_NODE Node;
 
+    ULONG64 Index;
     PV_SYMBOL_TYPE Type;
     ULONG Size;
     ULONG64 Address;    
@@ -100,6 +115,43 @@ typedef struct _PV_SYMBOL_NODE
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } PV_SYMBOL_NODE, *PPV_SYMBOL_NODE;
 
+typedef struct _PH_TN_COLUMN_MENU_DATA
+{
+    HWND TreeNewHandle;
+    PPH_TREENEW_HEADER_MOUSE_EVENT MouseEvent;
+    ULONG DefaultSortColumn;
+    PH_SORT_ORDER DefaultSortOrder;
+
+    struct _PH_EMENU_ITEM *Menu;
+    struct _PH_EMENU_ITEM *Selection;
+    ULONG ProcessedId;
+} PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
+
+#define PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ((ULONG)-1)
+#define PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID ((ULONG)-2)
+#define PH_TN_COLUMN_MENU_SIZE_COLUMN_TO_FIT_ID ((ULONG)-3)
+#define PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID ((ULONG)-4)
+#define PH_TN_COLUMN_MENU_RESET_SORT_ID ((ULONG)-5)
+
+ VOID PhInitializeTreeNewColumnMenu(
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+#define PH_TN_COLUMN_MENU_NO_VISIBILITY 0x1
+#define PH_TN_COLUMN_MENU_SHOW_RESET_SORT 0x2
+
+VOID PhInitializeTreeNewColumnMenuEx(
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data,
+    _In_ ULONG Flags
+    );
+
+BOOLEAN PhHandleTreeNewColumnMenu(
+    _Inout_ PPH_TN_COLUMN_MENU_DATA Data
+    );
+
+VOID PhDeleteTreeNewColumnMenu(
+    _In_ PPH_TN_COLUMN_MENU_DATA Data
+    );
 
 typedef struct _PH_TN_FILTER_SUPPORT
 {
@@ -155,14 +207,17 @@ typedef struct _PDB_SYMBOL_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
+    HANDLE SearchThreadHandle;
+    HANDLE UpdateTimer;
 
     ULONG64 BaseAddress;
     PPH_STRING FileName;
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
+
     PPH_LIST SymbolList;
     PPH_LIST UdtList;
-
+    
     PH_LAYOUT_MANAGER LayoutManager;
 
     ULONG TreeNewSortColumn;
@@ -187,7 +242,7 @@ VOID PvPdbProperties(
     VOID
     );
 
-VOID PluginsAddTreeNode(
+VOID PvSymbolAddTreeNode(
     _In_ PPDB_SYMBOL_CONTEXT Context,
     _In_ PPV_SYMBOL_NODE Entry
     );

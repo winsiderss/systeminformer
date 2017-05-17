@@ -96,7 +96,7 @@
       <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -121,7 +121,7 @@
       <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -149,7 +149,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -179,7 +179,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -206,6 +206,7 @@
     <ClCompile Include="pdbprp.c" />
     <ClCompile Include="peprp.c" />
     <ClCompile Include="prpsh.c" />
+    <ClCompile Include="searchbox.c" />
     <ClCompile Include="settings.c" />
   </ItemGroup>
   <ItemGroup>
@@ -227,6 +228,13 @@
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="peview.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\active_search.bmp" />
+    <Image Include="resources\active_search.png" />
+    <Image Include="resources\inactive_search.bmp" />
+    <Image Include="resources\inactive_search.png" />
+    <Image Include="resources\ProcessHacker.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
