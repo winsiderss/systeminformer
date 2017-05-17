@@ -16,6 +16,7 @@ namespace CustomBuildTool
         private static string BuildOutputFolder = "build";
         private static string BuildVersion;
         private static string BuildLongVersion;
+        private static string BuildCount;
         private static string BuildRevision;
         private static string BuildMessage;
         private static long BuildSetupFileLength;
@@ -223,63 +224,51 @@ namespace CustomBuildTool
             }
         }
 
-        public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo)
+        public static string GetBuildLogString()
         {
-            if (ShowBuildInfo)
-            {
-                Program.PrintColorMessage("Build: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(Platform, ConsoleColor.White, false);
-            }
+            return Win32.ShellExecute(GitExePath, "log -n 1800 --graph --pretty=format:\"%C(yellow)%h%Creset %C(bold blue)%an%Creset %s %C(dim green)(%cr)\" --abbrev-commit ").Trim();
+        }
 
-            string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always");
-            string latestGitRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"");
+        public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
+        {
+            string currentBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD");
+            string currentCommitTag = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD       
+            Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
+            Program.PrintColorMessage(currentBranch, ConsoleColor.White);
+            Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
+            Program.PrintColorMessage(currentCommitTag, ConsoleColor.White);
 
-            if (string.IsNullOrEmpty(latestGitRevision))
+            string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
+            BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
+            BuildCount = Win32.ShellExecute(GitExePath, "rev-list --count " + BuildBranch).Trim();
+
+            if (string.IsNullOrEmpty(BuildRevision))
                 BuildRevision = "0";
-            else
-                BuildRevision = latestGitRevision.Trim();
+            if (string.IsNullOrEmpty(BuildCount))
+                BuildCount = "0";
 
             BuildVersion = "3.0." + BuildRevision;
-            BuildLongVersion = "3.0.0." + BuildRevision;
-            BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
-
+            BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
+   
             if (ShowBuildInfo)
             {
-                string buildMessage = string.Empty;
+                Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage(BuildLongVersion + Environment.NewLine, ConsoleColor.White);
 
-                if (BuildNightly)
+                if (ShowLogInfo)
                 {
-                    buildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
-                }
-                else
-                {
-                    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
-                    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-                    buildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
-                }
+                    if (BuildNightly)
+                        BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
+                    else
+                    {
+                        Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
+                        Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
-                string currentBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD");
-                string currentCommitTag = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD
-                //string latestGitCount = Win32.GitExecCommand("rev-list --count " + BuildBranch);         
-       
-                if (!string.IsNullOrEmpty(currentBranch))
-                {
-                    Program.PrintColorMessage(Environment.NewLine + "Branch: ", ConsoleColor.Cyan, false);
-                    Program.PrintColorMessage(currentBranch, ConsoleColor.White);
-                }
+                        //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
+                        BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
+                    }
 
-                if (!string.IsNullOrEmpty(BuildVersion))
-                {
-                    Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
-                    Program.PrintColorMessage(BuildVersion, ConsoleColor.White);
-                }
-
-                Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(currentCommitTag + Environment.NewLine, ConsoleColor.White);
-
-                if (!string.IsNullOrEmpty(buildMessage))
-                {
-                    Console.WriteLine(buildMessage + Environment.NewLine);
+                    Console.WriteLine(BuildMessage + Environment.NewLine);
                 }
             }
         }
@@ -288,21 +277,20 @@ namespace CustomBuildTool
         {
             TimeSpan buildTime = DateTime.Now - TimeStart;
 
-            Console.WriteLine();
-            Console.WriteLine("Build Time: " + buildTime.Minutes + " minute(s), " + buildTime.Seconds + " second(s)");
-            Console.WriteLine("Build complete.");
+            Console.WriteLine(
+                Environment.NewLine + "Build Time: " + 
+                buildTime.Minutes + " minute(s), " + 
+                buildTime.Seconds + " second(s)");
         }
 
         public static bool CopyTextFiles()
         {
-            Program.PrintColorMessage("Copying text files...", ConsoleColor.Cyan);
-
             try
             {
-                File.Copy("README.md", "bin\\README.txt", true);
-                File.Copy("CHANGELOG.txt", "bin\\CHANGELOG.txt", true);
-                File.Copy("COPYRIGHT.txt", "bin\\COPYRIGHT.txt", true);
-                File.Copy("LICENSE.txt", "bin\\LICENSE.txt", true);
+                Win32.CopyIfNewer("README.md", "bin\\README.txt");
+                Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt");
+                Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
+                Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
             }
             catch (Exception ex)
             {
@@ -313,53 +301,45 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CopyKProcessHacker(bool DebugBuild)
-        {
-            Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
-
-            try
-            {
-                if (DebugBuild)
-                {
-                    File.Copy("KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Debug32\\kprocesshacker.sys", true);
-                    File.Copy("KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Debug64\\kprocesshacker.sys", true);
-                }
-                else
-                {
-                    File.Copy("KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Release32\\kprocesshacker.sys", true);
-                    File.Copy("KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Release64\\kprocesshacker.sys", true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
         public static bool CopyLibFiles(BuildFlags Flags)
         {
-            Program.PrintColorMessage("Copying Plugin SDK linker files...", ConsoleColor.Cyan);
-
             try
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        File.Copy("bin\\Debug32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
+                    {
+                        Win32.CopyIfNewer(
+                            "bin\\Debug32\\ProcessHacker.lib", 
+                            "sdk\\lib\\i386\\ProcessHacker.lib"
+                            );
+                    }
 
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        File.Copy("bin\\Debug64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                    {
+                        Win32.CopyIfNewer(
+                            "bin\\Debug64\\ProcessHacker.lib", 
+                            "sdk\\lib\\amd64\\ProcessHacker.lib"
+                            );
+                    }
                 }
                 else
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                        File.Copy("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
+                    {
+                        Win32.CopyIfNewer(
+                            "bin\\Release32\\ProcessHacker.lib", 
+                            "sdk\\lib\\i386\\ProcessHacker.lib"
+                            );
+                    }
 
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                        File.Copy("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                    {
+                        Win32.CopyIfNewer(
+                            "bin\\Release64\\ProcessHacker.lib", 
+                            "sdk\\lib\\amd64\\ProcessHacker.lib"
+                            );
+                    }
                 }
             }
             catch (Exception ex)
@@ -384,10 +364,10 @@ namespace CustomBuildTool
                     if (!Directory.Exists("bin\\Debug64\\x86\\plugins"))
                         Directory.CreateDirectory("bin\\Debug64\\x86\\plugins");
 
-                    File.Copy("bin\\Debug32\\ProcessHacker.exe", "bin\\Debug64\\x86\\ProcessHacker.exe", true);
-                    File.Copy("bin\\Debug32\\ProcessHacker.pdb", "bin\\Debug64\\x86\\ProcessHacker.pdb", true);
-                    File.Copy("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll", true);
-                    File.Copy("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb", true);
+                    Win32.CopyIfNewer("bin\\Debug32\\ProcessHacker.exe", "bin\\Debug64\\x86\\ProcessHacker.exe");
+                    Win32.CopyIfNewer("bin\\Debug32\\ProcessHacker.pdb", "bin\\Debug64\\x86\\ProcessHacker.pdb");
+                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
+                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
                 }
                 else
                 {
@@ -396,14 +376,22 @@ namespace CustomBuildTool
                     if (!Directory.Exists("bin\\Release64\\x86\\plugins"))
                         Directory.CreateDirectory("bin\\Release64\\x86\\plugins");
 
-                    if (File.Exists("bin\\Release32\\ProcessHacker.exe"))
-                        File.Copy("bin\\Release32\\ProcessHacker.exe", "bin\\Release64\\x86\\ProcessHacker.exe", true);
-                    if (File.Exists("bin\\Release32\\ProcessHacker.pdb"))
-                        File.Copy("bin\\Release32\\ProcessHacker.pdb", "bin\\Release64\\x86\\ProcessHacker.pdb", true);
-                    if (File.Exists("bin\\Release32\\plugins\\DotNetTools.dll"))
-                        File.Copy("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll", true);
-                    if (File.Exists("bin\\Release32\\plugins\\DotNetTools.pdb"))
-                        File.Copy("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb", true);
+                    Win32.CopyIfNewer(
+                        "bin\\Release32\\ProcessHacker.exe", 
+                        "bin\\Release64\\x86\\ProcessHacker.exe"
+                        );
+                    Win32.CopyIfNewer(
+                        "bin\\Release32\\ProcessHacker.pdb", 
+                        "bin\\Release64\\x86\\ProcessHacker.pdb"
+                        );
+                    Win32.CopyIfNewer(
+                        "bin\\Release32\\plugins\\DotNetTools.dll", 
+                        "bin\\Release64\\x86\\plugins\\DotNetTools.dll"
+                        );
+                    Win32.CopyIfNewer(
+                        "bin\\Release32\\plugins\\DotNetTools.pdb", 
+                        "bin\\Release64\\x86\\plugins\\DotNetTools.pdb"
+                        );
                 }
             }
             catch (Exception ex)
@@ -417,8 +405,6 @@ namespace CustomBuildTool
 
         public static bool CopyPluginSdkHeaders()
         {
-            Program.PrintColorMessage("Copying Plugin SDK headers...", ConsoleColor.Cyan);
-
             try
             {
                 foreach (string folder in sdk_directories)
@@ -438,27 +424,28 @@ namespace CustomBuildTool
 
                 // Copy the plugin SDK headers
                 foreach (string file in phnt_headers)
-                    File.Copy("phnt\\include\\" + file, "sdk\\include\\" + file, true);
+                    Win32.CopyIfNewer("phnt\\include\\" + file, "sdk\\include\\" + file);
                 foreach (string file in phlib_headers)
-                    File.Copy("phlib\\include\\" + file, "sdk\\include\\" + file, true);
-                File.Copy("phlib\\mxml\\mxml.h", "sdk\\include\\mxml.h", true);
+                    Win32.CopyIfNewer("phlib\\include\\" + file, "sdk\\include\\" + file);
+
+                Win32.CopyIfNewer("phlib\\mxml\\mxml.h", "sdk\\include\\mxml.h");
 
                 // Copy readme
-                File.Copy("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt", true);
+                Win32.CopyIfNewer("ProcessHacker\\sdk\\readme.txt", "sdk\\readme.txt");
                 // Copy symbols
-                File.Copy("bin\\Release32\\ProcessHacker.pdb", "sdk\\dbg\\i386\\ProcessHacker.pdb", true);
-                File.Copy("bin\\Release64\\ProcessHacker.pdb", "sdk\\dbg\\amd64\\ProcessHacker.pdb", true);
-                File.Copy("KProcessHacker\\bin\\i386\\kprocesshacker.pdb", "sdk\\dbg\\i386\\kprocesshacker.pdb", true);
-                File.Copy("KProcessHacker\\bin\\amd64\\kprocesshacker.pdb", "sdk\\dbg\\amd64\\kprocesshacker.pdb", true);
+                Win32.CopyIfNewer("bin\\Release32\\ProcessHacker.pdb", "sdk\\dbg\\i386\\ProcessHacker.pdb");
+                Win32.CopyIfNewer("bin\\Release64\\ProcessHacker.pdb", "sdk\\dbg\\amd64\\ProcessHacker.pdb");
+                Win32.CopyIfNewer("KProcessHacker\\bin\\i386\\kprocesshacker.pdb", "sdk\\dbg\\i386\\kprocesshacker.pdb");
+                Win32.CopyIfNewer("KProcessHacker\\bin\\amd64\\kprocesshacker.pdb", "sdk\\dbg\\amd64\\kprocesshacker.pdb");
                 // Copy libs
-                File.Copy("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib", true);
-                File.Copy("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib", true);
+                Win32.CopyIfNewer("bin\\Release32\\ProcessHacker.lib", "sdk\\lib\\i386\\ProcessHacker.lib");
+                Win32.CopyIfNewer("bin\\Release64\\ProcessHacker.lib", "sdk\\lib\\amd64\\ProcessHacker.lib");
                 // Copy sample plugin
-                File.Copy("plugins\\SamplePlugin\\main.c", "sdk\\samples\\SamplePlugin\\main.c", true);
-                File.Copy("plugins\\SamplePlugin\\SamplePlugin.sln", "sdk\\samples\\SamplePlugin\\SamplePlugin.sln", true);
-                File.Copy("plugins\\SamplePlugin\\SamplePlugin.vcxproj", "sdk\\samples\\SamplePlugin\\SamplePlugin.vcxproj", true);
-                File.Copy("plugins\\SamplePlugin\\SamplePlugin.vcxproj.filters", "sdk\\samples\\SamplePlugin\\SamplePlugin.vcxproj.filters", true);
-                File.Copy("plugins\\SamplePlugin\\bin\\Release32\\SamplePlugin.dll", "sdk\\samples\\SamplePlugin\\bin\\Release32\\SamplePlugin.dll", true);
+                Win32.CopyIfNewer("plugins\\SamplePlugin\\main.c", "sdk\\samples\\SamplePlugin\\main.c");
+                Win32.CopyIfNewer("plugins\\SamplePlugin\\SamplePlugin.sln", "sdk\\samples\\SamplePlugin\\SamplePlugin.sln");
+                Win32.CopyIfNewer("plugins\\SamplePlugin\\SamplePlugin.vcxproj", "sdk\\samples\\SamplePlugin\\SamplePlugin.vcxproj");
+                Win32.CopyIfNewer("plugins\\SamplePlugin\\SamplePlugin.vcxproj.filters", "sdk\\samples\\SamplePlugin\\SamplePlugin.vcxproj.filters");
+                Win32.CopyIfNewer("plugins\\SamplePlugin\\bin\\Release32\\SamplePlugin.dll", "sdk\\samples\\SamplePlugin\\bin\\Release32\\SamplePlugin.dll");
             }
             catch (Exception ex)
             {
@@ -471,77 +458,14 @@ namespace CustomBuildTool
 
         public static bool CopyVersionHeader()
         {
-            Program.PrintColorMessage("Copying Plugin SDK version header...", ConsoleColor.Cyan);
-
             try
             {
                 HeaderGen gen = new HeaderGen();
                 gen.Execute();
 
-                File.Copy("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h", true);
-                File.Copy("ProcessHacker\\sdk\\phdk.h", "sdk\\include\\phdk.h", true);
-                File.Copy("ProcessHacker\\resource.h", "sdk\\include\\phappresource.h", true);
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool CopyRedistFiles(BuildFlags Flags)
-        {
-            string dbghelp32RedistDll = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll");
-            string dbghelp64RedistDll = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll");
-            string symsrv32RedistDll = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x86\\symsrv.dll");
-            string symsrv64RedistDll = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\symsrv.dll");
-
-            Program.PrintColorMessage("Copying redist files...", ConsoleColor.Cyan);
-
-            try
-            {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        if (File.Exists(dbghelp32RedistDll))
-                            File.Copy(dbghelp32RedistDll, "bin\\Debug32\\dbghelp.dll", true);
-
-                        if (File.Exists(symsrv32RedistDll))
-                            File.Copy(symsrv32RedistDll, "bin\\Debug32\\symsrv.dll", true);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (File.Exists(dbghelp64RedistDll))
-                            File.Copy(dbghelp64RedistDll, "bin\\Debug64\\dbghelp.dll", true);
-
-                        if (File.Exists(symsrv64RedistDll))
-                            File.Copy(symsrv64RedistDll, "bin\\Debug64\\symsrv.dll", true);
-                    }
-                }
-                else
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        if (File.Exists(dbghelp32RedistDll))
-                            File.Copy(dbghelp32RedistDll, "bin\\Release32\\dbghelp.dll", true);
-
-                        if (File.Exists(symsrv32RedistDll))
-                            File.Copy(symsrv32RedistDll, "bin\\Release32\\symsrv.dll", true);
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (File.Exists(dbghelp64RedistDll))
-                            File.Copy(dbghelp64RedistDll, "bin\\Release64\\dbghelp.dll", true);
-
-                        if (File.Exists(symsrv64RedistDll))
-                            File.Copy(symsrv64RedistDll, "bin\\Release64\\symsrv.dll", true);
-                    }
-                }
+                Win32.CopyIfNewer("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h");
+                Win32.CopyIfNewer("ProcessHacker\\sdk\\phdk.h", "sdk\\include\\phdk.h");
+                Win32.CopyIfNewer("ProcessHacker\\resource.h", "sdk\\include\\phappresource.h");
             }
             catch (Exception ex)
             {
@@ -554,8 +478,6 @@ namespace CustomBuildTool
 
         public static bool FixupResourceHeader()
         {
-            Program.PrintColorMessage("Building Plugin SDK resource header...", ConsoleColor.Cyan);
-
             try
             {
                 string phappContent = File.ReadAllText("sdk\\include\\phappresource.h");
@@ -570,31 +492,6 @@ namespace CustomBuildTool
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool UpdateHeaderFileVersion()
-        {
-            try
-            {
-                if (File.Exists("ProcessHacker\\include\\phapprev.h"))
-                    File.Delete("ProcessHacker\\include\\phapprev.h");
-
-                File.WriteAllText("ProcessHacker\\include\\phapprev.h",
-@"#ifndef PHAPPREV_H 
-#define PHAPPREV_H 
-
-#define PHAPP_VERSION_REVISION " + BuildRevision + @"
-
-#endif // PHAPPREV_H
-");
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[phapprev] " + ex.ToString(), ConsoleColor.Yellow);
                 return false;
             }
 
@@ -619,11 +516,9 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildKphSignatureFile(bool DebugBuild)
+        public static bool CopyKProcessHacker(bool DebugBuild)
         {
-            string output;
-
-            Program.PrintColorMessage("Building KPH signature...", ConsoleColor.Cyan);
+            Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
 
             if (!File.Exists(CustomSignToolPath))
             {
@@ -659,13 +554,15 @@ namespace CustomBuildTool
                 File.Create("bin\\Debug32\\ProcessHacker.sig").Dispose();
                 File.Create("bin\\Debug64\\ProcessHacker.sig").Dispose();
 
-                if (!string.IsNullOrEmpty(output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig")))
+                string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
+                if (!string.IsNullOrEmpty(output))
                 {
                     Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig")))
+                output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
+                if (!string.IsNullOrEmpty(output))
                 {
                     Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
                     return false;
@@ -693,23 +590,56 @@ namespace CustomBuildTool
                 File.Create("bin\\Release32\\ProcessHacker.sig").Dispose();
                 File.Create("bin\\Release64\\ProcessHacker.sig").Dispose();
 
-                if (!string.IsNullOrEmpty(output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig")))
+                string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
+                if (!string.IsNullOrEmpty(output))
                 {
                     Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red);
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig")))
+                output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
+                if (!string.IsNullOrEmpty(output))
                 {
                     Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red);
                     return false;
                 }
             }
 
+            try
+            {
+                if (DebugBuild)
+                {
+                    Win32.CopyIfNewer(
+                        "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
+                        "bin\\Debug32\\kprocesshacker.sys"
+                        );
+                    Win32.CopyIfNewer(
+                        "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
+                        "bin\\Debug64\\kprocesshacker.sys"
+                        );
+                }
+                else
+                {
+                    Win32.CopyIfNewer(
+                        "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
+                        "bin\\Release32\\kprocesshacker.sys"
+                        );
+                    Win32.CopyIfNewer(
+                        "KProcessHacker\\bin-signed\\amd64\\kprocesshacker.sys",
+                        "bin\\Release64\\kprocesshacker.sys"
+                        );
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] (kprocesshacker.sys)" + ex, ConsoleColor.Red);
+                return false;
+            }
+
             return true;
         }
 
-        public static bool BuildSecureFiles()
+        public static bool CopyKeyFiles()
         {
             string buildKey = Environment.ExpandEnvironmentVariables("%NIGHTLY_BUILD_KEY%").Replace("%NIGHTLY_BUILD_KEY%", string.Empty);
             string kphKey = Environment.ExpandEnvironmentVariables("%KPH_BUILD_KEY%").Replace("%KPH_BUILD_KEY%", string.Empty);
@@ -753,7 +683,7 @@ namespace CustomBuildTool
         {
             Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan, true, BuildFlags.BuildVerbose);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildVerbose))
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit))
                 return false;
 
             try
@@ -864,6 +794,8 @@ namespace CustomBuildTool
 
         public static bool BuildPdbZip()
         {
+            Program.PrintColorMessage("Building build-pdb.zip...", ConsoleColor.Cyan);
+
             try
             {
                 Zip.CreateCompressedPdbFromFolder(".\\", BuildOutputFolder + "\\processhacker-build-pdb.zip");
@@ -962,7 +894,7 @@ namespace CustomBuildTool
                 Updated = TimeStart.ToString("o"),
                 Version = BuildVersion,
                 FileLength = BuildSetupFileLength.ToString(),
-                ForumUrl = "https://wj32.org/processhacker/forums/viewtopic.php?t=2315",
+                ForumUrl = "https://wj32.org/processhacker/nightly.php",
                 Setupurl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
                 Binurl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
                 HashSetup = BuildSetupHash,
@@ -1076,11 +1008,26 @@ namespace CustomBuildTool
                 }
             }
 
+            if (File.Exists(releaseFileArray[0]))
+            {
+                try
+                {
+                    Win32.ShellExecute("appveyor", "UpdateBuild -Version \"1.0 -$version\" ");
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage("[WebServicePushArtifact] " + ex, ConsoleColor.Red);
+                    return false;
+                }
+            }
+
             return true;
         }
 
         public static bool BuildSolution(string Solution, BuildFlags Flags)
         {
+            //string buildParams = "/p:DefineConstants=\"PH_BUILD_API=1;PHAPP_VERSION_REVISION=" + BuildRevision + "\" ";
+
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
@@ -1091,7 +1038,9 @@ namespace CustomBuildTool
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
-                    "/p:Platform=Win32" + (BuildNightly ? " /p:ExternalCompilerOptions=PH_BUILD_API" : string.Empty) + " " + Solution
+                    "/p:Platform=Win32 " + 
+                    //buildParams + 
+                    Solution
                     );
                 
                 if (!string.IsNullOrEmpty(error32))
@@ -1111,7 +1060,9 @@ namespace CustomBuildTool
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
-                    "/p:Platform=x64" + (BuildNightly ? " /p:ExternalCompilerOptions=PH_BUILD_API" : string.Empty) + " " + Solution
+                    "/p:Platform=x64 " + 
+                    //buildParams +
+                    Solution
                     );
 
                 if (!string.IsNullOrEmpty(error64))

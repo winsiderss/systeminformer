@@ -98,7 +98,6 @@ BOOLEAN SetupExtractBuild(
     }
 
     InterlockedExchange64(&ExtractTotalLength, totalLength);
-
     SendMessage(Context, WM_START_SETUP, 0, 0);
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
@@ -153,7 +152,6 @@ BOOLEAN SetupExtractBuild(
             goto CleanupExit;
 
         extractPath = PhConcatStrings(3, PhGetString(SetupInstallPath), L"\\", PhGetString(fileName));
-        //OutputDebugString(PhFormatString(L"%s\r\n", extractPath->Buffer)->Buffer);
 
         if (fullSetupPath = PhGetFullPath(extractPath->Buffer, &indexOfFileName))
         {
@@ -211,7 +209,9 @@ BOOLEAN SetupExtractBuild(
             goto CleanupExit;
 
         currentLength += bufferLength;
+
         InterlockedExchange64(&ExtractCurrentLength, currentLength);
+
         SendMessage(Context, WM_UPDATE_SETUP, 0, (LPARAM)PhGetBaseName(extractPath));
 
         NtClose(fileHandle);
