@@ -40,8 +40,8 @@ VOID PhInitializeTreeNewColumnMenuEx(
     PPH_EMENU_ITEM resetSortMenuItem = NULL;
     PPH_EMENU_ITEM sizeColumnToFitMenuItem;
     PPH_EMENU_ITEM sizeAllColumnsToFitMenuItem;
-    PPH_EMENU_ITEM hideColumnMenuItem;
-    PPH_EMENU_ITEM chooseColumnsMenuItem;
+    PPH_EMENU_ITEM hideColumnMenuItem = NULL;
+    PPH_EMENU_ITEM chooseColumnsMenuItem = NULL;
     ULONG minimumNumberOfColumns;
 
     Data->Menu = PhCreateEMenu();
@@ -496,7 +496,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VA)
 {
-    sortResult = uintptrcmp(node1->Address, node2->Address);
+    sortResult = uintptrcmp((ULONG_PTR)node1->Address, (ULONG_PTR)node2->Address);
 }
 END_SORT_FUNCTION
 
