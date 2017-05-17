@@ -478,15 +478,7 @@ BOOLEAN SymbolInfo_DumpFunctionType(
         ULONG Children[cMaxChildren];
         ULONG NumChildren = 0;
 
-        if( !GetChildren( m_hProcess, BaseAddress, Index, Children, NumChildren, cMaxChildren ) )
-        {
-            ULONG ErrCode = 0;
-            _ASSERTE( !_T("GetChildren() failed.") );
-        }
-        else
-        {
-            ULONG ErrCode = 0;
-        }
+        GetChildren( m_hProcess, BaseAddress, Index, Children, NumChildren, cMaxChildren)
     */
 
     // Dump function arguments 
@@ -1922,8 +1914,6 @@ BOOL CALLBACK EnumCallbackProc(
                     );
                 SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
 
-                // Flags: %x, SymbolInfo->Flags
-                // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
                 PhAcquireQueuedLockExclusive(&SearchResultsLock);
                 PhAddItemList(SearchResults, symbol);
                 PhReleaseQueuedLockExclusive(&SearchResultsLock);
@@ -2045,30 +2035,21 @@ VOID PrintClassInfo(
     _In_ UdtClassInfo* Info
     )
 {
-    PPV_SYMBOL_NODE symbol;
-    
-    symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-    memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-    
-    symbol->Type = PV_SYMBOL_TYPE_CLASS;
+    //PPV_SYMBOL_NODE symbol;
+    //symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
+    //memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
+    //symbol->Type = PV_SYMBOL_TYPE_CLASS;
     //symbol->Address = VarInfo.sDataInfo.Address;
     //symbol->Size = (ULONG)Info->Offset;
-    symbol->Name = SymbolInfo_GetTypeName(Context, Index, Info->Name);// PhCreateString(SymbolInfo_UdtKindStr(Info->UDTKind));
+    //symbol->Name = SymbolInfo_GetTypeName(Context, Index, Info->Name);// PhCreateString(SymbolInfo_UdtKindStr(Info->UDTKind));
     //symbol->Data = SymbolInfo_GetTypeName(Context, Index, Info->Name);
-
-    if (PhEqualString2(symbol->Name, L"STRUCT", TRUE))
-        symbol->Type = PV_SYMBOL_TYPE_STRUCT;
-
     //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-
-    PhAcquireQueuedLockExclusive(&SearchResultsLock);
-    PhAddItemList(SearchResults, symbol);
-    PhReleaseQueuedLockExclusive(&SearchResultsLock);
-
-    // Info.Nested
-    // Info->NumVariables
-    // Info->NumFunctions
-    // Info->NumBaseClasses
+    //Info.Nested
+    //if (PhEqualString2(symbol->Name, L"STRUCT", TRUE))
+    //    symbol->Type = PV_SYMBOL_TYPE_STRUCT;
+    //PhAcquireQueuedLockExclusive(&SearchResultsLock);
+    //PhAddItemList(SearchResults, symbol);
+    //PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
     for (ULONG i = 0; i < Info->NumVariables; i++)
     {
@@ -2083,62 +2064,46 @@ VOID PrintClassInfo(
             // Unexpected symbol tag.
         }
         else
-        {      
-            // Location 
-            //switch (VarInfo.sDataInfo.dataKind)
-            //{
-            //case DataIsGlobal:
-            //case DataIsStaticLocal:
-            //case DataIsFileStatic:
-            //case DataIsStaticMember:
-            //    {
-            //        // Use Address 
-            //        // "  Address: %16I64x" VarInfo.sDataInfo.Address
-            //    }
-            //    break;
-            //case DataIsLocal:
-            //case DataIsParam:
-            //case DataIsObjectPtr:
-            //case DataIsMember:
-            //    {
-            //        // Use Offset 
-            //        // "  Offset: %8d" (long)VarInfo.sDataInfo.Offset
-            //    }
-            //    break;
-            //default:
-            //    break; // TODO Add support for constants
-            //}
-            //
+        {
             //PPV_SYMBOL_NODE symbol;
             //
             //symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
             //memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
             //
             //symbol->Type = PV_SYMBOL_TYPE_MEMBER;
-            //symbol->Address = VarInfo.sDataInfo.Address;
+            //
+            // Location 
+            switch (VarInfo.sDataInfo.dataKind)
+            {
+            case DataIsGlobal:
+            case DataIsStaticLocal:
+            case DataIsFileStatic:
+            case DataIsStaticMember:
+                {
+                    //symbol->Address = VarInfo.sDataInfo.Address;
+                }
+                break;
+            case DataIsLocal:
+            case DataIsParam:
+            case DataIsObjectPtr:
+            case DataIsMember:
+                {
+                    //symbol->Address = VarInfo.sDataInfo.Offset;
+                }
+                break;
+            default:
+                break; // TODO Add support for constants
+            }
+          
             //symbol->Size = (ULONG)VarInfo.sDataInfo.Offset;
             //symbol->Name = PhCreateString(VarInfo.sDataInfo.Name);
+            //symbol->Data = SymbolInfo_GetTypeName(Context, VarInfo.sDataInfo.TypeIndex, VarInfo.sDataInfo.Name);
             //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-            //
-            // Data 
-            //if (SymbolInfo_GetTypeName(Context, &typeName, VarInfo.sDataInfo.TypeIndex, VarInfo.sDataInfo.Name))
-            //    symbol->Data = PhFinalStringBuilderString(&typeName);
-            // Flags: %x, SymbolInfo->Flags
-            // Index: %8u, TypeIndex: %8u, SymbolInfo->Index, SymbolInfo->TypeIndex
-            // Nested 
-            //if (Info.Info.sUdtClassInfo.Nested)
-            //    printf("Nested");
-            //
-            // Number of members  
-            //printf("  Members: %d", Info.Info.sUdtClassInfo.NumVariables);
-            //
+            //Info.Info.sUdtClassInfo.Nested  
+            //Info.Info.sUdtClassInfo.NumVariables
             //PhAcquireQueuedLockExclusive(&SearchResultsLock);
             //PhAddItemList(SearchResults, symbol);
             //PhReleaseQueuedLockExclusive(&SearchResultsLock);
-            //
-            // Update the search results in batches of 2000.
-            //if (SearchResults->Count % 2000 == 0)
-            //    PostMessage(Context->DialogHandle, WM_PV_SEARCH_UPDATE, 0, 0);
         }
     }
 
@@ -2161,7 +2126,7 @@ VOID PrintClassInfo(
             symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
             memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
 
-            symbol->Type = PV_SYMBOL_TYPE_STRUCT;
+            symbol->Type = PV_SYMBOL_TYPE_FUNCTION;
             symbol->Address = VarInfo.sDataInfo.Address;
             symbol->Size = (ULONG)VarInfo.sDataInfo.Offset;
             symbol->Name = PhCreateString(VarInfo.sDataInfo.Name);
@@ -2281,45 +2246,9 @@ VOID PrintUserDefinedTypes(
                 }
                 else
                 {
-                    PPV_SYMBOL_NODE symbol;
-
-                    symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
-                    memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
-
-                    symbol->Type = PV_SYMBOL_TYPE_CLASS;
-                    //symbol->Address = VarInfo.sDataInfo.Address;
-                    //symbol->Size = (ULONG)Info->Offset;
-                    symbol->Name = SymbolInfo_GetTypeName(Context, index, info.sUdtUnionInfo.Name);
-                    // PhCreateString(SymbolInfo_UdtKindStr(Info->UDTKind));                                                               
-                    symbol->Data = SymbolInfo_GetTypeName(Context, index, info.sUdtUnionInfo.Name);
-
-                    if (PhEqualString2(symbol->Name, L"STRUCT", TRUE))
-                        symbol->Type = PV_SYMBOL_TYPE_STRUCT;
-
-                    //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
-
-                    PhAcquireQueuedLockExclusive(&SearchResultsLock);
-                    PhAddItemList(SearchResults, symbol);
-                    PhReleaseQueuedLockExclusive(&SearchResultsLock);
-
-                    // Print information about the union 
-                    for (ULONG i = 0; i < info.sUdtUnionInfo.NumMembers; i++)
-                    {
-                        TypeInfo baseInfo;
-
-                        if (!SymbolInfo_DumpType(Context, info.sUdtUnionInfo.Members[i], &baseInfo))
-                        {
-                            // Continue
-                        }
-                        else if (baseInfo.Tag != SymTagBaseClass)
-                        {
-                            // Continue
-                        }
-                        else
-                        {
-
-                        }
-                    }
+                    //info.sUdtUnionInfo.Name
+                    //PhCreateString(SymbolInfo_UdtKindStr(Info->UDTKind));                                                               
+                    //SymbolInfo_GetTypeName(Context, index, info.sUdtUnionInfo.Name);
                 }
             }
         }
@@ -2448,7 +2377,6 @@ NTSTATUS PeDumpFileSymbols(
     HANDLE fileHandle;
     HMODULE dbghelpHandle;
     HMODULE symsrvHandle;
-    ULONG64 symbolBaseAddress;
     ULONG64 baseAddress = 0;
     LARGE_INTEGER fileSize;
     PPH_STRING dbghelpPath;
@@ -2473,7 +2401,7 @@ NTSTATUS PeDumpFileSymbols(
     SymGetTypeInfo_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
     SymSetContext_I = PhGetProcedureAddress(dbghelpHandle, "SymSetContext", 0);
 
-    SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_ALLOW_ZERO_ADDRESS); // SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED
+    SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
 
     if (!SymInitialize_I(NtCurrentProcess(), NULL, FALSE))
         return 1;
@@ -2503,22 +2431,19 @@ NTSTATUS PeDumpFileSymbols(
     if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
         baseAddress = 0x10000000;
 
-    if ((symbolBaseAddress = SymLoadModuleExW_I(
+    if (Context->BaseAddress = SymLoadModuleExW_I(
         NtCurrentProcess(),
-        NULL,
+        fileHandle,
         PhGetString(PvFileName),
         NULL,
         baseAddress,
         (ULONG)fileSize.QuadPart,
         NULL,
         0
-        )))
+        ))
     {
-        Context->UdtList = PhCreateList(0x100);
-        Context->BaseAddress = symbolBaseAddress;
-
         //ShowModuleSymbolInfo(symbolBaseAddress);
-        SymEnumSymbolsW_I(NtCurrentProcess(), symbolBaseAddress, NULL, EnumCallbackProc, Context);
+        SymEnumSymbolsW_I(NtCurrentProcess(), Context->BaseAddress, NULL, EnumCallbackProc, Context);
 
         // Enumerate user defined types 
         PrintUserDefinedTypes(Context);

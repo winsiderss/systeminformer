@@ -606,6 +606,9 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                     case PV_SYMBOL_TYPE_CLASS:
                         PhInitializeStringRef(&getCellText->Text, L"CLASS");
                         break;
+                    case PV_SYMBOL_TYPE_MEMBER:
+                        PhInitializeStringRef(&getCellText->Text, L"MEMBER");
+                        break;
                     }
                 }
                 break;
@@ -938,6 +941,8 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
             SearchResults = PhCreateList(0x1000);
+            context->UdtList = PhCreateList(0x100);
+
             context->SearchThreadHandle = PhCreateThread(0, PeDumpFileSymbols, context);
 
             if (CreateTimerQueueTimer(
