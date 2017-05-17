@@ -416,9 +416,8 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
     _Inout_ PPH_STRING_BUILDER TypeName
     );
 
-BOOLEAN SymbolInfo_GetTypeName(
+PPH_STRING SymbolInfo_GetTypeName(
     _Inout_ PPDB_SYMBOL_CONTEXT Context,
-    _Inout_ PPH_STRING_BUILDER TypeName,
     _In_ ULONG Index,
     _In_ PWSTR VarName
     );
