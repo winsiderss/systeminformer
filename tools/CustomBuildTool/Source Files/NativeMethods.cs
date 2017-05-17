@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace CustomBuildTool
@@ -45,23 +46,33 @@ namespace CustomBuildTool
             }
         }
 
-        public const int STD_OUTPUT_HANDLE = -11;
-        public const int STD_INPUT_HANDLE = -10;
-        public const int STD_ERROR_HANDLE = -12;
+        public static void CopyIfNewer(string CurrentFile, string NewFile)
+        {
+            if (!File.Exists(CurrentFile))
+                return;
+
+            if (File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile))
+            {
+                File.Copy(CurrentFile, NewFile, true);
+            }
+        }
+
         public const int SW_HIDE = 0;
         public const int SW_SHOW = 5;
+        public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+        public static readonly IntPtr STD_OUTPUT_HANDLE = new IntPtr(-11);
+        public static readonly IntPtr STD_INPUT_HANDLE = new IntPtr(-10);
+        public static readonly IntPtr STD_ERROR_HANDLE = new IntPtr(-12);
 
-        static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-
-        [DllImport("kernel32.dll")]
-        public static extern IntPtr GetStdHandle(int nStdHandle);
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", ExactSpelling = true)]
+        public static extern IntPtr GetStdHandle(IntPtr StdHandle);
+        [DllImport("kernel32.dll", ExactSpelling = true)]
         public static extern bool GetConsoleMode(IntPtr ConsoleHandle, out ConsoleMode Mode);
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", ExactSpelling = true)]
         public static extern bool SetConsoleMode(IntPtr ConsoleHandle, ConsoleMode Mode);
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll", ExactSpelling = true)]
         public static extern IntPtr GetConsoleWindow();
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", ExactSpelling = true)]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);    
     }
 
