@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 15.0.26228.4
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2758DC86-368B-430C-9D29-F1EF20032A71}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessHacker", "ProcessHacker\ProcessHacker.vcxproj", "{0271DD27-6707-4290-8DFE-285702B7115D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
@@ -12,11 +10,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessHacker", "ProcessHac
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib", "phlib\phlib.vcxproj", "{477D0215-F252-41A1-874B-F27E3EA1ED17}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fixlib", "tools\fixlib\fixlib.vcxproj", "{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peview", "tools\peview\peview.vcxproj", "{72C124A2-3C80-41C6-ABA1-C4948B713204}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CustomSignTool", "tools\CustomSignTool\CustomSignTool.vcxproj", "{E8CD0A41-1537-4EA6-98AC-E80CD59C478E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,10 +36,6 @@ Global
 		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|Win32.Build.0 = Release|Win32
 		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|x64.ActiveCfg = Release|x64
 		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|x64.Build.0 = Release|x64
-		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}.Debug|Win32.ActiveCfg = Debug|Win32
-		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}.Debug|x64.ActiveCfg = Debug|Win32
-		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}.Release|Win32.ActiveCfg = Release|Win32
-		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}.Release|x64.ActiveCfg = Release|Win32
 		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|Win32.ActiveCfg = Debug|Win32
 		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|Win32.Build.0 = Debug|Win32
 		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|x64.ActiveCfg = Debug|x64
@@ -54,17 +44,8 @@ Global
 		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|Win32.Build.0 = Release|Win32
 		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|x64.ActiveCfg = Release|x64
 		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|x64.Build.0 = Release|x64
-		{E8CD0A41-1537-4EA6-98AC-E80CD59C478E}.Debug|Win32.ActiveCfg = Debug|Win32
-		{E8CD0A41-1537-4EA6-98AC-E80CD59C478E}.Debug|x64.ActiveCfg = Debug|x64
-		{E8CD0A41-1537-4EA6-98AC-E80CD59C478E}.Release|Win32.ActiveCfg = Release|Win32
-		{E8CD0A41-1537-4EA6-98AC-E80CD59C478E}.Release|x64.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175} = {2758DC86-368B-430C-9D29-F1EF20032A71}
-		{72C124A2-3C80-41C6-ABA1-C4948B713204} = {2758DC86-368B-430C-9D29-F1EF20032A71}
-		{E8CD0A41-1537-4EA6-98AC-E80CD59C478E} = {2758DC86-368B-430C-9D29-F1EF20032A71}
 	EndGlobalSection
 EndGlobal

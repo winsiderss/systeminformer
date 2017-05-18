@@ -379,6 +379,7 @@
   <ItemGroup>
     <ResourceCompile Include="ProcessHacker.rc">
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
