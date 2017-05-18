@@ -254,22 +254,19 @@ namespace CustomBuildTool
             if (ShowBuildInfo)
             {
                 Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildLongVersion + Environment.NewLine, ConsoleColor.White);
+                Program.PrintColorMessage(BuildVersion + Environment.NewLine, ConsoleColor.White);
 
-                if (ShowLogInfo)
+                if (!BuildNightly && ShowLogInfo)
                 {
-                    if (BuildNightly)
-                        BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
-                    else
-                    {
-                        Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
-                        Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+                    Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
+                    Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
-                        //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
-                        BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
-                    }
-
+                    BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"%C(green)[%cd]%Creset %C(bold blue)%an%Creset %<(65,trunc)%s%Creset (%C(yellow)%h%Creset)\" --abbrev-commit");
                     Console.WriteLine(BuildMessage + Environment.NewLine);
+
+                    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
+                    //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
+                    //Console.WriteLine(BuildMessage + Environment.NewLine);
                 }
             }
         }

@@ -139,7 +139,7 @@
         &lt;Resource Language="en-US" /&gt;
     &lt;/Resources&gt;
   &lt;Dependencies&gt;
-    &lt;TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.14316.0" MaxVersionTested="10.0.15063.0" /&gt;
+    &lt;TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.10240.0" MaxVersionTested="10.0.15063.0" /&gt;
   &lt;/Dependencies&gt;
   &lt;Capabilities&gt;
     &lt;rescap:Capability Name="runFullTrust"/&gt;
