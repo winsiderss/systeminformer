@@ -43,8 +43,7 @@
 #include "resource.h"
 #include <appsup.h>
 
-#include "..\..\..\ProcessHacker\include\phappres.h"
-#include "..\..\..\ProcessHacker\include\phapprev.h"
+#include "..\..\ProcessHacker\include\phappres.h"
 
 // Win32 PropertySheet Control IDs
 #define IDD_PROPSHEET_ID            1006  // ID of the propsheet dialog template in comctl32.dll

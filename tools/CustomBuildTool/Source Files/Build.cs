@@ -12,8 +12,9 @@ namespace CustomBuildTool
     {
         private static DateTime TimeStart;
         private static bool BuildNightly = false;
-        private static string BuildBranch = "master";
+        private static string BuildBranch;
         private static string BuildOutputFolder = "build";
+        private static string BuildCommit;
         private static string BuildVersion;
         private static string BuildLongVersion;
         private static string BuildCount;
@@ -231,12 +232,12 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
-            string currentBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD");
-            string currentCommitTag = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD       
+            BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD");
+            BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD       
             Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
-            Program.PrintColorMessage(currentBranch, ConsoleColor.White);
+            Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
             Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-            Program.PrintColorMessage(currentCommitTag, ConsoleColor.White);
+            Program.PrintColorMessage(BuildCommit, ConsoleColor.White);
 
             string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
             BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
@@ -1012,7 +1013,7 @@ namespace CustomBuildTool
             {
                 try
                 {
-                    Win32.ShellExecute("appveyor", "UpdateBuild -Version \"1.0 -$version\" ");
+                    Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
                 }
                 catch (Exception ex)
                 {
@@ -1026,8 +1027,6 @@ namespace CustomBuildTool
 
         public static bool BuildSolution(string Solution, BuildFlags Flags)
         {
-            //string buildParams = "/p:DefineConstants=\"PH_BUILD_API=1;PHAPP_VERSION_REVISION=" + BuildRevision + "\" ";
-
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
@@ -1038,8 +1037,8 @@ namespace CustomBuildTool
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
-                    "/p:Platform=Win32 " + 
-                    //buildParams + 
+                    "/p:Platform=Win32 " +
+                    "/p:ExternalCompilerOptions=\"PH_BUILD_API;PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";PHAPP_VERSION_BUILD=\"" + BuildCount + "\"\" " + 
                     Solution
                     );
                 
@@ -1060,8 +1059,8 @@ namespace CustomBuildTool
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
-                    "/p:Platform=x64 " + 
-                    //buildParams +
+                    "/p:Platform=x64 " +
+                    "/p:ExternalCompilerOptions=\"PH_BUILD_API;PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";PHAPP_VERSION_BUILD=\"" + BuildCount + "\"\" " +
                     Solution
                     );
 

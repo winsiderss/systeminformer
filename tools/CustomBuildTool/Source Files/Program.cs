@@ -77,8 +77,6 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose
                     );
-
-                Build.ShowBuildStats();
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {

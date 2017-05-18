@@ -1,14 +1,21 @@
-// Notes:
-// * Do not use /* comments */ since ISPP is buggy and it will throw an error.
-
 #ifndef PH_PHAPPRES_H
 #define PH_PHAPPRES_H
 
-#include "phapprev.h"
-
+#ifndef PHAPP_VERSION_MAJOR
 #define PHAPP_VERSION_MAJOR 3
+#endif
+
+#ifndef PHAPP_VERSION_MINOR
 #define PHAPP_VERSION_MINOR 0
+#endif
+
+#ifndef PHAPP_VERSION_BUILD
 #define PHAPP_VERSION_BUILD 0
+#endif
+
+#ifndef PHAPP_VERSION_REVISION
+#define PHAPP_VERSION_REVISION 0
+#endif
 
 #if (PHAPP_VERSION_BUILD == 0)
 #define TWO_DIGIT_VER   1
@@ -19,8 +26,6 @@
 #define DO_MAKE_STR(x) #x
 #define MAKE_STR(x)    DO_MAKE_STR(x)
 
-#ifndef ISPP_INVOKED
-
 #if defined(TWO_DIGIT_VER)
 #define PHAPP_VERSION_STRING MAKE_STR(PHAPP_VERSION_MAJOR) "." MAKE_STR(PHAPP_VERSION_MINOR) ".0" "." MAKE_STR(PHAPP_VERSION_REVISION)
 #elif defined(THREE_DIGIT_VER)
@@ -28,7 +33,5 @@
 #endif
 
 #define PHAPP_VERSION_NUMBER PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,PHAPP_VERSION_BUILD,PHAPP_VERSION_REVISION
-
-#endif // ISPP_INVOKED
 
 #endif // PHAPPRES_H
