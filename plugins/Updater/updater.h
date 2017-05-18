@@ -55,6 +55,9 @@
     ((ULONGLONG)(build) << 16) | \
     ((ULONGLONG)(revision) <<  0))
 
+#define UT_LOAD_SHARED_ICON_SMALL(Name) PhLoadIcon(PhLibImageBase, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0)
+#define UT_LOAD_SHARED_ICON_LARGE(Name) PhLoadIcon(PhLibImageBase, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0)
+
 #ifdef _DEBUG
 // Force update checks to succeed (most of the below flags require this to be defined).
 //#define FORCE_UPDATE_CHECK
@@ -176,6 +179,13 @@ BOOLEAN UpdaterInstalledUsingSetup(
 
 VOID ShowOptionsDialog(
     _In_opt_ HWND Parent
+    );
+
+INT_PTR CALLBACK TextDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // verify.c

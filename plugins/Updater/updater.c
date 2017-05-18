@@ -63,12 +63,6 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->SetupFileDownloadUrl);
     PhClearReference(&Context->BuildMessage);
 
-    if (Context->IconLargeHandle)
-        DestroyIcon(Context->IconLargeHandle);
-
-    if (Context->IconSmallHandle)
-        DestroyIcon(Context->IconSmallHandle);
-
     PhDereferenceObject(Context);
 }
 
@@ -76,20 +70,8 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->IconLargeHandle = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
-    Context->IconSmallHandle = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
+    Context->IconSmallHandle = UT_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconLargeHandle = UT_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
@@ -101,7 +83,13 @@ VOID TaskDialogLinkClicked(
 {
     if (!PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
     {
-        PhShellExecute(Context->DialogHandle, PhGetStringOrEmpty(Context->ReleaseNotesUrl), NULL);
+        DialogBoxParam(
+            PluginInstance->DllBase, 
+            MAKEINTRESOURCE(IDD_TEXT),
+            Context->DialogHandle,
+            TextDlgProc, 
+            (LPARAM)Context
+            );
     }
 }
 
@@ -440,6 +428,18 @@ BOOLEAN QueryUpdateData(
     Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
     Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
     Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
+
+    PH_STRING_BUILDER sb;
+    PhInitializeStringBuilder(&sb, 0x100);
+
+    for (size_t i = 0; i < Context->BuildMessage->Length; i++)
+    {
+        if (Context->BuildMessage->Data[i] == '\n')
+            PhAppendFormatStringBuilder(&sb, L"\r\n");
+        else
+            PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
+    }
+    PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
 
     CleanupJsonParser(jsonObject);
 
