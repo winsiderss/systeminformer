@@ -8,6 +8,7 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
+#include "../../../ProcessHacker/include/phappres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -179,8 +180,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION PHAPP_VERSION_NUMBER
+ PRODUCTVERSION PHAPP_VERSION_NUMBER
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -197,12 +198,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Process Hacker"
             VALUE "FileDescription", "Process Hacker Setup"
-            VALUE "FileVersion", "1.0"
+            VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "Process Hacker Setup"
-            VALUE "LegalCopyright", "(C) Process Hacker Team. Licensed under the GNU GPL, v3."
+            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2017"
             VALUE "OriginalFilename", "ProcessHackerSetup.exe"
             VALUE "ProductName", "Process Hacker Setup"
-            VALUE "ProductVersion", "1.0"
+            VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"
@@ -254,6 +255,7 @@ END
 2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
+    "#include ""../../../include/phappres.h""\r\n"
     "\0"
 END
 
