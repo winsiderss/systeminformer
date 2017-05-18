@@ -248,8 +248,8 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildCount))
                 BuildCount = "0";
 
-            BuildVersion = "3.0." + BuildRevision;
-            BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
+            BuildVersion = "3.1." + BuildRevision;
+            BuildLongVersion = "3.1." + BuildCount + "." + BuildRevision;
    
             if (ShowBuildInfo)
             {
