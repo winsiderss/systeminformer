@@ -309,6 +309,7 @@ BOOLEAN QueryUpdateData(
     HINTERNET httpRequestHandle = NULL;
     ULONG stringBufferLength = 0;
     PSTR stringBuffer = NULL;
+    PH_STRING_BUILDER sb;
     PVOID jsonObject = NULL;
     mxml_node_t* xmlNode = NULL;
     PPH_STRING versionHeader = UpdateVersionString();
@@ -429,13 +430,11 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
     Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
 
-    PH_STRING_BUILDER sb;
     PhInitializeStringBuilder(&sb, 0x100);
-
-    for (size_t i = 0; i < Context->BuildMessage->Length; i++)
+    for (SIZE_T i = 0; i < Context->BuildMessage->Length; i++)
     {
         if (Context->BuildMessage->Data[i] == '\n')
-            PhAppendFormatStringBuilder(&sb, L"\r\n");
+            PhAppendStringBuilder2(&sb, L"\r\n");
         else
             PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
     }
