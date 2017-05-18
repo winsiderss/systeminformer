@@ -6,7 +6,7 @@
 #endif
 
 #ifndef PHAPP_VERSION_MINOR
-#define PHAPP_VERSION_MINOR 1
+#define PHAPP_VERSION_MINOR 0
 #endif
 
 #ifndef PHAPP_VERSION_BUILD
