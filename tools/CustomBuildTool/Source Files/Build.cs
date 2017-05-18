@@ -880,9 +880,8 @@ namespace CustomBuildTool
                 return;
             if (string.IsNullOrEmpty(BuildSetupSig))
                 return;
-            if (string.IsNullOrEmpty(BuildMessage))
-                return;
 
+            string appveyorMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
                 Updated = TimeStart.ToString("o"),
@@ -894,7 +893,7 @@ namespace CustomBuildTool
                 HashSetup = BuildSetupHash,
                 HashBin = BuildBinHash,
                 sig = BuildSetupSig,
-                Message = BuildMessage
+                Message = appveyorMessage
             });
 
             if (string.IsNullOrEmpty(buildPostString))
