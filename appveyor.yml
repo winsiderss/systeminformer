@@ -14,8 +14,6 @@ pull_requests:
 skip_tags: true
  
 # Set the clone directory on the buildbot.
-clone_depth: 1
-shallow_clone: true
 clone_folder: C:\projects\processhacker
   
 # Immediately finish build if something fails.
