@@ -49,7 +49,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-#if (PHAPP_VERSION_REVISION != 0x0D06F00D)
+#if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
                 L"Process Hacker %u.%u.%u",
                 PHAPP_VERSION_MAJOR,
