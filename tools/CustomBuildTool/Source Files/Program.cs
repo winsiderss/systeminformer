@@ -176,6 +176,7 @@ namespace CustomBuildTool
 
                 if (!Build.CopyKProcessHacker(false))
                     return;
+
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
