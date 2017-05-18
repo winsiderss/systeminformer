@@ -1,8 +1,5 @@
-# Build image.
-image: Visual Studio 2017
-
 # Version format.
-version: "3.0.{build}"
+version: "3.1.{build}"
 
 # Only build the master branch.
 branches:
@@ -15,8 +12,10 @@ pull_requests:
 
 # Do not start a new build when a new Git tag is created.
 skip_tags: true
-  
+ 
 # Set the clone directory on the buildbot.
+clone_depth: 1
+shallow_clone: true
 clone_folder: C:\projects\processhacker
   
 # Immediately finish build if something fails.
@@ -29,12 +28,3 @@ test: off
 # Run custom build script.
 build_script:
 - cmd: tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -appveyor
-
-# Setup build notifications.
-notifications:
-- provider: Email
-  to:
-  - dmex04@gmail.com
-  on_build_success: false
-  on_build_failure: true
-  on_build_status_changed: false
