@@ -352,7 +352,7 @@ BOOLEAN QueryUpdateData(
     if (!(httpRequestHandle = WinHttpOpenRequest(
         httpConnectionHandle,
         NULL,
-        L"/processhacker/plugins/nightly.php",
+        L"/processhacker/nightly.php?phupdater",
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
