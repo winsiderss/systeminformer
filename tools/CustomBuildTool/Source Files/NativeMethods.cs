@@ -1,112 +1,32 @@
-﻿using System;
+﻿/*
+ * Process Hacker Toolchain - 
+ *   Build script
+ * 
+ * Copyright (C) 2017 dmex
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
 namespace CustomBuildTool
 {
-    [System.Security.SuppressUnmanagedCodeSecurity]
-    public static class Win32
-    {
-        public static string ShellExecute(string FileName, string args)
-        {
-            string output = string.Empty;
-            using (Process process = Process.Start(new ProcessStartInfo
-            {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                FileName = FileName,
-                CreateNoWindow = true
-            }))
-            {
-                process.StartInfo.Arguments = args;
-                process.Start();
-
-                output = process.StandardOutput.ReadToEnd();
-                output = output.Replace("\n\n", "\r\n").Trim();
-
-                process.WaitForExit();
-            }
-
-            return output;
-        }
-
-        public static void ImageResizeFile(int size, string FileName, string OutName)
-        {
-            using (var src = System.Drawing.Image.FromFile(FileName))
-            using (var dst = new System.Drawing.Bitmap(size, size))
-            using (var g = System.Drawing.Graphics.FromImage(dst))
-            {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-
-                g.DrawImage(src, 0, 0, dst.Width, dst.Height);
-
-                dst.Save(OutName, System.Drawing.Imaging.ImageFormat.Png);
-            }
-        }
-
-        public static void CopyIfNewer(string CurrentFile, string NewFile)
-        {
-            if (!File.Exists(CurrentFile))
-                return;
-
-            if (File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile))
-            {
-                File.Copy(CurrentFile, NewFile, true);
-            }
-        }
-
-        public const int SW_HIDE = 0;
-        public const int SW_SHOW = 5;
-        public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-        public static readonly IntPtr STD_OUTPUT_HANDLE = new IntPtr(-11);
-        public static readonly IntPtr STD_INPUT_HANDLE = new IntPtr(-10);
-        public static readonly IntPtr STD_ERROR_HANDLE = new IntPtr(-12);
-
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern IntPtr GetStdHandle(IntPtr StdHandle);
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern bool GetConsoleMode(IntPtr ConsoleHandle, out ConsoleMode Mode);
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern bool SetConsoleMode(IntPtr ConsoleHandle, ConsoleMode Mode);
-        [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern IntPtr GetConsoleWindow();
-        [DllImport("user32.dll", ExactSpelling = true)]
-        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);    
-    }
-
-    [Flags]
-    public enum ConsoleMode : uint
-    {
-        DEFAULT,
-        ENABLE_PROCESSED_INPUT = 0x0001,
-        ENABLE_LINE_INPUT = 0x0002,
-        ENABLE_ECHO_INPUT = 0x0004,
-        ENABLE_WINDOW_INPUT = 0x0008,
-        ENABLE_MOUSE_INPUT = 0x0010,
-        ENABLE_INSERT_MODE = 0x0020,
-        ENABLE_QUICK_EDIT_MODE = 0x0040,
-        ENABLE_EXTENDED_FLAGS = 0x0080,
-        ENABLE_AUTO_POSITION = 0x0100,
-        ENABLE_PROCESSED_OUTPUT = 0x0001,
-        ENABLE_WRAP_AT_EOL_OUTPUT = 0x0002,
-        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004,
-        DISABLE_NEWLINE_AUTO_RETURN = 0x0008,
-        ENABLE_LVB_GRID_WORLDWIDE = 0x0010,
-    }
-
-    [Flags]
-    public enum InstanceState : uint
-    {
-        None = 0u,
-        Local = 1u,
-        Registered = 2u,
-        NoRebootRequired = 4u,
-        NoErrors = 8u,
-        Complete = 4294967295u
-    }
-
     [ComImport, ClassInterface(ClassInterfaceType.AutoDispatch), Guid("177F0C4A-1CD3-4DE7-A32C-71DBBB9FA36D")]
     public class SetupConfigurationClass
     {

@@ -1,4 +1,26 @@
-﻿using System;
+﻿/*
+ * Process Hacker Toolchain - 
+ *   Build script
+ * 
+ * Copyright (C) 2017 dmex
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Security;
@@ -11,7 +33,7 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
-        private static bool BuildNightly = false;
+        private static bool BuildNightly;
         private static string BuildBranch;
         private static string BuildOutputFolder = "build";
         private static string BuildCommit;
@@ -232,8 +254,8 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
-            BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD");
-            BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD"); // rev-parse HEAD       
+            BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
+            BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim(); // rev-parse HEAD       
             Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
             Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
             Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
@@ -681,7 +703,7 @@ namespace CustomBuildTool
         {
             Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan, true, BuildFlags.BuildVerbose);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit))
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildVerbose))
                 return false;
 
             try
@@ -951,6 +973,7 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return false;
 
+            // Cleanup existing output files
             for (int i = 0; i < releaseFileArray.Length; i++)
             {
                 if (File.Exists(releaseFileArray[i]))
@@ -967,6 +990,7 @@ namespace CustomBuildTool
                 }
             }
 
+            // Rename files with the current build version -3.1-
             for (int i = 0; i < buildFileArray.Length; i++)
             {
                 if (File.Exists(buildFileArray[i]))
@@ -983,6 +1007,7 @@ namespace CustomBuildTool
                 }
             }
 
+            // Upload build files to Appveyor storage.
             for (int i = 0; i < releaseFileArray.Length; i++)
             {
                 if (File.Exists(releaseFileArray[i]))
@@ -1001,6 +1026,14 @@ namespace CustomBuildTool
                 }
             }
 
+            try
+            {
+                // Update Appveyor build version string.
+                Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
+            }
+            catch (Exception)
+            { }
+
             return true;
         }
 
@@ -1015,7 +1048,7 @@ namespace CustomBuildTool
                 string error32 = Win32.ShellExecute(
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
-                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
+                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
                     "/p:ExternalCompilerOptions=\"PH_BUILD_API;PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";PHAPP_VERSION_BUILD=\"" + BuildCount + "\"\" " + 
                     Solution
@@ -1037,7 +1070,7 @@ namespace CustomBuildTool
                 string error64 = Win32.ShellExecute(
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
-                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release") + " " +
+                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
                     "/p:ExternalCompilerOptions=\"PH_BUILD_API;PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";PHAPP_VERSION_BUILD=\"" + BuildCount + "\"\" " +
                     Solution
