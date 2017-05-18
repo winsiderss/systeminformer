@@ -874,10 +874,6 @@ namespace CustomBuildTool
 
         public static void WebServiceUpdateConfig()
         {
-            string buildPostString;
-            string buildPosturl;
-            string buildPostApiKey;
-
             if (string.IsNullOrEmpty(BuildSetupHash))
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
@@ -887,7 +883,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildMessage))
                 return;
 
-            buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
+            string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
                 Updated = TimeStart.ToString("o"),
                 Version = BuildVersion,
@@ -904,8 +900,8 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(buildPostString))
                 return;
 
-            buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
-            buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
+            string buildPosturl = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%").Replace("%APPVEYOR_BUILD_API%", string.Empty);
+            string buildPostApiKey = Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_KEY%").Replace("%APPVEYOR_BUILD_KEY%", string.Empty);
 
             if (string.IsNullOrEmpty(buildPosturl))
                 return;
@@ -1003,19 +999,6 @@ namespace CustomBuildTool
                         Program.PrintColorMessage("[WebServicePushArtifact] " + ex, ConsoleColor.Red);
                         return false;
                     }
-                }
-            }
-
-            if (File.Exists(releaseFileArray[0]))
-            {
-                try
-                {
-                    Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
-                }
-                catch (Exception ex)
-                {
-                    Program.PrintColorMessage("[WebServicePushArtifact] " + ex, ConsoleColor.Red);
-                    return false;
                 }
             }
 
