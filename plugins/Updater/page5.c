@@ -118,7 +118,7 @@ VOID ShowUpdateInstallDialog(
     config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Ready to install update";
+    config.pszMainInstruction = L"Ready to install update?";
     config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
@@ -158,7 +158,6 @@ VOID ShowLatestVersionDialog(
         Context->CurrentRevisionVersion,
         PhaFormatDateTime(&systemTime)->Buffer
         )->Buffer;
-    config.pszExpandedInformation = PhGetString(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -186,7 +185,6 @@ VOID ShowNewerVersionDialog(
         Context->CurrentMinorVersion,
         Context->CurrentRevisionVersion
         )->Buffer;
-    config.pszExpandedInformation = PhGetString(Context->BuildMessage);
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

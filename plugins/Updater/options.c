@@ -70,3 +70,56 @@ VOID ShowOptionsDialog(
         OptionsDlgProc
         );
 }
+
+INT_PTR CALLBACK TextDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)lParam;
+
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)UT_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)UT_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
+
+            SetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
