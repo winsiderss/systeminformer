@@ -86,14 +86,11 @@
     </Compile>
     <Compile Include="Source Files\Build.cs" />
     <Compile Include="Source Files\HeaderGen.cs" />
-    <Compile Include="Source Files\Json.cs" />
     <Compile Include="Source Files\NativeMethods.cs" />
-    <Compile Include="Source Files\Nightly.cs" />
     <Compile Include="Source Files\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Source Files\Verify.cs" />
-    <Compile Include="Source Files\VisualStudio.cs" />
     <Compile Include="Source Files\Zip.cs" />
+    <Compile Include="Source Files\Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
