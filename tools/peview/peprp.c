@@ -174,6 +174,7 @@ VOID PvPeProperties(
         }
 
         // Symbols page
+		if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PESYMBOLS),
