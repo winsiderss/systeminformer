@@ -1080,22 +1080,14 @@ namespace CustomBuildTool
 #region Appx Package
         public static void BuildAppxPackage(BuildFlags Flags)
         {
-            string error;
-            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
-
             Program.PrintColorMessage("Building processhacker-build-package.appxbundle...", ConsoleColor.Cyan);
+            string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
 
             try
             {
-                if (!Directory.Exists("build\\output"))
-                    Directory.CreateDirectory("build\\output");
-
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-package.appxbundle"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-package.appxbundle");
-
-                Win32.ImageResizeFile(44, "ProcessHacker\\resources\\ProcessHacker.png", "build\\output\\ProcessHacker-44.png");
-                Win32.ImageResizeFile(50, "ProcessHacker\\resources\\ProcessHacker.png", "build\\output\\ProcessHacker-50.png");
-                Win32.ImageResizeFile(150, "ProcessHacker\\resources\\ProcessHacker.png", "build\\output\\ProcessHacker-150.png");
+                Win32.ImageResizeFile(44, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-44.png");
+                Win32.ImageResizeFile(50, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-50.png");
+                Win32.ImageResizeFile(150, "ProcessHacker\\resources\\ProcessHacker.png", BuildOutputFolder + "\\ProcessHacker-150.png");
 
                 if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
                 {
@@ -1103,15 +1095,15 @@ namespace CustomBuildTool
                     string appxManifestString = Properties.Resources.AppxManifest;
                     appxManifestString = appxManifestString.Replace("PH_APPX_ARCH", "x86");
                     appxManifestString = appxManifestString.Replace("PH_APPX_VERSION", BuildLongVersion);
-                    File.WriteAllText("build\\output\\AppxManifest32.xml", appxManifestString);
+                    File.WriteAllText(BuildOutputFolder + "\\AppxManifest32.xml", appxManifestString);
 
                     // create the package mapping file
                     StringBuilder packageMap32 = new StringBuilder(0x100);
                     packageMap32.AppendLine("[Files]");
-                    packageMap32.AppendLine("\"build\\output\\AppxManifest32.xml\" \"AppxManifest.xml\"");
-                    packageMap32.AppendLine("\"build\\output\\ProcessHacker-44.png\" \"Assets\\ProcessHacker-44.png\"");
-                    packageMap32.AppendLine("\"build\\output\\ProcessHacker-50.png\" \"Assets\\ProcessHacker-50.png\"");
-                    packageMap32.AppendLine("\"build\\output\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
+                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\AppxManifest32.xml\" \"AppxManifest.xml\"");
+                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-44.png\" \"Assets\\ProcessHacker-44.png\"");
+                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-50.png\" \"Assets\\ProcessHacker-50.png\"");
+                    packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
 
                     var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
                     for (int i = 0; i < filesToAdd.Length; i++)
@@ -1130,21 +1122,23 @@ namespace CustomBuildTool
 
                         packageMap32.AppendLine("\"" + filePath + "\" \"" + filePath.Substring("bin\\Release32\\".Length) + "\"");
                     } 
-                    File.WriteAllText("build\\output\\package32.map", packageMap32.ToString());
+                    File.WriteAllText(BuildOutputFolder + "\\package32.map", packageMap32.ToString());
 
                     // create the package
-                    error = Win32.ShellExecute(
+                    Win32.ShellExecute(
                         MakeAppxExePath,
-                        "pack /o /f build\\output\\package32.map /p " + BuildOutputFolder + "\\output\\processhacker-build-package-x32.appx"
+                        "pack /o /f " + BuildOutputFolder + "\\package32.map /p " + 
+                        BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
 
                     // sign the package
-                    error = Win32.ShellExecute(
+                    Win32.ShellExecute(
                         signToolExePath,
-                        "sign /v /fd SHA256 /a /f build\\processhacker-appx.pfx /td SHA256 " + BuildOutputFolder + "\\output\\processhacker-build-package-x32.appx"
+                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " + 
+                        BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
                 }
 
                 if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
@@ -1153,14 +1147,14 @@ namespace CustomBuildTool
                     string appxManifestString = Properties.Resources.AppxManifest;
                     appxManifestString = appxManifestString.Replace("PH_APPX_ARCH", "x64");
                     appxManifestString = appxManifestString.Replace("PH_APPX_VERSION", BuildLongVersion);
-                    File.WriteAllText("build\\output\\AppxManifest64.xml", appxManifestString);
+                    File.WriteAllText(BuildOutputFolder + "\\AppxManifest64.xml", appxManifestString);
 
                     StringBuilder packageMap64 = new StringBuilder(0x100);
                     packageMap64.AppendLine("[Files]");
-                    packageMap64.AppendLine("\"build\\output\\AppxManifest64.xml\" \"AppxManifest.xml\"");
-                    packageMap64.AppendLine("\"build\\output\\ProcessHacker-44.png\" \"Assets\\ProcessHacker-44.png\"");
-                    packageMap64.AppendLine("\"build\\output\\ProcessHacker-50.png\" \"Assets\\ProcessHacker-50.png\"");
-                    packageMap64.AppendLine("\"build\\output\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
+                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\AppxManifest64.xml\" \"AppxManifest.xml\"");
+                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-44.png\" \"Assets\\ProcessHacker-44.png\"");
+                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-50.png\" \"Assets\\ProcessHacker-50.png\"");
+                    packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
 
                     var filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
                     for (int i = 0; i < filesToAdd.Length; i++)
@@ -1179,47 +1173,74 @@ namespace CustomBuildTool
 
                         packageMap64.AppendLine("\"" + filePath + "\" \"" + filePath.Substring("bin\\Release64\\".Length) + "\"");
                     }
-                    File.WriteAllText("build\\output\\package64.map", packageMap64.ToString());
+                    File.WriteAllText(BuildOutputFolder + "\\package64.map", packageMap64.ToString());
 
                     // create the package
-                    error = Win32.ShellExecute(
+                    Win32.ShellExecute(
                         MakeAppxExePath,
-                        "pack /o /f build\\output\\package64.map /p " + BuildOutputFolder + "\\output\\processhacker-build-package-x64.appx"
+                        "pack /o /f " + BuildOutputFolder + "\\package64.map /p " + 
+                        BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
 
                     // sign the package
-                    error = Win32.ShellExecute(
+                    Win32.ShellExecute(
                         signToolExePath,
-                        "sign /v /fd SHA256 /a /f build\\processhacker-appx.pfx /td SHA256 " + BuildOutputFolder + "\\output\\processhacker-build-package-x64.appx"
+                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " + 
+                        BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
                 }
 
                 {
                     // create the appx bundle map
                     StringBuilder bundleMap = new StringBuilder(0x100);
                     bundleMap.AppendLine("[Files]");
-                    bundleMap.AppendLine("\"" + BuildOutputFolder + "\\output\\processhacker-build-package-x32.appx\" \"processhacker-build-package-x32.appx\"");
-                    bundleMap.AppendLine("\"" + BuildOutputFolder + "\\output\\processhacker-build-package-x64.appx\" \"processhacker-build-package-x64.appx\"");
-                    File.WriteAllText("build\\output\\bundle.map", bundleMap.ToString());
+                    bundleMap.AppendLine("\"" + BuildOutputFolder + "\\processhacker-build-package-x32.appx\" \"processhacker-build-package-x32.appx\"");
+                    bundleMap.AppendLine("\"" + BuildOutputFolder + "\\processhacker-build-package-x64.appx\" \"processhacker-build-package-x64.appx\"");
+                    File.WriteAllText(BuildOutputFolder + "\\bundle.map", bundleMap.ToString());
+
+                    if (File.Exists(BuildOutputFolder + "\\processhacker-build-package.appxbundle"))
+                        File.Delete(BuildOutputFolder + "\\processhacker-build-package.appxbundle");
 
                     // create the appx bundle package
-                    error = Win32.ShellExecute(
+                    Win32.ShellExecute(
                         MakeAppxExePath,
-                        "bundle /f build\\output\\bundle.map /p " + BuildOutputFolder + "\\processhacker-build-package.appxbundle"
+                        "bundle /f " + BuildOutputFolder + "\\bundle.map /p " + 
+                        BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
 
                     // sign the appx bundle package
-                    error = Win32.ShellExecute(
+                    Win32.ShellExecute(
                         signToolExePath,
-                        "sign /v /fd SHA256 /a /f build\\processhacker-appx.pfx /td SHA256 " + BuildOutputFolder + "\\processhacker-build-package.appxbundle"
+                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " + 
+                        BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
-                    Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
+                    //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
                 }
 
-                Directory.Delete("build\\output", true);
+                try
+                {
+                    string[] cleanupAppxArray =
+                    {
+                        BuildOutputFolder + "\\AppxManifest32.xml",
+                        BuildOutputFolder + "\\AppxManifest64.xml",
+                        BuildOutputFolder + "\\package32.map",
+                        BuildOutputFolder + "\\package64.map",
+                        BuildOutputFolder + "\\bundle.map",
+                        BuildOutputFolder + "\\ProcessHacker-44.png",
+                        BuildOutputFolder + "\\ProcessHacker-50.png",
+                        BuildOutputFolder + "\\ProcessHacker-150.png"
+                    };
+
+                    for (int i = 0; i < cleanupAppxArray.Length; i++)
+                    {
+                        if (File.Exists(cleanupAppxArray[i]))
+                            File.Delete(cleanupAppxArray[i]);
+                    }
+                }
+                catch (Exception) { }
             }
             catch (Exception ex)
             {
@@ -1236,12 +1257,18 @@ namespace CustomBuildTool
 
             try
             {
-                if (File.Exists("build\\processhacker-appx.pvk"))
-                    File.Delete("build\\processhacker-appx.pvk");
-                if (File.Exists("build\\processhacker-appx.cer"))
-                    File.Delete("build\\processhacker-appx.cer");
-                if (File.Exists("build\\processhacker-appx.pfx"))
-                    File.Delete("build\\processhacker-appx.pfx");
+                string[] cleanupAppxArray =
+                {
+                    BuildOutputFolder + "\\processhacker-appx.pvk",
+                    BuildOutputFolder + "\\processhacker-appx.cer",
+                    BuildOutputFolder + "\\processhacker-appx.pfx"
+                };
+
+                for (int i = 0; i < cleanupAppxArray.Length; i++)
+                {
+                    if (File.Exists(cleanupAppxArray[i]))
+                        File.Delete(cleanupAppxArray[i]);
+                }
 
                 string output = Win32.ShellExecute(makeCertExePath,
                     "/n " +
@@ -1249,8 +1276,8 @@ namespace CustomBuildTool
                     "/r /h 0 " +
                     "/eku \"1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.13\" " +
                     "/sv " +
-                    "build\\processhacker-appx.pvk " +
-                    "build\\processhacker-appx.cer "
+                    BuildOutputFolder + "\\processhacker-appx.pvk " +
+                    BuildOutputFolder + "\\processhacker-appx.cer "
                     );
 
                 if (!string.IsNullOrEmpty(output) && !output.Equals("Succeeded", StringComparison.OrdinalIgnoreCase))
@@ -1260,9 +1287,9 @@ namespace CustomBuildTool
                 }
 
                 output = Win32.ShellExecute(pvk2PfxExePath,
-                    "/pvk build\\processhacker-appx.pvk " +
-                    "/spc build\\processhacker-appx.cer " +
-                    "/pfx build\\processhacker-appx.pfx "
+                    "/pvk " + BuildOutputFolder + "\\processhacker-appx.pvk " +
+                    "/spc " + BuildOutputFolder + "\\processhacker-appx.cer " +
+                    "/pfx " + BuildOutputFolder + "\\processhacker-appx.pfx "
                     );
 
                 if (!string.IsNullOrEmpty(output))
@@ -1272,7 +1299,7 @@ namespace CustomBuildTool
                 }
 
                 output = Win32.ShellExecute(CertUtilExePath,
-                    "-addStore TrustedPeople build\\processhacker-appx.cer"
+                    "-addStore TrustedPeople " + BuildOutputFolder + "\\processhacker-appx.cer"
                     );
 
                 if (!string.IsNullOrEmpty(output) && !output.Contains("command completed successfully"))
@@ -1295,6 +1322,7 @@ namespace CustomBuildTool
             try
             {
                 X509Store store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
+
                 store.Open(OpenFlags.ReadWrite);
 
                 foreach (X509Certificate2 c in store.Certificates)
@@ -1305,13 +1333,6 @@ namespace CustomBuildTool
                         store.Remove(c);
                     }
                 }
-
-                if (File.Exists("build\\processhacker-appx.pvk"))
-                    File.Delete("build\\processhacker-appx.pvk");
-                if (File.Exists("build\\processhacker-appx.cer"))
-                    File.Delete("build\\processhacker-appx.cer");
-                if (File.Exists("build\\processhacker-appx.pfx"))
-                    File.Delete("build\\processhacker-appx.pfx");
             }
             catch (Exception ex)
             {

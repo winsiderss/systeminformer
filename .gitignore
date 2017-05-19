@@ -74,12 +74,9 @@ Desktop.ini
 ## Project specific rules
 ##########################
 
-build/*.exe
-build/*.zip
-build/*.h
-ProcessHacker/sdk/phapppub.h
+build/output/
 plugins-extra/
-/sdk/
+sdk/
 
 KProcessHacker/*.log
 KProcessHacker/*.err
