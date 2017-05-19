@@ -99,6 +99,8 @@ namespace CustomBuildTool
         public static extern IntPtr GetConsoleWindow();
         [DllImport("user32.dll", ExactSpelling = true)]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern int MessageBox(IntPtr hWnd, string m, string c, int type);
     }
 
     public static class Json<T> where T : class
