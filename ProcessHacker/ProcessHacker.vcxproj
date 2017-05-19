@@ -104,6 +104,10 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -128,6 +132,10 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -159,6 +167,10 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -189,6 +201,10 @@
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="about.c" />
@@ -377,10 +393,7 @@
     <None Include="resources\tick.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="ProcessHacker.rc">
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\phnt\include;..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
+    <ResourceCompile Include="ProcessHacker.rc" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="ProcessHacker.manifest">
