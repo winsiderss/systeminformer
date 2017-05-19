@@ -79,9 +79,7 @@ namespace CustomBuildTool
                 return;
 
             if (File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile))
-            {
                 File.Copy(CurrentFile, NewFile, true);
-            }
         }
 
         public const int SW_HIDE = 0;
@@ -345,6 +343,9 @@ namespace CustomBuildTool
 
         [DataMember(Name = "message")]
         public string Message { get; set; }
+
+        [DataMember(Name = "changelog")]
+        public string Changelog { get; set; }
     }
 
     [Flags]

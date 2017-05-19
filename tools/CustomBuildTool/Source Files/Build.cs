@@ -35,7 +35,7 @@ namespace CustomBuildTool
         private static DateTime TimeStart;
         private static bool BuildNightly;
         private static string BuildBranch;
-        private static string BuildOutputFolder = "build";
+        private static string BuildOutputFolder;
         private static string BuildCommit;
         private static string BuildVersion;
         private static string BuildLongVersion;
@@ -145,6 +145,7 @@ namespace CustomBuildTool
         public static bool InitializeBuildEnvironment(bool CheckDependencies)
         {
             TimeStart = DateTime.Now;
+            BuildOutputFolder = "build\\output";
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
             CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
             GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\cmd\\git.exe");
@@ -182,7 +183,7 @@ namespace CustomBuildTool
 
             if (!File.Exists(MSBuildExePath))
             {
-                Program.PrintColorMessage("MsBuild not installed.\r\nExiting...\r\n", ConsoleColor.Red);
+                Program.PrintColorMessage("MsBuild not installed. Exiting.", ConsoleColor.Red);
                 return false;
             }
 
@@ -215,47 +216,29 @@ namespace CustomBuildTool
         {
             string[] cleanupFileArray =
             {
-                BuildOutputFolder + "\\processhacker-build-setup.exe",
-                BuildOutputFolder + "\\processhacker-build-bin.zip",
-                BuildOutputFolder + "\\processhacker-build-src.zip",
-                BuildOutputFolder + "\\processhacker-build-sdk.zip",
-                BuildOutputFolder + "\\processhacker-build-pdb.zip",
-                BuildOutputFolder + "\\processhacker-build-checksums.txt",
-                BuildOutputFolder + "\\processhacker-build-package.appxbundle",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-src.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-sdk.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-pdb.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
+                BuildOutputFolder,
+                "bin",
+                "sdk", 
             };
 
             try
             {
-                if (Directory.Exists("build\\output"))
-                    Directory.Delete("build\\output", true);
-
                 for (int i = 0; i < cleanupFileArray.Length; i++)
                 {
-                    if (File.Exists(cleanupFileArray[i]))
-                        File.Delete(cleanupFileArray[i]);
+                    if (Directory.Exists(cleanupFileArray[i]))
+                        Directory.Delete(cleanupFileArray[i], true);
                 }
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[CleanupBuildEnvironment] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("[Cleanup] " + ex, ConsoleColor.Red);
             }
-        }
-
-        public static string GetBuildLogString()
-        {
-            return Win32.ShellExecute(GitExePath, "log -n 1800 --graph --pretty=format:\"%C(yellow)%h%Creset %C(bold blue)%an%Creset %s %C(dim green)(%cr)\" --abbrev-commit ").Trim();
         }
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
             BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
-            BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim(); // rev-parse HEAD       
+            BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim();
             Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
             Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
             Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
@@ -486,6 +469,7 @@ namespace CustomBuildTool
                 Win32.CopyIfNewer("ProcessHacker\\sdk\\phapppub.h", "sdk\\include\\phapppub.h");
                 Win32.CopyIfNewer("ProcessHacker\\sdk\\phdk.h", "sdk\\include\\phdk.h");
                 Win32.CopyIfNewer("ProcessHacker\\resource.h", "sdk\\include\\phappresource.h");
+                
             }
             catch (Exception ex)
             {
@@ -894,6 +878,11 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static string GetBuildLogString()
+        {
+            return Win32.ShellExecute(GitExePath, "log -n 1800 --graph --pretty=format:\"%C(yellow)%h%Creset %C(bold blue)%an%Creset %s %C(dim green)(%cr)\" --abbrev-commit ").Trim();
+        }
+
         public static void WebServiceUpdateConfig()
         {
             if (string.IsNullOrEmpty(BuildSetupHash))
@@ -903,7 +892,8 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildSetupSig))
                 return;
 
-            string appveyorMessage = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
+            string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --pretty=format:\"%h %an %s (%cr)\"");
+            string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
                 Updated = TimeStart.ToString("o"),
@@ -915,7 +905,8 @@ namespace CustomBuildTool
                 HashSetup = BuildSetupHash,
                 HashBin = BuildBinHash,
                 sig = BuildSetupSig,
-                Message = appveyorMessage
+                Message = buildSummary,
+                Changelog = buildChangelog,
             });
 
             if (string.IsNullOrEmpty(buildPostString))
