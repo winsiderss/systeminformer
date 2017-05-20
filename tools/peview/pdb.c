@@ -920,43 +920,43 @@ BOOLEAN SymbolInfo_ArrayDims(
 }
 
 BOOLEAN PdbGetSymbolChildren(
-	_Inout_ PPDB_SYMBOL_CONTEXT Context,
-	_In_ ULONG Index,
-	_Inout_ ULONG* Count,
-	_Inout_ TI_FINDCHILDREN_PARAMS **Params
-	)
+    _Inout_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ ULONG Index,
+    _Inout_ ULONG* Count,
+    _Inout_ TI_FINDCHILDREN_PARAMS **Params
+    )
 {
-	ULONG length;
-	ULONG symbolCount = 0;
-	TI_FINDCHILDREN_PARAMS* symbols;
-	
-	if (!SymGetTypeInfo_I(
-		NtCurrentProcess(),
-		Context->BaseAddress,
-		Index,
-		TI_GET_CHILDRENCOUNT,
-		&symbolCount
-		))
-	{
-		return FALSE;
-	}
+    ULONG length;
+    ULONG symbolCount = 0;
+    TI_FINDCHILDREN_PARAMS* symbols;
+    
+    if (!SymGetTypeInfo_I(
+        NtCurrentProcess(),
+        Context->BaseAddress,
+        Index,
+        TI_GET_CHILDRENCOUNT,
+        &symbolCount
+        ))
+    {
+        return FALSE;
+    }
 
-	if (symbolCount == 0)
-		return TRUE;
+    if (symbolCount == 0)
+        return TRUE;
 
-	length = sizeof(TI_FINDCHILDREN_PARAMS) + symbolCount * sizeof(ULONG);
-	symbols = _alloca(length);
-	memset(symbols, 0, length);
+    length = sizeof(TI_FINDCHILDREN_PARAMS) + symbolCount * sizeof(ULONG);
+    symbols = _alloca(length);
+    memset(symbols, 0, length);
 
-	symbols->Count = symbolCount;
+    symbols->Count = symbolCount;
 
-	if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, Index, TI_FINDCHILDREN, symbols))
-		return FALSE;
+    if (!SymGetTypeInfo_I(NtCurrentProcess(), Context->BaseAddress, Index, TI_FINDCHILDREN, symbols))
+        return FALSE;
 
-	*Count = symbolCount;
-	*Params = symbols;
+    *Count = symbolCount;
+    *Params = symbols;
 
-	return TRUE;
+    return TRUE;
 }
 
 BOOLEAN SymbolInfo_UdtVariables(
@@ -968,7 +968,7 @@ BOOLEAN SymbolInfo_UdtVariables(
     )
 {
     ULONG childrenLength = 0;
-	TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams;
 
     if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
@@ -976,8 +976,8 @@ BOOLEAN SymbolInfo_UdtVariables(
     if (MaxVars <= 0)
         return FALSE;
 
-	if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
-		return FALSE;
+    if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
+        return FALSE;
 
     *Vars = 0;
 
@@ -1006,7 +1006,7 @@ BOOLEAN SymbolInfo_UdtFunctions(
     )
 {
     ULONG childrenLength = 0;
-	TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams;
 
     if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
@@ -1014,8 +1014,8 @@ BOOLEAN SymbolInfo_UdtFunctions(
     if (MaxFuncs <= 0)
         return FALSE;
 
-	if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
-		return FALSE;
+    if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
+        return FALSE;
 
     *Funcs = 0;
 
@@ -1044,7 +1044,7 @@ BOOLEAN SymbolInfo_UdtBaseClasses(
     )
 {
     ULONG childrenLength = 0;
-	TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams;
 
     if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
@@ -1052,8 +1052,8 @@ BOOLEAN SymbolInfo_UdtBaseClasses(
     if (MaxBases <= 0)
         return FALSE;
 
-	if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
-		return FALSE;
+    if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
+        return FALSE;
 
     *Bases = 0;
 
@@ -1082,7 +1082,7 @@ BOOLEAN SymbolInfo_UdtUnionMembers(
     )
 {
     ULONG childrenLength = 0;
-	TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams;
 
     if (!SymbolInfo_CheckTag(Context, Index, SymTagUDT))
         return FALSE;
@@ -1090,8 +1090,8 @@ BOOLEAN SymbolInfo_UdtUnionMembers(
     if (MaxMembers <= 0)
         return FALSE;
 
-	if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
-		return FALSE;
+    if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
+        return FALSE;
 
     *Members = 0;
 
@@ -1120,7 +1120,7 @@ BOOLEAN SymbolInfo_FunctionArguments(
     )
 {
     ULONG childrenLength = 0;
-	TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams;
 
     if (!SymbolInfo_CheckTag(Context, Index, SymTagFunctionType))
         return FALSE;
@@ -1128,8 +1128,8 @@ BOOLEAN SymbolInfo_FunctionArguments(
     if (MaxArgs <= 0)
         return FALSE;
 
-	if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
-		return FALSE;
+    if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
+        return FALSE;
 
     *Args = 0;
 
@@ -1158,7 +1158,7 @@ BOOLEAN SymbolInfo_Enumerators(
     )
 {
     ULONG childrenLength = 0;
-	TI_FINDCHILDREN_PARAMS* symbolParams;
+    TI_FINDCHILDREN_PARAMS* symbolParams;
 
     if (!SymbolInfo_CheckTag(Context, Index, SymTagEnum))
         return FALSE;
@@ -1166,8 +1166,8 @@ BOOLEAN SymbolInfo_Enumerators(
     if (MaxEnums <= 0)
         return FALSE;
 
-	if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
-		return FALSE;
+    if (!PdbGetSymbolChildren(Context, Index, &childrenLength, &symbolParams))
+        return FALSE;
 
     *Enums = 0;
 
@@ -1262,7 +1262,7 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
         {
             ULONG typeIndex = 0;
 
-			// Yes, get the number of * to show 
+            // Yes, get the number of * to show 
             if (!SymbolInfo_PointerType(Obj, Index, &typeIndex, &numPointers))
                 return FALSE;
 
@@ -1327,7 +1327,7 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
                     PhAddItemList(Obj->UdtList, UlongToPtr(Info.sFunctionTypeInfo.ClassIndex));
 
                     /* 
-					  // It is not needed to print the class name here, because it is contained in the function name
+                      // It is not needed to print the class name here, because it is contained in the function name
                       if (!SymbolInfo_GetTypeNameHelper(Info.sFunctionTypeInfo.ClassIndex, Obj, VarName, TypeName))
                           return false;
                       TypeName += "::");
@@ -1353,7 +1353,7 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
 
                 // Print "this" adjustment value 
                 if (Info.sFunctionTypeInfo.MemberFunction && Info.sFunctionTypeInfo.ThisAdjust != 0)
-					PhAppendFormatStringBuilder(TypeName, L": this+%u ", Info.sFunctionTypeInfo.ThisAdjust);
+                    PhAppendFormatStringBuilder(TypeName, L": this+%u ", Info.sFunctionTypeInfo.ThisAdjust);
             }
             break;
 
@@ -1373,7 +1373,7 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
 
                 // Print dimensions 
                 for (ULONG i = 0; i < Info.sArrayTypeInfo.NumDimensions; i++)
-					PhAppendFormatStringBuilder(TypeName, L"[%I64u]", Info.sArrayTypeInfo.Dimensions[i]);
+                    PhAppendFormatStringBuilder(TypeName, L"[%I64u]", Info.sArrayTypeInfo.Dimensions[i]);
             }
             break;
         default:
@@ -2299,8 +2299,11 @@ NTSTATUS PeDumpFileSymbols(
     PPH_STRING dbghelpPath;
     PPH_STRING symsrvPath;
 
-    dbghelpPath = PvFindDbghelpPath(FALSE);
-    symsrvPath = PvFindDbghelpPath(TRUE);
+    if (!(dbghelpPath = PvFindDbghelpPath(FALSE)))
+        return 1;
+    if (!(symsrvPath = PvFindDbghelpPath(TRUE)))
+        return 1;
+
     dbghelpHandle = LoadLibrary(dbghelpPath->Buffer);
     symsrvHandle = LoadLibrary(symsrvPath->Buffer);
 
