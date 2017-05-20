@@ -60,22 +60,8 @@ VOID TaskDialogCreateIcons(
     )
 {
     // Load the Process Hacker window icon
-    Context->IconLargeHandle = (HICON)LoadImage(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON),
-        LR_SHARED
-        );
-    Context->IconSmallHandle = (HICON)LoadImage(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON),
-        LR_SHARED
-        );
+    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
     // Set the TaskDialog window icons
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
@@ -421,7 +407,7 @@ NTSTATUS UpdateDownloadThread(
     // Open the HTTP session with the system proxy configuration if available
     if (!(httpSessionHandle = WinHttpOpen(
         PhGetString(userAgentString),
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -430,7 +416,7 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_8_1)
+    if (PhWindowsVersion() >= WINDOWS_8_1)
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
@@ -465,7 +451,7 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_7)
+    if (PhWindowsVersion() >= WINDOWS_7)
     {
         ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
@@ -738,11 +724,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    break;
     //case WM_NCACTIVATE:
     //    {
-    //        if (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle))
+    //        if (IsWindowVisible(PhMainWindowHandle) && !IsMinimized(PhMainWindowHandle))
     //        {
     //            if (!context->FixedWindowStyles)
     //            {
-    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWndHandle);
+    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWindowHandle);
     //                PhSetWindowExStyle(hwndDlg, WS_EX_APPWINDOW, WS_EX_APPWINDOW);
     //                context->FixedWindowStyles = TRUE;
     //            }

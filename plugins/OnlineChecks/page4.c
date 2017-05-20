@@ -38,8 +38,8 @@ HRESULT CALLBACK TaskDialogErrorProc(
         {
             if (context->TaskbarListClass)
             {
-                ITaskbarList3_SetProgressValue(context->TaskbarListClass, PhMainWndHandle, 1, 1);
-                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_ERROR);
+                ITaskbarList3_SetProgressValue(context->TaskbarListClass, PhMainWindowHandle, 1, 1);
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWindowHandle, TBPF_ERROR);
             }
         }
         break;

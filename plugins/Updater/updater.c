@@ -70,8 +70,8 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->IconSmallHandle = UT_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconLargeHandle = UT_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
@@ -317,7 +317,7 @@ BOOLEAN QueryUpdateData(
 
     if (!(httpSessionHandle = WinHttpOpen(
         NULL,
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -327,7 +327,7 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_8_1)
+    if (PhWindowsVersion() >= WINDOWS_8_1)
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
@@ -364,7 +364,7 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_7)
+    if (PhWindowsVersion() >= WINDOWS_7)
     {
         ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
@@ -760,7 +760,7 @@ NTSTATUS UpdateDownloadThread(
     // Open the HTTP session with the system proxy configuration if available
     if (!(httpSessionHandle = WinHttpOpen(
         PhGetString(userAgentString),
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -770,7 +770,7 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_8_1)
+    if (PhWindowsVersion() >= WINDOWS_8_1)
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
@@ -801,7 +801,7 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_7)
+    if (PhWindowsVersion() >= WINDOWS_7)
     {
         ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
@@ -1093,11 +1093,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    break;
     //case WM_NCACTIVATE:
     //    {
-    //        if (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle))
+    //        if (IsWindowVisible(PhMainWindowHandle) && !IsMinimized(PhMainWindowHandle))
     //        {
     //            if (!context->FixedWindowStyles)
     //            {
-    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWndHandle);
+    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWindowHandle);
     //                PhSetWindowExStyle(hwndDlg, WS_EX_APPWINDOW, WS_EX_APPWINDOW);
     //                context->FixedWindowStyles = TRUE;
     //            }
@@ -1126,7 +1126,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
+            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWindowHandle) && !IsMinimized(PhMainWindowHandle)) ? PhMainWindowHandle : NULL);
 
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
@@ -1193,7 +1193,7 @@ VOID ShowUpdateDialog(
     {
         if (!(UpdateDialogThreadHandle = PhCreateThread(0, ShowUpdateDialogThread, Context)))
         {
-            PhShowStatus(PhMainWndHandle, L"Unable to create the updater window.", 0, GetLastError());
+            PhShowStatus(PhMainWindowHandle, L"Unable to create the updater window.", 0, GetLastError());
             return;
         }
 

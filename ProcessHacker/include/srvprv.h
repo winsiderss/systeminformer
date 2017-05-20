@@ -3,11 +3,6 @@
 
 extern PPH_OBJECT_TYPE PhServiceItemType;
 
-PHAPPAPI extern PH_CALLBACK PhServiceAddedEvent; // phapppub
-PHAPPAPI extern PH_CALLBACK PhServiceModifiedEvent; // phapppub
-PHAPPAPI extern PH_CALLBACK PhServiceRemovedEvent; // phapppub
-PHAPPAPI extern PH_CALLBACK PhServicesUpdatedEvent; // phapppub
-
 extern BOOLEAN PhEnableServiceNonPoll;
 
 // begin_phapppub

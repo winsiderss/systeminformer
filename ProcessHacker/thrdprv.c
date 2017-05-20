@@ -27,6 +27,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <thrdprv.h>
 
 #include <kphuser.h>
@@ -212,7 +213,7 @@ VOID PhRegisterThreadProvider(
     )
 {
     PhReferenceObject(ThreadProvider);
-    PhRegisterCallback(&PhProcessesUpdatedEvent, PhpThreadProviderCallbackHandler, ThreadProvider, CallbackRegistration);
+    PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated), PhpThreadProviderCallbackHandler, ThreadProvider, CallbackRegistration);
 }
 
 VOID PhUnregisterThreadProvider(
@@ -220,7 +221,7 @@ VOID PhUnregisterThreadProvider(
     _In_ PPH_CALLBACK_REGISTRATION CallbackRegistration
     )
 {
-    PhUnregisterCallback(&PhProcessesUpdatedEvent, CallbackRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated), CallbackRegistration);
     PhDereferenceObject(ThreadProvider);
 }
 

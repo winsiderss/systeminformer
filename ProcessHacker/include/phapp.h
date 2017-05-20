@@ -74,7 +74,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
-PHAPPAPI extern HFONT PhApplicationFont; // phapppub
+extern HFONT PhApplicationFont;
 extern PPH_STRING PhCurrentUserName;
 extern HINSTANCE PhInstanceHandle;
 extern PPH_STRING PhLocalSystemName;
@@ -86,8 +86,6 @@ extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
 extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
-
-#define PH_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96) // phapppub
 
 // begin_phapppub
 PHAPPAPI
@@ -134,6 +132,87 @@ PhUnregisterMessageLoopFilter(
 VOID PhInitializeFont(
     _In_ HWND hWnd
     );
+
+// begin_phapppub
+PHAPPAPI
+HFONT
+NTAPI
+PhGetApplicationFont(
+    VOID
+    );
+
+PHAPPAPI
+HWND 
+NTAPI 
+PhGetMainWndHandle(
+    VOID
+    );
+
+#define PhMainWindowHandle \
+    PhGetMainWndHandle()
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetImageBase(
+    VOID
+    );
+
+#define PhImageBaseAddress \
+    PhGetImageBase()
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetGlobalDpi(
+    VOID
+    );
+
+#define PH_SCALE_DPI(Value) \
+    PhMultiplyDivide(Value, PhGetGlobalDpi(), 96)
+
+PHLIBAPI
+SYSTEM_BASIC_INFORMATION
+NTAPI
+PhGetSystemBasicInformation(
+    VOID
+    );
+
+PHLIBAPI
+ACCESS_MASK 
+NTAPI
+PhProcessQueryAccess(
+    VOID
+    );
+
+PHLIBAPI
+ACCESS_MASK
+NTAPI
+PhProcessAllAccess(
+    VOID
+    );
+
+PHLIBAPI
+ACCESS_MASK
+NTAPI
+PhThreadQueryAccess(
+    VOID
+    );
+
+PHLIBAPI
+ACCESS_MASK
+NTAPI
+PhThreadSetAccess(
+    VOID
+    );
+
+PHLIBAPI
+ACCESS_MASK
+NTAPI
+PhThreadAllAccess(
+    VOID
+    );
+// end_phapppub
 
 // plugin
 
@@ -211,7 +290,6 @@ typedef struct _PH_LOG_ENTRY
 } PH_LOG_ENTRY, *PPH_LOG_ENTRY;
 
 extern PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
-PHAPPAPI extern PH_CALLBACK PhLoggedCallback; // phapppub
 
 VOID PhLogInitialization(
     VOID
@@ -643,7 +721,7 @@ PhCreateCommonFont(
         return NULL;
 
     fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, PhGlobalDpi, 72),
+        -PhMultiplyDivideSigned(Size, PhGetGlobalDpi(), 72),
         0,
         0,
         0,

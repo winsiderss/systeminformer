@@ -12,6 +12,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib", "phlib\phlib.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peview", "tools\peview\peview.vcxproj", "{72C124A2-3C80-41C6-ABA1-C4948B713204}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{9963724D-4A1D-4442-AD5A-1CE899D30D96}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -47,5 +49,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{72C124A2-3C80-41C6-ABA1-C4948B713204} = {9963724D-4A1D-4442-AD5A-1CE899D30D96}
 	EndGlobalSection
 EndGlobal

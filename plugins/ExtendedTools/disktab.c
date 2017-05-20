@@ -62,7 +62,7 @@ VOID EtInitializeDiskTab(
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Disk");
     page.Callback = EtpDiskPageCallback;
-    DiskPage = ProcessHacker_CreateTabPage(PhMainWndHandle, &page);
+    DiskPage = ProcessHacker_CreateTabPage(PhMainWindowHandle, &page);
 
     if (ToolStatusInterface)
     {
@@ -101,7 +101,7 @@ BOOLEAN EtpDiskPageCallback(
                     0,
                     3,
                     3,
-                    PhMainWndHandle,
+                    PhMainWindowHandle,
                     NULL,
                     NULL,
                     NULL
@@ -115,7 +115,7 @@ BOOLEAN EtpDiskPageCallback(
                 *(HWND *)Parameter1 = CreateDialog(
                     PluginInstance->DllBase,
                     MAKEINTRESOURCE(IDD_DISKTABERROR),
-                    PhMainWndHandle,
+                    PhMainWindowHandle,
                     EtpDiskTabErrorDialogProc
                     );
                 return TRUE;
@@ -829,17 +829,17 @@ VOID EtHandleDiskCommand(
                     if ((processNode = PhFindProcessNode(diskItem->ProcessId)) &&
                         processNode->ProcessItem->CreateTime.QuadPart == diskItem->ProcessRecord->CreateTime.QuadPart)
                     {
-                        ProcessHacker_SelectTabPage(PhMainWndHandle, 0);
+                        ProcessHacker_SelectTabPage(PhMainWindowHandle, 0);
                         PhSelectAndEnsureVisibleProcessNode(processNode);
                     }
                     else
                     {
-                        PhShowProcessRecordDialog(PhMainWndHandle, diskItem->ProcessRecord);
+                        PhShowProcessRecordDialog(PhMainWindowHandle, diskItem->ProcessRecord);
                     }
                 }
                 else
                 {
-                    PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    PhShowError(PhMainWindowHandle, L"The process does not exist.");
                 }
 
                 PhDereferenceObject(diskItem);
@@ -852,7 +852,7 @@ VOID EtHandleDiskCommand(
 
             if (diskItem)
             {
-                PhShellExploreFile(PhMainWndHandle, diskItem->FileNameWin32->Buffer);
+                PhShellExploreFile(PhMainWindowHandle, diskItem->FileNameWin32->Buffer);
             }
         }
         break;
@@ -867,7 +867,7 @@ VOID EtHandleDiskCommand(
 
             if (diskItem)
             {
-                PhShellProperties(PhMainWndHandle, diskItem->FileNameWin32->Buffer);
+                PhShellProperties(PhMainWindowHandle, diskItem->FileNameWin32->Buffer);
             }
         }
         break;
@@ -937,7 +937,7 @@ VOID EtShowDiskContextMenu(
 
         item = PhShowEMenu(
             menu,
-            PhMainWndHandle,
+            PhMainWindowHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
             Location.x,
@@ -963,7 +963,7 @@ VOID NTAPI EtpDiskItemAddedHandler(
     PET_DISK_ITEM diskItem = (PET_DISK_ITEM)Parameter;
 
     PhReferenceObject(diskItem);
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemAdded, diskItem);
+    ProcessHacker_Invoke(PhMainWindowHandle, EtpOnDiskItemAdded, diskItem);
 }
 
 VOID NTAPI EtpDiskItemModifiedHandler(
@@ -971,7 +971,7 @@ VOID NTAPI EtpDiskItemModifiedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemModified, (PET_DISK_ITEM)Parameter);
+    ProcessHacker_Invoke(PhMainWindowHandle, EtpOnDiskItemModified, (PET_DISK_ITEM)Parameter);
 }
 
 VOID NTAPI EtpDiskItemRemovedHandler(
@@ -979,7 +979,7 @@ VOID NTAPI EtpDiskItemRemovedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemRemoved, (PET_DISK_ITEM)Parameter);
+    ProcessHacker_Invoke(PhMainWindowHandle, EtpOnDiskItemRemoved, (PET_DISK_ITEM)Parameter);
 }
 
 VOID NTAPI EtpDiskItemsUpdatedHandler(
@@ -987,7 +987,7 @@ VOID NTAPI EtpDiskItemsUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ProcessHacker_Invoke(PhMainWndHandle, EtpOnDiskItemsUpdated, NULL);
+    ProcessHacker_Invoke(PhMainWindowHandle, EtpOnDiskItemsUpdated, NULL);
 }
 
 VOID NTAPI EtpOnDiskItemAdded(
@@ -1136,10 +1136,10 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
             switch (LOWORD(wParam))
             {
             case IDC_RESTART:
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWindowHandle);
 
                 if (PhShellProcessHacker(
-                    PhMainWndHandle,
+                    PhMainWindowHandle,
                     L"-v -selecttab Disk",
                     SW_SHOW,
                     PH_SHELL_EXECUTE_ADMIN,
@@ -1148,11 +1148,11 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
                     NULL
                     ))
                 {
-                    ProcessHacker_Destroy(PhMainWndHandle);
+                    ProcessHacker_Destroy(PhMainWindowHandle);
                 }
                 else
                 {
-                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+                    ProcessHacker_CancelEarlyShutdown(PhMainWindowHandle);
                 }
 
                 break;

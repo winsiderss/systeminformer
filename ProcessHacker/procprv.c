@@ -179,11 +179,6 @@ PH_QUEUED_LOCK PhProcessHashSetLock = PH_QUEUED_LOCK_INIT;
 
 SLIST_HEADER PhProcessQueryDataListHead;
 
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessAddedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessModifiedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessRemovedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhProcessesUpdatedEvent);
-
 PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
@@ -1901,7 +1896,7 @@ VOID PhFlushProcessQueryData(
                 // which will lead to very bad things happening.
                 PhAcquireQueuedLockExclusive(&data->ProcessItem->RemoveLock);
                 if (!(data->ProcessItem->State & PH_PROCESS_ITEM_REMOVED))
-                    PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderModified), data->ProcessItem);
                 PhReleaseQueuedLockExclusive(&data->ProcessItem->RemoveLock);
             }
             else
@@ -2176,7 +2171,7 @@ VOID PhProcessProviderUpdate(
                     // Raise the process removed event.
                     // See PhFlushProcessQueryData for why we need to lock here.
                     PhAcquireQueuedLockExclusive(&processItem->RemoveLock);
-                    PhInvokeCallback(&PhProcessRemovedEvent, processItem);
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderRemoved), processItem);
                     PhReleaseQueuedLockExclusive(&processItem->RemoveLock);
 
                     if (!processesToRemove)
@@ -2298,7 +2293,7 @@ VOID PhProcessProviderUpdate(
             PhReleaseQueuedLockExclusive(&PhProcessHashSetLock);
 
             // Raise the process added event.
-            PhInvokeCallback(&PhProcessAddedEvent, processItem);
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderAdded), processItem);
             processItem->AddedEventSent = TRUE;
 
             // (Ref: for the process item being in the hashtable.)
@@ -2461,7 +2456,7 @@ VOID PhProcessProviderUpdate(
 
             if (modified)
             {
-                PhInvokeCallback(&PhProcessModifiedEvent, processItem);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderModified), processItem);
             }
 
             // No reference added by PhpLookupProcessItem.
@@ -2562,7 +2557,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated), NULL);
     runCount++;
 }
 

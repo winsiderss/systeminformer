@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 
 #include <svcsup.h>
 #include <settings.h>
@@ -229,7 +230,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             ULONG i;
 
             PhRegisterCallback(
-                &PhServiceModifiedEvent,
+                PhGetGeneralCallback(GeneralCallbackServiceProviderModified),
                 ServiceModifiedHandler,
                 servicesContext,
                 &servicesContext->ModifiedEventRegistration
@@ -280,7 +281,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhFree(servicesContext->Services);
 
             PhUnregisterCallback(
-                &PhServiceModifiedEvent,
+                PhGetGeneralCallback(GeneralCallbackServiceProviderModified),
                 &servicesContext->ModifiedEventRegistration
                 );
 

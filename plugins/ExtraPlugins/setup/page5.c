@@ -45,9 +45,9 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDYES)
             {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWindowHandle);
                 PhShellProcessHacker(
-                    PhMainWndHandle,
+                    PhMainWindowHandle,
                     L"-v",
                     SW_SHOW,
                     0,
@@ -56,7 +56,7 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
                     NULL
                     );
                 //PhShellProcessHacker(
-                //    PhMainWndHandle,
+                //    PhMainWindowHandle,
                 //    L"-plugin " PLUGIN_NAME L":INSTALL -plugin " PLUGIN_NAME L":hex64value",
                 //    SW_SHOW,
                 //    0,
@@ -64,7 +64,7 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
                 //    0,
                 //    NULL
                 //    );
-                ProcessHacker_Destroy(PhMainWndHandle);
+                ProcessHacker_Destroy(PhMainWindowHandle);
             }
         }
         break;

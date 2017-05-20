@@ -639,7 +639,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhThreadProviderInitialUpdate(threadsContext->Provider);
             PhRegisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
 
-            SET_BUTTON_ICON(IDC_OPENSTARTMODULE, PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_FOLDER)));
+            SET_BUTTON_ICON(IDC_OPENSTARTMODULE, PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_FOLDER)));
         }
         break;
     case WM_DESTROY:

@@ -88,8 +88,8 @@ INT_PTR CALLBACK TextDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)UT_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)UT_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);

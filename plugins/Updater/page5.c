@@ -71,16 +71,16 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
 
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWindowHandle);
 
                 if (ShellExecuteEx(&info))
                 {
-                    ProcessHacker_Destroy(PhMainWndHandle);
+                    ProcessHacker_Destroy(PhMainWindowHandle);
                 }
                 else
                 {
                     // Install failed, cancel the shutdown.
-                    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
+                    ProcessHacker_CancelEarlyShutdown(PhMainWindowHandle);
 
                     // Set button text for next action
                     //Button_SetText(GetDlgItem(hwndDlg, IDOK), L"Retry");
@@ -144,7 +144,7 @@ VOID ShowLatestVersionDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     
     // HACK
-    imageDosHeader = (PIMAGE_DOS_HEADER)NtCurrentPeb()->ImageBaseAddress;
+    imageDosHeader = (PIMAGE_DOS_HEADER)PhImageBaseAddress;
     imageNtHeader = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(imageDosHeader, (ULONG)imageDosHeader->e_lfanew);
     RtlSecondsSince1970ToTime(imageNtHeader->FileHeader.TimeDateStamp, &time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);

@@ -918,21 +918,21 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     case FILESYSTEM_STATISTICS_TYPE_NTFS:
     case FILESYSTEM_STATISTICS_TYPE_REFS: // ReFS uses the same statistics as NTFS.
         {
-            bufferLength = sizeof(NTFS_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            bufferLength = sizeof(NTFS_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhGetSystemBasicInformation().NumberOfProcessors;
             buffer = PhReAllocate(buffer, bufferLength);
             memset(buffer, 0, bufferLength);
         }
         break;
     case FILESYSTEM_STATISTICS_TYPE_FAT:
         {
-            bufferLength = sizeof(FAT_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            bufferLength = sizeof(FAT_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhGetSystemBasicInformation().NumberOfProcessors;
             buffer = PhReAllocate(buffer, bufferLength);
             memset(buffer, 0, bufferLength);
         }
         break;
     case FILESYSTEM_STATISTICS_TYPE_EXFAT:
         {
-            bufferLength = sizeof(EXFAT_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            bufferLength = sizeof(EXFAT_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhGetSystemBasicInformation().NumberOfProcessors;
             buffer = PhReAllocate(buffer, bufferLength);
             memset(buffer, 0, bufferLength);
         }

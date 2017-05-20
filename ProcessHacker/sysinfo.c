@@ -281,8 +281,8 @@ VOID PhSipOnInitDialog(
     VOID
     )
 {
-    SendMessage(PhSipWindow, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PROCESSHACKER)));
-    SendMessage(PhSipWindow, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+    SendMessage(PhSipWindow, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+    SendMessage(PhSipWindow, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
     PhInitializeLayoutManager(&WindowLayoutManager, PhSipWindow);
 
@@ -291,7 +291,7 @@ VOID PhSipOnInitDialog(
     PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhSipWindow, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
     PhRegisterCallback(
-        &PhProcessesUpdatedEvent,
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
         PhSipSysInfoUpdateHandler,
         NULL,
         &ProcessesUpdatedRegistration
@@ -313,7 +313,7 @@ VOID PhSipOnDestroy(
     )
 {
     PhUnregisterCallback(
-        &PhProcessesUpdatedEvent,
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
         &ProcessesUpdatedRegistration
         );
 

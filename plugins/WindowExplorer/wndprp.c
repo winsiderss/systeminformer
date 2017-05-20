@@ -611,7 +611,7 @@ static VOID WepEnsureHookDataValid(
 
 #ifdef _WIN64
         // We can't use the hook on WOW64 processes.
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("ProcessQueryAccess"), Context->ClientId.UniqueProcess)))
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("PhProcessQueryAccess"), Context->ClientId.UniqueProcess)))
         {
             PhGetProcessIsWow64(processHandle, &isWow64);
             NtClose(processHandle);

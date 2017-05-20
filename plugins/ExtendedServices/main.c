@@ -57,28 +57,28 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_SERVICE_GOTOSERVICE:
         {
-            ProcessHacker_SelectTabPage(PhMainWndHandle, 1);
-            ProcessHacker_SelectServiceItem(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            ProcessHacker_SelectTabPage(PhMainWindowHandle, 1);
+            ProcessHacker_SelectServiceItem(PhMainWindowHandle, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_START:
         {
-            PhUiStartService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiStartService(PhMainWindowHandle, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_CONTINUE:
         {
-            PhUiContinueService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiContinueService(PhMainWindowHandle, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_PAUSE:
         {
-            PhUiPauseService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiPauseService(PhMainWindowHandle, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_STOP:
         {
-            PhUiStopService(PhMainWndHandle, (PPH_SERVICE_ITEM)menuItem->Context);
+            PhUiStopService(PhMainWindowHandle, (PPH_SERVICE_ITEM)menuItem->Context);
         }
         break;
     case ID_SERVICE_RESTART:
@@ -89,7 +89,7 @@ VOID NTAPI MenuItemCallback(
 
             if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS))
             {
-                EsRestartServiceWithProgress(PhMainWndHandle, serviceItem, serviceHandle);
+                EsRestartServiceWithProgress(PhMainWindowHandle, serviceItem, serviceHandle);
                 CloseServiceHandle(serviceHandle);
             }
             else
@@ -100,7 +100,7 @@ VOID NTAPI MenuItemCallback(
             if (win32Result != 0)
             {
                 PhShowStatus(
-                    PhMainWndHandle,
+                    PhMainWindowHandle,
                     PhaFormatString(L"Unable to restart %s", serviceItem->Name->Buffer)->Buffer,
                     0,
                     win32Result
@@ -348,7 +348,7 @@ NTAPI ServicePropertiesInitializingCallback(
     }
 
     // Other
-    if (WindowsVersion >= WINDOWS_7 && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    if (PhWindowsVersion() >= WINDOWS_7 && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -362,7 +362,7 @@ NTAPI ServicePropertiesInitializingCallback(
     }
 
     // Other
-    if (WindowsVersion >= WINDOWS_VISTA && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    if (PhWindowsVersion() >= WINDOWS_VISTA && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
