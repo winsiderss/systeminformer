@@ -115,3 +115,5 @@ tools/fixlib/bin/Release/*
 tools/GenerateZw/GenerateZw/bin/Debug/
 tools/GenerateZw/GenerateZw/bin/Release/*
 !tools/GenerateZw/GenerateZw/bin/Release/GenerateZw.exe
+
+!tools/delaylib/bin/
