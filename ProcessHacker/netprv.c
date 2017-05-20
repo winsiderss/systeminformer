@@ -23,6 +23,7 @@
 
 #include <phapp.h>
 #include <netprv.h>
+#include <phplug.h>
 
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
@@ -93,11 +94,6 @@ PPH_OBJECT_TYPE PhNetworkItemType;
 
 PPH_HASHTABLE PhNetworkHashtable;
 PH_QUEUED_LOCK PhNetworkHashtableLock = PH_QUEUED_LOCK_INIT;
-
-PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemAddedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemModifiedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemRemovedEvent);
-PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemsUpdatedEvent);
 
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhNetworkProviderWorkQueue;
@@ -503,7 +499,7 @@ VOID PhNetworkProviderUpdate(
 
             if (!found)
             {
-                PhInvokeCallback(&PhNetworkItemRemovedEvent, *networkItem);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderRemoved), *networkItem);
 
                 if (!connectionsToRemove)
                     connectionsToRemove = PhCreateList(2);
@@ -666,7 +662,7 @@ VOID PhNetworkProviderUpdate(
             PhReleaseQueuedLockExclusive(&PhNetworkHashtableLock);
 
             // Raise the network item added event.
-            PhInvokeCallback(&PhNetworkItemAddedEvent, networkItem);
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderAdded), networkItem);
         }
         else
         {
@@ -710,7 +706,7 @@ VOID PhNetworkProviderUpdate(
             if (modified)
             {
                 // Raise the network item modified event.
-                PhInvokeCallback(&PhNetworkItemModifiedEvent, networkItem);
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderModified), networkItem);
             }
 
             PhDereferenceObject(networkItem);
@@ -719,7 +715,7 @@ VOID PhNetworkProviderUpdate(
 
     PhFree(connections);
 
-    PhInvokeCallback(&PhNetworkItemsUpdatedEvent, NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdated), NULL);
 }
 
 PWSTR PhGetProtocolTypeName(

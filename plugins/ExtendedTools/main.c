@@ -91,7 +91,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_PROCESS_WSWATCH:
         {
-            EtShowWsWatchDialog(PhMainWndHandle, menuItem->Context);
+            EtShowWsWatchDialog(PhMainWindowHandle, menuItem->Context);
         }
         break;
     case ID_THREAD_CANCELIO:
@@ -565,13 +565,13 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
                 ProcessesUpdatedCallback,
                 NULL,
                 &ProcessesUpdatedCallbackRegistration
                 );
             PhRegisterCallback(
-                &PhNetworkItemsUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdated),
                 NetworkItemsUpdatedCallback,
                 NULL,
                 &NetworkItemsUpdatedCallbackRegistration

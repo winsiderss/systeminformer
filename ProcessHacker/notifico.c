@@ -113,7 +113,7 @@ VOID PhNfLoadStage2(
     }
 
     PhRegisterCallback(
-        &PhProcessesUpdatedEvent,
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
         PhNfpProcessesUpdatedHandler,
         NULL,
         &PhNfpProcessesUpdatedRegistration

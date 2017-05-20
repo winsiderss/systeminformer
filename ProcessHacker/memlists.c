@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 
 #include <emenu.h>
 #include <settings.h>
@@ -171,7 +172,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhRegisterCallback(&PhProcessesUpdatedEvent, ProcessesUpdatedCallback, NULL, &ProcessesUpdatedRegistration);
+            PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated), ProcessesUpdatedCallback, NULL, &ProcessesUpdatedRegistration);
             PhpUpdateMemoryListInfo(hwndDlg);
 
             PhLoadWindowPlacementFromSetting(L"MemoryListsWindowPosition", NULL, hwndDlg);
@@ -183,7 +184,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
             PhUnregisterDialog(hwndDlg);
             PhSaveWindowPlacementToSetting(L"MemoryListsWindowPosition", NULL, hwndDlg);
 
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &ProcessesUpdatedRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated), &ProcessesUpdatedRegistration);
 
             UnregisterDialogFunction(hwndDlg);
             PhMemoryListsWindowHandle = NULL;

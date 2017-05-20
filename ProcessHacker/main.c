@@ -77,7 +77,7 @@ VOID PhpEnablePrivileges(
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
-PHAPPAPI HFONT PhApplicationFont;
+HFONT PhApplicationFont;
 PPH_STRING PhCurrentUserName = NULL;
 HINSTANCE PhInstanceHandle;
 PPH_STRING PhLocalSystemName = NULL;

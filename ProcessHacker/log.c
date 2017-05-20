@@ -21,11 +21,10 @@
  */
 
 #include <phapp.h>
-
+#include <phplug.h>
 #include <settings.h>
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
-PHAPPAPI PH_CALLBACK_DECLARE(PhLoggedCallback);
 
 VOID PhLogInitialization(
     VOID
@@ -155,7 +154,7 @@ VOID PhpLogEntry(
     if (oldEntry)
         PhpFreeLogEntry(oldEntry);
 
-    PhInvokeCallback(&PhLoggedCallback, Entry);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackLoggedEvent), Entry);
 }
 
 VOID PhClearLogEntries(

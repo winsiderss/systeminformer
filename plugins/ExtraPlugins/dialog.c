@@ -243,7 +243,7 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
             context->NormalFontHandle = PhCreateCommonFont(-14, FW_NORMAL, NULL);
             context->BoldFontHandle = PhCreateCommonFont(-16, FW_BOLD, NULL);
       
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhCenterWindow(hwndDlg, PhMainWindowHandle);
             InitializePluginsTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(GetPluginListFilterSupport(context), ProcessTreeFilterCallback, context);
 

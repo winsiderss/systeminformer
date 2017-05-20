@@ -93,7 +93,7 @@ VOID ProcessThreadStackControl(
             context->ThreadHandle = Control->u.Initializing.ThreadHandle;
 
 #if _WIN64
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, Control->u.Initializing.ProcessId)))
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PhProcessQueryAccess(), Control->u.Initializing.ProcessId)))
             {
                 PhGetProcessIsWow64(processHandle, &context->IsWow64);
                 NtClose(processHandle);

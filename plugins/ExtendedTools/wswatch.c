@@ -389,7 +389,7 @@ static BOOLEAN NTAPI EnumGenericModulesCallback(
     // in Windows 7.
     if (
         context->LoadingSymbolsForProcessId == SYSTEM_PROCESS_ID &&
-        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress
+        (ULONG_PTR)Module->BaseAddress <= PhGetSystemBasicInformation().MaximumUserModeAddress
         )
         return TRUE;
 

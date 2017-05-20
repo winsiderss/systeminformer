@@ -37,18 +37,16 @@ EXPORTS
 	PhfWakeForReleaseQueuedLock
 
 ; phconfig
-	PhGlobalDpi DATA
-	PhHeapHandle DATA
+	PhGetSystemBasicInformation
+	PhWindowsVersion
+	PhGetGlobalDpi
+	PhGetImageBase
 	PhIsExecutingInWow64
-	PhLibImageBase DATA
-	PhOsVersion DATA
-	PhSystemBasicInformation DATA
-	ProcessAllAccess DATA
-	ProcessQueryAccess DATA
-	ThreadAllAccess DATA
-	ThreadQueryAccess DATA
-	ThreadSetAccess DATA
-	WindowsVersion DATA
+	PhProcessAllAccess
+	PhProcessQueryAccess
+	PhThreadAllAccess
+	PhThreadQueryAccess
+	PhThreadSetAccess
 
 ; phbasesup
 	PhAddElementAvlTree

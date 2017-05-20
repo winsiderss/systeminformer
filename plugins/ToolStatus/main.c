@@ -252,7 +252,7 @@ VOID ShowCustomizeMenu(
 
     selectedItem = PhShowEMenu(
         menu,
-        PhMainWndHandle,
+        PhMainWindowHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
         cursorPos.x,
@@ -271,12 +271,12 @@ VOID ShowCustomizeMenu(
 
                 if (ToolStatusConfig.AutoHideMenu)
                 {
-                    SetMenu(PhMainWndHandle, NULL);
+                    SetMenu(PhMainWindowHandle, NULL);
                 }
                 else
                 {
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
+                    SetMenu(PhMainWindowHandle, MainMenu);
+                    DrawMenuBar(PhMainWindowHandle);
                 }
             }
             break;
@@ -293,7 +293,7 @@ VOID ShowCustomizeMenu(
                 {
                     // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
-                    SetFocus(PhMainWndHandle);
+                    SetFocus(PhMainWindowHandle);
                 }
             }
             break;
@@ -452,8 +452,8 @@ VOID NTAPI LayoutPaddingCallback(
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
-        // TODO: GetClientRect with PhMainWndHandle causes crash.
-        //GetClientRect(PhMainWndHandle, &clientRect);
+        // TODO: GetClientRect with PhMainWindowHandle causes crash.
+        //GetClientRect(PhMainWindowHandle, &clientRect);
         GetClientRect(RebarHandle, &rebarRect);
 
         // Adjust the PH client area and exclude the rebar width.
@@ -556,22 +556,22 @@ BOOLEAN NTAPI MessageLoopFilter(
     )
 {
     if (
-        Message->hwnd == PhMainWndHandle ||
-        IsChild(PhMainWndHandle, Message->hwnd)
+        Message->hwnd == PhMainWindowHandle ||
+        IsChild(PhMainWindowHandle, Message->hwnd)
         )
     {
-        if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
+        if (TranslateAccelerator(PhMainWindowHandle, AcceleratorTable, Message))
             return TRUE;
 
-        if (Message->message == WM_SYSCHAR && ToolStatusConfig.AutoHideMenu && !GetMenu(PhMainWndHandle))
+        if (Message->message == WM_SYSCHAR && ToolStatusConfig.AutoHideMenu && !GetMenu(PhMainWindowHandle))
         {
             ULONG key = (ULONG)Message->wParam;
 
             if (key == 'h' || key == 'v' || key == 't' || key == 'u' || key == 'e')
             {
-                SetMenu(PhMainWndHandle, MainMenu);
-                DrawMenuBar(PhMainWndHandle);
-                SendMessage(PhMainWndHandle, WM_SYSCHAR, Message->wParam, Message->lParam);
+                SetMenu(PhMainWindowHandle, MainMenu);
+                DrawMenuBar(PhMainWindowHandle);
+                SendMessage(PhMainWindowHandle, WM_SYSCHAR, Message->wParam, Message->lParam);
                 return TRUE;
             }
         }
@@ -774,7 +774,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 case RBN_HEIGHTCHANGE:
                     {
                         // Invoke the LayoutPaddingCallback.
-                        SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+                        SendMessage(PhMainWindowHandle, WM_SIZE, 0, 0);
                     }
                     break;
                 case RBN_CHEVRONPUSHED:
@@ -886,7 +886,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         if (selectedItem && selectedItem->Id != -1)
                         {
-                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, BN_CLICKED), 0);
+                            SendMessage(PhMainWindowHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, BN_CLICKED), 0);
                         }
 
                         PhDestroyEMenu(menu);
@@ -997,7 +997,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         if (selectedItem && selectedItem->Id != -1)
                         {
-                            SendMessage(PhMainWndHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, BN_CLICKED), 0);
+                            SendMessage(PhMainWindowHandle, WM_COMMAND, MAKEWPARAM(selectedItem->Id, BN_CLICKED), 0);
                         }
 
                         PhDestroyEMenu(menu);
@@ -1123,7 +1123,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 SetCursor(LoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
-                SetWindowPos(PhMainWndHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
+                SetWindowPos(PhMainWindowHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
                     0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
                 TargetingWindow = FALSE;
@@ -1236,7 +1236,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     }
                 }
 
-                SetWindowPos(PhMainWndHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
+                SetWindowPos(PhMainWindowHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
                     0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
                 TargetingCompleted = TRUE;
@@ -1263,14 +1263,14 @@ LRESULT CALLBACK MainWndSubclassProc(
                 if (!ToolStatusConfig.AutoHideMenu)
                     break;
 
-                if (GetMenu(PhMainWndHandle))
+                if (GetMenu(PhMainWindowHandle))
                 {
-                    SetMenu(PhMainWndHandle, NULL);
+                    SetMenu(PhMainWindowHandle, NULL);
                 }
                 else
                 {
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
+                    SetMenu(PhMainWindowHandle, MainMenu);
+                    DrawMenuBar(PhMainWindowHandle);
                 }
             }
             else if ((wParam & 0xFFF0) == SC_MINIMIZE)
@@ -1288,9 +1288,9 @@ LRESULT CALLBACK MainWndSubclassProc(
             if (!ToolStatusConfig.AutoHideMenu)
                 break;
 
-            if (GetMenu(PhMainWndHandle))
+            if (GetMenu(PhMainWindowHandle))
             {
-                SetMenu(PhMainWndHandle, NULL);
+                SetMenu(PhMainWindowHandle, NULL);
             }
         }
         break;
@@ -1309,21 +1309,21 @@ VOID NTAPI MainWindowShowingCallback(
 {
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
     PhRegisterCallback(
-        ProcessHacker_GetCallbackLayoutPadding(PhMainWndHandle),
+        ProcessHacker_GetCallbackLayoutPadding(PhMainWindowHandle),
         LayoutPaddingCallback,
         NULL,
         &LayoutPaddingCallbackRegistration
         );
-    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+    SetWindowSubclass(PhMainWindowHandle, MainWndSubclassProc, 0, 0);
 
     ToolbarLoadSettings();
     ReBarLoadLayoutSettings();
     StatusBarLoadSettings();
 
-    MainMenu = GetMenu(PhMainWndHandle);
+    MainMenu = GetMenu(PhMainWindowHandle);
     if (ToolStatusConfig.AutoHideMenu)
     {
-        SetMenu(PhMainWndHandle, NULL);
+        SetMenu(PhMainWindowHandle, NULL);
     }
 }
 

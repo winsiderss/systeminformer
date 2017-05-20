@@ -38,20 +38,19 @@ VOID PhInitializeWindowsVersion(
     VOID
     );
 
-PHLIBAPI PVOID PhLibImageBase;
+PVOID PhLibImageBase;
+PWSTR PhApplicationName = L"Application";
+ULONG PhGlobalDpi = 96;
+PVOID PhHeapHandle;
+RTL_OSVERSIONINFOEXW PhOsVersion;
+SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
+ULONG WindowsVersion;
 
-PHLIBAPI PWSTR PhApplicationName = L"Application";
-PHLIBAPI ULONG PhGlobalDpi = 96;
-PHLIBAPI PVOID PhHeapHandle;
-PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion;
-PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-PHLIBAPI ULONG WindowsVersion;
-
-PHLIBAPI ACCESS_MASK ProcessQueryAccess;
-PHLIBAPI ACCESS_MASK ProcessAllAccess;
-PHLIBAPI ACCESS_MASK ThreadQueryAccess;
-PHLIBAPI ACCESS_MASK ThreadSetAccess;
-PHLIBAPI ACCESS_MASK ThreadAllAccess;
+ACCESS_MASK ProcessQueryAccess;
+ACCESS_MASK ProcessAllAccess;
+ACCESS_MASK ThreadQueryAccess;
+ACCESS_MASK ThreadSetAccess;
+ACCESS_MASK ThreadAllAccess;
 
 // Internal data
 #ifdef DEBUG
@@ -236,4 +235,11 @@ static VOID PhInitializeWindowsVersion(
         ThreadSetAccess = THREAD_SET_INFORMATION;
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
     }
+}
+
+ULONG PhWindowsVersion(
+    VOID
+    )
+{
+    return WindowsVersion;
 }

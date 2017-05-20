@@ -263,9 +263,9 @@ VOID GpuPropLayoutGraphs(
     HDWP deferHandle;
     RECT clientRect;
     RECT panelRect;
-    RECT margin = { ET_SCALE_DPI(13), ET_SCALE_DPI(13), ET_SCALE_DPI(13), ET_SCALE_DPI(13) };
-    RECT innerMargin = { ET_SCALE_DPI(10), ET_SCALE_DPI(20), ET_SCALE_DPI(10), ET_SCALE_DPI(10) };
-    LONG between = ET_SCALE_DPI(3);
+    RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
+    RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
+    LONG between = PH_SCALE_DPI(3);
     ULONG graphWidth;
     ULONG graphHeight;
 
@@ -474,7 +474,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             GpuPropUpdatePanel(context);
 
             PhRegisterCallback(
-                &PhProcessesUpdatedEvent,
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
                 ProcessesUpdatedHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -502,7 +502,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             if (context->PanelHandle)
                 DestroyWindow(context->PanelHandle);
 
-            PhUnregisterCallback(&PhProcessesUpdatedEvent, &context->ProcessesUpdatedRegistration);
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated), &context->ProcessesUpdatedRegistration);
             PhFree(context);
 
             PhPropPageDlgProcDestroy(hwndDlg);
@@ -543,7 +543,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->GpuGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectObject(hdc, PhGetApplicationFont());
                             PhSetGraphText(hdc, drawInfo, &context->GpuGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
@@ -574,7 +574,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->MemGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectObject(hdc, PhGetApplicationFont());
                             PhSetGraphText(
                                 hdc,
                                 drawInfo,
@@ -630,7 +630,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 ));
 
                             hdc = Graph_GetBufferedContext(context->SharedGraphHandle);
-                            SelectObject(hdc, PhApplicationFont);
+                            SelectObject(hdc, PhGetApplicationFont());
                             PhSetGraphText(hdc, drawInfo, &context->MemorySharedGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }

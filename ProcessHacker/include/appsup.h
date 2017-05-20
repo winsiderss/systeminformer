@@ -416,8 +416,8 @@ PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
     );
 
-#define PH_LOAD_SHARED_ICON_SMALL(Name) PhLoadIcon(PhInstanceHandle, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0)
-#define PH_LOAD_SHARED_ICON_LARGE(Name) PhLoadIcon(PhInstanceHandle, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0)
+#define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0) // phapppub
+#define PH_LOAD_SHARED_ICON_LARGE(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0) // phapppub
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
     _In_ HWND hwndDlg,
