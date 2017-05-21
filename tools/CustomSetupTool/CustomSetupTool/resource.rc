@@ -222,10 +222,11 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 IDR_LICENCE_DATA        RCDATA                  "resources\\LICENSE.txt"
 
 #if defined(APSTUDIO_INVOKED) || defined(PH_BUILD_API)
-#if defined(APSTUDIO_INVOKED)
-IDR_BIN_DATA$(PH_BUILD_API) RCDATA              "..\\..\\..\\build\\output\\processhacker-build-bin.zip"
+
+IDR_BIN_DATA RCDATA              "..\\..\\..\\build\\output\\processhacker-build-bin.zip"
+
 #endif
-#endif
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
