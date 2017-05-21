@@ -33,6 +33,7 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
+        private static bool GitExportBuild;
         private static bool BuildNightly;
         private static string BuildBranch;
         private static string BuildOutputFolder;
@@ -187,9 +188,13 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (CheckDependencies)
+            if (File.Exists(GitExePath))
             {
-                if (!File.Exists(GitExePath))
+                GitExportBuild = string.Equals(Win32.ShellExecute(GitExePath, "rev-parse --is-inside-work-tree"), string.Empty, StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                if (CheckDependencies)
                 {
                     Program.PrintColorMessage("Git not installed... Exiting.", ConsoleColor.Red);
                     return false;
@@ -237,16 +242,20 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
-            BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
-            BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim();
-            Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
-            Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
-            Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-            Program.PrintColorMessage(BuildCommit, ConsoleColor.White);
+            if (!GitExportBuild)
+            {
+                BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
+                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim();
 
-            string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
-            BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
-            BuildCount = Win32.ShellExecute(GitExePath, "rev-list --count " + BuildBranch).Trim();
+                Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
+                Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
+                Program.PrintColorMessage(BuildCommit, ConsoleColor.White);
+
+                string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
+                BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
+                BuildCount = Win32.ShellExecute(GitExePath, "rev-list --count " + BuildBranch).Trim();
+            }
 
             if (string.IsNullOrEmpty(BuildRevision))
                 BuildRevision = "0";
@@ -255,8 +264,8 @@ namespace CustomBuildTool
 
             BuildVersion = "3.0." + BuildRevision;
             BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
-   
-            if (ShowBuildInfo)
+
+            if (ShowBuildInfo && !GitExportBuild)
             {
                 Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(BuildVersion + Environment.NewLine, ConsoleColor.White);
@@ -525,16 +534,9 @@ namespace CustomBuildTool
             Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
 
             if (!File.Exists(CustomSignToolPath))
-            {
-                Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
                 return true;
-            }
-
             if (!File.Exists("build\\kph.key"))
-            {
-                Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
                 return true;
-            }
 
             if (DebugBuild)
             {
