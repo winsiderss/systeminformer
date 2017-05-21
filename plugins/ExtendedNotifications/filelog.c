@@ -55,7 +55,7 @@ VOID FileLogInitialization(
         if (NT_SUCCESS(status))
         {
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackLoggedEvent),
+                &PhLoggedCallback,
                 LoggedCallback,
                 NULL,
                 &LoggedCallbackRegistration

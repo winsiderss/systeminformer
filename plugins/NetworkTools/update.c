@@ -35,14 +35,21 @@ VOID FreeUpdateContext(
     )
 {
     //PhClearReference(&Context->Version);
-    //PhClearReference(&Context->RevVersion);
+   // PhClearReference(&Context->RevVersion);
     //PhClearReference(&Context->RelDate);
-    //PhClearReference(&Context->Size);
+   // PhClearReference(&Context->Size);
     //PhClearReference(&Context->Hash);
-    //PhClearReference(&Context->Signature);
-    //PhClearReference(&Context->ReleaseNotesUrl);
+   // PhClearReference(&Context->Signature);
+   // PhClearReference(&Context->ReleaseNotesUrl);
     //PhClearReference(&Context->SetupFilePath);
-    //PhClearReference(&Context->SetupFileDownloadUrl);
+   // PhClearReference(&Context->SetupFileDownloadUrl);
+
+    if (Context->IconLargeHandle)
+        DestroyIcon(Context->IconLargeHandle);
+
+    if (Context->IconSmallHandle)
+        DestroyIcon(Context->IconSmallHandle);
+
     //PhClearReference(&Context);
 }
 
@@ -50,11 +57,29 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    HICON largeIcon;
+    HICON smallIcon;
 
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconLargeHandle);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconSmallHandle);
+    largeIcon = PhLoadIcon(
+        NtCurrentPeb()->ImageBaseAddress,
+        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON)
+        );
+    smallIcon = PhLoadIcon(
+        NtCurrentPeb()->ImageBaseAddress,
+        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXSMICON),
+        GetSystemMetrics(SM_CYSMICON)
+        );
+
+    Context->IconLargeHandle = largeIcon;
+    Context->IconSmallHandle = smallIcon;
+
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
 }
 
 VOID TaskDialogLinkClicked(
@@ -134,7 +159,7 @@ PPH_STRING QueryFwLinkUrl(
 
     if (!(httpSessionHandle = WinHttpOpen(
         NULL,
-        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -143,7 +168,7 @@ PPH_STRING QueryFwLinkUrl(
         goto CleanupExit;
     }
 
-    if (PhWindowsVersion() >= WINDOWS_8_1)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
 
@@ -198,7 +223,7 @@ PPH_STRING QueryFwLinkUrl(
             );
     }
 
-    if (PhWindowsVersion() >= WINDOWS_7)
+    if (WindowsVersion >= WINDOWS_7)
     {
         ULONG option = WINHTTP_DISABLE_REDIRECTS;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
@@ -390,7 +415,7 @@ NTSTATUS GeoIPUpdateThread(
 
     if (!(httpSessionHandle = WinHttpOpen(
         PhGetString(userAgentString),
-        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -399,7 +424,7 @@ NTSTATUS GeoIPUpdateThread(
         goto CleanupExit;
     }
 
-    if (PhWindowsVersion() >= WINDOWS_8_1)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
@@ -428,7 +453,7 @@ NTSTATUS GeoIPUpdateThread(
         goto CleanupExit;
     }
 
-    if (PhWindowsVersion() >= WINDOWS_7)
+    if (WindowsVersion >= WINDOWS_7)
     {
         ULONG option = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
@@ -710,7 +735,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWindowHandle) && !IsMinimized(PhMainWindowHandle)) ? PhMainWindowHandle : NULL);
+            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
 
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
@@ -762,7 +787,7 @@ NTSTATUS GeoIPUpdateDialogThread(
     //info.hwnd = Parameter;
     //info.lpVerb = L"runas";
     //
-    //ProcessHacker_PrepareForEarlyShutdown(PhMainWindowHandle);
+    //ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
     //
     //if (ShellExecuteEx(&info))
     //{
@@ -785,7 +810,7 @@ NTSTATUS GeoIPUpdateDialogThread(
     //                NULL
     //                );
     //
-    //            ProcessHacker_Destroy(PhMainWindowHandle);
+    //            ProcessHacker_Destroy(PhMainWndHandle);
     //        }
     //    }
     //
@@ -793,7 +818,7 @@ NTSTATUS GeoIPUpdateDialogThread(
     //}
     //else
     //{
-    //    ProcessHacker_CancelEarlyShutdown(PhMainWindowHandle);
+    //    ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
     //}
 }
 

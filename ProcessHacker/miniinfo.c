@@ -110,11 +110,11 @@ VOID PhPinMiniInformation(
             wcex.cbClsExtra = 0;
             wcex.cbWndExtra = 0;
             wcex.hInstance = PhInstanceHandle;
-            wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+            wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(IDI_PROCESSHACKER));
             wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
             wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
             wcex.lpszClassName = MIP_CONTAINER_CLASSNAME;
-            wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+            wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PROCESSHACKER));
             RegisterClassEx(&wcex);
 
             PhMipContainerWindow = CreateWindow(
@@ -337,7 +337,7 @@ VOID PhMipContainerOnShowWindow(
         PhMipMessageLoopFilterEntry = PhRegisterMessageLoopFilter(PhMipMessageLoopFilter, NULL);
 
         PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+            &PhProcessesUpdatedEvent,
             PhMipUpdateHandler,
             NULL,
             &ProcessesUpdatedRegistration
@@ -357,7 +357,7 @@ VOID PhMipContainerOnShowWindow(
         PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
 
         PhUnregisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+            &PhProcessesUpdatedEvent,
             &ProcessesUpdatedRegistration
             );
 
@@ -448,10 +448,10 @@ VOID PhMipOnInitDialog(
     HICON cog;
     HICON pin;
 
-    cog = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_COG));
+    cog = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_COG));
     SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
 
-    pin = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PIN));
+    pin = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PIN));
     SET_BUTTON_ICON(PhMipWindow, IDC_PIN, pin);
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);

@@ -181,7 +181,7 @@ ULONG GetProcessAffinity(
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        PhProcessQueryAccess(),
+        ProcessQueryAccess,
         ProcessId
         )))
     {
@@ -208,7 +208,7 @@ IO_PRIORITY_HINT GetProcessIoPriority(
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        PhProcessQueryAccess(),
+        ProcessQueryAccess,
         ProcessId
         )))
     {
@@ -425,7 +425,7 @@ VOID NTAPI MenuItemCallback(
             if (!highlightPresent)
             {
                 CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
-                chooseColor.hwndOwner = PhMainWindowHandle;
+                chooseColor.hwndOwner = PhMainWndHandle;
                 chooseColor.lpCustColors = ProcessCustomColors;
                 chooseColor.lpfnHook = ColorDlgHookProc;
                 chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
@@ -624,7 +624,7 @@ VOID NTAPI MenuHookCallback(
             affinityMask = GetProcessAffinity(processItem->ProcessId);
 
             // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(PhMainWindowHandle, affinityMask, &newAffinityMask))
+            if (PhShowProcessAffinityDialog2(PhMainWndHandle, affinityMask, &newAffinityMask))
             {
                 PDB_OBJECT object;
 
@@ -1432,14 +1432,13 @@ LOGICAL DllMain(
             NULL,
             &MiListSectionMenuInitializingCallbackRegistration
             );
-        PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderModified),
+        PhRegisterCallback(&PhProcessModifiedEvent,
             ProcessModifiedCallback,
             NULL,
             &ProcessModifiedCallbackRegistration
             );
         PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+            &PhProcessesUpdatedEvent,
             ProcessesUpdatedCallback,
             NULL,
             &ProcessesUpdatedCallbackRegistration
@@ -1882,7 +1881,7 @@ UINT_PTR CALLBACK ColorDlgHookProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, PhMainWindowHandle);
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }

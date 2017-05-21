@@ -172,6 +172,18 @@ VOID UploadContextDeleteProcedure(
         context->HttpHandle = NULL;
     }
 
+    if (context->IconLargeHandle)
+    {
+        DestroyIcon(context->IconLargeHandle);
+        context->IconLargeHandle = NULL;
+    }
+
+    if (context->IconSmallHandle)
+    {
+        DestroyIcon(context->IconSmallHandle);
+        context->IconSmallHandle = NULL;
+    }
+
     PhClearReference(&context->ErrorString);
     PhClearReference(&context->FileName);
     PhClearReference(&context->BaseFileName);
@@ -193,7 +205,7 @@ VOID TaskDialogFreeContext(
 {
     // Reset Taskbar progress state(s)
     if (Context->TaskbarListClass)
-        ITaskbarList3_SetProgressState(Context->TaskbarListClass, PhMainWindowHandle, TBPF_NOPROGRESS);
+        ITaskbarList3_SetProgressState(Context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
 
     if (Context->TaskbarListClass)
         ITaskbarList3_SetProgressState(Context->TaskbarListClass, Context->DialogHandle, TBPF_NOPROGRESS);
@@ -205,8 +217,20 @@ VOID TaskDialogCreateIcons(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
-    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconLargeHandle = PhLoadIcon(
+        NtCurrentPeb()->ImageBaseAddress,
+        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON)
+        );
+    Context->IconSmallHandle = PhLoadIcon(
+        NtCurrentPeb()->ImageBaseAddress,
+        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+        PH_LOAD_ICON_SIZE_LARGE,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON)
+        );
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
@@ -686,7 +710,7 @@ NTSTATUS UploadFileThreadStart(
     {
         ITaskbarList3_SetProgressState(
             context->TaskbarListClass,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             TBPF_NORMAL
             );
     }
@@ -890,7 +914,7 @@ CleanupExit:
     // Reset Taskbar progress state(s)
     if (context->TaskbarListClass)
     {
-        ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWindowHandle, TBPF_NOPROGRESS);
+        ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
         ITaskbarList3_SetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
     }
 
@@ -990,7 +1014,7 @@ NTSTATUS UploadCheckThreadStart(
 
     if (!(context->HttpHandle = WinHttpOpen(
         userAgent->Buffer,
-        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -999,7 +1023,7 @@ NTSTATUS UploadCheckThreadStart(
         goto CleanupExit;
     }
 
-    if (PhWindowsVersion() >= WINDOWS_8_1)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
         WinHttpSetOption(context->HttpHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
@@ -1228,7 +1252,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWindowHandle) && !IsMinimized(PhMainWindowHandle)) ? PhMainWindowHandle : NULL);
+            PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
 
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);

@@ -97,7 +97,7 @@ VOID EtGpuMonitorInitialization(
         }
 
         PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+            &PhProcessesUpdatedEvent,
             EtGpuProcessesUpdatedCallback,
             NULL,
             &ProcessesUpdatedCallbackRegistration
@@ -244,7 +244,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                         ULONG64 commitLimit;
                         ULONG aperture;
 
-                        if (PhWindowsVersion() >= WINDOWS_8)
+                        if (WindowsVersion >= WINDOWS_8)
                         {
                             commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
                             aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -418,7 +418,7 @@ VOID EtpUpdateSegmentInformation(
                 {
                     ULONG64 bytesCommitted;
 
-                    if (PhWindowsVersion() >= WINDOWS_8)
+                    if (WindowsVersion >= WINDOWS_8)
                     {
                         bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                     }
@@ -436,7 +436,7 @@ VOID EtpUpdateSegmentInformation(
                 {
                     ULONG64 bytesCommitted;
 
-                    if (PhWindowsVersion() >= WINDOWS_8)
+                    if (WindowsVersion >= WINDOWS_8)
                     {
                         bytesCommitted = queryStatistics.QueryResult.SegmentInformation.BytesResident;
                     }
@@ -777,7 +777,7 @@ VOID EtQueryProcessGpuStatistics(
             {
                 ULONG64 bytesCommitted;
 
-                if (PhWindowsVersion() >= WINDOWS_8)
+                if (WindowsVersion >= WINDOWS_8)
                 {
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 }

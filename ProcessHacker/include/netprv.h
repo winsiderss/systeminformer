@@ -2,6 +2,10 @@
 #define PH_NETPRV_H
 
 extern PPH_OBJECT_TYPE PhNetworkItemType;
+PHAPPAPI extern PH_CALLBACK PhNetworkItemAddedEvent; // phapppub
+PHAPPAPI extern PH_CALLBACK PhNetworkItemModifiedEvent; // phapppub
+PHAPPAPI extern PH_CALLBACK PhNetworkItemRemovedEvent; // phapppub
+PHAPPAPI extern PH_CALLBACK PhNetworkItemsUpdatedEvent; // phapppub
 
 extern BOOLEAN PhEnableNetworkProviderResolve;
 

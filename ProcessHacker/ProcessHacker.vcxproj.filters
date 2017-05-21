@@ -381,9 +381,6 @@
     <ClCompile Include="settings.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="exports.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

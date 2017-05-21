@@ -70,25 +70,25 @@ BOOLEAN PhMwpProcessesPageCallback(
             PhMwpProcessesPage = Page;
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderAdded),
+                &PhProcessAddedEvent,
                 PhMwpProcessAddedHandler,
                 NULL,
                 &ProcessAddedRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderModified),
+                &PhProcessModifiedEvent,
                 PhMwpProcessModifiedHandler,
                 NULL,
                 &ProcessModifiedRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderRemoved),
+                &PhProcessRemovedEvent,
                 PhMwpProcessRemovedHandler,
                 NULL,
                 &ProcessRemovedRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 PhMwpProcessesUpdatedHandler,
                 NULL,
                 &ProcessesUpdatedRegistration

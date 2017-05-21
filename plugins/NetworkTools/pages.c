@@ -107,9 +107,9 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDYES)
             {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWindowHandle);
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
                 PhShellProcessHacker(
-                    PhMainWindowHandle,
+                    PhMainWndHandle,
                     NULL,
                     SW_SHOW,
                     0,
@@ -117,7 +117,7 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
                     0,
                     NULL
                     );
-                ProcessHacker_Destroy(PhMainWindowHandle);
+                ProcessHacker_Destroy(PhMainWndHandle);
             }
         }
         break;

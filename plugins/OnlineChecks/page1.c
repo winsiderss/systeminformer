@@ -40,7 +40,7 @@ HRESULT CALLBACK TaskDialogProcessingCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             if (context->TaskbarListClass)
-                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWindowHandle, TBPF_INDETERMINATE);
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
 
             PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadCheckThreadStart, context);

@@ -3,7 +3,7 @@
 
 #define PH_MAINWND_CLASSNAME L"ProcessHacker" // phapppub
 
-extern HWND PhMainWndHandle;
+PHAPPAPI extern HWND PhMainWndHandle; // phapppub
 extern BOOLEAN PhMainWndExiting;
 
 #define WM_PH_FIRST (WM_APP + 99)

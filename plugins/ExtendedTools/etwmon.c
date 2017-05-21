@@ -117,7 +117,7 @@ VOID EtStartEtwSession(
     ULONG result;
     ULONG bufferSize;
 
-    if (PhWindowsVersion() >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8)
     {
         EtpActualKernelLoggerName = &EtpPrivateKernelLoggerName;
         EtpActualSessionGuid = &ProcessHackerGuid;
@@ -146,7 +146,7 @@ VOID EtStartEtwSession(
     EtpTraceProperties->LogFileNameOffset = 0;
     EtpTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
-    if (PhWindowsVersion() >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8)
         EtpTraceProperties->LogFileMode |= EVENT_TRACE_SYSTEM_LOGGER_MODE;
 
     result = StartTrace(&EtpSessionHandle, EtpActualKernelLoggerName->Buffer, EtpTraceProperties);
@@ -240,7 +240,7 @@ VOID NTAPI EtpEtwEventCallback(
         {
             DiskIo_TypeGroup1 *data = EventRecord->UserData;
 
-            if (PhWindowsVersion() >= WINDOWS_8)
+            if (WindowsVersion >= WINDOWS_8)
             {
                 diskEvent.ClientId.UniqueThread = UlongToHandle(data->IssuingThreadId);
                 diskEvent.ClientId.UniqueProcess = EtThreadIdToProcessId(diskEvent.ClientId.UniqueThread);
@@ -387,7 +387,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
     TRACEHANDLE traceHandle;
 
     // See comment in EtEtwProcessesUpdatedCallback.
-    if (PhWindowsVersion() >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8)
         EtUpdateProcessInformation();
 
     memset(&logFile, 0, sizeof(EVENT_TRACE_LOGFILE));

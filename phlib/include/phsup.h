@@ -8,14 +8,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-// Debugging
-
-#ifdef DEBUG
-#define dprintf(format, ...) DbgPrint(format, __VA_ARGS__)
-#else
-#define dprintf(format, ...)
-#endif
-
 // Memory
 
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))

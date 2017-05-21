@@ -310,7 +310,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, PhMainWindowHandle);
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->DialogHandle = hwndDlg;
             context->AvailableListHandle = GetDlgItem(hwndDlg, IDC_AVAILABLE);
@@ -627,7 +627,7 @@ VOID StatusBarShowCustomizeDialog(
     DialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_CUSTOMIZE_SB),
-        PhMainWindowHandle,
+        PhMainWndHandle,
         CustomizeStatusBarDialogProc
         );
 }

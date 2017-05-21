@@ -66,12 +66,12 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     if (ToolStatusConfig.AutoHideMenu)
                     {
-                        SetMenu(PhMainWindowHandle, NULL);
+                        SetMenu(PhMainWndHandle, NULL);
                     }
                     else
                     {
-                        SetMenu(PhMainWindowHandle, MainMenu);
-                        DrawMenuBar(PhMainWindowHandle);
+                        SetMenu(PhMainWndHandle, MainMenu);
+                        DrawMenuBar(PhMainWndHandle);
                     }
 
                     EndDialog(hwndDlg, IDOK);

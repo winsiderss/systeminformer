@@ -45,7 +45,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
         {
             if (context->TaskbarListClass)
             {
-                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWindowHandle, TBPF_NOPROGRESS);
+                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
             }           
         }
         break;

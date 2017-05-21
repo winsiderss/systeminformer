@@ -147,8 +147,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             HICON folder;
             HICON magnifier;
 
-            folder = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_FOLDER));
-            magnifier = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_MAGNIFIER));
+            folder = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_FOLDER));
+            magnifier = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_MAGNIFIER));
 
             SET_BUTTON_ICON(IDC_INSPECT, magnifier);
             SET_BUTTON_ICON(IDC_OPENFILENAME, folder);

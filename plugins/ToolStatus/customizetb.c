@@ -509,7 +509,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, PhMainWindowHandle);
+            PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             context->DialogHandle = hwndDlg;
             context->AvailableListHandle = GetDlgItem(hwndDlg, IDC_AVAILABLE);
@@ -788,12 +788,12 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                         if (ToolStatusConfig.AutoHideMenu)
                         {
-                            SetMenu(PhMainWindowHandle, NULL);
+                            SetMenu(PhMainWndHandle, NULL);
                         }
                         else
                         {
-                            SetMenu(PhMainWindowHandle, MainMenu);
-                            DrawMenuBar(PhMainWindowHandle);
+                            SetMenu(PhMainWndHandle, MainMenu);
+                            DrawMenuBar(PhMainWndHandle);
                         }
                     }
                 }
@@ -937,7 +937,7 @@ VOID ToolBarShowCustomizeDialog(
     DialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_CUSTOMIZE_TB),
-        PhMainWindowHandle,
+        PhMainWndHandle,
         CustomizeToolbarDialogProc
         );
 }

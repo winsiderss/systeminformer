@@ -95,7 +95,7 @@ VOID EtInitializeDiskInformation(
     EtStartEtwRundown();
 
     PhRegisterCallback(
-        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+        &PhProcessesUpdatedEvent,
         EtpDiskProcessesUpdatedCallback,
         NULL,
         &ProcessesUpdatedCallbackRegistration

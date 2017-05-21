@@ -24,16 +24,6 @@
 #define PHNT_MODE_USER 1
 
 // Version
-#define WINDOWS_ANCIENT 0
-#define WINDOWS_XP 51
-#define WINDOWS_SERVER_2003 52
-#define WINDOWS_VISTA 60
-#define WINDOWS_7 61
-#define WINDOWS_8 62
-#define WINDOWS_8_1 63
-#define WINDOWS_10 100
-#define WINDOWS_NEW MAXLONG
-
 #define PHNT_WIN2K 50
 #define PHNT_WINXP 51
 #define PHNT_WS03 52

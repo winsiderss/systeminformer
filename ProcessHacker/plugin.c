@@ -264,30 +264,30 @@ VOID PhLoadPlugins(
     // In certain startup modes we want to ignore all plugin load errors.
     if (LoadErrors && LoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
     {
-        PH_STRING_BUILDER stringBuilder;
+        PH_STRING_BUILDER sb;
         ULONG i;
         PPHP_PLUGIN_LOAD_ERROR loadError;
         PPH_STRING baseName;
 
-        PhInitializeStringBuilder(&stringBuilder, 100);
+        PhInitializeStringBuilder(&sb, 100);
+        PhAppendStringBuilder2(&sb, L"Unable to load the following plugin(s):\n\n");
 
         for (i = 0; i < LoadErrors->Count; i++)
         {
             loadError = LoadErrors->Items[i];
             baseName = PhGetBaseName(loadError->FileName);
-            PhAppendFormatStringBuilder(&stringBuilder, L"%s: %s\n",
+            PhAppendFormatStringBuilder(&sb, L"%s: %s\n",
                 baseName->Buffer, PhGetStringOrDefault(loadError->ErrorMessage, L"An unknown error occurred."));
             PhDereferenceObject(baseName);
         }
 
-        if (stringBuilder.String->Length != 0)
-            PhRemoveEndStringBuilder(&stringBuilder, 1);
+        PhAppendStringBuilder2(&sb, L"\nDo you want to disable the above plugin(s)?");
 
-        if (PhShowError2(
+        if (PhShowMessage(
             NULL,
-            L"Unable to load the following plugin(s):",
-            stringBuilder.String->Buffer
-            ))
+            MB_ICONERROR | MB_YESNO,
+            sb.String->Buffer
+            ) == IDYES)
         {
             ULONG i;
 
@@ -300,7 +300,7 @@ VOID PhLoadPlugins(
             }
         }
 
-        PhDeleteStringBuilder(&stringBuilder);
+        PhDeleteStringBuilder(&sb);
     }
 
     // When we loaded settings before, we didn't know about plugin settings, so they

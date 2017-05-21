@@ -21,7 +21,6 @@
  */
 
 #include <phapp.h>
-#include <phplug.h>
 #include <procprp.h>
 #include <procprpp.h>
 
@@ -247,7 +246,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 StatisticsUpdateHandler,
                 statisticsContext,
                 &statisticsContext->ProcessesUpdatedRegistration
@@ -259,7 +258,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
 

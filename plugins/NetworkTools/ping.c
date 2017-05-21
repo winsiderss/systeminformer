@@ -330,7 +330,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_PING_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION, SETTING_NAME_PING_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWindowHandle);
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             SetWindowText(hwndDlg, PhaFormatString(L"Ping %s", context->IpAddressString)->Buffer);
             SetWindowText(context->StatusHandle, PhaFormatString(L"Pinging %s with %lu bytes of data...",
@@ -339,7 +339,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 NetworkPingUpdateHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
@@ -362,7 +362,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_DESTROY:
         {
             PhUnregisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 &context->ProcessesUpdatedRegistration
                 );
 
@@ -447,7 +447,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                                 PhFormatString(L"%lu ms", context->CurrentPingMs)
                                 );
 
-                            SelectObject(hdc, PhGetApplicationFont());
+                            SelectObject(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &context->PingGraphState.Text->sr,
                                 &NormalGraphTextMargin, &NormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
