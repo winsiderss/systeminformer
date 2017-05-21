@@ -31,6 +31,8 @@ PVOID WINAPI __delayLoadHelper2(
     )
 {
     BOOLEAN needsFree = FALSE;
+    MEMORY_BASIC_INFORMATION info;
+    ULONG delayLoadJunk;
     PSTR importName;
     PVOID procedureAddress;
     PVOID moduleHandle;
@@ -109,13 +111,6 @@ PVOID WINAPI __delayLoadHelper2(
         return NULL;
     }
 
-#ifdef _WIN64
-    // Cache the procedure address (Fixes CRT delayload bug).
-    InterlockedExchangePointer(ImportAddress, procedureAddress);
-#else
-    ULONG junk;
-    MEMORY_BASIC_INFORMATION info;
-
     if (!NT_SUCCESS(NtQueryVirtualMemory(
         NtCurrentProcess(),
         ImportAddress,
@@ -138,18 +133,21 @@ PVOID WINAPI __delayLoadHelper2(
         return NULL;
     }
 
-    InterlockedExchangePointer(ImportAddress, procedureAddress);
+    // Cache the procedure address (Fixes CRT delayload bug).
+    if (InterlockedExchangePointer(ImportAddress, procedureAddress))
+    {
+        NOTHING;
+    }
 
     if (!VirtualProtect(
         info.BaseAddress,
         info.RegionSize,
         info.Protect,
-        &junk
+        &delayLoadJunk
         ))
     {
         return NULL;
     }
-#endif
 
     // Cache the module handle in the IAT entry (required) (Fixes CRT use-after-free bug).
     if (InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle && needsFree)
