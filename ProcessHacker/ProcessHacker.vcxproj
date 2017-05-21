@@ -103,7 +103,7 @@
       <AdditionalLibraryDirectories>..\phlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\delaylib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
+      <ForceSymbolReferences>___delayLoadHelper2@8</ForceSymbolReferences>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -175,7 +175,7 @@
       <AdditionalLibraryDirectories>..\phlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\delaylib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>ProcessHacker.def</ModuleDefinitionFile>
       <DelayLoadDLLs>aclui.dll;iphlpapi.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
+      <ForceSymbolReferences>___delayLoadHelper2@8</ForceSymbolReferences>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>

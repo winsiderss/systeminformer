@@ -24,6 +24,7 @@
             <WarningLevel>Level3</WarningLevel>
             <SDLCheck>true</SDLCheck>
             <CallingConvention>StdCall</CallingConvention>
+            <ControlFlowGuard>Guard</ControlFlowGuard>
             <MinimalRebuild>false</MinimalRebuild>
             <MultiProcessorCompilation>true</MultiProcessorCompilation>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -32,7 +33,6 @@
         <Link>
             <AdditionalDependencies>delaylib.lib;ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
             <DelayLoadDLLs>ProcessHacker.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
             <SubSystem>Windows</SubSystem>
@@ -79,6 +79,7 @@
         <Link>
             <AdditionalLibraryDirectories>..\..\sdk\lib\i386;..\..\tools\delaylib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineX86</TargetMachine>
+            <ForceSymbolReferences>___delayLoadHelper2@8</ForceSymbolReferences>
         </Link>
     </ItemDefinitionGroup>
 
@@ -87,6 +88,7 @@
         <Link>
             <AdditionalLibraryDirectories>..\..\sdk\lib\amd64;..\..\tools\delaylib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineX64</TargetMachine>
+            <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
         </Link>
     </ItemDefinitionGroup>
 
