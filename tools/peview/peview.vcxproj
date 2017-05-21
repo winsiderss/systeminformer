@@ -104,7 +104,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
+      <ForceSymbolReferences>___delayLoadHelper2@8</ForceSymbolReferences>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -170,7 +170,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
+      <ForceSymbolReferences>___delayLoadHelper2@8</ForceSymbolReferences>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
