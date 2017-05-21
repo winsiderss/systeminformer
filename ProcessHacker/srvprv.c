@@ -22,7 +22,6 @@
 
 #include <phapp.h>
 #include <srvprv.h>
-#include <phplug.h>
 
 #include <lsasup.h>
 #include <svcsup.h>
@@ -93,6 +92,11 @@ PPH_OBJECT_TYPE PhServiceItemType;
 
 PPH_HASHTABLE PhServiceHashtable;
 PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
+
+PHAPPAPI PH_CALLBACK_DECLARE(PhServiceAddedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhServiceModifiedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhServiceRemovedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhServicesUpdatedEvent);
 
 BOOLEAN PhEnableServiceNonPoll = FALSE;
 static BOOLEAN PhpNonPollInitialized = FALSE;
@@ -575,7 +579,7 @@ VOID PhServiceProviderUpdate(
                 }
 
                 // Raise the service removed event.
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderRemoved), *serviceItem);
+                PhInvokeCallback(&PhServiceRemovedEvent, *serviceItem);
 
                 if (!servicesToRemove)
                     servicesToRemove = PhCreateList(2);
@@ -650,7 +654,7 @@ VOID PhServiceProviderUpdate(
                 PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
 
                 // Raise the service added event.
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderAdded), serviceItem);
+                PhInvokeCallback(&PhServiceAddedEvent, serviceItem);
             }
             else
             {
@@ -754,7 +758,7 @@ VOID PhServiceProviderUpdate(
                     }
 
                     // Raise the service modified event.
-                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModified), &serviceModifiedData);
+                    PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
                 }
             }
         }
@@ -763,7 +767,7 @@ VOID PhServiceProviderUpdate(
     PhFree(services);
 
 UpdateEnd:
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdated), NULL);
+    PhInvokeCallback(&PhServicesUpdatedEvent, NULL);
     runCount++;
 }
 

@@ -94,7 +94,7 @@ VOID AddRemoveDeviceChangeCallback(
     )
 {
     // We get called during the plugin LoadCallback, don't do anything.
-    if (!PhMainWindowHandle)
+    if (!PhMainWndHandle)
         return;
 
     // Add the subclass only when disks are being monitored, remove when no longer needed.
@@ -103,7 +103,7 @@ VOID AddRemoveDeviceChangeCallback(
         if (!SubclassActive)
         {
             // We have a disk device, subclass the main window to detect drive letter changes.
-            SetWindowSubclass(PhMainWindowHandle, MainWndDevicesSubclassProc, 0, 0);
+            SetWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, 0, 0);
             SubclassActive = TRUE;
         }
     }
@@ -112,7 +112,7 @@ VOID AddRemoveDeviceChangeCallback(
         if (SubclassActive)
         {
             // The user has removed the last disk device, remove the subclass.
-            RemoveWindowSubclass(PhMainWindowHandle, MainWndDevicesSubclassProc, 0);
+            RemoveWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, 0);
             SubclassActive = FALSE;
         }
     }

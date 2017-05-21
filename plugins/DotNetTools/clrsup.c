@@ -283,7 +283,7 @@ ICLRDataTarget *DnCLRDataTarget_Create(
     HANDLE processHandle;
     BOOLEAN isWow64;
 
-    if (!NT_SUCCESS(PhOpenProcess(&processHandle, PhProcessQueryAccess() | PROCESS_VM_READ, ProcessId)))
+    if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
         return NULL;
 
 #ifdef _WIN64

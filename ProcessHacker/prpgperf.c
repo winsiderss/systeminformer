@@ -21,7 +21,6 @@
  */
 
 #include <phapp.h>
-#include <phplug.h>
 #include <procprp.h>
 #include <procprpp.h>
 
@@ -75,7 +74,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext->WindowHandle = hwndDlg;
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 PerformanceUpdateHandler,
                 performanceContext,
                 &performanceContext->ProcessesUpdatedRegistration
@@ -114,7 +113,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             PhDeleteGraphState(&performanceContext->IoGraphState);
 
             PhUnregisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 &performanceContext->ProcessesUpdatedRegistration
                 );
             PhFree(performanceContext);

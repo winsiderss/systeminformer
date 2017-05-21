@@ -85,13 +85,13 @@ VOID EtEtwStatisticsInitialization(
         PhInitializeCircularBuffer_ULONG(&EtMaxNetworkHistory, sampleCount);
 
         PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+            &PhProcessesUpdatedEvent,
             EtEtwProcessesUpdatedCallback,
             NULL,
             &EtpProcessesUpdatedCallbackRegistration
             );
         PhRegisterCallback(
-            PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdated),
+            &PhNetworkItemsUpdatedEvent,
             EtEtwNetworkItemsUpdatedCallback,
             NULL,
             &EtpNetworkItemsUpdatedCallbackRegistration
@@ -224,7 +224,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     // Since Windows 8, we no longer get the correct process/thread IDs in the
     // event headers for disk events. We need to update our process information since
     // etwmon uses our EtThreadIdToProcessId function.
-    if (PhWindowsVersion() >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8)
         EtUpdateProcessInformation();
 
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it
@@ -357,7 +357,7 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
         {
             // Values have changed. Invalidate the network node.
             PhReferenceObject(block->NetworkItem);
-            ProcessHacker_Invoke(PhMainWindowHandle, EtpInvalidateNetworkNode, block->NetworkItem);
+            ProcessHacker_Invoke(PhMainWndHandle, EtpInvalidateNetworkNode, block->NetworkItem);
         }
 
         listEntry = listEntry->Flink;

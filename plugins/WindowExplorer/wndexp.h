@@ -116,8 +116,8 @@ VOID WeShowWindowProperties(
 
 // utils
 
-#define WE_PhMainWndHandle (*(HWND *)WeGetProcedureAddress("PhGetMainWndHandle"))
-#define WE_WindowsVersion (*(ULONG *)WeGetProcedureAddress("PhWindowsVersion"))
+#define WE_PhMainWndHandle (*(HWND *)WeGetProcedureAddress("PhMainWndHandle"))
+#define WE_WindowsVersion (*(ULONG *)WeGetProcedureAddress("WindowsVersion"))
 
 PVOID WeGetProcedureAddress(
     _In_ PSTR Name

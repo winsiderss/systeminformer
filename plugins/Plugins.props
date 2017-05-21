@@ -31,8 +31,7 @@
             <StringPooling>true</StringPooling>
         </ClCompile>
         <Link>
-            <AdditionalDependencies>delaylib.lib;ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <DelayLoadDLLs>ProcessHacker.exe;%(DelayLoadDLLs)</DelayLoadDLLs>
+            <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
             <SubSystem>Windows</SubSystem>
@@ -77,18 +76,16 @@
             <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>..\..\sdk\lib\i386;..\..\tools\delaylib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>..\..\sdk\lib\i386;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineX86</TargetMachine>
-            <ForceSymbolReferences>___delayLoadHelper2@8</ForceSymbolReferences>
         </Link>
     </ItemDefinitionGroup>
 
     <!-- x64 Builds -->
     <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
         <Link>
-            <AdditionalLibraryDirectories>..\..\sdk\lib\amd64;..\..\tools\delaylib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>..\..\sdk\lib\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineX64</TargetMachine>
-            <ForceSymbolReferences>__delayLoadHelper2</ForceSymbolReferences>
         </Link>
     </ItemDefinitionGroup>
 

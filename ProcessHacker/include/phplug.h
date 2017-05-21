@@ -44,19 +44,6 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
     GeneralCallbackMiniInformationInitializing = 32, // PPH_PLUGIN_MINIINFO_POINTERS Data [main thread]
     GeneralCallbackMiListSectionMenuInitializing = 33, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
-    GeneralCallbackLoggedEvent = 34, // PPH_LOG_ENTRY data [provider thread]
-    GeneralCallbackProcessProviderAdded = 35, // PPH_PROCESS_ITEM data [provider thread]
-    GeneralCallbackProcessProviderModified = 36, // PPH_PROCESS_ITEM data [provider thread]
-    GeneralCallbackProcessProviderRemoved = 37, // PPH_PROCESS_ITEM data [provider thread]
-    GeneralCallbackProcessProviderUpdated = 38, // [provider thread]
-    GeneralCallbackServiceProviderAdded = 39, // PPH_SERVICE_ITEM data [provider thread]
-    GeneralCallbackServiceProviderModified = 40, // PPH_SERVICE_ITEM data [provider thread]
-    GeneralCallbackServiceProviderRemoved = 41, // PPH_SERVICE_ITEM data [provider thread]
-    GeneralCallbackServiceProviderUpdated = 42, // [provider thread]
-    GeneralCallbackNetworkProviderAdded = 43, // PPH_NETWORK_ITEM data [provider thread]
-    GeneralCallbackNetworkProviderModified = 44, // PPH_NETWORK_ITEM data [provider thread]
-    GeneralCallbackNetworkProviderRemoved = 45, // PPH_NETWORK_ITEM data [provider thread]
-    GeneralCallbackNetworkProviderUpdated = 46, // [provider thread]
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 

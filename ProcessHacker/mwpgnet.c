@@ -62,25 +62,25 @@ BOOLEAN PhMwpNetworkPageCallback(
             PhMwpNetworkPage = Page;
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackNetworkProviderAdded),
+                &PhNetworkItemAddedEvent,
                 PhMwpNetworkItemAddedHandler,
                 NULL,
                 &NetworkItemAddedRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackNetworkProviderModified),
+                &PhNetworkItemModifiedEvent,
                 PhMwpNetworkItemModifiedHandler,
                 NULL,
                 &NetworkItemModifiedRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackNetworkProviderRemoved),
+                &PhNetworkItemRemovedEvent,
                 PhMwpNetworkItemRemovedHandler,
                 NULL,
                 &NetworkItemRemovedRegistration
                 );
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdated),
+                &PhNetworkItemsUpdatedEvent,
                 PhMwpNetworkItemsUpdatedHandler,
                 NULL,
                 &NetworkItemsUpdatedRegistration

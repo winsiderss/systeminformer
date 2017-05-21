@@ -45,7 +45,7 @@ VOID ToolbarCreateGraphs(VOID)
             0,
             0,
             0,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             NULL,
             NULL,
             NULL
@@ -65,7 +65,7 @@ VOID ToolbarCreateGraphs(VOID)
             0,
             0,
             0,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             NULL,
             NULL,
             NULL
@@ -85,7 +85,7 @@ VOID ToolbarCreateGraphs(VOID)
             0,
             0,
             0,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             NULL,
             NULL,
             NULL
@@ -105,7 +105,7 @@ VOID ToolbarCreateGraphs(VOID)
             0,
             0,
             0,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             NULL,
             NULL,
             NULL
@@ -449,7 +449,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                     PhDivideSinglesBySingle(
                         MemGraphState.Data1,
-                        (FLOAT)PhGetSystemBasicInformation().NumberOfPhysicalPages,
+                        (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
                         drawInfo->LineDataCount
                         );
 
@@ -617,7 +617,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                     if (record)
                     {
-                        PhShowProcessRecordDialog(PhMainWindowHandle, record);
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
                         PhDereferenceProcessRecord(record);
                     }
                 }
@@ -651,7 +651,7 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header)
 
                     if (record)
                     {
-                        PhShowProcessRecordDialog(PhMainWindowHandle, record);
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
                         PhDereferenceProcessRecord(record);
                     }
                 }

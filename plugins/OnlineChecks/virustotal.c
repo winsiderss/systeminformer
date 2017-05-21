@@ -317,7 +317,7 @@ PSTR VirusTotalSendHttpRequest(
 
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
-        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -326,7 +326,7 @@ PSTR VirusTotalSendHttpRequest(
         goto CleanupExit;
     }
 
-    if (PhWindowsVersion() >= WINDOWS_8_1)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
@@ -461,7 +461,7 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
 
     if (!(httpSessionHandle = WinHttpOpen(
         userAgent->Buffer,
-        PhWindowsVersion() >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0
@@ -470,7 +470,7 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
         goto CleanupExit;
     }
 
-    if (PhWindowsVersion() >= WINDOWS_8_1)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
         ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
         WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));

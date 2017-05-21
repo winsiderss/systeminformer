@@ -231,7 +231,7 @@ LOGICAL DllMain(
 
             isClient = FALSE;
 
-            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhGetImageBase"))
+            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhLibImageBase"))
             {
                 isClient = TRUE;
             }

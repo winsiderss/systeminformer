@@ -365,7 +365,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_PROTECTION),
                 EspServiceLaunchProtectedStrings, sizeof(EspServiceLaunchProtectedStrings) / sizeof(PWSTR));
 
-            if (PhWindowsVersion() < WINDOWS_8_1)
+            if (WindowsVersion < WINDOWS_8_1)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_PROTECTION), FALSE);
 
             SetDlgItemText(hwndDlg, IDC_SERVICESID,

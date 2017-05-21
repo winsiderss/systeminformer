@@ -259,7 +259,7 @@ VOID ShowDeviceMenu(
 
     selectedItem = PhShowEMenu(
         menu,
-        PhMainWindowHandle,
+        PhMainWndHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
         cursorPos.x,
@@ -364,7 +364,7 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdated),
+                &PhProcessesUpdatedEvent,
                 ProcessesUpdatedCallback,
                 NULL,
                 &ProcessesUpdatedCallbackRegistration

@@ -301,7 +301,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
 
     if ((result = CM_Get_DevNode_Property( // CM_Get_DevNode_Registry_Property with CM_DRP_DEVICEDESC??
         deviceInstanceHandle,
-        PhWindowsVersion() >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+        WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
         &devicePropertyType,
         (PBYTE)deviceDescription->Buffer,
         &bufferSize,
@@ -313,7 +313,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
 
         result = CM_Get_DevNode_Property(
             deviceInstanceHandle,
-            PhWindowsVersion() >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+            WindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
             &devicePropertyType,
             (PBYTE)deviceDescription->Buffer,
             &bufferSize,

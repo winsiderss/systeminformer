@@ -21,7 +21,6 @@
  */
 
 #include <phapp.h>
-#include <phplug.h>
 #include <settings.h>
 
 #include <windowsx.h>
@@ -188,7 +187,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOSCROLL), BST_CHECKED);
 
-            PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackLoggedEvent), LoggedCallback, NULL, &LoggedRegistration);
+            PhRegisterCallback(&PhLoggedCallback, LoggedCallback, NULL, &LoggedRegistration);
             PhpUpdateLogList();
             ListView_EnsureVisible(ListViewHandle, ListViewCount - 1, FALSE);
         }
@@ -200,7 +199,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
             PhDeleteLayoutManager(&WindowLayoutManager);
 
-            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackLoggedEvent), &LoggedRegistration);
+            PhUnregisterCallback(&PhLoggedCallback, &LoggedRegistration);
             PhUnregisterDialog(PhLogWindowHandle);
             PhLogWindowHandle = NULL;
         }

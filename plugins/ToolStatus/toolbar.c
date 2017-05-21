@@ -127,7 +127,7 @@ VOID RebarLoadSettings(
             NULL,
             WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT | RBS_AUTOSIZE, // CCS_NOPARENTALIGN | RBS_FIXEDORDER
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             NULL,
             NULL,
             NULL
@@ -188,7 +188,7 @@ VOID RebarLoadSettings(
             NULL,
             WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            PhMainWindowHandle,
+            PhMainWndHandle,
             NULL,
             NULL,
             NULL
@@ -374,7 +374,7 @@ VOID ToolbarLoadSettings(
     }
 
     // Invoke the LayoutPaddingCallback.
-    SendMessage(PhMainWindowHandle, WM_SIZE, 0, 0);
+    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }
 
 VOID ToolbarResetSettings(

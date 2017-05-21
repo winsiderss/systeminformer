@@ -178,7 +178,13 @@ VOID NTAPI MenuItemCallback(
                 config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
                 config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
                 config.hwndParent = menuItem->OwnerWindow;
-                config.hMainIcon = PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+                config.hMainIcon = PhLoadIcon(
+                    NtCurrentPeb()->ImageBaseAddress,
+                    MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
+                    PH_LOAD_ICON_SIZE_LARGE,
+                    GetSystemMetrics(SM_CXICON),
+                    GetSystemMetrics(SM_CYICON)
+                    );
                 config.cxWidth = 180;
                 config.pszWindowTitle = L"Process Hacker - VirusTotal";
                 config.pszMainInstruction = L"VirusTotal scanning requires a restart of Process Hacker.";
@@ -186,9 +192,9 @@ VOID NTAPI MenuItemCallback(
 
                 if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDYES)
                 {
-                    ProcessHacker_PrepareForEarlyShutdown(PhMainWindowHandle);
+                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
                     PhShellProcessHacker(
-                        PhMainWindowHandle,
+                        PhMainWndHandle,
                         L"-v",
                         SW_SHOW,
                         0,
@@ -196,7 +202,7 @@ VOID NTAPI MenuItemCallback(
                         0,
                         NULL
                         );
-                    ProcessHacker_Destroy(PhMainWindowHandle);
+                    ProcessHacker_Destroy(PhMainWndHandle);
                 }
 
                 DestroyIcon(config.hMainIcon);

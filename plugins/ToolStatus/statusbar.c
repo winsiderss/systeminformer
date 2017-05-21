@@ -229,7 +229,7 @@ VOID StatusBarShowMenu(
 
     selectedItem = PhShowEMenu(
         menu,
-        PhMainWindowHandle,
+        PhMainWndHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
         cursorPos.x,
@@ -324,8 +324,8 @@ VOID StatusBarUpdate(
             break;
         case ID_STATUS_PHYSICALMEMORY:
             {
-                ULONG physicalUsage = PhGetSystemBasicInformation().NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
-                FLOAT physicalFraction = (FLOAT)physicalUsage / PhGetSystemBasicInformation().NumberOfPhysicalPages * 100;
+                ULONG physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
+                FLOAT physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
                     L"Physical memory: %s (%.2f%%)",
@@ -337,7 +337,7 @@ VOID StatusBarUpdate(
         case ID_STATUS_FREEMEMORY:
             {
                 ULONG physicalFree = SystemStatistics.Performance->AvailablePages;
-                FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhGetSystemBasicInformation().NumberOfPhysicalPages * 100;
+                FLOAT physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
                 text[count] = PhFormatString(
                     L"Free memory: %s (%.2f%%)",

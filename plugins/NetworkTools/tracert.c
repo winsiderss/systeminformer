@@ -568,10 +568,7 @@ INT_PTR CALLBACK TracertDlgProc(
         {
             HANDLE tracertThread;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhImageBaseAddress, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-
-            PhCenterWindow(hwndDlg, PhMainWindowHandle);            
+            PhCenterWindow(hwndDlg, PhMainWndHandle);            
 
             Static_SetText(hwndDlg,
                 PhaFormatString(L"Tracing %s...", context->IpAddressString)->Buffer
@@ -595,7 +592,7 @@ INT_PTR CALLBACK TracertDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_TRACERT_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWindowHandle);
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             PhReferenceObject(context);
 
