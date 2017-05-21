@@ -22,13 +22,6 @@
 #include <appsup.h>
 #include <workqueue.h>
 
-typedef struct _PH_SETUP_UNINSTALL_CONTEXT
-{
-    HWND DialogHandle;
-    HICON IconSmallHandle;
-    HICON IconLargeHandle;
-} PH_SETUP_UNINSTALL_CONTEXT, *PPH_SETUP_UNINSTALL_CONTEXT;
-
 #define WM_TASKDIALOGINIT (WM_APP + 550)
 HWND UninstallDialogHandle = NULL;
 HANDLE UninstallDialogThreadHandle = NULL;

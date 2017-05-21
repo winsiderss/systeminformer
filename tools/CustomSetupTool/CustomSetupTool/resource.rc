@@ -33,8 +33,8 @@ BEGIN
     CONTROL         "Process Hacker - Setup",IDC_MAINHEADER,"Static",SS_SIMPLE | WS_GROUP,15,15,209,18
     LTEXT           "A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.",IDC_SUBHEADER,15,46,211,36
     CONTROL         "",IDC_PROJECT_ICON,"Static",SS_BLACKFRAME,271,15,92,75
-    CONTROL         "<a>View Changelog</a>",IDC_SYSLINK1,"SysLink",WS_TABSTOP,15,120,110,14
-    CONTROL         "<a>Project Website</a>",IDC_SYSLINK2,"SysLink",WS_TABSTOP,15,102,110,14
+    CONTROL         "<a>View Changelog</a>",IDC_SYSLINK1,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,15,120,110,14
+    CONTROL         "<a>Project Website</a>",IDC_SYSLINK2,"SysLink",NOT WS_VISIBLE | WS_TABSTOP,15,102,110,14
 END
 
 IDD_DIALOG2 DIALOGEX 0, 0, 400, 225
@@ -42,7 +42,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_
 EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg 2", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_EDIT1,0,0,400,225,ES_MULTILINE | ES_READONLY | NOT WS_BORDER | WS_VSCROLL
+    EDITTEXT        IDC_EDIT1,13,39,387,186,ES_MULTILINE | ES_READONLY | NOT WS_BORDER | WS_VSCROLL
+    CONTROL         "License Agreement",IDC_MAINHEADER,"Static",SS_SIMPLE | WS_GROUP,15,15,209,18
 END
 
 IDD_DIALOG3 DIALOGEX 0, 0, 400, 225
@@ -50,31 +51,31 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_
 EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg 2", 400, 0, 0x1
 BEGIN
-    CONTROL         "Create a desktop shortcut",IDC_SHORTCUT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,90,168,10
-    CONTROL         "Launch on system startup",IDC_STARTUP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,200,90,173,10
+    CONTROL         "Create a desktop shortcut",IDC_SHORTCUT_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,101,168,10
+    CONTROL         "Launch on system startup",IDC_STARTUP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,200,101,173,10
     CONTROL         "Set as the default Windows Task Manager",IDC_TASKMANAGER_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,120,345,10
-    EDITTEXT        IDC_INSTALL_DIRECTORY,20,48,307,14,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "Browse",IDC_FOLDER_BROWSE,330,48,50,14
-    CONTROL         "Setup Options",IDC_MAINHEADER,"Static",SS_SIMPLE | WS_GROUP,10,7,142,24
-    GROUPBOX        "Options",IDC_STATIC2,10,74,380,62
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,131,345,10
+    EDITTEXT        IDC_INSTALL_DIRECTORY,20,59,307,14,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Browse",IDC_FOLDER_BROWSE,330,59,50,14
+    GROUPBOX        "Options",IDC_STATIC2,10,85,380,62
     CONTROL         "Associate file extensions with PE Viewer",IDC_PEVIEW_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,20,150,168,10
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,20,161,168,10
     CONTROL         "Create a desktop shortcut for all users",IDC_SHORTCUT_ALL_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,105,168,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,116,168,10
     CONTROL         "Launch minimized on system tray",IDC_STARTMIN_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,200,105,173,10
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,200,116,173,10
     CONTROL         "Install Debugging Tools for Windows",IDC_DBGTOOLS_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,20,165,168,10
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,20,176,168,10
     CONTROL         "Install KProcessHacker as a service",IDC_KPH_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,179,168,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,190,168,10
     CONTROL         "Install latest nightly build (not recommended)",IDC_RESET_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,201,150,173,10
-    GROUPBOX        "Installation Folder",IDC_STATIC1,10,32,380,40
-    CONTROL         "Reset Process Hacker settings",IDC_RESET_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,165,173,10
-    GROUPBOX        "Additional Options",IDC_STATIC3,10,137,380,59
+                    "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,201,161,173,10
+    GROUPBOX        "Installation Folder",IDC_STATIC1,10,43,380,40
+    CONTROL         "Reset Process Hacker settings",IDC_RESET_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,176,173,10
+    GROUPBOX        "Additional Options",IDC_STATIC3,10,148,380,59
     CONTROL         "Start Process Hacker after setup exits",IDC_PHSTART_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,179,138,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,190,138,10
+    CONTROL         "Setup Options",IDC_MAINHEADER,"Static",SS_SIMPLE | WS_GROUP,15,15,209,18
 END
 
 IDD_DIALOG4 DIALOGEX 0, 0, 400, 225
@@ -150,71 +151,6 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_DIALOG1 AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG2 AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG4 AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_DIALOG3 AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION PHAPP_VERSION_NUMBER
- PRODUCTVERSION PHAPP_VERSION_NUMBER
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x40004L
- FILETYPE 0x1L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "000904b0"
-        BEGIN
-            VALUE "CompanyName", "Process Hacker"
-            VALUE "FileDescription", "Process Hacker Setup"
-            VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "Process Hacker Setup"
-            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2017"
-            VALUE "OriginalFilename", "ProcessHackerSetup.exe"
-            VALUE "ProductName", "Process Hacker Setup"
-            VALUE "ProductVersion", PHAPP_VERSION_STRING
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x9, 1200
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Icon
 //
 
@@ -255,7 +191,7 @@ END
 2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
-    "#include ""../../../include/phappres.h""\r\n"
+    "#include ""../../../ProcessHacker/include/phappres.h""\r\n"
     "\0"
 END
 
@@ -283,10 +219,13 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 // RCDATA
 //
 
-IDR_BIN_DATA            RCDATA                  "..\\..\\..\\build\\processhacker-build-bin.zip"
+IDR_LICENCE_DATA        RCDATA                  "resources\\LICENSE.txt"
 
-IDR_LICENCE_DATA        RCDATA                  "resources\\Licence.txt"
-
+#if defined(APSTUDIO_INVOKED) || defined(PH_BUILD_API)
+#if defined(APSTUDIO_INVOKED)
+IDR_BIN_DATA$(PH_BUILD_API) RCDATA              "..\\..\\..\\build\\output\\processhacker-build-bin.zip"
+#endif
+#endif
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

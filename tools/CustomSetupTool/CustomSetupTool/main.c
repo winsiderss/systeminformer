@@ -170,6 +170,7 @@ INT WINAPI wWinMain(
             propSheetPage.pfnDlgProc = SetupPropPage3_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
+#ifdef PH_BUILD_API
             memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
             propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
             propSheetPage.dwFlags = PSP_USETITLE;
@@ -177,6 +178,15 @@ INT WINAPI wWinMain(
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
             propSheetPage.pfnDlgProc = SetupPropPage4_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+#else
+            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+            propSheetPage.dwFlags = PSP_USETITLE;
+            propSheetPage.pszTitle = PhApplicationName;
+            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
+            propSheetPage.pfnDlgProc = SetupPropPage5_WndProc;
+            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+#endif
 
             PhModalPropertySheet(&propSheetHeader);
         }
