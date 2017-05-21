@@ -40,9 +40,9 @@
 #include <shlobj.h>
 #include <sddl.h>
 
-#include "resource.h"
 #include <appsup.h>
 
+#include "resource.h"
 #include "..\..\ProcessHacker\include\phappres.h"
 
 // Win32 PropertySheet Control IDs
@@ -121,6 +121,13 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
     _Inout_ LPARAM lParam
     );
 
+INT_PTR CALLBACK SetupPropPage5_WndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _Inout_ WPARAM wParam,
+    _Inout_ LPARAM lParam
+    );
+
 // page4.c
 
 typedef struct _SETUP_PROGRESS_THREAD
@@ -174,6 +181,47 @@ BOOLEAN SetupExecuteProcessHacker(
 
 VOID SetupUpgradeSettingsFile(
     VOID
+    );
+
+// download.c
+
+typedef struct _PH_SETUP_UNINSTALL_CONTEXT
+{
+    HWND DialogHandle;
+    HWND MainHeaderHandle;
+    HWND StatusHandle;
+    HWND SubStatusHandle;
+    HWND ProgressHandle;
+    HICON IconSmallHandle;
+    HICON IconLargeHandle;
+
+    ULONG CurrentMajorVersion;
+    ULONG CurrentMinorVersion;
+    ULONG CurrentRevisionVersion;
+    ULONG LatestMajorVersion;
+    ULONG LatestMinorVersion;
+    ULONG LatestRevisionVersion;
+
+    ULONG ErrorCode;
+    PPH_STRING Version;
+    PPH_STRING RevVersion;
+    PPH_STRING RelDate;
+    PPH_STRING Size;
+    PPH_STRING Hash;
+    PPH_STRING Signature;
+    PPH_STRING ReleaseNotesUrl;
+
+    PPH_STRING BinFileDownloadUrl;
+    PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFilePath;
+} PH_SETUP_UNINSTALL_CONTEXT, *PPH_SETUP_UNINSTALL_CONTEXT;
+
+BOOLEAN SetupQueryUpdateData(
+    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    );
+
+BOOLEAN UpdateDownloadUpdateData(
+    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
     );
 
 // extract.c

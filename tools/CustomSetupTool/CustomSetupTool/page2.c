@@ -40,21 +40,9 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
 
             if (resourceBuffer = ExtractResourceToBuffer(MAKEINTRESOURCE(IDR_LICENCE_DATA)))
             {
-                if (eulaTextString = PhConvertMultiByteToUtf16(resourceBuffer))
+                if (eulaTextString = PhConvertUtf8ToUtf16(resourceBuffer))
                 {
-                    ULONG startPos, endPos;
-
-                    SendMessage(GetDlgItem(hwndDlg, IDC_EDIT1), EM_GETSEL, (WPARAM)&startPos, (WPARAM)&endPos);
-
-                    // move the caret to the end of the text
-                    int outLength = GetWindowTextLength(GetDlgItem(hwndDlg, IDC_EDIT1));
-                    SendMessage(GetDlgItem(hwndDlg, IDC_EDIT1), EM_SETSEL, outLength, outLength);
-
-                    // insert the text at the new caret position
-                    SendMessage(GetDlgItem(hwndDlg, IDC_EDIT1), EM_REPLACESEL, TRUE, (WPARAM)eulaTextString->Buffer);
-
-                    // restore the previous selection
-                    SendMessage(GetDlgItem(hwndDlg, IDC_EDIT1), EM_SETSEL, startPos, endPos);
+                    SetWindowText(GetDlgItem(hwndDlg, IDC_EDIT1), eulaTextString->Buffer);
 
                     PhDereferenceObject(eulaTextString);
                 }

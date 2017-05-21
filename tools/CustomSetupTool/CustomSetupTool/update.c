@@ -93,14 +93,14 @@ VOID FreeUpdateContext(
     )
 {
     //PhClearReference(&Context->Version);
-   // PhClearReference(&Context->RevVersion);
+    //PhClearReference(&Context->RevVersion);
     //PhClearReference(&Context->RelDate);
-   // PhClearReference(&Context->Size);
+    //PhClearReference(&Context->Size);
     //PhClearReference(&Context->Hash);
-   // PhClearReference(&Context->Signature);
-   // PhClearReference(&Context->ReleaseNotesUrl);
+    //PhClearReference(&Context->Signature);
+    //PhClearReference(&Context->ReleaseNotesUrl);
     //PhClearReference(&Context->SetupFilePath);
-   // PhClearReference(&Context->SetupFileDownloadUrl);
+    //PhClearReference(&Context->SetupFileDownloadUrl);
 
     if (Context->IconLargeHandle)
         DestroyIcon(Context->IconLargeHandle);
@@ -144,7 +144,7 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_SETUP_UPDATE_CONTEXT Context
     )
 {
-    PhShellExecute(Context->DialogHandle, L"https://www.maxmind.com", NULL);
+    
 }
 
 LRESULT CALLBACK TaskDialogSubclassProc(
