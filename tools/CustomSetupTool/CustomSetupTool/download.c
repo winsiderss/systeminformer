@@ -648,7 +648,7 @@ BOOLEAN UpdateDownloadUpdateData(
         ULONG downloadedBytes = 0;
         ULONG contentLengthSize = sizeof(ULONG);
         ULONG contentLength = 0;
-        PPH_STRING status;
+        //PPH_STRING status;
         IO_STATUS_BLOCK isb;
         BYTE buffer[PAGE_SIZE];
 

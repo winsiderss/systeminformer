@@ -109,11 +109,47 @@ PVOID WINAPI __delayLoadHelper2(
         return NULL;
     }
 
+#ifdef _WIN64
     // Cache the procedure address (Fixes CRT delayload bug).
-    if (InterlockedExchangePointer(ImportAddress, procedureAddress))
+    InterlockedExchangePointer(ImportAddress, procedureAddress);
+#else
+    ULONG junk;
+    MEMORY_BASIC_INFORMATION info;
+
+    if (!NT_SUCCESS(NtQueryVirtualMemory(
+        NtCurrentProcess(),
+        ImportAddress,
+        MemoryBasicInformation,
+        &info,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
     {
-        NOTHING;
+        return NULL;
     }
+
+    if (!VirtualProtect(
+        info.BaseAddress,
+        info.RegionSize,
+        PAGE_EXECUTE_READWRITE,
+        &info.Protect
+        ))
+    {
+        return NULL;
+    }
+
+    InterlockedExchangePointer(ImportAddress, procedureAddress);
+
+    if (!VirtualProtect(
+        info.BaseAddress,
+        info.RegionSize,
+        info.Protect,
+        &junk
+        ))
+    {
+        return NULL;
+    }
+#endif
 
     // Cache the module handle in the IAT entry (required) (Fixes CRT use-after-free bug).
     if (InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle && needsFree)
