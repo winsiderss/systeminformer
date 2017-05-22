@@ -256,6 +256,7 @@ ACCESS_ENTRIES(Process60)
     { L"Query limited information", PROCESS_QUERY_LIMITED_INFORMATION, TRUE, TRUE },
     { L"Query information", PROCESS_QUERY_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, TRUE, TRUE },
     { L"Set information", PROCESS_SET_INFORMATION, TRUE, TRUE },
+    { L"Set limited information", PROCESS_SET_LIMITED_INFORMATION, TRUE, TRUE },
     { L"Set quotas", PROCESS_SET_QUOTA, TRUE, TRUE },
     { L"Set session ID", PROCESS_SET_SESSIONID, TRUE, TRUE },
     { L"Create threads", PROCESS_CREATE_THREAD, TRUE, TRUE },
