@@ -27,10 +27,6 @@ extern HWND NetworkTreeNewHandle;
 #define SETTING_NAME_UNLOADED_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
 #define SETTING_NAME_UNLOADED_COLUMNS (PLUGIN_NAME L".UnloadedListColumns")
 
-#define ET_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
-#define ET_LOAD_SHARED_ICON_SMALL(Name) PhLoadIcon(PhLibImageBase, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0)
-#define ET_LOAD_SHARED_ICON_LARGE(Name) PhLoadIcon(PhLibImageBase, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0)
-
 // Graph update message
 
 #define UPDATE_MSG (WM_APP + 1)

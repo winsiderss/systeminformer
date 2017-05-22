@@ -70,8 +70,8 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    Context->IconSmallHandle = UT_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
-    Context->IconLargeHandle = UT_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);

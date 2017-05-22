@@ -454,6 +454,9 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
     {
     case WM_INITDIALOG:
         {
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -476,10 +479,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             SetDlgItemText(hwndDlg, IDC_NAME, context->Name);
             SetDlgItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
 
-            if (context->Value)
-            {
-                SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_VALUE), TRUE);
-            }
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
         }
         break;
     case WM_DESTROY:

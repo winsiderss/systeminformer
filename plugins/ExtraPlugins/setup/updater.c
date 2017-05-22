@@ -60,22 +60,8 @@ VOID TaskDialogCreateIcons(
     )
 {
     // Load the Process Hacker window icon
-    Context->IconLargeHandle = (HICON)LoadImage(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON),
-        LR_SHARED
-        );
-    Context->IconSmallHandle = (HICON)LoadImage(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        IMAGE_ICON,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON),
-        LR_SHARED
-        );
+    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
     // Set the TaskDialog window icons
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);

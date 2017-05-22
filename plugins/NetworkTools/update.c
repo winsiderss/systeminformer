@@ -35,21 +35,14 @@ VOID FreeUpdateContext(
     )
 {
     //PhClearReference(&Context->Version);
-   // PhClearReference(&Context->RevVersion);
+    //PhClearReference(&Context->RevVersion);
     //PhClearReference(&Context->RelDate);
-   // PhClearReference(&Context->Size);
+    //PhClearReference(&Context->Size);
     //PhClearReference(&Context->Hash);
-   // PhClearReference(&Context->Signature);
-   // PhClearReference(&Context->ReleaseNotesUrl);
+    //PhClearReference(&Context->Signature);
+    //PhClearReference(&Context->ReleaseNotesUrl);
     //PhClearReference(&Context->SetupFilePath);
-   // PhClearReference(&Context->SetupFileDownloadUrl);
-
-    if (Context->IconLargeHandle)
-        DestroyIcon(Context->IconLargeHandle);
-
-    if (Context->IconSmallHandle)
-        DestroyIcon(Context->IconSmallHandle);
-
+    //PhClearReference(&Context->SetupFileDownloadUrl);
     //PhClearReference(&Context);
 }
 
@@ -57,29 +50,11 @@ VOID TaskDialogCreateIcons(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    HICON largeIcon;
-    HICON smallIcon;
+    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
-    largeIcon = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
-    smallIcon = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON)
-        );
-
-    Context->IconLargeHandle = largeIcon;
-    Context->IconSmallHandle = smallIcon;
-
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);
 }
 
 VOID TaskDialogLinkClicked(

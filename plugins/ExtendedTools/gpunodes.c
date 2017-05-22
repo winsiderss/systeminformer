@@ -121,8 +121,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
             WindowHandle = hwndDlg;
 
-            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)ET_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
-            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)ET_LOAD_SHARED_ICON_LARGE(MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
