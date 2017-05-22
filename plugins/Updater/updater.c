@@ -430,15 +430,20 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
     Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "changelog"));
 
-    PhInitializeStringBuilder(&sb, 0x100);
-    for (SIZE_T i = 0; i < Context->BuildMessage->Length; i++)
+    if (Context->BuildMessage)
     {
-        if (Context->BuildMessage->Data[i] == '\n')
-            PhAppendStringBuilder2(&sb, L"\r\n");
-        else
-            PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
+        PhInitializeStringBuilder(&sb, 0x100);
+
+        for (SIZE_T i = 0; i < Context->BuildMessage->Length; i++)
+        {
+            if (Context->BuildMessage->Data[i] == '\n')
+                PhAppendStringBuilder2(&sb, L"\r\n");
+            else
+                PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
+        }
+
+        PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
     }
-    PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
 
     CleanupJsonParser(jsonObject);
 
