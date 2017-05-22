@@ -44,7 +44,7 @@ NTSTATUS SetupUninstallBuild(
     _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
     )
 {
-    SetupFindInstallDirectory();
+    //context->SetupInstallPath = SetupFindInstallDirectory();
 
     // Stop Process Hacker.
     if (!ShutdownProcessHacker())
@@ -55,17 +55,17 @@ NTSTATUS SetupUninstallBuild(
         goto CleanupExit;
 
     // Remove autorun and shortcuts.
-    SetupDeleteWindowsOptions();
+    //SetupDeleteWindowsOptions();
 
     // Remove the uninstaller.
-    SetupDeleteUninstallFile();
+    //SetupDeleteUninstallFile();
 
     // Remove the ARP uninstall entry.
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    if (!RemoveDirectoryPath(PhGetString(SetupInstallPath)))
-        goto CleanupExit;
+    //if (!RemoveDirectoryPath(PhGetString(SetupInstallPath)))
+    //    goto CleanupExit;
 
     ShowUninstallCompleteDialog(Context);
     return STATUS_SUCCESS;

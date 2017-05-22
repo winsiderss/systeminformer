@@ -75,13 +75,13 @@ PPH_STRING UpdateWindowsString(
 }
 
 BOOLEAN ParseVersionString(
-    _Inout_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    _Inout_ PPH_SETUP_CONTEXT Context
     )
 {
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    //PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
+    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
 
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -91,9 +91,9 @@ BOOLEAN ParseVersionString(
     PhStringToInteger64(&minorPart, 10, &minorInteger);
     PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
-    //Context->MajorVersion = (ULONG)majorInteger;
-    //Context->MinorVersion = (ULONG)minorInteger;
-    //Context->RevisionVersion = (ULONG)revisionInteger;
+    Context->LatestMajorVersion = (ULONG)majorInteger;
+    Context->LatestMinorVersion = (ULONG)minorInteger;
+    Context->LatestRevisionVersion = (ULONG)revisionInteger;
     return TRUE;
 }
 
@@ -163,7 +163,7 @@ json_object_ptr json_get_object(
 
 
 BOOLEAN SetupQueryUpdateData(
-    _Inout_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    _Inout_ PPH_SETUP_CONTEXT Context
     )
 {
     BOOLEAN success = FALSE;
@@ -196,7 +196,7 @@ BOOLEAN SetupQueryUpdateData(
             WINHTTP_OPTION_DECOMPRESSION,
             &httpFlags,
             sizeof(ULONG)
-        );
+            );
     }
 
     if (!(httpConnectionHandle = WinHttpConnect(
@@ -213,7 +213,7 @@ BOOLEAN SetupQueryUpdateData(
     if (!(httpRequestHandle = WinHttpOpenRequest(
         httpConnectionHandle,
         NULL,
-        L"/processhacker/nightly.php?latest",
+        L"/processhacker/nightly.php?phsetup",
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
@@ -288,58 +288,15 @@ BOOLEAN SetupQueryUpdateData(
     Context->Signature = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "sig")));
     Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "forum_url")));
     Context->BinFileDownloadUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "bin_url")));
-    Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "setup_url")));
-    //Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
-
-    PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
-    ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
-
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
-
-    PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, '.', &revisionPart, &remaining);
-
-    PhStringToInteger64(&majorPart, 10, &majorInteger);
-    PhStringToInteger64(&minorPart, 10, &minorInteger);
-    PhStringToInteger64(&revisionPart, 10, &revisionInteger);
-
-    Context->LatestMajorVersion = (ULONG)majorInteger;
-    Context->LatestMinorVersion = (ULONG)minorInteger;
-    Context->LatestRevisionVersion = (ULONG)revisionInteger;
-
-   /* Context->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
-    Context->RevVersion = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
-    Context->RelDate = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "updated"));
-    Context->Size = PhFormatSize(GetJsonValueAsUlong(jsonObject, "size"), 2);
-    Context->Hash = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "hash_setup"));
-    Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
-    Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
-    Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
-    Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
-
-    PH_STRING_BUILDER sb;
-    PhInitializeStringBuilder(&sb, 0x100);
-    for (size_t i = 0; i < Context->BuildMessage->Length; i++)
-    {
-        if (Context->BuildMessage->Data[i] == '\n')
-            PhAppendFormatStringBuilder(&sb, L"\r\n");
-        else
-            PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
-    }
-    PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
-
-    CleanupJsonParser(jsonObject);
-
-    if (PhIsNullOrEmptyString(Context->Signature))
-        goto CleanupExit;
-
-    if (!ParseVersionString(Context))
-        goto CleanupExit;
+    //Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "setup_url")));
+    //Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "changelog"));
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->RevVersion))
+    if (!ParseVersionString(Context))
+        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(Context->Signature))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
         goto CleanupExit;
@@ -349,9 +306,9 @@ BOOLEAN SetupQueryUpdateData(
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
-        goto CleanupExit;*/
-
+    if (PhIsNullOrEmptyString(Context->BinFileDownloadUrl))
+        goto CleanupExit;
+ 
     success = TRUE;
 
 CleanupExit:
@@ -378,7 +335,7 @@ CleanupExit:
 }
 
 BOOLEAN UpdateDownloadUpdateData(
-    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     BOOLEAN downloadSuccess = FALSE;
@@ -467,13 +424,13 @@ BOOLEAN UpdateDownloadUpdateData(
     httpUrlComponents.dwUrlPathLength = (ULONG)-1;
 
     if (!WinHttpCrackUrl(
-        PhGetString(Context->SetupFileDownloadUrl),
+        PhGetString(Context->BinFileDownloadUrl),
         0,
         0,
         &httpUrlComponents
         ))
     {
-        //context->ErrorCode = GetLastError();
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -503,7 +460,7 @@ BOOLEAN UpdateDownloadUpdateData(
         0
         )))
     {
-        //context->ErrorCode = GetLastError();
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -520,7 +477,7 @@ BOOLEAN UpdateDownloadUpdateData(
         0
         )))
     {
-        //context->ErrorCode = GetLastError();
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -534,7 +491,7 @@ BOOLEAN UpdateDownloadUpdateData(
         WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
         )))
     {
-        //context->ErrorCode = GetLastError();
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
@@ -554,13 +511,13 @@ BOOLEAN UpdateDownloadUpdateData(
         0
         ))
     {
-       // context->ErrorCode = GetLastError();
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
     if (!WinHttpReceiveResponse(httpRequestHandle, NULL))
     {
-        //context->ErrorCode = GetLastError();
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
     else
@@ -586,7 +543,7 @@ BOOLEAN UpdateDownloadUpdateData(
             0
             ))
         {
-            //context->ErrorCode = GetLastError();
+            Context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
 

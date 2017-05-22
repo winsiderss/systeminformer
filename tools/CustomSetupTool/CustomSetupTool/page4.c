@@ -27,7 +27,7 @@ ULONG64 ExtractCurrentLength = 0;
 ULONG64 ExtractTotalLength = 0;
 
 NTSTATUS SetupProgressThread(
-    _In_ PSETUP_PROGRESS_THREAD Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     //if (SetupInstallDebuggingTools)
@@ -42,39 +42,37 @@ NTSTATUS SetupProgressThread(
         goto CleanupExit;
 
     // Create the install folder path.
-    if (!CreateDirectoryPath(PhGetString(SetupInstallPath)))
+    if (!CreateDirectoryPath(PhGetString(Context->SetupInstallPath)))
         goto CleanupExit;
 
     // Upgrade the 2.x settings file.
     SetupUpgradeSettingsFile();
 
     // Remove the previous installation.
-    if (SetupResetSettings)
-        RemoveDirectoryPath(PhGetString(SetupInstallPath));
+    if (Context->SetupResetSettings)
+        RemoveDirectoryPath(PhGetString(Context->SetupInstallPath));
 
     // Create the ARP uninstall entries.
-    SetupCreateUninstallKey();
+    SetupCreateUninstallKey(Context);
     // Create the uninstaller.
-    SetupCreateUninstallFile();
+    SetupCreateUninstallFile(Context);
     // Create autorun and shortcuts.
-    SetupSetWindowsOptions();
+    SetupSetWindowsOptions(Context);
 
     // Setup new installation.
-    if (!SetupExtractBuild(Context->DialogHandle))
+    if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
     // Install updated kernel driver
-    if (SetupInstallKphService)
-        SetupInstallKph();
+    if (Context->SetupInstallKphService)
+        SetupStartKph(Context);
 
-    PostMessage(Context->DialogHandle, WM_END_SETUP, 0, 0);
-    PhDereferenceObject(Context);
+    PostMessage(Context->ExtractPageHandle, WM_END_SETUP, 0, 0);
     return STATUS_SUCCESS;
 
 CleanupExit:
 
     PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_ERROR);
-    PhDereferenceObject(Context);
     return STATUS_FAIL_CHECK;
 }
 
@@ -85,12 +83,27 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
     _Inout_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+    PPH_SETUP_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = GetProp(GetParent(hwndDlg), L"SetupContext");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
+            context->ExtractPageHandle = hwndDlg;
+
             SetupLoadImage(GetDlgItem(hwndDlg, IDC_PROJECT_ICON), MAKEINTRESOURCE(IDB_PNG1));
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER), -17, FW_SEMIBOLD);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_SUBHEADER), -12, FW_NORMAL);
@@ -122,7 +135,15 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
             case PSN_SETACTIVE:
                 {
                     HANDLE threadHandle;
-                    PSETUP_PROGRESS_THREAD progress;
+
+                    context->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
+                    context->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
+                    context->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
+                    context->ProgressHandle = GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS);
+
+                    SetWindowText(context->MainHeaderHandle, L"Installing...");
+                    SetWindowText(context->StatusHandle, L"");
+                    SetWindowText(context->SubStatusHandle, L"Progress: ~ of ~ (0.0%)");
 
                     // Disable Next/Back buttons
                     PropSheet_SetWizButtons(context->PropSheetHandle, 0);
@@ -131,12 +152,7 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
                     {
                         SetupRunning = TRUE;
 
-                        // Setup the progress thread
-                        progress = PhCreateAlloc(sizeof(SETUP_PROGRESS_THREAD));
-                        progress->DialogHandle = hwndDlg;
-                        progress->PropSheetHandle = context->PropSheetHandle;
-
-                        if (threadHandle = PhCreateThread(0, SetupProgressThread, progress))
+                        if (threadHandle = PhCreateThread(0, SetupProgressThread, context))
                             NtClose(threadHandle);
                     }
                 }
@@ -146,26 +162,34 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
         break;
     case WM_START_SETUP:
         {
-            SetWindowText(GetDlgItem(hwndDlg, IDC_MAINHEADER), 
+#ifdef PH_BUILD_API
+            SetWindowText(context->MainHeaderHandle,
                 PhaFormatString(L"Installing Process Hacker %lu.%lu.%lu", PHAPP_VERSION_MAJOR, PHAPP_VERSION_MINOR, PHAPP_VERSION_REVISION)->Buffer);
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), L"Progress: ~ of ~ (0.0%)");
-            SendMessage(GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS), PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);
+#else
+            SetWindowText(context->MainHeaderHandle, PhaFormatString(
+                L"Installing Process Hacker %lu.%lu.%lu", 
+                context->LatestMajorVersion, 
+                context->LatestMinorVersion,
+                context->LatestRevisionVersion
+                )->Buffer);
+#endif
+            SendMessage(context->ProgressHandle, PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);
         }
         break;
     case WM_UPDATE_SETUP:
         {
             PPH_STRING currentFile = (PPH_STRING)lParam;
 
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS),
+            SetWindowText(context->StatusHandle,
                 PhaConcatStrings2(L"Extracting: ", currentFile->Buffer)->Buffer
                 );
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), PhaFormatString(
+            SetWindowText(context->SubStatusHandle, PhaFormatString(
                 L"Progress: %s of %s (%.2f%%)",
                 PhaFormatSize(ExtractCurrentLength, -1)->Buffer,
                 PhaFormatSize(ExtractTotalLength, -1)->Buffer,
                 (FLOAT)((double)ExtractCurrentLength / (double)ExtractTotalLength) * 100
                 )->Buffer);
-            SendMessage(GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS), PBM_SETPOS, (WPARAM)ExtractCurrentLength, 0);
+            SendMessage(context->ProgressHandle, PBM_SETPOS, (WPARAM)ExtractCurrentLength, 0);
 
             PhDereferenceObject(currentFile);
         }
@@ -174,13 +198,14 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
         {
             SetupRunning = FALSE;
 
-            SetWindowText(GetDlgItem(hwndDlg, IDC_MAINHEADER), L"Setup Complete");
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS), L"Extract complete");
-            Button_SetText(GetDlgItem(GetParent(hwndDlg), IDC_PROPSHEET_CANCEL), L"Close");
+            SetWindowText(context->MainHeaderHandle, L"Setup Complete");
+            SetWindowText(context->StatusHandle, L"Extract complete");
+            Button_SetText(context->PropSheetCancelHandle, L"Close");
 
-            if (SetupStartAppAfterExit)
+            if (context->SetupStartAppAfterExit)
             {
-                SetupExecuteProcessHacker(GetParent(hwndDlg));
+                SetupExecuteProcessHacker(context);
+
                 PropSheet_PressButton(GetParent(hwndDlg), PSBTN_FINISH);
             }
         }

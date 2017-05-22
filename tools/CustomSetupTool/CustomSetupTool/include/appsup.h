@@ -36,7 +36,7 @@ typedef struct _SETUP_REMOVE_FILE
     PWSTR FileName;
 } SETUP_REMOVE_FILE, *PSETUP_REMOVE_FILE;
 
-VOID SetupFindInstallDirectory(
+PPH_STRING SetupFindInstallDirectory(
     VOID
     );
 
