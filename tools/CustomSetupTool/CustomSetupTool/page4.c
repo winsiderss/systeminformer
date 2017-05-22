@@ -85,6 +85,8 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
     _Inout_ LPARAM lParam
     )
 {
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -119,14 +121,11 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
                 break;
             case PSN_SETACTIVE:
                 {
-                    HWND hwPropSheet;
                     HANDLE threadHandle;
                     PSETUP_PROGRESS_THREAD progress;
 
-                    hwPropSheet = pageNotify->hdr.hwndFrom;
-
                     // Disable Next/Back buttons
-                    PropSheet_SetWizButtons(hwPropSheet, 0);
+                    PropSheet_SetWizButtons(context->PropSheetHandle, 0);
 
                     if (!SetupRunning)
                     {
@@ -135,7 +134,7 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
                         // Setup the progress thread
                         progress = PhCreateAlloc(sizeof(SETUP_PROGRESS_THREAD));
                         progress->DialogHandle = hwndDlg;
-                        progress->PropSheetHandle = hwPropSheet;
+                        progress->PropSheetHandle = context->PropSheetHandle;
 
                         if (threadHandle = PhCreateThread(0, SetupProgressThread, progress))
                             NtClose(threadHandle);

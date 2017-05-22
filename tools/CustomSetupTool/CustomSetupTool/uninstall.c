@@ -60,12 +60,12 @@ NTSTATUS SetupUninstallBuild(
     // Remove the uninstaller.
     SetupDeleteUninstallFile();
 
+    // Remove the ARP uninstall entry.
+    SetupDeleteUninstallKey();
+
     // Remove the previous installation.
     if (!RemoveDirectoryPath(PhGetString(SetupInstallPath)))
         goto CleanupExit;
-
-    // Remove the ARP uninstall entry.
-    SetupDeleteUninstallKey();
 
     ShowUninstallCompleteDialog(Context);
     return STATUS_SUCCESS;

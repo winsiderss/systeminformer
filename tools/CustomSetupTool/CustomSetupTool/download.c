@@ -5,13 +5,6 @@
 
 #include "json-c\json.h"
 
-typedef struct _PH_SETUP_DOWNLOAD_CONTEXT
-{
-    HWND DialogHandle;
-    HICON IconSmallHandle;
-    HICON IconLargeHandle;
-} PH_SETUP_DOWNLOAD_CONTEXT, *PPH_SETUP_DOWNLOAD_CONTEXT;
-
 PPH_STRING SetupGetVersion(
     VOID
 )
@@ -170,7 +163,7 @@ json_object_ptr json_get_object(
 
 
 BOOLEAN SetupQueryUpdateData(
-    _Inout_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _Inout_ PPH_SETUP_DOWNLOAD_CONTEXT Context
     )
 {
     BOOLEAN success = FALSE;
@@ -372,8 +365,8 @@ CleanupExit:
     if (httpSessionHandle)
         WinHttpCloseHandle(httpSessionHandle);
 
-    //if (xmlNode)
-     //   mxmlDelete(xmlNode);
+    if (jsonObject)
+        json_object_put(jsonObject);
 
     if (stringBuffer)
         PhFree(stringBuffer);
@@ -384,82 +377,11 @@ CleanupExit:
     return success;
 }
 
-
-//NTSTATUS UpdateCheckThread(
-//    _In_ PVOID Parameter
-//)
-//{
-//    PPH_UPDATER_CONTEXT context = NULL;
-//    ULONGLONG currentVersion = 0;
-//    ULONGLONG latestVersion = 0;
-//
-//    context = (PPH_UPDATER_CONTEXT)Parameter;
-//    context->ErrorCode = STATUS_SUCCESS;
-//
-//    // Check if we have cached update data
-//    if (!context->HaveData)
-//    {
-//        context->HaveData = QueryUpdateData(context);
-//    }
-//
-//    if (!context->HaveData)
-//    {
-//        PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
-//
-//        PhDereferenceObject(context);
-//        return STATUS_SUCCESS;
-//    }
-//
-//    currentVersion = MAKE_VERSION_ULONGLONG(
-//        context->CurrentMajorVersion,
-//        context->CurrentMinorVersion,
-//        context->CurrentRevisionVersion,
-//        0
-//    );
-//
-//#ifdef FORCE_UPDATE_CHECK
-//    latestVersion = MAKE_VERSION_ULONGLONG(
-//        9999,
-//        9999,
-//        9999,
-//        0
-//    );
-//#else
-//    latestVersion = MAKE_VERSION_ULONGLONG(
-//        context->MajorVersion,
-//        context->MinorVersion,
-//        context->RevisionVersion,
-//        0
-//    );
-//#endif
-//
-//    if (currentVersion == latestVersion)
-//    {
-//        // User is running the latest version
-//        PostMessage(context->DialogHandle, PH_UPDATEISCURRENT, 0, 0);
-//    }
-//    else if (currentVersion > latestVersion)
-//    {
-//        // User is running a newer version
-//        PostMessage(context->DialogHandle, PH_UPDATENEWER, 0, 0);
-//    }
-//    else
-//    {
-//        // User is running an older version
-//        PostMessage(context->DialogHandle, PH_UPDATEAVAILABLE, 0, 0);
-//    }
-//
-//    PhDereferenceObject(context);
-//    return STATUS_SUCCESS;
-//}
-
 BOOLEAN UpdateDownloadUpdateData(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
     )
 {
     BOOLEAN downloadSuccess = FALSE;
-//    BOOLEAN hashSuccess = FALSE;
-//    BOOLEAN signatureSuccess = FALSE;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
@@ -470,7 +392,6 @@ BOOLEAN UpdateDownloadUpdateData(
     PPH_STRING userAgentString = NULL;
     PPH_STRING fullSetupPath = NULL;
     PPH_STRING randomGuidString = NULL;
-//    PUPDATER_HASH_CONTEXT hashContext = NULL;
     ULONG indexOfFileName = -1;
     GUID randomGuid;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
@@ -546,7 +467,7 @@ BOOLEAN UpdateDownloadUpdateData(
     httpUrlComponents.dwUrlPathLength = (ULONG)-1;
 
     if (!WinHttpCrackUrl(
-        PhGetStringOrEmpty(Context->SetupFileDownloadUrl),
+        PhGetString(Context->SetupFileDownloadUrl),
         0,
         0,
         &httpUrlComponents
@@ -728,6 +649,8 @@ BOOLEAN UpdateDownloadUpdateData(
                 PhDereferenceObject(totalDownloaded);
             }
         }
+
+        downloadSuccess = TRUE;
     }
 
 CleanupExit:
@@ -767,5 +690,5 @@ CleanupExit:
     //    }
     //}
 
-    return STATUS_SUCCESS;
+    return downloadSuccess;
 }

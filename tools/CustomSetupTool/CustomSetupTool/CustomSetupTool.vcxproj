@@ -108,6 +108,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="download.c" />
+    <ClCompile Include="error.c" />
     <ClCompile Include="extract.c" />
     <ClCompile Include="appsup.c" />
     <ClCompile Include="json-c\arraylist.c" />

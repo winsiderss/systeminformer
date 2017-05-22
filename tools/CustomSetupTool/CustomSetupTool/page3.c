@@ -41,6 +41,8 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
     _Inout_ LPARAM lParam
     )
 {
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -123,7 +125,7 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
 
             switch (pageNotify->hdr.code)
             {
-            case PSN_KILLACTIVE:
+            case PSN_WIZNEXT:
                 {
                     SetupInstallPath = PhGetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY));
                     SetupCreateDesktopShortcut = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_CHECK)) == BST_CHECKED;
@@ -136,8 +138,14 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
                     SetupInstallKphService = Button_GetCheck(GetDlgItem(hwndDlg, IDC_KPH_CHECK)) == BST_CHECKED;
                     SetupResetSettings = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESET_CHECK)) == BST_CHECKED;
                     SetupStartAppAfterExit = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PHSTART_CHECK)) == BST_CHECKED;
+
+#ifdef PH_BUILD_API
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)IDD_DIALOG4);
+#else
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)IDD_DIALOG5);
+#endif
                 }
-                break;
+                return TRUE;
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_FOLDER_BROWSE));
                 return TRUE;

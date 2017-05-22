@@ -22,20 +22,25 @@
 
 #include <setup.h>
 
-ULONG64 DownloadCurrentLength = 0;
-ULONG64 DownloadTotalLength = 0;
-
 NTSTATUS SetupDownloadProgressThread(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
     )
 {
-    if (SetupQueryUpdateData(Context))
-    {
-        UpdateDownloadUpdateData(Context);
-    }
+    if (!SetupQueryUpdateData(Context))
+        goto CleanupExit;
 
+    if (!UpdateDownloadUpdateData(Context))
+        goto CleanupExit;
+
+    PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_DIALOG4);
     PhDereferenceObject(Context);
     return STATUS_SUCCESS;
+
+CleanupExit:
+
+    PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_ERROR);
+    PhDereferenceObject(Context);
+    return STATUS_FAIL_CHECK;
 }
 
 INT_PTR CALLBACK SetupPropPage5_WndProc(
@@ -45,6 +50,8 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
     _Inout_ LPARAM lParam
     )
 {
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -58,21 +65,6 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
             SetWindowText(GetDlgItem(hwndDlg, IDC_MAINHEADER), L"Starting download...");
             SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS), L"Starting download...");
             SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), L"");
-
-            // Setup the progress thread
-            PPH_SETUP_UNINSTALL_CONTEXT  progress = PhCreateAlloc(sizeof(PH_SETUP_UNINSTALL_CONTEXT));
-            memset(progress, 0, sizeof(PH_SETUP_UNINSTALL_CONTEXT));
-
-            progress->DialogHandle = hwndDlg;
-            progress->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
-            progress->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
-            progress->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
-            progress->ProgressHandle = GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS);
-            progress->CurrentMajorVersion = PHAPP_VERSION_MAJOR;
-            progress->CurrentMinorVersion = PHAPP_VERSION_MINOR;
-            progress->CurrentRevisionVersion = PHAPP_VERSION_REVISION;
-
-            RtlQueueWorkItem(SetupDownloadProgressThread, progress, 0);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
@@ -88,9 +80,6 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
                 {
                     if (SetupRunning && DialogPromptExit(hwndDlg))
                     {
-                        //PropSheet_CancelToClose(GetParent(hwndDlg));
-                        //EnableMenuItem(GetSystemMenu(GetParent(hwndDlg), FALSE), SC_CLOSE, MF_GRAYED);
-                        //EnableMenuItem(GetSystemMenu(GetParent(hwndDlg), FALSE), SC_CLOSE, MF_ENABLED);
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)TRUE);
                         return TRUE;
                     }
@@ -98,70 +87,34 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
                 break;
             case PSN_SETACTIVE:
                 {
-                    //HWND hwPropSheet;
-                    //HANDLE threadHandle;
-                    //PSETUP_PROGRESS_THREAD progress;
+                    HANDLE threadHandle;
+                    PPH_SETUP_DOWNLOAD_CONTEXT progress;
 
-                    //hwPropSheet = pageNotify->hdr.hwndFrom;
+                    // Disable Next/Back buttons
+                    PropSheet_SetWizButtons(context->PropSheetHandle, 0);
 
-                    //// Disable Next/Back buttons
-                    //PropSheet_SetWizButtons(hwPropSheet, 0);
+                    if (!SetupRunning)
+                    {
+                        SetupRunning = TRUE;
 
-                    //if (!SetupRunning)
-                    //{
-                    //    SetupRunning = TRUE;
+                        progress = PhCreateAlloc(sizeof(PH_SETUP_DOWNLOAD_CONTEXT));
+                        memset(progress, 0, sizeof(PH_SETUP_DOWNLOAD_CONTEXT));
 
-                    //    // Setup the progress thread
-                    //    progress = PhCreateAlloc(sizeof(SETUP_PROGRESS_THREAD));
-                    //    progress->DialogHandle = hwndDlg;
-                    //    progress->PropSheetHandle = hwPropSheet;
+                        progress->DialogHandle = hwndDlg;
+                        progress->PropSheetHandle = context->PropSheetHandle;
+                        progress->CurrentMajorVersion = PHAPP_VERSION_MAJOR;
+                        progress->CurrentMinorVersion = PHAPP_VERSION_MINOR;
+                        progress->CurrentRevisionVersion = PHAPP_VERSION_REVISION;
+                        progress->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
+                        progress->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
+                        progress->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
+                        progress->ProgressHandle = GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS);
 
-                    //    if (threadHandle = PhCreateThread(0, SetupDownloadProgressThread, progress))
-                    //        NtClose(threadHandle);
-                    //}
+                        if (threadHandle = PhCreateThread(0, SetupDownloadProgressThread, progress))
+                            NtClose(threadHandle);
+                    }
                 }
                 break;
-            }
-        }
-        break;
-    case WM_START_SETUP:
-        {
-            //SetWindowText(GetDlgItem(hwndDlg, IDC_MAINHEADER), 
-            //    PhaFormatString(L"Downloading Process Hacker %lu.%lu.%lu", PHAPP_VERSION_MAJOR, PHAPP_VERSION_MINOR, PHAPP_VERSION_REVISION)->Buffer);
-            //SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), L"Progress: ~ of ~ (0.0%)");
-            //SendMessage(GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS), PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);
-        }
-        break;
-    case WM_UPDATE_SETUP:
-        {
-            //PPH_STRING currentFile = (PPH_STRING)lParam;
-            //
-            ////SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS),
-            ////    PhaConcatStrings2(L"Extracting: ", currentFile->Buffer)->Buffer
-            ////    );
-            //SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), PhaFormatString(
-            //    L"Progress: %s of %s (%.2f%%)",
-            //    PhaFormatSize(ExtractCurrentLength, -1)->Buffer,
-            //    PhaFormatSize(ExtractTotalLength, -1)->Buffer,
-            //    (FLOAT)((double)ExtractCurrentLength / (double)ExtractTotalLength) * 100
-            //    )->Buffer);
-            //SendMessage(GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS), PBM_SETPOS, (WPARAM)ExtractCurrentLength, 0);
-            //
-            //PhDereferenceObject(currentFile);
-        }
-        break;
-    case WM_END_SETUP:
-        {
-            SetupRunning = FALSE;
-
-            SetWindowText(GetDlgItem(hwndDlg, IDC_MAINHEADER), L"Setup Complete");
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS), L"Extract complete");
-            Button_SetText(GetDlgItem(GetParent(hwndDlg), IDC_PROPSHEET_CANCEL), L"Close");
-
-            if (SetupStartAppAfterExit)
-            {
-                SetupExecuteProcessHacker(GetParent(hwndDlg));
-                PropSheet_PressButton(GetParent(hwndDlg), PSBTN_FINISH);
             }
         }
         break;

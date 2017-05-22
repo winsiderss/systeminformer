@@ -82,14 +82,27 @@ INT CALLBACK MainPropSheet_Callback(
 {
     switch (uMsg)
     {
-    case PSCB_INITIALIZED:
-        break;
     case PSCB_PRECREATE:
         {
             if (lParam)
             {
-                ((LPDLGTEMPLATE)lParam)->style |= WS_MINIMIZEBOX;
+                if (((DLGTEMPLATEEX *)lParam)->signature == USHORT_MAX)
+                    ((DLGTEMPLATEEX *)lParam)->style |= WS_MINIMIZEBOX;
+                else
+                    ((DLGTEMPLATE *)lParam)->style |= WS_MINIMIZEBOX;
             }
+        }
+        break;
+    case PSCB_INITIALIZED:
+        {
+            PPH_SETUP_CONTEXT context;
+
+            context = PhAllocate(sizeof(PH_SETUP_CONTEXT));
+            memset(context, 0, sizeof(PH_SETUP_CONTEXT));
+
+            context->PropSheetHandle = hwndDlg;
+
+            SetProp(hwndDlg, L"SetupContext", (HANDLE)context);
         }
         break;
     }
@@ -140,7 +153,7 @@ INT WINAPI wWinMain(
         {
             PROPSHEETPAGE propSheetPage = { sizeof(PROPSHEETPAGE) };
             PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
-            HPROPSHEETPAGE pages[4];
+            HPROPSHEETPAGE pages[6];
 
             propSheetHeader.dwFlags = PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP | PSH_USECALLBACK | PSH_WIZARD_LITE;
             propSheetHeader.hInstance = PhLibImageBase;
@@ -148,6 +161,7 @@ INT WINAPI wWinMain(
             propSheetHeader.pfnCallback = MainPropSheet_Callback;
             propSheetHeader.phpage = pages;
 
+            // welcome page
             memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
             propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
             propSheetPage.dwFlags = PSP_USETITLE;
@@ -156,6 +170,7 @@ INT WINAPI wWinMain(
             propSheetPage.pfnDlgProc = SetupPropPage1_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
+            // eula page
             memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
             propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
             propSheetPage.dwFlags = PSP_USETITLE;
@@ -164,13 +179,25 @@ INT WINAPI wWinMain(
             propSheetPage.pfnDlgProc = SetupPropPage2_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
+            // config page
             memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
             propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+            propSheetPage.dwFlags = PSP_USETITLE;
+            propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG3);
             propSheetPage.pfnDlgProc = SetupPropPage3_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-#ifdef PH_BUILD_API
+            // download page
+            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+            propSheetPage.dwFlags = PSP_USETITLE;
+            propSheetPage.pszTitle = PhApplicationName;
+            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG5);
+            propSheetPage.pfnDlgProc = SetupPropPage5_WndProc;
+            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+            // extract page
             memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
             propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
             propSheetPage.dwFlags = PSP_USETITLE;
@@ -178,15 +205,15 @@ INT WINAPI wWinMain(
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
             propSheetPage.pfnDlgProc = SetupPropPage4_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-#else
+
+            // error page
             memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
             propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
-            propSheetPage.pfnDlgProc = SetupPropPage5_WndProc;
+            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
+            propSheetPage.pfnDlgProc = SetupErrorPage_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-#endif
 
             PhModalPropertySheet(&propSheetHeader);
         }

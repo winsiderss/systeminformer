@@ -105,6 +105,9 @@
     <ClCompile Include="json-c\debug.c">
       <Filter>Source Files\json</Filter>
     </ClCompile>
+    <ClCompile Include="error.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\setup.h">
