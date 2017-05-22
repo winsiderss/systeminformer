@@ -434,7 +434,7 @@ BOOLEAN QueryUpdateData(
     {
         PhInitializeStringBuilder(&sb, 0x100);
 
-        for (SIZE_T i = 0; i < Context->BuildMessage->Length; i++)
+        for (SIZE_T i = 0; i < Context->BuildMessage->Length / sizeof(WCHAR); i++)
         {
             if (Context->BuildMessage->Data[i] == '\n')
                 PhAppendStringBuilder2(&sb, L"\r\n");
