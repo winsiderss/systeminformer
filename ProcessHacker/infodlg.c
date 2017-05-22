@@ -46,6 +46,9 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             PINFORMATION_CONTEXT context = (PINFORMATION_CONTEXT)lParam;
             PPH_LAYOUT_MANAGER layoutManager;
 
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetDlgItemText(hwndDlg, IDC_TEXT, context->String);
