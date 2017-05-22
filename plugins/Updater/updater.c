@@ -428,7 +428,7 @@ BOOLEAN QueryUpdateData(
     Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
     Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
     Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
-    Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "message"));
+    Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "changelog"));
 
     PhInitializeStringBuilder(&sb, 0x100);
     for (SIZE_T i = 0; i < Context->BuildMessage->Length; i++)
