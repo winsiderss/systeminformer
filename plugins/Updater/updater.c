@@ -447,14 +447,11 @@ BOOLEAN QueryUpdateData(
 
     CleanupJsonParser(jsonObject);
 
-    if (PhIsNullOrEmptyString(Context->Signature))
+    if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
-
     if (!ParseVersionString(Context))
         goto CleanupExit;
 
-    if (PhIsNullOrEmptyString(Context->Version))
-        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RevVersion))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
@@ -466,6 +463,8 @@ BOOLEAN QueryUpdateData(
     if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->Signature))
         goto CleanupExit;
 
     success = TRUE;
