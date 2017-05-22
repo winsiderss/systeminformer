@@ -22,18 +22,6 @@
 
 #include <setup.h>
 
-PPH_STRING SetupInstallPath = NULL;
-BOOLEAN SetupCreateDesktopShortcut = FALSE;
-BOOLEAN SetupCreateDesktopShortcutAllUsers = FALSE;
-BOOLEAN SetupCreateDefaultTaskManager = FALSE;
-BOOLEAN SetupCreateSystemStartup = FALSE;
-BOOLEAN SetupCreateMinimizedSystemStartup = FALSE;
-BOOLEAN SetupInstallDebuggingTools = FALSE;
-BOOLEAN SetupInstallPeViewAssociations = FALSE;
-BOOLEAN SetupInstallKphService = FALSE;
-BOOLEAN SetupResetSettings = FALSE;
-BOOLEAN SetupStartAppAfterExit = FALSE;
-
 INT_PTR CALLBACK SetupPropPage3_WndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -41,14 +29,25 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
     _Inout_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+    PPH_SETUP_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = GetProp(GetParent(hwndDlg), L"SetupContext");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            SetupFindInstallDirectory();
-
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER), -17, FW_SEMIBOLD);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_SUBHEADER), -12, FW_NORMAL);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_STATIC1), -12, FW_NORMAL);
@@ -66,7 +65,9 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_DBGTOOLS_CHECK), -12, FW_NORMAL);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_RESET_CHECK), -12, FW_NORMAL);
 
-            SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetString(SetupInstallPath));
+            context->SetupInstallPath = SetupFindInstallDirectory();
+
+            SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetString(context->SetupInstallPath));
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_CHECK), TRUE);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_ALL_CHECK), TRUE);
             //Button_SetCheck(GetDlgItem(hwndDlg, IDC_KPH_CHECK), TRUE);
@@ -96,8 +97,8 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
 
                         PhFreeFileDialog(fileDialog);
 
-                        PhSwapReference(&SetupInstallPath, fileDialogFolderPath);
-                        SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetStringOrEmpty(SetupInstallPath));
+                        PhSwapReference(&context->SetupInstallPath, fileDialogFolderPath);
+                        SetDlgItemText(hwndDlg, IDC_INSTALL_DIRECTORY, PhGetStringOrEmpty(context->SetupInstallPath));
                     }
                 }
                 break;
@@ -127,25 +128,24 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
             {
             case PSN_WIZNEXT:
                 {
-                    SetupInstallPath = PhGetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY));
-                    SetupCreateDesktopShortcut = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_CHECK)) == BST_CHECKED;
-                    SetupCreateDesktopShortcutAllUsers = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_ALL_CHECK)) == BST_CHECKED;
-                    SetupCreateDefaultTaskManager = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TASKMANAGER_CHECK)) == BST_CHECKED;
-                    SetupCreateSystemStartup = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTUP_CHECK)) == BST_CHECKED;
-                    SetupCreateMinimizedSystemStartup = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTMIN_CHECK)) == BST_CHECKED;
-                    SetupInstallDebuggingTools = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DBGTOOLS_CHECK)) == BST_CHECKED;
-                    SetupInstallPeViewAssociations = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PEVIEW_CHECK)) == BST_CHECKED;
-                    SetupInstallKphService = Button_GetCheck(GetDlgItem(hwndDlg, IDC_KPH_CHECK)) == BST_CHECKED;
-                    SetupResetSettings = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESET_CHECK)) == BST_CHECKED;
-                    SetupStartAppAfterExit = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PHSTART_CHECK)) == BST_CHECKED;
+                    context->SetupInstallPath = PhGetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_DIRECTORY));
+                    context->SetupCreateDesktopShortcut = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_CHECK)) == BST_CHECKED;
+                    context->SetupCreateDesktopShortcutAllUsers = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_ALL_CHECK)) == BST_CHECKED;
+                    context->SetupCreateDefaultTaskManager = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TASKMANAGER_CHECK)) == BST_CHECKED;
+                    context->SetupCreateSystemStartup = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTUP_CHECK)) == BST_CHECKED;
+                    context->SetupCreateMinimizedSystemStartup = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTMIN_CHECK)) == BST_CHECKED;
+                    context->SetupInstallDebuggingTools = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DBGTOOLS_CHECK)) == BST_CHECKED;
+                    context->SetupInstallPeViewAssociations = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PEVIEW_CHECK)) == BST_CHECKED;
+                    context->SetupInstallKphService = Button_GetCheck(GetDlgItem(hwndDlg, IDC_KPH_CHECK)) == BST_CHECKED;
+                    context->SetupResetSettings = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESET_CHECK)) == BST_CHECKED;
+                    context->SetupStartAppAfterExit = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PHSTART_CHECK)) == BST_CHECKED;
 
 #ifdef PH_BUILD_API
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)IDD_DIALOG4);
-#else
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)IDD_DIALOG5);
+                    return TRUE;
 #endif
                 }
-                return TRUE;
+                break;
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_FOLDER_BROWSE));
                 return TRUE;

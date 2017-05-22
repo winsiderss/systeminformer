@@ -22,28 +22,16 @@
 #include <appsup.h>
 #include <workqueue.h>
 
-typedef struct _PH_SETUP_UPDATE_CONTEXT
-{
-    HWND DialogHandle;
-    HICON IconSmallHandle;
-    HICON IconLargeHandle;
-
-    PPH_STRING FileDownloadUrl;
-    PPH_STRING RevVersion;
-    PPH_STRING Size;
-    PPH_STRING SetupFilePath;
-} PH_SETUP_UPDATE_CONTEXT, *PPH_SETUP_UPDATE_CONTEXT;
-
 #define WM_TASKDIALOGINIT (WM_APP + 550)
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
 
 NTSTATUS SetupUpdateBuild(
-    _In_ PPH_SETUP_UPDATE_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    SetupFindInstallDirectory();
+    Context->SetupInstallPath = SetupFindInstallDirectory();
 
     if (!ShutdownProcessHacker())
         goto CleanupExit;
@@ -51,68 +39,42 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupUninstallKph())
         goto CleanupExit;
 
-    SetupCreateUninstallKey();
-    SetupCreateUninstallFile();
-    //SetupSetWindowsOptions();
+    SetupCreateUninstallKey(Context);
+    SetupCreateUninstallFile(Context);
 
-    if (!SetupExtractBuild(Context->DialogHandle))
+    if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
-    if (SetupInstallKphService)
-        SetupInstallKph();
+    SetupStartKph(Context);
 
-    if (!SetupExecuteProcessHacker(Context->DialogHandle))
+    if (!SetupExecuteProcessHacker(Context))
         goto CleanupExit;
 
-    PostMessage(Context->DialogHandle, WM_QUIT, 0, 0);
+    PostMessage(Context->PropSheetHandle, WM_QUIT, 0, 0);
     PhDereferenceObject(Context);  
     return STATUS_SUCCESS;
 
 CleanupExit:
 
-    PostMessage(Context->DialogHandle, IDD_ERROR, 0, 0);
+    PostMessage(Context->PropSheetHandle, IDD_ERROR, 0, 0);
     PhDereferenceObject(Context);
     return STATUS_FAIL_CHECK;
 }
 
-
-PPH_SETUP_UPDATE_CONTEXT CreateUpdateContext(
+PPH_SETUP_CONTEXT CreateUpdateContext(
     VOID
     )
 {
-    PPH_SETUP_UPDATE_CONTEXT context;
+    PPH_SETUP_CONTEXT context;
 
-    context = (PPH_SETUP_UPDATE_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_UPDATE_CONTEXT));
-    memset(context, 0, sizeof(PH_SETUP_UPDATE_CONTEXT));
+    context = (PPH_SETUP_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
+    memset(context, 0, sizeof(PH_SETUP_CONTEXT));
 
     return context;
 }
 
-VOID FreeUpdateContext(
-    _In_ _Post_invalid_ PPH_SETUP_UPDATE_CONTEXT Context
-    )
-{
-    //PhClearReference(&Context->Version);
-    //PhClearReference(&Context->RevVersion);
-    //PhClearReference(&Context->RelDate);
-    //PhClearReference(&Context->Size);
-    //PhClearReference(&Context->Hash);
-    //PhClearReference(&Context->Signature);
-    //PhClearReference(&Context->ReleaseNotesUrl);
-    //PhClearReference(&Context->SetupFilePath);
-    //PhClearReference(&Context->SetupFileDownloadUrl);
-
-    if (Context->IconLargeHandle)
-        DestroyIcon(Context->IconLargeHandle);
-
-    if (Context->IconSmallHandle)
-        DestroyIcon(Context->IconSmallHandle);
-
-    //PhClearReference(&Context);
-}
-
 VOID TaskDialogCreateIcons(
-    _In_ PPH_SETUP_UPDATE_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     HICON largeIcon;
@@ -136,15 +98,8 @@ VOID TaskDialogCreateIcons(
     Context->IconLargeHandle = largeIcon;
     Context->IconSmallHandle = smallIcon;
 
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
-    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
-}
-
-VOID TaskDialogLinkClicked(
-    _In_ PPH_SETUP_UPDATE_CONTEXT Context
-    )
-{
-    
+    SendMessage(Context->PropSheetHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
+    SendMessage(Context->PropSheetHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
 }
 
 LRESULT CALLBACK TaskDialogSubclassProc(
@@ -156,7 +111,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ ULONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UPDATE_CONTEXT context = (PPH_SETUP_UPDATE_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -180,7 +135,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 }
 
-HRESULT CALLBACK CheckingForUpdatesCallbackProc(
+HRESULT CALLBACK SetupUpdatingTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -188,7 +143,7 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UPDATE_CONTEXT context = (PPH_SETUP_UPDATE_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -205,8 +160,8 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
     return S_OK;
 }
 
-VOID ShowCheckForUpdatesDialog(
-    _In_ PPH_SETUP_UPDATE_CONTEXT Context
+VOID SetupShowUpdatingDialog(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -214,15 +169,20 @@ VOID ShowCheckForUpdatesDialog(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
+    config.cxWidth = 200;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
-    config.pfCallback = CheckingForUpdatesCallbackProc;
+    config.pfCallback = SetupUpdatingTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = PhaFormatString(L"Updating to version %lu.%lu.%lu...", PHAPP_VERSION_MAJOR, PHAPP_VERSION_MINOR, PHAPP_VERSION_REVISION)->Buffer;
-    config.cxWidth = 200;
+    config.pszMainInstruction = PhaFormatString(
+        L"Updating to version %lu.%lu.%lu...", 
+        PHAPP_VERSION_MAJOR, 
+        PHAPP_VERSION_MINOR, 
+        PHAPP_VERSION_REVISION
+        )->Buffer;
 
-    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->PropSheetHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -233,22 +193,22 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UPDATE_CONTEXT context = (PPH_SETUP_UPDATE_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
     case TDN_CREATED:
         {
-            context->DialogHandle = hwndDlg;
+            context->PropSheetHandle = hwndDlg;
 
-            // Center the window on the desktop
+            // Center the window on the desktop.
             PhCenterWindow(hwndDlg, NULL);
-            // Create the Taskdialog icons
+            // Create the Taskdialog icons.
             TaskDialogCreateIcons(context);
-            // Subclass the Taskdialog
+            // Subclass the Taskdialog.
             SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
-            // Navigate to the first page
-            ShowCheckForUpdatesDialog(context);
+            // Navigate to the first page.
+            SetupShowUpdatingDialog(context);
 
             SendMessage(hwndDlg, WM_TASKDIALOGINIT, 0, 0);
         }
@@ -280,6 +240,5 @@ VOID SetupShowUpdateDialog(
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
-    FreeUpdateContext(context);
     PhDeleteAutoPool(&autoPool);
 }

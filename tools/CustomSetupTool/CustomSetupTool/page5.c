@@ -23,7 +23,7 @@
 #include <setup.h>
 
 NTSTATUS SetupDownloadProgressThread(
-    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     if (!SetupQueryUpdateData(Context))
@@ -33,13 +33,11 @@ NTSTATUS SetupDownloadProgressThread(
         goto CleanupExit;
 
     PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_DIALOG4);
-    PhDereferenceObject(Context);
     return STATUS_SUCCESS;
 
 CleanupExit:
 
     PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_ERROR);
-    PhDereferenceObject(Context);
     return STATUS_FAIL_CHECK;
 }
 
@@ -50,7 +48,20 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
     _Inout_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+    PPH_SETUP_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = GetProp(GetParent(hwndDlg), L"SetupContext");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -62,10 +73,6 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS), -12, FW_SEMIBOLD);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), -12, FW_NORMAL);
 
-            SetWindowText(GetDlgItem(hwndDlg, IDC_MAINHEADER), L"Starting download...");
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_STATUS), L"Starting download...");
-            SetWindowText(GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS), L"");
-
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
@@ -76,43 +83,24 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
 
             switch (pageNotify->hdr.code)
             {
-            case PSN_QUERYCANCEL:
-                {
-                    if (SetupRunning && DialogPromptExit(hwndDlg))
-                    {
-                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)TRUE);
-                        return TRUE;
-                    }
-                }
-                break;
             case PSN_SETACTIVE:
                 {
                     HANDLE threadHandle;
-                    PPH_SETUP_DOWNLOAD_CONTEXT progress;
+
+                    context->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
+                    context->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
+                    context->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
+                    context->ProgressHandle = GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS);
+
+                    SetWindowText(context->MainHeaderHandle, L"Starting download...");
+                    SetWindowText(context->StatusHandle, L"Starting download...");
+                    SetWindowText(context->SubStatusHandle, L"");
 
                     // Disable Next/Back buttons
                     PropSheet_SetWizButtons(context->PropSheetHandle, 0);
 
-                    if (!SetupRunning)
-                    {
-                        SetupRunning = TRUE;
-
-                        progress = PhCreateAlloc(sizeof(PH_SETUP_DOWNLOAD_CONTEXT));
-                        memset(progress, 0, sizeof(PH_SETUP_DOWNLOAD_CONTEXT));
-
-                        progress->DialogHandle = hwndDlg;
-                        progress->PropSheetHandle = context->PropSheetHandle;
-                        progress->CurrentMajorVersion = PHAPP_VERSION_MAJOR;
-                        progress->CurrentMinorVersion = PHAPP_VERSION_MINOR;
-                        progress->CurrentRevisionVersion = PHAPP_VERSION_REVISION;
-                        progress->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
-                        progress->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
-                        progress->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
-                        progress->ProgressHandle = GetDlgItem(hwndDlg, IDC_INSTALL_PROGRESS);
-
-                        if (threadHandle = PhCreateThread(0, SetupDownloadProgressThread, progress))
-                            NtClose(threadHandle);
-                    }
+                    if (threadHandle = PhCreateThread(0, SetupDownloadProgressThread, context))
+                        NtClose(threadHandle);
                 }
                 break;
             }

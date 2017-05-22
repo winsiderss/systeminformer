@@ -22,23 +22,16 @@
 
 #include <setup.h>
 
-VOID SetupPropSheetParent(
-    _In_ HWND hwndDlg
+VOID SetupPropSheetCenterWindow(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    HWND parent = GetParent(hwndDlg);
-
-    // Center the property sheet on the desktop
-    PhCenterWindow(parent, NULL);
-    SetForegroundWindow(parent);
-
-    // Set the fonts for the Property Sheet buttons
-    SetupInitializeFont(GetDlgItem(parent, IDC_PROPSHEET_BACK), -12, FW_NORMAL);
-    SetupInitializeFont(GetDlgItem(parent, IDC_PROPSHEET_NEXT), -12, FW_NORMAL);
-    SetupInitializeFont(GetDlgItem(parent, IDC_PROPSHEET_CANCEL), -12, FW_NORMAL);
+    // Center the PropertySheet on the desktop.
+    PhCenterWindow(Context->PropSheetHandle, NULL);
+    SetForegroundWindow(Context->PropSheetHandle);
 }
 
-static VOID LoadSetupIcons(
+static VOID SetupLoadIcons(
     _In_ HWND hwndDlg
     )
 {
@@ -73,15 +66,30 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
     _Inout_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+    PPH_SETUP_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = GetProp(GetParent(hwndDlg), L"SetupContext");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            SetupPropSheetParent(hwndDlg);
+            context->WelcomePageHandle = hwndDlg;
 
-            LoadSetupIcons(hwndDlg);
+            SetupPropSheetCenterWindow(context);
+
+            SetupLoadIcons(hwndDlg);
             SetupLoadImage(GetDlgItem(hwndDlg, IDC_PROJECT_ICON), MAKEINTRESOURCE(IDB_PNG1));
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_MAINHEADER), -18, FW_SEMIBOLD);
             SetupInitializeFont(GetDlgItem(hwndDlg, IDC_SUBHEADER), 0, FW_NORMAL);
@@ -102,21 +110,12 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
                 {
                     // Reset the button state.
                     PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_NEXT);
-
-                    // Hide the back button.
-                    //ShowWindow(GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_BACK), SW_HIDE);
-
-                    // HACK: Focus the next button (reset after changing button state).
-                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_NEXT), TRUE);
                 }
                 break;
             case PSN_KILLACTIVE:
                 {
                     // Enable the back button.
                     PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_NEXT | PSWIZB_BACK);
-
-                    // Show the back button.
-                    //ShowWindow(GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_BACK), SW_SHOW);
                 }
                 break;
             }

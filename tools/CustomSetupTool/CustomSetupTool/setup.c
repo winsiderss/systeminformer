@@ -27,7 +27,7 @@
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
 
 NTSTATUS SetupCreateUninstallKey(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -50,7 +50,7 @@ NTSTATUS SetupCreateUninstallKey(
     {
         PPH_STRING tempString;
         
-        tempString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker.exe,0");
+        tempString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker.exe,0");
         PhStringRefToUnicodeString(&tempString->sr, &value);
         RtlInitUnicodeString(&name, L"DisplayIcon");
         PhStringRefToUnicodeString(&tempString->sr, &value);
@@ -70,7 +70,7 @@ NTSTATUS SetupCreateUninstallKey(
         NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
 
         RtlInitUnicodeString(&name, L"InstallLocation");
-        RtlInitUnicodeString(&value, PhGetString(SetupInstallPath));
+        RtlInitUnicodeString(&value, PhGetString(Context->SetupInstallPath));
         NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
 
         RtlInitUnicodeString(&name, L"Publisher");
@@ -78,7 +78,7 @@ NTSTATUS SetupCreateUninstallKey(
         NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
 
         RtlInitUnicodeString(&name, L"UninstallString");
-        tempString = PhFormatString(L"\"%s\\processhacker-setup.exe\" -uninstall", PhGetString(SetupInstallPath));
+        tempString = PhFormatString(L"\"%s\\processhacker-setup.exe\" -uninstall", PhGetString(Context->SetupInstallPath));
         PhStringRefToUnicodeString(&tempString->sr, &value);
         NtSetValueKey(keyHandle, &name, 0, REG_SZ, value.Buffer, (ULONG)value.MaximumLength);
         PhDereferenceObject(tempString);
@@ -121,15 +121,15 @@ NTSTATUS SetupDeleteUninstallKey(
     return status;
 }
 
-VOID SetupFindInstallDirectory(
+PPH_STRING SetupFindInstallDirectory(
     VOID
     )
 {
     // Find the current installation path.
-    SetupInstallPath = GetProcessHackerInstallPath();
+    PPH_STRING setupInstallPath = GetProcessHackerInstallPath();
 
     // Check if the string is valid.
-    if (PhIsNullOrEmptyString(SetupInstallPath))
+    if (PhIsNullOrEmptyString(setupInstallPath))
     {
         PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%");
         PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%");
@@ -143,36 +143,38 @@ VOID SetupFindInstallDirectory(
         {
             if (expandedString = PH_AUTO(PhExpandEnvironmentStrings(&programW6432)))
             {
-                SetupInstallPath = PhConcatStringRef2(&expandedString->sr, &defaultDirectoryName);
+                setupInstallPath = PhConcatStringRef2(&expandedString->sr, &defaultDirectoryName);
             }
         }
         else
         {
             if (expandedString = PH_AUTO(PhExpandEnvironmentStrings(&programFiles)))
             {
-                SetupInstallPath = PhConcatStringRef2(&expandedString->sr, &defaultDirectoryName);
+                setupInstallPath = PhConcatStringRef2(&expandedString->sr, &defaultDirectoryName);
             }
         }
     }
 
-    if (PhIsNullOrEmptyString(SetupInstallPath))
+    if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        SetupInstallPath = PhCreateString(L"C:\\Program Files\\Process Hacker\\");
+        setupInstallPath = PhCreateString(L"C:\\Program Files\\Process Hacker\\");
     }
 
     // Remove extra backslashes
-    PathRemoveBackslash(PhGetString(SetupInstallPath));
+    PathRemoveBackslash(PhGetString(setupInstallPath));
+
+    return setupInstallPath;
 }
 
 VOID SetupCreateUninstallFile(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     PPH_STRING backupFilePath;
     PPH_STRING uninstallFilePath;
 
-    backupFilePath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker-setup.bak");
-    uninstallFilePath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker-setup.exe");
+    backupFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.bak");
+    uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.exe");
 
     if (RtlDoesFileExists_U(backupFilePath->Buffer))
     {
@@ -191,13 +193,12 @@ VOID SetupCreateUninstallFile(
 }
 
 VOID SetupDeleteUninstallFile(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     PPH_STRING uninstallFilePath;
 
-    // NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer
-    uninstallFilePath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\processhacker-setup.exe");
+    uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.exe");
 
     if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
     {
@@ -261,11 +262,11 @@ CleanupExit:
     PhDereferenceObject(uninstallFilePath);
 }
 
-VOID SetupInstallKph(
-    VOID
+VOID SetupStartKph(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    PPH_STRING clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+    PPH_STRING clientPath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
 
     if (RtlDoesFileExists_U(PhGetString(clientPath)))
     {
@@ -336,7 +337,7 @@ ULONG SetupUninstallKph(
 }
 
 VOID SetupSetWindowsOptions(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
@@ -344,33 +345,33 @@ VOID SetupSetWindowsOptions(
     PPH_STRING clientPathString;
     PPH_STRING startmenuFolderString;
 
-    clientPathString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+    clientPathString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
 
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
     {
         SetupCreateLink(
             PhGetString(startmenuFolderString),
             PhGetString(clientPathString),
-            PhGetString(SetupInstallPath)
+            PhGetString(Context->SetupInstallPath)
             );
         PhDereferenceObject(startmenuFolderString);
     }
 
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk"))
     {
-        PPH_STRING peviewPathString = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\peview.exe");
+        PPH_STRING peviewPathString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\peview.exe");
 
         SetupCreateLink(
             PhGetString(startmenuFolderString),
             PhGetString(peviewPathString),
-            PhGetString(SetupInstallPath)
+            PhGetString(Context->SetupInstallPath)
             );
 
         PhDereferenceObject(peviewPathString);
         PhDereferenceObject(startmenuFolderString);
     }
 
-    if (SetupResetSettings)
+    if (Context->SetupResetSettings)
     {
         PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
 
@@ -378,7 +379,7 @@ VOID SetupSetWindowsOptions(
         PhDereferenceObject(settingsFileName);
     }
 
-    if (SetupCreateDefaultTaskManager)
+    if (Context->SetupCreateDefaultTaskManager)
     {
         HANDLE keyHandle;
         
@@ -401,7 +402,7 @@ VOID SetupSetWindowsOptions(
         }
     }
 
-    if (SetupCreateSystemStartup)
+    if (Context->SetupCreateSystemStartup)
     {     
         HANDLE keyHandle;
 
@@ -418,7 +419,7 @@ VOID SetupSetWindowsOptions(
 
             RtlInitUnicodeString(&valueName, L"Process Hacker");
 
-            if (SetupCreateMinimizedSystemStartup)
+            if (Context->SetupCreateMinimizedSystemStartup)
                 value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\" -hide");
             else
                 value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
@@ -428,7 +429,7 @@ VOID SetupSetWindowsOptions(
         }
     }
 
-    if (SetupCreateDesktopShortcut)
+    if (Context->SetupCreateDesktopShortcut)
     {
         PPH_STRING desktopFolderString;
 
@@ -437,12 +438,12 @@ VOID SetupSetWindowsOptions(
             SetupCreateLink(
                 PhGetString(desktopFolderString), 
                 PhGetString(clientPathString), 
-                PhGetString(SetupInstallPath)
+                PhGetString(Context->SetupInstallPath)
                 );
             PhDereferenceObject(desktopFolderString);
         }
     }
-    else if (SetupCreateDesktopShortcutAllUsers)
+    else if (Context->SetupCreateDesktopShortcutAllUsers)
     {
         PPH_STRING startmenuFolderString;
 
@@ -451,7 +452,7 @@ VOID SetupSetWindowsOptions(
             SetupCreateLink(
                 PhGetString(startmenuFolderString),
                 PhGetString(clientPathString),
-                PhGetString(SetupInstallPath)
+                PhGetString(Context->SetupInstallPath)
                 );
             PhDereferenceObject(startmenuFolderString);
         }
@@ -459,7 +460,7 @@ VOID SetupSetWindowsOptions(
 }
 
 VOID SetupDeleteWindowsOptions(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
@@ -521,18 +522,18 @@ VOID SetupDeleteWindowsOptions(
 }
 
 BOOLEAN SetupExecuteProcessHacker(
-    _In_ HWND Parent
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     BOOLEAN success = FALSE;
     PPH_STRING clientPath;
 
-    clientPath = PhConcatStrings2(PhGetString(SetupInstallPath), L"\\ProcessHacker.exe");
+    clientPath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
 
     if (RtlDoesFileExists_U(clientPath->Buffer))
     {
         success = PhShellExecuteEx(
-            Parent,
+            Context->PropSheetHandle,
             clientPath->Buffer,
             NULL,
             SW_SHOWDEFAULT,

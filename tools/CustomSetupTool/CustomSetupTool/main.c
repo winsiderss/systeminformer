@@ -99,8 +99,19 @@ INT CALLBACK MainPropSheet_Callback(
 
             context = PhAllocate(sizeof(PH_SETUP_CONTEXT));
             memset(context, 0, sizeof(PH_SETUP_CONTEXT));
+       
+            context->CurrentMajorVersion = PHAPP_VERSION_MAJOR;
+            context->CurrentMinorVersion = PHAPP_VERSION_MINOR;
+            context->CurrentRevisionVersion = PHAPP_VERSION_REVISION;
 
             context->PropSheetHandle = hwndDlg;
+            context->PropSheetBackHandle = GetDlgItem(hwndDlg, IDC_PROPSHEET_BACK);
+            context->PropSheetForwardHandle = GetDlgItem(hwndDlg, IDC_PROPSHEET_NEXT);
+            context->PropSheetCancelHandle = GetDlgItem(hwndDlg, IDC_PROPSHEET_CANCEL);
+
+            SetupInitializeFont(context->PropSheetBackHandle, -12, FW_NORMAL);
+            SetupInitializeFont(context->PropSheetForwardHandle, -12, FW_NORMAL);
+            SetupInitializeFont(context->PropSheetCancelHandle, -12, FW_NORMAL);
 
             SetProp(hwndDlg, L"SetupContext", (HANDLE)context);
         }

@@ -27,7 +27,20 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
     _Inout_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+    PPH_SETUP_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = GetProp(GetParent(hwndDlg), L"SetupContext");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {
@@ -64,15 +77,13 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
             {
             case PSN_SETACTIVE:
                 {
-                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_NEXT), TRUE);
-
-                    // Disable the Next button
-                    //PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_BACK);
+                    // HACK: Prevent the textbox text from being selected (temp fix).
+                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->PropSheetForwardHandle, TRUE);
                 }
                 break;
             case PSN_QUERYINITIALFOCUS:
                 {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_CANCEL));
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->PropSheetCancelHandle);
                 }
                 return TRUE;
             }

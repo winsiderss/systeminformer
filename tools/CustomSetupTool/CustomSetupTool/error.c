@@ -29,7 +29,20 @@ INT_PTR CALLBACK SetupErrorPage_WndProc(
     _Inout_ LPARAM lParam
     )
 {
-    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+    PPH_SETUP_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = GetProp(GetParent(hwndDlg), L"SetupContext");
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_SETUP_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+
+    if (context == NULL)
+        return FALSE;
 
     switch (uMsg)
     {

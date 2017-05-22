@@ -50,7 +50,7 @@ CleanupExit:
 }
 
 BOOLEAN SetupExtractBuild(
-    _In_ HWND Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     mz_bool status = MZ_FALSE;
@@ -58,17 +58,32 @@ BOOLEAN SetupExtractBuild(
     ULONG64 currentLength = 0;
     mz_zip_archive zip_archive = { 0 };
     PPH_STRING extractPath = NULL;
-    PVOID resourceBuffer;
-    ULONG resourceLength;
     SYSTEM_INFO info;
 
     GetNativeSystemInfo(&info);
+
+#ifdef PH_BUILD_API
+    ULONG resourceLength;
+    PVOID resourceBuffer;
 
     if (!(resourceBuffer = GetZipResourceData(&resourceLength)))
         goto CleanupExit;
 
     if (!(status = mz_zip_reader_init_mem(&zip_archive, resourceBuffer, resourceLength, 0)))
         goto CleanupExit;
+#else
+    PPH_BYTES zipPathUtf8;
+
+    if (!Context->SetupFilePath)
+        goto CleanupExit;
+
+    zipPathUtf8 = PhConvertUtf16ToUtf8(PhGetString(Context->SetupFilePath));
+
+    if (!(status = mz_zip_reader_init_file(&zip_archive, zipPathUtf8->Buffer, 0)))
+        goto CleanupExit;
+
+    PhDereferenceObject(zipPathUtf8);
+#endif
 
     // Remove outdated files
     //for (ULONG i = 0; i < ARRAYSIZE(SetupRemoveFiles); i++)
@@ -98,7 +113,7 @@ BOOLEAN SetupExtractBuild(
     }
 
     InterlockedExchange64(&ExtractTotalLength, totalLength);
-    SendMessage(Context, WM_START_SETUP, 0, 0);
+    SendMessage(Context->ExtractPageHandle, WM_START_SETUP, 0, 0);
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
@@ -151,7 +166,7 @@ BOOLEAN SetupExtractBuild(
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, bufferLength)) != zipFileStat.m_crc32)
             goto CleanupExit;
 
-        extractPath = PhConcatStrings(3, PhGetString(SetupInstallPath), L"\\", PhGetString(fileName));
+        extractPath = PhConcatStrings(3, PhGetString(Context->SetupInstallPath), L"\\", PhGetString(fileName));
 
         if (fullSetupPath = PhGetFullPath(extractPath->Buffer, &indexOfFileName))
         {
@@ -212,7 +227,7 @@ BOOLEAN SetupExtractBuild(
 
         InterlockedExchange64(&ExtractCurrentLength, currentLength);
 
-        SendMessage(Context, WM_UPDATE_SETUP, 0, (LPARAM)PhGetBaseName(extractPath));
+        SendMessage(Context->ExtractPageHandle, WM_UPDATE_SETUP, 0, (LPARAM)PhGetBaseName(extractPath));
 
         NtClose(fileHandle);
         mz_free(buffer);

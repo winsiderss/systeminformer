@@ -64,17 +64,6 @@
 #define WM_END_SETUP (WM_APP + 3)
 
 extern HANDLE MutantHandle;
-extern PPH_STRING SetupInstallPath;
-extern BOOLEAN SetupCreateDesktopShortcut;
-extern BOOLEAN SetupCreateDesktopShortcutAllUsers;
-extern BOOLEAN SetupCreateDefaultTaskManager;
-extern BOOLEAN SetupCreateSystemStartup;
-extern BOOLEAN SetupCreateMinimizedSystemStartup;
-extern BOOLEAN SetupInstallDebuggingTools;
-extern BOOLEAN SetupInstallPeViewAssociations;
-extern BOOLEAN SetupInstallKphService;
-extern BOOLEAN SetupResetSettings;
-extern BOOLEAN SetupStartAppAfterExit;
 
 typedef enum _SETUP_COMMAND_TYPE
 {
@@ -86,11 +75,33 @@ typedef enum _SETUP_COMMAND_TYPE
 
 typedef struct _PH_SETUP_CONTEXT
 {
-    HWND WindowHandle;
     HWND PropSheetHandle;
+    HWND PropSheetBackHandle;
+    HWND PropSheetForwardHandle;
+    HWND PropSheetCancelHandle;
+
+    HWND WelcomePageHandle;
+    HWND EulaPageHandle;
+    HWND ConfigPageHandle;
+    HWND DownloadPageHandle;
+    HWND ExtractPageHandle;
+    HWND FinalPageHandle;
+    HWND ErrorPageHandle;
 
     HICON IconSmallHandle;
     HICON IconLargeHandle;
+
+    PPH_STRING SetupInstallPath;
+    BOOLEAN SetupCreateDesktopShortcut;
+    BOOLEAN SetupCreateDesktopShortcutAllUsers;
+    BOOLEAN SetupCreateDefaultTaskManager;
+    BOOLEAN SetupCreateSystemStartup;
+    BOOLEAN SetupCreateMinimizedSystemStartup;
+    BOOLEAN SetupInstallDebuggingTools;
+    BOOLEAN SetupInstallPeViewAssociations;
+    BOOLEAN SetupInstallKphService;
+    BOOLEAN SetupResetSettings;
+    BOOLEAN SetupStartAppAfterExit;
 
     ULONG ErrorCode;
     PPH_STRING Version;
@@ -102,8 +113,21 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING ReleaseNotesUrl;
 
     PPH_STRING BinFileDownloadUrl;
-    PPH_STRING SetupFileDownloadUrl;
+    //PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
+
+    HWND MainHeaderHandle;
+    HWND StatusHandle;
+    HWND SubStatusHandle;
+    HWND ProgressHandle;
+
+    BOOLEAN SetupRunning;
+    ULONG CurrentMajorVersion;
+    ULONG CurrentMinorVersion;
+    ULONG CurrentRevisionVersion;
+    ULONG LatestMajorVersion;
+    ULONG LatestMinorVersion;
+    ULONG LatestRevisionVersion;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupLoadImage(
@@ -155,21 +179,13 @@ INT_PTR CALLBACK SetupErrorPage_WndProc(
 
 // page4.c
 
-typedef struct _SETUP_PROGRESS_THREAD
-{
-    HWND DialogHandle;
-    HWND PropSheetHandle;
-    HICON PropSheetIcon;
-} SETUP_PROGRESS_THREAD, *PSETUP_PROGRESS_THREAD;
-
-extern BOOLEAN SetupRunning;
 extern ULONG64 ExtractCurrentLength;
 extern ULONG64 ExtractTotalLength;
 
 // setup.c
 
-VOID SetupInstallKph(
-    VOID
+VOID SetupStartKph(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 ULONG SetupUninstallKph(
@@ -177,7 +193,7 @@ ULONG SetupUninstallKph(
     );
 
 NTSTATUS SetupCreateUninstallKey(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 NTSTATUS SetupDeleteUninstallKey(
@@ -185,23 +201,23 @@ NTSTATUS SetupDeleteUninstallKey(
     );
 
 VOID SetupSetWindowsOptions(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 VOID SetupDeleteWindowsOptions(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 VOID SetupCreateUninstallFile(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 VOID SetupDeleteUninstallFile(
-    VOID
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 BOOLEAN SetupExecuteProcessHacker(
-    _In_ HWND Parent
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 VOID SetupUpgradeSettingsFile(
@@ -210,48 +226,18 @@ VOID SetupUpgradeSettingsFile(
 
 // download.c
 
-typedef struct _PH_SETUP_DOWNLOAD_CONTEXT
-{
-    HWND DialogHandle;
-    HWND PropSheetHandle;
-    HWND MainHeaderHandle;
-    HWND StatusHandle;
-    HWND SubStatusHandle;
-    HWND ProgressHandle;
-
-    ULONG CurrentMajorVersion;
-    ULONG CurrentMinorVersion;
-    ULONG CurrentRevisionVersion;
-    ULONG LatestMajorVersion;
-    ULONG LatestMinorVersion;
-    ULONG LatestRevisionVersion;
-
-    ULONG ErrorCode;
-    PPH_STRING Version;
-    PPH_STRING RevVersion;
-    PPH_STRING RelDate;
-    PPH_STRING Size;
-    PPH_STRING Hash;
-    PPH_STRING Signature;
-    PPH_STRING ReleaseNotesUrl;
-
-    PPH_STRING BinFileDownloadUrl;
-    PPH_STRING SetupFileDownloadUrl;
-    PPH_STRING SetupFilePath;
-} PH_SETUP_DOWNLOAD_CONTEXT, *PPH_SETUP_DOWNLOAD_CONTEXT;
-
 BOOLEAN SetupQueryUpdateData(
-    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 BOOLEAN UpdateDownloadUpdateData(
-    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 // extract.c
 
 BOOLEAN SetupExtractBuild(
-    _In_ HWND Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
  // update.c
