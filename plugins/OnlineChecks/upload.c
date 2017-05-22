@@ -172,18 +172,6 @@ VOID UploadContextDeleteProcedure(
         context->HttpHandle = NULL;
     }
 
-    if (context->IconLargeHandle)
-    {
-        DestroyIcon(context->IconLargeHandle);
-        context->IconLargeHandle = NULL;
-    }
-
-    if (context->IconSmallHandle)
-    {
-        DestroyIcon(context->IconSmallHandle);
-        context->IconSmallHandle = NULL;
-    }
-
     PhClearReference(&context->ErrorString);
     PhClearReference(&context->FileName);
     PhClearReference(&context->BaseFileName);
@@ -217,20 +205,8 @@ VOID TaskDialogCreateIcons(
     _In_ PUPLOAD_CONTEXT Context
     )
 {
-    Context->IconLargeHandle = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
-    Context->IconSmallHandle = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
-        MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
+    Context->IconLargeHandle = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
+    Context->IconSmallHandle = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER));
 
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)Context->IconSmallHandle);
     SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)Context->IconLargeHandle);

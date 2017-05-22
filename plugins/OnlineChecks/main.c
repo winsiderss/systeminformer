@@ -179,7 +179,7 @@ VOID NTAPI MenuItemCallback(
                 config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
                 config.hwndParent = menuItem->OwnerWindow;
                 config.hMainIcon = PhLoadIcon(
-                    NtCurrentPeb()->ImageBaseAddress,
+                    PhLibImageBase,
                     MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER),
                     PH_LOAD_ICON_SIZE_LARGE,
                     GetSystemMetrics(SM_CXICON),

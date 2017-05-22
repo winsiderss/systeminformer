@@ -148,9 +148,9 @@ VOID EtwDiskNetworkLayoutGraphs(
     HDWP deferHandle;
     RECT clientRect;
     RECT panelRect;
-    RECT margin = { ET_SCALE_DPI(13), ET_SCALE_DPI(13), ET_SCALE_DPI(13), ET_SCALE_DPI(13) };
-    RECT innerMargin = { ET_SCALE_DPI(10), ET_SCALE_DPI(20), ET_SCALE_DPI(10), ET_SCALE_DPI(10) };
-    LONG between = ET_SCALE_DPI(3);
+    RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
+    RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
+    LONG between = PH_SCALE_DPI(3);
     ULONG graphWidth;
     ULONG graphHeight;
 

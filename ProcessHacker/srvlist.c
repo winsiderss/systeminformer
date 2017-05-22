@@ -689,10 +689,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!ServiceIconsLoaded)
             {
-                ServiceApplicationIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PHAPPLICATION));
-                ServiceApplicationGoIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_PHAPPLICATIONGO));
-                ServiceCogIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_COG));
-                ServiceCogGoIcon = PH_LOAD_SHARED_ICON_SMALL(MAKEINTRESOURCE(IDI_COGGO));
+                ServiceApplicationIcon = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PHAPPLICATION));
+                ServiceApplicationGoIcon = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PHAPPLICATIONGO));
+                ServiceCogIcon = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_COG));
+                ServiceCogGoIcon = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_COGGO));
 
                 ServiceIconsLoaded = TRUE;
             }
