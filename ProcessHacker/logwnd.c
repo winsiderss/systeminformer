@@ -156,6 +156,9 @@ INT_PTR CALLBACK PhpLogDlgProc(
     {
     case WM_INITDIALOG:
         {
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
             ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(ListViewHandle, L"explorer");
