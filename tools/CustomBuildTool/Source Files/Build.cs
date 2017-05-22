@@ -894,7 +894,7 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildSetupSig))
                 return;
 
-            string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --pretty=format:\"%h %an %s (%cr)\"");
+            string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\"");
             string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
