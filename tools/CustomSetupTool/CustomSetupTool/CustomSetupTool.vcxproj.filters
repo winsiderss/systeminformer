@@ -196,11 +196,6 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\build\output\processhacker-build-bin.zip">
-      <Filter>Resource Files\Content</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <Manifest Include="resources\app.manifest">
       <Filter>Resource Files\Content</Filter>
     </Manifest>

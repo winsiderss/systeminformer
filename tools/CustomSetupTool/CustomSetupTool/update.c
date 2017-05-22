@@ -39,8 +39,10 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupUninstallKph())
         goto CleanupExit;
 
+    if (!SetupCreateUninstallFile(Context))
+        goto CleanupExit;
+
     SetupCreateUninstallKey(Context);
-    SetupCreateUninstallFile(Context);
 
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
@@ -56,7 +58,7 @@ NTSTATUS SetupUpdateBuild(
 
 CleanupExit:
 
-    PostMessage(Context->PropSheetHandle, IDD_ERROR, 0, 0);
+    PostMessage(Context->PropSheetHandle, WM_APP + IDD_ERROR, 0, 0);
     PhDereferenceObject(Context);
     return STATUS_FAIL_CHECK;
 }
@@ -102,6 +104,55 @@ VOID TaskDialogCreateIcons(
     SendMessage(Context->PropSheetHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
 }
 
+HRESULT CALLBACK SetupErrorTaskDialogCallbackProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
+    )
+{
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
+
+    switch (uMsg)
+    {
+    case TDN_NAVIGATED:
+        {
+
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID SetupShowUpdatingErrorDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    TASKDIALOGCONFIG config;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
+    config.cxWidth = 200;
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    config.hMainIcon = Context->IconLargeHandle;
+    config.pfCallback = SetupErrorTaskDialogCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = PhaFormatString(
+        L"Error updating to the latest version...",
+        PHAPP_VERSION_MAJOR,
+        PHAPP_VERSION_MINOR,
+        PHAPP_VERSION_REVISION
+        )->Buffer;
+
+    if (Context->ErrorCode)
+        config.pszContent = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
+    SendMessage(Context->PropSheetHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+}
+
 LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -128,6 +179,11 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     case WM_NCDESTROY:
         {
             RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+        }
+        break;
+    case WM_APP + IDD_ERROR:
+        {
+            SetupShowUpdatingErrorDialog(context);
         }
         break;
     }

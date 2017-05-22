@@ -63,8 +63,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,0,0,0
- PRODUCTVERSION 3,0,0,0
+ FILEVERSION PHAPP_VERSION_NUMBER
+ PRODUCTVERSION PHAPP_VERSION_NUMBER
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -81,12 +81,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Process Hacker"
             VALUE "FileDescription", "Process Hacker Setup"
-            VALUE "FileVersion", "3.0.0.0"
+            VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "Process Hacker Setup"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2017"
             VALUE "OriginalFilename", "ProcessHackerSetup.exe"
             VALUE "ProductName", "Process Hacker Setup"
-            VALUE "ProductVersion", "3.0.0.0"
+            VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"
@@ -100,8 +100,11 @@ END
 //
 // RCDATA
 //
+#if defined(APSTUDIO_INVOKED) || defined(PH_BUILD_API)
 
 IDR_BIN_DATA            RCDATA                  "../../../../build/output/processhacker-build-bin.zip"
+
+#endif
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
