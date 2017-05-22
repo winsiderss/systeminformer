@@ -58,7 +58,6 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
                 if (eulaTextString = PhConvertUtf8ToUtf16(resourceBuffer))
                 {
                     SetWindowText(GetDlgItem(hwndDlg, IDC_EDIT1), eulaTextString->Buffer);
-
                     PhDereferenceObject(eulaTextString);
                 }
 
@@ -75,17 +74,26 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
 
             switch (pageNotify->hdr.code)
             {
-            case PSN_SETACTIVE:
-                {
-                    // HACK: Prevent the textbox text from being selected (temp fix).
-                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->PropSheetForwardHandle, TRUE);
-                }
-                break;
             case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->PropSheetCancelHandle);
-                }
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->PropSheetCancelHandle);
                 return TRUE;
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_SETFOCUS:
+                {
+                    HWND handle = (HWND)lParam;
+
+                    // Prevent the edit control text from being selected.
+                    SendMessage(handle, EM_SETSEL, -1, 0);
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)TRUE);
+                    return TRUE;
+                }
             }
         }
         break;

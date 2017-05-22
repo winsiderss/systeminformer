@@ -166,30 +166,50 @@ PPH_STRING SetupFindInstallDirectory(
     return setupInstallPath;
 }
 
-VOID SetupCreateUninstallFile(
+BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    PH_STRINGREF currentFilePath;
     PPH_STRING backupFilePath;
     PPH_STRING uninstallFilePath;
+
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->ImagePathName, &currentFilePath);
+
+    // Check if the user has started the setup from the installation folder.
+    if (PhStartsWithStringRef2(&currentFilePath, PhGetString(Context->SetupInstallPath), TRUE))
+    {
+        // Do nothing, latest version already in the installation folder. 
+        return TRUE;
+    }
 
     backupFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.bak");
     uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.exe");
 
     if (RtlDoesFileExists_U(backupFilePath->Buffer))
     {
-        // Move to temp directory
-        //MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer);
+        // TODO: Move to temp directory
     }
 
     if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
     {
-        MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer);
+        if (!MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer))
+        {
+            Context->ErrorCode = GetLastError();
+            PhDereferenceObject(uninstallFilePath);
+            return FALSE;
+        }
     }
 
-    CopyFile(NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer, uninstallFilePath->Buffer, FALSE);
+    if (!CopyFile(currentFilePath.Buffer, uninstallFilePath->Buffer, FALSE))
+    {
+        Context->ErrorCode = GetLastError();
+        PhDereferenceObject(uninstallFilePath);
+        return FALSE;
+    }
 
     PhDereferenceObject(uninstallFilePath);
+    return TRUE;
 }
 
 VOID SetupDeleteUninstallFile(

@@ -30,9 +30,6 @@ NTSTATUS SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    //if (SetupInstallDebuggingTools)
-    //    SetupDownloadThread(Arguments)
-
     // Stop Process Hacker.
     if (!ShutdownProcessHacker())
         goto CleanupExit;
@@ -52,10 +49,13 @@ NTSTATUS SetupProgressThread(
     if (Context->SetupResetSettings)
         RemoveDirectoryPath(PhGetString(Context->SetupInstallPath));
 
+    // Create the uninstaller.
+    if (!SetupCreateUninstallFile(Context))
+        goto CleanupExit;
+
     // Create the ARP uninstall entries.
     SetupCreateUninstallKey(Context);
-    // Create the uninstaller.
-    SetupCreateUninstallFile(Context);
+
     // Create autorun and shortcuts.
     SetupSetWindowsOptions(Context);
 
@@ -163,8 +163,12 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
     case WM_START_SETUP:
         {
 #ifdef PH_BUILD_API
-            SetWindowText(context->MainHeaderHandle,
-                PhaFormatString(L"Installing Process Hacker %lu.%lu.%lu", PHAPP_VERSION_MAJOR, PHAPP_VERSION_MINOR, PHAPP_VERSION_REVISION)->Buffer);
+            SetWindowText(context->MainHeaderHandle, PhaFormatString(
+                L"Installing Process Hacker %lu.%lu.%lu", 
+                PHAPP_VERSION_MAJOR, 
+                PHAPP_VERSION_MINOR, 
+                PHAPP_VERSION_REVISION
+                )->Buffer);
 #else
             SetWindowText(context->MainHeaderHandle, PhaFormatString(
                 L"Installing Process Hacker %lu.%lu.%lu", 

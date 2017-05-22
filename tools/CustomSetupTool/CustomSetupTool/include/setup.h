@@ -208,7 +208,7 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-VOID SetupCreateUninstallFile(
+BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
 

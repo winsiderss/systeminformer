@@ -190,7 +190,22 @@ BOOLEAN SetupExtractBuild(
             PhDereferenceObject(fullSetupPath);
         }
 
-        // TODO: Rename existing folder items and restore if the setup fails.
+        // TODO: Backup file and restore if the setup fails.
+        //{
+        //    PPH_STRING backupFilePath;
+        //
+        //    backupFilePath = PhConcatStrings(
+        //        4, 
+        //        PhGetString(Context->SetupInstallPath), 
+        //        L"\\", 
+        //        PhGetString(fileName),
+        //        L".bak"
+        //        );
+        //
+        //    MoveFile(extractPath->Buffer, backupFilePath->Buffer);
+        //
+        //    PhDereferenceObject(backupFilePath);
+        //}
 
         if (!NT_SUCCESS(PhCreateFileWin32(
             &fileHandle,
