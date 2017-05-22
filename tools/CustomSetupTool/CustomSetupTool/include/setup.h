@@ -32,6 +32,8 @@
 #include <ph.h>
 #include <guisup.h>
 #include <prsht.h>
+#include <appsup.h>
+
 #include <aclapi.h>
 #include <WindowsX.h>
 #include <Wincodec.h>
@@ -40,9 +42,9 @@
 #include <shlobj.h>
 #include <sddl.h>
 
-#include <appsup.h>
-
 #include "resource.h"
+
+// Version Information
 #include "..\..\ProcessHacker\include\phappres.h"
 
 // Win32 PropertySheet Control IDs
@@ -82,11 +84,27 @@ typedef enum _SETUP_COMMAND_TYPE
     SETUP_COMMAND_REPAIR,
 } SETUP_COMMAND_TYPE;
 
-typedef struct _SETUP_INSTANCE
+typedef struct _PH_SETUP_CONTEXT
 {
-    ULONG Version;
     HWND WindowHandle;
-} SETUP_INSTANCE, *PSETUP_INSTANCE;
+    HWND PropSheetHandle;
+
+    HICON IconSmallHandle;
+    HICON IconLargeHandle;
+
+    ULONG ErrorCode;
+    PPH_STRING Version;
+    PPH_STRING RevVersion;
+    PPH_STRING RelDate;
+    PPH_STRING Size;
+    PPH_STRING Hash;
+    PPH_STRING Signature;
+    PPH_STRING ReleaseNotesUrl;
+
+    PPH_STRING BinFileDownloadUrl;
+    PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFilePath;
+} PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupLoadImage(
     _In_ HWND WindowHandle,
@@ -122,6 +140,13 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
     );
 
 INT_PTR CALLBACK SetupPropPage5_WndProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _Inout_ WPARAM wParam,
+    _Inout_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK SetupErrorPage_WndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _Inout_ WPARAM wParam,
@@ -185,13 +210,61 @@ VOID SetupUpgradeSettingsFile(
 
 // download.c
 
-typedef struct _PH_SETUP_UNINSTALL_CONTEXT
+typedef struct _PH_SETUP_DOWNLOAD_CONTEXT
 {
     HWND DialogHandle;
+    HWND PropSheetHandle;
     HWND MainHeaderHandle;
     HWND StatusHandle;
     HWND SubStatusHandle;
     HWND ProgressHandle;
+
+    ULONG CurrentMajorVersion;
+    ULONG CurrentMinorVersion;
+    ULONG CurrentRevisionVersion;
+    ULONG LatestMajorVersion;
+    ULONG LatestMinorVersion;
+    ULONG LatestRevisionVersion;
+
+    ULONG ErrorCode;
+    PPH_STRING Version;
+    PPH_STRING RevVersion;
+    PPH_STRING RelDate;
+    PPH_STRING Size;
+    PPH_STRING Hash;
+    PPH_STRING Signature;
+    PPH_STRING ReleaseNotesUrl;
+
+    PPH_STRING BinFileDownloadUrl;
+    PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFilePath;
+} PH_SETUP_DOWNLOAD_CONTEXT, *PPH_SETUP_DOWNLOAD_CONTEXT;
+
+BOOLEAN SetupQueryUpdateData(
+    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    );
+
+BOOLEAN UpdateDownloadUpdateData(
+    _In_ PPH_SETUP_DOWNLOAD_CONTEXT Context
+    );
+
+// extract.c
+
+BOOLEAN SetupExtractBuild(
+    _In_ HWND Context
+    );
+
+ // update.c
+
+VOID SetupShowUpdateDialog(
+    VOID
+    );
+
+// uninstall.c
+
+typedef struct _PH_SETUP_UNINSTALL_CONTEXT
+{
+    HWND DialogHandle;
     HICON IconSmallHandle;
     HICON IconLargeHandle;
 
@@ -215,28 +288,6 @@ typedef struct _PH_SETUP_UNINSTALL_CONTEXT
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFilePath;
 } PH_SETUP_UNINSTALL_CONTEXT, *PPH_SETUP_UNINSTALL_CONTEXT;
-
-BOOLEAN SetupQueryUpdateData(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
-    );
-
-BOOLEAN UpdateDownloadUpdateData(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
-    );
-
-// extract.c
-
-BOOLEAN SetupExtractBuild(
-    _In_ HWND Context
-    );
-
- // update.c
-
-VOID SetupShowUpdateDialog(
-    VOID
-    );
-
-// uninstall.c
 
 VOID SetupShowUninstallDialog(
     VOID

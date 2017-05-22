@@ -556,11 +556,11 @@ VOID SetupUpgradeSettingsFile(
     settingsFilePath = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
     oldSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
 
-    if (RtlDoesFileExists_U(settingsFilePath->Buffer))
-        SetupDeleteDirectoryFile(settingsFilePath->Buffer);
+    if (!RtlDoesFileExists_U(settingsFilePath->Buffer))
+    {
+        CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
+    }
  
-    CopyFile(oldSettingsFileName->Buffer, settingsFilePath->Buffer, FALSE);
-    
     PhDereferenceObject(oldSettingsFileName);
     PhDereferenceObject(settingsFilePath);
 }

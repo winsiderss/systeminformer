@@ -8,16 +8,53 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
-#include "../../../ProcessHacker/include/phappres.h"
+#include "../../../../ProcessHacker/include/phappres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "#include ""../../../../ProcessHacker/include/phappres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (Australia) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
@@ -96,9 +133,21 @@ EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Shell Dlg 2", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_PROJECT_ICON,"Static",SS_BLACKFRAME,271,15,92,75
-    CONTROL         "Setup failed to install Process Hacker.",IDC_MAINHEADER,
-                    "Static",SS_SIMPLE | WS_GROUP,22,26,267,24
-    LTEXT           "Click Retry to try installing Process Hacker again or click Close to exit.",IDC_SUBHEADER,22,51,245,21
+    CONTROL         "Setup failed to install Process Hacker :(",IDC_MAINHEADER,
+                    "Static",SS_SIMPLE | WS_GROUP,15,26,267,24
+    LTEXT           "Select Retry to try installing Process Hacker again or Cancel to exit.",IDC_SUBHEADER,15,51,245,34
+END
+
+IDD_DIALOG5 DIALOGEX 0, 0, 400, 225
+STYLE DS_SETFONT | DS_MODALFRAME | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg 2", 400, 0, 0x1
+BEGIN
+    LTEXT           "Preparing installation...",IDC_INSTALL_STATUS,15,147,380,13
+    CONTROL         "",IDC_INSTALL_PROGRESS,"msctls_progress32",PBS_SMOOTH,15,164,370,11,WS_EX_CLIENTEDGE
+    CONTROL         "",IDC_PROJECT_ICON,"Static",SS_BLACKFRAME,271,15,92,75
+    LTEXT           "Preparing installation...",IDC_MAINHEADER,15,26,259,24
+    LTEXT           "Preparing installation...",IDC_INSTALL_SUBSTATUS,15,184,370,32
 END
 
 
@@ -140,9 +189,17 @@ BEGIN
 
     IDD_ERROR, DIALOG
     BEGIN
-        LEFTMARGIN, 22
-        RIGHTMARGIN, 378
-        TOPMARGIN, 10
+        LEFTMARGIN, 15
+        RIGHTMARGIN, 385
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 216
+    END
+
+    IDD_DIALOG5, DIALOG
+    BEGIN
+        LEFTMARGIN, 15
+        RIGHTMARGIN, 385
+        TOPMARGIN, 7
         BOTTOMMARGIN, 216
     END
 END
@@ -166,53 +223,6 @@ IDI_ICON1               ICON                    "resources\\ProcessHacker.ico"
 
 IDB_PNG1                PNG                     "resources\\ProcessHacker.png"
 
-#endif    // English resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (United States) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
-
-#ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
-1 TEXTINCLUDE 
-BEGIN
-    "resource.h\0"
-END
-
-2 TEXTINCLUDE 
-BEGIN
-    "#include ""winres.h""\r\n"
-    "#include ""../../../ProcessHacker/include/phappres.h""\r\n"
-    "\0"
-END
-
-3 TEXTINCLUDE 
-BEGIN
-    "\r\n"
-    "\0"
-END
-
-#endif    // APSTUDIO_INVOKED
-
-#endif    // English (United States) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -220,12 +230,6 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 IDR_LICENCE_DATA        RCDATA                  "resources\\LICENSE.txt"
-
-#if defined(APSTUDIO_INVOKED) || defined(PH_BUILD_API)
-
-IDR_BIN_DATA RCDATA              "..\\..\\..\\build\\output\\processhacker-build-bin.zip"
-
-#endif
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

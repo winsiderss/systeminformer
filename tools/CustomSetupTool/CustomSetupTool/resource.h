@@ -8,11 +8,11 @@
 #define IDD_DIALOG3                     104
 #define IDD_ERROR                       105
 #define IDI_ICON1                       106
+#define IDD_DIALOG5                     106
 #define IDB_PNG1                        107
 #define IDR_LICENCE_DATA                108
-#define IDR_BIN_DATA                    109
+#define IDR_BIN_DATA                    111
 #define IDC_MAINHEADER                  1001
-#define IDC_MAINHEADER2                 1002
 #define IDC_INSTALL_PROGRESS            1005
 #define IDC_SUBHEADER                   1047
 #define IDC_EDIT1                       1048
@@ -46,6 +46,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40002
 #define _APS_NEXT_CONTROL_VALUE         1078
-#define _APS_NEXT_SYMED_VALUE           110
+#define _APS_NEXT_SYMED_VALUE           112
 #endif
 #endif

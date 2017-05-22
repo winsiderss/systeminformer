@@ -73,6 +73,8 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
     _Inout_ LPARAM lParam
     )
 {
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -98,27 +100,23 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
             {
             case PSN_SETACTIVE:
                 {
-                    HWND hwPropSheet = pageNotify->hdr.hwndFrom;
-
                     // Reset the button state.
-                    PropSheet_SetWizButtons(hwPropSheet, PSWIZB_NEXT);
+                    PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_NEXT);
 
                     // Hide the back button.
-                    //ShowWindow(GetDlgItem(hwPropSheet, IDC_PROPSHEET_BACK), SW_HIDE);
+                    //ShowWindow(GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_BACK), SW_HIDE);
 
                     // HACK: Focus the next button (reset after changing button state).
-                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwPropSheet, IDC_PROPSHEET_NEXT), TRUE);
+                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_NEXT), TRUE);
                 }
                 break;
             case PSN_KILLACTIVE:
                 {
-                    HWND hwPropSheet = pageNotify->hdr.hwndFrom;
-
                     // Enable the back button.
-                    PropSheet_SetWizButtons(hwPropSheet, PSWIZB_NEXT | PSWIZB_BACK);
+                    PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_NEXT | PSWIZB_BACK);
 
                     // Show the back button.
-                    //ShowWindow(GetDlgItem(hwPropSheet, IDC_PROPSHEET_BACK), SW_SHOW);
+                    //ShowWindow(GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_BACK), SW_SHOW);
                 }
                 break;
             }

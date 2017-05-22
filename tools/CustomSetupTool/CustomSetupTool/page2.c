@@ -27,6 +27,8 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
     _Inout_ LPARAM lParam
     )
 {
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)GetProp(GetParent(hwndDlg), L"SetupContext");
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -62,20 +64,15 @@ INT_PTR CALLBACK SetupPropPage2_WndProc(
             {
             case PSN_SETACTIVE:
                 {
-                    HWND hwPropSheet = pageNotify->hdr.hwndFrom;
-
-                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwPropSheet, IDC_PROPSHEET_NEXT), TRUE);
+                    PostMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_NEXT), TRUE);
 
                     // Disable the Next button
-                    //PropSheet_SetWizButtons(hwPropSheet, PSWIZB_BACK);
+                    //PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_BACK);
                 }
                 break;
             case PSN_QUERYINITIALFOCUS:
                 {
-                    HWND hwPropSheet = pageNotify->hdr.hwndFrom;
-                    HWND hwnd = GetDlgItem(hwPropSheet, IDC_PROPSHEET_CANCEL);
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)hwnd);
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(context->PropSheetHandle, IDC_PROPSHEET_CANCEL));
                 }
                 return TRUE;
             }
