@@ -232,6 +232,9 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
+
             context->DialogHandle = hwndDlg;
             context->PluginMenuActiveId = IDC_INSTALLED;
             context->PluginMenuActive = GetDlgItem(hwndDlg, IDC_INSTALLED);
