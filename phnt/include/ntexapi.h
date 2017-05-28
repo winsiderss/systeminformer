@@ -1209,8 +1209,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemFlagsInformation, // q: SYSTEM_FLAGS_INFORMATION
     SystemCallTimeInformation, // not implemented // SYSTEM_CALL_TIME_INFORMATION // 10
     SystemModuleInformation, // q: RTL_PROCESS_MODULES
-    SystemLocksInformation, // q: SYSTEM_LOCK_INFORMATION
-    SystemStackTraceInformation,
+    SystemLocksInformation, // q: RTL_PROCESS_LOCKS
+    SystemStackTraceInformation, // q: RTL_PROCESS_BACKTRACES
     SystemPagedPoolInformation, // not implemented
     SystemNonPagedPoolInformation, // not implemented
     SystemHandleInformation, // q: SYSTEM_HANDLE_INFORMATION
@@ -1228,7 +1228,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemTimeAdjustmentInformation, // q: SYSTEM_QUERY_TIME_ADJUST_INFORMATION; s: SYSTEM_SET_TIME_ADJUST_INFORMATION (requires SeSystemtimePrivilege)
     SystemSummaryMemoryInformation, // not implemented
     SystemMirrorMemoryInformation, // s (requires license value "Kernel-MemoryMirroringSupported") (requires SeShutdownPrivilege) // 30
-    SystemPerformanceTraceInformation, // s
+    SystemPerformanceTraceInformation, // q; s: (type depends on EVENT_TRACE_INFORMATION_CLASS)
     SystemObsolete0, // not implemented
     SystemExceptionInformation, // q: SYSTEM_EXCEPTION_INFORMATION
     SystemCrashDumpStateInformation, // s (requires SeDebugPrivilege)
@@ -1324,10 +1324,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION // since WIN7 SP1
     SystemSessionBigPoolInformation, // q: SYSTEM_SESSION_POOLTAG_INFORMATION // since WIN8
     SystemBootGraphicsInformation, // q; s: SYSTEM_BOOT_GRAPHICS_INFORMATION (kernel-mode only)
-    SystemScrubPhysicalMemoryInformation,
+    SystemScrubPhysicalMemoryInformation, // q; s: MEMORY_SCRUB_INFORMATION
     SystemBadPageInformation,
-    SystemProcessorProfileControlArea,
-    SystemCombinePhysicalMemoryInformation, // 130
+    SystemProcessorProfileControlArea, // q; s: SYSTEM_PROCESSOR_PROFILE_CONTROL_AREA
+    SystemCombinePhysicalMemoryInformation, // s: MEMORY_COMBINE_INFORMATION, MEMORY_COMBINE_INFORMATION_EX, MEMORY_COMBINE_INFORMATION_EX2 // 130
     SystemEntropyInterruptTimingCallback,
     SystemConsoleInformation, // q: SYSTEM_CONSOLE_INFORMATION
     SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION
@@ -1619,30 +1619,46 @@ typedef struct _SYSTEM_CALL_TIME_INFORMATION
 } SYSTEM_CALL_TIME_INFORMATION, *PSYSTEM_CALL_TIME_INFORMATION;
 
 // private
-typedef struct _SYSTEM_LOCK_TABLE_ENTRY_INFO
+typedef struct _RTL_PROCESS_LOCK_INFORMATION
 {
     PVOID Address;
     USHORT Type;
-    USHORT Reserved1;
-    ULONG ExclusiveOwnerThreadId;
-    ULONG ActiveCount;
     USHORT CreatorBackTraceIndex;
     HANDLE OwningThread;
     LONG LockCount;
     ULONG ContentionCount;
-    ULONG Reserved2[2];
     ULONG EntryCount;
     LONG RecursionCount;
-    ULONG NumberOfSharedWaiters;
-    ULONG NumberOfExclusiveWaiters;
-} SYSTEM_LOCK_TABLE_ENTRY_INFO, *PSYSTEM_LOCK_TABLE_ENTRY_INFO;
+    ULONG NumberOfWaitingShared;
+    ULONG NumberOfWaitingExclusive;
+} RTL_PROCESS_LOCK_INFORMATION, *PRTL_PROCESS_LOCK_INFORMATION;
 
 // private
-typedef struct _SYSTEM_LOCK_INFORMATION
+typedef struct _RTL_PROCESS_LOCKS
 {
-    ULONG Count;
-    SYSTEM_LOCK_TABLE_ENTRY_INFO Locks[1];
-} SYSTEM_LOCK_INFORMATION, *PSYSTEM_LOCK_INFORMATION;
+    ULONG NumberOfLocks;
+    RTL_PROCESS_LOCK_INFORMATION Locks[1];
+} RTL_PROCESS_LOCKS, *PRTL_PROCESS_LOCKS;
+
+// private
+typedef struct _RTL_PROCESS_BACKTRACE_INFORMATION
+{
+    PCHAR SymbolicBackTrace;
+    ULONG TraceCount;
+    USHORT Index;
+    USHORT Depth;
+    PVOID BackTrace[32];
+} RTL_PROCESS_BACKTRACE_INFORMATION, *PRTL_PROCESS_BACKTRACE_INFORMATION;
+
+// private
+typedef struct _RTL_PROCESS_BACKTRACES
+{
+    ULONG CommittedMemory;
+    ULONG ReservedMemory;
+    ULONG NumberOfBackTraceLookups;
+    ULONG NumberOfBackTraces;
+    RTL_PROCESS_BACKTRACE_INFORMATION BackTraces[1];
+} RTL_PROCESS_BACKTRACES, *PRTL_PROCESS_BACKTRACES;
 
 typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
 {
@@ -1779,6 +1795,147 @@ typedef struct _SYSTEM_SET_TIME_ADJUST_INFORMATION
     ULONG TimeAdjustment;
     BOOLEAN Enable;
 } SYSTEM_SET_TIME_ADJUST_INFORMATION, *PSYSTEM_SET_TIME_ADJUST_INFORMATION;
+
+typedef enum _EVENT_TRACE_INFORMATION_CLASS
+{
+    EventTraceKernelVersionInformation, // EVENT_TRACE_VERSION_INFORMATION
+    EventTraceGroupMaskInformation, // EVENT_TRACE_GROUPMASK_INFORMATION
+    EventTracePerformanceInformation, // EVENT_TRACE_PERFORMANCE_INFORMATION
+    EventTraceTimeProfileInformation, // EVENT_TRACE_TIME_PROFILE_INFORMATION
+    EventTraceSessionSecurityInformation, // EVENT_TRACE_SESSION_SECURITY_INFORMATION
+    EventTraceSpinlockInformation, // EVENT_TRACE_SPINLOCK_INFORMATION
+    EventTraceStackTracingInformation, // EVENT_TRACE_SYSTEM_EVENT_INFORMATION
+    EventTraceExecutiveResourceInformation, // EVENT_TRACE_EXECUTIVE_RESOURCE_INFORMATION
+    EventTraceHeapTracingInformation, // EVENT_TRACE_HEAP_TRACING_INFORMATION
+    EventTraceHeapSummaryTracingInformation, // EVENT_TRACE_HEAP_TRACING_INFORMATION
+    EventTracePoolTagFilterInformation, // EVENT_TRACE_TAG_FILTER_INFORMATION
+    EventTracePebsTracingInformation, // EVENT_TRACE_SYSTEM_EVENT_INFORMATION 
+    EventTraceProfileConfigInformation, // EVENT_TRACE_PROFILE_COUNTER_INFORMATION
+    EventTraceProfileSourceListInformation, // EVENT_TRACE_PROFILE_LIST_INFORMATION
+    EventTraceProfileEventListInformation, // EVENT_TRACE_SYSTEM_EVENT_INFORMATION 
+    EventTraceProfileCounterListInformation, // EVENT_TRACE_PROFILE_COUNTER_INFORMATION 
+    EventTraceStackCachingInformation, // EVENT_TRACE_STACK_CACHING_INFORMATION
+    EventTraceObjectTypeFilterInformation, // EVENT_TRACE_TAG_FILTER_INFORMATION
+    EventTraceSoftRestartInformation, // EVENT_TRACE_SOFT_RESTART_INFORMATION
+    MaxEventTraceInfoClass
+} EVENT_TRACE_INFORMATION_CLASS;
+
+typedef struct _EVENT_TRACE_VERSION_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG EventTraceKernelVersion;
+} EVENT_TRACE_VERSION_INFORMATION, *PEVENT_TRACE_VERSION_INFORMATION;
+
+typedef struct _PERFINFO_GROUPMASK
+{
+    ULONG Masks[8];
+} PERFINFO_GROUPMASK, *PPERFINFO_GROUPMASK;
+
+typedef struct _EVENT_TRACE_GROUPMASK_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    HANDLE TraceHandle;
+    PERFINFO_GROUPMASK EventTraceGroupMasks;
+} EVENT_TRACE_GROUPMASK_INFORMATION, *PEVENT_TRACE_GROUPMASK_INFORMATION;
+
+typedef struct _EVENT_TRACE_PERFORMANCE_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    LARGE_INTEGER LogfileBytesWritten;
+} EVENT_TRACE_PERFORMANCE_INFORMATION, *PEVENT_TRACE_PERFORMANCE_INFORMATION;
+
+typedef struct _EVENT_TRACE_TIME_PROFILE_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG ProfileInterval;
+} EVENT_TRACE_TIME_PROFILE_INFORMATION, *PEVENT_TRACE_TIME_PROFILE_INFORMATION;
+
+typedef struct _EVENT_TRACE_SESSION_SECURITY_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG SecurityInformation;
+    HANDLE TraceHandle;
+    UCHAR SecurityDescriptor[1];
+} EVENT_TRACE_SESSION_SECURITY_INFORMATION, *PEVENT_TRACE_SESSION_SECURITY_INFORMATION;
+
+typedef struct _EVENT_TRACE_SPINLOCK_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG SpinLockSpinThreshold;
+    ULONG SpinLockAcquireSampleRate;
+    ULONG SpinLockContentionSampleRate;
+    ULONG SpinLockHoldThreshold;
+} EVENT_TRACE_SPINLOCK_INFORMATION, *PEVENT_TRACE_SPINLOCK_INFORMATION;
+
+typedef struct _EVENT_TRACE_SYSTEM_EVENT_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    HANDLE TraceHandle;
+    ULONG HookId[1];
+} EVENT_TRACE_SYSTEM_EVENT_INFORMATION, *PEVENT_TRACE_SYSTEM_EVENT_INFORMATION;
+
+typedef struct _EVENT_TRACE_EXECUTIVE_RESOURCE_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG ReleaseSamplingRate;
+    ULONG ContentionSamplingRate;
+    ULONG NumberOfExcessiveTimeouts;
+} EVENT_TRACE_EXECUTIVE_RESOURCE_INFORMATION, *PEVENT_TRACE_EXECUTIVE_RESOURCE_INFORMATION;
+
+typedef struct _EVENT_TRACE_HEAP_TRACING_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG ProcessId;
+} EVENT_TRACE_HEAP_TRACING_INFORMATION, *PEVENT_TRACE_HEAP_TRACING_INFORMATION;
+
+typedef struct _EVENT_TRACE_TAG_FILTER_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    HANDLE TraceHandle;
+    ULONG Filter[1];
+} EVENT_TRACE_TAG_FILTER_INFORMATION, *PEVENT_TRACE_TAG_FILTER_INFORMATION;
+
+typedef struct _EVENT_TRACE_PROFILE_COUNTER_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    HANDLE TraceHandle;
+    ULONG ProfileSource[1];
+} EVENT_TRACE_PROFILE_COUNTER_INFORMATION, *PEVENT_TRACE_PROFILE_COUNTER_INFORMATION;
+
+typedef struct _PROFILE_SOURCE_INFO
+{
+    ULONG NextEntryOffset;
+    ULONG Source;
+    ULONG MinInterval;
+    ULONG MaxInterval;
+    ULONGLONG Reserved;
+    WCHAR Description[1];
+} PROFILE_SOURCE_INFO, *PPROFILE_SOURCE_INFO;
+
+typedef struct _EVENT_TRACE_PROFILE_LIST_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG Spare;
+    PROFILE_SOURCE_INFO Profile[1];
+} EVENT_TRACE_PROFILE_LIST_INFORMATION, *PEVENT_TRACE_PROFILE_LIST_INFORMATION;
+
+typedef struct _EVENT_TRACE_STACK_CACHING_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    HANDLE TraceHandle;
+    BOOLEAN Enabled;
+    UCHAR Reserved[3];
+    ULONG CacheSize;
+    ULONG BucketCount;
+} EVENT_TRACE_STACK_CACHING_INFORMATION, *PEVENT_TRACE_STACK_CACHING_INFORMATION;
+
+typedef struct _EVENT_TRACE_SOFT_RESTART_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    HANDLE TraceHandle;
+    BOOLEAN PersistTraceBuffers;
+    WCHAR FileName[1];
+} EVENT_TRACE_SOFT_RESTART_INFORMATION, *PEVENT_TRACE_SOFT_RESTART_INFORMATION;
 
 typedef struct _SYSTEM_EXCEPTION_INFORMATION
 {
@@ -2330,6 +2487,70 @@ typedef struct _SYSTEM_BOOT_GRAPHICS_INFORMATION
     SYSTEM_PIXEL_FORMAT Format;
     ULONG DisplayRotation;
 } SYSTEM_BOOT_GRAPHICS_INFORMATION, *PSYSTEM_BOOT_GRAPHICS_INFORMATION;
+
+// private
+typedef struct _MEMORY_SCRUB_INFORMATION
+{
+    HANDLE Handle;
+    ULONG PagesScrubbed;
+} MEMORY_SCRUB_INFORMATION, *PMEMORY_SCRUB_INFORMATION;
+
+// private
+typedef struct _PEBS_DS_SAVE_AREA
+{
+    ULONGLONG BtsBufferBase;
+    ULONGLONG BtsIndex;
+    ULONGLONG BtsAbsoluteMaximum;
+    ULONGLONG BtsInterruptThreshold;
+    ULONGLONG PebsBufferBase;
+    ULONGLONG PebsIndex;
+    ULONGLONG PebsAbsoluteMaximum;
+    ULONGLONG PebsInterruptThreshold;
+    ULONGLONG PebsCounterReset0;
+    ULONGLONG PebsCounterReset1;
+    ULONGLONG PebsCounterReset2;
+    ULONGLONG PebsCounterReset3;
+} PEBS_DS_SAVE_AREA, *PPEBS_DS_SAVE_AREA;
+
+// private
+typedef struct _PROCESSOR_PROFILE_CONTROL_AREA
+{
+    PEBS_DS_SAVE_AREA PebsDsSaveArea;
+} PROCESSOR_PROFILE_CONTROL_AREA, *PPROCESSOR_PROFILE_CONTROL_AREA;
+
+// private
+typedef struct _SYSTEM_PROCESSOR_PROFILE_CONTROL_AREA
+{
+    PROCESSOR_PROFILE_CONTROL_AREA ProcessorProfileControlArea;
+    BOOLEAN Allocate;
+} SYSTEM_PROCESSOR_PROFILE_CONTROL_AREA, *PSYSTEM_PROCESSOR_PROFILE_CONTROL_AREA;
+
+// private
+typedef struct _MEMORY_COMBINE_INFORMATION
+{
+    HANDLE Handle;
+    ULONG_PTR PagesCombined;
+} MEMORY_COMBINE_INFORMATION, *PMEMORY_COMBINE_INFORMATION;
+
+// rev
+#define MEMORY_COMBINE_FLAGS_COMMON_PAGES_ONLY 0x4
+
+// private
+typedef struct _MEMORY_COMBINE_INFORMATION_EX
+{
+    HANDLE Handle;
+    ULONG_PTR PagesCombined;
+    ULONG Flags;
+} MEMORY_COMBINE_INFORMATION_EX, *PMEMORY_COMBINE_INFORMATION_EX;
+
+// private
+typedef struct _MEMORY_COMBINE_INFORMATION_EX2
+{
+    HANDLE Handle;
+    ULONG_PTR PagesCombined;
+    ULONG Flags;
+    HANDLE ProcessHandle;
+} MEMORY_COMBINE_INFORMATION_EX2, *PMEMORY_COMBINE_INFORMATION_EX2;
 
 // private
 typedef struct _SYSTEM_CONSOLE_INFORMATION
