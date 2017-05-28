@@ -3148,8 +3148,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             NULL
             )))
         {
-            // HACK: Fixup the module load count (64bit only).
-            // Temp fix until PhpModuleQueryWorker can be updated with Stage2. 
+            // HACK: Fixup the module load count.
+            // Temp fix until PhpModuleQueryWorker can be used for 'Stage2'. 
             Entry->ObsoleteLoadCount = (USHORT)ldrDagNode.LoadCount;
         }
     }
@@ -3527,6 +3527,24 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         }
 
         nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
+    }
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
+
+        if (NT_SUCCESS(NtReadVirtualMemory(
+            ProcessHandle,
+            UlongToPtr(Entry->DdagNode),
+            &ldrDagNode32,
+            sizeof(LDR_DDAG_NODE32),
+            NULL
+            )))
+        {
+            // HACK: Fixup the module load count.
+            // Temp fix until PhpModuleQueryWorker can be used for 'Stage2'. 
+            nativeEntry.ObsoleteLoadCount = (USHORT)ldrDagNode32.LoadCount;
+        }
     }
 
     // Execute the callback.
