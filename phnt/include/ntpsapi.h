@@ -172,14 +172,14 @@ typedef enum _PROCESSINFOCLASS
     ProcessIumChallengeResponse,
     ProcessChildProcessInformation, // PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,
-    ProcessSubsystemInformation, // since REDSTONE2
+    ProcessSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ProcessEnergyValues,
-    ProcessActivityThrottleState,
-    ProcessActivityThrottlePolicy,
+    ProcessActivityThrottleState, // PROCESS_ACTIVITY_THROTTLE_STATE
+    ProcessActivityThrottlePolicy, // PROCESS_ACTIVITY_THROTTLE_POLICY
     ProcessWin32kSyscallFilterInformation,
     ProcessDisableSystemAllowedCpuSets,
-    ProcessWakeInformation,
-    ProcessEnergyTrackingState,
+    ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
+    ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -232,7 +232,7 @@ typedef enum _THREADINFOCLASS
     ThreadDynamicCodePolicyInfo,
     ThreadExplicitCaseSensitivity,
     ThreadWorkOnBehalfTicket,
-    ThreadSubsystemInformation, // since REDSTONE2
+    ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive,
     ThreadAttachContainer,
     MaxThreadInfoClass
@@ -700,6 +700,22 @@ typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
     BOOLEAN ProhibitChildProcesses;
     BOOLEAN EnableAutomaticOverride;
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
+
+typedef struct _PROCESS_WAKE_INFORMATION
+{
+    ULONGLONG NotificationChannel;
+    ULONG WakeCounters[7];
+    struct _JOBOBJECT_WAKE_FILTER* WakeFilter;
+} PROCESS_WAKE_INFORMATION, *PPROCESS_WAKE_INFORMATION;
+
+typedef struct _PROCESS_ENERGY_TRACKING_STATE
+{
+    ULONG StateUpdateMask;
+    ULONG StateDesiredValue;
+    ULONG StateSequence;
+    ULONG UpdateTag : 1;
+    WCHAR Tag[64];
+} PROCESS_ENERGY_TRACKING_STATE, *PPROCESS_ENERGY_TRACKING_STATE;
 
 // end_private
 
