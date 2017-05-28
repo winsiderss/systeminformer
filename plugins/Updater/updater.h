@@ -48,6 +48,8 @@
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".LastUpdateCheckTime")
+#define SETTING_NAME_CHANGELOG_WINDOW_POSITION (PLUGIN_NAME L".ChangelogWindowPosition")
+#define SETTING_NAME_CHANGELOG_WINDOW_SIZE (PLUGIN_NAME L".ChangelogWindowSize")
 
 #define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
     (((ULONGLONG)(major) << 48) | \

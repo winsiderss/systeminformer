@@ -89,19 +89,24 @@ INT_PTR CALLBACK TextDlgProc(
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            SetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
-            SetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
+            if (PhGetIntegerPairSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
         }
         break;
     case WM_DESTROY:
         {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, hwndDlg);
+
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
