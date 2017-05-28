@@ -1384,10 +1384,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPhysicalMemoryInformation, // q: SYSTEM_PHYSICAL_MEMORY_INFORMATION // since REDSTONE2
     SystemControlFlowTransition,
     SystemKernelDebuggingAllowed,
-    SystemActivityModerationExeState,
-    SystemActivityModerationUserSettings,
+    SystemActivityModerationExeState, // SYSTEM_ACTIVITY_MODERATION_EXE_STATE
+    SystemActivityModerationUserSettings, // SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
     SystemCodeIntegrityPoliciesFullInformation,
-    SystemCodeIntegrityUnlockInformation, // 190
+    SystemCodeIntegrityUnlockInformation, // SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION // 190
     SystemIntegrityQuotaInformation,
     SystemFlushInformation, // q: SYSTEM_FLUSH_INFORMATION
     MaxSystemInfoClass
@@ -2917,6 +2917,44 @@ typedef struct _SYSTEM_PHYSICAL_MEMORY_INFORMATION
     ULONGLONG LowestPhysicalAddress;
     ULONGLONG HighestPhysicalAddress;
 } SYSTEM_PHYSICAL_MEMORY_INFORMATION, *PSYSTEM_PHYSICAL_MEMORY_INFORMATION;
+
+// private
+typedef enum _SYSTEM_ACTIVITY_MODERATION_STATE
+{
+    SystemActivityModerationStateSystemManaged,
+    SystemActivityModerationStateAlwaysThrottled,
+    SystemActivityModerationStateNeverThrottled,
+    MaxSystemActivityModerationState
+} SYSTEM_ACTIVITY_MODERATION_STATE;
+
+// private
+typedef struct _SYSTEM_ACTIVITY_MODERATION_EXE_STATE
+{
+    UNICODE_STRING ExePathNt;
+    SYSTEM_ACTIVITY_MODERATION_STATE ModerationState;
+} SYSTEM_ACTIVITY_MODERATION_EXE_STATE, *PSYSTEM_ACTIVITY_MODERATION_EXE_STATE;
+
+// private
+typedef struct _SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
+{
+    HANDLE UserKeyHandle;
+} SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_USER_SETTINGS;
+
+// private
+typedef struct _SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Locked : 1;
+            ULONG Unlockable : 1;
+            ULONG UnlockApplied : 1;
+            ULONG Reserved : 29;
+        };
+    };
+} SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION, *PSYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION;
 
 // private
 typedef struct _SYSTEM_FLUSH_INFORMATION
