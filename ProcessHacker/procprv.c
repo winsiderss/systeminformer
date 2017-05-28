@@ -949,9 +949,7 @@ VOID PhpProcessQueryStage1(
     NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
-    HANDLE processHandleLimited = NULL;
-
-    PhOpenProcess(&processHandleLimited, ProcessQueryAccess, processId);
+    HANDLE processHandleLimited = processItem->QueryHandle;
 
     if (processItem->FileName)
     {
@@ -1166,9 +1164,6 @@ VOID PhpProcessQueryStage1(
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
-
-    if (processHandleLimited)
-        NtClose(processHandleLimited);
 
     PhpQueueProcessQueryStage2(processItem);
 }
