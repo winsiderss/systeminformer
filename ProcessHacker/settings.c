@@ -103,6 +103,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
     PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"1");
     PhpAddScalableIntegerPairSetting(L"MiniInfoWindowSize", L"@96|10,200");
+    PhpAddIntegerSetting(L"ModuleListFlags", L"0");
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
     PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
