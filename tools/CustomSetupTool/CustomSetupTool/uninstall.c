@@ -51,7 +51,7 @@ NTSTATUS SetupUninstallBuild(
         goto CleanupExit;
 
     // Stop the kernel driver(s).
-    if (!SetupUninstallKph())
+    if (!SetupUninstallKph(Context))
         goto CleanupExit;
 
     // Remove autorun and shortcuts.

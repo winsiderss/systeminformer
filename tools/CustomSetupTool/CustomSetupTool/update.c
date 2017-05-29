@@ -36,7 +36,7 @@ NTSTATUS SetupUpdateBuild(
     if (!ShutdownProcessHacker())
         goto CleanupExit;
 
-    if (!SetupUninstallKph())
+    if (!SetupUninstallKph(Context))
         goto CleanupExit;
 
     if (!SetupCreateUninstallFile(Context))

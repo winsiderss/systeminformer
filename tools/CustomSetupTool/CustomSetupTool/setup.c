@@ -332,35 +332,32 @@ VOID SetupStartKph(
     PhDereferenceObject(clientPath);
 }
 
-ULONG SetupUninstallKph(
-    VOID
+BOOLEAN SetupUninstallKph(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    ULONG status = ERROR_SUCCESS;
-    SC_HANDLE scmHandle;
+    BOOLEAN deleted = FALSE;
     SC_HANDLE serviceHandle;
     SERVICE_STATUS serviceStatus;
 
-    if (!(scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT)))
-        return GetLastError();
-
-    if (serviceHandle = OpenService(scmHandle, L"KProcessHacker3", SERVICE_STOP | DELETE))
+    if (serviceHandle = PhOpenService(
+        L"KProcessHacker3", 
+        SERVICE_STOP | DELETE
+        ))
     {
         ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
 
-        if (!DeleteService(serviceHandle))
-            status = GetLastError();
+        if (!(deleted = DeleteService(serviceHandle)))
+            Context->ErrorCode = GetLastError();
 
         CloseServiceHandle(serviceHandle);
     }
     else
     {
-        status = GetLastError();
+        deleted = TRUE;
     }
 
-    CloseServiceHandle(scmHandle);
-
-    return status;
+    return deleted;
 }
 
 VOID SetupSetWindowsOptions(
