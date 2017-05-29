@@ -149,7 +149,13 @@ VOID SetupShowUpdatingErrorDialog(
         )->Buffer;
 
     if (Context->ErrorCode)
-        config.pszContent = PhGetStatusMessage(0, Context->ErrorCode)->Buffer;
+    {
+        PPH_STRING errorString;
+        
+        if (errorString = PhGetStatusMessage(0, Context->ErrorCode))
+            config.pszContent = PhGetString(errorString);
+    }
+
     SendMessage(Context->PropSheetHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 

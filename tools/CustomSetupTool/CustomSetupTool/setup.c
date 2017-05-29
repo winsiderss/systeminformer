@@ -193,6 +193,13 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
     {
+        if (!DeleteFile(backupFilePath->Buffer))
+        {
+            Context->ErrorCode = GetLastError();
+            PhDereferenceObject(uninstallFilePath);
+            return FALSE;
+        }
+
         if (!MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer))
         {
             Context->ErrorCode = GetLastError();
