@@ -674,10 +674,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     menu = PhCreateEMenu();
 
-                    PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Dynamic", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Mapped", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Static", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Verified", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Hide dynamic", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Hide mapped", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Hide static", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Hide verified", NULL, NULL), -1);
                     
                     if (modulesContext->ListContext.HideDynamicModules)
                         dynamicItem->Flags |= PH_EMENU_CHECKED;
@@ -792,6 +792,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
 
+            // Refresh the visible nodes.
             PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
 
             if (count != 0)

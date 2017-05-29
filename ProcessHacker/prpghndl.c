@@ -693,6 +693,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
 
+            // Refresh the visible nodes.
             PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
 
             if (count != 0)
