@@ -135,7 +135,7 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
 #define PH_TN_COLUMN_MENU_SIZE_ALL_COLUMNS_TO_FIT_ID ((ULONG)-4)
 #define PH_TN_COLUMN_MENU_RESET_SORT_ID ((ULONG)-5)
 
- VOID PhInitializeTreeNewColumnMenu(
+VOID PhInitializeTreeNewColumnMenu(
     _Inout_ PPH_TN_COLUMN_MENU_DATA Data
     );
 
@@ -238,6 +238,11 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
 NTSTATUS PeDumpFileSymbols(
     _In_ PPDB_SYMBOL_CONTEXT Context
+    );
+
+VOID PdbDumpAddress(
+    _In_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ ULONG64 Address
     );
 
 VOID PvPdbProperties(
