@@ -104,7 +104,7 @@ INT CALLBACK MainPropSheet_Callback(
             context->CurrentMinorVersion = PHAPP_VERSION_MINOR;
             context->CurrentRevisionVersion = PHAPP_VERSION_REVISION;
 
-            context->PropSheetHandle = hwndDlg;
+            context->DialogHandle = hwndDlg;
             context->PropSheetBackHandle = GetDlgItem(hwndDlg, IDC_PROPSHEET_BACK);
             context->PropSheetForwardHandle = GetDlgItem(hwndDlg, IDC_PROPSHEET_NEXT);
             context->PropSheetCancelHandle = GetDlgItem(hwndDlg, IDC_PROPSHEET_CANCEL);

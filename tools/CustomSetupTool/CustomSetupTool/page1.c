@@ -27,8 +27,8 @@ VOID SetupPropSheetCenterWindow(
     )
 {
     // Center the PropertySheet on the desktop.
-    PhCenterWindow(Context->PropSheetHandle, NULL);
-    SetForegroundWindow(Context->PropSheetHandle);
+    PhCenterWindow(Context->DialogHandle, NULL);
+    SetForegroundWindow(Context->DialogHandle);
 }
 
 static VOID SetupLoadIcons(
@@ -109,13 +109,13 @@ INT_PTR CALLBACK SetupPropPage1_WndProc(
             case PSN_SETACTIVE:
                 {
                     // Reset the button state.
-                    PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_NEXT);
+                    PropSheet_SetWizButtons(context->DialogHandle, PSWIZB_NEXT);
                 }
                 break;
             case PSN_KILLACTIVE:
                 {
                     // Enable the back button.
-                    PropSheet_SetWizButtons(context->PropSheetHandle, PSWIZB_NEXT | PSWIZB_BACK);
+                    PropSheet_SetWizButtons(context->DialogHandle, PSWIZB_NEXT | PSWIZB_BACK);
                 }
                 break;
             }

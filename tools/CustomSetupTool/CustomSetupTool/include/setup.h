@@ -75,7 +75,7 @@ typedef enum _SETUP_COMMAND_TYPE
 
 typedef struct _PH_SETUP_CONTEXT
 {
-    HWND PropSheetHandle;
+    HWND DialogHandle;
     HWND PropSheetBackHandle;
     HWND PropSheetForwardHandle;
     HWND PropSheetCancelHandle;
@@ -247,33 +247,6 @@ VOID SetupShowUpdateDialog(
     );
 
 // uninstall.c
-
-typedef struct _PH_SETUP_UNINSTALL_CONTEXT
-{
-    HWND DialogHandle;
-    HICON IconSmallHandle;
-    HICON IconLargeHandle;
-
-    ULONG CurrentMajorVersion;
-    ULONG CurrentMinorVersion;
-    ULONG CurrentRevisionVersion;
-    ULONG LatestMajorVersion;
-    ULONG LatestMinorVersion;
-    ULONG LatestRevisionVersion;
-
-    ULONG ErrorCode;
-    PPH_STRING Version;
-    PPH_STRING RevVersion;
-    PPH_STRING RelDate;
-    PPH_STRING Size;
-    PPH_STRING Hash;
-    PPH_STRING Signature;
-    PPH_STRING ReleaseNotesUrl;
-
-    PPH_STRING BinFileDownloadUrl;
-    PPH_STRING SetupFileDownloadUrl;
-    PPH_STRING SetupFilePath;
-} PH_SETUP_UNINSTALL_CONTEXT, *PPH_SETUP_UNINSTALL_CONTEXT;
 
 VOID SetupShowUninstallDialog(
     VOID

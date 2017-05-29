@@ -52,13 +52,13 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupExecuteProcessHacker(Context))
         goto CleanupExit;
 
-    PostMessage(Context->PropSheetHandle, WM_QUIT, 0, 0);
+    PostMessage(Context->DialogHandle, WM_QUIT, 0, 0);
     PhDereferenceObject(Context);  
     return STATUS_SUCCESS;
 
 CleanupExit:
 
-    PostMessage(Context->PropSheetHandle, WM_APP + IDD_ERROR, 0, 0);
+    PostMessage(Context->DialogHandle, WM_APP + IDD_ERROR, 0, 0);
     PhDereferenceObject(Context);
     return STATUS_FAIL_CHECK;
 }
@@ -100,8 +100,8 @@ VOID TaskDialogCreateIcons(
     Context->IconLargeHandle = largeIcon;
     Context->IconSmallHandle = smallIcon;
 
-    SendMessage(Context->PropSheetHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
-    SendMessage(Context->PropSheetHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)largeIcon);
+    SendMessage(Context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)smallIcon);
 }
 
 HRESULT CALLBACK SetupErrorTaskDialogCallbackProc(
@@ -156,7 +156,7 @@ VOID SetupShowUpdatingErrorDialog(
             config.pszContent = PhGetString(errorString);
     }
 
-    SendMessage(Context->PropSheetHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 LRESULT CALLBACK TaskDialogSubclassProc(
@@ -244,7 +244,7 @@ VOID SetupShowUpdatingDialog(
         PHAPP_VERSION_REVISION
         )->Buffer;
 
-    SendMessage(Context->PropSheetHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
+    SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -261,7 +261,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     {
     case TDN_CREATED:
         {
-            context->PropSheetHandle = hwndDlg;
+            context->DialogHandle = hwndDlg;
 
             // Center the window on the desktop.
             PhCenterWindow(hwndDlg, NULL);
