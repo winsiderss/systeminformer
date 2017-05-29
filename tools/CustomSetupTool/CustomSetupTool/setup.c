@@ -347,8 +347,7 @@ BOOLEAN SetupUninstallKph(
     {
         ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
 
-        if (!(deleted = DeleteService(serviceHandle)))
-            Context->ErrorCode = GetLastError();
+        deleted = DeleteService(serviceHandle);
 
         CloseServiceHandle(serviceHandle);
     }
@@ -557,7 +556,7 @@ BOOLEAN SetupExecuteProcessHacker(
     if (RtlDoesFileExists_U(clientPath->Buffer))
     {
         success = PhShellExecuteEx(
-            Context->PropSheetHandle,
+            Context->DialogHandle,
             clientPath->Buffer,
             NULL,
             SW_SHOWDEFAULT,

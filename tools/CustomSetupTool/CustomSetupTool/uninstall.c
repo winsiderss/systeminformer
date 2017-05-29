@@ -28,20 +28,20 @@ HANDLE UninstallDialogThreadHandle = NULL;
 PH_EVENT UninstallInitializedEvent = PH_EVENT_INIT;
 
 VOID ShowUninstallConfirmDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 VOID ShowUninstallDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 VOID ShowUninstallCompleteDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 VOID ShowUninstallErrorDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 NTSTATUS SetupUninstallBuild(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     //context->SetupInstallPath = SetupFindInstallDirectory();
@@ -76,7 +76,7 @@ CleanupExit:
 }
 
 static VOID TaskDialogCreateIcons(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     HICON largeIcon;
@@ -112,7 +112,7 @@ HRESULT CALLBACK TaskDialogUninstallConfirmCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UNINSTALL_CONTEXT context = (PPH_SETUP_UNINSTALL_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -143,7 +143,7 @@ HRESULT CALLBACK TaskDialogUninstallCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UNINSTALL_CONTEXT context = (PPH_SETUP_UNINSTALL_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -168,7 +168,7 @@ HRESULT CALLBACK TaskDialogUninstallCompleteCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UNINSTALL_CONTEXT context = (PPH_SETUP_UNINSTALL_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -181,7 +181,7 @@ HRESULT CALLBACK TaskDialogUninstallCompleteCallbackProc(
 }
 
 VOID ShowUninstallCompleteDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -202,7 +202,7 @@ VOID ShowUninstallCompleteDialog(
 }
 
 VOID ShowUninstallConfirmDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -224,7 +224,7 @@ VOID ShowUninstallConfirmDialog(
 }
 
 VOID ShowUninstallDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -244,7 +244,7 @@ VOID ShowUninstallDialog(
 }
 
 VOID ShowUninstallErrorDialog(
-    _In_ PPH_SETUP_UNINSTALL_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -271,7 +271,7 @@ HRESULT CALLBACK TaskDialogUninstallBootstrapCallback(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_SETUP_UNINSTALL_CONTEXT context = (PPH_SETUP_UNINSTALL_CONTEXT)dwRefData;
+    PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -303,8 +303,9 @@ VOID SetupShowUninstallDialog(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
 
     PhInitializeAutoPool(&autoPool);
-    context = (PPH_SETUP_UNINSTALL_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_UNINSTALL_CONTEXT));
-    memset(context, 0, sizeof(PH_SETUP_UNINSTALL_CONTEXT));
+
+    context = (PPH_SETUP_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
+    memset(context, 0, sizeof(PH_SETUP_CONTEXT));
 
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;

@@ -32,12 +32,12 @@ NTSTATUS SetupDownloadProgressThread(
     if (!UpdateDownloadUpdateData(Context))
         goto CleanupExit;
 
-    PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_DIALOG4);
+    PostMessage(Context->DialogHandle, PSM_SETCURSELID, 0, IDD_DIALOG4);
     return STATUS_SUCCESS;
 
 CleanupExit:
 
-    PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_ERROR);
+    PostMessage(Context->DialogHandle, PSM_SETCURSELID, 0, IDD_ERROR);
     return STATUS_FAIL_CHECK;
 }
 
@@ -97,7 +97,7 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
                     SetWindowText(context->SubStatusHandle, L"");
 
                     // Disable Next/Back buttons
-                    PropSheet_SetWizButtons(context->PropSheetHandle, 0);
+                    PropSheet_SetWizButtons(context->DialogHandle, 0);
 
                     if (threadHandle = PhCreateThread(0, SetupDownloadProgressThread, context))
                         NtClose(threadHandle);

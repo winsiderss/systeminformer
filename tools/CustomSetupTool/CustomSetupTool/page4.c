@@ -72,7 +72,7 @@ NTSTATUS SetupProgressThread(
 
 CleanupExit:
 
-    PostMessage(Context->PropSheetHandle, PSM_SETCURSELID, 0, IDD_ERROR);
+    PostMessage(Context->DialogHandle, PSM_SETCURSELID, 0, IDD_ERROR);
     return STATUS_FAIL_CHECK;
 }
 
@@ -146,7 +146,7 @@ INT_PTR CALLBACK SetupPropPage4_WndProc(
                     SetWindowText(context->SubStatusHandle, L"Progress: ~ of ~ (0.0%)");
 
                     // Disable Next/Back buttons
-                    PropSheet_SetWizButtons(context->PropSheetHandle, 0);
+                    PropSheet_SetWizButtons(context->DialogHandle, 0);
 
                     if (!SetupRunning)
                     {
