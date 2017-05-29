@@ -263,7 +263,7 @@ namespace CustomBuildTool
                 BuildCount = "0";
 
             BuildVersion = "3.0." + BuildRevision;
-            BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
+            BuildLongVersion = "3.0." + BuildRevision + "." + BuildCount;
 
             if (ShowBuildInfo && !GitExportBuild)
             {
