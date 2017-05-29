@@ -223,7 +223,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
-                { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"1" },
+                { IntegerSettingType, SETTING_NAME_SHOW_DESKTOP_WINDOWS, L"0" },
                 { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"@96|690,540" }
