@@ -553,32 +553,19 @@ VOID PhInitializeKph(
     )
 {
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
-    static PH_STRINGREF processhackerSig = PH_STRINGREF_INIT(L"ProcessHacker.sig");
-
     PPH_STRING kprocesshackerFileName;
-    PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
-    PUCHAR signature;
-    ULONG signatureSize;
 
     if (WindowsVersion < WINDOWS_7)
         return;
 
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
-    processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
 
     parameters.SecurityLevel = KphSecurityPrivilegeCheck;
     parameters.CreateDynamicConfiguration = TRUE;
     KphConnect2Ex(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
 
-    if (signature = PhpReadSignature(processhackerSigFileName->Buffer, &signatureSize))
-    {
-        KphVerifyClient(signature, signatureSize);
-        PhFree(signature);
-    }
-
     PhDereferenceObject(kprocesshackerFileName);
-    PhDereferenceObject(processhackerSigFileName);
 }
 
 BOOLEAN PhInitializeAppSystem(
@@ -980,7 +967,7 @@ VOID PhpProcessStartupParameters(
 
         kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, L"\\kprocesshacker.sys");
 
-        parameters.SecurityLevel = KphSecuritySignatureCheck;
+        parameters.SecurityLevel = KphSecurityPrivilegeCheck;
         parameters.CreateDynamicConfiguration = TRUE;
 
         status = KphInstallEx(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
