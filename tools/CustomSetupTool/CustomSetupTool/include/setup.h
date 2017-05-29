@@ -188,8 +188,8 @@ VOID SetupStartKph(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-ULONG SetupUninstallKph(
-    VOID
+BOOLEAN SetupUninstallKph(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 NTSTATUS SetupCreateUninstallKey(
