@@ -263,20 +263,10 @@ BOOLEAN PhpModulesTreeFilterCallback(
     //ULONG Size;
     //ULONG Flags;
     //ULONG Type;
-    //USHORT LoadReason;
-    //USHORT LoadCount;
-    //PH_IMAGE_VERSION_INFO VersionInfo;
-
-    //WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
-
-    //enum _VERIFY_RESULT VerifyResult;
-
     //ULONG ImageTimeDateStamp;
     //USHORT ImageCharacteristics;
     //USHORT ImageDllCharacteristics;
-
     //LARGE_INTEGER LoadTime;
-
     //LARGE_INTEGER FileLastWriteTime;
     //LARGE_INTEGER FileEndOfFile;
 
@@ -297,6 +287,12 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
     {
         if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VerifySignerName->sr))
+            return TRUE;
+    }
+
+    if (moduleItem->BaseAddressString[0])
+    {
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, moduleItem->BaseAddressString))
             return TRUE;
     }
 
@@ -323,40 +319,6 @@ BOOLEAN PhpModulesTreeFilterCallback(
         if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.ProductName->sr))
             return TRUE;
     }
-
-    //if (handleItem->HandleString[0])
-    //{
-    //    if (PhpWordMatchHandleStringZ(Context->SearchboxText, handleItem->HandleString))
-    //        return TRUE;
-    //}
-
-    //if (handleItem->ObjectString[0])
-    //{
-    //    if (PhpWordMatchHandleStringZ(Context->SearchboxText, handleItem->ObjectString))
-    //        return TRUE;
-    //}
-
-    //if (handleItem->GrantedAccessString[0])
-    //{
-    //    if (PhpWordMatchHandleStringZ(Context->SearchboxText, handleItem->GrantedAccessString))
-    //        return TRUE;
-    //}
-
-    //// TODO: Add search for handleItem->Attributes
-
-    //// node properties
-
-    //if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
-    //{
-    //    if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleNode->GrantedAccessSymbolicText->sr))
-    //        return TRUE;
-    //}
-
-    //if (handleNode->FileShareAccessText[0])
-    //{
-    //    if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
-    //        return TRUE;
-    //}
 
     switch (moduleItem->LoadReason)
     {
@@ -388,8 +350,38 @@ BOOLEAN PhpModulesTreeFilterCallback(
         if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Data"))
             return TRUE;
         break;
-    default:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Unknown"))
+    }
+
+    switch (moduleItem->VerifyResult)
+    {
+    case VrNoSignature:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"No Signature"))
+            return TRUE;
+        break;
+    case VrExpired:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Expired"))
+            return TRUE;
+        break;
+    case VrRevoked:
+    case VrDistrust:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Revoked"))
+            return TRUE;
+        break;
+    }
+
+    switch (moduleItem->VerifyResult)
+    {
+    case VrTrusted:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Trusted"))
+            return TRUE;
+        break;
+    case VrNoSignature:
+    case VrExpired:
+    case VrRevoked:
+    case VrDistrust:
+    case VrUnknown:
+    case VrBadSignature:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Bad"))
             return TRUE;
         break;
     }
@@ -685,7 +677,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Dynamic", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Mapped", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Static", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Signed (Verified)", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Verified", NULL, NULL), -1);
                     
                     if (modulesContext->ListContext.HideDynamicModules)
                         dynamicItem->Flags |= PH_EMENU_CHECKED;

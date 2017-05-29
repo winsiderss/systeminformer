@@ -796,7 +796,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     PWSTR string = L"";
 
-                    if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                    if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+                    {
+                        string = L"Dynamic";
+                    }
+                    else if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                     {
                         switch (moduleItem->LoadReason)
                         {
