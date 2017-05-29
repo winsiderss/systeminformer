@@ -37,6 +37,7 @@
 #include <phplug.h>
 #include <procprv.h>
 #include <settings.h>
+#include <verify.h>
 
 static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 
@@ -178,6 +179,224 @@ VOID PhShowModuleContextMenu(
     PhFree(modules);
 }
 
+
+static BOOLEAN PhpWordMatchHandleStringRef(
+    _In_ PPH_STRING SearchText,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = SearchText->sr;
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhpWordMatchHandleStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhpWordMatchHandleStringRef(SearchText, &text);
+}
+
+BOOLEAN PhpModulesTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PPH_MODULES_CONTEXT Context
+    )
+{
+    PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)Node;
+    PPH_MODULE_ITEM moduleItem = moduleNode->ModuleItem;
+
+    switch (moduleItem->LoadReason)
+    {
+    case LoadReasonStaticDependency:
+    case LoadReasonStaticForwarderDependency:
+        {
+            if (Context->ListContext.HideStaticModules)
+                return FALSE;
+        }
+        break;
+    case LoadReasonDynamicForwarderDependency:
+    case LoadReasonDynamicLoad:
+        {
+            if (Context->ListContext.HideDynamicModules)
+                return FALSE;
+        }
+        break;
+    }
+
+    switch (moduleItem->Type)
+    {
+    case PH_MODULE_TYPE_MAPPED_FILE:
+    case PH_MODULE_TYPE_MAPPED_IMAGE:
+        {
+            if (Context->ListContext.HideMappedModules)
+                return FALSE;
+        }
+        break;
+    }
+
+    if (Context->ListContext.HideSignedModules && moduleItem->VerifyResult == VrTrusted)
+        return FALSE;
+
+    if (PhIsNullOrEmptyString(Context->SearchboxText))
+        return TRUE;
+
+    //PVOID BaseAddress;
+    //ULONG Size;
+    //ULONG Flags;
+    //ULONG Type;
+    //USHORT LoadReason;
+    //USHORT LoadCount;
+    //PH_IMAGE_VERSION_INFO VersionInfo;
+
+    //WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
+
+    //enum _VERIFY_RESULT VerifyResult;
+
+    //ULONG ImageTimeDateStamp;
+    //USHORT ImageCharacteristics;
+    //USHORT ImageDllCharacteristics;
+
+    //LARGE_INTEGER LoadTime;
+
+    //LARGE_INTEGER FileLastWriteTime;
+    //LARGE_INTEGER FileEndOfFile;
+
+    // module properties
+
+    if (!PhIsNullOrEmptyString(moduleItem->Name))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->Name->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->FileName))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->FileName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VerifySignerName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.CompanyName))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.CompanyName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.FileDescription))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.FileDescription->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.FileVersion))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.FileVersion->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.ProductName))
+    {
+        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.ProductName->sr))
+            return TRUE;
+    }
+
+    //if (handleItem->HandleString[0])
+    //{
+    //    if (PhpWordMatchHandleStringZ(Context->SearchboxText, handleItem->HandleString))
+    //        return TRUE;
+    //}
+
+    //if (handleItem->ObjectString[0])
+    //{
+    //    if (PhpWordMatchHandleStringZ(Context->SearchboxText, handleItem->ObjectString))
+    //        return TRUE;
+    //}
+
+    //if (handleItem->GrantedAccessString[0])
+    //{
+    //    if (PhpWordMatchHandleStringZ(Context->SearchboxText, handleItem->GrantedAccessString))
+    //        return TRUE;
+    //}
+
+    //// TODO: Add search for handleItem->Attributes
+
+    //// node properties
+
+    //if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
+    //{
+    //    if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleNode->GrantedAccessSymbolicText->sr))
+    //        return TRUE;
+    //}
+
+    //if (handleNode->FileShareAccessText[0])
+    //{
+    //    if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
+    //        return TRUE;
+    //}
+
+    switch (moduleItem->LoadReason)
+    {
+    case LoadReasonStaticDependency:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Static dependency"))
+            return TRUE;
+        break;
+    case LoadReasonStaticForwarderDependency:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Static forwarder dependency"))
+            return TRUE;
+        break;
+    case LoadReasonDynamicForwarderDependency:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Dynamic forwarder dependency"))
+            return TRUE;
+        break;
+    case LoadReasonDelayloadDependency:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Delay load dependency"))
+            return TRUE;
+        break;
+    case LoadReasonDynamicLoad:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Dynamic"))
+            return TRUE;
+        break;
+    case LoadReasonAsImageLoad:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Image"))
+            return TRUE;
+        break;
+    case LoadReasonAsDataLoad:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Data"))
+            return TRUE;
+        break;
+    default:
+        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Unknown"))
+            return TRUE;
+        break;
+    }
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -248,6 +467,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 );
             modulesContext->WindowHandle = hwndDlg;
 
+            modulesContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
+            PhCreateSearchControl(hwndDlg, modulesContext->SearchboxHandle, L"Search Modules (Ctrl+K)");
+
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
@@ -256,6 +478,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
             modulesContext->ErrorMessage = NULL;
+            modulesContext->SearchboxText = PhReferenceEmptyString();
+            modulesContext->FilterEntry = PhAddTreeNewFilter(&modulesContext->ListContext.TreeFilterSupport, PhpModulesTreeFilterCallback, modulesContext);
 
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectCreate);
 
@@ -270,6 +494,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
 
             PhLoadSettingsModuleList(&modulesContext->ListContext);
+
+            modulesContext->ListContext.Flags = PhGetIntegerSetting(L"ModuleListFlags");
 
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
@@ -325,10 +551,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeNewHandle,
-                    dialogItem, PH_ANCHOR_ALL);
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_SEARCH), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
 
@@ -338,6 +563,34 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         break;
     case WM_COMMAND:
         {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != modulesContext->SearchboxHandle)
+                        break;
+
+                    newSearchboxText = PhGetWindowText(modulesContext->SearchboxHandle);
+
+                    if (!PhEqualString(modulesContext->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        // Cache the current search text for our callback.
+                        PhMoveReference(&modulesContext->SearchboxText, newSearchboxText);
+
+                        if (!PhIsNullOrEmptyString(modulesContext->SearchboxText))
+                        {
+                            // Expand any hidden nodes to make search results visible.
+                            PhExpandAllModuleNodes(&modulesContext->ListContext, TRUE);
+                        }
+
+                        PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
+                    }
+                }
+                break;
+            }
+
             switch (LOWORD(wParam))
             {
             case ID_SHOWCONTEXTMENU:
@@ -413,6 +666,56 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     text = PhGetTreeNewText(tnHandle, 0);
                     PhSetClipboardString(tnHandle, &text->sr);
                     PhDereferenceObject(text);
+                }
+                break;
+            case IDC_FILTEROPTIONS:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM dynamicItem;
+                    PPH_EMENU_ITEM mappedItem;
+                    PPH_EMENU_ITEM staticItem;
+                    PPH_EMENU_ITEM verifiedItem;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
+
+                    menu = PhCreateEMenu();
+
+                    PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Dynamic", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Mapped", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Static", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Signed (Verified)", NULL, NULL), -1);
+                    
+                    if (modulesContext->ListContext.HideDynamicModules)
+                        dynamicItem->Flags |= PH_EMENU_CHECKED;
+
+                    if (modulesContext->ListContext.HideMappedModules)
+                        mappedItem->Flags |= PH_EMENU_CHECKED;
+
+                    if (modulesContext->ListContext.HideStaticModules)
+                        staticItem->Flags |= PH_EMENU_CHECKED;
+
+                    if (modulesContext->ListContext.HideSignedModules)
+                        verifiedItem->Flags |= PH_EMENU_CHECKED;
+                    
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
+                        PhSetIntegerSetting(L"ModuleListFlags", modulesContext->ListContext.Flags);
+                        PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }
@@ -496,6 +799,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                 InvalidateRect(tnHandle, NULL, FALSE);
             }
+
+            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
 
             if (count != 0)
                 TreeNew_SetRedraw(tnHandle, TRUE);
