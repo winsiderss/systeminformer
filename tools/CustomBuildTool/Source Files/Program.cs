@@ -86,14 +86,15 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
-            else if (ProgramArgs.ContainsKey("-sign"))
-            {
-                Build.CopyKProcessHacker(false);
-            }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
                 if (!Build.InitializeBuildEnvironment(false))
                     return;
+
+                Build.CopyKProcessHacker(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
+                    BuildFlags.BuildDebug
+                    );
 
                 BuildSdk(
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -129,7 +130,8 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.CopyKProcessHacker(false))
+                if (!Build.CopyKProcessHacker(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -160,7 +162,9 @@ namespace CustomBuildTool
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.CopyKProcessHacker(true))
+                if (!Build.CopyKProcessHacker(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
                     return;
 
                 if (!BuildSdk(
@@ -196,7 +200,7 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.CopyKProcessHacker(false))
+                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -270,7 +274,7 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.CopyKProcessHacker(false))
+                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
