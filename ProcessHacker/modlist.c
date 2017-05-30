@@ -121,6 +121,8 @@ VOID PhInitializeModuleList(
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
+
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, hwnd, Context->NodeList);
 }
 
 VOID PhDeleteModuleList(
@@ -187,6 +189,28 @@ VOID PhSaveSettingsModuleList(
     PhDereferenceObject(sortSettings);
 }
 
+VOID PhSetOptionsModuleList(
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ ULONG Options
+    )
+{
+    switch (Options)
+    {
+    case PH_MODULE_FLAGS_DYNAMIC_OPTION:
+        Context->HideDynamicModules = !Context->HideDynamicModules;
+        break;
+    case PH_MODULE_FLAGS_MAPPED_OPTION:
+        Context->HideMappedModules = !Context->HideMappedModules;
+        break;
+    case PH_MODULE_FLAGS_STATIC_OPTION:
+        Context->HideStaticModules = !Context->HideStaticModules;
+        break;
+    case PH_MODULE_FLAGS_SIGNED_OPTION:
+        Context->HideSignedModules = !Context->HideSignedModules;
+        break;
+    }
+}
+
 PPH_MODULE_NODE PhAddModuleNode(
     _Inout_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ PPH_MODULE_ITEM ModuleItem,
@@ -220,6 +244,9 @@ PPH_MODULE_NODE PhAddModuleNode(
 
     PhAddEntryHashtable(Context->NodeHashtable, &moduleNode);
     PhAddItemList(Context->NodeList, moduleNode);
+
+    if (Context->TreeFilterSupport.FilterList)
+        moduleNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &moduleNode->Node);
 
     PhEmCallObjectOperation(EmModuleNodeType, moduleNode, EmObjectCreate);
 
@@ -323,6 +350,30 @@ VOID PhUpdateModuleNode(
     PhInvalidateTreeNewNode(&ModuleNode->Node, TN_CACHE_COLOR);
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
+
+VOID PhExpandAllModuleNodes(
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ BOOLEAN Expand
+    )
+{
+    ULONG i;
+    BOOLEAN needsRestructure = FALSE;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_MODULE_NODE node = Context->NodeList->Items[i];
+
+        if (node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
 
 VOID PhTickModuleNodes(
     _In_ PPH_MODULE_LIST_CONTEXT Context
@@ -745,7 +796,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     PWSTR string = L"";
 
-                    if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                    if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+                    {
+                        string = L"Dynamic";
+                    }
+                    else if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                     {
                         switch (moduleItem->LoadReason)
                         {

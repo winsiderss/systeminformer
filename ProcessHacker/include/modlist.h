@@ -55,18 +55,36 @@ typedef struct _PH_MODULE_NODE
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 // end_phapppub
 
+#define PH_MODULE_FLAGS_DYNAMIC_OPTION 1
+#define PH_MODULE_FLAGS_MAPPED_OPTION 2
+#define PH_MODULE_FLAGS_STATIC_OPTION 3
+#define PH_MODULE_FLAGS_SIGNED_OPTION 4
+
 typedef struct _PH_MODULE_LIST_CONTEXT
 {
     HWND ParentWindowHandle;
     HWND TreeNewHandle;
     ULONG TreeNewSortColumn;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
 
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG EnableStateHighlighting : 1;
+            ULONG HideDynamicModules : 1;
+            ULONG HideMappedModules : 1;
+            ULONG HideSignedModules : 1;
+            ULONG HideStaticModules : 1;
+            ULONG Spare : 27;
+        };
+    };
+
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
-
-    BOOLEAN EnableStateHighlighting;
     PPH_POINTER_LIST NodeStateList;
 
     HFONT BoldFont;
@@ -90,6 +108,11 @@ VOID PhSaveSettingsModuleList(
     _Inout_ PPH_MODULE_LIST_CONTEXT Context
     );
 
+VOID PhSetOptionsModuleList(
+    _Inout_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ ULONG Options
+    );
+
 PPH_MODULE_NODE PhAddModuleNode(
     _Inout_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ PPH_MODULE_ITEM ModuleItem,
@@ -109,6 +132,11 @@ VOID PhRemoveModuleNode(
 VOID PhUpdateModuleNode(
     _In_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ PPH_MODULE_NODE ModuleNode
+    );
+
+VOID PhExpandAllModuleNodes(
+    _In_ PPH_MODULE_LIST_CONTEXT Context,
+    _In_ BOOLEAN Expand
     );
 
 VOID PhTickModuleNodes(

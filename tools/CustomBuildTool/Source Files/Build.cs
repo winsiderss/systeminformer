@@ -529,26 +529,26 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool CopyKProcessHacker(bool DebugBuild)
+        public static bool CopyKProcessHacker(BuildFlags Flags)
         {
-            Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan);
+            Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan, true, Flags);
 
             if (!File.Exists(CustomSignToolPath))
                 return true;
             if (!File.Exists("build\\kph.key"))
                 return true;
 
-            if (DebugBuild)
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
                 if (!File.Exists("bin\\Debug32\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Debug32\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[SKIPPED] Debug32\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
                     return true;
                 }
 
                 if (!File.Exists("bin\\Debug64\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Debug64\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[SKIPPED] Debug64\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
                     return true;
                 }
 
@@ -563,14 +563,14 @@ namespace CustomBuildTool
                 string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
                 if (!string.IsNullOrEmpty(output))
                 {
-                    Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow, true, Flags);
                     return false;
                 }
 
                 output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
                 if (!string.IsNullOrEmpty(output))
                 {
-                    Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow, true, Flags);
                     return false;
                 }
             }
@@ -578,13 +578,13 @@ namespace CustomBuildTool
             {
                 if (!File.Exists("bin\\Release32\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Release32\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[SKIPPED] Release32\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
                     return true;
                 }
 
                 if (!File.Exists("bin\\Release64\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Release64\\ProcessHacker.exe not found.", ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[SKIPPED] Release64\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
                     return true;
                 }
 
@@ -599,21 +599,21 @@ namespace CustomBuildTool
                 string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
                 if (!string.IsNullOrEmpty(output))
                 {
-                    Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red);
+                    Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red, true, Flags);
                     return false;
                 }
 
                 output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
                 if (!string.IsNullOrEmpty(output))
                 {
-                    Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red);
+                    Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red, true, Flags);
                     return false;
                 }
             }
 
             try
             {
-                if (DebugBuild)
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     Win32.CopyIfNewer(
                         "KProcessHacker\\bin-signed\\i386\\kprocesshacker.sys",
