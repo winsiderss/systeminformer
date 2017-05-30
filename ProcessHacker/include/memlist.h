@@ -58,6 +58,7 @@ typedef struct _PH_MEMORY_LIST_CONTEXT
     HWND ParentWindowHandle;
     HWND TreeNewHandle;
     ULONG TreeNewSortColumn;
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
     BOOLEAN HideFreeRegions;
@@ -97,6 +98,15 @@ VOID PhReplaceMemoryList(
 VOID PhUpdateMemoryNode(
     _In_ PPH_MEMORY_LIST_CONTEXT Context,
     _In_ PPH_MEMORY_NODE MemoryNode
+    );
+
+VOID PhExpandAllMemoryNodes(
+    _In_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ BOOLEAN Expand
+    );
+
+PPH_STRING PhGetMemoryRegionUseText(
+    _In_ PPH_MEMORY_ITEM MemoryItem
     );
 
 PPH_MEMORY_NODE PhGetSelectedMemoryNode(

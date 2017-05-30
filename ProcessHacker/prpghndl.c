@@ -3,6 +3,7 @@
  *   Process properties: Handles page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -468,7 +469,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
                 
                 dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_HANDLESEARCH), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, handlesContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
