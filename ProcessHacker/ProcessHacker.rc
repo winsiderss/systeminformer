@@ -440,7 +440,6 @@ BEGIN
         MENUITEM "&Free",                       ID_MEMORY_FREE
         MENUITEM "&Decommit",                   ID_MEMORY_DECOMMIT
         MENUITEM SEPARATOR
-        MENUITEM "Read/Write &address...",      ID_MEMORY_READWRITEADDRESS
         MENUITEM "&Copy\aCtrl+C",               ID_MEMORY_COPY
     END
 END

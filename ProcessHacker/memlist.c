@@ -180,6 +180,18 @@ VOID PhSetOptionsMemoryList(
     case PH_MEMORY_FLAGS_RESERVED_OPTION:
         Context->HideReservedRegions = !Context->HideReservedRegions;
         break;
+    case PH_MEMORY_FLAGS_PRIVATE_OPTION:
+        Context->HighlightPrivatePages = !Context->HighlightPrivatePages;
+        break;
+    case PH_MEMORY_FLAGS_SYSTEM_OPTION:
+        Context->HighlightSystemPages = !Context->HighlightSystemPages;
+        break;
+    case PH_MEMORY_FLAGS_CFG_OPTION:
+        Context->HighlightCfgPages = !Context->HighlightCfgPages;
+        break;
+    case PH_MEMORY_FLAGS_EXECUTE_OPTION:
+        Context->HighlightExecutePages = !Context->HighlightExecutePages;
+        break;
     }
 }
 
@@ -780,7 +792,29 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             memoryItem = node->MemoryItem;
 
             if (!memoryItem)
-                ; // Dummy
+                NOTHING; 
+            else if (context->HighlightExecutePages && (
+                memoryItem->Protect & PAGE_EXECUTE || 
+                memoryItem->Protect & PAGE_EXECUTE_READ || 
+                memoryItem->Protect & PAGE_EXECUTE_READWRITE || 
+                memoryItem->Protect & PAGE_EXECUTE_WRITECOPY))
+            {
+                getNodeColor->BackColor = PhCsColorPacked;
+            }
+            else if (context->HighlightCfgPages && (
+                memoryItem->RegionType == CfgBitmapRegion ||
+                memoryItem->RegionType == CfgBitmap32Region))
+            {
+                getNodeColor->BackColor = PhCsColorElevatedProcesses;
+            }
+            else if (context->HighlightSystemPages && memoryItem->Type & MEM_MAPPED)
+            {
+                getNodeColor->BackColor = PhCsColorSystemProcesses;
+            }
+            else if (context->HighlightPrivatePages && memoryItem->Type & MEM_PRIVATE)
+            {
+                getNodeColor->BackColor = PhCsColorOwnProcesses;
+            }
             //else if (
             //    memoryItem->RegionType == StackRegion || memoryItem->RegionType == Stack32Region ||
             //    memoryItem->RegionType == HeapRegion || memoryItem->RegionType == Heap32Region ||
@@ -791,16 +825,10 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             //{
             //    getNodeColor->BackColor = PhCsColorElevatedProcesses;
             //}
-            //else if (memoryItem->RegionType == CfgBitmapRegion || memoryItem->RegionType == CfgBitmap32Region)
-            //    getNodeColor->BackColor = PhCsColorProtectedHandles;
-            //else if (memoryItem->Type & MEM_PRIVATE)
-            //    getNodeColor->BackColor = PhCsColorOwnProcesses;
-            //else if (memoryItem->Type & MEM_MAPPED)
-            //    getNodeColor->BackColor = PhCsColorSystemProcesses;
             //else if (memoryItem->Type & SEC_IMAGE)
             //    getNodeColor->BackColor = PhCsColorImmersiveProcesses;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
