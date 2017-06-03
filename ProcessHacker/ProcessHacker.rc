@@ -460,6 +460,7 @@ IDR_EMPTYMEMLISTS MENU
 BEGIN
     POPUP "Empty"
     BEGIN
+        MENUITEM "Combine memory lists",        ID_EMPTY_COMBINEMEMORYLISTS
         MENUITEM "Empty working sets",          ID_EMPTY_EMPTYWORKINGSETS
         MENUITEM "Empty modified page list",    ID_EMPTY_EMPTYMODIFIEDPAGELIST
         MENUITEM "Empty standby list",          ID_EMPTY_EMPTYSTANDBYLIST
@@ -2535,7 +2536,6 @@ IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
-
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
