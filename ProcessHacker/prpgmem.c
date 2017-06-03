@@ -429,11 +429,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         // Cache the current search text for our callback.
                         PhMoveReference(&memoryContext->SearchboxText, newSearchboxText);
 
-                        if (!PhIsNullOrEmptyString(memoryContext->SearchboxText))
-                        {
-                            // Expand any hidden nodes to make search results visible.
-                            PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
-                        }
+                        // Expand any hidden nodes to make search results visible.
+                        PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
 
                         PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
                     }

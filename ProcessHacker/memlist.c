@@ -399,6 +399,17 @@ VOID PhExpandAllMemoryNodes(
     ULONG i;
     BOOLEAN needsRestructure = FALSE;
 
+    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
+
+        if (node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
     for (i = 0; i < Context->RegionNodeList->Count; i++)
     {
         PPH_MEMORY_NODE node = Context->RegionNodeList->Items[i];
@@ -798,14 +809,14 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             //{
             //    getNodeColor->BackColor = PhCsColorElevatedProcesses;
             //}
-            else if (memoryItem->RegionType == CfgBitmapRegion || memoryItem->RegionType == CfgBitmap32Region)
-                getNodeColor->BackColor = PhCsColorProtectedHandles;
-            else if (memoryItem->Type & MEM_PRIVATE)
-                getNodeColor->BackColor = PhCsColorOwnProcesses;
-            else if (memoryItem->Type & MEM_MAPPED)
-                getNodeColor->BackColor = PhCsColorSystemProcesses;
-            else if (memoryItem->Type & SEC_IMAGE)
-                getNodeColor->BackColor = PhCsColorImmersiveProcesses;
+            //else if (memoryItem->RegionType == CfgBitmapRegion || memoryItem->RegionType == CfgBitmap32Region)
+            //    getNodeColor->BackColor = PhCsColorProtectedHandles;
+            //else if (memoryItem->Type & MEM_PRIVATE)
+            //    getNodeColor->BackColor = PhCsColorOwnProcesses;
+            //else if (memoryItem->Type & MEM_MAPPED)
+            //    getNodeColor->BackColor = PhCsColorSystemProcesses;
+            //else if (memoryItem->Type & SEC_IMAGE)
+            //    getNodeColor->BackColor = PhCsColorImmersiveProcesses;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
         }
