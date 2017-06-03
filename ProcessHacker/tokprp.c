@@ -934,15 +934,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
     case WM_SIZE:
         PhHSplitterHandleWmSize(tokenPageContext->HSplitterContext, LOWORD(lParam), HIWORD(lParam));
         break;
-    case WM_LBUTTONDOWN:
-        PhHSplitterHandleLButtonDown(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
-        break;
-    case WM_LBUTTONUP:
-        PhHSplitterHandleLButtonUp(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
-        break;
-    case WM_MOUSEMOVE:
-        PhHSplitterHandleMouseMove(tokenPageContext->HSplitterContext, hwndDlg, wParam, lParam);
-        break;
     }
 
     REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->GroupsListViewHandle, uMsg, wParam, lParam);
