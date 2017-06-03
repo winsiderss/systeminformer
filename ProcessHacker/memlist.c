@@ -98,6 +98,7 @@ VOID PhInitializeMemoryList(
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHMMTLC_MAXIMUM, PhpMemoryTreeNewPostSortFunction);
 
+    PhInitializeTreeNewFilterSupport(&Context->AllocationTreeFilterSupport, hwnd, Context->AllocationBaseNodeList);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, hwnd, Context->RegionNodeList);
 }
 
@@ -120,6 +121,9 @@ VOID PhDeleteMemoryList(
     _In_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
+    PhDeleteTreeNewFilterSupport(&Context->AllocationTreeFilterSupport);
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     PhCmDeleteManager(&Context->Cm);
 
     PhpClearMemoryList(Context);
@@ -131,12 +135,17 @@ VOID PhLoadSettingsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
+    ULONG flags;
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
+    flags = PhGetIntegerSetting(L"MemoryListFlags");
     settings = PhGetStringSetting(L"MemoryTreeListColumns");
     sortSettings = PhGetStringSetting(L"MemoryTreeListSort");
+
+    Context->Flags = flags;
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -149,57 +158,28 @@ VOID PhSaveSettingsMemoryList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+
+    PhSetIntegerSetting(L"MemoryListFlags", Context->Flags);
     PhSetStringSetting2(L"MemoryTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"MemoryTreeListSort", &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
 
 VOID PhSetOptionsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
-    _In_ BOOLEAN HideFreeRegions
+    _In_ ULONG Options
     )
 {
-    //ULONG i;
-   // ULONG k;
-    //BOOLEAN modified;
-
-    if (Context->HideFreeRegions != HideFreeRegions)
+    switch (Options)
     {
-        //PPH_LIST lists[2];
-
-        Context->HideFreeRegions = HideFreeRegions;
-       /* modified = FALSE;
-        lists[0] = Context->AllocationBaseNodeList;
-        lists[1] = Context->RegionNodeList;
-
-        for (k = 0; k < 2; k++)
-        {
-            for (i = 0; i < lists[k]->Count; i++)
-            {
-                PPH_MEMORY_NODE node = lists[k]->Items[i];
-                BOOLEAN visible;
-
-                visible = TRUE;
-
-                if (HideFreeRegions && (node->MemoryItem->State & MEM_FREE))
-                    visible = FALSE;
-
-                if (node->Node.Visible != visible)
-                {
-                    node->Node.Visible = visible;
-                    modified = TRUE;
-
-                    if (!visible)
-                        node->Node.Selected = FALSE;
-                }
-            }
-        }
-
-        if (modified)
-        {
-            TreeNew_NodesStructured(Context->TreeNewHandle);
-        }*/
+    case PH_MEMORY_FLAGS_FREE_OPTION:
+        Context->HideFreeRegions = !Context->HideFreeRegions;
+        break;
+    case PH_MEMORY_FLAGS_RESERVED_OPTION:
+        Context->HideReservedRegions = !Context->HideReservedRegions;
+        break;
     }
 }
 
@@ -252,6 +232,9 @@ PPH_MEMORY_NODE PhpAddAllocationBaseNode(
     memoryNode->Node.TextCacheSize = PHMMTLC_MAXIMUM;
 
     PhAddItemList(Context->AllocationBaseNodeList, memoryNode);
+
+    if (Context->AllocationTreeFilterSupport.FilterList)
+        memoryNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->AllocationTreeFilterSupport, &memoryNode->Node);
 
     PhEmCallObjectOperation(EmMemoryNodeType, memoryNode, EmObjectCreate);
 
@@ -355,12 +338,11 @@ VOID PhReplaceMemoryList(
 
             if (memoryItem->AllocationBaseItem == memoryItem)
             {
-                if (memoryItem->State & MEM_FREE)
-                    allocationBaseNode->MemoryItem->State = MEM_FREE;
-
                 allocationBaseNode->MemoryItem->Protect = memoryItem->AllocationProtect;
-                PhGetMemoryProtectionString(allocationBaseNode->MemoryItem->Protect, allocationBaseNode->ProtectionText);
+                allocationBaseNode->MemoryItem->State = memoryItem->State;
                 allocationBaseNode->MemoryItem->Type = memoryItem->Type;
+
+                PhGetMemoryProtectionString(allocationBaseNode->MemoryItem->Protect, allocationBaseNode->ProtectionText);
 
                 if (memoryItem->RegionType != CustomRegion || memoryItem->u.Custom.PropertyOfAllocationBase)
                     PhpCopyMemoryRegionTypeInfo(memoryItem, allocationBaseNode->MemoryItem);

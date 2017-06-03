@@ -240,64 +240,50 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     PPH_MEMORY_CONTEXT memoryContext = Context;
     PPH_MEMORY_NODE memoryNode = (PPH_MEMORY_NODE)Node;
     PPH_MEMORY_ITEM memoryItem = memoryNode->MemoryItem;
+    PPH_STRING useText;
+    PWSTR tempString;
 
     if (memoryContext->ListContext.HideFreeRegions && memoryItem->State & MEM_FREE)
         return FALSE;
 
+    if (memoryContext->ListContext.HideReservedRegions &&
+        (memoryItem->Type & MEM_PRIVATE || memoryItem->Type & MEM_MAPPED) &&
+        memoryItem->State & MEM_RESERVE &&
+        memoryItem->AllocationBaseItem // Ignore root nodes
+        )
+    {
+        return FALSE;
+    }
+
     if (PhIsNullOrEmptyString(memoryContext->SearchboxText))
         return TRUE;
 
-    // handle properties
-
-  /*  if (memoryNode->BaseAddressText[0])
+    if (memoryNode->BaseAddressText[0])
     {
         if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, memoryNode->BaseAddressText))
             return TRUE;
     }
 
-    if (memoryNode->TypeText[0])
-    {
-        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, memoryNode->TypeText))
-            return TRUE;
-    }
-
-    if (memoryNode->ProtectionText[0])
-    {
-        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, memoryNode->ProtectionText))
-            return TRUE;
-    }
-
-    if (!PhIsNullOrEmptyString(memoryNode->SizeText))
-    {
-        if (PhpWordMatchHandleStringRef(memoryContext->SearchboxText, &memoryNode->SizeText->sr))
-            return TRUE;
-    }*/
-
-    PPH_STRING useText = PhGetMemoryRegionUseText(memoryItem);
-
+    useText = PH_AUTO(PhGetMemoryRegionUseText(memoryItem));
     if (!PhIsNullOrEmptyString(useText))
     {
         if (PhpWordMatchHandleStringRef(memoryContext->SearchboxText, &useText->sr))
             return TRUE;
     }
-
-  /*  if (!PhIsNullOrEmptyString(memoryNode->TotalWsText))
+    
+    tempString = PhGetMemoryTypeString(memoryItem->Type);
+    if (tempString[0])
     {
-        if (PhpWordMatchHandleStringRef(memoryContext->SearchboxText, &memoryNode->TotalWsText->sr))
+        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(memoryNode->PrivateWsText))
+    tempString = PhGetMemoryStateString(memoryItem->State);
+    if (tempString[0])
     {
-        if (PhpWordMatchHandleStringRef(memoryContext->SearchboxText, &memoryNode->PrivateWsText->sr))
+        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, tempString))
             return TRUE;
-    }*/
-
-    //PPH_STRING ShareableWsText;
-    //PPH_STRING SharedWsText;
-    //PPH_STRING LockedWsText;
-    //PPH_STRING CommittedText;
-    //PPH_STRING PrivateText;
+    }
 
     return FALSE;
 }
@@ -348,6 +334,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             memoryContext->LastRunStatus = -1;
             memoryContext->ErrorMessage = NULL;
             memoryContext->SearchboxText = PhReferenceEmptyString();
+            memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
             memoryContext->FilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
 
             PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectCreate);
@@ -363,9 +350,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhLoadSettingsMemoryList(&memoryContext->ListContext);
-            PhSetOptionsMemoryList(&memoryContext->ListContext, !!PhGetIntegerSetting(L"HideFreeRegions"));
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS),
-                memoryContext->ListContext.HideFreeRegions ? BST_CHECKED : BST_UNCHECKED);
 
             PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
         }
@@ -432,6 +416,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         // Expand any hidden nodes to make search results visible.
                         PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
 
+                        PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
                         PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
                     }
                 }
@@ -668,18 +653,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
-            case IDC_HIDEFREEREGIONS:
-                {
-                    BOOLEAN hide;
-
-                    hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS)) == BST_CHECKED;
-                    PhSetIntegerSetting(L"HideFreeRegions", hide);
-                    PhSetOptionsMemoryList(&memoryContext->ListContext, hide);
-                }
-                break;
-            case IDC_STRINGS:
-                PhShowMemoryStringDialog(hwndDlg, processItem);
-                break;
             case IDC_REFRESH:
                 PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
                 break;
@@ -687,32 +660,24 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 {
                     RECT rect;
                     PPH_EMENU menu;
-                    PPH_EMENU_ITEM dynamicItem;
-                    PPH_EMENU_ITEM mappedItem;
-                    PPH_EMENU_ITEM staticItem;
-                    PPH_EMENU_ITEM verifiedItem;
+                    PPH_EMENU_ITEM freeItem;
+                    PPH_EMENU_ITEM reservedItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
 
                     menu = PhCreateEMenu();
 
-                    PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Hide dynamic", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Hide mapped", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Hide static", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Hide verified", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, freeItem = PhCreateEMenuItem(0, PH_MEMORY_FLAGS_FREE_OPTION, L"Hide free", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, reservedItem = PhCreateEMenuItem(0, PH_MEMORY_FLAGS_RESERVED_OPTION, L"Hide reserved", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_STRINGS, L"Strings...", NULL, NULL), -1);
 
-                   /* if (modulesContext->ListContext.HideDynamicModules)
-                        dynamicItem->Flags |= PH_EMENU_CHECKED;
+                   if (memoryContext->ListContext.HideFreeRegions)
+                       freeItem->Flags |= PH_EMENU_CHECKED;
 
-                    if (modulesContext->ListContext.HideMappedModules)
-                        mappedItem->Flags |= PH_EMENU_CHECKED;
-
-                    if (modulesContext->ListContext.HideStaticModules)
-                        staticItem->Flags |= PH_EMENU_CHECKED;
-
-                    if (modulesContext->ListContext.HideSignedModules)
-                        verifiedItem->Flags |= PH_EMENU_CHECKED;*/
+                    if (memoryContext->ListContext.HideReservedRegions)
+                        reservedItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -725,9 +690,18 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                     if (selectedItem && selectedItem->Id)
                     {
-                        //PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
-                        //PhSetIntegerSetting(L"ModuleListFlags", modulesContext->ListContext.Flags);
-                        //PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
+                        if (selectedItem->Id == IDC_STRINGS)
+                        {
+                            PhShowMemoryStringDialog(hwndDlg, processItem);
+                        }
+                        else
+                        {
+                            PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
+                            PhSaveSettingsMemoryList(&memoryContext->ListContext);
+
+                            PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
+                            PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
+                        }
                     }
 
                     PhDestroyEMenu(menu);

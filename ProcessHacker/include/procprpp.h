@@ -306,6 +306,7 @@ typedef struct _PH_MEMORY_CONTEXT
     PPH_STRING ErrorMessage;
 
     PPH_STRING SearchboxText;
+    PPH_TN_FILTER_ENTRY AllocationFilterEntry;
     PPH_TN_FILTER_ENTRY FilterEntry;
 // begin_phapppub
 } PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
