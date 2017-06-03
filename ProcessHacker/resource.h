@@ -405,7 +405,6 @@
 #define IDC_PRIVATE                     1238
 #define IDC_IMAGE                       1239
 #define IDC_MAPPED                      1240
-#define IDC_STRINGS                     1242
 #define IDC_SHOWTEXT                    1245
 #define IDC_ICONPROCESSES               1248
 #define IDC_CLEANUP                     1251
@@ -681,7 +680,6 @@
 #define ID_MEMORY_DECOMMIT              40211
 #define ID_MEMORY_COPY                  40213
 #define ID_MEMORY_READWRITEMEMORY       40214
-#define ID_MEMORY_READWRITEADDRESS      40215
 #define ID_FILTER_CONTAINS              40216
 #define ID_FILTER_CONTAINS_CASEINSENSITIVE 40218
 #define ID_FILTER_REGEX                 40219

@@ -55,6 +55,10 @@ typedef struct _PH_MEMORY_NODE
 
 #define PH_MEMORY_FLAGS_FREE_OPTION 1
 #define PH_MEMORY_FLAGS_RESERVED_OPTION 2
+#define PH_MEMORY_FLAGS_PRIVATE_OPTION 3
+#define PH_MEMORY_FLAGS_SYSTEM_OPTION 4
+#define PH_MEMORY_FLAGS_CFG_OPTION 5
+#define PH_MEMORY_FLAGS_EXECUTE_OPTION 6
 
 typedef struct _PH_MEMORY_LIST_CONTEXT
 {
@@ -73,7 +77,11 @@ typedef struct _PH_MEMORY_LIST_CONTEXT
         {
             ULONG HideFreeRegions : 1;
             ULONG HideReservedRegions : 1;
-            ULONG Spare : 30;
+            ULONG HighlightPrivatePages : 1;
+            ULONG HighlightSystemPages : 1;
+            ULONG HighlightCfgPages : 1;
+            ULONG HighlightExecutePages : 1;
+            ULONG Spare : 26;
         };
     };
 
