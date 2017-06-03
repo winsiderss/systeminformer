@@ -232,6 +232,40 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                         case ID_EMPTY_EMPTYPRIORITY0STANDBYLIST:
                             command = MemoryPurgeLowPriorityStandbyList;
                             break;
+                        case ID_EMPTY_COMBINEMEMORYLISTS:
+                            {
+                                NTSTATUS status;
+                                HANDLE tokenHandle;
+                                MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
+
+                                if (NT_SUCCESS(NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
+                                {
+                                    PhSetTokenPrivilege(tokenHandle, SE_PROF_SINGLE_PROCESS_NAME, NULL, SE_PRIVILEGE_ENABLED);
+                                    NtClose(tokenHandle);
+                                }
+
+                                status = NtSetSystemInformation(
+                                    SystemCombinePhysicalMemoryInformation, 
+                                    &combineInfo, 
+                                    sizeof(MEMORY_COMBINE_INFORMATION_EX)
+                                    );
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    PhShowInformation2(
+                                        hwndDlg,
+                                        L"Memory pages combined",
+                                        L"%s (%llu pages)",
+                                        PhaFormatSize(combineInfo.PagesCombined * PAGE_SIZE, -1)->Buffer,
+                                        combineInfo.PagesCombined
+                                        );
+                                }
+                                else
+                                {
+                                    PhShowStatus(hwndDlg, L"Unable to combine memory pages", status, 0);
+                                }
+                            }
+                            break;
                         }
                     }
 

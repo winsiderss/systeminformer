@@ -738,6 +738,7 @@
 #define ID_ENVIRONMENT_COPY             40291
 #define ID_ENVIRONMENT_DELETE           40292
 #define IDC_MAXSCREEN                   40293
+#define ID_EMPTY_COMBINEMEMORYLISTS     40295
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -745,9 +746,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        228
 #define _APS_NEXT_RESOURCE_VALUE        231
-#define _APS_NEXT_COMMAND_VALUE         40295
+#define _APS_NEXT_COMMAND_VALUE         40297
 #define _APS_NEXT_CONTROL_VALUE         1390
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
