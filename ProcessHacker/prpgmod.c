@@ -488,8 +488,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhLoadSettingsModuleList(&modulesContext->ListContext);
 
-            modulesContext->ListContext.Flags = PhGetIntegerSetting(L"ModuleListFlags");
-
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
 
@@ -572,11 +570,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         // Cache the current search text for our callback.
                         PhMoveReference(&modulesContext->SearchboxText, newSearchboxText);
 
-                        if (!PhIsNullOrEmptyString(modulesContext->SearchboxText))
-                        {
-                            // Expand any hidden nodes to make search results visible.
-                            PhExpandAllModuleNodes(&modulesContext->ListContext, TRUE);
-                        }
+                        // Expand any hidden nodes to make search results visible.
+                        PhExpandAllModuleNodes(&modulesContext->ListContext, TRUE);
 
                         PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
                     }
@@ -704,7 +699,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     if (selectedItem && selectedItem->Id)
                     {
                         PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
-                        PhSetIntegerSetting(L"ModuleListFlags", modulesContext->ListContext.Flags);
+
+                        PhSaveSettingsModuleList(&modulesContext->ListContext);
+
                         PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
                     }
 
