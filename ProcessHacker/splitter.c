@@ -27,27 +27,247 @@
 #include <windowsx.h>
 
 #define SPLITTER_PADDING 6
-#define SPLITTER_MIN_HEIGHT 200
 
-VOID DrawXorBar(HDC hdc, INT x1, INT y1, INT width, INT height);
+LONG GetWindowWidth(HWND hwnd)
+{
+    RECT Rect;
+
+    GetWindowRect(hwnd, &Rect);
+    return (Rect.right - Rect.left);
+}
+
+LONG GetWindowHeight(HWND hwnd)
+{
+    RECT Rect;
+
+    GetWindowRect(hwnd, &Rect);
+    return (Rect.bottom - Rect.top);
+}
+
+LONG GetClientWindowWidth(HWND hwnd)
+{
+    RECT Rect;
+
+    GetClientRect(hwnd, &Rect);
+    return (Rect.right - Rect.left);
+}
+
+LONG GetClientWindowHeight(HWND hwnd)
+{
+    RECT Rect;
+
+    GetClientRect(hwnd, &Rect);
+    return (Rect.bottom - Rect.top);
+}
+
+LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    PPH_HSPLITTER_CONTEXT context = NULL;
+
+    if (uMsg == WM_CREATE)
+    {
+        LPCREATESTRUCT cs = (LPCREATESTRUCT)lParam;
+        context = cs->lpCreateParams;
+        SetProp(hwnd, PhMakeContextAtom(), (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_HSPLITTER_CONTEXT)GetProp(hwnd, PhMakeContextAtom());
+    }
+
+    if (!context)
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+
+    switch (uMsg)
+    {
+    case WM_PAINT:
+        {
+            PAINTSTRUCT paintStruct;
+            RECT clientRect;
+            HDC hdc;
+
+            if (hdc = BeginPaint(hwnd, &paintStruct))
+            {
+                GetClientRect(hwnd, &clientRect);
+
+                if (context->HasFocus)
+                    FillRect(hdc, &clientRect, CreateSolidBrush(RGB(0x0, 0x0, 0x0)));
+                else if (context->Hot)
+                    FillRect(hdc, &clientRect, CreateSolidBrush(RGB(0x44, 0x44, 0x44)));
+                else
+                    FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+
+                EndPaint(hwnd, &paintStruct);
+            }
+        }
+        return 0;
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_LBUTTONDOWN:
+        {
+            context->HasFocus = TRUE;
+
+            SetCapture(hwnd);
+
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        break;
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+        {
+            if (GetCapture() == hwnd)
+            {
+                ReleaseCapture();
+
+                context->HasFocus = FALSE;
+
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            context->Hot = FALSE;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        break;
+    case WM_SETFOCUS:
+        {
+            context->HasFocus = TRUE;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        return 0;
+    case WM_KILLFOCUS:
+        {
+            context->HasFocus = FALSE;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        return 0;
+    case WM_MOUSEMOVE:
+        {
+            if (!context->Hot)
+            {
+                TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
+                context->Hot = TRUE;
+                InvalidateRect(hwnd, NULL, TRUE);
+                trackMouseEvent.dwFlags = TME_LEAVE;
+                trackMouseEvent.hwndTrack = hwnd;
+                TrackMouseEvent(&trackMouseEvent);
+            }
+
+            if (!context->HasFocus)
+                break;
+
+            int Width = GetClientWindowWidth(context->ParentWindow);
+            int NewPos;
+            HDWP deferHandle;
+            POINT cursorPos;
+
+            GetCursorPos(&cursorPos);
+            ScreenToClient(context->ParentWindow, &cursorPos);
+            NewPos = cursorPos.y;
+
+            if (NewPos < 200)
+                break;
+            if (NewPos > GetClientWindowHeight(context->ParentWindow) - 80)
+                break;
+            context->SplitterOffset = NewPos;
+
+            deferHandle = BeginDeferWindowPos(3);
+            DeferWindowPos(
+                deferHandle,
+                context->TopWindow,
+                NULL,
+                SPLITTER_PADDING,
+                90,
+                Width - SPLITTER_PADDING * 2,
+                cursorPos.y - 90,
+                SWP_NOZORDER | SWP_NOACTIVATE
+                );
+            DeferWindowPos(
+                deferHandle,
+                context->Window,
+                NULL,
+                0,
+                cursorPos.y,
+                Width,
+                SPLITTER_PADDING,
+                SWP_NOZORDER | SWP_NOACTIVATE
+                );
+            DeferWindowPos(
+                deferHandle,
+                context->BottomWindow,
+                NULL,
+                SPLITTER_PADDING,
+                cursorPos.y + SPLITTER_PADDING,
+                Width - SPLITTER_PADDING * 2,
+                GetClientWindowHeight(context->ParentWindow) - (cursorPos.y + SPLITTER_PADDING) - 65,
+                SWP_NOZORDER | SWP_NOACTIVATE
+                );
+
+            EndDeferWindowPos(deferHandle);
+        }
+        break;
+    }
+
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
 
 PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
-    _In_ HWND Parent,
-    _In_ HWND TopChild,
-    _In_ HWND BottomChild
+    _In_ HWND ParentWindow,
+    _In_ HWND TopWindow,
+    _In_ HWND BottomWindow
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_HSPLITTER_CONTEXT context;
 
     context = PhAllocate(sizeof(PH_HSPLITTER_CONTEXT));
     memset(context, 0, sizeof(PH_HSPLITTER_CONTEXT));
+  
+    context->ParentWindow = ParentWindow;
+    context->TopWindow = TopWindow;
+    context->BottomWindow = BottomWindow;
+    context->SplitterOffset = PhGetIntegerSetting(L"TokenSplitterPosition");
 
-    PhInitializeLayoutManager(&context->LayoutManager, Parent);
+    if (PhBeginInitOnce(&initOnce))
+    {
+        WNDCLASSEX c = { sizeof(c) };
 
-    context->SplitterOffset = -4;
-    context->SplitterPosition = 250;// PhGetIntegerSetting(L"TokenSplitterPosition");
-    context->Topitem = PhAddLayoutItem(&context->LayoutManager, TopChild, NULL, PH_ANCHOR_ALL);
-    context->Bottomitem = PhAddLayoutItem(&context->LayoutManager, BottomChild, NULL, PH_ANCHOR_ALL);
+        c.style = CS_GLOBALCLASS;
+        c.lpfnWndProc = HSplitterWindowProc;
+        c.cbClsExtra = 0;
+        c.cbWndExtra = sizeof(PVOID);
+        c.hInstance = PhLibImageBase;
+        c.hIcon = NULL;
+        c.hCursor = LoadCursor(NULL, IDC_SIZENS);
+        c.hbrBackground = NULL;
+        c.lpszMenuName = NULL;
+        c.lpszClassName = L"PhHSplitter";
+        c.hIconSm = NULL;
+
+        RegisterClassEx(&c);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    context->Window = CreateWindowEx(
+        WS_EX_CONTROLPARENT | WS_EX_TRANSPARENT,
+        L"PhHSplitter",
+        NULL,
+        WS_CHILD | WS_VISIBLE,
+        5,
+        5,
+        465,
+        10,
+        ParentWindow,
+        NULL,
+        PhLibImageBase,
+        context
+        );
+
+    ShowWindow(context->Window, SW_SHOW);
+    UpdateWindow(context->Window);
 
     return context;
 }
@@ -56,9 +276,7 @@ VOID PhDeleteHSplitter(
     _Inout_ PPH_HSPLITTER_CONTEXT Context
     )
 {
-    PhSetIntegerSetting(L"TokenSplitterPosition", Context->SplitterPosition);
-
-    PhDeleteLayoutManager(&Context->LayoutManager);
+    PhSetIntegerSetting(L"TokenSplitterPosition", Context->SplitterOffset);
 }
 
 VOID PhHSplitterHandleWmSize(
@@ -67,204 +285,40 @@ VOID PhHSplitterHandleWmSize(
     _In_ INT Height
     )
 {
-    // HACK: Use the PH layout manager as the 'splitter' control by abusing layout margins.
-     
-    // BUG: If the window is maximized and you move the splitter to the bottom, restoring the window causes
-    // the bottom control to get moved outside the visible area... Just move the splitter back up.
-    if ((Context->Bottomitem->Rect.bottom - Context->Bottomitem->Rect.top) <= 100)
-        Context->SplitterPosition = Context->Topitem->Rect.bottom - Context->Topitem->Rect.top - SPLITTER_PADDING;
+    HDWP deferHandle;
 
-    // Set the bottom margin of the top control.
-    Context->Topitem->Margin.bottom = Height - Context->SplitterPosition - SPLITTER_PADDING;
-    // Set the top margin of the bottom control.
-    Context->Bottomitem->Margin.top = Context->SplitterPosition + SPLITTER_PADDING * 2;
+    deferHandle = BeginDeferWindowPos(3);
+    DeferWindowPos(
+        deferHandle,
+        Context->TopWindow,
+        NULL,
+        SPLITTER_PADDING,
+        90,
+        Width - SPLITTER_PADDING * 2,
+        Context->SplitterOffset - 90 - 65,
+        SWP_NOZORDER | SWP_NOACTIVATE
+        );
 
-    PhLayoutManagerLayout(&Context->LayoutManager);
+    DeferWindowPos(
+        deferHandle,
+        Context->Window,
+        NULL,
+        0,
+        Context->SplitterOffset - 65,
+        Width,
+        SPLITTER_PADDING,
+        SWP_NOZORDER | SWP_NOACTIVATE
+        );
+
+    DeferWindowPos(
+        deferHandle,
+        Context->BottomWindow,
+        NULL,
+        SPLITTER_PADDING,
+        Context->SplitterOffset + SPLITTER_PADDING - 65,
+        Width - SPLITTER_PADDING * 2,
+        GetClientWindowHeight(Context->ParentWindow) - (Context->SplitterOffset + SPLITTER_PADDING),
+        SWP_NOZORDER | SWP_NOACTIVATE
+        );
+    EndDeferWindowPos(deferHandle);
 }
-
-VOID PhHSplitterHandleLButtonDown(
-    _Inout_ PPH_HSPLITTER_CONTEXT Context,
-    _In_ HWND hwnd,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    POINT pt;
-    HDC hdc;
-    RECT rect;
-
-    pt.x = GET_X_LPARAM(lParam);
-    pt.y = GET_Y_LPARAM(lParam);
-
-    GetWindowRect(hwnd, &rect);
-    ClientToScreen(hwnd, &pt);
-
-    pt.x -= rect.left;
-    pt.y -= rect.top;
-
-    // Adjust the coordinates (start from 0,0).
-    OffsetRect(&rect, -rect.left, -rect.top);
-
-    if (pt.y < Context->Topitem->OrigRect.top * 2)
-        pt.y = Context->Topitem->OrigRect.top * 2;
-    if (pt.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
-        pt.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
-
-    Context->DragMode = TRUE;
-    SetCapture(hwnd);
-
-    hdc = GetWindowDC(hwnd);
-    DrawXorBar(hdc, 1, pt.y - 2, rect.right - 2, 4);
-    ReleaseDC(hwnd, hdc);
-
-    Context->SplitterOffset = pt.y;
-}
-
-VOID PhHSplitterHandleLButtonUp(
-    _Inout_ PPH_HSPLITTER_CONTEXT Context,
-    _In_ HWND hwnd, 
-    _In_ WPARAM wParam, 
-    _In_ LPARAM lParam
-    )
-{
-    HDC hdc;
-    RECT rect;
-    POINT pt;
-
-    pt.x = GET_X_LPARAM(lParam);
-    pt.y = GET_Y_LPARAM(lParam);
-    
-    if (!Context->DragMode)
-        return;
-
-    GetWindowRect(hwnd, &rect);
-    ClientToScreen(hwnd, &pt);
-
-    pt.x -= rect.left;
-    pt.y -= rect.top;
-
-    // Adjust the coordinates (start from 0,0).
-    OffsetRect(&rect, -rect.left, -rect.top);
-
-    if (pt.y < Context->Topitem->OrigRect.top * 2)
-        pt.y = Context->Topitem->OrigRect.top * 2;
-    if (pt.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
-        pt.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
-
-    hdc = GetWindowDC(hwnd);
-    DrawXorBar(hdc, 1, Context->SplitterOffset - 2, rect.right - 2, 4);
-    ReleaseDC(hwnd, hdc);
-
-    Context->SplitterOffset = pt.y;
-
-    Context->DragMode = FALSE;
-
-    GetWindowRect(hwnd, &rect);
-    pt.x += rect.left;
-    pt.y += rect.top;
-    ScreenToClient(hwnd, &pt);
-    GetClientRect(hwnd, &rect);
-
-    Context->SplitterPosition = pt.y;
-
-    // position the child controls
-    PhHSplitterHandleWmSize(Context, rect.right, rect.bottom);
-
-    ReleaseCapture();
-}
-
-VOID PhHSplitterHandleMouseMove(
-    _Inout_ PPH_HSPLITTER_CONTEXT Context,
-    _In_ HWND hwnd,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    HDC hdc;
-    RECT windowRect;
-    POINT windowPoint;
-
-    windowPoint.x = GET_X_LPARAM(lParam);
-    windowPoint.y = GET_Y_LPARAM(lParam);
-
-    GetWindowRect(hwnd, &windowRect);
-    ClientToScreen(hwnd, &windowPoint);
-
-    if (Context->DragMode)
-    {
-        windowPoint.x -= windowRect.left;
-        windowPoint.y -= windowRect.top;
-
-        OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-
-        if (windowPoint.y < Context->Topitem->OrigRect.top * 2)
-            windowPoint.y = Context->Topitem->OrigRect.top * 2;
-        if (windowPoint.y > Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT)
-            windowPoint.y = Context->Bottomitem->Rect.bottom - SPLITTER_MIN_HEIGHT;
-
-        if (windowPoint.y != Context->SplitterOffset)
-        {
-            hdc = GetWindowDC(hwnd);
-
-            if (wParam & MK_LBUTTON)
-            {
-                DrawXorBar(hdc, 1, Context->SplitterOffset - 2, windowRect.right - 2, 4);
-                DrawXorBar(hdc, 1, windowPoint.y - 2, windowRect.right - 2, 4);
-            }
-            else
-            {
-                TRACKMOUSEEVENT trackMouseEvent;
-
-                trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
-                trackMouseEvent.dwFlags = TME_LEAVE;
-                trackMouseEvent.hwndTrack = hwnd;
-                trackMouseEvent.dwHoverTime = 0;
-
-                SetCursor(LoadCursor(NULL, IDC_SIZENS));
-
-                TrackMouseEvent(&trackMouseEvent);
-            }
-
-            ReleaseDC(hwnd, hdc);
-            Context->SplitterOffset = windowPoint.y;
-        }
-    }
-}
-
-VOID PhHSplitterHandleMouseLeave(
-    _Inout_ PPH_HSPLITTER_CONTEXT Context,
-    _In_ HWND hwnd,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    // Reset the original cursor.
-    SetCursor(LoadCursor(NULL, IDC_ARROW));
-}
-
-// http://www.catch22.net/tuts/splitter-windows
-VOID DrawXorBar(HDC hdc, INT x1, INT y1, INT width, INT height)
-{
-    static WORD _dotPatternBmp[8] =
-    {
-        0x00aa, 0x0055, 0x00aa, 0x0055,
-        0x00aa, 0x0055, 0x00aa, 0x0055
-    };
-
-    HBITMAP hbm;
-    HBRUSH  hbr, hbrushOld;
-
-    hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
-    hbr = CreatePatternBrush(hbm);
-
-    SetBrushOrgEx(hdc, x1, y1, 0);
-    hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
-
-    PatBlt(hdc, x1, y1, width, height, PATINVERT);
-
-    SelectObject(hdc, hbrushOld);
-
-    DeleteObject(hbr);
-    DeleteObject(hbm);
-}
-
