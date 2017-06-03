@@ -406,48 +406,78 @@ INT PhShowMessage_V(
     return result;
 }
 
+INT PhShowInformation2(
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+    INT button;
+    PPH_STRING message;
+    TASKDIALOGCONFIG config = { sizeof(config) };
+
+    va_start(argptr, Format);
+    message = PhFormatString_V(Format, argptr);
+    va_end(argptr);
+
+    config.hwndParent = hWnd;
+    config.hInstance = PhLibImageBase;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_INFORMATION_ICON;
+    config.pszMainInstruction = Title;
+    config.pszContent = message->Buffer;
+
+    if (TaskDialogIndirect(
+        &config,
+        &button,
+        NULL,
+        NULL
+        ) == S_OK)
+    {
+        PhDereferenceObject(message);
+        return button;
+    }
+    else
+    {
+        PhDereferenceObject(message);
+        return FALSE;
+    }
+}
+
 INT PhShowError2(
     _In_ HWND hWnd,
     _In_opt_ PWSTR Title,
     _In_opt_ PWSTR Message
     )
 {
-    if (TaskDialogIndirect_Import())
-    {
-        INT button;
-        TASKDIALOGCONFIG config = { sizeof(config) };
+    INT button;
+    TASKDIALOGCONFIG config = { sizeof(config) };
 
-        config.hwndParent = hWnd;
-        config.hInstance = PhLibImageBase;
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
-        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-        config.pszWindowTitle = PhApplicationName;
-        config.pszMainIcon = TD_ERROR_ICON;
-        config.pszMainInstruction = Title;
-        config.pszContent = Message;
-        
-        if (TaskDialogIndirect_Import()(
-            &config,
-            &button,
-            NULL,
-            NULL
-            ) == S_OK)
-        {
-            return button == IDCLOSE;
-        }
-        else
-        {
-            return FALSE;
-        }
+    config.hwndParent = hWnd;
+    config.hInstance = PhLibImageBase;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_ERROR_ICON;
+    config.pszMainInstruction = Title;
+    config.pszContent = Message;
+
+    if (TaskDialogIndirect(
+        &config,
+        &button,
+        NULL,
+        NULL
+        ) == S_OK)
+    {
+        return button;
     }
     else
     {
-        return PhShowMessage(
-            hWnd,
-            MB_OK | MB_ICONERROR,
-            Title,
-            Message
-            ) == IDOK;
+        return FALSE;
     }
 }
 

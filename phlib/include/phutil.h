@@ -239,6 +239,16 @@ PhShowMessage_V(
 PHLIBAPI
 INT
 NTAPI
+PhShowInformation2(
+    _In_ HWND hWnd,
+    _In_opt_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
+    );
+
+PHLIBAPI
+INT
+NTAPI
 PhShowError2(
     _In_ HWND hWnd, 
     _In_opt_ PWSTR Title, 
