@@ -293,7 +293,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDOK:
                 {
@@ -477,7 +477,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         info.TypeName = result->TypeName;
                         info.BestObjectName = result->Name;
 
-                        if (LOWORD(wParam) == ID_HANDLE_OBJECTPROPERTIES1)
+                        if (GET_WM_COMMAND_ID(wParam, lParam) == ID_HANDLE_OBJECTPROPERTIES1)
                             PhShowHandleObjectProperties1(hwndDlg, &info);
                         else
                             PhShowHandleObjectProperties2(hwndDlg, &info);

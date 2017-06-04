@@ -262,7 +262,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_COMMAND:
         {
-            PhMwpOnCommand(LOWORD(wParam));
+            PhMwpOnCommand(GET_WM_COMMAND_ID(wParam, lParam));
         }
         break;
     case WM_SHOWWINDOW:

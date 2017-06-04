@@ -1270,7 +1270,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_COPY:
                 {

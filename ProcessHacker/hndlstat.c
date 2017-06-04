@@ -21,10 +21,9 @@
  */
 
 #include <phapp.h>
-
 #include <hndlinfo.h>
-
 #include <hndlprv.h>
+#include <windowsx.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
 {
@@ -220,7 +219,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:

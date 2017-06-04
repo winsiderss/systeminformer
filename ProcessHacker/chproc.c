@@ -21,8 +21,8 @@
  */
 
 #include <phapp.h>
-
 #include <lsasup.h>
+#include <windowsx.h>
 
 typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
 {
@@ -257,7 +257,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 {

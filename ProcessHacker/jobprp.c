@@ -21,12 +21,11 @@
  */
 
 #include <phapp.h>
-
 #include <hndlinfo.h>
 #include <secedit.h>
-
 #include <procprv.h>
 #include <settings.h>
+#include <windowsx.h>
 
 typedef struct _JOB_PAGE_CONTEXT
 {
@@ -390,7 +389,7 @@ INT_PTR CALLBACK PhpJobPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_TERMINATE:
                 {

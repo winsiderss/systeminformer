@@ -695,11 +695,11 @@ INT_PTR HandleCommonMessages(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_LIST:
                 {
-                    if (HIWORD(wParam) == LBN_SELCHANGE)
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == LBN_SELCHANGE)
                     {
                         ULONG i;
 
@@ -900,14 +900,6 @@ INT_PTR CALLBACK ProcessesDlgProc(
             EditingProcessFilterList = NULL;
         }
         break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-                NOTHING;
-            }
-        }
-        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -964,14 +956,6 @@ INT_PTR CALLBACK ServicesDlgProc(
             EditingServiceFilterList = NULL;
         }
         break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-                NOTHING;
-            }
-        }
-        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -1016,7 +1000,7 @@ INT_PTR CALLBACK LoggingDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_BROWSE:
                 {

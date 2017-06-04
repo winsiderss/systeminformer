@@ -219,7 +219,7 @@ LRESULT CALLBACK PhMipContainerWndProc(
         break;
     case WM_ACTIVATE:
         {
-            PhMipContainerOnActivate(LOWORD(wParam), !!HIWORD(wParam));
+            PhMipContainerOnActivate(GET_WM_COMMAND_ID(wParam, lParam), !!HIWORD(wParam));
         }
         break;
     case WM_SIZE:
@@ -282,7 +282,7 @@ INT_PTR CALLBACK PhMipMiniInfoDialogProc(
         break;
     case WM_COMMAND:
         {
-            PhMipOnCommand(LOWORD(wParam), HIWORD(wParam));
+            PhMipOnCommand(GET_WM_COMMAND_ID(wParam, lParam), HIWORD(wParam));
         }
         break;
     case WM_NOTIFY:

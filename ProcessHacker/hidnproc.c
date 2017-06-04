@@ -189,7 +189,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         return TRUE;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:

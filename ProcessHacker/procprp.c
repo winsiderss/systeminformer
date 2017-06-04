@@ -24,6 +24,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <windowsx.h>
 #include <uxtheme.h>
 
 #include <kphuser.h>
@@ -242,7 +243,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDOK:
                 // Prevent the OK button from working (even though
