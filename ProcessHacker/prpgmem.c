@@ -129,8 +129,6 @@ VOID PhpInitializeMemoryMenu(
         if (numberOfAllocationBase == 0 || numberOfAllocationBase == NumberOfMemoryNodes)
             PhEnableEMenuItem(Menu, ID_MEMORY_SAVE, TRUE);
     }
-
-    PhEnableEMenuItem(Menu, ID_MEMORY_READWRITEADDRESS, TRUE);
 }
 
 VOID PhShowMemoryContextMenu(
@@ -196,6 +194,98 @@ VOID PhShowMemoryContextMenu(
     PhFree(memoryNodes);
 }
 
+static BOOLEAN PhpWordMatchHandleStringRef(
+    _In_ PPH_STRING SearchText,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = SearchText->sr;
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhpWordMatchHandleStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhpWordMatchHandleStringRef(SearchText, &text);
+}
+
+BOOLEAN PhpMemoryTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MEMORY_CONTEXT memoryContext = Context;
+    PPH_MEMORY_NODE memoryNode = (PPH_MEMORY_NODE)Node;
+    PPH_MEMORY_ITEM memoryItem = memoryNode->MemoryItem;
+    PPH_STRING useText;
+    PWSTR tempString;
+
+    if (memoryContext->ListContext.HideFreeRegions && memoryItem->State & MEM_FREE)
+        return FALSE;
+
+    if (memoryContext->ListContext.HideReservedRegions &&
+        (memoryItem->Type & MEM_PRIVATE || memoryItem->Type & MEM_MAPPED || memoryItem->Type & MEM_IMAGE) &&
+        memoryItem->State & MEM_RESERVE &&
+        memoryItem->AllocationBaseItem // Ignore root nodes
+        )
+    {
+        return FALSE;
+    }
+
+    if (PhIsNullOrEmptyString(memoryContext->SearchboxText))
+        return TRUE;
+
+    if (memoryNode->BaseAddressText[0])
+    {
+        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, memoryNode->BaseAddressText))
+            return TRUE;
+    }
+
+    useText = PH_AUTO(PhGetMemoryRegionUseText(memoryItem));
+    if (!PhIsNullOrEmptyString(useText))
+    {
+        if (PhpWordMatchHandleStringRef(memoryContext->SearchboxText, &useText->sr))
+            return TRUE;
+    }
+    
+    tempString = PhGetMemoryTypeString(memoryItem->Type);
+    if (tempString[0])
+    {
+        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, tempString))
+            return TRUE;
+    }
+
+    tempString = PhGetMemoryStateString(memoryItem->State);
+    if (tempString[0])
+    {
+        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, tempString))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -231,6 +321,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             memset(memoryContext, 0, sizeof(PH_MEMORY_CONTEXT));
             memoryContext->ProcessId = processItem->ProcessId;
 
+            memoryContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
+            PhCreateSearchControl(hwndDlg, memoryContext->SearchboxHandle, L"Search Memory (Ctrl+K)");
+
             // Initialize the list.
             tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
             BringWindowToTop(tnHandle);
@@ -238,6 +331,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             TreeNew_SetEmptyText(tnHandle, &PhpLoadingText, 0);
             memoryContext->LastRunStatus = -1;
             memoryContext->ErrorMessage = NULL;
+            memoryContext->SearchboxText = PhReferenceEmptyString();
+            memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
+            memoryContext->FilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
 
             PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectCreate);
 
@@ -252,9 +348,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             }
 
             PhLoadSettingsMemoryList(&memoryContext->ListContext);
-            PhSetOptionsMemoryList(&memoryContext->ListContext, !!PhGetIntegerSetting(L"HideFreeRegions"));
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS),
-                memoryContext->ListContext.HideFreeRegions ? BST_CHECKED : BST_UNCHECKED);
 
             PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
         }
@@ -290,14 +383,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STRINGS),
-                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
-                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, memoryContext->ListContext.TreeNewHandle,
-                    dialogItem, PH_ANCHOR_ALL);
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, memoryContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, memoryContext->ListContext.TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
 
@@ -307,6 +395,32 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_COMMAND:
         {
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != memoryContext->SearchboxHandle)
+                        break;
+
+                    newSearchboxText = PhGetWindowText(memoryContext->SearchboxHandle);
+
+                    if (!PhEqualString(memoryContext->SearchboxText, newSearchboxText, FALSE))
+                    {
+                        // Cache the current search text for our callback.
+                        PhMoveReference(&memoryContext->SearchboxText, newSearchboxText);
+
+                        // Expand any hidden nodes to make search results visible.
+                        PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
+
+                        PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
+                        PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
+                    }
+                }
+                break;
+            }
+
             switch (LOWORD(wParam))
             {
             case ID_SHOWCONTEXTMENU:
@@ -320,22 +434,19 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                     if (memoryNode && !memoryNode->IsAllocationBase)
                     {
-                        if (memoryNode->MemoryItem->State & MEM_COMMIT)
-                        {
-                            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
+                        PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
 
-                            memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
-                            showMemoryEditor->ProcessId = processItem->ProcessId;
-                            showMemoryEditor->BaseAddress = memoryNode->MemoryItem->BaseAddress;
-                            showMemoryEditor->RegionSize = memoryNode->MemoryItem->RegionSize;
-                            showMemoryEditor->SelectOffset = -1;
-                            showMemoryEditor->SelectLength = 0;
-                            ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
-                        }
-                        else
-                        {
-                            PhShowError(hwndDlg, L"Unable to edit the memory region because it is not committed.");
-                        }
+                        showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
+                        memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
+
+                        showMemoryEditor->OwnerWindow = hwndDlg;
+                        showMemoryEditor->ProcessId = processItem->ProcessId;
+                        showMemoryEditor->BaseAddress = memoryNode->MemoryItem->BaseAddress;
+                        showMemoryEditor->RegionSize = memoryNode->MemoryItem->RegionSize;
+                        showMemoryEditor->SelectOffset = -1;
+                        showMemoryEditor->SelectLength = 0;
+
+                        ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
                     }
                 }
                 break;
@@ -474,60 +585,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     }
                 }
                 break;
-            case ID_MEMORY_READWRITEADDRESS:
-                {
-                    PPH_STRING selectedChoice = NULL;
-
-                    if (!memoryContext->MemoryItemListValid)
-                        break;
-
-                    while (PhaChoiceDialog(
-                        hwndDlg,
-                        L"Read/Write Address",
-                        L"Enter an address:",
-                        NULL,
-                        0,
-                        NULL,
-                        PH_CHOICE_DIALOG_USER_CHOICE,
-                        &selectedChoice,
-                        NULL,
-                        L"MemoryReadWriteAddressChoices"
-                        ))
-                    {
-                        ULONG64 address64;
-                        PVOID address;
-
-                        if (selectedChoice->Length == 0)
-                            continue;
-
-                        if (PhStringToInteger64(&selectedChoice->sr, 0, &address64))
-                        {
-                            PPH_MEMORY_ITEM memoryItem;
-
-                            address = (PVOID)address64;
-                            memoryItem = PhLookupMemoryItemList(&memoryContext->MemoryItemList, address);
-
-                            if (memoryItem)
-                            {
-                                PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
-
-                                memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
-                                showMemoryEditor->ProcessId = processItem->ProcessId;
-                                showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
-                                showMemoryEditor->RegionSize = memoryItem->RegionSize;
-                                showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)memoryItem->BaseAddress);
-                                showMemoryEditor->SelectLength = 0;
-                                ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
-                                break;
-                            }
-                            else
-                            {
-                                PhShowError(hwndDlg, L"Unable to find the memory region for the selected address.");
-                            }
-                        }
-                    }
-                }
-                break;
             case ID_MEMORY_COPY:
                 {
                     PPH_STRING text;
@@ -537,20 +594,147 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
-            case IDC_HIDEFREEREGIONS:
-                {
-                    BOOLEAN hide;
-
-                    hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEFREEREGIONS)) == BST_CHECKED;
-                    PhSetIntegerSetting(L"HideFreeRegions", hide);
-                    PhSetOptionsMemoryList(&memoryContext->ListContext, hide);
-                }
-                break;
-            case IDC_STRINGS:
-                PhShowMemoryStringDialog(hwndDlg, processItem);
-                break;
             case IDC_REFRESH:
                 PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+                break;
+            case IDC_FILTEROPTIONS:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM freeItem;
+                    PPH_EMENU_ITEM reservedItem;
+                    PPH_EMENU_ITEM privateItem;
+                    PPH_EMENU_ITEM systemItem;
+                    PPH_EMENU_ITEM cfgItem;
+                    PPH_EMENU_ITEM typeItem;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
+
+                    menu = PhCreateEMenu();
+
+                    typedef enum _PH_MEMORY_FILTER_MENU_ITEM
+                    {
+                        PH_MEMORY_FILTER_MENU_HIDE_FREE = 1,
+                        PH_MEMORY_FILTER_MENU_HIDE_RESERVED,
+                        PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE,
+                        PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM,
+                        PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG,
+                        PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE,
+                        PH_MEMORY_FILTER_MENU_READ_ADDRESS,
+                        PH_MEMORY_FILTER_MENU_STRINGS,
+                    } PH_MEMORY_FILTER_MENU_ITEM;
+
+                    PhInsertEMenuItem(menu, freeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_FREE, L"Hide free pages", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, reservedItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIDE_RESERVED, L"Hide reserved pages", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, privateItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE, L"Highlight private pages", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM, L"Highlight system pages", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, cfgItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG, L"Highlight CFG pages", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, typeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE, L"Highlight executable pages", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_READ_ADDRESS, L"Read/Write &address...", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), -1);
+
+                    if (memoryContext->ListContext.HideFreeRegions)
+                        freeItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HideReservedRegions)
+                        reservedItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HighlightPrivatePages)
+                        privateItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HighlightSystemPages)
+                        systemItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HighlightCfgPages)
+                        cfgItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HighlightExecutePages)
+                        typeItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        if (selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_FREE || 
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_RESERVED ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE)
+                        {
+                            PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
+                            PhSaveSettingsMemoryList(&memoryContext->ListContext);
+
+                            PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
+                            PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
+                        }
+                        else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_STRINGS)
+                        {
+                            PhShowMemoryStringDialog(hwndDlg, processItem);
+                        }
+                        else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_READ_ADDRESS)
+                        {
+                            PPH_STRING selectedChoice = NULL;
+
+                            if (!memoryContext->MemoryItemListValid)
+                                break;
+
+                            while (PhaChoiceDialog(
+                                hwndDlg,
+                                L"Read/Write Address",
+                                L"Enter an address:",
+                                NULL,
+                                0,
+                                NULL,
+                                PH_CHOICE_DIALOG_USER_CHOICE,
+                                &selectedChoice,
+                                NULL,
+                                L"MemoryReadWriteAddressChoices"
+                                ))
+                            {
+                                ULONG64 address64;
+                                PVOID address;
+
+                                if (selectedChoice->Length == 0)
+                                    continue;
+
+                                if (PhStringToInteger64(&selectedChoice->sr, 0, &address64))
+                                {
+                                    PPH_MEMORY_ITEM memoryItem;
+
+                                    address = (PVOID)address64;
+                                    memoryItem = PhLookupMemoryItemList(&memoryContext->MemoryItemList, address);
+
+                                    if (memoryItem)
+                                    {
+                                        PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
+
+                                        memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
+                                        showMemoryEditor->ProcessId = processItem->ProcessId;
+                                        showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
+                                        showMemoryEditor->RegionSize = memoryItem->RegionSize;
+                                        showMemoryEditor->SelectOffset = (ULONG)((ULONG_PTR)address - (ULONG_PTR)memoryItem->BaseAddress);
+                                        showMemoryEditor->SelectLength = 0;
+                                        ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        PhShowError(hwndDlg, L"Unable to find the memory region for the selected address.");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
                 break;
             }
         }

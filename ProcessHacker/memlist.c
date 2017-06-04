@@ -29,6 +29,7 @@
 #include <memprv.h>
 #include <phplug.h>
 #include <settings.h>
+#include <phsettings.h>
 
 VOID PhpClearMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
@@ -96,6 +97,9 @@ VOID PhInitializeMemoryList(
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
     PhCmInitializeManager(&Context->Cm, hwnd, PHMMTLC_MAXIMUM, PhpMemoryTreeNewPostSortFunction);
+
+    PhInitializeTreeNewFilterSupport(&Context->AllocationTreeFilterSupport, hwnd, Context->AllocationBaseNodeList);
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, hwnd, Context->RegionNodeList);
 }
 
 VOID PhpClearMemoryList(
@@ -117,6 +121,9 @@ VOID PhDeleteMemoryList(
     _In_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
+    PhDeleteTreeNewFilterSupport(&Context->AllocationTreeFilterSupport);
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     PhCmDeleteManager(&Context->Cm);
 
     PhpClearMemoryList(Context);
@@ -128,12 +135,17 @@ VOID PhLoadSettingsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
+    ULONG flags;
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
+    flags = PhGetIntegerSetting(L"MemoryListFlags");
     settings = PhGetStringSetting(L"MemoryTreeListColumns");
     sortSettings = PhGetStringSetting(L"MemoryTreeListSort");
+
+    Context->Flags = flags;
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -146,57 +158,40 @@ VOID PhSaveSettingsMemoryList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+
+    PhSetIntegerSetting(L"MemoryListFlags", Context->Flags);
     PhSetStringSetting2(L"MemoryTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"MemoryTreeListSort", &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
 
 VOID PhSetOptionsMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
-    _In_ BOOLEAN HideFreeRegions
+    _In_ ULONG Options
     )
 {
-    ULONG i;
-    ULONG k;
-    BOOLEAN modified;
-
-    if (Context->HideFreeRegions != HideFreeRegions)
+    switch (Options)
     {
-        PPH_LIST lists[2];
-
-        Context->HideFreeRegions = HideFreeRegions;
-        modified = FALSE;
-        lists[0] = Context->AllocationBaseNodeList;
-        lists[1] = Context->RegionNodeList;
-
-        for (k = 0; k < 2; k++)
-        {
-            for (i = 0; i < lists[k]->Count; i++)
-            {
-                PPH_MEMORY_NODE node = lists[k]->Items[i];
-                BOOLEAN visible;
-
-                visible = TRUE;
-
-                if (HideFreeRegions && (node->MemoryItem->State & MEM_FREE))
-                    visible = FALSE;
-
-                if (node->Node.Visible != visible)
-                {
-                    node->Node.Visible = visible;
-                    modified = TRUE;
-
-                    if (!visible)
-                        node->Node.Selected = FALSE;
-                }
-            }
-        }
-
-        if (modified)
-        {
-            TreeNew_NodesStructured(Context->TreeNewHandle);
-        }
+    case PH_MEMORY_FLAGS_FREE_OPTION:
+        Context->HideFreeRegions = !Context->HideFreeRegions;
+        break;
+    case PH_MEMORY_FLAGS_RESERVED_OPTION:
+        Context->HideReservedRegions = !Context->HideReservedRegions;
+        break;
+    case PH_MEMORY_FLAGS_PRIVATE_OPTION:
+        Context->HighlightPrivatePages = !Context->HighlightPrivatePages;
+        break;
+    case PH_MEMORY_FLAGS_SYSTEM_OPTION:
+        Context->HighlightSystemPages = !Context->HighlightSystemPages;
+        break;
+    case PH_MEMORY_FLAGS_CFG_OPTION:
+        Context->HighlightCfgPages = !Context->HighlightCfgPages;
+        break;
+    case PH_MEMORY_FLAGS_EXECUTE_OPTION:
+        Context->HighlightExecutePages = !Context->HighlightExecutePages;
+        break;
     }
 }
 
@@ -250,6 +245,9 @@ PPH_MEMORY_NODE PhpAddAllocationBaseNode(
 
     PhAddItemList(Context->AllocationBaseNodeList, memoryNode);
 
+    if (Context->AllocationTreeFilterSupport.FilterList)
+        memoryNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->AllocationTreeFilterSupport, &memoryNode->Node);
+
     PhEmCallObjectOperation(EmMemoryNodeType, memoryNode, EmObjectCreate);
 
     return memoryNode;
@@ -275,6 +273,9 @@ PPH_MEMORY_NODE PhpAddRegionNode(
     memoryNode->Node.TextCacheSize = PHMMTLC_MAXIMUM;
 
     PhAddItemList(Context->RegionNodeList, memoryNode);
+
+    if (Context->TreeFilterSupport.FilterList)
+        memoryNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &memoryNode->Node);
 
     PhEmCallObjectOperation(EmMemoryNodeType, memoryNode, EmObjectCreate);
 
@@ -326,9 +327,6 @@ VOID PhReplaceMemoryList(
 
         memoryNode = PhpAddRegionNode(Context, memoryItem);
 
-        if (Context->HideFreeRegions && (memoryItem->State & MEM_FREE))
-            memoryNode->Node.Visible = FALSE;
-
         if (allocationBaseNode && memoryItem->AllocationBase == allocationBaseNode->MemoryItem->BaseAddress)
         {
             if (!(memoryItem->State & MEM_FREE))
@@ -349,18 +347,14 @@ VOID PhReplaceMemoryList(
 
             if (memoryItem->AllocationBaseItem == memoryItem)
             {
-                if (memoryItem->State & MEM_FREE)
-                    allocationBaseNode->MemoryItem->State = MEM_FREE;
-
                 allocationBaseNode->MemoryItem->Protect = memoryItem->AllocationProtect;
-                PhGetMemoryProtectionString(allocationBaseNode->MemoryItem->Protect, allocationBaseNode->ProtectionText);
+                allocationBaseNode->MemoryItem->State = memoryItem->State;
                 allocationBaseNode->MemoryItem->Type = memoryItem->Type;
+
+                PhGetMemoryProtectionString(allocationBaseNode->MemoryItem->Protect, allocationBaseNode->ProtectionText);
 
                 if (memoryItem->RegionType != CustomRegion || memoryItem->u.Custom.PropertyOfAllocationBase)
                     PhpCopyMemoryRegionTypeInfo(memoryItem, allocationBaseNode->MemoryItem);
-
-                if (Context->HideFreeRegions && (allocationBaseNode->MemoryItem->State & MEM_FREE))
-                    allocationBaseNode->Node.Visible = FALSE;
             }
             else
             {
@@ -385,7 +379,41 @@ VOID PhUpdateMemoryNode(
     TreeNew_InvalidateNode(Context->TreeNewHandle, &MemoryNode->Node);
 }
 
-PPH_STRING PhpGetMemoryRegionUseText(
+VOID PhExpandAllMemoryNodes(
+    _In_ PPH_MEMORY_LIST_CONTEXT Context,
+    _In_ BOOLEAN Expand
+    )
+{
+    ULONG i;
+    BOOLEAN needsRestructure = FALSE;
+
+    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE node = Context->AllocationBaseNodeList->Items[i];
+
+        if (node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    for (i = 0; i < Context->RegionNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE node = Context->RegionNodeList->Items[i];
+
+        if (node->Node.Expanded != Expand)
+        {
+            node->Node.Expanded = Expand;
+            needsRestructure = TRUE;
+        }
+    }
+
+    if (needsRestructure)
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+PPH_STRING PhGetMemoryRegionUseText(
     _In_ PPH_MEMORY_ITEM MemoryItem
     )
 {
@@ -438,7 +466,7 @@ VOID PhpUpdateMemoryNodeUseText(
     )
 {
     if (!MemoryNode->UseText)
-        MemoryNode->UseText = PhpGetMemoryRegionUseText(MemoryNode->MemoryItem);
+        MemoryNode->UseText = PhGetMemoryRegionUseText(MemoryNode->MemoryItem);
 }
 
 PPH_STRING PhpFormatSizeIfNonZero(
@@ -751,22 +779,57 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         return TRUE;
     case TreeNewGetNodeColor:
         {
-            //PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-            //PPH_MEMORY_ITEM memoryItem;
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            PPH_MEMORY_ITEM memoryItem;
 
-            //node = (PPH_MEMORY_NODE)getNodeColor->Node;
-            //memoryItem = node->MemoryItem;
+            node = (PPH_MEMORY_NODE)getNodeColor->Node;
+            memoryItem = node->MemoryItem;
 
-            //if (!memoryItem)
-            //    ; // Dummy
-            //else if (PhCsUseColorRelocatedModules && (memoryItem->Protect & PAGE_EXECUTE_WRITECOPY))
-            //    getNodeColor->BackColor = PhCsColorRelocatedModules;
-            //else if (PhCsUseColorRelocatedModules && (memoryItem->Protect & PAGE_EXECUTE_READWRITE))
-            //    getNodeColor->BackColor = PhCsColorRelocatedModules;
-            //else if (PhCsUseColorSystemProcesses && (memoryItem->Type & MEM_PRIVATE))
-            //    getNodeColor->BackColor = PhCsColorSystemProcesses;
+            if (!memoryItem)
+                NOTHING; 
+            else if (
+                context->HighlightExecutePages && (
+                memoryItem->Protect & PAGE_EXECUTE || 
+                memoryItem->Protect & PAGE_EXECUTE_READ || 
+                memoryItem->Protect & PAGE_EXECUTE_READWRITE || 
+                memoryItem->Protect & PAGE_EXECUTE_WRITECOPY
+                ))
+            {
+                getNodeColor->BackColor = PhCsColorPacked;
+            }
+            else if (
+                context->HighlightCfgPages && (
+                memoryItem->RegionType == CfgBitmapRegion ||
+                memoryItem->RegionType == CfgBitmap32Region
+                ))
+            {
+                getNodeColor->BackColor = PhCsColorElevatedProcesses;
+            }
+            else if (
+                context->HighlightSystemPages && (
+                memoryItem->Type & SEC_IMAGE
+                ))
+            {
+                getNodeColor->BackColor = PhCsColorSystemProcesses;
+            }
+            else if (context->HighlightPrivatePages && memoryItem->Type & MEM_PRIVATE)
+            {
+                getNodeColor->BackColor = PhCsColorOwnProcesses;
+            }
+            //else if (
+            //    memoryItem->RegionType == StackRegion || memoryItem->RegionType == Stack32Region ||
+            //    memoryItem->RegionType == HeapRegion || memoryItem->RegionType == Heap32Region ||
+            //    memoryItem->RegionType == HeapSegmentRegion || memoryItem->RegionType == HeapSegment32Region
+            //    ((memoryItem->Protect & PAGE_EXECUTE_WRITECOPY || memoryItem->Protect & PAGE_EXECUTE_READWRITE || 
+            //    memoryItem->Protect & PAGE_READWRITE) && !(memoryItem->Type & SEC_IMAGE))
+            //    )
+            //{
+            //    getNodeColor->BackColor = PhCsColorElevatedProcesses;
+            //}
+            //else if (memoryItem->Type & SEC_IMAGE)
+            //    getNodeColor->BackColor = PhCsColorImmersiveProcesses;
 
-            //getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:

@@ -93,6 +93,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MemResultsListViewColumns", L"");
     PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
     PhpAddScalableIntegerPairSetting(L"MemResultsSize", L"@96|500,520");
+    PhpAddIntegerSetting(L"MemoryListFlags", L"3");
     PhpAddStringSetting(L"MemoryTreeListColumns", L"");
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");

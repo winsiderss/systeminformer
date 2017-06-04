@@ -131,6 +131,8 @@ VOID PhDeleteModuleList(
 {
     ULONG i;
 
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     if (Context->BoldFont)
         DeleteObject(Context->BoldFont);
 
@@ -165,12 +167,17 @@ VOID PhLoadSettingsModuleList(
     _Inout_ PPH_MODULE_LIST_CONTEXT Context
     )
 {
+    ULONG flags;
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
+    flags = PhGetIntegerSetting(L"ModuleListFlags");
     settings = PhGetStringSetting(L"ModuleTreeListColumns");
     sortSettings = PhGetStringSetting(L"ModuleTreeListSort");
+
+    Context->Flags = flags;
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -183,8 +190,11 @@ VOID PhSaveSettingsModuleList(
     PPH_STRING sortSettings;
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+
+    PhSetIntegerSetting(L"ModuleListFlags", Context->Flags);
     PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ModuleTreeListSort", &sortSettings->sr);
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }

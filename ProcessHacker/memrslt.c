@@ -81,6 +81,7 @@ VOID PhShowMemoryResultsDialog(
         (LPARAM)context
         );
     ShowWindow(windowHandle, SW_SHOW);
+    SetForegroundWindow(windowHandle);
 }
 
 static PPH_STRING PhpGetStringForSelectedResults(

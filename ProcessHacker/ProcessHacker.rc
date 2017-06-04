@@ -440,7 +440,6 @@ BEGIN
         MENUITEM "&Free",                       ID_MEMORY_FREE
         MENUITEM "&Decommit",                   ID_MEMORY_DECOMMIT
         MENUITEM SEPARATOR
-        MENUITEM "Read/Write &address...",      ID_MEMORY_READWRITEADDRESS
         MENUITEM "&Copy\aCtrl+C",               ID_MEMORY_COPY
     END
 END
@@ -460,6 +459,7 @@ IDR_EMPTYMEMLISTS MENU
 BEGIN
     POPUP "Empty"
     BEGIN
+        MENUITEM "Combine memory lists",        ID_EMPTY_COMBINEMEMORYLISTS
         MENUITEM "Empty working sets",          ID_EMPTY_EMPTYWORKINGSETS
         MENUITEM "Empty modified page list",    ID_EMPTY_EMPTYMODIFIEDPAGELIST
         MENUITEM "Empty standby list",          ID_EMPTY_EMPTYSTANDBYLIST
@@ -1132,10 +1132,10 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Memory"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "Strings...",IDC_STRINGS,155,2,50,14
-    PUSHBUTTON      "Refresh",IDC_REFRESH,208,2,50,14
+    PUSHBUTTON      "Refresh",IDC_REFRESH,53,2,50,14
     CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0xa,2,19,256,239,WS_EX_CLIENTEDGE
-    CONTROL         "Hide free regions",IDC_HIDEFREEREGIONS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,5,71,10
+    PUSHBUTTON      "Options",IDC_FILTEROPTIONS,2,2,50,14
+    EDITTEXT        IDC_SEARCH,114,3,144,14,ES_AUTOHSCROLL
 END
 
 IDD_CHOOSE DIALOGEX 0, 0, 199, 73
@@ -2535,7 +2535,6 @@ IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
-
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

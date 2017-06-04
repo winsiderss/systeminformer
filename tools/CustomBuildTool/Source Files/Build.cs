@@ -540,74 +540,54 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (!File.Exists("bin\\Debug32\\ProcessHacker.exe"))
+                if (File.Exists("bin\\Debug32\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Debug32\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
-                    return true;
+                    File.WriteAllText("bin\\Debug32\\ProcessHacker.sig", string.Empty);
+
+                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow, true, Flags);
+                        return false;
+                    }
                 }
 
-                if (!File.Exists("bin\\Debug64\\ProcessHacker.exe"))
+                if (File.Exists("bin\\Debug64\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Debug64\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
-                    return true;
-                }
+                    File.WriteAllText("bin\\Debug64\\ProcessHacker.sig", string.Empty);
 
-                if (File.Exists("bin\\Debug32\\ProcessHacker.sig"))
-                    File.Delete("bin\\Debug32\\ProcessHacker.sig");
-                if (File.Exists("bin\\Debug64\\ProcessHacker.sig"))
-                    File.Delete("bin\\Debug64\\ProcessHacker.sig");
-
-                File.Create("bin\\Debug32\\ProcessHacker.sig").Dispose();
-                File.Create("bin\\Debug64\\ProcessHacker.sig").Dispose();
-
-                string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug32\\ProcessHacker.exe -s bin\\Debug32\\ProcessHacker.sig");
-                if (!string.IsNullOrEmpty(output))
-                {
-                    Program.PrintColorMessage("[WARN] (Debug32) " + output, ConsoleColor.Yellow, true, Flags);
-                    return false;
-                }
-
-                output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
-                if (!string.IsNullOrEmpty(output))
-                {
-                    Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow, true, Flags);
-                    return false;
+                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Debug64\\ProcessHacker.exe -s bin\\Debug64\\ProcessHacker.sig");
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        Program.PrintColorMessage("[WARN] (Debug64) " + output, ConsoleColor.Yellow, true, Flags);
+                        return false;
+                    }
                 }
             }
             else
             {
-                if (!File.Exists("bin\\Release32\\ProcessHacker.exe"))
+                if (File.Exists("bin\\Release32\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Release32\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
-                    return true;
+                    File.WriteAllText("bin\\Release32\\ProcessHacker.sig", string.Empty);
+
+                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        Program.PrintColorMessage("[WARN] (Release32) " + output, ConsoleColor.Yellow, true, Flags);
+                        return false;
+                    }
                 }
 
-                if (!File.Exists("bin\\Release64\\ProcessHacker.exe"))
+                if (File.Exists("bin\\Release64\\ProcessHacker.exe"))
                 {
-                    Program.PrintColorMessage("[SKIPPED] Release64\\ProcessHacker.exe not found.", ConsoleColor.Yellow, true, Flags);
-                    return true;
-                }
+                    File.WriteAllText("bin\\Release64\\ProcessHacker.sig", string.Empty);
 
-                if (File.Exists("bin\\Release32\\ProcessHacker.sig"))
-                    File.Delete("bin\\Release32\\ProcessHacker.sig");
-                if (File.Exists("bin\\Release64\\ProcessHacker.sig"))
-                    File.Delete("bin\\Release64\\ProcessHacker.sig");
-
-                File.Create("bin\\Release32\\ProcessHacker.sig").Dispose();
-                File.Create("bin\\Release64\\ProcessHacker.sig").Dispose();
-
-                string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release32\\ProcessHacker.exe -s bin\\Release32\\ProcessHacker.sig");
-                if (!string.IsNullOrEmpty(output))
-                {
-                    Program.PrintColorMessage("[ERROR] (Release32) " + output, ConsoleColor.Red, true, Flags);
-                    return false;
-                }
-
-                output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
-                if (!string.IsNullOrEmpty(output))
-                {
-                    Program.PrintColorMessage("[ERROR] (Release64) " + output, ConsoleColor.Red, true, Flags);
-                    return false;
+                    string output = Win32.ShellExecute(CustomSignToolPath, "sign -k build\\kph.key bin\\Release64\\ProcessHacker.exe -s bin\\Release64\\ProcessHacker.sig");
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        Program.PrintColorMessage("[WARN] (Release64) " + output, ConsoleColor.Yellow, true, Flags);
+                        return false;
+                    }
                 }
             }
 

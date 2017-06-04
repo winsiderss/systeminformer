@@ -1973,6 +1973,7 @@ ULONG_PTR PhMwpOnUserMessage(
             PPH_SHOW_MEMORY_EDITOR showMemoryEditor = (PPH_SHOW_MEMORY_EDITOR)LParam;
 
             PhShowMemoryEditorDialog(
+                showMemoryEditor->OwnerWindow,
                 showMemoryEditor->ProcessId,
                 showMemoryEditor->BaseAddress,
                 showMemoryEditor->RegionSize,

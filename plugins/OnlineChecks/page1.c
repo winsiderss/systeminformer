@@ -64,8 +64,8 @@ VOID ShowVirusTotalUploadDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
 
-    config.pszWindowTitle = PhaFormatString(L"Processing %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
-    config.pszMainInstruction = PhaFormatString(L"Processing %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
+    config.pszWindowTitle = PhaFormatString(L"Scanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
+    config.pszMainInstruction = PhaFormatString(L"Scanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
 
     config.cxWidth = 200;
     config.pfCallback = TaskDialogProcessingCallbackProc;

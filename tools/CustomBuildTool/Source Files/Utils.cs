@@ -78,8 +78,33 @@ namespace CustomBuildTool
             if (!File.Exists(CurrentFile))
                 return;
 
-            if (File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile))
-                File.Copy(CurrentFile, NewFile, true);
+            if (CurrentFile.EndsWith(".sys", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!File.Exists(NewFile))
+                {
+                    File.Copy(CurrentFile, NewFile, true);
+                }
+                else
+                {
+                    FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(CurrentFile);
+                    FileVersionInfo newInfo = FileVersionInfo.GetVersionInfo(NewFile);
+                    var currentInfoVersion = new Version(currentInfo.FileVersion);
+                    var newInfoVersion = new Version(newInfo.FileVersion);
+
+                    if (
+                        currentInfoVersion > newInfoVersion ||
+                        File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile)
+                        )
+                    {
+                        File.Copy(CurrentFile, NewFile, true);
+                    }
+                }
+            }
+            else
+            {
+                if (File.GetLastWriteTime(CurrentFile) > File.GetLastWriteTime(NewFile))
+                    File.Copy(CurrentFile, NewFile, true);
+            }
         }
 
         public const int SW_HIDE = 0;

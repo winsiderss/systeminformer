@@ -439,6 +439,7 @@ VOID PhShowLogDialog(
 #define PH_MEMORY_EDITOR_UNMAP_VIEW_OF_SECTION 0x1
 
 VOID PhShowMemoryEditorDialog(
+    _In_ HWND OwnerWindow,
     _In_ HANDLE ProcessId,
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,

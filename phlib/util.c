@@ -406,48 +406,50 @@ INT PhShowMessage_V(
     return result;
 }
 
-INT PhShowError2(
+INT PhShowMessage2(
     _In_ HWND hWnd,
+    _In_ ULONG Buttons,
+    _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,
-    _In_opt_ PWSTR Message
+    _In_ PWSTR Format,
+    ...
     )
 {
-    if (TaskDialogIndirect_Import())
-    {
-        INT button;
-        TASKDIALOGCONFIG config = { sizeof(config) };
+    INT result;
+    va_list argptr;
+    PPH_STRING message;
+    TASKDIALOGCONFIG config = { sizeof(config) };
 
-        config.hwndParent = hWnd;
-        config.hInstance = PhLibImageBase;
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
-        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-        config.pszWindowTitle = PhApplicationName;
-        config.pszMainIcon = TD_ERROR_ICON;
-        config.pszMainInstruction = Title;
-        config.pszContent = Message;
-        
-        if (TaskDialogIndirect_Import()(
-            &config,
-            &button,
-            NULL,
-            NULL
-            ) == S_OK)
-        {
-            return button == IDCLOSE;
-        }
-        else
-        {
-            return FALSE;
-        }
+    va_start(argptr, Format);
+    message = PhFormatString_V(Format, argptr);
+    va_end(argptr);
+
+    if (!message)
+        return -1;
+
+    config.hwndParent = hWnd;
+    config.hInstance = PhLibImageBase;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwCommonButtons = Buttons;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = Icon;
+    config.pszMainInstruction = Title;
+    config.pszContent = message->Buffer;
+
+    if (TaskDialogIndirect(
+        &config,
+        &result,
+        NULL,
+        NULL
+        ) == S_OK)
+    {
+        PhDereferenceObject(message);
+        return result;
     }
     else
     {
-        return PhShowMessage(
-            hWnd,
-            MB_OK | MB_ICONERROR,
-            Title,
-            Message
-            ) == IDOK;
+        PhDereferenceObject(message);
+        return -1;
     }
 }
 

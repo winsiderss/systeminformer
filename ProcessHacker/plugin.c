@@ -270,7 +270,6 @@ VOID PhLoadPlugins(
         PPH_STRING baseName;
 
         PhInitializeStringBuilder(&sb, 100);
-        PhAppendStringBuilder2(&sb, L"Unable to load the following plugin(s):\n\n");
 
         for (i = 0; i < LoadErrors->Count; i++)
         {
@@ -283,9 +282,12 @@ VOID PhLoadPlugins(
 
         PhAppendStringBuilder2(&sb, L"\nDo you want to disable the above plugin(s)?");
 
-        if (PhShowMessage(
+        if (PhShowMessage2(
             NULL,
-            MB_ICONERROR | MB_YESNO,
+            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_ERROR_ICON,
+            L"Unable to load the following plugin(s)",
+            L"%s",
             sb.String->Buffer
             ) == IDYES)
         {
