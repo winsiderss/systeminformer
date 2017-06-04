@@ -327,9 +327,6 @@ VOID PhReplaceMemoryList(
 
         memoryNode = PhpAddRegionNode(Context, memoryItem);
 
-        if (Context->HideFreeRegions && (memoryItem->State & MEM_FREE))
-            memoryNode->Node.Visible = FALSE;
-
         if (allocationBaseNode && memoryItem->AllocationBase == allocationBaseNode->MemoryItem->BaseAddress)
         {
             if (!(memoryItem->State & MEM_FREE))
@@ -358,9 +355,6 @@ VOID PhReplaceMemoryList(
 
                 if (memoryItem->RegionType != CustomRegion || memoryItem->u.Custom.PropertyOfAllocationBase)
                     PhpCopyMemoryRegionTypeInfo(memoryItem, allocationBaseNode->MemoryItem);
-
-                if (Context->HideFreeRegions && (allocationBaseNode->MemoryItem->State & MEM_FREE))
-                    allocationBaseNode->Node.Visible = FALSE;
             }
             else
             {
@@ -793,21 +787,28 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
 
             if (!memoryItem)
                 NOTHING; 
-            else if (context->HighlightExecutePages && (
+            else if (
+                context->HighlightExecutePages && (
                 memoryItem->Protect & PAGE_EXECUTE || 
                 memoryItem->Protect & PAGE_EXECUTE_READ || 
                 memoryItem->Protect & PAGE_EXECUTE_READWRITE || 
-                memoryItem->Protect & PAGE_EXECUTE_WRITECOPY))
+                memoryItem->Protect & PAGE_EXECUTE_WRITECOPY
+                ))
             {
                 getNodeColor->BackColor = PhCsColorPacked;
             }
-            else if (context->HighlightCfgPages && (
+            else if (
+                context->HighlightCfgPages && (
                 memoryItem->RegionType == CfgBitmapRegion ||
-                memoryItem->RegionType == CfgBitmap32Region))
+                memoryItem->RegionType == CfgBitmap32Region
+                ))
             {
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             }
-            else if (context->HighlightSystemPages && memoryItem->Type & MEM_MAPPED)
+            else if (
+                context->HighlightSystemPages && (
+                memoryItem->Type & SEC_IMAGE
+                ))
             {
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             }

@@ -434,22 +434,19 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                     if (memoryNode && !memoryNode->IsAllocationBase)
                     {
-                        if (memoryNode->MemoryItem->State & MEM_COMMIT)
-                        {
-                            PPH_SHOW_MEMORY_EDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
+                        PPH_SHOW_MEMORY_EDITOR showMemoryEditor;
 
-                            memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
-                            showMemoryEditor->ProcessId = processItem->ProcessId;
-                            showMemoryEditor->BaseAddress = memoryNode->MemoryItem->BaseAddress;
-                            showMemoryEditor->RegionSize = memoryNode->MemoryItem->RegionSize;
-                            showMemoryEditor->SelectOffset = -1;
-                            showMemoryEditor->SelectLength = 0;
-                            ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
-                        }
-                        else
-                        {
-                            PhShowError(hwndDlg, L"Unable to edit the memory region because it is not committed.");
-                        }
+                        showMemoryEditor = PhAllocate(sizeof(PH_SHOW_MEMORY_EDITOR));
+                        memset(showMemoryEditor, 0, sizeof(PH_SHOW_MEMORY_EDITOR));
+
+                        showMemoryEditor->OwnerWindow = hwndDlg;
+                        showMemoryEditor->ProcessId = processItem->ProcessId;
+                        showMemoryEditor->BaseAddress = memoryNode->MemoryItem->BaseAddress;
+                        showMemoryEditor->RegionSize = memoryNode->MemoryItem->RegionSize;
+                        showMemoryEditor->SelectOffset = -1;
+                        showMemoryEditor->SelectLength = 0;
+
+                        ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
                     }
                 }
                 break;

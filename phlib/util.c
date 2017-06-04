@@ -429,7 +429,7 @@ INT PhShowMessage2(
 
     config.hwndParent = hWnd;
     config.hInstance = PhLibImageBase;
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0) | TDF_SIZE_TO_CONTENT;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = Buttons;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = Icon;
