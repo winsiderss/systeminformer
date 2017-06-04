@@ -121,6 +121,8 @@ VOID PhDeleteHandleList(
 {
     ULONG i;
 
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
     PhCmDeleteManager(&Context->Cm);
 
     for (i = 0; i < Context->NodeList->Count; i++)

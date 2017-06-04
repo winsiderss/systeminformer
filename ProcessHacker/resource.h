@@ -405,7 +405,6 @@
 #define IDC_PRIVATE                     1238
 #define IDC_IMAGE                       1239
 #define IDC_MAPPED                      1240
-#define IDC_STRINGS                     1242
 #define IDC_SHOWTEXT                    1245
 #define IDC_ICONPROCESSES               1248
 #define IDC_CLEANUP                     1251
@@ -681,7 +680,6 @@
 #define ID_MEMORY_DECOMMIT              40211
 #define ID_MEMORY_COPY                  40213
 #define ID_MEMORY_READWRITEMEMORY       40214
-#define ID_MEMORY_READWRITEADDRESS      40215
 #define ID_FILTER_CONTAINS              40216
 #define ID_FILTER_CONTAINS_CASEINSENSITIVE 40218
 #define ID_FILTER_REGEX                 40219
@@ -738,6 +736,7 @@
 #define ID_ENVIRONMENT_COPY             40291
 #define ID_ENVIRONMENT_DELETE           40292
 #define IDC_MAXSCREEN                   40293
+#define ID_EMPTY_COMBINEMEMORYLISTS     40295
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -745,9 +744,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        228
 #define _APS_NEXT_RESOURCE_VALUE        231
-#define _APS_NEXT_COMMAND_VALUE         40295
+#define _APS_NEXT_COMMAND_VALUE         40297
 #define _APS_NEXT_CONTROL_VALUE         1390
 #define _APS_NEXT_SYMED_VALUE           169
 #endif

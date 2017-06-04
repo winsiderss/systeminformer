@@ -105,6 +105,7 @@ extern BOOLEAN PhMainWndExiting;
 
 typedef struct _PH_SHOW_MEMORY_EDITOR
 {
+    HWND OwnerWindow;
     HANDLE ProcessId;
     PVOID BaseAddress;
     SIZE_T RegionSize;
