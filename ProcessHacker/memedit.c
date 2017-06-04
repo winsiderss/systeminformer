@@ -47,8 +47,10 @@ typedef struct _MEMORY_EDITOR_CONTEXT
     };
     HANDLE ProcessHandle;
     HWND WindowHandle;
-    PH_LAYOUT_MANAGER LayoutManager;
+    HWND OwnerHandle;
     HWND HexEditHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+
     PUCHAR Buffer;
     ULONG SelectOffset;
     PPH_STRING Title;
@@ -74,6 +76,7 @@ PH_AVL_TREE PhMemoryEditorSet = PH_AVL_TREE_INIT(PhpMemoryEditorCompareFunction)
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID PhShowMemoryEditorDialog(
+    _In_ HWND OwnerWindow,
     _In_ HANDLE ProcessId,
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,
@@ -98,6 +101,7 @@ VOID PhShowMemoryEditorDialog(
         context = PhAllocate(sizeof(MEMORY_EDITOR_CONTEXT));
         memset(context, 0, sizeof(MEMORY_EDITOR_CONTEXT));
 
+        context->OwnerHandle = OwnerWindow;
         context->ProcessId = ProcessId;
         context->BaseAddress = BaseAddress;
         context->RegionSize = RegionSize;
@@ -209,7 +213,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (context->RegionSize > 1024 * 1024 * 1024) // 1 GB
             {
-                PhShowError(NULL, L"Unable to edit the memory region because it is too large.");
+                PhShowError(context->OwnerHandle, L"Unable to edit the memory region because it is too large.");
                 return TRUE;
             }
 
@@ -219,7 +223,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 context->ProcessId
                 )))
             {
-                PhShowStatus(NULL, L"Unable to open the process", status, 0);
+                PhShowStatus(context->OwnerHandle, L"Unable to open the process", status, 0);
                 return TRUE;
             }
 
@@ -227,7 +231,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
             if (!context->Buffer)
             {
-                PhShowError(NULL, L"Unable to allocate memory for the buffer.");
+                PhShowError(context->OwnerHandle, L"Unable to allocate memory for the buffer.");
                 return TRUE;
             }
 
@@ -239,7 +243,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 NULL
                 )))
             {
-                PhShowStatus(NULL, L"Unable to read memory", status, 0);
+                PhShowStatus(context->OwnerHandle, L"Unable to read memory", status, 0);
                 return TRUE;
             }
 
