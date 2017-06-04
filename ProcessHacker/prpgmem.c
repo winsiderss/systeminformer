@@ -245,7 +245,7 @@ BOOLEAN PhpMemoryTreeFilterCallback(
         return FALSE;
 
     if (memoryContext->ListContext.HideReservedRegions &&
-        (memoryItem->Type & MEM_PRIVATE || memoryItem->Type & MEM_MAPPED) &&
+        (memoryItem->Type & MEM_PRIVATE || memoryItem->Type & MEM_MAPPED || memoryItem->Type & MEM_IMAGE) &&
         memoryItem->State & MEM_RESERVE &&
         memoryItem->AllocationBaseItem // Ignore root nodes
         )
