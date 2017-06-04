@@ -422,7 +422,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             }
 
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 DestroyWindow(hwndDlg);
@@ -847,7 +847,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             }
 
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
                 WepRefreshWindows(context);

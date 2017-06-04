@@ -356,7 +356,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:

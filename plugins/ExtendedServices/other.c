@@ -395,7 +395,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_ADD:
                 {
@@ -535,7 +535,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                 break;
             }
 
-            switch (HIWORD(wParam))
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case EN_CHANGE:
             case CBN_SELCHANGE:
@@ -544,7 +544,7 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                     {
                         context->Dirty = TRUE;
 
-                        switch (LOWORD(wParam))
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case IDC_PRESHUTDOWNTIMEOUT:
                             context->PreshutdownTimeoutValid = TRUE;

@@ -208,7 +208,7 @@ VOID PhNfForwardMessage(
         }
     }
 
-    switch (LOWORD(LParam))
+    switch (GET_WM_COMMAND_ID(WParam, LParam))
     {
     case WM_LBUTTONDOWN:
         {

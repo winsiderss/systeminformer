@@ -22,8 +22,8 @@
 
 #include <phapp.h>
 
+#include <windowsx.h>
 #include <dbghelp.h>
-
 #include <symprv.h>
 
 #include <actions.h>
@@ -401,7 +401,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 {

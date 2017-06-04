@@ -23,8 +23,9 @@
 #include <phapp.h>
 
 #include <hndlinfo.h>
-
 #include <procprv.h>
+
+#include <windowsx.h>
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
@@ -227,7 +228,7 @@ INT_PTR CALLBACK PhpEventPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_SET:
             case IDC_RESET:
@@ -242,7 +243,7 @@ INT_PTR CALLBACK PhpEventPageProc(
                         pageContext->Context
                         )))
                     {
-                        switch (LOWORD(wParam))
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case IDC_SET:
                             NtSetEvent(eventHandle, NULL);
@@ -308,7 +309,7 @@ INT_PTR CALLBACK PhpEventPairPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_SETLOW:
             case IDC_SETHIGH:
@@ -322,7 +323,7 @@ INT_PTR CALLBACK PhpEventPairPageProc(
                         pageContext->Context
                         )))
                     {
-                        switch (LOWORD(wParam))
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case IDC_SETLOW:
                             NtSetLowEventPair(eventPairHandle);
@@ -609,7 +610,7 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_ACQUIRE:
             case IDC_RELEASE:
@@ -619,11 +620,11 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
 
                     if (NT_SUCCESS(status = pageContext->OpenObject(
                         &semaphoreHandle,
-                        LOWORD(wParam) == IDC_ACQUIRE ? SYNCHRONIZE : SEMAPHORE_MODIFY_STATE,
+                        GET_WM_COMMAND_ID(wParam, lParam) == IDC_ACQUIRE ? SYNCHRONIZE : SEMAPHORE_MODIFY_STATE,
                         pageContext->Context
                         )))
                     {
-                        switch (LOWORD(wParam))
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case IDC_ACQUIRE:
                             {
@@ -719,7 +720,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_CANCEL:
                 {
@@ -732,7 +733,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
                         pageContext->Context
                         )))
                     {
-                        switch (LOWORD(wParam))
+                        switch (GET_WM_COMMAND_ID(wParam, lParam))
                         {
                         case IDC_CANCEL:
                             NtCancelTimer(timerHandle, NULL);
