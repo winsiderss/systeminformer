@@ -377,6 +377,7 @@ EXPORTS
 	PhShellProperties
 	PhShowConfirmMessage
 	PhShowContinueStatus
+	PhShowMessage2
 	PhShowFileDialog
 	PhShowMessage
 	PhShowMessage_V

@@ -237,23 +237,20 @@ PhShowMessage_V(
 #define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
 PHLIBAPI
-INT
+INT 
 NTAPI
-PhShowInformation2(
+PhShowMessage2(
     _In_ HWND hWnd,
+    _In_ ULONG Buttons,
+    _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,
     _In_ PWSTR Format,
     ...
     );
 
-PHLIBAPI
-INT
-NTAPI
-PhShowError2(
-    _In_ HWND hWnd, 
-    _In_opt_ PWSTR Title, 
-    _In_opt_ PWSTR Message
-    );
+#define PhShowError2(hWnd, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Format, __VA_ARGS__)
+#define PhShowWarning2(hWnd, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, Format, __VA_ARGS__)
+#define PhShowInformation2(hWnd, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, Format, __VA_ARGS__)
 
 PHLIBAPI
 PPH_STRING

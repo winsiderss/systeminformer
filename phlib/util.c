@@ -406,15 +406,17 @@ INT PhShowMessage_V(
     return result;
 }
 
-INT PhShowInformation2(
+INT PhShowMessage2(
     _In_ HWND hWnd,
+    _In_ ULONG Buttons,
+    _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,
     _In_ PWSTR Format,
     ...
     )
 {
+    INT result;
     va_list argptr;
-    INT button;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(config) };
 
@@ -422,62 +424,32 @@ INT PhShowInformation2(
     message = PhFormatString_V(Format, argptr);
     va_end(argptr);
 
+    if (!message)
+        return -1;
+
     config.hwndParent = hWnd;
     config.hInstance = PhLibImageBase;
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
-    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0) | TDF_SIZE_TO_CONTENT;
+    config.dwCommonButtons = Buttons;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainIcon = TD_INFORMATION_ICON;
+    config.pszMainIcon = Icon;
     config.pszMainInstruction = Title;
     config.pszContent = message->Buffer;
 
     if (TaskDialogIndirect(
         &config,
-        &button,
+        &result,
         NULL,
         NULL
         ) == S_OK)
     {
         PhDereferenceObject(message);
-        return button;
+        return result;
     }
     else
     {
         PhDereferenceObject(message);
-        return FALSE;
-    }
-}
-
-INT PhShowError2(
-    _In_ HWND hWnd,
-    _In_opt_ PWSTR Title,
-    _In_opt_ PWSTR Message
-    )
-{
-    INT button;
-    TASKDIALOGCONFIG config = { sizeof(config) };
-
-    config.hwndParent = hWnd;
-    config.hInstance = PhLibImageBase;
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
-    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-    config.pszWindowTitle = PhApplicationName;
-    config.pszMainIcon = TD_ERROR_ICON;
-    config.pszMainInstruction = Title;
-    config.pszContent = Message;
-
-    if (TaskDialogIndirect(
-        &config,
-        &button,
-        NULL,
-        NULL
-        ) == S_OK)
-    {
-        return button;
-    }
-    else
-    {
-        return FALSE;
+        return -1;
     }
 }
 
