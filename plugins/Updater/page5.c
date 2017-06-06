@@ -66,7 +66,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                     break;
 
                 info.lpFile = PhGetStringOrEmpty(context->SetupFilePath);
-                info.lpParameters = L"-update";
+                //info.lpParameters = L"-update";
                 info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
