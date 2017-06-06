@@ -327,6 +327,9 @@ VOID PhReplaceMemoryList(
 
         memoryNode = PhpAddRegionNode(Context, memoryItem);
 
+        if (Context->HideFreeRegions && (memoryItem->State & MEM_FREE))
+            memoryNode->Node.Visible = FALSE;
+
         if (allocationBaseNode && memoryItem->AllocationBase == allocationBaseNode->MemoryItem->BaseAddress)
         {
             if (!(memoryItem->State & MEM_FREE))
@@ -355,6 +358,9 @@ VOID PhReplaceMemoryList(
 
                 if (memoryItem->RegionType != CustomRegion || memoryItem->u.Custom.PropertyOfAllocationBase)
                     PhpCopyMemoryRegionTypeInfo(memoryItem, allocationBaseNode->MemoryItem);
+
+                if (Context->HideFreeRegions && (allocationBaseNode->MemoryItem->State & MEM_FREE))
+                    allocationBaseNode->Node.Visible = FALSE;
             }
             else
             {
