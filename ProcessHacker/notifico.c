@@ -25,7 +25,6 @@
 #include <notifico.h>
 
 #include <shellapi.h>
-#include <windowsx.h>
 
 #include <extmgri.h>
 #include <mainwnd.h>
@@ -208,7 +207,7 @@ VOID PhNfForwardMessage(
         }
     }
 
-    switch (GET_WM_COMMAND_ID(WParam, LParam))
+    switch (LOWORD(LParam))
     {
     case WM_LBUTTONDOWN:
         {
