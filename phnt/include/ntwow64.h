@@ -219,8 +219,8 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS32
     UNICODE_STRING32 RuntimeData;
     RTL_DRIVE_LETTER_CURDIR32 CurrentDirectories[RTL_MAX_DRIVE_LETTERS];
 
-    ULONG EnvironmentSize;
-    ULONG EnvironmentVersion;
+    WOW64_POINTER(ULONG_PTR) EnvironmentSize;
+    WOW64_POINTER(ULONG_PTR) EnvironmentVersion;
     WOW64_POINTER(PVOID) PackageDependencyData;
     ULONG ProcessGroupId;
     ULONG LoaderThreads;

@@ -3595,8 +3595,44 @@ RtlWalkHeap(
     _Inout_ PRTL_HEAP_WALK_ENTRY Entry
     );
 
-// rev
-#define HeapDebuggingInformation 0x80000002
+// HEAP_INFORMATION_CLASS
+#define HeapCompatibilityInformation 0x0 // q; s: ULONG
+#define HeapEnableTerminationOnCorruption 0x1 // q; s: NULL
+#define HeapExtendedInformation 0x2 // q; s: HEAP_EXTENDED_INFORMATION
+#define HeapOptimizeResources 0x3 // q; s: HEAP_OPTIMIZE_RESOURCES_INFORMATION 
+#define HeapTaggingInformation 0x4
+#define HeapStackDatabase 0x5
+#define HeapDetailedFailureInformation 0x80000001
+#define HeapSetDebuggingInformation 0x80000002 // q; s: HEAP_DEBUGGING_INFORMATION
+
+typedef struct _PROCESS_HEAP_INFORMATION
+{
+    ULONG_PTR ReserveSize;
+    ULONG_PTR CommitSize;
+    ULONG NumberOfHeaps;
+    ULONG_PTR FirstHeapInformationOffset;
+} PROCESS_HEAP_INFORMATION, *PPROCESS_HEAP_INFORMATION;
+
+typedef struct _HEAP_INFORMATION
+{
+    ULONG_PTR Address;
+    ULONG Mode;
+    ULONG_PTR ReserveSize;
+    ULONG_PTR CommitSize;
+    ULONG_PTR FirstRegionInformationOffset;
+    ULONG_PTR NextHeapInformationOffset;
+} HEAP_INFORMATION, *PHEAP_INFORMATION;
+
+typedef struct _HEAP_EXTENDED_INFORMATION
+{
+    HANDLE Process;
+    ULONG_PTR Heap;
+    ULONG Level;
+    PVOID CallbackRoutine;
+    PVOID CallbackContext;
+    PROCESS_HEAP_INFORMATION ProcessHeapInformation;
+    HEAP_INFORMATION HeapInformation;
+} HEAP_EXTENDED_INFORMATION, *PHEAP_EXTENDED_INFORMATION;
 
 // rev
 typedef NTSTATUS (NTAPI *PRTL_HEAP_LEAK_ENUMERATION_ROUTINE)(
