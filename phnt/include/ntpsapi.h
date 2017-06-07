@@ -173,7 +173,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessChildProcessInformation, // PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,
     ProcessSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
-    ProcessEnergyValues,
+    ProcessEnergyValues, // PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES
     ProcessActivityThrottleState, // PROCESS_ACTIVITY_THROTTLE_STATE
     ProcessActivityThrottlePolicy, // PROCESS_ACTIVITY_THROTTLE_POLICY
     ProcessWin32kSyscallFilterInformation,

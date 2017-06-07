@@ -46,6 +46,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");
