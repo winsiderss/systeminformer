@@ -2662,6 +2662,18 @@ typedef struct _PROCESS_DISK_COUNTERS
 } PROCESS_DISK_COUNTERS, *PPROCESS_DISK_COUNTERS;
 
 // private
+typedef struct _ENERGY_STATE_DURATION
+{
+    union
+    {
+        ULONGLONG Value;
+        ULONG LastChangeTime;
+    };
+
+    ULONG Duration : 31;
+    ULONG IsInState : 1;
+} ENERGY_STATE_DURATION, *PENERGY_STATE_DURATION;
+
 typedef struct _PROCESS_ENERGY_VALUES
 {
     ULONGLONG Cycles[2][4];
@@ -2672,18 +2684,54 @@ typedef struct _PROCESS_ENERGY_VALUES
     ULONGLONG MBBTxRxBytes;
     union
     {
+        ENERGY_STATE_DURATION Durations[3];
         struct
         {
-            ULONG Foreground : 1;
+            ENERGY_STATE_DURATION ForegroundDuration;
+            ENERGY_STATE_DURATION DesktopVisibleDuration;
+            ENERGY_STATE_DURATION PSMForegroundDuration;
         };
-        ULONG WindowInformation;
     };
-    ULONG PixelArea;
-    LONGLONG PixelReportTimestamp;
-    ULONGLONG PixelTime;
-    LONGLONG ForegroundReportTimestamp;
-    ULONGLONG ForegroundTime;
+    ULONG CompositionRendered;
+    ULONG CompositionDirtyGenerated;
+    ULONG CompositionDirtyPropagated;
+    ULONG Reserved1;
+    ULONGLONG AttributedCycles[2][4];
+    ULONGLONG WorkOnBehalfCycles[2][4];
 } PROCESS_ENERGY_VALUES, *PPROCESS_ENERGY_VALUES;
+
+typedef struct _TIMELINE_BITMAP
+{
+    ULONGLONG Value;
+    ULONG EndTime;
+    ULONG Bitmap;
+} TIMELINE_BITMAP, *PTIMELINE_BITMAP;
+
+typedef struct _PROCESS_ENERGY_VALUES_EXTENSION
+{
+    union
+    {
+        TIMELINE_BITMAP Timelines[9];
+        struct
+        {
+            TIMELINE_BITMAP CpuTimeline;
+            TIMELINE_BITMAP DiskTimeline;
+            TIMELINE_BITMAP NetworkTimeline;
+            TIMELINE_BITMAP MBBTimeline;
+            TIMELINE_BITMAP ForegroundTimeline;
+            TIMELINE_BITMAP DesktopVisibleTimeline;
+            TIMELINE_BITMAP CompositionRenderedTimeline;
+            TIMELINE_BITMAP CompositionDirtyGeneratedTimeline;
+            TIMELINE_BITMAP CompositionDirtyPropagatedTimeline;
+        };
+    };
+} PROCESS_ENERGY_VALUES_EXTENSION, *PPROCESS_ENERGY_VALUES_EXTENSION;
+
+typedef struct _PROCESS_EXTENDED_ENERGY_VALUES
+{
+    PROCESS_ENERGY_VALUES Base;
+    PROCESS_ENERGY_VALUES_EXTENSION Extension;
+} PROCESS_EXTENDED_ENERGY_VALUES, *PPROCESS_EXTENDED_ENERGY_VALUES;
 
 // private
 typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
@@ -2696,7 +2744,9 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
         struct
         {
             ULONG HasStrongId : 1;
-            ULONG Spare : 31;
+            ULONG Classification : 4;
+            ULONG BackgroundActivityModerated : 1;
+            ULONG Spare : 26;
         };
     };
     ULONG UserSidOffset;
@@ -2706,6 +2756,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION_EXTENSION
     SIZE_T SharedCommitCharge; // since THRESHOLD2
     ULONG JobObjectId; // since REDSTONE
     ULONG SpareUlong; // since REDSTONE
+    ULONGLONG ProcessSequenceNumber;
 } SYSTEM_PROCESS_INFORMATION_EXTENSION, *PSYSTEM_PROCESS_INFORMATION_EXTENSION;
 
 // private
