@@ -108,7 +108,7 @@ typedef struct _PEB
     ULARGE_INTEGER AppCompatFlags;
     ULARGE_INTEGER AppCompatFlagsUser;
     PVOID pShimData;
-    PVOID AppCompatInfo;
+    PVOID AppCompatInfo; // APPCOMPAT_EXE_DATA
 
     UNICODE_STRING CSDVersion;
 
