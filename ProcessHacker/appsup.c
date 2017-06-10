@@ -3,6 +3,7 @@
  *   application support functions
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -723,6 +724,7 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     HWND ImmersiveWindow;
     HANDLE ProcessId;
     BOOLEAN IsImmersive;
+    BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
 BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
@@ -735,7 +737,7 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     HWND parentWindow;
     WINDOWINFO windowInfo;
 
-    if (!IsWindowVisible(hwnd))
+    if (context->SkipInvisible && !IsWindowVisible(hwnd))
         return TRUE;
 
     GetWindowThreadProcessId(hwnd, &processId);
@@ -770,11 +772,21 @@ HWND PhGetProcessMainWindow(
     _In_opt_ HANDLE ProcessHandle
     )
 {
+    return PhGetProcessMainWindowEx(ProcessId, ProcessHandle, TRUE);
+}
+
+HWND PhGetProcessMainWindowEx(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ BOOLEAN SkipInvisible
+    )
+{
     GET_PROCESS_MAIN_WINDOW_CONTEXT context;
     HANDLE processHandle = NULL;
 
     memset(&context, 0, sizeof(GET_PROCESS_MAIN_WINDOW_CONTEXT));
     context.ProcessId = ProcessId;
+    context.SkipInvisible = SkipInvisible;
 
     if (ProcessHandle)
         processHandle = ProcessHandle;
