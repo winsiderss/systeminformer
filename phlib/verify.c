@@ -217,11 +217,7 @@ VERIFY_RESULT PhpVerifyFile(
     if (Information->Flags & PH_VERIFY_PREVENT_NETWORK_ACCESS)
     {
         trustData.fdwRevocationChecks = WTD_REVOKE_NONE;
-
-        if (WindowsVersion >= WINDOWS_VISTA)
-            trustData.dwProvFlags |= WTD_CACHE_ONLY_URL_RETRIEVAL;
-        else
-            trustData.dwProvFlags |= WTD_REVOCATION_CHECK_NONE;
+        trustData.dwProvFlags |= WTD_CACHE_ONLY_URL_RETRIEVAL;
     }
 
     status = WinVerifyTrust_I(NULL, ActionId, &trustData);

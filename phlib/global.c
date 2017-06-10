@@ -220,20 +220,9 @@ static VOID PhInitializeWindowsVersion(
         WindowsVersion = WINDOWS_NEW;
     }
 
-    if (WINDOWS_HAS_LIMITED_ACCESS)
-    {
-        ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
-        ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
-        ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
-        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
-    }
-    else
-    {
-        ProcessQueryAccess = PROCESS_QUERY_INFORMATION;
-        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
-        ThreadQueryAccess = THREAD_QUERY_INFORMATION;
-        ThreadSetAccess = THREAD_SET_INFORMATION;
-        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
-    }
+    ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
+    ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
+    ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
+    ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
+    ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
 }

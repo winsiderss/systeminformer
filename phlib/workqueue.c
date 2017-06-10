@@ -267,32 +267,29 @@ VOID PhpUpdateWorkQueueEnvironment(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (CurrentEnvironment->IoPriority != NewEnvironment->IoPriority || NewEnvironment->ForceUpdate)
     {
-        if (CurrentEnvironment->IoPriority != NewEnvironment->IoPriority || NewEnvironment->ForceUpdate)
+        IO_PRIORITY_HINT ioPriority;
+
+        ioPriority = NewEnvironment->IoPriority;
+
+        if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadIoPriority,
+            &ioPriority, sizeof(IO_PRIORITY_HINT))))
         {
-            IO_PRIORITY_HINT ioPriority;
-
-            ioPriority = NewEnvironment->IoPriority;
-
-            if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadIoPriority,
-                &ioPriority, sizeof(IO_PRIORITY_HINT))))
-            {
-                CurrentEnvironment->IoPriority = NewEnvironment->IoPriority;
-            }
+            CurrentEnvironment->IoPriority = NewEnvironment->IoPriority;
         }
+    }
 
-        if (CurrentEnvironment->PagePriority != NewEnvironment->PagePriority || NewEnvironment->ForceUpdate)
+    if (CurrentEnvironment->PagePriority != NewEnvironment->PagePriority || NewEnvironment->ForceUpdate)
+    {
+        ULONG pagePriority;
+
+        pagePriority = NewEnvironment->PagePriority;
+
+        if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadPagePriority,
+            &pagePriority, sizeof(ULONG))))
         {
-            ULONG pagePriority;
-
-            pagePriority = NewEnvironment->PagePriority;
-
-            if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadPagePriority,
-                &pagePriority, sizeof(ULONG))))
-            {
-                CurrentEnvironment->PagePriority = NewEnvironment->PagePriority;
-            }
+            CurrentEnvironment->PagePriority = NewEnvironment->PagePriority;
         }
     }
 }

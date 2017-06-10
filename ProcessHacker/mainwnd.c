@@ -142,7 +142,7 @@ BOOLEAN PhMainWndInitialization(
             if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
         }
 
-        if (WINDOWS_HAS_UAC && PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
+        if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
             PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
     }
 
@@ -175,8 +175,7 @@ BOOLEAN PhMainWndInitialization(
         windowRectangle.Width, windowRectangle.Height, FALSE);
 
     // Allow WM_PH_ACTIVATE to pass through UIPI.
-    if (WINDOWS_HAS_UAC)
-        ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
+    ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
 
     PhMwpOnSettingChange();
 
@@ -3103,15 +3102,12 @@ VOID PhAddMiniProcessMenuItems(
 
     // I/O priority
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        ioPriorityMenu = PhCreateEMenuItem(0, 0, L"I/O priority", NULL, ProcessId);
+    ioPriorityMenu = PhCreateEMenuItem(0, 0, L"I/O priority", NULL, ProcessId);
 
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_HIGH, L"High", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_NORMAL, L"Normal", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_LOW, L"Low", NULL, ProcessId), -1);
-        PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_VERYLOW, L"Very low", NULL, ProcessId), -1);
-    }
+    PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_HIGH, L"High", NULL, ProcessId), -1);
+    PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_NORMAL, L"Normal", NULL, ProcessId), -1);
+    PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_LOW, L"Low", NULL, ProcessId), -1);
+    PhInsertEMenuItem(ioPriorityMenu, PhCreateEMenuItem(0, ID_IOPRIORITY_VERYLOW, L"Very low", NULL, ProcessId), -1);
 
     // Menu
 

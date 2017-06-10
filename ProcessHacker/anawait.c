@@ -439,7 +439,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
 
         PhAppendStringBuilder2(
             &context->StringBuilder,
-            WindowsVersion >= WINDOWS_VISTA ? L"Thread is waiting for an ALPC port:\r\n" : L"Thread is waiting for a LPC port:\r\n"
+            L"Thread is waiting for an ALPC port:\r\n"
             );
         PhAppendStringBuilder(
             &context->StringBuilder,

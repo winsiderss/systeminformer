@@ -487,7 +487,7 @@ VOID PhHandleProviderUpdate(
         )))
         goto UpdateExit;
 
-    if (!KphIsConnected() && WindowsVersion >= WINDOWS_VISTA)
+    if (!KphIsConnected())
     {
         useWorkQueue = TRUE;
         PhInitializeWorkQueue(&workQueue, 1, 20, 1000);

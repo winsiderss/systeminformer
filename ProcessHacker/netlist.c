@@ -132,7 +132,7 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_RIGHT, 4, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 6, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_OWNER, WINDOWS_HAS_SERVICE_TAGS, L"Owner", 80, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_OWNER, TRUE, L"Owner", 80, PH_ALIGN_LEFT, 7, 0);
     PhAddTreeNewColumnEx(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, -1, 0);
@@ -538,10 +538,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     PhInitializeEmptyStringRef(&getCellText->Text);
                 break;
             case PHNETLC_OWNER:
-                if (WINDOWS_HAS_SERVICE_TAGS)
-                    getCellText->Text = PhGetStringRef(networkItem->OwnerName);
-                else
-                    PhInitializeStringRef(&getCellText->Text, L"N/A"); // make sure the user knows this column doesn't work on XP
+                getCellText->Text = PhGetStringRef(networkItem->OwnerName);
                 break;
             case PHNETLC_TIMESTAMP:
                 {

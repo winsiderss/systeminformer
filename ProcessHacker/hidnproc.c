@@ -808,7 +808,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
         }
 
         // Use an alternative method if we don't have sufficient access.
-        if (status2 == STATUS_ACCESS_DENIED && WindowsVersion >= WINDOWS_VISTA)
+        if (status2 == STATUS_ACCESS_DENIED)
         {
             if (NT_SUCCESS(status2 = PhGetProcessImageFileNameByProcessId(UlongToHandle(pid), &fileName)))
             {

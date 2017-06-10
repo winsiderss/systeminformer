@@ -87,11 +87,8 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
             BOOLEAN elevated = TRUE;
             TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
 
-            if (WINDOWS_HAS_UAC)
-            {
-                PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
-                PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
-            }
+            PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
+            PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
 
             attributes.Elevated = elevated;
             attributes.ElevationType = elevationType;
@@ -1319,39 +1316,19 @@ NTSTATUS PhInjectDllProcess(
         )))
         goto FreeExit;
 
-    // Vista seems to support native threads better than XP.
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        if (!NT_SUCCESS(status = RtlCreateUserThread(
-            ProcessHandle,
-            NULL,
-            FALSE,
-            0,
-            0,
-            0,
-            (PUSER_THREAD_START_ROUTINE)threadStart,
-            baseAddress,
-            &threadHandle,
-            NULL
-            )))
-            goto FreeExit;
-    }
-    else
-    {
-        if (!(threadHandle = CreateRemoteThread(
-            ProcessHandle,
-            NULL,
-            0,
-            (PTHREAD_START_ROUTINE)threadStart,
-            baseAddress,
-            0,
-            NULL
-            )))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-            goto FreeExit;
-        }
-    }
+    if (!NT_SUCCESS(status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        (PUSER_THREAD_START_ROUTINE)threadStart,
+        baseAddress,
+        &threadHandle,
+        NULL
+        )))
+        goto FreeExit;
 
     // Wait for the thread to finish.
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
@@ -1465,36 +1442,18 @@ NTSTATUS PhUnloadDllProcess(
     }
 #endif
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        status = RtlCreateUserThread(
-            ProcessHandle,
-            NULL,
-            FALSE,
-            0,
-            0,
-            0,
-            (PUSER_THREAD_START_ROUTINE)threadStart,
-            BaseAddress,
-            &threadHandle,
-            NULL
-            );
-    }
-    else
-    {
-        if (!(threadHandle = CreateRemoteThread(
-            ProcessHandle,
-            NULL,
-            0,
-            (PTHREAD_START_ROUTINE)threadStart,
-            BaseAddress,
-            0,
-            NULL
-            )))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-        }
-    }
+    status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        (PUSER_THREAD_START_ROUTINE)threadStart,
+        BaseAddress,
+        &threadHandle,
+        NULL
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1639,39 +1598,20 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (!NT_SUCCESS(status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        TRUE,
+        0,
+        0,
+        0,
+        (PUSER_THREAD_START_ROUTINE)rtlExitUserThread,
+        NULL,
+        &threadHandle,
+        NULL
+        )))
     {
-        if (!NT_SUCCESS(status = RtlCreateUserThread(
-            ProcessHandle,
-            NULL,
-            TRUE,
-            0,
-            0,
-            0,
-            (PUSER_THREAD_START_ROUTINE)rtlExitUserThread,
-            NULL,
-            &threadHandle,
-            NULL
-            )))
-        {
-            goto CleanupExit;
-        }
-    }
-    else
-    {
-        if (!(threadHandle = CreateRemoteThread(
-            ProcessHandle,
-            NULL,
-            0,
-            (PTHREAD_START_ROUTINE)rtlExitUserThread,
-            NULL,
-            CREATE_SUSPENDED,
-            NULL
-            )))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-            goto CleanupExit;
-        }
+        goto CleanupExit;
     }
 
 #ifdef _WIN64

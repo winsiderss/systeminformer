@@ -747,15 +747,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
                 break;
             case PHMOTLC_ASLR:
-                if (WindowsVersion >= WINDOWS_VISTA)
-                {
-                    if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-                        PhInitializeStringRef(&getCellText->Text, L"ASLR");
-                }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
-                }
+                if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+                    PhInitializeStringRef(&getCellText->Text, L"ASLR");
                 break;
             case PHMOTLC_TIMESTAMP:
                 {

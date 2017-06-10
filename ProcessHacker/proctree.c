@@ -949,7 +949,7 @@ static VOID PhpUpdateProcessNodeToken(
         ProcessNode->VirtualizationAllowed = FALSE;
         ProcessNode->VirtualizationEnabled = FALSE;
 
-        if (WINDOWS_HAS_UAC && ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle)
         {
             if (NT_SUCCESS(PhOpenProcessToken(
                 ProcessNode->ProcessItem->QueryHandle,
@@ -2359,16 +2359,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_ASLR:
                 PhpUpdateProcessNodeImage(node);
-
-                if (WindowsVersion >= WINDOWS_VISTA)
-                {
-                    if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-                        PhInitializeStringRef(&getCellText->Text, L"ASLR");
-                }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
-                }
+                if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+                    PhInitializeStringRef(&getCellText->Text, L"ASLR");
                 break;
             case PHPRTLC_RELATIVESTARTTIME:
                 {
@@ -2397,27 +2389,20 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PWSTR type;
 
-                    if (WINDOWS_HAS_UAC)
+                    switch (processItem->ElevationType)
                     {
-                        switch (processItem->ElevationType)
-                        {
-                        case TokenElevationTypeDefault:
-                            type = L"N/A";
-                            break;
-                        case TokenElevationTypeLimited:
-                            type = L"Limited";
-                            break;
-                        case TokenElevationTypeFull:
-                            type = L"Full";
-                            break;
-                        default:
-                            type = L"N/A";
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        type = L"";
+                    case TokenElevationTypeDefault:
+                        type = L"N/A";
+                        break;
+                    case TokenElevationTypeLimited:
+                        type = L"Limited";
+                        break;
+                    case TokenElevationTypeFull:
+                        type = L"Full";
+                        break;
+                    default:
+                        type = L"N/A";
+                        break;
                     }
 
                     PhInitializeStringRefLongHint(&getCellText->Text, type);

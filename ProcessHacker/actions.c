@@ -164,7 +164,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
         ))
         return FALSE;
 
-    if (!WINDOWS_HAS_UAC || PhGetOwnTokenAttributes().Elevated)
+    if (PhGetOwnTokenAttributes().Elevated)
         return FALSE;
 
     elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
@@ -257,7 +257,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
         ))
         return FALSE;
 
-    if (!WINDOWS_HAS_UAC || PhGetOwnTokenAttributes().Elevated)
+    if (PhGetOwnTokenAttributes().Elevated)
         return FALSE;
 
     elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
