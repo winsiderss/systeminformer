@@ -1,8 +1,6 @@
 #ifndef PH_MAINWND_H
 #define PH_MAINWND_H
 
-#define PH_MAINWND_CLASSNAME L"ProcessHacker" // phapppub
-
 PHAPPAPI extern HWND PhMainWndHandle; // phapppub
 extern BOOLEAN PhMainWndExiting;
 

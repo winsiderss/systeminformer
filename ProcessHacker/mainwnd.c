@@ -3,6 +3,7 @@
  *   Main window
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -99,6 +100,7 @@ BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     )
 {
+    RTL_ATOM windowAtom;
     PH_STRING_BUILDER stringBuilder;
     PH_RECTANGLE windowRectangle;
 
@@ -118,7 +120,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhMwpInitializeProviders();
 
-    if (!PhMwpInitializeWindowClass())
+    if ((windowAtom = PhMwpInitializeWindowClass()) == INVALID_ATOM)
         return FALSE;
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
@@ -127,23 +129,27 @@ BOOLEAN PhMainWndInitialization(
     // Create the window title.
 
     PhInitializeStringBuilder(&stringBuilder, 100);
-    PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
 
-    if (PhCurrentUserName)
+    if (PhGetIntegerSetting(L"EnableWindowText"))
     {
-        PhAppendStringBuilder2(&stringBuilder, L" [");
-        PhAppendStringBuilder(&stringBuilder, &PhCurrentUserName->sr);
-        PhAppendCharStringBuilder(&stringBuilder, ']');
-        if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
-    }
+        PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
 
-    if (WINDOWS_HAS_UAC && PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
-        PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+        if (PhCurrentUserName)
+        {
+            PhAppendStringBuilder2(&stringBuilder, L" [");
+            PhAppendStringBuilder(&stringBuilder, &PhCurrentUserName->sr);
+            PhAppendCharStringBuilder(&stringBuilder, ']');
+            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, '+');
+        }
+
+        if (WINDOWS_HAS_UAC && PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
+            PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+    }
 
     // Create the window.
 
     PhMainWndHandle = CreateWindow(
-        PH_MAINWND_CLASSNAME,
+        MAKEINTATOM(windowAtom),
         stringBuilder.String->Buffer,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         windowRectangle.Left,
@@ -329,12 +335,13 @@ LRESULT CALLBACK PhMwpWndProc(
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-BOOLEAN PhMwpInitializeWindowClass(
+RTL_ATOM PhMwpInitializeWindowClass(
     VOID
     )
 {
     WNDCLASSEX wcex;
-
+    PPH_STRING className;
+    
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = 0;
@@ -342,17 +349,14 @@ BOOLEAN PhMwpInitializeWindowClass(
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = PhInstanceHandle;
-    wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    //wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    className = PhaGetStringSetting(L"MainWindowClassName");
+    wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
-    wcex.lpszClassName = PH_MAINWND_CLASSNAME;
+    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
     wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
 
-    if (!RegisterClassEx(&wcex))
-        return FALSE;
-
-    return TRUE;
+    return RegisterClassEx(&wcex);
 }
 
 VOID PhMwpInitializeProviders(
@@ -425,7 +429,7 @@ VOID PhMwpInitializeControls(
         3,
         3,
         PhMainWndHandle,
-        (HMENU)ID_MAINWND_PROCESSTL,
+        NULL,
         PhLibImageBase,
         NULL
         );
@@ -440,7 +444,7 @@ VOID PhMwpInitializeControls(
         3,
         3,
         PhMainWndHandle,
-        (HMENU)ID_MAINWND_SERVICETL,
+        NULL,
         PhLibImageBase,
         NULL
         );
@@ -455,7 +459,7 @@ VOID PhMwpInitializeControls(
         3,
         3,
         PhMainWndHandle,
-        (HMENU)ID_MAINWND_NETWORKTL,
+        NULL,
         PhLibImageBase,
         NULL
         );
