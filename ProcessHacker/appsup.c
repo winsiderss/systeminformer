@@ -742,9 +742,9 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
 
     GetWindowThreadProcessId(hwnd, &processId);
 
-    if (UlongToHandle(processId) == context->ProcessId &&
+    if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
         !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // skip windows with no title
+        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
