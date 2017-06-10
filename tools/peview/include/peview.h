@@ -210,7 +210,9 @@ typedef struct _PDB_SYMBOL_CONTEXT
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
     HANDLE SearchThreadHandle;
-    HANDLE UpdateTimer;
+
+    HANDLE TimerQueueHandle;
+    HANDLE UpdateTimerHandle;
 
     ULONG64 BaseAddress;
     PPH_STRING FileName;

@@ -908,7 +908,7 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
     TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
-    ChangeTimerQueueTimer(NULL, Context->UpdateTimer, 1000, INFINITE);
+    RtlUpdateTimer(Context->TimerQueueHandle, Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(
@@ -958,17 +958,17 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
             context->SearchThreadHandle = PhCreateThread(0, PeDumpFileSymbols, context);
 
-            if (CreateTimerQueueTimer(
-                &treeNewTimer,
-                NULL,
-                PvSymbolTreeUpdateCallback,
-                context,
-                1000,
-                1000,
-                0
-                ))
+            if (NT_SUCCESS(RtlCreateTimerQueue(&context->TimerQueueHandle)))
             {
-                context->UpdateTimer = treeNewTimer;
+                RtlCreateTimer(
+                    context->TimerQueueHandle,
+                    &context->UpdateTimerHandle,
+                    PvSymbolTreeUpdateCallback,
+                    context,
+                    0,
+                    1000,
+                    0
+                    );
             }
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
@@ -976,8 +976,11 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimer)
-                DeleteTimerQueueTimer(NULL, context->UpdateTimer, NULL);
+            if (context->UpdateTimerHandle)
+                RtlDeleteTimer(context->TimerQueueHandle, context->UpdateTimerHandle, NULL);
+
+            if (context->TimerQueueHandle)
+                RtlDeleteTimerQueue(context->TimerQueueHandle);
 
             NtClose(context->SearchThreadHandle);
 
