@@ -534,10 +534,6 @@
 #define IDC_HANDLESEARCH                1385
 #define IDC_SEARCH                      1387
 #define IDC_FILTEROPTIONS               1389
-#define ID_MAINWND_PROCESSTL            2001
-#define ID_MAINWND_SERVICETL            2002
-#define ID_MAINWND_NETWORKTL            2003
-#define ID_MAINWND_PROCESSLV            2004
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
