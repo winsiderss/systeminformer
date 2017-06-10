@@ -103,7 +103,7 @@ VOID PhNfLoadStage2(
 {
     ULONG i;
 
-    PhNfMiniInfoEnabled = WindowsVersion >= WINDOWS_VISTA && !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
+    PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
 
     for (i = PH_ICON_MINIMUM; i != PhNfMaximumIconId; i <<= 1)
     {
@@ -558,11 +558,8 @@ BOOLEAN PhNfpAddNotifyIcon(
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        notifyIcon.uVersion = NOTIFYICON_VERSION_4;
-        Shell_NotifyIcon(NIM_SETVERSION, &notifyIcon);
-    }
+    notifyIcon.uVersion = NOTIFYICON_VERSION_4;
+    Shell_NotifyIcon(NIM_SETVERSION, &notifyIcon);
 
     return TRUE;
 }

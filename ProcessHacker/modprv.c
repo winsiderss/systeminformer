@@ -111,15 +111,12 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         ProcessId
         )))
     {
-        if (WINDOWS_HAS_LIMITED_ACCESS)
-        {
-            // Try to get a handle with query limited information + vm read access.
-            status = PhOpenProcess(
-                &moduleProvider->ProcessHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                ProcessId
-                );
-        }
+        // Try to get a handle with query limited information + vm read access.
+        status = PhOpenProcess(
+            &moduleProvider->ProcessHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+            ProcessId
+            );
 
         moduleProvider->RunStatus = status;
     }

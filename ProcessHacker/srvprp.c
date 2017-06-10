@@ -174,10 +174,7 @@ static VOID PhpRefreshControls(
     _In_ HWND hwndDlg
     )
 {
-    if (
-        WindowsVersion >= WINDOWS_VISTA &&
-        PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_STARTTYPE), L"Auto start", FALSE)
-        )
+    if (PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_STARTTYPE), L"Auto start", FALSE))
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
     }
@@ -254,10 +251,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PhDereferenceObject(description);
                 }
 
-                if (
-                    WindowsVersion >= WINDOWS_VISTA &&
-                    PhGetServiceDelayedAutoStart(serviceHandle, &delayedStart)
-                    )
+                if (PhGetServiceDelayedAutoStart(serviceHandle, &delayedStart))
                 {
                     context->OldDelayedStart = delayedStart;
 
@@ -460,16 +454,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             NULL
                             ))
                         {
-                            if (WindowsVersion >= WINDOWS_VISTA)
+                            BOOLEAN newDelayedStart;
+
+                            newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
+
+                            if (newDelayedStart != context->OldDelayedStart)
                             {
-                                BOOLEAN newDelayedStart;
-
-                                newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
-
-                                if (newDelayedStart != context->OldDelayedStart)
-                                {
-                                    PhSetServiceDelayedAutoStart(serviceHandle, newDelayedStart);
-                                }
+                                PhSetServiceDelayedAutoStart(serviceHandle, newDelayedStart);
                             }
 
                             PhMarkNeedsConfigUpdateServiceItem(serviceItem);
@@ -503,23 +494,20 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                     NULL
                                     )))
                                 {
-                                    if (WindowsVersion >= WINDOWS_VISTA)
+                                    BOOLEAN newDelayedStart;
+
+                                    newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
+
+                                    if (newDelayedStart != context->OldDelayedStart)
                                     {
-                                        BOOLEAN newDelayedStart;
+                                        SERVICE_DELAYED_AUTO_START_INFO info;
 
-                                        newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
-
-                                        if (newDelayedStart != context->OldDelayedStart)
-                                        {
-                                            SERVICE_DELAYED_AUTO_START_INFO info;
-
-                                            info.fDelayedAutostart = newDelayedStart;
-                                            PhSvcCallChangeServiceConfig2(
-                                                serviceItem->Name->Buffer,
-                                                SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
-                                                &info
-                                                );
-                                        }
+                                        info.fDelayedAutostart = newDelayedStart;
+                                        PhSvcCallChangeServiceConfig2(
+                                            serviceItem->Name->Buffer,
+                                            SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+                                            &info
+                                            );
                                     }
 
                                     PhMarkNeedsConfigUpdateServiceItem(serviceItem);

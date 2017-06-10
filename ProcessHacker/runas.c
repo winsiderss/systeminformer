@@ -349,9 +349,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             //if (!PhGetOwnTokenAttributes().Elevated)
             //    SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
-
-            if (!WINDOWS_HAS_UAC)
-                ShowWindow(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION), SW_HIDE);
         }
         break;
     case WM_DESTROY:
@@ -407,11 +404,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     sessionId = GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE);
                     desktopName = PhaGetDlgItemText(hwndDlg, IDC_DESKTOP);
-
-                    if (WINDOWS_HAS_UAC)
-                        useLinkedToken = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION)) == BST_CHECKED;
-                    else
-                        useLinkedToken = FALSE;
+                    useLinkedToken = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION)) == BST_CHECKED;
 
                     if (PhFindIntegerSiKeyValuePairs(
                         PhpLogonTypePairs,
@@ -444,8 +437,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             createInfo.Password = PhGetStringOrEmpty(password);
 
                             // Whenever we can, try not to set the desktop name; it breaks a lot of things.
-                            // Note that on XP we must set it, otherwise the program doesn't display correctly.
-                            if (WindowsVersion < WINDOWS_VISTA || (desktopName->Length != 0 && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE)))
+                            if (desktopName->Length != 0 && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE))
                                 createInfo.DesktopName = desktopName->Buffer;
 
                             PhSetDesktopWinStaAccess();

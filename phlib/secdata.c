@@ -645,13 +645,11 @@ BOOLEAN PhGetAccessEntries(
     }
     else if (PhEqualStringZ(Type, L"Process", TRUE))
     {
-        if (WindowsVersion >= WINDOWS_VISTA)
-            Type = L"Process60";
+        Type = L"Process60";
     }
     else if (PhEqualStringZ(Type, L"Thread", TRUE))
     {
-        if (WindowsVersion >= WINDOWS_VISTA)
-            Type = L"Thread60";
+        Type = L"Thread60";
     }
 
     // Find the specific type.

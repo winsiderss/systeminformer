@@ -901,7 +901,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
         PH_WORK_QUEUE workQueue;
         processHandleHashtable = PhCreateSimpleHashtable(8);
 
-        if (!KphIsConnected() && WindowsVersion >= WINDOWS_VISTA)
+        if (!KphIsConnected())
         {
             useWorkQueue = TRUE;
             PhInitializeWorkQueue(&workQueue, 1, 20, 1000);

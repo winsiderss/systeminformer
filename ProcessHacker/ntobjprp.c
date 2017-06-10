@@ -388,10 +388,7 @@ static VOID PhpRefreshMutantPageInfo(
             SetDlgItemText(hwndDlg, IDC_ABANDONED, L"Unknown");
         }
 
-        if (
-            WindowsVersion >= WINDOWS_VISTA &&
-            NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo))
-            )
+        if (NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo)))
         {
             PPH_STRING name;
 
@@ -433,12 +430,6 @@ INT_PTR CALLBACK PhpMutantPageProc(
     {
     case WM_INITDIALOG:
         {
-            if (WindowsVersion < WINDOWS_VISTA)
-            {
-                EnableWindow(GetDlgItem(hwndDlg, IDC_OWNERLABEL), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_OWNER), FALSE);
-            }
-
             PhpRefreshMutantPageInfo(hwndDlg, pageContext);
         }
         break;

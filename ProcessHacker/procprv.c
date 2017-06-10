@@ -1072,32 +1072,29 @@ VOID PhpProcessQueryStage1(
     // Token information
     if (processHandleLimited)
     {
-        if (WINDOWS_HAS_UAC)
+        HANDLE tokenHandle;
+
+        status = PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle);
+
+        if (NT_SUCCESS(status))
         {
-            HANDLE tokenHandle;
-
-            status = PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle);
-
-            if (NT_SUCCESS(status))
+            // Elevation
+            if (NT_SUCCESS(PhGetTokenElevationType(
+                tokenHandle,
+                &Data->ElevationType
+                )))
             {
-                // Elevation
-                if (NT_SUCCESS(PhGetTokenElevationType(
-                    tokenHandle,
-                    &Data->ElevationType
-                    )))
-                {
-                    Data->IsElevated = Data->ElevationType == TokenElevationTypeFull;
-                }
-
-                // Integrity
-                PhGetTokenIntegrityLevel(
-                    tokenHandle,
-                    &Data->IntegrityLevel,
-                    &Data->IntegrityString
-                    );
-
-                NtClose(tokenHandle);
+                Data->IsElevated = Data->ElevationType == TokenElevationTypeFull;
             }
+
+            // Integrity
+            PhGetTokenIntegrityLevel(
+                tokenHandle,
+                &Data->IntegrityLevel,
+                &Data->IntegrityString
+                );
+
+            NtClose(tokenHandle);
         }
     }
 
@@ -1360,24 +1357,13 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (processHandle)
             {
-                if (processHandle)
-                {
-                    PhGetProcessImageFileNameWin32(processHandle, &ProcessItem->FileName);
-                }
-                else
-                {
-                    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
-                    {
-                        ProcessItem->FileName = PhGetFileName(fileName);
-                        PhDereferenceObject(fileName);
-                    }
-                }
+                PhGetProcessImageFileNameWin32(processHandle, &ProcessItem->FileName);
             }
             else
             {
-                if (processHandle && NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
+                if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
                 {
                     ProcessItem->FileName = PhGetFileName(fileName);
                     PhDereferenceObject(fileName);
@@ -2241,7 +2227,7 @@ VOID PhProcessProviderUpdate(
             {
                 PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
 
-                if (WINDOWS_HAS_LIMITED_ACCESS && !processItem->QueryHandle)
+                if (!processItem->QueryHandle)
                     PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
             }
 

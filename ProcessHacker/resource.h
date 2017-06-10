@@ -109,7 +109,6 @@
 #define IDD_MEMLISTS                    202
 #define IDR_EMPTYMEMLISTS               204
 #define IDD_CONTAINER                   205
-#define IDD_SYSINFO_MEMPANELXP          206
 #define IDD_MINIINFO                    207
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
