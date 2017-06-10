@@ -318,7 +318,7 @@ VOID ToolbarLoadSettings(
             {
             case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
                 {
-                    if (WINDOWS_HAS_UAC && PhGetOwnTokenAttributes().Elevated)
+                    if (PhGetOwnTokenAttributes().Elevated)
                     {
                         buttonInfo.fsState |= TBSTATE_HIDDEN;
                     }

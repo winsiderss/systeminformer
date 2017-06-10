@@ -201,7 +201,7 @@ BOOLEAN ProcessTreeFilterCallback(
         }
     }
 
-    if (WINDOWS_HAS_UAC && processNode->ProcessItem->ElevationType != TokenElevationTypeDefault)
+    if (processNode->ProcessItem->ElevationType != TokenElevationTypeDefault)
     {
         switch (processNode->ProcessItem->ElevationType)
         {
