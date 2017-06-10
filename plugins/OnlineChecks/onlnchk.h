@@ -103,12 +103,12 @@ typedef struct _VIRUSTOTAL_FILE_HASH_ENTRY
     PPROCESS_EXTENSION Extension;
 
     INT64 Positives;
+    INT64 Total;
     PPH_STRING FileName;
     PPH_STRING FileHash;
     PPH_BYTES FileNameAnsi;
     PPH_BYTES FileHashAnsi;
     PPH_BYTES CreationTime;
-    PPH_STRING FileResult;
 } VIRUSTOTAL_FILE_HASH_ENTRY, *PVIRUSTOTAL_FILE_HASH_ENTRY;
 
 typedef struct _UPLOAD_CONTEXT
@@ -227,9 +227,7 @@ typedef struct _VIRUSTOTAL_API_RESULT
     BOOLEAN Found;
     INT64 Positives;
     INT64 Total;
-    PPH_STRING Permalink;
     PPH_STRING FileHash;
-    PPH_STRING DetectionRatio;
 } VIRUSTOTAL_API_RESULT, *PVIRUSTOTAL_API_RESULT;
 
 extern PPH_LIST VirusTotalList;
