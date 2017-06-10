@@ -445,7 +445,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     {
         HWND hwnd;
 
-        hwnd = PhGetProcessMainWindow((HANDLE)processId64, NULL);
+        hwnd = PhGetProcessMainWindowEx((HANDLE)processId64, NULL, FALSE);
 
         if (hwnd)
         {
