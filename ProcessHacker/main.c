@@ -252,17 +252,26 @@ INT WINAPI wWinMain(
         HANDLE mutantHandle;
         OBJECT_ATTRIBUTES oa;
         UNICODE_STRING mutantName;
+        PPH_STRING objectName;
+        PH_FORMAT format[2];
 
-        RtlInitUnicodeString(&mutantName, L"\\BaseNamedObjects\\ProcessHackerMutant");
+        PhInitFormatS(&format[0], L"PhMutant_");
+        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+        objectName = PhFormat(format, 2, 16);
+        PhStringRefToUnicodeString(&objectName->sr, &mutantName);
+
         InitializeObjectAttributes(
             &oa,
             &mutantName,
-            0,
-            NULL,
+            OBJ_CASE_INSENSITIVE,
+            PhGetNamespaceHandle(),
             NULL
             );
 
         NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+
+        PhDereferenceObject(objectName);
     }
 
     // Set priority.
@@ -418,26 +427,48 @@ VOID PhUnregisterMessageLoopFilter(
     PhFree(FilterEntry);
 }
 
+static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_opt_ PVOID Context
+    )
+{
+    ULONG64 processId64;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF secondPart;
+
+    if (
+        PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) &&
+        PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
+        PhStringToInteger64(&secondPart, 10, &processId64)
+        )
+    {
+        HWND hwnd;
+
+        hwnd = PhGetProcessMainWindow((HANDLE)processId64, NULL);
+
+        if (hwnd)
+        {
+            ULONG_PTR result;
+
+            SendMessageTimeout(hwnd, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_BLOCK, 5000, &result);
+
+            if (result == PH_ACTIVATE_REPLY)
+            {
+                SetForegroundWindow(hwnd);
+                RtlExitUserProcess(STATUS_SUCCESS);
+            }
+        }
+    }
+
+    return TRUE;
+}
+
 VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    HWND hwnd;
-
-    hwnd = FindWindow(PH_MAINWND_CLASSNAME, NULL);
-
-    if (hwnd)
-    {
-        ULONG_PTR result;
-
-        SendMessageTimeout(hwnd, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_BLOCK, 5000, &result);
-
-        if (result == PH_ACTIVATE_REPLY)
-        {
-            SetForegroundWindow(hwnd);
-            RtlExitUserProcess(STATUS_SUCCESS);
-        }
-    }
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
 }
 
 VOID PhInitializeCommonControls(
