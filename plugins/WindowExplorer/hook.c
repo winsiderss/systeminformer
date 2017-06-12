@@ -193,7 +193,6 @@ BOOLEAN WepCreateServerObjects(
     }
 
     // If mandatory labels are supported, set it to the lowest possible level.
-    if (WE_WindowsVersion >= WINDOWS_VISTA)
     {
         static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
 

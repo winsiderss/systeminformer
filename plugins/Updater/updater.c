@@ -364,7 +364,6 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_7)
     {
         ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
@@ -805,7 +804,6 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_7)
     {
         ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
