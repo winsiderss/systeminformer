@@ -198,7 +198,6 @@ PPH_STRING QueryFwLinkUrl(
             );
     }
 
-    if (WindowsVersion >= WINDOWS_7)
     {
         ULONG option = WINHTTP_DISABLE_REDIRECTS;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
@@ -428,7 +427,6 @@ NTSTATUS GeoIPUpdateThread(
         goto CleanupExit;
     }
 
-    if (WindowsVersion >= WINDOWS_7)
     {
         ULONG option = WINHTTP_DISABLE_KEEP_ALIVE;
         WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));

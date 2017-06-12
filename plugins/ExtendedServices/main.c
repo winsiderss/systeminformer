@@ -348,7 +348,7 @@ NTAPI ServicePropertiesInitializingCallback(
     }
 
     // Other
-    if (WindowsVersion >= WINDOWS_7 && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -362,7 +362,7 @@ NTAPI ServicePropertiesInitializingCallback(
     }
 
     // Other
-    if (WindowsVersion >= WINDOWS_VISTA && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
