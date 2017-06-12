@@ -78,7 +78,6 @@ BOOLEAN EtpRefreshUnloadedDlls(
     HWND lvHandle;
 
     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-    ListView_DeleteAllItems(lvHandle);
 
     RtlGetUnloadEventTraceEx(&elementSize, &elementCount, &eventTrace);
 
@@ -144,6 +143,8 @@ BOOLEAN EtpRefreshUnloadedDlls(
     currentEvent = capturedEventTrace;
 
     ExtendedListView_SetRedraw(lvHandle, FALSE);
+
+    ListView_DeleteAllItems(lvHandle);
 
     for (i = 0; i < capturedElementCount; i++)
     {
