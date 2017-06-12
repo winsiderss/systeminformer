@@ -470,34 +470,41 @@ PPH_STRING GetProcessHackerInstallPath(VOID)
     return installPath;
 }
 
-BOOLEAN ShutdownProcessHacker(VOID)
+static BOOLEAN NTAPI PhpPreviousInstancesCallback(
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_opt_ PVOID Context
+    )
 {
-    HWND windowHandle;
-    HANDLE processHandle;
-    ULONG processID = 0;
+    ULONG64 processId64;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF secondPart;
 
-    while (windowHandle = FindWindow(L"ProcessHacker", NULL))
+    if (
+        PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) &&
+        PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
+        PhStringToInteger64(&secondPart, 10, &processId64)
+        )
     {
-        GetWindowThreadProcessId(windowHandle, &processID);
+        HANDLE processHandle;
 
         if (NT_SUCCESS(PhOpenProcess(
             &processHandle,
             SYNCHRONIZE | PROCESS_TERMINATE,
-            ULongToHandle(processID)
+            ULongToHandle((ULONG)processId64)
             )))
         {
-            PostMessage(windowHandle, WM_QUIT, 0, 0);
-
-            // Wait for process exit.
-            if (WaitForSingleObject(processHandle, 10 * 1000) != WAIT_OBJECT_0)
-            {
-                // Timed out, kill the process.
-                NtTerminateProcess(processHandle, 1);
-            }
-
+            NtTerminateProcess(processHandle, 1);
             NtClose(processHandle);
         }
     }
+
+    return TRUE;
+}
+
+BOOLEAN ShutdownProcessHacker(VOID)
+{
+    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
 
     return TRUE;
 }
