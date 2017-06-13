@@ -680,9 +680,7 @@ VOID PhpAdvancedPageLoad(
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetDlgItemCheckForSetting(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
-
-    if (WindowsVersion >= WINDOWS_7)
-        SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
 
     SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
     SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
@@ -762,9 +760,7 @@ VOID PhpAdvancedPageSave(
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
-
-    if (WindowsVersion >= WINDOWS_7)
-        SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
 
     sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
     SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
@@ -873,11 +869,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTLABEL), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC), FALSE);
-            }
-            else
-            {
-                if (WindowsVersion < WINDOWS_7)
-                    EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLECYCLECPUUSAGE), FALSE); // cycle-based CPU usage not available before Windows 7
             }
         }
         break;

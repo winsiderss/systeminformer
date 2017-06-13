@@ -123,7 +123,7 @@ BOOLEAN PhMwpProcessesPageCallback(
 
             if (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
             {
-                if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+                if (PhEnableCycleCpuUsage)
                 {
                     if (PhCsShowCpuBelow001)
                         menuItem->Flags |= PH_EMENU_CHECKED;

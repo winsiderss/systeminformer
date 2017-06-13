@@ -177,8 +177,7 @@ VOID PhSipInitializeCpuDialog(
     CurrentPerformanceDistribution = NULL;
     PreviousPerformanceDistribution = NULL;
 
-    if (WindowsVersion >= WINDOWS_7)
-        PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
+    PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
 }
 
 VOID PhSipUninitializeCpuDialog(
@@ -241,15 +240,12 @@ VOID PhSipTickCpuDialog(
         memset(PowerInformation, 0, sizeof(PROCESSOR_POWER_INFORMATION) * NumberOfProcessors);
     }
 
-    if (WindowsVersion >= WINDOWS_7)
-    {
-        if (PreviousPerformanceDistribution)
-            PhFree(PreviousPerformanceDistribution);
+    if (PreviousPerformanceDistribution)
+        PhFree(PreviousPerformanceDistribution);
 
-        PreviousPerformanceDistribution = CurrentPerformanceDistribution;
-        CurrentPerformanceDistribution = NULL;
-        PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
-    }
+    PreviousPerformanceDistribution = CurrentPerformanceDistribution;
+    CurrentPerformanceDistribution = NULL;
+    PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
 
     CpuTicked++;
 
@@ -693,7 +689,7 @@ VOID PhSipUpdateCpuPanel(
     cpuGhz = 0;
     distributionSucceeded = FALSE;
 
-    if (WindowsVersion >= WINDOWS_7 && CurrentPerformanceDistribution && PreviousPerformanceDistribution)
+    if (CurrentPerformanceDistribution && PreviousPerformanceDistribution)
     {
         if (PhSipGetCpuFrequencyFromDistribution(&cpuFraction))
         {

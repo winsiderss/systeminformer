@@ -780,12 +780,7 @@ ContinueLoop:
         PhpUpdateMemoryRegionTypes(List, processHandle);
 
     if (Flags & PH_QUERY_MEMORY_WS_COUNTERS)
-    {
-        if (WindowsVersion >= WINDOWS_SERVER_2003)
-            PhpUpdateMemoryWsCounters(List, processHandle);
-        else
-            PhpUpdateMemoryWsCountersOld(List, processHandle);
-    }
+        PhpUpdateMemoryWsCounters(List, processHandle);
 
     NtClose(processHandle);
 

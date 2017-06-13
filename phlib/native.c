@@ -736,25 +736,21 @@ NTSTATUS PhGetProcessWindowTitle(
     BOOLEAN isWow64 = FALSE;
 #endif
     ULONG windowFlags;
+    PPROCESS_WINDOW_INFORMATION windowInfo;
 
-    if (WindowsVersion >= WINDOWS_7)
+    status = PhpQueryProcessVariableSize(
+        ProcessHandle,
+        ProcessWindowInformation,
+        &windowInfo
+        );
+
+    if (NT_SUCCESS(status))
     {
-        PPROCESS_WINDOW_INFORMATION windowInfo;
+        *WindowFlags = windowInfo->WindowFlags;
+        *WindowTitle = PhCreateStringEx(windowInfo->WindowTitle, windowInfo->WindowTitleLength);
+        PhFree(windowInfo);
 
-        status = PhpQueryProcessVariableSize(
-            ProcessHandle,
-            ProcessWindowInformation,
-            &windowInfo
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *WindowFlags = windowInfo->WindowFlags;
-            *WindowTitle = PhCreateStringEx(windowInfo->WindowTitle, windowInfo->WindowTitleLength);
-            PhFree(windowInfo);
-
-            return status;
-        }
+        return status;
     }
 
 #ifdef _WIN64
@@ -2918,10 +2914,8 @@ NTSTATUS PhpEnumProcessModules(
 
     if (WindowsVersion >= WINDOWS_8)
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
-    else if (WindowsVersion >= WINDOWS_7)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP;
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
 
     // Traverse the linked list (in load order).
 
@@ -3281,10 +3275,8 @@ NTSTATUS PhpEnumProcessModules32(
 
     if (WindowsVersion >= WINDOWS_8)
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
-    else if (WindowsVersion >= WINDOWS_7)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP_32;
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
 
     // Traverse the linked list (in load order).
 
@@ -4804,10 +4796,7 @@ VOID PhUpdateMupDevicePrefixes(
     PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\Mup");
 
     // DFS claims an extra part of file names, which we don't handle.
-    /*if (WindowsVersion >= WINDOWS_VISTA)
-        PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\DfsClient");
-    else
-        PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\WinDfs");*/
+    // PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\DfsClient");
 
     remainingPart = providerOrder->sr;
 

@@ -1151,7 +1151,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Console host process
-    if (processHandleLimited && WINDOWS_HAS_CONSOLE_HOST)
+    if (processHandleLimited)
     {
         PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
     }
@@ -1420,35 +1420,6 @@ VOID PhpFillProcessItem(
             )
         {
             PhSetReference(&ProcessItem->UserName, PhLocalSystemName);
-        }
-    }
-
-    if (!ProcessItem->UserName && WindowsVersion <= WINDOWS_XP)
-    {
-        // In some cases we can get the user SID using WTS (only works on XP and below).
-
-        if (!PhpTsProcesses)
-        {
-            WinStationGetAllProcesses(
-                NULL,
-                0,
-                &PhpTsNumberOfProcesses,
-                &PhpTsProcesses
-                );
-        }
-
-        if (PhpTsProcesses)
-        {
-            ULONG i;
-
-            for (i = 0; i < PhpTsNumberOfProcesses; i++)
-            {
-                if (UlongToHandle(PhpTsProcesses[i].pTsProcessInfo->UniqueProcessId) == ProcessItem->ProcessId)
-                {
-                    ProcessItem->UserName = PhpGetSidFullNameCached(PhpTsProcesses[i].pSid);
-                    break;
-                }
-            }
         }
     }
 
@@ -1951,8 +1922,6 @@ VOID PhProcessProviderUpdate(
     PSYSTEM_PROCESS_INFORMATION process;
     ULONG bucketIndex;
 
-    BOOLEAN isCycleCpuUsageEnabled = FALSE;
-
     ULONG64 sysTotalTime; // total time for this update period
     ULONG64 sysTotalCycleTime = 0; // total cycle time for this update period
     ULONG64 sysIdleCycleTime = 0; // total idle cycle time for this update period
@@ -1974,8 +1943,6 @@ VOID PhProcessProviderUpdate(
             PhPurgeProcessRecords();
     }
 
-    isCycleCpuUsageEnabled = WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage;
-
     if (!PhProcessStatisticsInitialized)
     {
         PhpInitializeProcessStatistics();
@@ -1984,7 +1951,7 @@ VOID PhProcessProviderUpdate(
 
     PhpUpdatePerfInformation();
 
-    if (isCycleCpuUsageEnabled)
+    if (PhEnableCycleCpuUsage)
     {
         PhpUpdateCpuInformation(FALSE, &sysTotalTime);
         PhpUpdateCpuCycleInformation(&sysIdleCycleTime);
@@ -2053,7 +2020,7 @@ VOID PhProcessProviderUpdate(
         process->UniqueProcessKey = (ULONG_PTR)pidBuckets[bucketIndex];
         pidBuckets[bucketIndex] = process;
 
-        if (isCycleCpuUsageEnabled)
+        if (PhEnableCycleCpuUsage)
         {
             PPH_PROCESS_ITEM processItem;
 
@@ -2069,7 +2036,7 @@ VOID PhProcessProviderUpdate(
     // On Windows 7 the two fake processes are merged into "Interrupts" since we can only get cycle
     // time information both DPCs and Interrupts combined.
 
-    if (isCycleCpuUsageEnabled)
+    if (PhEnableCycleCpuUsage)
     {
         PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
         PhInterruptsProcessInformation.CycleTime = PhCpuSystemCycleDelta.Value;
@@ -2131,7 +2098,7 @@ VOID PhProcessProviderUpdate(
                             exitTime = times.ExitTime;
                         }
 
-                        if (isCycleCpuUsageEnabled)
+                        if (PhEnableCycleCpuUsage)
                         {
                             if (NT_SUCCESS(PhGetProcessCycleTime(processItem->QueryHandle, &finalCycleTime)))
                             {
@@ -2324,7 +2291,7 @@ VOID PhProcessProviderUpdate(
             if (InterlockedExchange(&processItem->JustProcessed, 0) != 0)
                 modified = TRUE;
 
-            if (isCycleCpuUsageEnabled)
+            if (PhEnableCycleCpuUsage)
             {
                 FLOAT totalDelta;
 
@@ -2464,7 +2431,7 @@ VOID PhProcessProviderUpdate(
 
             if (process == NULL)
             {
-                if (isCycleCpuUsageEnabled)
+                if (PhEnableCycleCpuUsage)
                     process = &PhInterruptsProcessInformation;
                 else
                     process = &PhDpcsProcessInformation;
@@ -2489,7 +2456,7 @@ VOID PhProcessProviderUpdate(
     // I/O "deltas" will be huge because they are currently the raw accumulated values.
     if (runCount != 0)
     {
-        if (isCycleCpuUsageEnabled)
+        if (PhEnableCycleCpuUsage)
             PhpUpdateCpuCycleUsageInformation(sysTotalCycleTime, sysIdleCycleTime);
 
         PhpUpdateSystemHistory();

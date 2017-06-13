@@ -538,19 +538,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         if (IsServiceAccount(userName))
                         {
                             EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), FALSE);
-
-                            // Hack for Windows XP
-                            if (
-                                PhEqualString2(userName, L"NT AUTHORITY\\SYSTEM", TRUE) &&
-                                WindowsVersion <= WINDOWS_XP
-                                )
-                            {
-                                PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"New credentials", FALSE);
-                            }
-                            else
-                            {
-                                PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Service", FALSE);
-                            }
+                            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Service", FALSE);
                         }
                         else
                         {

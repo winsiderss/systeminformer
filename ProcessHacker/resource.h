@@ -645,7 +645,6 @@
 #define ID_COMPUTER_HIBERNATE           40163
 #define ID_COMPUTER_RESTART             40164
 #define ID_COMPUTER_SHUTDOWN            40165
-#define ID_NETWORK_VIEWSTACK            40167
 #define ID_TRAYICONS_IOHISTORY          40168
 #define ID_ICON_EXIT                    40169
 #define ID_ICON_SHOWHIDEPROCESSHACKER   40171

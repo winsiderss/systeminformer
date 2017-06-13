@@ -24,7 +24,6 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51
-#define WINDOWS_SERVER_2003 52
 #define WINDOWS_VISTA 60
 #define WINDOWS_7 61
 #define WINDOWS_8 62
@@ -32,8 +31,6 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_10 100
 #define WINDOWS_NEW MAXLONG
 
-#define WINDOWS_HAS_CONSOLE_HOST (WindowsVersion >= WINDOWS_7)
-#define WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_IMMERSIVE (WindowsVersion >= WINDOWS_8)
 
 // Debugging

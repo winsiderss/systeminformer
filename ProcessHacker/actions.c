@@ -726,7 +726,6 @@ static BOOLEAN PhpIsDangerousProcess(
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
     PPH_STRING fileName;
     PPH_STRING systemDirectory;
     ULONG i;
@@ -734,24 +733,7 @@ static BOOLEAN PhpIsDangerousProcess(
     if (ProcessId == SYSTEM_PROCESS_ID)
         return TRUE;
 
-    if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID)
-    {
-        status = PhGetProcessImageFileNameByProcessId(ProcessId, &fileName);
-    }
-    else
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess,
-            ProcessId
-            )))
-            return FALSE;
-
-        status = PhGetProcessImageFileName(processHandle, &fileName);
-        NtClose(processHandle);
-    }
-
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
         return FALSE;
 
     PhMoveReference(&fileName, PhGetFileName(fileName));
