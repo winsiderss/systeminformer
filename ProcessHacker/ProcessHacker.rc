@@ -383,7 +383,6 @@ BEGIN
     BEGIN
         MENUITEM "&Go to process\aEnter",       ID_NETWORK_GOTOPROCESS
         MENUITEM "Go to service",               ID_NETWORK_GOTOSERVICE
-        MENUITEM "View &stack",                 ID_NETWORK_VIEWSTACK
         MENUITEM "C&lose",                      ID_NETWORK_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "&Copy\aCtrl+C",               ID_NETWORK_COPY

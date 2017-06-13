@@ -120,9 +120,6 @@ static VOID PhpRefreshProcessList(
             HANDLE tokenHandle;
             PTOKEN_USER user;
 
-            if (!WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID && process->UniqueProcessId != SYSTEM_PROCESS_ID)
-                PhGetProcessImageFileName(processHandle, &fileName);
-
             if (NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             {
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
@@ -140,11 +137,10 @@ static VOID PhpRefreshProcessList(
         if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID && !userName && PhLocalSystemName)
             PhSetReference(&userName, PhLocalSystemName);
 
-        if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID && process->UniqueProcessId != SYSTEM_PROCESS_ID)
-            PhGetProcessImageFileNameByProcessId(process->UniqueProcessId, &fileName);
-
         if (process->UniqueProcessId == SYSTEM_PROCESS_ID)
             fileName = PhGetKernelFileName();
+        else
+            PhGetProcessImageFileNameByProcessId(process->UniqueProcessId, &fileName);
 
         if (fileName)
             PhMoveReference(&fileName, PhGetFileName(fileName));

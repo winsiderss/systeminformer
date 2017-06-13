@@ -1294,31 +1294,12 @@ NTSTATUS PhGetHandleInformationEx(
     // If we're dealing with a file handle we must take special precautions so we don't hang.
     if (PhEqualString2(typeName, L"File", TRUE) && !KphIsConnected())
     {
-#define QUERY_NORMALLY 0
-#define QUERY_WITH_TIMEOUT 1
-#define QUERY_FAIL 2
-
-        ULONG hackLevel = QUERY_WITH_TIMEOUT;
-
-        // We can't use the timeout method on XP because hanging threads can't even be terminated!
-        if (WindowsVersion <= WINDOWS_XP)
-            hackLevel = QUERY_FAIL;
-
-        if (hackLevel == QUERY_NORMALLY || hackLevel == QUERY_WITH_TIMEOUT)
-        {
-            status = PhpGetObjectName(
-                ProcessHandle,
-                KphIsConnected() ? Handle : dupHandle,
-                hackLevel == QUERY_WITH_TIMEOUT,
-                &objectName
-                );
-        }
-        else
-        {
-            // Pretend the file object has no name.
-            objectName = PhReferenceEmptyString();
-            status = STATUS_SUCCESS;
-        }
+        status = PhpGetObjectName(
+            ProcessHandle,
+            KphIsConnected() ? Handle : dupHandle,
+            TRUE,
+            &objectName
+            );
     }
     else
     {
@@ -1453,14 +1434,9 @@ ULONG PhGetObjectTypeNumber(
                     objectIndex = objectType->TypeIndex;
                     break;
                 }
-                else if (WindowsVersion >= WINDOWS_7)
-                {
-                    objectIndex = i + 2;
-                    break;
-                }
                 else
                 {
-                    objectIndex = i + 1;
+                    objectIndex = i + 2;
                     break;
                 }
             }

@@ -1520,18 +1520,6 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_NETWORK_VIEWSTACK:
-        {
-            PPH_NETWORK_ITEM networkItem = PhGetSelectedNetworkItem();
-
-            if (networkItem)
-            {
-                PhReferenceObject(networkItem);
-                PhShowNetworkStackDialog(PhMainWndHandle, networkItem);
-                PhDereferenceObject(networkItem);
-            }
-        }
-        break;
     case ID_NETWORK_CLOSE:
         {
             PPH_NETWORK_ITEM *networkItems;

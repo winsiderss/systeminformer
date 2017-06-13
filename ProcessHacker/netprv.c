@@ -814,19 +814,6 @@ BOOLEAN PhGetNetworkConnections(
     tableSize = 0;
     GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
 
-    // Note: On Windows XP, GetExtendedTcpTable had a bug where it calculated the required buffer size
-    // for IPv6 TCP_TABLE_OWNER_MODULE_ALL requests incorrectly, causing it to return the wrong size
-    // and overrun the provided buffer instead of returning an error. The size should be:
-    // = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) + sizeof(MIB_TCP6ROW_OWNER_MODULE) * (number of entries)
-    // However, the function calculated it as:
-    // = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) + sizeof(MIB_TCP6ROW_OWNER_PID) * (number of entries)
-    // A workaround is implemented below.
-    if (WindowsVersion <= WINDOWS_XP && tableSize >= (ULONG)FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table)) // make sure we don't wrap around
-    {
-        tableSize = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) +
-            (tableSize - FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table)) / sizeof(MIB_TCP6ROW_OWNER_PID) * sizeof(MIB_TCP6ROW_OWNER_MODULE);
-    }
-
     table = PhAllocate(tableSize);
 
     if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == 0)

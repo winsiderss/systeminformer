@@ -221,12 +221,6 @@ VOID PhMwpInitializeNetworkMenu(
         PhEnableEMenuItem(Menu, ID_NETWORK_COPY, TRUE);
     }
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_NETWORK_VIEWSTACK))
-            PhDestroyEMenuItem(item);
-    }
-
     // Go to Service
     if (NumberOfNetworkItems != 1 || !NetworkItems[0]->OwnerName)
     {

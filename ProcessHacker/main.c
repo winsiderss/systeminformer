@@ -592,9 +592,6 @@ VOID PhInitializeKph(
     PUCHAR signature;
     ULONG signatureSize;
 
-    if (WindowsVersion < WINDOWS_7)
-        return;
-
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
 

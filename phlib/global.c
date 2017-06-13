@@ -176,24 +176,9 @@ static VOID PhInitializeWindowsVersion(
     majorVersion = versionInfo.dwMajorVersion;
     minorVersion = versionInfo.dwMinorVersion;
 
-    if (majorVersion == 5 && minorVersion < 1 || majorVersion < 5)
+    if (majorVersion == 6 && minorVersion < 1 || majorVersion < 6)
     {
         WindowsVersion = WINDOWS_ANCIENT;
-    }
-    /* Windows XP */
-    else if (majorVersion == 5 && minorVersion == 1)
-    {
-        WindowsVersion = WINDOWS_XP;
-    }
-    /* Windows Server 2003 */
-    else if (majorVersion == 5 && minorVersion == 2)
-    {
-        WindowsVersion = WINDOWS_SERVER_2003;
-    }
-    /* Windows Vista, Windows Server 2008 */
-    else if (majorVersion == 6 && minorVersion == 0)
-    {
-        WindowsVersion = WINDOWS_VISTA;
     }
     /* Windows 7, Windows Server 2008 R2 */
     else if (majorVersion == 6 && minorVersion == 1)
