@@ -347,20 +347,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     {
         PSYSTEM_EXTENDED_THREAD_INFORMATION thread = (PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads + i;
 
-        if (WindowsVersion < WINDOWS_VISTA)
-        {
-            HANDLE threadHandle;
-            THREAD_BASIC_INFORMATION basicInfo;
-
-            if (NT_SUCCESS(PhOpenThread(&threadHandle, ThreadQueryAccess, thread->ThreadInfo.ClientId.UniqueThread)))
-            {
-                if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
-                    thread->TebBase = basicInfo.TebBaseAddress;
-
-                NtClose(threadHandle);
-            }
-        }
-
         if (thread->TebBase)
         {
             NT_TIB ntTib;
@@ -437,27 +423,13 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 PVOID candidateHeap = NULL;
                 ULONG candidateHeap32 = 0;
                 PPH_MEMORY_ITEM heapMemoryItem;
+                PHEAP_SEGMENT heapSegment = (PHEAP_SEGMENT)buffer;
+                PHEAP_SEGMENT32 heapSegment32 = (PHEAP_SEGMENT32)buffer;
 
-                if (WindowsVersion >= WINDOWS_VISTA)
-                {
-                    PHEAP_SEGMENT heapSegment = (PHEAP_SEGMENT)buffer;
-                    PHEAP_SEGMENT32 heapSegment32 = (PHEAP_SEGMENT32)buffer;
-
-                    if (heapSegment->SegmentSignature == HEAP_SEGMENT_SIGNATURE)
-                        candidateHeap = heapSegment->Heap;
-                    if (heapSegment32->SegmentSignature == HEAP_SEGMENT_SIGNATURE)
-                        candidateHeap32 = heapSegment32->Heap;
-                }
-                else
-                {
-                    PHEAP_SEGMENT_OLD heapSegment = (PHEAP_SEGMENT_OLD)buffer;
-                    PHEAP_SEGMENT_OLD32 heapSegment32 = (PHEAP_SEGMENT_OLD32)buffer;
-
-                    if (heapSegment->Signature == HEAP_SEGMENT_SIGNATURE)
-                        candidateHeap = heapSegment->Heap;
-                    if (heapSegment32->Signature == HEAP_SEGMENT_SIGNATURE)
-                        candidateHeap32 = heapSegment32->Heap;
-                }
+                if (heapSegment->SegmentSignature == HEAP_SEGMENT_SIGNATURE)
+                    candidateHeap = heapSegment->Heap;
+                if (heapSegment32->SegmentSignature == HEAP_SEGMENT_SIGNATURE)
+                    candidateHeap32 = heapSegment32->Heap;
 
                 if (candidateHeap)
                 {
@@ -808,12 +780,7 @@ ContinueLoop:
         PhpUpdateMemoryRegionTypes(List, processHandle);
 
     if (Flags & PH_QUERY_MEMORY_WS_COUNTERS)
-    {
-        if (WindowsVersion >= WINDOWS_SERVER_2003)
-            PhpUpdateMemoryWsCounters(List, processHandle);
-        else
-            PhpUpdateMemoryWsCountersOld(List, processHandle);
-    }
+        PhpUpdateMemoryWsCounters(List, processHandle);
 
     NtClose(processHandle);
 

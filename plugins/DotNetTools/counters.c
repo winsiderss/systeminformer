@@ -476,7 +476,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
     InitializeObjectAttributes(
         &objectAttributes,
         &sectionNameUs,
-        0,
+        OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
@@ -714,7 +714,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
     InitializeObjectAttributes(
         &objectAttributes,
         &sectionNameUs,
-        0,
+        OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
@@ -832,7 +832,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     InitializeObjectAttributes(
         &objectAttributes,
         &sectionNameUs,
-        0,
+        OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );

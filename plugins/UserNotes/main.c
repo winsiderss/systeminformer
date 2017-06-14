@@ -1492,7 +1492,7 @@ INT_PTR CALLBACK OptionsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
@@ -1703,11 +1703,11 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_COMMENT:
                 {
-                    if (HIWORD(wParam) == EN_CHANGE)
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                         EnableWindow(context->RevertHandle, TRUE);
                 }
                 break;
@@ -1813,11 +1813,11 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_COMMENT:
                 {
-                    if (HIWORD(wParam) == EN_CHANGE)
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                         EnableWindow(GetDlgItem(hwndDlg, IDC_REVERT), TRUE);
                 }
                 break;

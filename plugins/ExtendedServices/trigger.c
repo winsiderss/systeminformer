@@ -1376,16 +1376,16 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_TYPE:
-                if (HIWORD(wParam) == CBN_SELCHANGE)
+                if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                 {
                     EspFixServiceTriggerControls(hwndDlg, context);
                 }
                 break;
             case IDC_SUBTYPE:
-                if (HIWORD(wParam) == CBN_SELCHANGE)
+                if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                 {
                     EspFixServiceTriggerControls(hwndDlg, context);
                 }
@@ -1702,7 +1702,7 @@ INT_PTR CALLBACK ValueDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);

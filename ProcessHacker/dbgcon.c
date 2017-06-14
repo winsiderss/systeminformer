@@ -1558,7 +1558,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             debuggingInfo.StackTraceDepth = 32;
             debuggingInfo.HeapLeakEnumerationRoutine = PhpLeakEnumerationRoutine;
 
-            if (!NT_SUCCESS(RtlSetHeapInformation(NULL, HeapDebuggingInformation, &debuggingInfo, sizeof(HEAP_DEBUGGING_INFORMATION))))
+            if (!NT_SUCCESS(RtlSetHeapInformation(NULL, HeapSetDebuggingInformation, &debuggingInfo, sizeof(HEAP_DEBUGGING_INFORMATION))))
             {
                 wprintf(L"Unable to initialize heap debugging. Make sure that you are using Windows 7 or above.");
             }

@@ -23,6 +23,7 @@
 
 #include <phapp.h>
 
+#include <windowsx.h>
 #include <symprv.h>
 
 #include <hndlprv.h>
@@ -87,7 +88,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:

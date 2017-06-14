@@ -1059,6 +1059,41 @@ PhParseCommandLineFuzzy(
     _Out_opt_ PPH_STRING *FullFileName
     );
 
+FORCEINLINE
+HANDLE 
+NTAPI
+PhGetNamespaceHandle(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\ProcessHacker");
+    static HANDLE directory = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &namespacePathUs,
+            OBJ_OPENIF,
+            NULL,
+            NULL
+            );
+
+        NtCreateDirectoryObject(
+            &directory,
+            MAXIMUM_ALLOWED,
+            &objectAttributes
+            );
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return directory;
+}
+
 #ifdef __cplusplus
 }
 #endif

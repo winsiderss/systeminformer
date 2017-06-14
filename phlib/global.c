@@ -163,6 +163,7 @@ static VOID PhInitializeWindowsVersion(
     RTL_OSVERSIONINFOEXW versionInfo;
     ULONG majorVersion;
     ULONG minorVersion;
+    ULONG buildVersion;
 
     versionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
 
@@ -175,25 +176,11 @@ static VOID PhInitializeWindowsVersion(
     memcpy(&PhOsVersion, &versionInfo, sizeof(RTL_OSVERSIONINFOEXW));
     majorVersion = versionInfo.dwMajorVersion;
     minorVersion = versionInfo.dwMinorVersion;
+    buildVersion = versionInfo.dwBuildNumber;
 
-    if (majorVersion == 5 && minorVersion < 1 || majorVersion < 5)
+    if (majorVersion == 6 && minorVersion < 1 || majorVersion < 6)
     {
         WindowsVersion = WINDOWS_ANCIENT;
-    }
-    /* Windows XP */
-    else if (majorVersion == 5 && minorVersion == 1)
-    {
-        WindowsVersion = WINDOWS_XP;
-    }
-    /* Windows Server 2003 */
-    else if (majorVersion == 5 && minorVersion == 2)
-    {
-        WindowsVersion = WINDOWS_SERVER_2003;
-    }
-    /* Windows Vista, Windows Server 2008 */
-    else if (majorVersion == 6 && minorVersion == 0)
-    {
-        WindowsVersion = WINDOWS_VISTA;
     }
     /* Windows 7, Windows Server 2008 R2 */
     else if (majorVersion == 6 && minorVersion == 1)
@@ -213,27 +200,33 @@ static VOID PhInitializeWindowsVersion(
     /* Windows 10 */
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        WindowsVersion = WINDOWS_10;
+        switch (buildVersion)
+        {
+        case 10240:
+            WindowsVersion = WINDOWS_10_TH1;
+            break;
+        case 10586:
+            WindowsVersion = WINDOWS_10_TH2;
+            break;
+        case 14393:
+            WindowsVersion = WINDOWS_10_RS1;
+            break;
+        case 15063:
+            WindowsVersion = WINDOWS_10_RS2;
+            break;
+        default:
+            WindowsVersion = WINDOWS_10;
+            break;
+        }
     }
     else if (majorVersion == 10 && minorVersion > 0 || majorVersion > 10)
     {
         WindowsVersion = WINDOWS_NEW;
     }
 
-    if (WINDOWS_HAS_LIMITED_ACCESS)
-    {
-        ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
-        ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
-        ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
-        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
-    }
-    else
-    {
-        ProcessQueryAccess = PROCESS_QUERY_INFORMATION;
-        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
-        ThreadQueryAccess = THREAD_QUERY_INFORMATION;
-        ThreadSetAccess = THREAD_SET_INFORMATION;
-        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
-    }
+    ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
+    ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
+    ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
+    ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
+    ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
 }

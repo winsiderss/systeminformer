@@ -173,7 +173,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessChildProcessInformation, // PROCESS_CHILD_PROCESS_INFORMATION
     ProcessHighGraphicsPriorityInformation,
     ProcessSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
-    ProcessEnergyValues,
+    ProcessEnergyValues, // PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES
     ProcessActivityThrottleState, // PROCESS_ACTIVITY_THROTTLE_STATE
     ProcessActivityThrottlePolicy, // PROCESS_ACTIVITY_THROTTLE_POLICY
     ProcessWin32kSyscallFilterInformation,
@@ -1222,15 +1222,15 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
     PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
     PsAttributeMitigationOptions, // in UCHAR
-    PsAttributeProtectionLevel,
+    PsAttributeProtectionLevel, // in ULONG
     PsAttributeSecureProcess, // since THRESHOLD
     PsAttributeJobList,
     PsAttributeChildProcessPolicy, // since THRESHOLD2
     PsAttributeAllApplicationPackagesPolicy, // since REDSTONE
     PsAttributeWin32kFilter,
     PsAttributeSafeOpenPromptOriginClaim,
-    PsAttributeBnoIsolation,
-    PsAttributeDesktopAppPolicy,
+    PsAttributeBnoIsolation, // PS_BNO_ISOLATION_PARAMETERS
+    PsAttributeDesktopAppPolicy, // in ULONG
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -1243,11 +1243,11 @@ typedef enum _PS_ATTRIBUTE_NUM
     ((Additive) ? PS_ATTRIBUTE_ADDITIVE : 0))
 
 #define PS_ATTRIBUTE_PARENT_PROCESS \
-    PsAttributeValue(PsAttributeParentProcess, FALSE, TRUE, FALSE)
+    PsAttributeValue(PsAttributeParentProcess, FALSE, TRUE, TRUE)
 #define PS_ATTRIBUTE_DEBUG_PORT \
-    PsAttributeValue(PsAttributeDebugPort, FALSE, TRUE, FALSE)
+    PsAttributeValue(PsAttributeDebugPort, FALSE, TRUE, TRUE)
 #define PS_ATTRIBUTE_TOKEN \
-    PsAttributeValue(PsAttributeToken, FALSE, TRUE, FALSE)
+    PsAttributeValue(PsAttributeToken, FALSE, TRUE, TRUE)
 #define PS_ATTRIBUTE_CLIENT_ID \
     PsAttributeValue(PsAttributeClientId, TRUE, FALSE, FALSE)
 #define PS_ATTRIBUTE_TEB_ADDRESS \
@@ -1274,6 +1274,8 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeValue(PsAttributeIdealProcessor, TRUE, TRUE, FALSE)
 #define PS_ATTRIBUTE_MITIGATION_OPTIONS \
     PsAttributeValue(PsAttributeMitigationOptions, FALSE, TRUE, TRUE)
+#define PS_ATTRIBUTE_PROTECTION_LEVEL \
+    PsAttributeValue(PsAttributeProtectionLevel, FALSE, TRUE, FALSE)
 
 // end_rev
 
@@ -1331,18 +1333,14 @@ typedef struct _PS_STD_HANDLE_INFO
     ULONG StdHandleSubsystemType;
 } PS_STD_HANDLE_INFO, *PPS_STD_HANDLE_INFO;
 
-// windows-internals-book:"Chapter 5"
-typedef enum _PS_CREATE_STATE
+// private
+typedef struct _PS_BNO_ISOLATION_PARAMETERS
 {
-    PsCreateInitialState,
-    PsCreateFailOnFileOpen,
-    PsCreateFailOnSectionCreate,
-    PsCreateFailExeFormat,
-    PsCreateFailMachineMismatch,
-    PsCreateFailExeName, // Debugger specified
-    PsCreateSuccess,
-    PsCreateMaximumStates
-} PS_CREATE_STATE;
+    UNICODE_STRING IsolationPrefix;
+    ULONG HandleCount;
+    PVOID *Handles;
+    BOOLEAN IsolationEnabled;
+} PS_BNO_ISOLATION_PARAMETERS, *PPS_BNO_ISOLATION_PARAMETERS;
 
 // private
 typedef enum _PS_MITIGATION_OPTION
@@ -1368,6 +1366,19 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_STRICT_CONTROL_FLOW_GUARD,
     PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT
 } PS_MITIGATION_OPTION;
+
+// windows-internals-book:"Chapter 5"
+typedef enum _PS_CREATE_STATE
+{
+    PsCreateInitialState,
+    PsCreateFailOnFileOpen,
+    PsCreateFailOnSectionCreate,
+    PsCreateFailExeFormat,
+    PsCreateFailMachineMismatch,
+    PsCreateFailExeName, // Debugger specified
+    PsCreateSuccess,
+    PsCreateMaximumStates
+} PS_CREATE_STATE;
 
 typedef struct _PS_CREATE_INFO
 {

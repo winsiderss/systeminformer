@@ -463,11 +463,7 @@ VOID PhServiceProviderUpdate(
     {
         if (!PhpNonPollInitialized)
         {
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                PhpInitializeServiceNonPoll();
-            }
-
+            PhpInitializeServiceNonPoll();
             PhpNonPollInitialized = TRUE;
         }
 

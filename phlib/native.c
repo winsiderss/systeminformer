@@ -87,11 +87,8 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
             BOOLEAN elevated = TRUE;
             TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
 
-            if (WINDOWS_HAS_UAC)
-            {
-                PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
-                PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
-            }
+            PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
+            PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
 
             attributes.Elevated = elevated;
             attributes.ElevationType = elevationType;
@@ -704,25 +701,21 @@ NTSTATUS PhGetProcessWindowTitle(
     BOOLEAN isWow64 = FALSE;
 #endif
     ULONG windowFlags;
+    PPROCESS_WINDOW_INFORMATION windowInfo;
 
-    if (WindowsVersion >= WINDOWS_7)
+    status = PhpQueryProcessVariableSize(
+        ProcessHandle,
+        ProcessWindowInformation,
+        &windowInfo
+        );
+
+    if (NT_SUCCESS(status))
     {
-        PPROCESS_WINDOW_INFORMATION windowInfo;
+        *WindowFlags = windowInfo->WindowFlags;
+        *WindowTitle = PhCreateStringEx(windowInfo->WindowTitle, windowInfo->WindowTitleLength);
+        PhFree(windowInfo);
 
-        status = PhpQueryProcessVariableSize(
-            ProcessHandle,
-            ProcessWindowInformation,
-            &windowInfo
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *WindowFlags = windowInfo->WindowFlags;
-            *WindowTitle = PhCreateStringEx(windowInfo->WindowTitle, windowInfo->WindowTitleLength);
-            PhFree(windowInfo);
-
-            return status;
-        }
+        return status;
     }
 
 #ifdef _WIN64
@@ -1284,39 +1277,19 @@ NTSTATUS PhInjectDllProcess(
         )))
         goto FreeExit;
 
-    // Vista seems to support native threads better than XP.
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        if (!NT_SUCCESS(status = RtlCreateUserThread(
-            ProcessHandle,
-            NULL,
-            FALSE,
-            0,
-            0,
-            0,
-            (PUSER_THREAD_START_ROUTINE)threadStart,
-            baseAddress,
-            &threadHandle,
-            NULL
-            )))
-            goto FreeExit;
-    }
-    else
-    {
-        if (!(threadHandle = CreateRemoteThread(
-            ProcessHandle,
-            NULL,
-            0,
-            (PTHREAD_START_ROUTINE)threadStart,
-            baseAddress,
-            0,
-            NULL
-            )))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-            goto FreeExit;
-        }
-    }
+    if (!NT_SUCCESS(status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        (PUSER_THREAD_START_ROUTINE)threadStart,
+        baseAddress,
+        &threadHandle,
+        NULL
+        )))
+        goto FreeExit;
 
     // Wait for the thread to finish.
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
@@ -1430,36 +1403,18 @@ NTSTATUS PhUnloadDllProcess(
     }
 #endif
 
-    if (WindowsVersion >= WINDOWS_VISTA)
-    {
-        status = RtlCreateUserThread(
-            ProcessHandle,
-            NULL,
-            FALSE,
-            0,
-            0,
-            0,
-            (PUSER_THREAD_START_ROUTINE)threadStart,
-            BaseAddress,
-            &threadHandle,
-            NULL
-            );
-    }
-    else
-    {
-        if (!(threadHandle = CreateRemoteThread(
-            ProcessHandle,
-            NULL,
-            0,
-            (PTHREAD_START_ROUTINE)threadStart,
-            BaseAddress,
-            0,
-            NULL
-            )))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-        }
-    }
+    status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        (PUSER_THREAD_START_ROUTINE)threadStart,
+        BaseAddress,
+        &threadHandle,
+        NULL
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1604,39 +1559,20 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (!NT_SUCCESS(status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        TRUE,
+        0,
+        0,
+        0,
+        (PUSER_THREAD_START_ROUTINE)rtlExitUserThread,
+        NULL,
+        &threadHandle,
+        NULL
+        )))
     {
-        if (!NT_SUCCESS(status = RtlCreateUserThread(
-            ProcessHandle,
-            NULL,
-            TRUE,
-            0,
-            0,
-            0,
-            (PUSER_THREAD_START_ROUTINE)rtlExitUserThread,
-            NULL,
-            &threadHandle,
-            NULL
-            )))
-        {
-            goto CleanupExit;
-        }
-    }
-    else
-    {
-        if (!(threadHandle = CreateRemoteThread(
-            ProcessHandle,
-            NULL,
-            0,
-            (PTHREAD_START_ROUTINE)rtlExitUserThread,
-            NULL,
-            CREATE_SUSPENDED,
-            NULL
-            )))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-            goto CleanupExit;
-        }
+        goto CleanupExit;
     }
 
 #ifdef _WIN64
@@ -2943,10 +2879,8 @@ NTSTATUS PhpEnumProcessModules(
 
     if (WindowsVersion >= WINDOWS_8)
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
-    else if (WindowsVersion >= WINDOWS_7)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP;
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
 
     // Traverse the linked list (in load order).
 
@@ -3306,10 +3240,8 @@ NTSTATUS PhpEnumProcessModules32(
 
     if (WindowsVersion >= WINDOWS_8)
         dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32;
-    else if (WindowsVersion >= WINDOWS_7)
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
     else
-        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP_32;
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32;
 
     // Traverse the linked list (in load order).
 
@@ -4829,10 +4761,7 @@ VOID PhUpdateMupDevicePrefixes(
     PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\Mup");
 
     // DFS claims an extra part of file names, which we don't handle.
-    /*if (WindowsVersion >= WINDOWS_VISTA)
-        PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\DfsClient");
-    else
-        PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\WinDfs");*/
+    // PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\DfsClient");
 
     remainingPart = providerOrder->sr;
 

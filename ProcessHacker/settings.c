@@ -46,6 +46,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");
@@ -80,6 +81,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
     PhpAddScalableIntegerPairSetting(L"LogWindowSize", L"@96|450,500");
     PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
+    PhpAddStringSetting(L"MainWindowClassName", L"MainWindowClassName");
     PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|800,600");

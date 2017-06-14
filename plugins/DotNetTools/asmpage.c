@@ -113,18 +113,6 @@ typedef struct _FLAG_DEFINITION
     ULONG Flag;
 } FLAG_DEFINITION, *PFLAG_DEFINITION;
 
-typedef ULONG (__stdcall *_EnableTraceEx)(
-    _In_ LPCGUID ProviderId,
-    _In_opt_ LPCGUID SourceId,
-    _In_ TRACEHANDLE TraceHandle,
-    _In_ ULONG IsEnabled,
-    _In_ UCHAR Level,
-    _In_ ULONGLONG MatchAnyKeyword,
-    _In_ ULONGLONG MatchAllKeyword,
-    _In_ ULONG EnableProperty,
-    _In_opt_ PEVENT_FILTER_DESCRIPTOR EnableFilterDesc
-    );
-
 VOID DestroyDotNetTraceQuery(
     _In_ PASMPAGE_QUERY_CONTEXT Context
     );
@@ -926,16 +914,10 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     _In_ PVOID Parameter
     )
 {
-    static _EnableTraceEx EnableTraceEx_I = NULL;
     PASMPAGE_QUERY_CONTEXT context = Parameter;
     TRACEHANDLE sessionHandle;
     PEVENT_TRACE_PROPERTIES properties;
     PGUID guidToEnable;
-
-    if (!EnableTraceEx_I)
-        EnableTraceEx_I = PhGetModuleProcAddress(L"advapi32.dll", "EnableTraceEx");
-    if (!EnableTraceEx_I)
-        return ERROR_NOT_SUPPORTED;
 
     context->TraceResult = StartDotNetTrace(&sessionHandle, &properties);
 
@@ -947,7 +929,7 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     else
         guidToEnable = &ClrRuntimeProviderGuid;
 
-    EnableTraceEx_I(
+    EnableTraceEx(
         guidToEnable,
         NULL,
         sessionHandle,
@@ -1270,7 +1252,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_COPY:
                 {

@@ -213,8 +213,7 @@ NTSTATUS EspLoadRecoveryInfo(
 
     // Enable actions for stops with errors
 
-    // This is Vista and above only.
-    if (WindowsVersion >= WINDOWS_VISTA && QueryServiceConfig2(
+    if (QueryServiceConfig2(
         serviceHandle,
         SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
         (BYTE *)&failureActionsFlag,
@@ -319,13 +318,10 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             else if (!NT_SUCCESS(status))
             {
                 SetDlgItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
-
-                if (WindowsVersion >= WINDOWS_VISTA)
-                {
-                    context->EnableFlagCheckBox = TRUE;
-                    EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
-                }
-
+ 
+                context->EnableFlagCheckBox = TRUE;               
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
+ 
                 PhShowWarning(hwndDlg, L"Unable to query service recovery information: %s",
                     ((PPH_STRING)PH_AUTO(PhGetNtMessage(status)))->Buffer);
             }
@@ -343,13 +339,13 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_FIRSTFAILURE:
             case IDC_SECONDFAILURE:
             case IDC_SUBSEQUENTFAILURES:
                 {
-                    if (HIWORD(wParam) == CBN_SELCHANGE)
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                     {
                         EspFixControls(hwndDlg, context);
                     }
@@ -398,7 +394,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 break;
             }
 
-            switch (HIWORD(wParam))
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case EN_CHANGE:
             case CBN_SELCHANGE:
@@ -627,7 +623,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
@@ -692,7 +688,7 @@ INT_PTR CALLBACK RestartComputerDlgProc(
                 break;
             case IDC_RESTARTMESSAGE:
                 {
-                    if (HIWORD(wParam) == EN_CHANGE)
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                     {
                         // A zero length restart message disables it, so we might as well uncheck the box.
                         Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE),

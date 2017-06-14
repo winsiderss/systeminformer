@@ -108,8 +108,8 @@ PPROCESS_DB_OBJECT FindProcessDbObject(
 PPROCESS_DB_OBJECT CreateProcessDbObject(
     _In_ PPH_STRING FileName,
     _In_opt_ INT64 Positives,
-    _In_opt_ PPH_STRING Hash,
-    _In_opt_ PPH_STRING Result
+    _In_opt_ INT64 Total,
+    _In_opt_ PPH_STRING Hash
     )
 {
     PPROCESS_DB_OBJECT object;
@@ -122,10 +122,9 @@ PPROCESS_DB_OBJECT CreateProcessDbObject(
     PhInitializeStringRefLongHint(&object->FileName, FileName->Buffer);
 
     PhReferenceObject(FileName);
-    PhReferenceObject(Result);
     object->Positives = Positives;
     object->Hash = FileName;
-    object->Result = Result;
+    object->Result = PhFormatString(L"%lu | %lu", Positives, Total);
 
     realObject = PhAddEntryHashtableEx(ProcessObjectDb, &object, &added);
 

@@ -161,8 +161,6 @@ typedef struct _PH_PROCESS_NODE
     USHORT ImageDllCharacteristics;
     // App ID
     PPH_STRING AppIdText;
-    // Cycles (Vista only)
-    PH_UINT64_DELTA CyclesDelta;
     // DPI awareness
     ULONG DpiAwareness;
     // File attributes

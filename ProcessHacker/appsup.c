@@ -3,6 +3,7 @@
  *   application support functions
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -177,7 +178,18 @@ NTSTATUS PhGetProcessSwitchContext(
     if (!data)
         return STATUS_UNSUCCESSFUL; // no compatibility context data
 
-    if (WindowsVersion >= WINDOWS_10)
+    if (WindowsVersion >= WINDOWS_10_RS2)
+    {
+        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(data, 1544),
+            Guid,
+            sizeof(GUID),
+            NULL
+            )))
+            return status;
+    }
+    else if (WindowsVersion >= WINDOWS_10)
     {
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
@@ -723,6 +735,7 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     HWND ImmersiveWindow;
     HANDLE ProcessId;
     BOOLEAN IsImmersive;
+    BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
 BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
@@ -735,14 +748,14 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     HWND parentWindow;
     WINDOWINFO windowInfo;
 
-    if (!IsWindowVisible(hwnd))
+    if (context->SkipInvisible && !IsWindowVisible(hwnd))
         return TRUE;
 
     GetWindowThreadProcessId(hwnd, &processId);
 
-    if (UlongToHandle(processId) == context->ProcessId &&
+    if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
         !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // skip windows with no title
+        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
             GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
@@ -770,11 +783,21 @@ HWND PhGetProcessMainWindow(
     _In_opt_ HANDLE ProcessHandle
     )
 {
+    return PhGetProcessMainWindowEx(ProcessId, ProcessHandle, TRUE);
+}
+
+HWND PhGetProcessMainWindowEx(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ BOOLEAN SkipInvisible
+    )
+{
     GET_PROCESS_MAIN_WINDOW_CONTEXT context;
     HANDLE processHandle = NULL;
 
     memset(&context, 0, sizeof(GET_PROCESS_MAIN_WINDOW_CONTEXT));
     context.ProcessId = ProcessId;
+    context.SkipInvisible = SkipInvisible;
 
     if (ProcessHandle)
         processHandle = ProcessHandle;

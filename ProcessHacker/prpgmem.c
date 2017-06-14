@@ -421,7 +421,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 break;
             }
 
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:
                 {

@@ -23,14 +23,12 @@
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
-
-#include <uxtheme.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 #include <settings.h>
-
 #include <procprv.h>
+#include <windowsx.h>
+#include <uxtheme.h>
 
 typedef struct _EDIT_ENV_DIALOG_CONTEXT
 {
@@ -243,7 +241,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_NEW:
                 {
@@ -489,7 +487,7 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 {

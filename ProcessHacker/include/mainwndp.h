@@ -33,7 +33,7 @@ LRESULT CALLBACK PhMwpWndProc(
 
 // Initialization
 
-BOOLEAN PhMwpInitializeWindowClass(
+RTL_ATOM PhMwpInitializeWindowClass(
     VOID
     );
 

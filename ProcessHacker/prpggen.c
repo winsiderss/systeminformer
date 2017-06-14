@@ -344,7 +344,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"N/A");
 
-            if (WINDOWS_HAS_LIMITED_ACCESS && processHandle)
+            if (processHandle)
             {
                 if (WindowsVersion >= WINDOWS_8_1)
                 {
