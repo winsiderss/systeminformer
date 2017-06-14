@@ -113,7 +113,7 @@ BEGIN
         BEGIN
             MENUITEM "CPU &history",                 ID_TRAYICONS_CPUHISTORY
             MENUITEM "CPU &usage",                   ID_TRAYICONS_CPUUSAGE
-            MENUITEM "I/O history",                 ID_TRAYICONS_IOHISTORY
+            MENUITEM "&I/O history",                 ID_TRAYICONS_IOHISTORY
             MENUITEM "&Commit charge history",       ID_TRAYICONS_COMMITHISTORY
             MENUITEM "&Physical memory history",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
