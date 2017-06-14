@@ -8,7 +8,6 @@ extern "C" {
 #define _User_set_
 
 PHLIBAPI extern _User_set_ PVOID PhLibImageBase;
-
 PHLIBAPI extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 PHLIBAPI extern PVOID PhHeapHandle;
@@ -29,6 +28,10 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_8 62
 #define WINDOWS_8_1 63
 #define WINDOWS_10 100
+#define WINDOWS_10_TH1 101
+#define WINDOWS_10_TH2 102
+#define WINDOWS_10_RS1 103
+#define WINDOWS_10_RS2 104
 #define WINDOWS_NEW MAXLONG
 
 #define WINDOWS_HAS_IMMERSIVE (WindowsVersion >= WINDOWS_8)

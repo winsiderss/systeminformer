@@ -163,6 +163,7 @@ static VOID PhInitializeWindowsVersion(
     RTL_OSVERSIONINFOEXW versionInfo;
     ULONG majorVersion;
     ULONG minorVersion;
+    ULONG buildVersion;
 
     versionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
 
@@ -175,6 +176,7 @@ static VOID PhInitializeWindowsVersion(
     memcpy(&PhOsVersion, &versionInfo, sizeof(RTL_OSVERSIONINFOEXW));
     majorVersion = versionInfo.dwMajorVersion;
     minorVersion = versionInfo.dwMinorVersion;
+    buildVersion = versionInfo.dwBuildNumber;
 
     if (majorVersion == 6 && minorVersion < 1 || majorVersion < 6)
     {
@@ -198,7 +200,24 @@ static VOID PhInitializeWindowsVersion(
     /* Windows 10 */
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        WindowsVersion = WINDOWS_10;
+        switch (buildVersion)
+        {
+        case 10240:
+            WindowsVersion = WINDOWS_10_TH1;
+            break;
+        case 10586:
+            WindowsVersion = WINDOWS_10_TH2;
+            break;
+        case 14393:
+            WindowsVersion = WINDOWS_10_RS1;
+            break;
+        case 15063:
+            WindowsVersion = WINDOWS_10_RS2;
+            break;
+        default:
+            WindowsVersion = WINDOWS_10;
+            break;
+        }
     }
     else if (majorVersion == 10 && minorVersion > 0 || majorVersion > 10)
     {
