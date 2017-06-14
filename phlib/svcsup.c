@@ -93,21 +93,18 @@ PVOID PhEnumServices(
 
     if (!Type)
     {
-        if (WindowsVersion >= WINDOWS_10)
+        if (WindowsVersion >= WINDOWS_10_RS1)
         {
-            if (PhOsVersion.dwBuildNumber >= 14393)
-            {
-                Type = SERVICE_TYPE_ALL;
-            }
-            else
-            {
-                Type = SERVICE_WIN32 |
-                    SERVICE_ADAPTER |
-                    SERVICE_DRIVER |
-                    SERVICE_INTERACTIVE_PROCESS |
-                    SERVICE_USER_SERVICE |
-                    SERVICE_USERSERVICE_INSTANCE;
-            }
+            Type = SERVICE_TYPE_ALL;
+        }
+        else if (WindowsVersion >= WINDOWS_10)
+        {
+            Type = SERVICE_WIN32 |
+                SERVICE_ADAPTER |
+                SERVICE_DRIVER |
+                SERVICE_INTERACTIVE_PROCESS |
+                SERVICE_USER_SERVICE |
+                SERVICE_USERSERVICE_INSTANCE;
         }
         else
         {
