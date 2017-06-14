@@ -65,9 +65,9 @@ typedef struct _PEB
     PVOID ReadOnlySharedMemoryBase;
     PVOID HotpatchInformation;
     PVOID *ReadOnlyStaticServerData;
-    PVOID AnsiCodePageData;
-    PVOID OemCodePageData;
-    PVOID UnicodeCaseTableData;
+    PVOID AnsiCodePageData; // PCPTABLEINFO
+    PVOID OemCodePageData; // PCPTABLEINFO
+    PVOID UnicodeCaseTableData; // PNLSTABLEINFO
 
     ULONG NumberOfProcessors;
     ULONG NtGlobalFlag;
@@ -80,7 +80,7 @@ typedef struct _PEB
 
     ULONG NumberOfHeaps;
     ULONG MaximumNumberOfHeaps;
-    PVOID *ProcessHeaps;
+    PVOID *ProcessHeaps; // PHEAP
 
     PVOID GdiSharedHandleTable;
     PVOID ProcessStarterHelper;
@@ -108,14 +108,14 @@ typedef struct _PEB
     ULARGE_INTEGER AppCompatFlags;
     ULARGE_INTEGER AppCompatFlagsUser;
     PVOID pShimData;
-    PVOID AppCompatInfo;
+    PVOID AppCompatInfo; // APPCOMPAT_EXE_DATA
 
     UNICODE_STRING CSDVersion;
 
-    PVOID ActivationContextData;
-    PVOID ProcessAssemblyStorageMap;
-    PVOID SystemDefaultActivationContextData;
-    PVOID SystemAssemblyStorageMap;
+    PVOID ActivationContextData; // ACTIVATION_CONTEXT_DATA
+    PVOID ProcessAssemblyStorageMap; // ASSEMBLY_STORAGE_MAP
+    PVOID SystemDefaultActivationContextData; // ACTIVATION_CONTEXT_DATA
+    PVOID SystemAssemblyStorageMap; // ASSEMBLY_STORAGE_MAP
 
     SIZE_T MinimumStackCommit;
 

@@ -323,13 +323,13 @@ typedef struct _RTL_SPLAY_LINKS
 } RTL_SPLAY_LINKS, *PRTL_SPLAY_LINKS;
 
 #define RtlInitializeSplayLinks(Links) \
-    { \
-        PRTL_SPLAY_LINKS _SplayLinks; \
-        _SplayLinks = (PRTL_SPLAY_LINKS)(Links); \
-        _SplayLinks->Parent = _SplayLinks; \
-        _SplayLinks->LeftChild = NULL; \
-        _SplayLinks->RightChild = NULL; \
-    }
+{ \
+    PRTL_SPLAY_LINKS _SplayLinks; \
+    _SplayLinks = (PRTL_SPLAY_LINKS)(Links); \
+    _SplayLinks->Parent = _SplayLinks; \
+    _SplayLinks->LeftChild = NULL; \
+    _SplayLinks->RightChild = NULL; \
+}
 
 #define RtlParent(Links) ((PRTL_SPLAY_LINKS)(Links)->Parent)
 #define RtlLeftChild(Links) ((PRTL_SPLAY_LINKS)(Links)->LeftChild)
@@ -339,24 +339,24 @@ typedef struct _RTL_SPLAY_LINKS
 #define RtlIsRightChild(Links) ((RtlRightChild(RtlParent(Links)) == (PRTL_SPLAY_LINKS)(Links)))
 
 #define RtlInsertAsLeftChild(ParentLinks, ChildLinks) \
-    { \
-        PRTL_SPLAY_LINKS _SplayParent; \
-        PRTL_SPLAY_LINKS _SplayChild; \
-        _SplayParent = (PRTL_SPLAY_LINKS)(ParentLinks); \
-        _SplayChild = (PRTL_SPLAY_LINKS)(ChildLinks); \
-        _SplayParent->LeftChild = _SplayChild; \
-        _SplayChild->Parent = _SplayParent; \
-    }
+{ \
+    PRTL_SPLAY_LINKS _SplayParent; \
+    PRTL_SPLAY_LINKS _SplayChild; \
+    _SplayParent = (PRTL_SPLAY_LINKS)(ParentLinks); \
+    _SplayChild = (PRTL_SPLAY_LINKS)(ChildLinks); \
+    _SplayParent->LeftChild = _SplayChild; \
+    _SplayChild->Parent = _SplayParent; \
+}
 
 #define RtlInsertAsRightChild(ParentLinks, ChildLinks) \
-    { \
-        PRTL_SPLAY_LINKS _SplayParent; \
-        PRTL_SPLAY_LINKS _SplayChild; \
-        _SplayParent = (PRTL_SPLAY_LINKS)(ParentLinks); \
-        _SplayChild = (PRTL_SPLAY_LINKS)(ChildLinks); \
-        _SplayParent->RightChild = _SplayChild; \
-        _SplayChild->Parent = _SplayParent; \
-    }
+{ \
+    PRTL_SPLAY_LINKS _SplayParent; \
+    PRTL_SPLAY_LINKS _SplayChild; \
+    _SplayParent = (PRTL_SPLAY_LINKS)(ParentLinks); \
+    _SplayChild = (PRTL_SPLAY_LINKS)(ChildLinks); \
+    _SplayParent->RightChild = _SplayChild; \
+    _SplayChild->Parent = _SplayParent; \
+}
 
 NTSYSAPI
 PRTL_SPLAY_LINKS
@@ -954,11 +954,11 @@ typedef struct _RTL_RESOURCE
     RTL_CRITICAL_SECTION CriticalSection;
 
     HANDLE SharedSemaphore;
-    ULONG NumberOfWaitingShared;
+    volatile ULONG NumberOfWaitingShared;
     HANDLE ExclusiveSemaphore;
-    ULONG NumberOfWaitingExclusive;
+    volatile ULONG NumberOfWaitingExclusive;
 
-    LONG NumberOfActive; // negative: exclusive acquire; zero: not acquired; positive: shared acquire(s)
+    volatile LONG NumberOfActive; // negative: exclusive acquire; zero: not acquired; positive: shared acquire(s)
     HANDLE ExclusiveOwnerThread;
 
     ULONG Flags; // RTL_RESOURCE_FLAG_*
@@ -2407,8 +2407,8 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     UNICODE_STRING RuntimeData;
     RTL_DRIVE_LETTER_CURDIR CurrentDirectories[RTL_MAX_DRIVE_LETTERS];
 
-    ULONG EnvironmentSize;
-    ULONG EnvironmentVersion;
+    ULONG_PTR EnvironmentSize;
+    ULONG_PTR EnvironmentVersion;
     PVOID PackageDependencyData;
     ULONG ProcessGroupId;
     ULONG LoaderThreads;
@@ -3595,8 +3595,44 @@ RtlWalkHeap(
     _Inout_ PRTL_HEAP_WALK_ENTRY Entry
     );
 
-// rev
-#define HeapDebuggingInformation 0x80000002
+// HEAP_INFORMATION_CLASS
+#define HeapCompatibilityInformation 0x0 // q; s: ULONG
+#define HeapEnableTerminationOnCorruption 0x1 // q; s: NULL
+#define HeapExtendedInformation 0x2 // q; s: HEAP_EXTENDED_INFORMATION
+#define HeapOptimizeResources 0x3 // q; s: HEAP_OPTIMIZE_RESOURCES_INFORMATION 
+#define HeapTaggingInformation 0x4
+#define HeapStackDatabase 0x5
+#define HeapDetailedFailureInformation 0x80000001
+#define HeapSetDebuggingInformation 0x80000002 // q; s: HEAP_DEBUGGING_INFORMATION
+
+typedef struct _PROCESS_HEAP_INFORMATION
+{
+    ULONG_PTR ReserveSize;
+    ULONG_PTR CommitSize;
+    ULONG NumberOfHeaps;
+    ULONG_PTR FirstHeapInformationOffset;
+} PROCESS_HEAP_INFORMATION, *PPROCESS_HEAP_INFORMATION;
+
+typedef struct _HEAP_INFORMATION
+{
+    ULONG_PTR Address;
+    ULONG Mode;
+    ULONG_PTR ReserveSize;
+    ULONG_PTR CommitSize;
+    ULONG_PTR FirstRegionInformationOffset;
+    ULONG_PTR NextHeapInformationOffset;
+} HEAP_INFORMATION, *PHEAP_INFORMATION;
+
+typedef struct _HEAP_EXTENDED_INFORMATION
+{
+    HANDLE Process;
+    ULONG_PTR Heap;
+    ULONG Level;
+    PVOID CallbackRoutine;
+    PVOID CallbackContext;
+    PROCESS_HEAP_INFORMATION ProcessHeapInformation;
+    HEAP_INFORMATION HeapInformation;
+} HEAP_EXTENDED_INFORMATION, *PHEAP_EXTENDED_INFORMATION;
 
 // rev
 typedef NTSTATUS (NTAPI *PRTL_HEAP_LEAK_ENUMERATION_ROUTINE)(

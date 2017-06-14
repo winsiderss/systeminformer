@@ -538,7 +538,7 @@ NTSTATUS PhpThreadQueryWorker(
 
     // Check if the process has services - we'll need to know before getting service tag/name
     // information.
-    if (WINDOWS_HAS_SERVICE_TAGS && !data->ThreadProvider->HasServicesKnown)
+    if (!data->ThreadProvider->HasServicesKnown)
     {
         PPH_PROCESS_ITEM processItem;
 
@@ -552,9 +552,10 @@ NTSTATUS PhpThreadQueryWorker(
     }
 
     // Get the service tag, and the service name.
-    if (WINDOWS_HAS_SERVICE_TAGS &&
+    if (
         data->ThreadProvider->SymbolProvider->IsRealHandle &&
-        data->ThreadItem->ThreadHandle)
+        data->ThreadItem->ThreadHandle
+        )
     {
         PVOID serviceTag;
 
@@ -869,7 +870,6 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Get the cycle count.
-            if (WINDOWS_HAS_CYCLE_TIME)
             {
                 ULONG64 cycles;
 
@@ -1027,7 +1027,6 @@ VOID PhpThreadProviderUpdate(
             }
 
             // Update the cycle count.
-            if (WINDOWS_HAS_CYCLE_TIME)
             {
                 ULONG64 cycles;
                 ULONG64 oldDelta;
@@ -1055,7 +1054,7 @@ VOID PhpThreadProviderUpdate(
 
             // Update the CPU usage.
             // If the cycle time isn't available, we'll fall back to using the CPU time.
-            if (WINDOWS_HAS_CYCLE_TIME && PhEnableCycleCpuUsage && (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID || threadItem->ThreadHandle))
+            if (PhEnableCycleCpuUsage && (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID || threadItem->ThreadHandle))
             {
                 threadItem->CpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
             }

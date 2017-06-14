@@ -428,7 +428,7 @@ VOID PhSipOnShowWindow(
 
     MinimumSize.left = 0;
     MinimumSize.top = 0;
-    MinimumSize.right = WindowsVersion >= WINDOWS_VISTA ? 430 : 370; // XP doesn't have the Memory Lists group
+    MinimumSize.right = 430;
     MinimumSize.bottom = 290;
     MapDialogRect(PhSipWindow, &MinimumSize);
 

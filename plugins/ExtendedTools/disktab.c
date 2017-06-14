@@ -1133,7 +1133,7 @@ INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_RESTART:
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);

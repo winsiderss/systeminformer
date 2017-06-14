@@ -109,7 +109,6 @@
 #define IDD_MEMLISTS                    202
 #define IDR_EMPTYMEMLISTS               204
 #define IDD_CONTAINER                   205
-#define IDD_SYSINFO_MEMPANELXP          206
 #define IDD_MINIINFO                    207
 #define IDD_MINIINFO_LIST               210
 #define IDR_MINIINFO                    211
@@ -534,10 +533,6 @@
 #define IDC_HANDLESEARCH                1385
 #define IDC_SEARCH                      1387
 #define IDC_FILTEROPTIONS               1389
-#define ID_MAINWND_PROCESSTL            2001
-#define ID_MAINWND_SERVICETL            2002
-#define ID_MAINWND_NETWORKTL            2003
-#define ID_MAINWND_PROCESSLV            2004
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -650,7 +645,6 @@
 #define ID_COMPUTER_HIBERNATE           40163
 #define ID_COMPUTER_RESTART             40164
 #define ID_COMPUTER_SHUTDOWN            40165
-#define ID_NETWORK_VIEWSTACK            40167
 #define ID_TRAYICONS_IOHISTORY          40168
 #define ID_ICON_EXIT                    40169
 #define ID_ICON_SHOWHIDEPROCESSHACKER   40171

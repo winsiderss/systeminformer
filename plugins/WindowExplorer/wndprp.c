@@ -413,7 +413,7 @@ LRESULT CALLBACK WepPropSheetWndProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
                 {
@@ -845,7 +845,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
                 context->HookDataValid = FALSE;
@@ -977,7 +977,7 @@ INT_PTR CALLBACK WepWindowStylesDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
                 WepRefreshWindowStyles(hwndDlg, context);
@@ -1092,7 +1092,7 @@ INT_PTR CALLBACK WepWindowClassDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
                 context->HookDataValid = FALSE;
@@ -1196,7 +1196,7 @@ INT_PTR CALLBACK WepWindowPropertiesDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
                 WepRefreshWindowProps(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST), context);

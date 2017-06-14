@@ -123,7 +123,7 @@ BOOLEAN PhMwpProcessesPageCallback(
 
             if (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SHOWCPUBELOW001))
             {
-                if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+                if (PhEnableCycleCpuUsage)
                 {
                     if (PhCsShowCpuBelow001)
                         menuItem->Flags |= PH_EMENU_CHECKED;
@@ -363,10 +363,16 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     {
         if (SetPriority)
         {
-            NtQueryInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS), NULL);
+            NtQueryInformationProcess(
+                processHandle, 
+                ProcessPriorityClass, 
+                &priorityClass, 
+                sizeof(PROCESS_PRIORITY_CLASS),
+                NULL
+                );
         }
 
-        if (SetIoPriority && WindowsVersion >= WINDOWS_VISTA)
+        if (SetIoPriority)
         {
             if (!NT_SUCCESS(PhGetProcessIoPriority(
                 processHandle,
@@ -377,7 +383,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
             }
         }
 
-        if (SetPagePriority && WindowsVersion >= WINDOWS_VISTA)
+        if (SetPagePriority)
         {
             if (!NT_SUCCESS(PhGetProcessPagePriority(
                 processHandle,
@@ -545,17 +551,6 @@ VOID PhMwpInitializeProcessMenu(
         }
     }
 
-    // Remove irrelevant menu items.
-    if (WindowsVersion < WINDOWS_VISTA)
-    {
-        // Remove I/O priority.
-        if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"I/O Priority", 0))
-            PhDestroyEMenuItem(item);
-        // Remove page priority.
-        if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"Page Priority", 0))
-            PhDestroyEMenuItem(item);
-    }
-
     // Suspend/Resume
     if (NumberOfProcesses == 1)
     {
@@ -642,13 +637,6 @@ VOID PhMwpInitializeProcessMenu(
         {
             item->Flags |= PH_EMENU_DISABLED;
         }
-    }
-
-    // Remove irrelevant menu items (continued)
-    if (!WINDOWS_HAS_UAC)
-    {
-        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_VIRTUALIZATION))
-            PhDestroyEMenuItem(item);
     }
 }
 

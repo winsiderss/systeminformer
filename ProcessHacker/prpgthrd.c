@@ -102,8 +102,6 @@ VOID PhpInitializeThreadMenu(
     _In_ ULONG NumberOfThreads
     )
 {
-    PPH_EMENU_ITEM item;
-
     if (NumberOfThreads == 0)
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
@@ -133,18 +131,6 @@ VOID PhpInitializeThreadMenu(
         }
     }
 
-    // Remove irrelevant menu items.
-
-    if (WindowsVersion < WINDOWS_VISTA)
-    {
-        // Remove I/O priority.
-        if (item = PhFindEMenuItem(Menu, 0, L"I/O Priority", 0))
-            PhDestroyEMenuItem(item);
-        // Remove page priority.
-        if (item = PhFindEMenuItem(Menu, 0, L"Page Priority", 0))
-            PhDestroyEMenuItem(item);
-    }
-
     PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
 
     // Priority
@@ -163,32 +149,25 @@ VOID PhpInitializeThreadMenu(
             )))
         {
             THREAD_BASIC_INFORMATION basicInfo;
+            HANDLE tokenHandle;
 
             if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
             {
                 threadPriority = basicInfo.BasePriority;
             }
 
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                PhGetThreadIoPriority(threadHandle, &ioPriority);
-                PhGetThreadPagePriority(threadHandle, &pagePriority);
-            }
+            PhGetThreadIoPriority(threadHandle, &ioPriority);
+            PhGetThreadPagePriority(threadHandle, &pagePriority);
 
-            // Token
+            if (NT_SUCCESS(NtOpenThreadToken(
+                threadHandle,
+                TOKEN_QUERY,
+                TRUE,
+                &tokenHandle
+                )))
             {
-                HANDLE tokenHandle;
-
-                if (NT_SUCCESS(NtOpenThreadToken(
-                    threadHandle,
-                    TOKEN_QUERY,
-                    TRUE,
-                    &tokenHandle
-                    )))
-                {
-                    PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, TRUE);
-                    NtClose(tokenHandle);
-                }
+                PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, TRUE);
+                NtClose(tokenHandle);
             }
 
             NtClose(threadHandle);
@@ -363,9 +342,7 @@ VOID PhpUpdateThreadDetails(
         PhPrintTimeSpan(userTime, threadItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
 
         contextSwitches = PhaFormatUInt64(threadItem->ContextSwitchesDelta.Value, TRUE);
-
-        if (WINDOWS_HAS_CYCLE_TIME)
-            cycles = PhaFormatUInt64(threadItem->CyclesDelta.Value, TRUE);
+        cycles = PhaFormatUInt64(threadItem->CyclesDelta.Value, TRUE);
 
         if (threadItem->State != Waiting)
         {
@@ -588,7 +565,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
             // open the process, since cycle time information requires sufficient access to the
             // threads.
-            if (WINDOWS_HAS_CYCLE_TIME)
             {
                 HANDLE processHandle;
 
@@ -619,7 +595,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 }
             }
 
-            if (processItem->ServiceList && processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
+            if (processItem->ServiceList && processItem->ServiceList->Count != 0)
                 threadsContext->ListContext.HasServices = TRUE;
 
             PhEmCallObjectOperation(EmThreadsContextType, threadsContext, EmObjectCreate);

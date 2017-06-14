@@ -8,7 +8,6 @@ extern "C" {
 #define _User_set_
 
 PHLIBAPI extern _User_set_ PVOID PhLibImageBase;
-
 PHLIBAPI extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 PHLIBAPI extern PVOID PhHeapHandle;
@@ -24,22 +23,18 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51
-#define WINDOWS_SERVER_2003 52
 #define WINDOWS_VISTA 60
 #define WINDOWS_7 61
 #define WINDOWS_8 62
 #define WINDOWS_8_1 63
 #define WINDOWS_10 100
+#define WINDOWS_10_TH1 101
+#define WINDOWS_10_TH2 102
+#define WINDOWS_10_RS1 103
+#define WINDOWS_10_RS2 104
 #define WINDOWS_NEW MAXLONG
 
-#define WINDOWS_HAS_CONSOLE_HOST (WindowsVersion >= WINDOWS_7)
-#define WINDOWS_HAS_CYCLE_TIME (WindowsVersion >= WINDOWS_VISTA)
-#define WINDOWS_HAS_IFILEDIALOG (WindowsVersion >= WINDOWS_VISTA)
-#define WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_IMMERSIVE (WindowsVersion >= WINDOWS_8)
-#define WINDOWS_HAS_LIMITED_ACCESS (WindowsVersion >= WINDOWS_VISTA)
-#define WINDOWS_HAS_SERVICE_TAGS (WindowsVersion >= WINDOWS_VISTA)
-#define WINDOWS_HAS_UAC (WindowsVersion >= WINDOWS_VISTA)
 
 // Debugging
 

@@ -21,10 +21,9 @@
  */
 
 #include <phapp.h>
-
 #include <symprv.h>
-
 #include <netprv.h>
+#include <windowsx.h>
 
 typedef struct NETWORK_STACK_CONTEXT
 {
@@ -210,9 +209,7 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL: // Esc and X button to close
             case IDOK:

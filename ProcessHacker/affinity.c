@@ -232,7 +232,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 EndDialog(hwndDlg, IDCANCEL);
@@ -304,7 +304,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                         HWND checkBox = GetDlgItem(hwndDlg, IDC_CPU0 + i);
 
                         if (IsWindowEnabled(checkBox))
-                            Button_SetCheck(checkBox, LOWORD(wParam) == IDC_SELECTALL ? BST_CHECKED : BST_UNCHECKED);
+                            Button_SetCheck(checkBox, GET_WM_COMMAND_ID(wParam, lParam) == IDC_SELECTALL ? BST_CHECKED : BST_UNCHECKED);
                     }
                 }
                 break;

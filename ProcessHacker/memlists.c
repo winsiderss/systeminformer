@@ -21,13 +21,12 @@
  */
 
 #include <phapp.h>
-
 #include <emenu.h>
 #include <settings.h>
-
 #include <actions.h>
 #include <phsvccl.h>
 #include <procprv.h>
+#include <windowsx.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -191,7 +190,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:

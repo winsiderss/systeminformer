@@ -189,7 +189,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         return TRUE;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
             case IDOK:
@@ -808,7 +808,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
         }
 
         // Use an alternative method if we don't have sufficient access.
-        if (status2 == STATUS_ACCESS_DENIED && WindowsVersion >= WINDOWS_VISTA)
+        if (status2 == STATUS_ACCESS_DENIED)
         {
             if (NT_SUCCESS(status2 = PhGetProcessImageFileNameByProcessId(UlongToHandle(pid), &fileName)))
             {

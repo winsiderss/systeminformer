@@ -118,7 +118,7 @@ VOID VirusTotalRemoveCacheResult(
         PhClearReference(&extension->FileNameAnsi);
         PhClearReference(&extension->FileHashAnsi);
         PhClearReference(&extension->CreationTime);
-        PhClearReference(&extension->FileResult);
+
         PhFree(extension);
     }
 
@@ -220,9 +220,7 @@ PPH_LIST VirusTotalJsonToResultList(
     {
         PVIRUSTOTAL_API_RESULT result;
         PVOID jsonArrayObject;
-        PSTR fileLink;
         PSTR fileHash;
-        PSTR fileRatio;
 
         if (!(jsonArrayObject = JsonGetObjectArrayIndex(JsonObject, i)))
             continue;
@@ -230,16 +228,11 @@ PPH_LIST VirusTotalJsonToResultList(
         result = PhAllocate(sizeof(VIRUSTOTAL_API_RESULT));
         memset(result, 0, sizeof(VIRUSTOTAL_API_RESULT));
 
-        fileLink = GetJsonValueAsString(jsonArrayObject, "permalink");
         fileHash = GetJsonValueAsString(jsonArrayObject, "hash");
-        fileRatio = GetJsonValueAsString(jsonArrayObject, "detection_ratio");
-
         result->Found = GetJsonValueAsBool(jsonArrayObject, "found") == TRUE;
         result->Positives = GetJsonValueAsUlong(jsonArrayObject, "positives");
         result->Total = GetJsonValueAsUlong(jsonArrayObject, "total");
-        result->Permalink = fileLink ? PhZeroExtendToUtf16(fileLink) : PhReferenceEmptyString();
-        result->FileHash = fileHash ? PhZeroExtendToUtf16(fileHash) : PhReferenceEmptyString();
-        result->DetectionRatio = fileRatio ? PhZeroExtendToUtf16(fileRatio) : PhReferenceEmptyString();
+        result->FileHash = fileHash ? PhZeroExtendToUtf16(fileHash) : NULL;
 
         PhAddItemList(results, result);
     }
@@ -581,7 +574,7 @@ CleanupExit:
 
 
     PVOID jsonRootObject;
-    PVOID jsonScanObject;
+    //PVOID jsonScanObject;
     PVIRUSTOTAL_FILE_REPORT_RESULT result;
 
     if (!(jsonRootObject = CreateJsonParser(subRequestBuffer)))
@@ -604,28 +597,28 @@ CleanupExit:
     result->Permalink = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "permalink"));
     result->StatusMessage = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));
 
-    if (jsonScanObject = JsonGetObject(jsonRootObject, "scans"))
-    {
-        PPH_LIST jsonArrayList;
-
-        if (jsonArrayList = JsonGetObjectArrayList(jsonScanObject))
-        {
-            result->ScanResults = PhCreateList(jsonArrayList->Count);
-
-            for (ULONG i = 0; i < jsonArrayList->Count; i++)
-            {
-                PJSON_ARRAY_LIST_OBJECT object = jsonArrayList->Items[i];
-                //BOOLEAN detected = GetJsonValueAsBool(object->Entry, "detected") == TRUE;
-                //PSTR version = GetJsonValueAsString(object->Entry, "version");
-                //PSTR result = GetJsonValueAsString(object->Entry, "result");
-                //PSTR update = GetJsonValueAsString(object->Entry, "update");
-
-                PhFree(object);
-            }
-
-            PhDereferenceObject(jsonArrayList);
-        }
-    }
+    //if (jsonScanObject = JsonGetObject(jsonRootObject, "scans"))
+    //{
+    //    PPH_LIST jsonArrayList;
+    //
+    //    if (jsonArrayList = JsonGetObjectArrayList(jsonScanObject))
+    //    {
+    //        result->ScanResults = PhCreateList(jsonArrayList->Count);
+    //
+    //        for (ULONG i = 0; i < jsonArrayList->Count; i++)
+    //        {
+    //            PJSON_ARRAY_LIST_OBJECT object = jsonArrayList->Items[i];
+    //            //BOOLEAN detected = GetJsonValueAsBool(object->Entry, "detected") == TRUE;
+    //            //PSTR version = GetJsonValueAsString(object->Entry, "version");
+    //            //PSTR result = GetJsonValueAsString(object->Entry, "result");
+    //            //PSTR update = GetJsonValueAsString(object->Entry, "update");
+    //
+    //            PhFree(object);
+    //        }
+    //
+    //        PhDereferenceObject(jsonArrayList);
+    //    }
+    //}
 
     return result;
 }
@@ -721,23 +714,18 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
                         entry->Processed = TRUE;
                         entry->Found = result->Found;
                         entry->Positives = result->Positives;
-
-                        PhSwapReference(&entry->FileResult, result->DetectionRatio);
-
+                        entry->Total = result->Total;
+ 
                         if (!FindProcessDbObject(&entry->FileName->sr))
                         {
                             CreateProcessDbObject(
                                 entry->FileName,
                                 entry->Positives,
-                                result->FileHash,
-                                entry->FileResult
+                                entry->Total,
+                                result->FileHash
                                 );
                         }
                     }
-                }
-                else
-                {
-
                 }
             }
         }

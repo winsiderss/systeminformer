@@ -61,14 +61,6 @@ VOID PhpRemoveProcessNode(
     _In_ PPH_PROCESS_NODE ProcessNode
     );
 
-VOID PhpUpdateNeedCyclesInformation(
-    VOID
-    );
-
-VOID PhpUpdateProcessNodeCycles(
-    _Inout_ PPH_PROCESS_NODE ProcessNode
-    );
-
 LONG PhpProcessTreeNewPostSortFunction(
     _In_ LONG Result,
     _In_ PVOID Node1,
@@ -92,12 +84,10 @@ static PH_CM_MANAGER ProcessTreeListCm;
 static PPH_HASH_ENTRY ProcessNodeHashSet[256] = PH_HASH_SET_INIT; // hashtable of all nodes
 static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enabled
 static PPH_LIST ProcessNodeRootList; // list of root nodes
+static PH_TN_FILTER_SUPPORT FilterSupport;
 
 BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need to be processed
-
-static PH_TN_FILTER_SUPPORT FilterSupport;
-static BOOLEAN NeedCyclesInformation = FALSE;
 
 static HDC GraphContext = NULL;
 static ULONG GraphContextWidth = 0;
@@ -254,8 +244,6 @@ VOID PhLoadSettingsProcessTreeList(
     {
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     }
-
-    PhpUpdateNeedCyclesInformation();
 }
 
 VOID PhSaveSettingsProcessTreeList(
@@ -427,7 +415,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage && ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID)
+    if (PhEnableCycleCpuUsage && ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID)
         PhInitializeStringRef(&processNode->DescriptionText, L"Interrupts and DPCs");
 
     if (FilterSupport.FilterList)
@@ -624,10 +612,6 @@ VOID PhTickProcessNodes(
         node->CpuGraphBuffers.Valid = FALSE;
         node->PrivateGraphBuffers.Valid = FALSE;
         node->IoGraphBuffers.Valid = FALSE;
-
-        // Updates cycles if necessary.
-        if (NeedCyclesInformation)
-            PhpUpdateProcessNodeCycles(node);
     }
 
     fullyInvalidated = FALSE;
@@ -949,7 +933,7 @@ static VOID PhpUpdateProcessNodeToken(
         ProcessNode->VirtualizationAllowed = FALSE;
         ProcessNode->VirtualizationEnabled = FALSE;
 
-        if (WINDOWS_HAS_UAC && ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle)
         {
             if (NT_SUCCESS(PhOpenProcessToken(
                 ProcessNode->ProcessItem->QueryHandle,
@@ -982,28 +966,25 @@ static VOID PhpUpdateProcessOsContext(
     {
         HANDLE processHandle;
 
-        if (WindowsVersion >= WINDOWS_7)
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
         {
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+            if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
             {
-                if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
-                {
-                    if (memcmp(&ProcessNode->OsContextGuid, &WINTHRESHOLD_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_10;
-                    else if (memcmp(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_8_1;
-                    else if (memcmp(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_8;
-                    else if (memcmp(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_7;
-                    else if (memcmp(&ProcessNode->OsContextGuid, &VISTA_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_VISTA;
-                    else if (memcmp(&ProcessNode->OsContextGuid, &XP_CONTEXT_GUID, sizeof(GUID)) == 0)
-                        ProcessNode->OsContextVersion = WINDOWS_XP;
-                }
-
-                NtClose(processHandle);
+                if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINTHRESHOLD_CONTEXT_GUID))
+                    ProcessNode->OsContextVersion = WINDOWS_10;
+                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID))
+                    ProcessNode->OsContextVersion = WINDOWS_8_1;
+                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN8_CONTEXT_GUID))
+                    ProcessNode->OsContextVersion = WINDOWS_8;
+                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID))
+                    ProcessNode->OsContextVersion = WINDOWS_7;
+                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &VISTA_CONTEXT_GUID))
+                    ProcessNode->OsContextVersion = WINDOWS_VISTA;
+                else if (IsEqualGUID(&ProcessNode->OsContextGuid, &XP_CONTEXT_GUID))
+                    ProcessNode->OsContextVersion = WINDOWS_XP;
             }
+
+            NtClose(processHandle);
         }
 
         ProcessNode->ValidMask |= PHPN_OSCONTEXT;
@@ -1104,15 +1085,8 @@ static VOID PhpUpdateProcessNodeAppId(
 
         if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
         {
-            if (WindowsVersion >= WINDOWS_7)
-            {
-                if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessNode->ProcessId)))
-                    goto Done;
-            }
-            else
-            {
+            if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessNode->ProcessId)))
                 goto Done;
-            }
         }
 
         if (NT_SUCCESS(PhGetProcessWindowTitle(
@@ -1190,91 +1164,6 @@ static VOID PhpUpdateProcessNodeFileAttributes(
 
         ProcessNode->ValidMask |= PHPN_FILEATTRIBUTES;
     }
-}
-
-static VOID PhpUpdateNeedCyclesInformation(
-    VOID
-    )
-{
-    PH_TREENEW_COLUMN column;
-
-    NeedCyclesInformation = FALSE;
-
-    // Before Windows Vista, there is no cycle time measurement.
-    // On Windows 7 and above, cycle time information is available directly from the process item.
-    // We only need to query cycle time separately for Windows Vista.
-    if (WindowsVersion != WINDOWS_VISTA)
-        return;
-
-    TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CYCLES, &column);
-
-    if (column.Visible)
-    {
-        NeedCyclesInformation = TRUE;
-        return;
-    }
-
-    TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CYCLESDELTA, &column);
-
-    if (column.Visible)
-    {
-        NeedCyclesInformation = TRUE;
-        return;
-    }
-}
-
-static VOID PhpUpdateProcessNodeCycles(
-    _Inout_ PPH_PROCESS_NODE ProcessNode
-    )
-{
-    if (ProcessNode->ProcessId == SYSTEM_IDLE_PROCESS_ID)
-    {
-        PULARGE_INTEGER idleThreadCycleTimes;
-        ULONG64 cycleTime;
-        ULONG i;
-
-        // System Idle Process requires special treatment.
-
-        idleThreadCycleTimes = PhAllocate(
-            sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
-            );
-
-        if (NT_SUCCESS(NtQuerySystemInformation(
-            SystemProcessorIdleCycleTimeInformation,
-            idleThreadCycleTimes,
-            sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-            NULL
-            )))
-        {
-            cycleTime = 0;
-
-            for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
-                cycleTime += idleThreadCycleTimes[i].QuadPart;
-
-            PhUpdateDelta(&ProcessNode->CyclesDelta, cycleTime);
-        }
-
-        PhFree(idleThreadCycleTimes);
-    }
-    else if (ProcessNode->ProcessItem->QueryHandle)
-    {
-        ULONG64 cycleTime;
-
-        if (NT_SUCCESS(PhGetProcessCycleTime(ProcessNode->ProcessItem->QueryHandle, &cycleTime)))
-        {
-            PhUpdateDelta(&ProcessNode->CyclesDelta, cycleTime);
-        }
-    }
-
-    if (ProcessNode->CyclesDelta.Value != 0)
-        PhMoveReference(&ProcessNode->CyclesText, PhFormatUInt64(ProcessNode->CyclesDelta.Value, TRUE));
-    else
-        PhClearReference(&ProcessNode->CyclesText);
-
-    if (ProcessNode->CyclesDelta.Delta != 0)
-        PhMoveReference(&ProcessNode->CyclesDeltaText, PhFormatUInt64(ProcessNode->CyclesDelta.Delta, TRUE));
-    else
-        PhClearReference(&ProcessNode->CyclesDeltaText);
 }
 
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
@@ -1421,14 +1310,6 @@ BEGIN_SORT_FUNCTION(PeakWorkingSet)
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateWs)
-{
-    PhpUpdateProcessNodeWsCounters(node1);
-    PhpUpdateProcessNodeWsCounters(node2);
-    sortResult = uintptrcmp(node1->WsCounters.NumberOfPrivatePages, node2->WsCounters.NumberOfPrivatePages);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(PrivateWsWin7)
 {
     sortResult = uintptrcmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
 }
@@ -1672,23 +1553,11 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Cycles)
 {
-    sortResult = uint64cmp(node1->CyclesDelta.Value, node2->CyclesDelta.Value);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(CyclesWin7)
-{
     sortResult = uint64cmp(processItem1->CycleTimeDelta.Value, processItem2->CycleTimeDelta.Value);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CyclesDelta)
-{
-    sortResult = uint64cmp(node1->CyclesDelta.Delta, node2->CyclesDelta.Delta);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(CyclesDeltaWin7)
 {
     sortResult = uint64cmp(processItem1->CycleTimeDelta.Delta, processItem2->CycleTimeDelta.Delta);
 }
@@ -2021,20 +1890,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(FileModifiedTime),
                         SORT_FUNCTION(FileSize)
                     };
-                    static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
-
-                    if (PhBeginInitOnce(&initOnce))
-                    {
-                        if (WindowsVersion >= WINDOWS_7)
-                        {
-                            sortFunctions[PHPRTLC_PRIVATEWS] = SORT_FUNCTION(PrivateWsWin7);
-                            sortFunctions[PHPRTLC_CYCLES] = SORT_FUNCTION(CyclesWin7);
-                            sortFunctions[PHPRTLC_CYCLESDELTA] = SORT_FUNCTION(CyclesDeltaWin7);
-                        }
-
-                        PhEndInitOnce(&initOnce);
-                    }
 
                     if (!PhCmForwardSort(
                         (PPH_TREENEW_NODE *)ProcessNodeList->Items,
@@ -2195,15 +2051,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = node->PeakWorkingSetText->sr;
                 break;
             case PHPRTLC_PRIVATEWS:
-                if (WindowsVersion >= WINDOWS_7)
-                {
-                    PhMoveReference(&node->PrivateWsText, PhFormatSize(processItem->WorkingSetPrivateSize, -1));
-                }
-                else
-                {
-                    PhpUpdateProcessNodeWsCounters(node);
-                    PhMoveReference(&node->PrivateWsText, PhFormatSize((ULONG64)node->WsCounters.NumberOfPrivatePages * PAGE_SIZE, -1));
-                }
+                PhMoveReference(&node->PrivateWsText, PhFormatSize(processItem->WorkingSetPrivateSize, -1));
                 getCellText->Text = node->PrivateWsText->sr;
                 break;
             case PHPRTLC_SHAREDWS:
@@ -2359,16 +2207,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_ASLR:
                 PhpUpdateProcessNodeImage(node);
-
-                if (WindowsVersion >= WINDOWS_VISTA)
-                {
-                    if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-                        PhInitializeStringRef(&getCellText->Text, L"ASLR");
-                }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
-                }
+                if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+                    PhInitializeStringRef(&getCellText->Text, L"ASLR");
                 break;
             case PHPRTLC_RELATIVESTARTTIME:
                 {
@@ -2397,27 +2237,20 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PWSTR type;
 
-                    if (WINDOWS_HAS_UAC)
+                    switch (processItem->ElevationType)
                     {
-                        switch (processItem->ElevationType)
-                        {
-                        case TokenElevationTypeDefault:
-                            type = L"N/A";
-                            break;
-                        case TokenElevationTypeLimited:
-                            type = L"Limited";
-                            break;
-                        case TokenElevationTypeFull:
-                            type = L"Full";
-                            break;
-                        default:
-                            type = L"N/A";
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        type = L"";
+                    case TokenElevationTypeDefault:
+                        type = L"N/A";
+                        break;
+                    case TokenElevationTypeLimited:
+                        type = L"Limited";
+                        break;
+                    case TokenElevationTypeFull:
+                        type = L"Full";
+                        break;
+                    default:
+                        type = L"N/A";
+                        break;
                     }
 
                     PhInitializeStringRefLongHint(&getCellText->Text, type);
@@ -2436,7 +2269,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 break;
             case PHPRTLC_CYCLES:
-                if (WindowsVersion >= WINDOWS_7)
                 {
                     ULONG64 value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &value);
@@ -2447,13 +2279,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         getCellText->Text = node->CyclesText->sr;
                     }
                 }
-                else
-                {
-                    getCellText->Text = PhGetStringRef(node->CyclesText);
-                }
                 break;
             case PHPRTLC_CYCLESDELTA:
-                if (WindowsVersion >= WINDOWS_7)
                 {
                     ULONG64 value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &value);
@@ -2463,10 +2290,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhMoveReference(&node->CyclesDeltaText, PhFormatUInt64(value, TRUE));
                         getCellText->Text = node->CyclesDeltaText->sr;
                     }
-                }
-                else
-                {
-                    getCellText->Text = PhGetStringRef(node->CyclesDeltaText);
                 }
                 break;
             case PHPRTLC_DEP:
@@ -2574,34 +2397,26 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_OSCONTEXT:
                 PhpUpdateProcessOsContext(node);
-
-                if (WindowsVersion >= WINDOWS_7)
+                switch (node->OsContextVersion)
                 {
-                    switch (node->OsContextVersion)
-                    {
-                    case WINDOWS_10:
-                        PhInitializeStringRef(&getCellText->Text, L"Windows 10");
-                        break;
-                    case WINDOWS_8_1:
-                        PhInitializeStringRef(&getCellText->Text, L"Windows 8.1");
-                        break;
-                    case WINDOWS_8:
-                        PhInitializeStringRef(&getCellText->Text, L"Windows 8");
-                        break;
-                    case WINDOWS_7:
-                        PhInitializeStringRef(&getCellText->Text, L"Windows 7");
-                        break;
-                    case WINDOWS_VISTA:
-                        PhInitializeStringRef(&getCellText->Text, L"Windows Vista");
-                        break;
-                    case WINDOWS_XP:
-                        PhInitializeStringRef(&getCellText->Text, L"Windows XP");
-                        break;
-                    }
-                }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
+                case WINDOWS_10:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows 10");
+                    break;
+                case WINDOWS_8_1:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows 8.1");
+                    break;
+                case WINDOWS_8:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows 8");
+                    break;
+                case WINDOWS_7:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows 7");
+                    break;
+                case WINDOWS_VISTA:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows Vista");
+                    break;
+                case WINDOWS_XP:
+                    PhInitializeStringRef(&getCellText->Text, L"Windows XP");
+                    break;
                 }
                 break;
             case PHPRTLC_PAGEDPOOL:
@@ -3146,11 +2961,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+
             PhHandleTreeNewColumnMenu(&data);
-
-            if (data.ProcessedId == PH_TN_COLUMN_MENU_HIDE_COLUMN_ID || data.ProcessedId == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
-                PhpUpdateNeedCyclesInformation();
-
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;

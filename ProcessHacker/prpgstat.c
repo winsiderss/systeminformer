@@ -103,38 +103,30 @@ VOID PhpUpdateProcessStatistics(
         if (ProcessItem->QueryHandle)
         {
             ULONG64 cycleTime;
+            PROCESS_HANDLE_INFORMATION handleInfo;
 
-            if (WindowsVersion >= WINDOWS_7)
+            if (NT_SUCCESS(NtQueryInformationProcess(
+                ProcessItem->QueryHandle,
+                ProcessHandleCount,
+                &handleInfo,
+                sizeof(PROCESS_HANDLE_INFORMATION),
+                NULL
+                )))
             {
-                PROCESS_HANDLE_INFORMATION handleInfo;
-
-                if (NT_SUCCESS(NtQueryInformationProcess(
-                    ProcessItem->QueryHandle,
-                    ProcessHandleCount,
-                    &handleInfo,
-                    sizeof(PROCESS_HANDLE_INFORMATION),
-                    NULL
-                    )))
-                {
-                    peakHandles = PhaFormatUInt64(handleInfo.HandleCountHighWatermark, TRUE);
-                }
+                peakHandles = PhaFormatUInt64(handleInfo.HandleCountHighWatermark, TRUE);
             }
 
             gdiHandles = PhaFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE); // GDI handles
             userHandles = PhaFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE); // USER handles
 
-            if (WINDOWS_HAS_CYCLE_TIME &&
-                NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
+            if (NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
             {
                 cycles = PhaFormatUInt64(cycleTime, TRUE);
                 gotCycles = TRUE;
             }
 
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                PhGetProcessPagePriority(ProcessItem->QueryHandle, &pagePriority);
-                PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority);
-            }
+            PhGetProcessPagePriority(ProcessItem->QueryHandle, &pagePriority);
+            PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority);
         }
 
         if (Context->ProcessHandle)
@@ -150,41 +142,25 @@ VOID PhpUpdateProcessStatistics(
             }
         }
 
-        if (WindowsVersion >= WINDOWS_7)
-        {
-            if (!gotCycles)
-                cycles = PhaFormatUInt64(ProcessItem->CycleTimeDelta.Value, TRUE);
-            if (!gotWsCounters)
-                privateWs = PhaFormatSize(ProcessItem->WorkingSetPrivateSize, -1);
-        }
+        if (!gotCycles)
+            cycles = PhaFormatUInt64(ProcessItem->CycleTimeDelta.Value, TRUE);
+        if (!gotWsCounters)
+            privateWs = PhaFormatSize(ProcessItem->WorkingSetPrivateSize, -1);
 
-        if (WindowsVersion >= WINDOWS_7)
-            SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, PhGetStringOrDefault(peakHandles, L"Unknown"));
-        else
-            SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, L"N/A");
-
+        SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, PhGetStringOrDefault(peakHandles, L"Unknown"));
         SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, PhGetStringOrDefault(gdiHandles, L"Unknown"));
         SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, PhGetStringOrDefault(userHandles, L"Unknown"));
-        SetDlgItemText(hwndDlg, IDC_ZCYCLES_V,
-            PhGetStringOrDefault(cycles, WINDOWS_HAS_CYCLE_TIME ? L"Unknown" : L"N/A"));
+        SetDlgItemText(hwndDlg, IDC_ZCYCLES_V, PhGetStringOrDefault(cycles, L"Unknown"));
 
-        if (WindowsVersion >= WINDOWS_VISTA)
-        {
-            if (pagePriority != -1 && pagePriority <= MEMORY_PRIORITY_NORMAL)
-                SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, PhPagePriorityNames[pagePriority]);
-            else
-                SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"Unknown");
-
-            if (ioPriority != -1 && ioPriority < MaxIoPriorityTypes)
-                SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, PhIoPriorityHintNames[ioPriority]);
-            else
-                SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"Unknown");
-        }
+        if (pagePriority != -1 && pagePriority <= MEMORY_PRIORITY_NORMAL)
+            SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, PhPagePriorityNames[pagePriority]);
         else
-        {
-            SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"N/A");
-            SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"N/A");
-        }
+            SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"Unknown");
+
+        if (ioPriority != -1 && ioPriority < MaxIoPriorityTypes)
+            SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, PhIoPriorityHintNames[ioPriority]);
+        else
+            SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"Unknown");
 
         SetDlgItemText(hwndDlg, IDC_ZPRIVATEWS_V, PhGetStringOrDefault(privateWs, L"Unknown"));
         SetDlgItemText(hwndDlg, IDC_ZSHAREABLEWS_V, PhGetStringOrDefault(shareableWs, L"Unknown"));

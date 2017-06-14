@@ -608,7 +608,6 @@ VOID NTAPI ProcessItemCreateCallback(
     memset(extension, 0, sizeof(PROCESS_EXTENSION));
 
     extension->ProcessItem = processItem;
-    extension->VirusTotalResult = PhReferenceEmptyString();
 
     PhAcquireQueuedLockExclusive(&ProcessesListLock);
     InsertTailList(&ProcessListHead, &extension->ListEntry);
@@ -643,7 +642,6 @@ VOID NTAPI ModuleItemCreateCallback(
     memset(extension, 0, sizeof(PROCESS_EXTENSION));
 
     extension->ModuleItem = moduleItem;
-    extension->VirusTotalResult = PhReferenceEmptyString();
 
     PhAcquireQueuedLockExclusive(&ProcessesListLock);
     InsertTailList(&ProcessListHead, &extension->ListEntry);
@@ -678,7 +676,6 @@ VOID NTAPI ServiceItemCreateCallback(
     memset(extension, 0, sizeof(PROCESS_EXTENSION));
 
     extension->ServiceItem = serviceItem;
-    extension->VirusTotalResult = PhReferenceEmptyString();
 
     PhAcquireQueuedLockExclusive(&ProcessesListLock);
     InsertTailList(&ProcessListHead, &extension->ListEntry);
