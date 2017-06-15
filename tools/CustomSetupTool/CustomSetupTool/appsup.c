@@ -505,7 +505,6 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 BOOLEAN ShutdownProcessHacker(VOID)
 {
     PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
-
     return TRUE;
 }
 

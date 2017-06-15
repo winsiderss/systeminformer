@@ -141,12 +141,7 @@ VOID SetupShowUpdatingErrorDialog(
     config.pfCallback = SetupErrorTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = PhaFormatString(
-        L"Error updating to the latest version...",
-        PHAPP_VERSION_MAJOR,
-        PHAPP_VERSION_MINOR,
-        PHAPP_VERSION_REVISION
-        )->Buffer;
+    config.pszMainInstruction = L"Error updating to the latest version.";
 
     if (Context->ErrorCode)
     {
