@@ -178,41 +178,51 @@ BOOLEAN SetupCreateUninstallFile(
 
     // Check if the user has started the setup from the installation folder.
     if (PhStartsWithStringRef2(&currentFilePath, PhGetString(Context->SetupInstallPath), TRUE))
-    {
-        // Do nothing, latest version already in the installation folder. 
         return TRUE;
-    }
 
     backupFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.bak");
     uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.exe");
 
     if (RtlDoesFileExists_U(backupFilePath->Buffer))
     {
-        // TODO: Move to temp directory
+        GUID randomGuid;
+        PPH_STRING tempPath = NULL;
+        PPH_STRING guidString = NULL;
+
+        tempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
+        GetTempPath((ULONG)tempPath->Length / sizeof(WCHAR), tempPath->Buffer);
+
+        PhGenerateGuid(&randomGuid);
+
+        if (guidString = PhFormatGuid(&randomGuid))
+        {
+            PhMoveReference(&guidString, PhSubstring(guidString, 1, guidString->Length / sizeof(WCHAR) - 2));
+        }
+
+        PhMoveReference(&guidString, PhConcatStrings(
+            3,
+            PhGetString(tempPath),
+            L"\\",
+            PhGetString(guidString)
+            ));
+
+        if (!MoveFile(backupFilePath->Buffer, guidString->Buffer))
+        {
+            Context->ErrorCode = GetLastError();
+        }
     }
 
     if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
     {
-        if (!DeleteFile(backupFilePath->Buffer))
-        {
-            Context->ErrorCode = GetLastError();
-            PhDereferenceObject(uninstallFilePath);
-            return FALSE;
-        }
-
         if (!MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer))
         {
             Context->ErrorCode = GetLastError();
-            PhDereferenceObject(uninstallFilePath);
-            return FALSE;
         }
     }
 
-    if (!CopyFile(currentFilePath.Buffer, uninstallFilePath->Buffer, FALSE))
+    if (!CopyFile(currentFilePath.Buffer, uninstallFilePath->Buffer, TRUE))
     {
         Context->ErrorCode = GetLastError();
-        PhDereferenceObject(uninstallFilePath);
-        return FALSE;
     }
 
     PhDereferenceObject(uninstallFilePath);
@@ -336,27 +346,24 @@ BOOLEAN SetupUninstallKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    BOOLEAN deleted = FALSE;
-    SC_HANDLE serviceHandle;
-    SERVICE_STATUS serviceStatus;
-
-    if (serviceHandle = PhOpenService(
-        L"KProcessHacker3", 
-        SERVICE_STOP | DELETE
-        ))
+    while (TRUE)
     {
-        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+        SC_HANDLE serviceHandle;
+        SERVICE_STATUS serviceStatus;
 
-        deleted = DeleteService(serviceHandle);
+        if (!(serviceHandle = PhOpenService(
+            L"KProcessHacker3",
+            SERVICE_STOP | DELETE
+            )))
+            break;
+
+        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+        DeleteService(serviceHandle);
 
         CloseServiceHandle(serviceHandle);
     }
-    else
-    {
-        deleted = TRUE;
-    }
 
-    return deleted;
+    return TRUE;
 }
 
 VOID SetupSetWindowsOptions(
