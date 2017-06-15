@@ -160,6 +160,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -197,6 +198,7 @@
       <CallingConvention>StdCall</CallingConvention>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;comctl32.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;uxtheme.lib;version.lib;windowscodecs.lib;winsta.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
