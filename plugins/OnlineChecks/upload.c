@@ -1001,8 +1001,12 @@ NTSTATUS UploadCheckThreadStart(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_ALL;
-        WinHttpSetOption(context->HttpHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
+        WinHttpSetOption(
+            context->HttpHandle, 
+            WINHTTP_OPTION_DECOMPRESSION, 
+            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_ALL }, 
+            sizeof(ULONG)
+            );
     }
 
     switch (context->Service)
