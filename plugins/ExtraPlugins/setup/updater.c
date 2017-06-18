@@ -451,10 +451,12 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    {
-        ULONG keepAlive = WINHTTP_DISABLE_KEEP_ALIVE;
-        WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &keepAlive, sizeof(ULONG));
-    }
+    WinHttpSetOption(
+        httpRequestHandle, 
+        WINHTTP_OPTION_DISABLE_FEATURE, 
+        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE }, 
+        sizeof(ULONG)
+        );
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 

@@ -198,13 +198,19 @@ PPH_STRING QueryFwLinkUrl(
             );
     }
 
-    {
-        ULONG option = WINHTTP_DISABLE_REDIRECTS;
-        WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
-
-        option = WINHTTP_DISABLE_KEEP_ALIVE;
-        WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
-    }
+    WinHttpSetOption(
+        httpRequestHandle, 
+        WINHTTP_OPTION_DISABLE_FEATURE, 
+        &(ULONG){ WINHTTP_DISABLE_REDIRECTS }, 
+        sizeof(ULONG)
+        );
+      
+    WinHttpSetOption(
+        httpRequestHandle, 
+        WINHTTP_OPTION_DISABLE_FEATURE, 
+        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE }, 
+        sizeof(ULONG)
+        );
 
     if (!WinHttpSendRequest(
         httpRequestHandle,
@@ -400,8 +406,12 @@ NTSTATUS GeoIPUpdateThread(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-        WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
+        WinHttpSetOption(
+            httpSessionHandle,
+            WINHTTP_OPTION_DECOMPRESSION, 
+            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE }, 
+            sizeof(ULONG)
+            );
     }
 
     if (!(httpConnectionHandle = WinHttpConnect(
@@ -427,10 +437,12 @@ NTSTATUS GeoIPUpdateThread(
         goto CleanupExit;
     }
 
-    {
-        ULONG option = WINHTTP_DISABLE_KEEP_ALIVE;
-        WinHttpSetOption(httpRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, &option, sizeof(ULONG));
-    }
+    WinHttpSetOption(
+        httpRequestHandle, 
+        WINHTTP_OPTION_DISABLE_FEATURE, 
+        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE }, 
+        sizeof(ULONG)
+        );
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
