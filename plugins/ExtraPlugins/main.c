@@ -253,7 +253,7 @@ VOID NTAPI MainMenuInitializingCallback(
 
     if (pluginMenu = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_DESCEND, NULL, PHAPP_ID_HACKER_PLUGINS))
     {
-        PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, pluginMenu->Id, L"Plugins... (Beta)", NULL), PhIndexOfEMenuItem(menuInfo->Menu, pluginMenu));
+        PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, pluginMenu->Id, L"&Plugins... (Beta)", NULL), PhIndexOfEMenuItem(menuInfo->Menu, pluginMenu));
         PhRemoveEMenuItem(menuInfo->Menu, pluginMenu, 0);    
     }
 }

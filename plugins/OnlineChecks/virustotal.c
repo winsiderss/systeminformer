@@ -321,8 +321,12 @@ PSTR VirusTotalSendHttpRequest(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        ULONG gzipFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-        WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &gzipFlags, sizeof(ULONG));
+        WinHttpSetOption(
+            httpSessionHandle, 
+            WINHTTP_OPTION_DECOMPRESSION, 
+            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE }, 
+            sizeof(ULONG)
+            );
     }
 
     if (!(connectHandle = WinHttpConnect(
@@ -465,8 +469,12 @@ PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-        WinHttpSetOption(httpSessionHandle, WINHTTP_OPTION_DECOMPRESSION, &httpFlags, sizeof(ULONG));
+        WinHttpSetOption(
+            httpSessionHandle,
+            WINHTTP_OPTION_DECOMPRESSION, 
+            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE }, 
+            sizeof(ULONG)
+            );
     }
 
     if (!(connectHandle = WinHttpConnect(

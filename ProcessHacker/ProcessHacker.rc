@@ -111,11 +111,11 @@ BEGIN
         MENUITEM "System &information\aCtrl+I", ID_VIEW_SYSTEMINFORMATION
         POPUP "&Tray icons"
         BEGIN
-            MENUITEM "CPU history",                 ID_TRAYICONS_CPUHISTORY
-            MENUITEM "CPU usage",                   ID_TRAYICONS_CPUUSAGE
-            MENUITEM "I/O history",                 ID_TRAYICONS_IOHISTORY
-            MENUITEM "Commit charge history",       ID_TRAYICONS_COMMITHISTORY
-            MENUITEM "Physical memory history",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
+            MENUITEM "CPU &history",                 ID_TRAYICONS_CPUHISTORY
+            MENUITEM "CPU &usage",                   ID_TRAYICONS_CPUUSAGE
+            MENUITEM "&I/O history",                 ID_TRAYICONS_IOHISTORY
+            MENUITEM "&Commit charge history",       ID_TRAYICONS_COMMITHISTORY
+            MENUITEM "&Physical memory history",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
         MENUITEM SEPARATOR
         MENUITEM "<section placeholder>",       ID_VIEW_SECTIONPLACEHOLDER
@@ -152,7 +152,7 @@ BEGIN
         MENUITEM "Hidden processes",            ID_TOOLS_HIDDENPROCESSES
         MENUITEM "Inspect executable file...",  ID_TOOLS_INSPECTEXECUTABLEFILE
         MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
-        MENUITEM "Start Task Manager",          ID_TOOLS_STARTTASKMANAGER
+        MENUITEM "Start &Task Manager",          ID_TOOLS_STARTTASKMANAGER
     END
     POPUP "&Users"
     BEGIN
@@ -301,9 +301,9 @@ BEGIN
                 MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
                 MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
             END
-            MENUITEM "Reduce working set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
-            MENUITEM "Run as...",                   ID_MISCELLANEOUS_RUNAS
-            MENUITEM "Run as this user...",         ID_MISCELLANEOUS_RUNASTHISUSER
+            MENUITEM "Reduce working &set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
+            MENUITEM "&Run as...",                   ID_MISCELLANEOUS_RUNAS
+            MENUITEM "Run &as this user...",         ID_MISCELLANEOUS_RUNASTHISUSER
         END
         POPUP "&Window"
         BEGIN
