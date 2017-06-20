@@ -523,7 +523,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
             context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
             context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
-            context->FontHandle = CommonDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
+            context->FontHandle = PhDuplicateFont((HFONT)SendMessage(ToolBarHandle, WM_GETFONT, 0, 0));
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight

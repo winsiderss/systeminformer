@@ -630,6 +630,32 @@ PhLoadPngImageFromResource(
     );
 
 FORCEINLINE
+HFONT 
+PhCreateFont(
+    _In_ PWSTR Name,
+    _In_ ULONG Size,
+    _In_ ULONG Weight
+    )
+{
+    return CreateFont(
+        -(LONG)PhMultiplyDivide(Size, PhGlobalDpi, 72),
+        0,
+        0,
+        0,
+        Weight,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY,
+        DEFAULT_PITCH,
+        Name
+        );
+}
+
+FORCEINLINE
 HFONT
 PhCreateCommonFont(
     _In_ LONG Size,
@@ -668,6 +694,39 @@ PhCreateCommonFont(
 
     return fontHandle;
 }
+
+FORCEINLINE
+HFONT
+PhDuplicateFont(
+    _In_ HFONT Font
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+        return CreateFontIndirect(&logFont);
+
+    return NULL;
+}
+
+FORCEINLINE
+HFONT
+PhDuplicateFontWithNewWeight(
+    _In_ HFONT Font,
+    _In_ LONG NewWeight
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+    {
+        logFont.lfWeight = NewWeight;
+        return CreateFontIndirect(&logFont);
+    }
+
+    return NULL;
+}
+
 // end_phapppub
 
 // sessmsg

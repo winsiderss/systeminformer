@@ -569,18 +569,5 @@ FormatAnsiString(
     return FormatAnsiString_V(Format, argptr);
 }
 
-FORCEINLINE
-HFONT
-CommonDuplicateFont(
-    _In_ HFONT Font
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-        return CreateFontIndirect(&logFont);
-    else
-        return NULL;
-}
 
 #endif

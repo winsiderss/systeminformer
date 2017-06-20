@@ -488,30 +488,6 @@ VOID PhInitializeCommonControls(
     InitCommonControlsEx(&icex);
 }
 
-HFONT PhpCreateFont(
-    _In_ PWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight
-    )
-{
-    return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, PhGlobalDpi, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        DEFAULT_PITCH,
-        Name
-        );
-}
-
 VOID PhInitializeFont(
     _In_ HWND hWnd
     )
@@ -533,8 +509,8 @@ VOID PhInitializeFont(
     success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
 
     if (
-        !(PhApplicationFont = PhpCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
-        !(PhApplicationFont = PhpCreateFont(L"Tahoma", 8, FW_NORMAL))
+        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
+        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL))
         )
     {
         if (success)

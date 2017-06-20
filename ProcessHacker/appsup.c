@@ -1148,24 +1148,6 @@ BOOLEAN PhGetListViewContextMenuPoint(
     return FALSE;
 }
 
-HFONT PhDuplicateFontWithNewWeight(
-    _In_ HFONT Font,
-    _In_ LONG NewWeight
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfWeight = NewWeight;
-        return CreateFontIndirect(&logFont);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
 VOID PhSetWindowOpacity(
     _In_ HWND WindowHandle,
     _In_ ULONG OpacityPercent
