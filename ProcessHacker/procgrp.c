@@ -114,29 +114,29 @@ typedef struct _QUERY_WINDOWS_CONTEXT
     PPH_HASHTABLE ProcessDataHashtable;
 } QUERY_WINDOWS_CONTEXT, *PQUERY_WINDOWS_CONTEXT;
 
-BOOL CALLBACK PhpQueryWindowsEnumWindowsProc(
-    _In_ HWND hwnd,
-    _In_ LPARAM lParam
+BOOLEAN CALLBACK PhpQueryWindowsEnumWindowsProc(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
     )
 {
-    PQUERY_WINDOWS_CONTEXT context = (PQUERY_WINDOWS_CONTEXT)lParam;
+    PQUERY_WINDOWS_CONTEXT context = (PQUERY_WINDOWS_CONTEXT)Context;
     ULONG processId;
     PPHP_PROCESS_DATA processData;
     HWND parentWindow;
 
-    if (!IsWindowVisible(hwnd))
+    if (!IsWindowVisible(WindowHandle))
         return TRUE;
 
-    GetWindowThreadProcessId(hwnd, &processId);
+    GetWindowThreadProcessId(WindowHandle, &processId);
     processData = PhFindItemSimpleHashtable2(context->ProcessDataHashtable, UlongToHandle(processId));
 
     if (!processData || processData->WindowHandle)
         return TRUE;
 
-    if (!((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // Skip windows with a visible parent
-        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // Skip windows with no title
+    if (!((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // Skip windows with a visible parent
+        PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0) // Skip windows with no title
     {
-        processData->WindowHandle = hwnd;
+        processData->WindowHandle = WindowHandle;
     }
 
     return TRUE;
@@ -285,7 +285,7 @@ PPH_LIST PhCreateProcessGroupList(
     PhpProcessDataListToHashtable(processDataList, &processDataHashtable);
 
     queryWindowsContext.ProcessDataHashtable = processDataHashtable;
-    PhEnumChildWindows(NULL, 0x800, PhpQueryWindowsEnumWindowsProc, (LPARAM)&queryWindowsContext);
+    PhEnumChildWindows(NULL, 0x800, PhpQueryWindowsEnumWindowsProc, &queryWindowsContext);
 
     processGroupList = PhCreateList(10);
 

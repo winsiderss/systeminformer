@@ -97,11 +97,16 @@ PhaGetProcessKnownCommandLine(
     );
 // end_phapppub
 
+typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
+    _In_ HWND WindowHandle, 
+    _In_opt_ PVOID Context
+    );
+
 VOID PhEnumChildWindows(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
-    _In_ WNDENUMPROC Callback,
-    _In_ LPARAM lParam
+    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
     );
 
 HWND PhGetProcessMainWindow(
