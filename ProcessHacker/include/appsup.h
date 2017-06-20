@@ -212,11 +212,6 @@ PhGetListViewContextMenuPoint(
     );
 // end_phapppub
 
-HFONT PhDuplicateFontWithNewWeight(
-    _In_ HFONT Font,
-    _In_ LONG NewWeight
-    );
-
 VOID PhSetWindowOpacity(
     _In_ HWND WindowHandle,
     _In_ ULONG OpacityPercent

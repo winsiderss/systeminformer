@@ -319,7 +319,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->FontHandle = CommonDuplicateFont((HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
+            context->FontHandle = PhDuplicateFont((HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
