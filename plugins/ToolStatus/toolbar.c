@@ -109,23 +109,18 @@ VOID RebarLoadSettings(
 {
     if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
     {
-        // Enable scaling the Toolbar and images on high-DPI machines. 
-        ToolBarImageSize.cx = PH_SCALE_DPI(16);
-        ToolBarImageSize.cy = PH_SCALE_DPI(16);
-
+        ToolBarImageSize.cx = PH_SCALE_DPI(GetSystemMetrics(SM_CXSMICON));
+        ToolBarImageSize.cy = PH_SCALE_DPI(GetSystemMetrics(SM_CYSMICON));
         ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_COLOR32, 0, 0);
     }
 
     if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
     {
-        REBARINFO rebarInfo = { sizeof(REBARINFO) };
-        ULONG toolbarButtonSize;
-
         RebarHandle = CreateWindowEx(
             WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT | RBS_AUTOSIZE, // CCS_NOPARENTALIGN | RBS_FIXEDORDER
+            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT | RBS_AUTOSIZE, // CCS_NOPARENTALIGN
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             PhMainWndHandle,
             NULL,
@@ -137,7 +132,7 @@ VOID RebarLoadSettings(
             0,
             TOOLBARCLASSNAME,
             NULL,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE, // TBSTYLE_CUSTOMERASE  TBSTYLE_ALTDRAG
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NORESIZE | CCS_NOPARENTALIGN | CCS_NODIVIDER | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
             RebarHandle,
             NULL,
@@ -146,7 +141,7 @@ VOID RebarLoadSettings(
             );
 
         // Set the rebar info with no imagelist.
-        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&rebarInfo);
+        SendMessage(RebarHandle, RB_SETBARINFO, 0, (LPARAM)&(REBARINFO){ sizeof(REBARINFO) });
         // Set the toolbar struct size.
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
@@ -157,15 +152,9 @@ VOID RebarLoadSettings(
         ToolbarLoadButtonSettings();
         // Resize the toolbar.
         SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
-        // Query the toolbar width and height.
-        //SendMessage(ToolBarHandle, TB_GETMAXSIZE, 0, (LPARAM)&toolbarSize);
-        toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-
-        // Enable theming
-        // SendMessage(RebarHandle, RB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
-        // SendMessage(ToolBarHandle, TB_SETWINDOWTHEME, 0, (LPARAM)L"Media"); //Media/Communications/BrowserTabBar/Help
 
         // Inset the toolbar into the rebar control.
+        ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
         RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), HIWORD(toolbarButtonSize));
     }
 
@@ -181,7 +170,6 @@ VOID RebarLoadSettings(
 
     if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
     {
-        // Create the StatusBar window.
         StatusBarHandle = CreateWindowEx(
             0,
             STATUSCLASSNAME,

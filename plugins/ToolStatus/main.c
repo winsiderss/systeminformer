@@ -666,10 +666,8 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         PhInvokeCallback(&SearchChangedEvent, SearchboxText);
                     }
-
-                    goto DefaultWndProc;
                 }
-                break;
+                goto DefaultWndProc;
             case EN_KILLFOCUS:
                 {
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
@@ -683,10 +681,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                         if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                             RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
                     }
-
-                    goto DefaultWndProc;
                 }
-                break;
+                goto DefaultWndProc;
             }
 
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -720,11 +716,9 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         SetFocus(SearchboxHandle);
                         Edit_SetSel(SearchboxHandle, 0, -1);
-                    }
-
-                    goto DefaultWndProc;
+                    }   
                 }
-                break;
+                goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Let Process Hacker perform the default processing.
@@ -734,11 +728,9 @@ LRESULT CALLBACK MainWndSubclassProc(
                     BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
 
                     // Set the pressed button state.
-                    SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0)));
-
-                    goto DefaultWndProc;
+                    SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0))); 
                 }
-                break;
+                goto DefaultWndProc;
             case PHAPP_ID_UPDATEINTERVAL_FAST:
             case PHAPP_ID_UPDATEINTERVAL_NORMAL:
             case PHAPP_ID_UPDATEINTERVAL_BELOWNORMAL:
@@ -749,10 +741,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                     DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
                     StatusBarUpdate(TRUE);
-
-                    goto DefaultWndProc;
                 }
-                break;
+                goto DefaultWndProc;
             case PHAPP_ID_VIEW_UPDATEAUTOMATICALLY:
                 {
                     UpdateAutomatically = !UpdateAutomatically;
@@ -1142,7 +1132,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                         // This is an undocumented function exported by user32.dll that
                         // retrieves the hung window represented by a ghost window.
                         static HWND (WINAPI *HungWindowFromGhostWindow_I)(
-                            _In_ HWND hWnd
+                            _In_ HWND WindowHandle
                             );
 
                         if (!HungWindowFromGhostWindow_I)

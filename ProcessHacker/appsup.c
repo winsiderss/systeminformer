@@ -711,18 +711,18 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 }
 
 VOID PhEnumChildWindows(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
-    _In_ WNDENUMPROC Callback,
-    _In_ LPARAM lParam
+    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
     )
 {
     HWND childWindow = NULL;
     ULONG i = 0;
 
-    while (i < Limit && (childWindow = FindWindowEx(hWnd, childWindow, NULL, NULL)))
+    while (i < Limit && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
     {
-        if (!Callback(childWindow, lParam))
+        if (!Callback(childWindow, Context))
             return;
 
         i++;
@@ -738,36 +738,36 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
     BOOLEAN SkipInvisible;
 } GET_PROCESS_MAIN_WINDOW_CONTEXT, *PGET_PROCESS_MAIN_WINDOW_CONTEXT;
 
-BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
-    _In_ HWND hwnd,
-    _In_ LPARAM lParam
+BOOLEAN CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
     )
 {
-    PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)lParam;
+    PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId;
     HWND parentWindow;
     WINDOWINFO windowInfo;
 
-    if (context->SkipInvisible && !IsWindowVisible(hwnd))
+    if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
         return TRUE;
 
-    GetWindowThreadProcessId(hwnd, &processId);
+    GetWindowThreadProcessId(WindowHandle, &processId);
 
     if (UlongToHandle(processId) == context->ProcessId && (context->SkipInvisible ?
-        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
-        PhGetWindowTextEx(hwnd, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
+        !((parentWindow = GetParent(WindowHandle)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
+        PhGetWindowTextEx(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL | PH_GET_WINDOW_TEXT_LENGTH_ONLY, NULL) != 0 : TRUE)) // skip windows with no title
     {
         if (!context->ImmersiveWindow && context->IsImmersive &&
-            GetProp(hwnd, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
+            GetProp(WindowHandle, L"Windows.ImmersiveShell.IdentifyAsMainCoreWindow"))
         {
-            context->ImmersiveWindow = hwnd;
+            context->ImmersiveWindow = WindowHandle;
         }
 
         windowInfo.cbSize = sizeof(WINDOWINFO);
 
-        if (!context->Window && GetWindowInfo(hwnd, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
+        if (!context->Window && GetWindowInfo(WindowHandle, &windowInfo) && (windowInfo.dwStyle & WS_DLGFRAME))
         {
-            context->Window = hwnd;
+            context->Window = WindowHandle;
 
             // If we're not looking at an immersive process, there's no need to search any more windows.
             if (!context->IsImmersive)
@@ -807,7 +807,7 @@ HWND PhGetProcessMainWindowEx(
     if (processHandle && IsImmersiveProcess_I)
         context.IsImmersive = IsImmersiveProcess_I(processHandle);
 
-    PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, (LPARAM)&context);
+    PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
 
     if (!ProcessHandle && processHandle)
         NtClose(processHandle);
