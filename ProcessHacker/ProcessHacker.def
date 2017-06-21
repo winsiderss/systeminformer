@@ -229,6 +229,8 @@ EXPORTS
 	PhCreateFileWin32
 	PhCreateFileWin32Ex
 	PhCreateKey
+	PhCreateNamedPipe
+	PhCreatePipe
 	PhDeleteFileWin32
 	PhDisconnectNamedPipe
 	PhEnumDirectoryFile

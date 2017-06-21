@@ -832,7 +832,9 @@ static VOID PhpInitializeServiceNumbers(
 
         // NtReadFile
 
-        if (CreatePipe(&pipeReadHandle, &pipeWriteHandle, NULL, 0))
+        status = PhCreatePipe(&pipeReadHandle, &pipeWriteHandle);
+
+        if (NT_SUCCESS(status))
         {
             if (threadHandle = PhCreateThread(0, PhpRfThreadStart, pipeReadHandle))
             {
