@@ -6213,6 +6213,7 @@ NTSTATUS PhCreatePipe(
     if (!NT_SUCCESS(status))
         return status;
 
+    RtlInitUnicodeString(&pipeNameUs, UNICODE_NULL);
     InitializeObjectAttributes(
         &oa,
         &pipeNameUs,
@@ -6244,6 +6245,7 @@ NTSTATUS PhCreatePipe(
         return status;
     }
 
+    RtlInitUnicodeString(&pipeNameUs, UNICODE_NULL);
     InitializeObjectAttributes(
         &oa,
         &pipeNameUs,
