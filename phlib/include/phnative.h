@@ -976,6 +976,22 @@ PhDeleteFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreatePipe(
+    _Out_ PHANDLE PipeReadHandle,
+    _Out_ PHANDLE PipeWriteHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateNamedPipe(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PWSTR PipeName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhListenNamedPipe(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,

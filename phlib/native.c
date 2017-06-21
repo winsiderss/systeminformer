@@ -6172,6 +6172,162 @@ NTSTATUS PhDeleteFileWin32(
     return status;
 }
 
+/**
+* Creates an anonymous pipe.
+*
+* \param PipeReadHandle The pipe read handle.
+* \param PipeWriteHandle The pipe write handle.
+*/
+NTSTATUS PhCreatePipe(
+    _Out_ PHANDLE PipeReadHandle,
+    _Out_ PHANDLE PipeWriteHandle
+    )
+{
+    NTSTATUS status;
+    HANDLE pipeDirectoryHandle;
+    HANDLE pipeReadHandle;
+    HANDLE pipeWriteHandle;
+    LARGE_INTEGER pipeTimeout;
+    UNICODE_STRING pipeNameUs;
+    OBJECT_ATTRIBUTES oa;
+    IO_STATUS_BLOCK isb;
+
+    RtlInitUnicodeString(&pipeNameUs, DEVICE_NAMED_PIPE);
+    InitializeObjectAttributes(
+        &oa,
+        &pipeNameUs,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &pipeDirectoryHandle,
+        GENERIC_READ | SYNCHRONIZE,
+        &oa,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &oa,
+        &pipeNameUs,
+        OBJ_CASE_INSENSITIVE,
+        pipeDirectoryHandle,
+        NULL
+        );
+
+    status = NtCreateNamedPipeFile(
+        &pipeReadHandle,
+        FILE_WRITE_ATTRIBUTES | GENERIC_READ | SYNCHRONIZE,
+        &oa,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_CREATE,
+        FILE_PIPE_INBOUND | FILE_SYNCHRONOUS_IO_NONALERT,
+        FILE_PIPE_BYTE_STREAM_TYPE,
+        FILE_PIPE_BYTE_STREAM_MODE,
+        FILE_PIPE_QUEUE_OPERATION,
+        PIPE_UNLIMITED_INSTANCES, // min: 1, max: ULONG_MAX
+        PAGE_SIZE,
+        PAGE_SIZE,
+        PhTimeoutFromMilliseconds(&pipeTimeout, 500)
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(pipeDirectoryHandle);
+        return status;
+    }
+
+    InitializeObjectAttributes(
+        &oa,
+        &pipeNameUs,
+        OBJ_CASE_INSENSITIVE,
+        pipeReadHandle,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &pipeWriteHandle,
+        FILE_READ_ATTRIBUTES | GENERIC_WRITE | SYNCHRONIZE,
+        &oa,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PipeReadHandle = pipeReadHandle;
+        *PipeWriteHandle = pipeWriteHandle;
+    }
+
+    NtClose(pipeDirectoryHandle);
+    return status;
+}
+
+/**
+* Creates an named pipe.
+*
+* \param PipeHandle The pipe read/write handle.
+* \param PipeName The pipe name.
+*/
+NTSTATUS PhCreateNamedPipe(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PWSTR PipeName
+    )
+{
+    NTSTATUS status;
+    HANDLE pipeHandle;
+    PPH_STRING pipeName;
+    LARGE_INTEGER pipeTimeout;
+    UNICODE_STRING pipeNameUs;
+    OBJECT_ATTRIBUTES oa;
+    IO_STATUS_BLOCK isb;
+
+    pipeName = PhConcatStrings2(DEVICE_NAMED_PIPE, PipeName);
+    PhStringRefToUnicodeString(&pipeName->sr, &pipeNameUs);
+    PhTimeoutFromMilliseconds(&pipeTimeout, 500);
+
+    InitializeObjectAttributes(
+        &oa,
+        &pipeNameUs,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateNamedPipeFile(
+        &pipeHandle,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        &oa,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_CREATE,
+        FILE_PIPE_FULL_DUPLEX | FILE_SYNCHRONOUS_IO_NONALERT,
+        FILE_PIPE_MESSAGE_TYPE,
+        FILE_PIPE_MESSAGE_MODE,
+        FILE_PIPE_QUEUE_OPERATION,
+        PIPE_UNLIMITED_INSTANCES, // min: 1, max: ULONG_MAX
+        PAGE_SIZE,
+        PAGE_SIZE,
+        &pipeTimeout
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PipeHandle = pipeHandle;
+    }
+
+    PhDereferenceObject(pipeName);
+    return status;
+}
+
 NTSTATUS PhListenNamedPipe(
     _In_ HANDLE FileHandle,
     _In_opt_ HANDLE Event,
