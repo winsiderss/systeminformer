@@ -1932,11 +1932,6 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    if (runCount % 5 == 0)
-    {
-        PhUpdateDosDevicePrefixes();
-    }
-
     if (runCount % 512 == 0) // yes, a very long time
     {
         if (PhEnablePurgeProcessRecords)
