@@ -6184,6 +6184,7 @@ NTSTATUS PhCreatePipe(
     )
 {
     NTSTATUS status;
+    PACL pipeAcl;
     HANDLE pipeDirectoryHandle;
     HANDLE pipeReadHandle;
     HANDLE pipeWriteHandle;
@@ -6222,6 +6223,17 @@ NTSTATUS PhCreatePipe(
         NULL
         );
 
+    if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+    {
+        SECURITY_DESCRIPTOR securityDescriptor;
+
+        RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
+
+        oa.SecurityDescriptor = &securityDescriptor;
+    }
+
     status = NtCreateNamedPipeFile(
         &pipeReadHandle,
         FILE_WRITE_ATTRIBUTES | GENERIC_READ | SYNCHRONIZE,
@@ -6233,7 +6245,7 @@ NTSTATUS PhCreatePipe(
         FILE_PIPE_BYTE_STREAM_TYPE,
         FILE_PIPE_BYTE_STREAM_MODE,
         FILE_PIPE_QUEUE_OPERATION,
-        PIPE_UNLIMITED_INSTANCES, // min: 1, max: ULONG_MAX
+        ULONG_MAX,
         PAGE_SIZE,
         PAGE_SIZE,
         PhTimeoutFromMilliseconds(&pipeTimeout, 500)
@@ -6285,6 +6297,7 @@ NTSTATUS PhCreateNamedPipe(
     )
 {
     NTSTATUS status;
+    PACL pipeAcl;
     HANDLE pipeHandle;
     PPH_STRING pipeName;
     LARGE_INTEGER pipeTimeout;
@@ -6304,6 +6317,17 @@ NTSTATUS PhCreateNamedPipe(
         NULL
         );
 
+    if (NT_SUCCESS(RtlDefaultNpAcl(&pipeAcl)))
+    {
+        SECURITY_DESCRIPTOR securityDescriptor;
+
+        RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
+        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
+
+        oa.SecurityDescriptor = &securityDescriptor;
+    }
+
     status = NtCreateNamedPipeFile(
         &pipeHandle,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
@@ -6315,7 +6339,7 @@ NTSTATUS PhCreateNamedPipe(
         FILE_PIPE_MESSAGE_TYPE,
         FILE_PIPE_MESSAGE_MODE,
         FILE_PIPE_QUEUE_OPERATION,
-        PIPE_UNLIMITED_INSTANCES, // min: 1, max: ULONG_MAX
+        ULONG_MAX,
         PAGE_SIZE,
         PAGE_SIZE,
         &pipeTimeout

@@ -5430,6 +5430,13 @@ RtlCreateAcl(
     );
 
 NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDefaultNpAcl(
+    _Out_ PACL *Acl
+    );
+
+NTSYSAPI
 BOOLEAN
 NTAPI
 RtlValidAcl(
