@@ -1371,18 +1371,28 @@ RtlUpperString(
     _In_ PSTRING SourceString
     );
 
-FORCEINLINE 
+FORCEINLINE
 VOID
 NTAPI
 RtlInitEmptyUnicodeString(
     _Out_ PUNICODE_STRING DestinationString,
-    _In_ PWCHAR Buffer,
-    _In_ USHORT BufferSize
+    _In_opt_ PWCHAR Buffer,
+    _In_opt_ USHORT MaximumLength
     )
 {
+    if (Buffer)
+    {
+        DestinationString->Buffer = Buffer;
+        DestinationString->MaximumLength = MaximumLength;
+    }
+    else
+    {
+        PTEB currentTeb = NtCurrentTeb();
+        DestinationString->Buffer = currentTeb->StaticUnicodeBuffer;
+        DestinationString->MaximumLength = sizeof(currentTeb->StaticUnicodeBuffer);
+    }
+
     DestinationString->Length = 0;
-    DestinationString->MaximumLength = BufferSize;
-    DestinationString->Buffer = Buffer;
 }
 
 #ifndef PHNT_NO_INLINE_INIT_STRING
