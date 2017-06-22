@@ -1371,6 +1371,20 @@ RtlUpperString(
     _In_ PSTRING SourceString
     );
 
+FORCEINLINE 
+VOID
+NTAPI
+RtlInitEmptyUnicodeString(
+    _Out_ PUNICODE_STRING DestinationString,
+    _In_ PWCHAR Buffer,
+    _In_ USHORT BufferSize
+    )
+{
+    DestinationString->Length = 0;
+    DestinationString->MaximumLength = BufferSize;
+    DestinationString->Buffer = Buffer;
+}
+
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitUnicodeString(
     _Out_ PUNICODE_STRING DestinationString,
