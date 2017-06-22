@@ -1217,8 +1217,5 @@ VOID StartInitialCheck(
     VOID
     )
 {
-    HANDLE silentCheckThread = NULL;
-
-    if (silentCheckThread = PhCreateThread(0, UpdateCheckSilentThread, NULL))
-        NtClose(silentCheckThread);
+    PhCreateThread2(UpdateCheckSilentThread, NULL);
 }

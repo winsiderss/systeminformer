@@ -394,8 +394,6 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE dialogThread;
-
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
@@ -421,8 +419,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-            if (dialogThread = PhCreateThread(0, NetworkWhoisThreadStart, (PVOID)context))
-                NtClose(dialogThread);
+            PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
@@ -556,7 +553,6 @@ VOID ShowWhoisWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
-    HANDLE dialogThread;
     PNETWORK_WHOIS_CONTEXT context;
 
     context = (PNETWORK_WHOIS_CONTEXT)PhCreateAlloc(sizeof(NETWORK_WHOIS_CONTEXT));
@@ -573,17 +569,13 @@ VOID ShowWhoisWindow(
         RtlIpv6AddressToString(&NetworkItem->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
     }
 
-    if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
-    {
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(NetworkWhoisDialogThreadStart, (PVOID)context);
 }
 
 VOID ShowWhoisWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     )
 {
-    HANDLE dialogThread;
     PNETWORK_WHOIS_CONTEXT context;
 
     context = (PNETWORK_WHOIS_CONTEXT)PhCreateAlloc(sizeof(NETWORK_WHOIS_CONTEXT));
@@ -600,8 +592,5 @@ VOID ShowWhoisWindowFromAddress(
         RtlIpv6AddressToString(&RemoteEndpoint.Address.In6Addr, context->IpAddressString);
     }
 
-    if (dialogThread = PhCreateThread(0, NetworkWhoisDialogThreadStart, (PVOID)context))
-    {
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(NetworkWhoisDialogThreadStart, (PVOID)context);
 }

@@ -956,7 +956,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             SearchResults = PhCreateList(0x1000);
             context->UdtList = PhCreateList(0x100);
 
-            context->SearchThreadHandle = PhCreateThread(0, PeDumpFileSymbols, context);
+            PhCreateThread2(PeDumpFileSymbols, context);
 
             if (NT_SUCCESS(RtlCreateTimerQueue(&context->TimerQueueHandle)))
             {
@@ -981,8 +981,6 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
             if (context->TimerQueueHandle)
                 RtlDeleteTimerQueue(context->TimerQueueHandle);
-
-            NtClose(context->SearchThreadHandle);
 
             PvDeleteSymbolTree(context);
         }
