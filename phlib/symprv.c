@@ -112,8 +112,8 @@ VOID PhSymbolProviderCompleteInitialization(
     _In_opt_ PVOID DbgHelpBase
     )
 {
-    HMODULE dbghelpHandle;
-    HMODULE symsrvHandle;
+    PVOID dbghelpHandle;
+    PVOID symsrvHandle;
 
     // The user should have loaded dbghelp.dll and symsrv.dll already. If not, it's not our problem.
 
@@ -122,9 +122,9 @@ VOID PhSymbolProviderCompleteInitialization(
     if (DbgHelpBase)
         dbghelpHandle = DbgHelpBase;
     else
-        dbghelpHandle = GetModuleHandle(L"dbghelp.dll");
+        dbghelpHandle = PhGetDllHandle(L"dbghelp.dll");
 
-    symsrvHandle = GetModuleHandle(L"symsrv.dll");
+    symsrvHandle = PhGetDllHandle(L"symsrv.dll");
 
     SymInitialize_I = PhGetProcedureAddress(dbghelpHandle, "SymInitialize", 0);
     SymCleanup_I = PhGetProcedureAddress(dbghelpHandle, "SymCleanup", 0);

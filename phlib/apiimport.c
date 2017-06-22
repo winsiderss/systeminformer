@@ -30,18 +30,18 @@ PVOID PhpImportProcedure(
     _In_ PSTR ProcedureName
     )
 {
-    HMODULE module;
+    PVOID module;
     PVOID procedure;
 
     if (*CacheValid)
         return *Cache;
 
-    module = GetModuleHandle(ModuleName);
+    module = PhGetDllHandle(ModuleName);
 
     if (!module)
         return NULL;
 
-    procedure = GetProcAddress(module, ProcedureName);
+    procedure = PhGetProcedureAddress(module, ProcedureName, 0);
     *Cache = procedure;
     MemoryBarrier();
     *CacheValid = TRUE;

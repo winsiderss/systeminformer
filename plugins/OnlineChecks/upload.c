@@ -96,7 +96,7 @@ VOID RaiseUploadError(
     if (!Context->DialogHandle)
         return;
 
-    if (message = PhGetMessage(GetModuleHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), ErrorCode))
+    if (message = PhGetMessage(PhGetDllHandle(L"winhttp.dll"), 0xb, GetUserDefaultLangID(), ErrorCode))
     {
         PhTrimToNullTerminatorString(message);
     }
