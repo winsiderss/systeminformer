@@ -11,11 +11,6 @@ extern "C" {
 
 // guisup
 
-typedef BOOL (WINAPI *_ChangeWindowMessageFilter)(
-    _In_ UINT message,
-    _In_ DWORD dwFlag
-    );
-
 typedef BOOL (WINAPI *_IsImmersiveProcess)(
     _In_ HANDLE hProcess
     );
@@ -60,7 +55,6 @@ typedef HRESULT (WINAPI *_SHAutoComplete)(
     _In_ DWORD dwFlags
     );
 
-extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern _RunFileDlg RunFileDlg;
 extern _SHAutoComplete SHAutoComplete_I;

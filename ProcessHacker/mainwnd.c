@@ -175,7 +175,7 @@ BOOLEAN PhMainWndInitialization(
         windowRectangle.Width, windowRectangle.Height, FALSE);
 
     // Allow WM_PH_ACTIVATE to pass through UIPI.
-    ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
+    ChangeWindowMessageFilter(WM_PH_ACTIVATE, MSGFLT_ADD);
 
     PhMwpOnSettingChange();
 
