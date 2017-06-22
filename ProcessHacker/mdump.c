@@ -48,7 +48,6 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
     HANDLE FileHandle;
 
     HWND WindowHandle;
-    HANDLE ThreadHandle;
     BOOLEAN Stop;
     BOOLEAN Succeeded;
 
@@ -377,25 +376,14 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
             context->WindowHandle = hwndDlg;
-            context->ThreadHandle = PhCreateThread(0, PhpProcessMiniDumpThreadStart, context);
 
-            if (!context->ThreadHandle)
-            {
-                PhShowStatus(hwndDlg, L"Unable to create the minidump thread", 0, GetLastError());
-                EndDialog(hwndDlg, IDCANCEL);
-            }
+            PhCreateThread2(PhpProcessMiniDumpThreadStart, context);
 
             SetTimer(hwndDlg, 1, 500, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            PPROCESS_MINIDUMP_CONTEXT context;
-
-            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
-            NtClose(context->ThreadHandle);
-
             RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;

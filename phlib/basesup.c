@@ -243,16 +243,18 @@ HANDLE PhCreateThread(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    threadHandle = CreateThread(
+    if (NT_SUCCESS(RtlCreateUserThread(
+        NtCurrentProcess(),
         NULL,
+        FALSE,
+        0,
+        0,
         StackSize,
         PhpBaseThreadStart,
         context,
-        0,
+        &threadHandle,
         NULL
-        );
-
-    if (threadHandle)
+        )))
     {
         PHLIB_INC_STATISTIC(BaseThreadsCreated);
         return threadHandle;
@@ -262,6 +264,41 @@ HANDLE PhCreateThread(
         PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
         PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
         return NULL;
+    }
+}
+
+VOID PhCreateThread2(
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
+    )
+{
+    HANDLE threadHandle;
+    PPHP_BASE_THREAD_CONTEXT context;
+
+    context = PhAllocateFromFreeList(&PhpBaseThreadContextFreeList);
+    context->StartAddress = StartAddress;
+    context->Parameter = Parameter;
+
+    if (NT_SUCCESS(RtlCreateUserThread(
+        NtCurrentProcess(),
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        PhpBaseThreadStart,
+        context,
+        &threadHandle,
+        NULL
+        )))
+    {
+        PHLIB_INC_STATISTIC(BaseThreadsCreated);
+        NtClose(threadHandle);
+    }
+    else
+    {
+        PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
+        PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
     }
 }
 

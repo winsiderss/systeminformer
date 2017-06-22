@@ -48,7 +48,6 @@ NTSTATUS PhSvcApiPortInitialization(
     PSID administratorsSid;
     PACL dacl;
     ULONG i;
-    HANDLE threadHandle;
 
     // Create the API port.
 
@@ -99,10 +98,7 @@ NTSTATUS PhSvcApiPortInitialization(
 
     for (i = 0; i < 2; i++)
     {
-        threadHandle = PhCreateThread(0, PhSvcApiRequestThreadStart, NULL);
-
-        if (threadHandle)
-            NtClose(threadHandle);
+        PhCreateThread2(PhSvcApiRequestThreadStart, NULL);
     }
 
     return status;

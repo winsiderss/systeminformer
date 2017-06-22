@@ -883,7 +883,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             {
             case IDC_CHANGE:
                 {
-                    HANDLE threadHandle;
                     RECT windowRect;
 
                     // Save the options so they don't get "overwritten" when
@@ -892,15 +891,13 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
                     GetWindowRect(GetParent(hwndDlg), &windowRect);
                     WindowHandleForElevate = hwndDlg;
-                    threadHandle = PhCreateThread(0, PhpElevateAdvancedThreadStart, PhFormatString(
+                    
+                    PhCreateThread2(PhpElevateAdvancedThreadStart, PhFormatString(
                         L"-showoptions -hwnd %Ix -point %u,%u",
                         (ULONG_PTR)GetParent(hwndDlg),
                         windowRect.left + 20,
                         windowRect.top + 20
                         ));
-
-                    if (threadHandle)
-                        NtClose(threadHandle);
                 }
                 break;
             case IDC_SAMPLECOUNTAUTOMATIC:

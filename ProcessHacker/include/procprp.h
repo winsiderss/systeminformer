@@ -156,7 +156,7 @@ PhEndPropPageLayout(
 }
 
 PHAPPAPI
-BOOLEAN
+VOID
 NTAPI
 PhShowProcessProperties(
     _In_ PPH_PROCESS_PROPCONTEXT Context
