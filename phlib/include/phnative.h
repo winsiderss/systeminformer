@@ -992,26 +992,30 @@ PhCreateNamedPipe(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhConnectPipe(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PWSTR PipeName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhListenNamedPipe(
-    _In_ HANDLE FileHandle,
-    _In_opt_ HANDLE Event,
-    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
-    _In_opt_ PVOID ApcContext,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    _In_ HANDLE PipeHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhDisconnectNamedPipe(
-    _In_ HANDLE FileHandle
+    _In_ HANDLE PipeHandle
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhPeekNamedPipe(
-    _In_ HANDLE FileHandle,
+    _In_ HANDLE PipeHandle,
     _Out_writes_bytes_opt_(Length) PVOID Buffer,
     _In_ ULONG Length,
     _Out_opt_ PULONG NumberOfBytesRead,
@@ -1023,11 +1027,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhTransceiveNamedPipe(
-    _In_ HANDLE FileHandle,
-    _In_opt_ HANDLE Event,
-    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
-    _In_opt_ PVOID ApcContext,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ HANDLE PipeHandle,
     _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
     _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
@@ -1038,17 +1038,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhWaitForNamedPipe(
-    _In_opt_ PUNICODE_STRING FileSystemName,
-    _In_ PUNICODE_STRING Name,
-    _In_opt_ PLARGE_INTEGER Timeout,
-    _In_ BOOLEAN UseDefaultTimeout
+    _In_ PWSTR PipeName,
+    _In_opt_ ULONG Timeout
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhImpersonateClientOfNamedPipe(
-    _In_ HANDLE FileHandle
+    _In_ HANDLE PipeHandle
     );
 
 #ifdef __cplusplus

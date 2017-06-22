@@ -1319,7 +1319,7 @@ NTSTATUS PhInjectDllProcess(
         0,
         0,
         0,
-        (PUSER_THREAD_START_ROUTINE)threadStart,
+        threadStart,
         baseAddress,
         &threadHandle,
         NULL
@@ -6310,7 +6310,7 @@ NTSTATUS PhCreateNamedPipe(
         &oa,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_CREATE,
+        FILE_OPEN_IF,
         FILE_PIPE_FULL_DUPLEX | FILE_SYNCHRONOUS_IO_NONALERT,
         FILE_PIPE_MESSAGE_TYPE,
         FILE_PIPE_MESSAGE_MODE,
@@ -6330,37 +6330,92 @@ NTSTATUS PhCreateNamedPipe(
     return status;
 }
 
-NTSTATUS PhListenNamedPipe(
-    _In_ HANDLE FileHandle,
-    _In_opt_ HANDLE Event,
-    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
-    _In_opt_ PVOID ApcContext,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+NTSTATUS PhConnectPipe(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PWSTR PipeName
     )
 {
-    return NtFsControlFile(
-        FileHandle,
-        Event,
-        ApcRoutine,
-        ApcContext,
-        IoStatusBlock,
-        FSCTL_PIPE_LISTEN,
+    NTSTATUS status;
+    HANDLE pipeHandle;
+    PPH_STRING pipeName;
+    UNICODE_STRING pipeNameUs;
+    OBJECT_ATTRIBUTES oa;
+    IO_STATUS_BLOCK isb;
+
+    pipeName = PhConcatStrings2(DEVICE_NAMED_PIPE, PipeName);
+    PhStringRefToUnicodeString(&pipeName->sr, &pipeNameUs);
+
+    InitializeObjectAttributes(
+        &oa,
+        &pipeNameUs,
+        OBJ_CASE_INSENSITIVE,
         NULL,
-        0,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &pipeHandle,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        &oa,
+        &isb,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL,
         0
         );
+
+    if (NT_SUCCESS(status))
+    {
+        *PipeHandle = pipeHandle;
+    }
+
+    PhDereferenceObject(pipeName);
+    return status;
 }
 
-NTSTATUS PhDisconnectNamedPipe(
-    _In_ HANDLE FileHandle
+NTSTATUS PhListenNamedPipe(
+    _In_ HANDLE PipeHandle
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK isb;
 
     status = NtFsControlFile(
-        FileHandle,
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_LISTEN,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    return status;
+}
+
+NTSTATUS PhDisconnectNamedPipe(
+    _In_ HANDLE PipeHandle
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        PipeHandle,
         NULL,
         NULL,
         NULL,
@@ -6374,7 +6429,7 @@ NTSTATUS PhDisconnectNamedPipe(
 
     if (status == STATUS_PENDING)
     {
-        status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
 
         if (NT_SUCCESS(status))
             status = isb.Status;
@@ -6384,7 +6439,7 @@ NTSTATUS PhDisconnectNamedPipe(
 }
 
 NTSTATUS PhPeekNamedPipe(
-    _In_ HANDLE FileHandle,
+    _In_ HANDLE PipeHandle,
     _Out_writes_bytes_opt_(Length) PVOID Buffer,
     _In_ ULONG Length,
     _Out_opt_ PULONG NumberOfBytesRead,
@@ -6401,7 +6456,7 @@ NTSTATUS PhPeekNamedPipe(
     peekBuffer = PhAllocate(peekBufferLength);
 
     status = NtFsControlFile(
-        FileHandle,
+        PipeHandle,
         NULL,
         NULL,
         NULL,
@@ -6415,7 +6470,7 @@ NTSTATUS PhPeekNamedPipe(
 
     if (status == STATUS_PENDING)
     {
-        status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
 
         if (NT_SUCCESS(status))
             status = isb.Status;
@@ -6427,7 +6482,7 @@ NTSTATUS PhPeekNamedPipe(
 
     if (NT_SUCCESS(status))
     {
-        ULONG numberOfBytesRead;
+        ULONG numberOfBytesRead = 0;
 
         if (Buffer || NumberOfBytesRead || NumberOfBytesLeftInMessage)
             numberOfBytesRead = (ULONG)(isb.Information - FIELD_OFFSET(FILE_PIPE_PEEK_BUFFER, Data));
@@ -6451,55 +6506,58 @@ NTSTATUS PhPeekNamedPipe(
 }
 
 NTSTATUS PhTransceiveNamedPipe(
-    _In_ HANDLE FileHandle,
-    _In_opt_ HANDLE Event,
-    _In_opt_ PIO_APC_ROUTINE ApcRoutine,
-    _In_opt_ PVOID ApcContext,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ HANDLE PipeHandle,
     _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
     _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
     _In_ ULONG OutputBufferLength
     )
 {
-    return NtFsControlFile(
-        FileHandle,
-        Event,
-        ApcRoutine,
-        ApcContext,
-        IoStatusBlock,
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        PipeHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
         FSCTL_PIPE_TRANSCEIVE,
         InputBuffer,
         InputBufferLength,
         OutputBuffer,
         OutputBufferLength
         );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(PipeHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    return status;
 }
 
 NTSTATUS PhWaitForNamedPipe(
-    _In_opt_ PUNICODE_STRING FileSystemName,
-    _In_ PUNICODE_STRING Name,
-    _In_opt_ PLARGE_INTEGER Timeout,
-    _In_ BOOLEAN UseDefaultTimeout
+    _In_ PWSTR PipeName,
+    _In_opt_ ULONG Timeout
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK isb;
+    PH_STRINGREF localNpfsNameSr;
     UNICODE_STRING localNpfsName;
     HANDLE fileSystemHandle;
     OBJECT_ATTRIBUTES oa;
     PFILE_PIPE_WAIT_FOR_BUFFER waitForBuffer;
     ULONG waitForBufferLength;
 
-    if (!FileSystemName)
-    {
-        RtlInitUnicodeString(&localNpfsName, L"\\Device\\NamedPipe");
-        FileSystemName = &localNpfsName;
-    }
-
+    RtlInitUnicodeString(&localNpfsName, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
         &oa,
-        FileSystemName,
+        &localNpfsName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
@@ -6517,30 +6575,24 @@ NTSTATUS PhWaitForNamedPipe(
     if (!NT_SUCCESS(status))
         return status;
 
-    waitForBufferLength = FIELD_OFFSET(FILE_PIPE_WAIT_FOR_BUFFER, Name) + Name->Length;
+    PhInitializeStringRefLongHint(&localNpfsNameSr, PipeName);
+    waitForBufferLength = FIELD_OFFSET(FILE_PIPE_WAIT_FOR_BUFFER, Name) + (ULONG)localNpfsNameSr.Length;
     waitForBuffer = PhAllocate(waitForBufferLength);
 
-    if (UseDefaultTimeout)
+    if (Timeout)
     {
-        waitForBuffer->TimeoutSpecified = FALSE;
+        PhTimeoutFromMilliseconds(&waitForBuffer->Timeout, Timeout);
+        waitForBuffer->TimeoutSpecified = TRUE;
     }
     else
     {
-        if (Timeout)
-        {
-            waitForBuffer->Timeout = *Timeout;
-        }
-        else
-        {
-            waitForBuffer->Timeout.LowPart = 0;
-            waitForBuffer->Timeout.HighPart = MINLONG; // a very long time
-        }
-
+        waitForBuffer->Timeout.LowPart = 0;
+        waitForBuffer->Timeout.HighPart = MINLONG; // a very long time
         waitForBuffer->TimeoutSpecified = TRUE;
     }
 
-    waitForBuffer->NameLength = (ULONG)Name->Length;
-    memcpy(waitForBuffer->Name, Name->Buffer, Name->Length);
+    waitForBuffer->NameLength = (ULONG)localNpfsNameSr.Length;
+    memcpy(waitForBuffer->Name, localNpfsNameSr.Buffer, localNpfsNameSr.Length);
 
     status = NtFsControlFile(
         fileSystemHandle,
@@ -6562,14 +6614,13 @@ NTSTATUS PhWaitForNamedPipe(
 }
 
 NTSTATUS PhImpersonateClientOfNamedPipe(
-    _In_ HANDLE FileHandle
+    _In_ HANDLE PipeHandle
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
 
-    status = NtFsControlFile(
-        FileHandle,
+    return NtFsControlFile(
+        PipeHandle,
         NULL,
         NULL,
         NULL,
@@ -6580,6 +6631,4 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
         NULL,
         0
         );
-
-    return status;
 }
