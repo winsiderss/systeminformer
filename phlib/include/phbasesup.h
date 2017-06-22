@@ -105,6 +105,23 @@ PhGetProcedureAddress(
     return procedureAddress;
 }
 
+FORCEINLINE
+PVOID
+PhGetModuleProcAddress(
+    _In_ PWSTR ModuleName,
+    _In_ PSTR ProcName
+    )
+{
+    HMODULE module;
+
+    module = PhGetDllHandle(ModuleName);
+
+    if (module)
+        return PhGetProcedureAddress(module, ProcName, 0);
+    else
+        return NULL;
+}
+
 // Misc. system
 
 PHLIBAPI

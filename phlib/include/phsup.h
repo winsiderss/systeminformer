@@ -528,19 +528,4 @@ FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus()
     return NTSTATUS_FROM_WIN32(win32Result);
 }
 
-FORCEINLINE PVOID PhGetModuleProcAddress(
-    _In_ PWSTR ModuleName,
-    _In_ PSTR ProcName
-    )
-{
-    HMODULE module;
-
-    module = GetModuleHandle(ModuleName);
-
-    if (module)
-        return GetProcAddress(module, ProcName);
-    else
-        return NULL;
-}
-
 #endif

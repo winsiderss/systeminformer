@@ -31,7 +31,6 @@
 
 #define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
 
-_ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _IsImmersiveProcess IsImmersiveProcess_I;
 _RunFileDlg RunFileDlg;
 _SHAutoComplete SHAutoComplete_I;
@@ -50,7 +49,6 @@ VOID PhGuiSupportInitialization(
     shell32Handle = LoadLibrary(L"shell32.dll");
     shlwapiHandle = LoadLibrary(L"shlwapi.dll");
 
-    ChangeWindowMessageFilter_I = PhGetModuleProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
     if (WINDOWS_HAS_IMMERSIVE)
         IsImmersiveProcess_I = PhGetModuleProcAddress(L"user32.dll", "IsImmersiveProcess");
     RunFileDlg = PhGetProcedureAddress(shell32Handle, NULL, 61);
