@@ -4864,6 +4864,7 @@ VOID PhUpdateDosDevicePrefixes(
         NULL
         );
 
+    for (ULONG i = 0; i < 0x1A; i++)
     {
         HANDLE linkHandle;
         OBJECT_ATTRIBUTES oa;
