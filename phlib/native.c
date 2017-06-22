@@ -4849,13 +4849,31 @@ VOID PhUpdateDosDevicePrefixes(
     )
 {
     WCHAR deviceNameBuffer[7] = L"\\??\\ :";
-    ULONG i;
+#ifndef _WIN64
+    PROCESS_DEVICEMAP_INFORMATION deviceMapInfo;
+#else
+    PROCESS_DEVICEMAP_INFORMATION_EX deviceMapInfo;
+#endif
+    memset(&deviceMapInfo, 0, sizeof(deviceMapInfo));
 
-    for (i = 0; i < 26; i++)
+    NtQueryInformationProcess(
+        NtCurrentProcess(), 
+        ProcessDeviceMap, 
+        &deviceMapInfo, 
+        sizeof(deviceMapInfo), 
+        NULL
+        );
+
     {
         HANDLE linkHandle;
         OBJECT_ATTRIBUTES oa;
         UNICODE_STRING deviceName;
+
+        if (deviceMapInfo.Query.DriveMap)
+        {
+            if (!(deviceMapInfo.Query.DriveMap & (0x1 << i)))
+                continue;
+        }
 
         deviceNameBuffer[4] = (WCHAR)('A' + i);
         deviceName.Buffer = deviceNameBuffer;
