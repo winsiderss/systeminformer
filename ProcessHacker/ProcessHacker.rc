@@ -111,11 +111,11 @@ BEGIN
         MENUITEM "System &information\aCtrl+I", ID_VIEW_SYSTEMINFORMATION
         POPUP "&Tray icons"
         BEGIN
-            MENUITEM "CPU &history",                 ID_TRAYICONS_CPUHISTORY
-            MENUITEM "CPU &usage",                   ID_TRAYICONS_CPUUSAGE
-            MENUITEM "&I/O history",                 ID_TRAYICONS_IOHISTORY
-            MENUITEM "&Commit charge history",       ID_TRAYICONS_COMMITHISTORY
-            MENUITEM "&Physical memory history",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
+            MENUITEM "CPU &history",                ID_TRAYICONS_CPUHISTORY
+            MENUITEM "CPU &usage",                  ID_TRAYICONS_CPUUSAGE
+            MENUITEM "&I/O history",                ID_TRAYICONS_IOHISTORY
+            MENUITEM "&Commit charge history",      ID_TRAYICONS_COMMITHISTORY
+            MENUITEM "&Physical memory history",    ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
         MENUITEM SEPARATOR
         MENUITEM "<section placeholder>",       ID_VIEW_SECTIONPLACEHOLDER
@@ -152,7 +152,7 @@ BEGIN
         MENUITEM "Hidden processes",            ID_TOOLS_HIDDENPROCESSES
         MENUITEM "Inspect executable file...",  ID_TOOLS_INSPECTEXECUTABLEFILE
         MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
-        MENUITEM "Start &Task Manager",          ID_TOOLS_STARTTASKMANAGER
+        MENUITEM "Start &Task Manager",         ID_TOOLS_STARTTASKMANAGER
     END
     POPUP "&Users"
     BEGIN
@@ -301,9 +301,9 @@ BEGIN
                 MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
                 MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
             END
-            MENUITEM "Reduce working &set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
-            MENUITEM "&Run as...",                   ID_MISCELLANEOUS_RUNAS
-            MENUITEM "Run &as this user...",         ID_MISCELLANEOUS_RUNASTHISUSER
+            MENUITEM "Reduce working &set",         ID_MISCELLANEOUS_REDUCEWORKINGSET
+            MENUITEM "&Run as...",                  ID_MISCELLANEOUS_RUNAS
+            MENUITEM "Run &as this user...",        ID_MISCELLANEOUS_RUNASTHISUSER
         END
         POPUP "&Window"
         BEGIN
@@ -720,14 +720,14 @@ BEGIN
 END
 
 IDD_FINDOBJECTS DIALOGEX 0, 0, 357, 233
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Find Handles or DLLs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Filter:",IDC_STATIC,7,9,20,8
     EDITTEXT        IDC_FILTER,32,8,224,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Find",IDOK,300,7,50,14
-    CONTROL         "",IDC_RESULTS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,26,343,200
+    CONTROL         "",IDC_RESULTS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,25,353,206
     CONTROL         "&Regex",IDC_REGEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,261,9,36,10
 END
 
@@ -1963,10 +1963,10 @@ BEGIN
 
     IDD_FINDOBJECTS, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 350
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 355
         TOPMARGIN, 7
-        BOTTOMMARGIN, 226
+        BOTTOMMARGIN, 231
     END
 
     IDD_OBJTOKEN, DIALOG
