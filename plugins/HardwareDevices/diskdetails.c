@@ -755,7 +755,6 @@ VOID ShowDiskDriveDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    HANDLE dialogThread = NULL;
     PCOMMON_PAGE_CONTEXT pageContext;
 
     pageContext = PhAllocate(sizeof(COMMON_PAGE_CONTEXT));
@@ -768,8 +767,5 @@ VOID ShowDiskDriveDetailsDialog(
     PhSetReference(&pageContext->DiskName, Context->DiskEntry->DiskName);
     CopyDiskId(&pageContext->DiskId, &Context->DiskEntry->Id);
 
-    if (dialogThread = PhCreateThread(0, ShowDiskDriveDetailsDialogThread, pageContext))
-        NtClose(dialogThread);
-    else
-        FreeDiskDriveDetailsContext(pageContext);
+    PhCreateThread2(ShowDiskDriveDetailsDialogThread, pageContext);
 }

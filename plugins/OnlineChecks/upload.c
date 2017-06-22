@@ -1175,16 +1175,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
         }
         break;
-    case UM_SHOWDIALOG:
-        {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
-            else
-                ShowWindow(hwndDlg, SW_SHOW);
-
-            SetForegroundWindow(hwndDlg);
-        }
-        break;
     case UM_UPLOAD:
         {
             ShowVirusTotalProgressDialog(context);
@@ -1288,7 +1278,6 @@ VOID UploadToOnlineService(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
-    HANDLE dialogThread;
     PUPLOAD_CONTEXT context;
 
     if (PhBeginInitOnce(&initOnce))
@@ -1305,9 +1294,5 @@ VOID UploadToOnlineService(
     context->FileName = FileName;
     context->BaseFileName = PhGetBaseName(context->FileName);
 
-    if (dialogThread = PhCreateThread(0, ShowUpdateDialogThread, (PVOID)context))
-    {
-        PostMessage(dialogThread, UM_SHOWDIALOG, 0, 0);
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(ShowUpdateDialogThread, (PVOID)context);
 }

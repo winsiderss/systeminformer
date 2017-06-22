@@ -653,7 +653,6 @@ VOID ShowNetAdapterDetailsDialog(
     _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    HANDLE dialogThread = NULL;
     PDV_NETADAPTER_DETAILS_CONTEXT context;
 
     context = PhAllocate(sizeof(DV_NETADAPTER_DETAILS_CONTEXT));
@@ -663,8 +662,5 @@ VOID ShowNetAdapterDetailsDialog(
     PhSetReference(&context->AdapterName, Context->AdapterEntry->AdapterName);
     CopyNetAdapterId(&context->AdapterId, &Context->AdapterEntry->Id);
 
-    if (dialogThread = PhCreateThread(0, ShowNetAdapterDetailsDialogThread, context))
-        NtClose(dialogThread);
-    else
-        FreeNetAdapterDetailsContext(context);
+    PhCreateThread2(ShowNetAdapterDetailsDialogThread, context);
 }

@@ -566,8 +566,6 @@ INT_PTR CALLBACK TracertDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HANDLE tracertThread;
-
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(PHAPP_IDI_PROCESSHACKER)));
 
@@ -599,8 +597,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
             PhReferenceObject(context);
 
-            if (tracertThread = PhCreateThread(0, NetworkTracertThreadStart, (PVOID)context))
-                NtClose(tracertThread);
+            PhCreateThread2(NetworkTracertThreadStart, (PVOID)context);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
@@ -724,7 +721,6 @@ VOID ShowTracertWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
-    HANDLE dialogThread;
     PNETWORK_TRACERT_CONTEXT context;
 
     context = (PNETWORK_TRACERT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_TRACERT_CONTEXT));
@@ -741,17 +737,13 @@ VOID ShowTracertWindow(
         RtlIpv6AddressToString(&NetworkItem->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
     }
 
-    if (dialogThread = PhCreateThread(0, TracertDialogThreadStart, (PVOID)context))
-    {
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(TracertDialogThreadStart, (PVOID)context);
 }
 
 VOID ShowTracertWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     )
 {
-    HANDLE dialogThread;
     PNETWORK_TRACERT_CONTEXT context;
 
     context = (PNETWORK_TRACERT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_TRACERT_CONTEXT));
@@ -768,8 +760,5 @@ VOID ShowTracertWindowFromAddress(
         RtlIpv6AddressToString(&RemoteEndpoint.Address.In6Addr, context->IpAddressString);
     }
 
-    if (dialogThread = PhCreateThread(0, TracertDialogThreadStart, (PVOID)context))
-    {
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(TracertDialogThreadStart, (PVOID)context);
 }

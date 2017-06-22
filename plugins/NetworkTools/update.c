@@ -811,8 +811,5 @@ VOID ShowGeoIPUpdateDialog(
     _In_opt_ HWND Parent
     )
 {
-    HANDLE threadHandle;
-
-    if (threadHandle = PhCreateThread(0, GeoIPUpdateDialogThread, Parent))
-        NtClose(threadHandle);
+    PhCreateThread2(GeoIPUpdateDialogThread, Parent);
 }

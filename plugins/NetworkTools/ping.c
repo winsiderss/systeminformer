@@ -567,7 +567,6 @@ VOID ShowPingWindow(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
-    HANDLE dialogThread;
     PNETWORK_PING_CONTEXT context;
 
     context = (PNETWORK_PING_CONTEXT)PhAllocate(sizeof(NETWORK_PING_CONTEXT));
@@ -580,17 +579,13 @@ VOID ShowPingWindow(
 
     context->RemoteEndpoint = NetworkItem->RemoteEndpoint;
 
-    if (dialogThread = PhCreateThread(0, NetworkPingDialogThreadStart, (PVOID)context))
-    {
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(NetworkPingDialogThreadStart, (PVOID)context);
 }
     
 VOID ShowPingWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     )
 {
-    HANDLE dialogThread;
     PNETWORK_PING_CONTEXT context;
 
     context = (PNETWORK_PING_CONTEXT)PhAllocate(sizeof(NETWORK_PING_CONTEXT));
@@ -607,8 +602,5 @@ VOID ShowPingWindowFromAddress(
 
     context->RemoteEndpoint = RemoteEndpoint;
 
-    if (dialogThread = PhCreateThread(0, NetworkPingDialogThreadStart, (PVOID)context))
-    {
-        NtClose(dialogThread);
-    }
+    PhCreateThread2(NetworkPingDialogThreadStart, (PVOID)context);
 }
