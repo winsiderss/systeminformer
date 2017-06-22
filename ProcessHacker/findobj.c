@@ -100,7 +100,7 @@ VOID PhShowFindObjectsDialog(
         PhFindObjectsWindowHandle = CreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_FINDOBJECTS),
-            PhMainWndHandle,
+            NULL,
             PhpFindObjectsDlgProc
             );
     }
