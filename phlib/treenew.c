@@ -77,7 +77,7 @@ BOOLEAN PhTreeNewInitialization(
     if (!RegisterClassEx(&c))
         return FALSE;
 
-    ComCtl32Handle = GetModuleHandle(L"comctl32.dll");
+    ComCtl32Handle = PhGetDllHandle(L"comctl32.dll");
     SmallIconWidth = GetSystemMetrics(SM_CXSMICON);
     SmallIconHeight = GetSystemMetrics(SM_CYSMICON);
 
