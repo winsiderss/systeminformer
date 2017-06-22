@@ -44,7 +44,6 @@ typedef struct _MEMORY_STRING_CONTEXT
     BOOLEAN Mapped;
 
     HWND WindowHandle;
-    HANDLE ThreadHandle;
     PH_MEMORY_STRING_OPTIONS Options;
     PPH_LIST Results;
 } MEMORY_STRING_CONTEXT, *PMEMORY_STRING_CONTEXT;
@@ -653,27 +652,14 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
             context->WindowHandle = hwndDlg;
-            context->ThreadHandle = PhCreateThread(0, PhpMemoryStringThreadStart, context);
 
-            if (!context->ThreadHandle)
-            {
-                PhShowStatus(hwndDlg, L"Unable to create the search thread", 0, GetLastError());
-                EndDialog(hwndDlg, IDCANCEL);
-                return FALSE;
-            }
+            PhCreateThread2(PhpMemoryStringThreadStart, context);
 
             SetTimer(hwndDlg, 1, 500, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            PMEMORY_STRING_CONTEXT context;
-
-            context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
-            if (context->ThreadHandle)
-                NtClose(context->ThreadHandle);
-
             RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;

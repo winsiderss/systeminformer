@@ -40,6 +40,14 @@ PhCreateThread(
     _In_opt_ PVOID Parameter
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhCreateThread2(
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
+    );
+
 // DLLs
 
 FORCEINLINE

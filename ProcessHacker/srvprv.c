@@ -29,12 +29,6 @@
 #include <extmgri.h>
 #include <procprv.h>
 
-typedef DWORD (WINAPI *_NotifyServiceStatusChangeW)(
-    _In_ SC_HANDLE hService,
-    _In_ DWORD dwNotifyMask,
-    _In_ PSERVICE_NOTIFYW pNotifyBuffer
-    );
-
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {
     PH_HASH_ENTRY HashEntry;
@@ -89,7 +83,6 @@ VOID PhpInitializeServiceNonPoll(
     );
 
 PPH_OBJECT_TYPE PhServiceItemType;
-
 PPH_HASHTABLE PhServiceHashtable;
 PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -101,9 +94,7 @@ PHAPPAPI PH_CALLBACK_DECLARE(PhServicesUpdatedEvent);
 BOOLEAN PhEnableServiceNonPoll = FALSE;
 static BOOLEAN PhpNonPollInitialized = FALSE;
 static BOOLEAN PhpNonPollActive = FALSE;
-static HANDLE PhpNonPollThreadHandle;
 static ULONG PhpNonPollGate;
-static _NotifyServiceStatusChangeW NotifyServiceStatusChangeW_I;
 static HANDLE PhpNonPollEventHandle;
 static PH_QUEUED_LOCK PhpNonPollServiceListLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpNonPollServiceListHead;
@@ -939,7 +930,8 @@ NotifyCase:
                     notifyContext->Buffer.dwVersion = SERVICE_NOTIFY_STATUS_CHANGE;
                     notifyContext->Buffer.pfnNotifyCallback = PhpServiceNonPollScNotifyCallback;
                     notifyContext->Buffer.pContext = notifyContext;
-                    result = NotifyServiceStatusChangeW_I(
+
+                    result = NotifyServiceStatusChange(
                         notifyContext->ServiceHandle,
                         notifyContext->IsServiceManager
                         ? (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)
@@ -1017,21 +1009,8 @@ VOID PhpInitializeServiceNonPoll(
     VOID
     )
 {
-    // Dynamically import the required functions.
-
-    NotifyServiceStatusChangeW_I = PhGetModuleProcAddress(L"advapi32.dll", "NotifyServiceStatusChangeW");
-
-    if (!NotifyServiceStatusChangeW_I)
-        return;
-
     PhpNonPollActive = TRUE;
     PhpNonPollGate = 1; // initially the gate should be open since we only just initialized everything
 
-    PhpNonPollThreadHandle = PhCreateThread(0, PhpServiceNonPollThreadStart, NULL);
-
-    if (!PhpNonPollThreadHandle)
-    {
-        PhpNonPollActive = FALSE;
-        return;
-    }
+    PhCreateThread2(PhpServiceNonPollThreadStart, NULL);
 }

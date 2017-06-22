@@ -704,23 +704,10 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     return STATUS_SUCCESS;
 }
 
-BOOLEAN PhShowProcessProperties(
+VOID PhShowProcessProperties(
     _In_ PPH_PROCESS_PROPCONTEXT Context
     )
 {
-    HANDLE threadHandle;
-
     PhReferenceObject(Context);
-    threadHandle = PhCreateThread(0, PhpProcessPropertiesThreadStart, Context);
-
-    if (threadHandle)
-    {
-        NtClose(threadHandle);
-        return TRUE;
-    }
-    else
-    {
-        PhDereferenceObject(Context);
-        return FALSE;
-    }
+    PhCreateThread2(PhpProcessPropertiesThreadStart, Context);
 }
