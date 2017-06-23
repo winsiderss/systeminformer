@@ -630,6 +630,24 @@ typedef enum _PS_PROTECTED_SIGNER
     PsProtectedSignerMax
 } PS_PROTECTED_SIGNER;
 
+#define PS_PROTECTED_SIGNER_MASK 0xFF
+#define PS_PROTECTED_AUDIT_MASK 0x08
+#define PS_PROTECTED_TYPE_MASK 0x07
+
+// vProtectionLevel.Level = PsProtectedValue(PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
+#define PsProtectedValue(aSigner, aAudit, aType) ( \
+    ((aSigner & PS_PROTECTED_SIGNER_MASK) << 4) | \
+    ((aAudit & PS_PROTECTED_AUDIT_MASK) << 3) | \
+    (aType & PS_PROTECTED_TYPE_MASK)\
+    )
+
+// InitializePsProtection(&vProtectionLevel, PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
+#define InitializePsProtection(aProtectionLevelPtr, aSigner, aAudit, aType) { \
+    (aProtectionLevelPtr)->Signer = aSigner; \
+    (aProtectionLevelPtr)->Audit = aAudit; \
+    (aProtectionLevelPtr)->Type = aType; \
+    }
+
 typedef struct _PS_PROTECTION
 {
     union
@@ -1475,12 +1493,19 @@ typedef struct _PS_CREATE_INFO
 
 // end_private
 
-// Extended PROCESS_CREATE_FLAGS_*
 // begin_rev
+#define PROCESS_CREATE_FLAGS_BREAKAWAY 0x00000001
+#define PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT 0x00000002
+#define PROCESS_CREATE_FLAGS_INHERIT_HANDLES 0x00000004
+#define PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE 0x00000008
+#define PROCESS_CREATE_FLAGS_LARGE_PAGES 0x00000010
 #define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020
+// Extended PROCESS_CREATE_FLAGS_*
 #define PROCESS_CREATE_FLAGS_PROTECTED_PROCESS 0x00000040
 #define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080 // ?
 #define PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT 0x00000100
+#define PROCESS_CREATE_FLAGS_SUSPENDED 0x00000200
+#define PROCESS_CREATE_FLAGS_EXTENDED_UNKNOWN 0x00000400
 // end_rev
 
 #if (PHNT_VERSION >= PHNT_VISTA)
