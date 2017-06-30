@@ -52,13 +52,6 @@ KphIsConnected(
     );
 
 PHLIBAPI
-BOOLEAN
-NTAPI
-KphIsVerified(
-    VOID
-    );
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
@@ -100,14 +93,6 @@ KphGetFeatures(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphVerifyClient(
-    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
-    _In_ ULONG SignatureSize
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 KphOpenProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -130,6 +115,20 @@ KphOpenProcessJob(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE JobHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSuspendProcess(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphResumeProcess(
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
@@ -188,6 +187,14 @@ KphOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphTerminateThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ NTSTATUS ExitStatus
     );
 
 PHLIBAPI
@@ -267,9 +274,21 @@ KphSetInformationObject(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphDuplicateObject(
+    _In_ HANDLE SourceProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ HANDLE TargetProcessHandle,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphOpenDriver(
     _Out_ PHANDLE DriverHandle,
-    _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
