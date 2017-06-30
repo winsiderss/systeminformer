@@ -1063,6 +1063,7 @@ VOID PhpProcessQueryStage1(
             Data->CommandLine = commandLine;
         }
 
+        if (!(processQueryFlags & PH_CLR_USE_SECTION_CHECK) && processHandle)
             NtClose(processHandle);
     }
 
