@@ -4365,15 +4365,9 @@ NTSTATUS PhGetProcessIsDotNetEx(
     _Out_opt_ PULONG Flags
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    HANDLE processHandle;
-    ULONG flags;
-#ifdef _WIN64
-    BOOLEAN isWow64;
-#endif
-
     if (InFlags & PH_CLR_USE_SECTION_CHECK)
     {
+        NTSTATUS status;
         HANDLE sectionHandle;
         OBJECT_ATTRIBUTES objectAttributes;
         PPH_STRING sectionName;
@@ -4456,53 +4450,61 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             return STATUS_SUCCESS;
         }
-    }
 
-    flags = 0;
-    processHandle = NULL;
-
-    if (!ProcessHandle)
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
-            return status;
-
-        ProcessHandle = processHandle;
-    }
-
-#ifdef _WIN64
-    if (InFlags & PH_CLR_NO_WOW64_CHECK)
-    {
-        isWow64 = !!(InFlags & PH_CLR_KNOWN_IS_WOW64);
+        return status;
     }
     else
     {
-        isWow64 = FALSE;
-        PhGetProcessIsWow64(ProcessHandle, &isWow64);
-    }
-
-    if (isWow64)
-    {
-        flags |= PH_CLR_PROCESS_IS_WOW64;
-        PhEnumProcessModules32(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
-    }
-    else
-    {
-#endif
-        PhEnumProcessModules(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
+        NTSTATUS status;
+        HANDLE processHandle = NULL;
+        ULONG flags = 0;
 #ifdef _WIN64
-    }
+        BOOLEAN isWow64;
 #endif
 
-    if (processHandle)
-        NtClose(processHandle);
+        if (!ProcessHandle)
+        {
+            if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
+                return status;
 
-    if (IsDotNet)
-        *IsDotNet = (flags & PH_CLR_VERSION_MASK) && (flags & (PH_CLR_MSCORLIB_PRESENT | PH_CLR_JIT_PRESENT));
+            ProcessHandle = processHandle;
+        }
 
-    if (Flags)
-        *Flags = flags;
+#ifdef _WIN64
+        if (InFlags & PH_CLR_NO_WOW64_CHECK)
+        {
+            isWow64 = !!(InFlags & PH_CLR_KNOWN_IS_WOW64);
+        }
+        else
+        {
+            isWow64 = FALSE;
+            PhGetProcessIsWow64(ProcessHandle, &isWow64);
+        }
 
-    return status;
+        if (isWow64)
+        {
+            flags |= PH_CLR_PROCESS_IS_WOW64;
+            status = PhEnumProcessModules32(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
+        }
+        else
+        {
+#endif
+            status = PhEnumProcessModules(ProcessHandle, PhpIsDotNetEnumProcessModulesCallback, &flags);
+#ifdef _WIN64
+        }
+#endif
+
+        if (processHandle)
+            NtClose(processHandle);
+
+        if (IsDotNet)
+            *IsDotNet = (flags & PH_CLR_VERSION_MASK) && (flags & (PH_CLR_MSCORLIB_PRESENT | PH_CLR_JIT_PRESENT));
+
+        if (Flags)
+            *Flags = flags;
+
+        return status;
+    }
 }
 
 /**
