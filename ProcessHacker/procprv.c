@@ -1007,66 +1007,64 @@ VOID PhpProcessQueryStage1(
     }
 
     // Command line, .NET
+    if (processHandleLimited)
     {
-        HANDLE processHandle;
-        BOOLEAN queryAccess = FALSE;
+        BOOLEAN isDotNet = FALSE;
+        PPH_STRING commandLine;
+        HANDLE processHandle = NULL;
+        ULONG processQueryFlags = 0;
 
-        status = PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess | PROCESS_VM_READ,
-            processId
-            );
-
-        if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_8_1)
+        if (WindowsVersion >= WINDOWS_8_1)
         {
-            queryAccess = TRUE;
+            processHandle = processHandleLimited;
+            processQueryFlags |= PH_CLR_USE_SECTION_CHECK;
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
             status = PhOpenProcess(
                 &processHandle,
-                ProcessQueryAccess,
+                ProcessQueryAccess | PROCESS_VM_READ,
                 processId
                 );
         }
 
         if (NT_SUCCESS(status))
         {
-            BOOLEAN isDotNet = FALSE;
-            PPH_STRING commandLine;
-            ULONG i;
-
-            if (NT_SUCCESS(status = PhGetProcessCommandLine(processHandle, &commandLine)))
-            {
-                // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
-                // can't display them, we'll replace them with spaces.
-                for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
-                {
-                    if (commandLine->Buffer[i] == 0)
-                        commandLine->Buffer[i] = ' ';
-                }
-            }
-
-            if (NT_SUCCESS(status))
-            {
-                Data->CommandLine = commandLine;
-            }
-
-            if (!queryAccess)
-            {
-                PhGetProcessIsDotNetEx(
-                    processId,
-                    processHandle,
+            PhGetProcessIsDotNetEx(
+                processId,
+                processHandle,
 #ifdef _WIN64
-                    PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
-                    0,
+                processQueryFlags,
 #endif
-                    &isDotNet,
-                    NULL
-                    );
-                Data->IsDotNet = isDotNet;
+                &isDotNet,
+                NULL
+                );
+            Data->IsDotNet = isDotNet;
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhGetProcessCommandLine(processHandle, &commandLine);
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
+            // can't display them, we'll replace them with spaces.
+            for (ULONG i = 0; i < (ULONG)commandLine->Length / 2; i++)
+            {
+                if (commandLine->Buffer[i] == 0)
+                    commandLine->Buffer[i] = ' ';
             }
 
-            NtClose(processHandle);
+            Data->CommandLine = commandLine;
         }
+
+        if (!(processQueryFlags & PH_CLR_USE_SECTION_CHECK) && processHandle)
+            NtClose(processHandle);
     }
 
     // Token information
