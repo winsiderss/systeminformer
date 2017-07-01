@@ -478,9 +478,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_COMMAND:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_INSPECT:
                 {
@@ -499,7 +497,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             case IDC_OPENFILENAME:
                 {
                     if (processItem->FileName)
-                        PhShellExploreFile(hwndDlg, processItem->FileName->Buffer);
+                    {
+                        PhShellExecuteUserString(
+                            hwndDlg,
+                            L"FileOpenExecutable",
+                            processItem->FileName->Buffer,
+                            FALSE,
+                            L"Make sure the Explorer executable file is present."
+                            );
+                    }
                 }
                 break;
             case IDC_VIEWCOMMANDLINE:
