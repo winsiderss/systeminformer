@@ -48,11 +48,11 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
-    PhpAddStringSetting(L"FileOpenExecutable", L"explorer.exe \"/select,%s\"");
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
     PhpAddScalableIntegerPairSetting(L"FindObjWindowSize", L"@96|550,420");
+    PhpAddStringSetting(L"FileOpenExecutable", L"explorer.exe \"/select,%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddIntegerSetting(L"ForceNoParent", L"0");
