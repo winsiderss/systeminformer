@@ -33,6 +33,7 @@
 #include <settings.h>
 #include <workqueue.h>
 #include <windowsx.h>
+#include <windns.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
@@ -45,6 +46,7 @@
 
 #define PLUGIN_NAME L"ProcessHacker.NetworkTools"
 #define SETTING_NAME_DB_TYPE (PLUGIN_NAME L".GeoIpType")
+#define SETTING_NAME_ADDRESS_HISTORY (PLUGIN_NAME L".AddressHistory")
 #define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")
 #define SETTING_NAME_PING_MINIMUM_SCALING (PLUGIN_NAME L".PingMinScaling")
@@ -52,7 +54,6 @@
 #define SETTING_NAME_TRACERT_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
 #define SETTING_NAME_TRACERT_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
 #define SETTING_NAME_TRACERT_LIST_COLUMNS (PLUGIN_NAME L".TracertListColumns")
-#define SETTING_NAME_TRACERT_HISTORY (PLUGIN_NAME L".TracertAddresses")
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")

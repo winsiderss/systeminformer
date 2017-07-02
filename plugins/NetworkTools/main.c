@@ -22,7 +22,6 @@
  */
 
 #include "nettools.h"
-#include "tracert.h"
 #include <commonutil.h>
 
 PPH_PLUGIN PluginInstance;
@@ -51,22 +50,80 @@ VOID NTAPI ShowOptionsCallback(
     ShowOptionsDialog((HWND)Parameter);
 }
 
-HRESULT CALLBACK ElevateActionCallbackProc(
-    _In_ HWND hwnd,
-    _In_ UINT uNotification,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ LONG_PTR dwRefData
+static BOOLEAN ValidAddressInfo(
+    _In_ PPH_IP_ENDPOINT RemoteEndpoint,
+    _In_ PPH_STRING Name
     )
 {
-    switch (uNotification)
+    PWSTR terminator = NULL;
+
+    if (DnsValidateName(Name->Buffer, DnsNameValidateTld) == ERROR_SUCCESS)
     {
-    case TDN_CREATED:
-        SendMessage(hwnd, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
-        break;
+        BOOLEAN success = FALSE;
+        PADDRINFOT result;
+        WSADATA wsaData;
+
+        WSAStartup(WINSOCK_VERSION, &wsaData);
+
+        if (GetAddrInfo(Name->Buffer, NULL, NULL, &result) == ERROR_SUCCESS)
+        {
+            for (PADDRINFOT i = result; i; i = i->ai_next)
+            {
+                if (i->ai_family == AF_INET)
+                {
+                    RemoteEndpoint->Address.InAddr.s_addr = ((PSOCKADDR_IN)i->ai_addr)->sin_addr.s_addr;
+                    RemoteEndpoint->Port = ((PSOCKADDR_IN)i->ai_addr)->sin_port;
+                    RemoteEndpoint->Address.Type = PH_IPV4_NETWORK_TYPE;
+                    success = TRUE;
+                    break;
+                }
+                else if (i->ai_family == AF_INET6)
+                {
+                    memcpy(
+                        RemoteEndpoint->Address.In6Addr.s6_addr,
+                        ((PSOCKADDR_IN6)i->ai_addr)->sin6_addr.s6_addr,
+                        sizeof(RemoteEndpoint->Address.In6Addr.s6_addr)
+                        );
+                    RemoteEndpoint->Port = ((PSOCKADDR_IN6)i->ai_addr)->sin6_port;
+                    RemoteEndpoint->Address.Type = PH_IPV6_NETWORK_TYPE;
+                    success = TRUE;
+                    break;
+                }
+            }
+
+            FreeAddrInfo(result);
+        }
+
+        WSACleanup();
+
+        if (success)
+            return TRUE;
+    }
+    else
+    {
+        if (NT_SUCCESS(RtlIpv4StringToAddress(
+            Name->Buffer,
+            TRUE,
+            &terminator,
+            &RemoteEndpoint->Address.InAddr
+            )))
+        {
+            RemoteEndpoint->Address.Type = PH_IPV4_NETWORK_TYPE;
+            return TRUE;
+        }
+
+        if (NT_SUCCESS(RtlIpv6StringToAddress(
+            Name->Buffer,
+            &terminator,
+            &RemoteEndpoint->Address.In6Addr
+            )))
+        {
+            RemoteEndpoint->Address.Type = PH_IPV6_NETWORK_TYPE;
+            return TRUE;
+        }
     }
 
-    return S_OK;
+    return FALSE;
 }
 
 VOID NTAPI MenuItemCallback(
@@ -89,45 +146,26 @@ VOID NTAPI MenuItemCallback(
         ShowWhoisWindow(networkItem);
         break;
     case MAINMENU_ACTION_PING:
-        {
-            PH_IP_ENDPOINT RemoteEndpoint;
+        {           
             PPH_STRING selectedChoice = NULL;
+            PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
             while (PhaChoiceDialog(
                 menuItem->OwnerWindow,
                 L"Ping",
-                L"IP address:",
+                L"Hostname or IP address:",
                 NULL,
                 0,
                 NULL,
                 PH_CHOICE_DIALOG_USER_CHOICE,
                 &selectedChoice,
                 NULL,
-                SETTING_NAME_TRACERT_HISTORY
+                SETTING_NAME_ADDRESS_HISTORY
                 ))
             {
-                PWSTR terminator = NULL;
-
-                if (NT_SUCCESS(RtlIpv4StringToAddress(
-                    selectedChoice->Buffer, 
-                    TRUE, 
-                    &terminator, 
-                    &RemoteEndpoint.Address.InAddr
-                    )))
+                if (ValidAddressInfo(&remoteEndpoint, selectedChoice))
                 {
-                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                    ShowPingWindowFromAddress(RemoteEndpoint);
-                    break;
-                }
-
-                if (NT_SUCCESS(RtlIpv6StringToAddress(
-                    selectedChoice->Buffer, 
-                    &terminator, 
-                    &RemoteEndpoint.Address.In6Addr
-                    )))
-                {
-                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                    ShowPingWindowFromAddress(RemoteEndpoint);
+                    ShowPingWindowFromAddress(remoteEndpoint);
                     break;
                 }
             }
@@ -135,44 +173,25 @@ VOID NTAPI MenuItemCallback(
         break;
     case MAINMENU_ACTION_TRACERT:
         {
-            PH_IP_ENDPOINT RemoteEndpoint;
             PPH_STRING selectedChoice = NULL;
+            PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
             while (PhaChoiceDialog(
                 menuItem->OwnerWindow,
                 L"Tracert",
-                L"IP address:",
+                L"Hostname or IP address:",
                 NULL,
                 0,
                 NULL,
                 PH_CHOICE_DIALOG_USER_CHOICE,
                 &selectedChoice,
                 NULL,
-                SETTING_NAME_TRACERT_HISTORY
+                SETTING_NAME_ADDRESS_HISTORY
                 ))
             {
-                PWSTR terminator = NULL;
-
-                if (NT_SUCCESS(RtlIpv4StringToAddress(
-                    selectedChoice->Buffer, 
-                    TRUE, 
-                    &terminator, 
-                    &RemoteEndpoint.Address.InAddr
-                    )))
+                if (ValidAddressInfo(&remoteEndpoint, selectedChoice))
                 {
-                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                    ShowTracertWindowFromAddress(RemoteEndpoint);
-                    break;
-                }
-
-                if (NT_SUCCESS(RtlIpv6StringToAddress(
-                    selectedChoice->Buffer, 
-                    &terminator, 
-                    &RemoteEndpoint.Address.In6Addr
-                    )))
-                {
-                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                    ShowTracertWindowFromAddress(RemoteEndpoint);
+                    ShowTracertWindowFromAddress(remoteEndpoint);
                     break;
                 }
             }
@@ -180,44 +199,25 @@ VOID NTAPI MenuItemCallback(
         break;
     case MAINMENU_ACTION_WHOIS:
         {
-            PH_IP_ENDPOINT RemoteEndpoint;
             PPH_STRING selectedChoice = NULL;
+            PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
             while (PhaChoiceDialog(
                 menuItem->OwnerWindow,
                 L"Whois",
-                L"IP address for Whois:",
+                L"Hostname or IP address:",
                 NULL,
                 0,
                 NULL,
                 PH_CHOICE_DIALOG_USER_CHOICE,
                 &selectedChoice,
                 NULL,
-                SETTING_NAME_TRACERT_HISTORY
+                SETTING_NAME_ADDRESS_HISTORY
                 ))
             {
-                PWSTR terminator = NULL;
-
-                if (NT_SUCCESS(RtlIpv4StringToAddress(
-                    selectedChoice->Buffer, 
-                    TRUE, 
-                    &terminator, 
-                    &RemoteEndpoint.Address.InAddr
-                    )))
+                if (ValidAddressInfo(&remoteEndpoint, selectedChoice))
                 {
-                    RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-                    ShowWhoisWindowFromAddress(RemoteEndpoint);
-                    break;
-                }
-
-                if (NT_SUCCESS(RtlIpv6StringToAddress(
-                    selectedChoice->Buffer, 
-                    &terminator, 
-                    &RemoteEndpoint.Address.In6Addr
-                    )))
-                {
-                    RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-                    ShowWhoisWindowFromAddress(RemoteEndpoint);
+                    ShowWhoisWindowFromAddress(remoteEndpoint);
                     break;
                 }
             }
@@ -528,6 +528,7 @@ VOID NTAPI TreeNewMessageCallback(
                         if (countryBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             extension->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
+                            DeleteObject(countryBitmap);
                         }
                     }
                 }
@@ -585,6 +586,7 @@ LOGICAL DllMain(
             PPH_PLUGIN_INFORMATION info;
             PH_SETTING_CREATE settings[] =
             {
+                { StringSettingType, SETTING_NAME_ADDRESS_HISTORY, L"" },
                 { IntegerPairSettingType, SETTING_NAME_PING_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PING_WINDOW_SIZE, L"@96|420,250" },
                 { IntegerSettingType, SETTING_NAME_PING_MINIMUM_SCALING, L"1F4" }, // 500ms minimum scaling
@@ -592,7 +594,6 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|850,490" },
                 { StringSettingType, SETTING_NAME_TRACERT_LIST_COLUMNS, L"" },
-                { StringSettingType, SETTING_NAME_TRACERT_HISTORY, L"" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"30" },
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
