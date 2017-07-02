@@ -402,10 +402,7 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
             context->WindowHandle = hwndDlg;
             context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
 
-            // Reset the border style for richedit uxtheme borders
-            PhSetWindowStyle(context->RichEditHandle, WS_BORDER, WS_BORDER);
-            PhSetWindowExStyle(context->RichEditHandle, WS_EX_CLIENTEDGE, ~WS_EX_CLIENTEDGE);
-            //SendMessage(context->OutputHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
+            //SendMessage(context->RichEditHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
             SendMessage(context->RichEditHandle, EM_AUTOURLDETECT, AURL_ENABLEURL, 0);
             SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
