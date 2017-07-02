@@ -228,10 +228,10 @@ namespace CustomBuildTool
 
             try
             {
-                for (int i = 0; i < cleanupFileArray.Length; i++)
+                foreach (string file in cleanupFileArray)
                 {
-                    if (Directory.Exists(cleanupFileArray[i]))
-                        Directory.Delete(cleanupFileArray[i], true);
+                    if (Directory.Exists(file))
+                        Directory.Delete(file, true);
                 }
             }
             catch (Exception ex)
@@ -522,7 +522,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[ERROR] " + ex.ToString(), ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -531,8 +531,6 @@ namespace CustomBuildTool
 
         public static bool CopyKProcessHacker(BuildFlags Flags)
         {
-            Program.PrintColorMessage("Copying KPH driver...", ConsoleColor.Cyan, true, Flags);
-
             if (!File.Exists(CustomSignToolPath))
                 return true;
             if (!File.Exists("build\\kph.key"))
@@ -667,7 +665,7 @@ namespace CustomBuildTool
 
         public static bool BuildSetupExe()
         {
-            Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan, true, BuildFlags.BuildVerbose);
+            Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
 
             if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildVerbose))
                 return false;
@@ -918,7 +916,7 @@ namespace CustomBuildTool
 
                     if (!httpTask.Result.IsSuccessStatusCode)
                     {
-                        Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result.ToString(), ConsoleColor.Red);
+                        Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
                     }
                 }
             }
@@ -946,14 +944,14 @@ namespace CustomBuildTool
             if (!BuildNightly)
                 return false;
 
-            // Cleanup existing output files
-            for (int i = 0; i < releaseFileArray.Length; i++)
+            // Cleanup existing release files.
+            foreach (string file in releaseFileArray)
             {
-                if (File.Exists(releaseFileArray[i]))
+                if (File.Exists(file))
                 {
                     try
                     {
-                        File.Delete(releaseFileArray[i]);
+                        File.Delete(file);
                     }
                     catch (Exception ex)
                     {
@@ -963,7 +961,7 @@ namespace CustomBuildTool
                 }
             }
 
-            // Rename files with the current build version -3.1-
+            // Rename build files with the current version processhacker-3.1-abc.ext
             for (int i = 0; i < buildFileArray.Length; i++)
             {
                 if (File.Exists(buildFileArray[i]))
@@ -980,16 +978,16 @@ namespace CustomBuildTool
                 }
             }
 
-            // Upload build files to Appveyor storage.
-            for (int i = 0; i < releaseFileArray.Length; i++)
+            // Upload build files to download server.
+            foreach (string file in releaseFileArray)
             {
-                if (File.Exists(releaseFileArray[i]))
+                if (File.Exists(file))
                 {
-                    Console.WriteLine("Uploading " + releaseFileArray[i] + "...");
+                    Console.WriteLine("Uploading " + file + "...");
 
                     try
                     {
-                        Win32.ShellExecute("appveyor", "PushArtifact " + releaseFileArray[i]);
+                        Win32.ShellExecute("appveyor", "PushArtifact " + file);
                     }
                     catch (Exception ex)
                     {
@@ -999,13 +997,8 @@ namespace CustomBuildTool
                 }
             }
 
-            try
-            {
-                // Update Appveyor build version string.
-                Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
-            }
-            catch (Exception)
-            { }
+            // Update Appveyor build version string.
+            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
 
             return true;
         }
@@ -1062,7 +1055,20 @@ namespace CustomBuildTool
 #region Appx Package
         public static void BuildAppxPackage(BuildFlags Flags)
         {
+            string[] cleanupAppxArray =
+            {
+                BuildOutputFolder + "\\AppxManifest32.xml",
+                BuildOutputFolder + "\\AppxManifest64.xml",
+                BuildOutputFolder + "\\package32.map",
+                BuildOutputFolder + "\\package64.map",
+                BuildOutputFolder + "\\bundle.map",
+                BuildOutputFolder + "\\ProcessHacker-44.png",
+                BuildOutputFolder + "\\ProcessHacker-50.png",
+                BuildOutputFolder + "\\ProcessHacker-150.png"
+            };
+
             Program.PrintColorMessage("Building processhacker-build-package.appxbundle...", ConsoleColor.Cyan);
+
             string signToolExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\SignTool.exe");
 
             try
@@ -1088,10 +1094,8 @@ namespace CustomBuildTool
                     packageMap32.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
 
                     var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
-                    for (int i = 0; i < filesToAdd.Length; i++)
+                    foreach (string filePath in filesToAdd)
                     {
-                        string filePath = filesToAdd[i];
-
                         // Ignore junk files
                         if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
                             filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
@@ -1103,13 +1107,13 @@ namespace CustomBuildTool
                         }
 
                         packageMap32.AppendLine("\"" + filePath + "\" \"" + filePath.Substring("bin\\Release32\\".Length) + "\"");
-                    } 
+                    }
                     File.WriteAllText(BuildOutputFolder + "\\package32.map", packageMap32.ToString());
 
                     // create the package
                     Win32.ShellExecute(
                         MakeAppxExePath,
-                        "pack /o /f " + BuildOutputFolder + "\\package32.map /p " + 
+                        "pack /o /f " + BuildOutputFolder + "\\package32.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
                     //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
@@ -1117,7 +1121,7 @@ namespace CustomBuildTool
                     // sign the package
                     Win32.ShellExecute(
                         signToolExePath,
-                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " + 
+                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
                         BuildOutputFolder + "\\processhacker-build-package-x32.appx"
                         );
                     //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
@@ -1139,10 +1143,8 @@ namespace CustomBuildTool
                     packageMap64.AppendLine("\"" + BuildOutputFolder + "\\ProcessHacker-150.png\" \"Assets\\ProcessHacker-150.png\"");
 
                     var filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
-                    for (int i = 0; i < filesToAdd.Length; i++)
+                    foreach (string filePath in filesToAdd)
                     {
-                        string filePath = filesToAdd[i];
-
                         // Ignore junk files
                         if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
                             filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
@@ -1160,7 +1162,7 @@ namespace CustomBuildTool
                     // create the package
                     Win32.ShellExecute(
                         MakeAppxExePath,
-                        "pack /o /f " + BuildOutputFolder + "\\package64.map /p " + 
+                        "pack /o /f " + BuildOutputFolder + "\\package64.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
                     //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
@@ -1168,7 +1170,7 @@ namespace CustomBuildTool
                     // sign the package
                     Win32.ShellExecute(
                         signToolExePath,
-                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " + 
+                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
                         BuildOutputFolder + "\\processhacker-build-package-x64.appx"
                         );
                     //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
@@ -1188,7 +1190,7 @@ namespace CustomBuildTool
                     // create the appx bundle package
                     Win32.ShellExecute(
                         MakeAppxExePath,
-                        "bundle /f " + BuildOutputFolder + "\\bundle.map /p " + 
+                        "bundle /f " + BuildOutputFolder + "\\bundle.map /p " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
                     //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
@@ -1196,33 +1198,17 @@ namespace CustomBuildTool
                     // sign the appx bundle package
                     Win32.ShellExecute(
                         signToolExePath,
-                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " + 
+                        "sign /v /fd SHA256 /a /f " + BuildOutputFolder + "\\processhacker-appx.pfx /td SHA256 " +
                         BuildOutputFolder + "\\processhacker-build-package.appxbundle"
                         );
                     //Program.PrintColorMessage(Environment.NewLine + error, ConsoleColor.Gray);
                 }
 
-                try
+                foreach (string file in cleanupAppxArray)
                 {
-                    string[] cleanupAppxArray =
-                    {
-                        BuildOutputFolder + "\\AppxManifest32.xml",
-                        BuildOutputFolder + "\\AppxManifest64.xml",
-                        BuildOutputFolder + "\\package32.map",
-                        BuildOutputFolder + "\\package64.map",
-                        BuildOutputFolder + "\\bundle.map",
-                        BuildOutputFolder + "\\ProcessHacker-44.png",
-                        BuildOutputFolder + "\\ProcessHacker-50.png",
-                        BuildOutputFolder + "\\ProcessHacker-150.png"
-                    };
-
-                    for (int i = 0; i < cleanupAppxArray.Length; i++)
-                    {
-                        if (File.Exists(cleanupAppxArray[i]))
-                            File.Delete(cleanupAppxArray[i]);
-                    }
+                    if (File.Exists(file))
+                        File.Delete(file);
                 }
-                catch (Exception) { }
             }
             catch (Exception ex)
             {
@@ -1232,6 +1218,13 @@ namespace CustomBuildTool
 
         public static bool BuildAppxSignature()
         {
+            string[] cleanupAppxArray =
+            {
+                BuildOutputFolder + "\\processhacker-appx.pvk",
+                BuildOutputFolder + "\\processhacker-appx.cer",
+                BuildOutputFolder + "\\processhacker-appx.pfx"
+            };
+
             Program.PrintColorMessage("Building Appx Signature...", ConsoleColor.Cyan);
 
             var makeCertExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeCert.exe");
@@ -1239,17 +1232,10 @@ namespace CustomBuildTool
 
             try
             {
-                string[] cleanupAppxArray =
+                foreach (string file in cleanupAppxArray)
                 {
-                    BuildOutputFolder + "\\processhacker-appx.pvk",
-                    BuildOutputFolder + "\\processhacker-appx.cer",
-                    BuildOutputFolder + "\\processhacker-appx.pfx"
-                };
-
-                for (int i = 0; i < cleanupAppxArray.Length; i++)
-                {
-                    if (File.Exists(cleanupAppxArray[i]))
-                        File.Delete(cleanupAppxArray[i]);
+                    if (File.Exists(file))
+                        File.Delete(file);
                 }
 
                 string output = Win32.ShellExecute(makeCertExePath,

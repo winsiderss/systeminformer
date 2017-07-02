@@ -352,8 +352,6 @@ namespace CustomBuildTool
             if (principal.IsInRole(WindowsBuiltInRole.Administrator))
                 return false;
 
-            Win32.ShowWindow(Win32.GetConsoleWindow(), Win32.SW_HIDE);
-
             try
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo

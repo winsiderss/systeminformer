@@ -107,8 +107,6 @@ namespace CustomBuildTool
             }
         }
 
-        public const int SW_HIDE = 0;
-        public const int SW_SHOW = 5;
         public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
         public static readonly IntPtr STD_OUTPUT_HANDLE = new IntPtr(-11);
         public static readonly IntPtr STD_INPUT_HANDLE = new IntPtr(-10);
@@ -122,10 +120,6 @@ namespace CustomBuildTool
         public static extern bool SetConsoleMode(IntPtr ConsoleHandle, ConsoleMode Mode);
         [DllImport("kernel32.dll", ExactSpelling = true)]
         public static extern IntPtr GetConsoleWindow();
-        [DllImport("user32.dll", ExactSpelling = true)]
-        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        public static extern int MessageBox(IntPtr hWnd, string m, string c, int type);
     }
 
     public static class Json<T> where T : class
