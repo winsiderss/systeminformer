@@ -1,6 +1,6 @@
 /*
  * Process Hacker -
- *   property sheet 
+ *   PE viewer
  *
  * Copyright (C) 2017 dmex
  *
