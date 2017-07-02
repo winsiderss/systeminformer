@@ -414,6 +414,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                         if (countryBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, 16, 11, MAKEINTRESOURCE(resourceCode), TRUE))
                         {
                             node->CountryIcon = CommonBitmapToIcon(countryBitmap, 16, 11);
+                            DeleteObject(countryBitmap);
                         }
                     }
                 }
