@@ -238,7 +238,7 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
         c.lpfnWndProc = HSplitterWindowProc;
         c.cbClsExtra = 0;
         c.cbWndExtra = sizeof(PVOID);
-        c.hInstance = PhLibImageBase;
+        c.hInstance = PhInstanceHandle;
         c.hIcon = NULL;
         c.hCursor = LoadCursor(NULL, IDC_SIZENS);
         c.hbrBackground = NULL;
@@ -262,7 +262,7 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
         10,
         ParentWindow,
         NULL,
-        PhLibImageBase,
+        PhInstanceHandle,
         context
         );
 

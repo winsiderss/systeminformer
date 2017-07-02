@@ -76,7 +76,6 @@ extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 PHAPPAPI extern HFONT PhApplicationFont; // phapppub
 extern PPH_STRING PhCurrentUserName;
-extern HINSTANCE PhInstanceHandle;
 extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhSettingsFileName;

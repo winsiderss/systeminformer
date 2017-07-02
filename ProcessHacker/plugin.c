@@ -291,8 +291,6 @@ VOID PhLoadPlugins(
             sb.String->Buffer
             ) == IDYES)
         {
-            ULONG i;
-
             for (i = 0; i < LoadErrors->Count; i++)
             {
                 loadError = LoadErrors->Items[i];
@@ -334,43 +332,37 @@ BOOLEAN PhLoadPlugin(
     _In_ PPH_STRING FileName
     )
 {
-    BOOLEAN success;
     PPH_STRING fileName;
     PPH_STRING errorMessage;
+    PPHP_PLUGIN_LOAD_ERROR loadError;
 
     fileName = PhGetFullPath(FileName->Buffer, NULL);
 
     if (!fileName)
         PhSetReference(&fileName, FileName);
 
-    success = TRUE;
-
-    if (!LoadLibrary(fileName->Buffer))
+    if (LoadLibrary(fileName->Buffer))
     {
-        success = FALSE;
-        errorMessage = PhGetWin32Message(GetLastError());
+        PhDereferenceObject(fileName);
+        return TRUE;
     }
 
-    if (!success)
-    {
-        PPHP_PLUGIN_LOAD_ERROR loadError;
+    errorMessage = PhGetWin32Message(GetLastError());
 
-        loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
-        PhSetReference(&loadError->FileName, fileName);
-        PhSetReference(&loadError->ErrorMessage, errorMessage);
+    loadError = PhAllocate(sizeof(PHP_PLUGIN_LOAD_ERROR));
+    PhSetReference(&loadError->FileName, fileName);
+    PhSetReference(&loadError->ErrorMessage, errorMessage);
 
-        if (!LoadErrors)
-            LoadErrors = PhCreateList(2);
+    if (!LoadErrors)
+        LoadErrors = PhCreateList(2);
 
-        PhAddItemList(LoadErrors, loadError);
+    PhAddItemList(LoadErrors, loadError);
 
-        if (errorMessage)
-            PhDereferenceObject(errorMessage);
-    }
+    if (errorMessage)
+        PhDereferenceObject(errorMessage);
 
     PhDereferenceObject(fileName);
-
-    return success;
+    return FALSE;
 }
 
 VOID PhpExecuteCallbackForAllPlugins(

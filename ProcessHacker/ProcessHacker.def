@@ -40,7 +40,7 @@ EXPORTS
 	PhGlobalDpi DATA
 	PhHeapHandle DATA
 	PhIsExecutingInWow64
-	PhLibImageBase DATA
+	PhInstanceHandle DATA
 	PhOsVersion DATA
 	PhSystemBasicInformation DATA
 	ProcessAllAccess DATA

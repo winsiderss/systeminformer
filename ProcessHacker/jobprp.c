@@ -73,6 +73,7 @@ VOID PhShowJobProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = Title ? Title : L"Job";
     propSheetHeader.nPages = 1;
@@ -104,6 +105,7 @@ HPROPSHEETPAGE PhCreateJobPage(
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USECALLBACK;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJJOB);
+    propSheetPage.hInstance = PhInstanceHandle;
     propSheetPage.pfnDlgProc = PhpJobPageProc;
     propSheetPage.lParam = (LPARAM)jobPageContext;
     propSheetPage.pfnCallback = PhpJobPropPageProc;
@@ -500,6 +502,7 @@ VOID PhpShowJobAdvancedProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Job";
     propSheetHeader.nPages = 2;
@@ -511,6 +514,7 @@ VOID PhpShowJobAdvancedProperties(
     memset(&statisticsPage, 0, sizeof(PROPSHEETPAGE));
     statisticsPage.dwSize = sizeof(PROPSHEETPAGE);
     statisticsPage.pszTemplate = MAKEINTRESOURCE(IDD_JOBSTATISTICS);
+    statisticsPage.hInstance = PhInstanceHandle;
     statisticsPage.pfnDlgProc = PhpJobStatisticsPageProc;
     statisticsPage.lParam = (LPARAM)Context;
     pages[0] = CreatePropertySheetPage(&statisticsPage);

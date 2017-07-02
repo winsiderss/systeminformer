@@ -4651,7 +4651,7 @@ NTSTATUS PhEnumDirectoryFile(
         {
             PFILE_DIRECTORY_INFORMATION information;
 
-            information = (PFILE_DIRECTORY_INFORMATION)(PTR_ADD_OFFSET(buffer, i));
+            information = (PFILE_DIRECTORY_INFORMATION)PTR_ADD_OFFSET(buffer, i);
 
             if (!Callback(
                 information,

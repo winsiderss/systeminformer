@@ -108,6 +108,7 @@ static HPROPSHEETPAGE PhpCommonCreatePage(
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USECALLBACK;
     propSheetPage.pszTemplate = Template;
+    propSheetPage.hInstance = PhInstanceHandle;
     propSheetPage.pfnDlgProc = DlgProc;
     propSheetPage.lParam = (LPARAM)pageContext;
     propSheetPage.pfnCallback = PhpCommonPropPageProc;

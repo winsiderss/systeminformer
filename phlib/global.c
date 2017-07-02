@@ -38,8 +38,7 @@ VOID PhInitializeWindowsVersion(
     VOID
     );
 
-PHLIBAPI PVOID PhLibImageBase;
-
+PHLIBAPI PVOID PhInstanceHandle;
 PHLIBAPI PWSTR PhApplicationName = L"Application";
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PHLIBAPI PVOID PhHeapHandle;
@@ -64,6 +63,7 @@ NTSTATUS PhInitializePhLib(
 {
     return PhInitializePhLibEx(
         0xffffffff, // all possible features
+        NtCurrentPeb()->ImageBaseAddress,
         0,
         0
         );
@@ -71,10 +71,12 @@ NTSTATUS PhInitializePhLib(
 
 NTSTATUS PhInitializePhLibEx(
     _In_ ULONG Flags,
+    _In_ PVOID ImageBaseAddress,
     _In_opt_ SIZE_T HeapReserveSize,
     _In_opt_ SIZE_T HeapCommitSize
     )
 {
+    PhInstanceHandle = ImageBaseAddress;
     PhHeapHandle = RtlCreateHeap(
         HEAP_GROWABLE | HEAP_CLASS_1,
         NULL,
@@ -86,8 +88,6 @@ NTSTATUS PhInitializePhLibEx(
 
     if (!PhHeapHandle)
         return STATUS_INSUFFICIENT_RESOURCES;
-
-    PhLibImageBase = NtCurrentPeb()->ImageBaseAddress;
 
     PhInitializeWindowsVersion();
     PhInitializeSystemInformation();

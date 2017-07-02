@@ -137,6 +137,7 @@ VOID PhShowTokenProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = Title ? Title : L"Token";
     propSheetHeader.nPages = 1;
@@ -168,6 +169,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.dwFlags = PSP_USECALLBACK;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJTOKEN);
+    propSheetPage.hInstance = PhInstanceHandle;
     propSheetPage.pfnDlgProc = PhpTokenPageProc;
     propSheetPage.lParam = (LPARAM)tokenPageContext;
     propSheetPage.pfnCallback = PhpTokenPropPageProc;
@@ -948,6 +950,7 @@ VOID PhpShowTokenAdvancedProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Token";
     propSheetHeader.nStartPage = 0;
@@ -960,6 +963,7 @@ VOID PhpShowTokenAdvancedProperties(
     memset(&page, 0, sizeof(PROPSHEETPAGE));
     page.dwSize = sizeof(PROPSHEETPAGE);
     page.pszTemplate = MAKEINTRESOURCE(IDD_TOKGENERAL);
+    page.hInstance = PhInstanceHandle;
     page.pfnDlgProc = PhpTokenGeneralPageProc;
     page.lParam = (LPARAM)Context;
     pages[numberOfPages++] = CreatePropertySheetPage(&page);
@@ -969,6 +973,7 @@ VOID PhpShowTokenAdvancedProperties(
     memset(&page, 0, sizeof(PROPSHEETPAGE));
     page.dwSize = sizeof(PROPSHEETPAGE);
     page.pszTemplate = MAKEINTRESOURCE(IDD_TOKADVANCED);
+    page.hInstance = PhInstanceHandle;
     page.pfnDlgProc = PhpTokenAdvancedPageProc;
     page.lParam = (LPARAM)Context;
     pages[numberOfPages++] = CreatePropertySheetPage(&page);
@@ -980,6 +985,7 @@ VOID PhpShowTokenAdvancedProperties(
         memset(&page, 0, sizeof(PROPSHEETPAGE));
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKCAPABILITIES);
+        page.hInstance = PhInstanceHandle;
         page.pfnDlgProc = PhpTokenCapabilitiesPageProc;
         page.lParam = (LPARAM)Context;
         pages[numberOfPages++] = CreatePropertySheetPage(&page);
@@ -990,6 +996,7 @@ VOID PhpShowTokenAdvancedProperties(
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.dwFlags = PSP_USETITLE;
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKATTRIBUTES);
+        page.hInstance = PhInstanceHandle;
         page.pszTitle = L"Claims";
         page.pfnDlgProc = PhpTokenClaimsPageProc;
         page.lParam = (LPARAM)Context;
@@ -1001,6 +1008,7 @@ VOID PhpShowTokenAdvancedProperties(
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.dwFlags = PSP_USETITLE;
         page.pszTemplate = MAKEINTRESOURCE(IDD_TOKATTRIBUTES);
+        page.hInstance = PhInstanceHandle;
         page.pszTitle = L"Attributes";
         page.pfnDlgProc = PhpTokenAttributesPageProc;
         page.lParam = (LPARAM)Context;
