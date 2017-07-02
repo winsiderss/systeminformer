@@ -34,12 +34,12 @@ VOID ExtractResourceToFile(
     PVOID resourceBuffer;
     IO_STATUS_BLOCK isb;
 
-    if (!(resourceHandle = FindResource(PhLibImageBase, Resource, RT_RCDATA)))
+    if (!(resourceHandle = FindResource(PhInstanceHandle, Resource, RT_RCDATA)))
         goto CleanupExit;
 
-    resourceLength = SizeofResource(PhLibImageBase, resourceHandle);
+    resourceLength = SizeofResource(PhInstanceHandle, resourceHandle);
 
-    if (!(resourceData = LoadResource(PhLibImageBase, resourceHandle)))
+    if (!(resourceData = LoadResource(PhInstanceHandle, resourceHandle)))
         goto CleanupExit;
 
     if (!(resourceBuffer = LockResource(resourceData)))
@@ -95,12 +95,12 @@ PVOID ExtractResourceToBuffer(
     PVOID resourceBuffer;
     PVOID buffer = NULL;
 
-    if (!(resourceHandle = FindResource(PhLibImageBase, Resource, RT_RCDATA)))
+    if (!(resourceHandle = FindResource(PhInstanceHandle, Resource, RT_RCDATA)))
         goto CleanupExit;
 
-    resourceLength = SizeofResource(PhLibImageBase, resourceHandle);
+    resourceLength = SizeofResource(PhInstanceHandle, resourceHandle);
 
-    if (!(resourceData = LoadResource(PhLibImageBase, resourceHandle)))
+    if (!(resourceData = LoadResource(PhInstanceHandle, resourceHandle)))
         goto CleanupExit;
 
     if (!(resourceBuffer = LockResource(resourceData)))
@@ -148,14 +148,14 @@ HBITMAP LoadPngImageFromResources(
         goto CleanupExit;
 
     // Find the resource
-    if ((resourceHandleSource = FindResource(PhLibImageBase, Name, L"PNG")) == NULL)
+    if ((resourceHandleSource = FindResource(PhInstanceHandle, Name, L"PNG")) == NULL)
         goto CleanupExit;
 
     // Get the resource length
-    resourceLength = SizeofResource(PhLibImageBase, resourceHandleSource);
+    resourceLength = SizeofResource(PhInstanceHandle, resourceHandleSource);
 
     // Load the resource
-    if ((resourceHandle = LoadResource(PhLibImageBase, resourceHandleSource)) == NULL)
+    if ((resourceHandle = LoadResource(PhInstanceHandle, resourceHandleSource)) == NULL)
         goto CleanupExit;
 
     if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
@@ -390,7 +390,7 @@ BOOLEAN DialogPromptExit(
     INT buttonPressed = 0;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     config.hwndParent = hwndDlg;
-    config.hInstance = PhLibImageBase;
+    config.hInstance = PhInstanceHandle;
     config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;
     config.nDefaultButton = IDNO;
     config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
