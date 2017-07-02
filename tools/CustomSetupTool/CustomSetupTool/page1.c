@@ -36,7 +36,7 @@ static VOID SetupLoadIcons(
     )
 {
     HBITMAP smallIconHandle = (HBITMAP)LoadImage(
-        PhLibImageBase,
+        PhInstanceHandle,
         MAKEINTRESOURCE(IDI_ICON1),
         IMAGE_ICON,
         GetSystemMetrics(SM_CXSMICON),
@@ -44,7 +44,7 @@ static VOID SetupLoadIcons(
         LR_DEFAULTCOLOR
         );
     HBITMAP largeIconHandle = (HBITMAP)LoadImage(
-        PhLibImageBase,
+        PhInstanceHandle,
         MAKEINTRESOURCE(IDI_ICON1),
         IMAGE_ICON,
         GetSystemMetrics(SM_CXICON),

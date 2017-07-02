@@ -122,10 +122,10 @@ INT CALLBACK MainPropSheet_Callback(
 }
 
 INT WINAPI wWinMain(
-    _In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ PWSTR lpCmdLine,
-    _In_ INT nCmdShow
+    _In_ HINSTANCE Instance,
+    _In_opt_ HINSTANCE PrevInstance,
+    _In_ PWSTR CmdLine,
+    _In_ INT CmdShow
     )
 {
     if (!NT_SUCCESS(CreateSetupMutant()))
@@ -133,7 +133,7 @@ INT WINAPI wWinMain(
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
         return 1;
 
     PhApplicationName = L"Process Hacker - Setup";
@@ -167,9 +167,9 @@ INT WINAPI wWinMain(
             HPROPSHEETPAGE pages[6];
 
             propSheetHeader.dwFlags = PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP | PSH_USECALLBACK | PSH_WIZARD_LITE;
-            propSheetHeader.hInstance = PhLibImageBase;
             propSheetHeader.pszIcon = MAKEINTRESOURCE(IDI_ICON1);
             propSheetHeader.pfnCallback = MainPropSheet_Callback;
+            propSheetHeader.hInstance = PhInstanceHandle;
             propSheetHeader.phpage = pages;
 
             // welcome page
@@ -178,6 +178,7 @@ INT WINAPI wWinMain(
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
+            propSheetPage.hInstance = PhInstanceHandle;
             propSheetPage.pfnDlgProc = SetupPropPage1_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
@@ -187,6 +188,7 @@ INT WINAPI wWinMain(
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG2);
+            propSheetPage.hInstance = PhInstanceHandle;
             propSheetPage.pfnDlgProc = SetupPropPage2_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
@@ -196,6 +198,7 @@ INT WINAPI wWinMain(
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG3);
+            propSheetPage.hInstance = PhInstanceHandle;
             propSheetPage.pfnDlgProc = SetupPropPage3_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
@@ -205,6 +208,7 @@ INT WINAPI wWinMain(
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG5);
+            propSheetPage.hInstance = PhInstanceHandle;
             propSheetPage.pfnDlgProc = SetupPropPage5_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
@@ -214,6 +218,7 @@ INT WINAPI wWinMain(
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
+            propSheetPage.hInstance = PhInstanceHandle;
             propSheetPage.pfnDlgProc = SetupPropPage4_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
@@ -223,6 +228,7 @@ INT WINAPI wWinMain(
             propSheetPage.dwFlags = PSP_USETITLE;
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
+            propSheetPage.hInstance = PhInstanceHandle;
             propSheetPage.pfnDlgProc = SetupErrorPage_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 

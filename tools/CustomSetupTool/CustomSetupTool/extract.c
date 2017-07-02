@@ -30,12 +30,12 @@ PVOID GetZipResourceData(
     HGLOBAL resourceData;
     PVOID resourceBuffer = NULL;
 
-    if (!(resourceHandle = FindResource(PhLibImageBase, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA)))
+    if (!(resourceHandle = FindResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA)))
         goto CleanupExit;
 
-    *resourceLength = SizeofResource(PhLibImageBase, resourceHandle);
+    *resourceLength = SizeofResource(PhInstanceHandle, resourceHandle);
 
-    if (!(resourceData = LoadResource(PhLibImageBase, resourceHandle)))
+    if (!(resourceData = LoadResource(PhInstanceHandle, resourceHandle)))
         goto CleanupExit;
 
     if (!(resourceBuffer = LockResource(resourceData)))
