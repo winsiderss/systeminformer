@@ -186,7 +186,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             context->FileIcon = PhGetFileShellIcon(PhGetString(context->Record->FileName), L".exe", TRUE);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_ICON,
-                (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_FOLDER)));
+                (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER)));
             SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
                 (WPARAM)context->FileIcon, 0);
 

@@ -51,7 +51,7 @@ BOOLEAN PhColorBoxInitialization(
     c.lpfnWndProc = PhpColorBoxWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhLibImageBase;
+    c.hInstance = PhInstanceHandle;
     c.hIcon = NULL;
     c.hCursor = LoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;

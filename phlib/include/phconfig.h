@@ -7,7 +7,7 @@ extern "C" {
 
 #define _User_set_
 
-PHLIBAPI extern _User_set_ PVOID PhLibImageBase;
+PHLIBAPI extern _User_set_ PVOID PhInstanceHandle;
 PHLIBAPI extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 PHLIBAPI extern PVOID PhHeapHandle;
@@ -75,6 +75,7 @@ NTSTATUS
 NTAPI
 PhInitializePhLibEx(
     _In_ ULONG Flags,
+    _In_ PVOID ImageBaseAddress,
     _In_opt_ SIZE_T HeapReserveSize,
     _In_opt_ SIZE_T HeapCommitSize
     );

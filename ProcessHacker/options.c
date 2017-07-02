@@ -121,6 +121,7 @@ VOID PhShowOptionsDialog(
         PSH_NOCONTEXTHELP |
         PSH_USECALLBACK |
         PSH_USEPSTARTPAGE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Options";
     propSheetHeader.nPages = 0;
@@ -135,6 +136,7 @@ VOID PhShowOptionsDialog(
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGENERAL);
+        propSheetPage.hInstance = PhInstanceHandle;
         propSheetPage.pfnDlgProc = PhpOptionsGeneralDlgProc;
         pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
     }
@@ -143,6 +145,7 @@ VOID PhShowOptionsDialog(
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTADVANCED);
+    propSheetPage.hInstance = PhInstanceHandle;
     propSheetPage.pfnDlgProc = PhpOptionsAdvancedDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
@@ -152,6 +155,7 @@ VOID PhShowOptionsDialog(
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTSYMBOLS);
+        propSheetPage.hInstance = PhInstanceHandle;
         propSheetPage.pfnDlgProc = PhpOptionsSymbolsDlgProc;
         pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
     }
@@ -162,6 +166,7 @@ VOID PhShowOptionsDialog(
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING);
+        propSheetPage.hInstance = PhInstanceHandle;
         propSheetPage.pfnDlgProc = PhpOptionsHighlightingDlgProc;
         pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
     }
@@ -172,6 +177,7 @@ VOID PhShowOptionsDialog(
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGRAPHS);
+        propSheetPage.hInstance = PhInstanceHandle;
         propSheetPage.pfnDlgProc = PhpOptionsGraphsDlgProc;
         pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
     }

@@ -114,6 +114,7 @@ VOID PhShowServiceProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = ServiceItem->Name->Buffer;
     propSheetHeader.nPages = 0;
@@ -130,6 +131,7 @@ VOID PhShowServiceProperties(
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVGENERAL);
+    propSheetPage.hInstance = PhInstanceHandle;
     propSheetPage.pfnDlgProc = PhpServiceGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);

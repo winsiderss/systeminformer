@@ -75,11 +75,10 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
-PPH_STRING PhApplicationDirectory;
-PPH_STRING PhApplicationFileName;
-PHAPPAPI HFONT PhApplicationFont;
+PPH_STRING PhApplicationDirectory = NULL;
+PPH_STRING PhApplicationFileName = NULL;
+PHAPPAPI HFONT PhApplicationFont = NULL;
 PPH_STRING PhCurrentUserName = NULL;
-HINSTANCE PhInstanceHandle;
 PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
@@ -95,10 +94,10 @@ static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
 
 INT WINAPI wWinMain(
-    _In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ PWSTR lpCmdLine,
-    _In_ INT nCmdShow
+    _In_ HINSTANCE Instance,
+    _In_opt_ HINSTANCE PrevInstance,
+    _In_ PWSTR CmdLine,
+    _In_ INT CmdShow
     )
 {
     LONG result;
@@ -112,9 +111,7 @@ INT WINAPI wWinMain(
     SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 #endif
 
-    PhInstanceHandle = (HINSTANCE)NtCurrentPeb()->ImageBaseAddress;
-
-    if (!NT_SUCCESS(PhInitializePhLib()))
+    if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
         return 1;
     if (!PhInitializeAppSystem())
         return 1;
@@ -287,7 +284,7 @@ INT WINAPI wWinMain(
         NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
     }
 
-    if (!PhMainWndInitialization(nCmdShow))
+    if (!PhMainWndInitialization(CmdShow))
     {
         PhShowError(NULL, L"Unable to initialize the main window.");
         return 1;

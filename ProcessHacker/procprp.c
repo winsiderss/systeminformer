@@ -85,6 +85,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
         PSH_PROPTITLE |
         PSH_USECALLBACK |
         PSH_USEHICON;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.hIcon = ProcessItem->SmallIcon;
     propSheetHeader.pszCaption = propContext->Title->Buffer;
@@ -380,7 +381,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     _In_opt_ PVOID Context
     )
 {
-    return PhCreateProcessPropPageContextEx(NULL, Template, DlgProc, Context);
+    return PhCreateProcessPropPageContextEx(PhInstanceHandle, Template, DlgProc, Context);
 }
 
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
@@ -396,8 +397,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
     memset(propPageContext, 0, sizeof(PH_PROCESS_PROPPAGECONTEXT));
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propPageContext->PropSheetPage.dwFlags =
-        PSP_USECALLBACK;
+    propPageContext->PropSheetPage.dwFlags = PSP_USECALLBACK;
     propPageContext->PropSheetPage.hInstance = InstanceHandle;
     propPageContext->PropSheetPage.pszTemplate = Template;
     propPageContext->PropSheetPage.pfnDlgProc = DlgProc;

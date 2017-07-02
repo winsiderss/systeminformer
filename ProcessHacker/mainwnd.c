@@ -352,8 +352,8 @@ RTL_ATOM PhMwpInitializeWindowClass(
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-    wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhLibImageBase, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+    wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
+    wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
 
     return RegisterClassEx(&wcex);
 }
@@ -429,7 +429,7 @@ VOID PhMwpInitializeControls(
         3,
         PhMainWndHandle,
         NULL,
-        PhLibImageBase,
+        PhInstanceHandle,
         NULL
         );
     BringWindowToTop(PhMwpProcessTreeNewHandle);
@@ -444,7 +444,7 @@ VOID PhMwpInitializeControls(
         3,
         PhMainWndHandle,
         NULL,
-        PhLibImageBase,
+        PhInstanceHandle,
         NULL
         );
     BringWindowToTop(PhMwpServiceTreeNewHandle);
@@ -459,7 +459,7 @@ VOID PhMwpInitializeControls(
         3,
         PhMainWndHandle,
         NULL,
-        PhLibImageBase,
+        PhInstanceHandle,
         NULL
         );
     BringWindowToTop(PhMwpNetworkTreeNewHandle);

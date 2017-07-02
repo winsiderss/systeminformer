@@ -425,7 +425,7 @@ INT PhShowMessage2(
         return -1;
 
     config.hwndParent = hWnd;
-    config.hInstance = PhLibImageBase;
+    config.hInstance = PhInstanceHandle;
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = Buttons;
     config.pszWindowTitle = PhApplicationName;
@@ -614,7 +614,7 @@ BOOLEAN PhShowConfirmMessage(
         INT button;
 
         config.hwndParent = hWnd;
-        config.hInstance = PhLibImageBase;
+        config.hInstance = PhInstanceHandle;
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;

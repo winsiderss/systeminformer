@@ -92,6 +92,7 @@ PPV_PROPCONTEXT PvCreatePropContext(
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE |
         PSH_USECALLBACK;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = NULL;
     propSheetHeader.pszCaption = propContext->Title->Buffer;
     propSheetHeader.pfnCallback = PvpPropSheetProc;
@@ -382,8 +383,7 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     memset(propPageContext, 0, sizeof(PV_PROPPAGECONTEXT));
 
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propPageContext->PropSheetPage.dwFlags =
-        PSP_USECALLBACK;
+    propPageContext->PropSheetPage.dwFlags = PSP_USECALLBACK;
     propPageContext->PropSheetPage.hInstance = InstanceHandle;
     propPageContext->PropSheetPage.pszTemplate = Template;
     propPageContext->PropSheetPage.pfnDlgProc = DlgProc;

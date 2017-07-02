@@ -94,6 +94,7 @@ VOID PhShowHandleProperties(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE;
+    propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Handle";
     propSheetHeader.nPages = 0;
@@ -104,6 +105,7 @@ VOID PhShowHandleProperties(
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_HNDLGENERAL);
+    propSheetPage.hInstance = PhInstanceHandle;
     propSheetPage.pfnDlgProc = PhpHandleGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);

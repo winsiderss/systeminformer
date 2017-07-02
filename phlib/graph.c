@@ -76,7 +76,7 @@ BOOLEAN PhGraphControlInitialization(
     c.lpfnWndProc = PhpGraphWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhLibImageBase;
+    c.hInstance = PhInstanceHandle;
     c.hIcon = NULL;
     c.hCursor = LoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;
@@ -1189,7 +1189,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                     CW_USEDEFAULT,
                     NULL,
                     NULL,
-                    PhLibImageBase,
+                    PhInstanceHandle,
                     NULL
                     );
 
