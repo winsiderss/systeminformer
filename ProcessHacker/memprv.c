@@ -494,7 +494,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID cfgBitmapAddress = NULL;
         PVOID cfgBitmapWow64Address = NULL;
 
-        if (ldrInitBlock.Size == sizeof(PS_SYSTEM_DLL_INIT_BLOCK))
+        if (ldrInitBlock.Size >= (ULONG)FIELD_OFFSET(PS_SYSTEM_DLL_INIT_BLOCK, Wow64CfgBitMap))
         {
             cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
             cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;
