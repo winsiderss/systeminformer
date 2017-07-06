@@ -1309,7 +1309,13 @@ VOID PhMwpOnCommand(
             if (processItem && processItem->FileName)
             {
                 PhReferenceObject(processItem);
-                PhShellExploreFile(PhMainWndHandle, processItem->FileName->Buffer);
+                PhShellExecuteUserString(
+                    PhMainWndHandle,
+                    L"FileOpenExecutable",
+                    processItem->FileName->Buffer,
+                    FALSE,
+                    L"Make sure the Explorer executable file is present."
+                    );
                 PhDereferenceObject(processItem);
             }
         }
@@ -1459,7 +1465,13 @@ VOID PhMwpOnCommand(
 
                 if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
                 {
-                    PhShellExploreFile(PhMainWndHandle, fileName->Buffer);
+                    PhShellExecuteUserString(
+                        PhMainWndHandle,
+                        L"FileOpenExecutable",
+                        fileName->Buffer,
+                        FALSE,
+                        L"Make sure the Explorer executable file is present."
+                        );
                     PhDereferenceObject(fileName);
                 }
 

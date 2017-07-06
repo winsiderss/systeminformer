@@ -633,7 +633,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
-                        PhShellExploreFile(hwndDlg, moduleItem->FileName->Buffer);
+                        PhShellExecuteUserString(
+                            hwndDlg,
+                            L"FileOpenExecutable",
+                            moduleItem->FileName->Buffer,
+                            FALSE,
+                            L"Make sure the Explorer executable file is present."
+                            );
                     }
                 }
                 break;
