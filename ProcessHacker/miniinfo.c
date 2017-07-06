@@ -1700,7 +1700,15 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                     else
                     {
                         if (node->ProcessGroup->Representative->FileName)
-                            PhShellExploreFile(listSection->DialogHandle, node->ProcessGroup->Representative->FileName->Buffer);
+                        {
+                            PhShellExecuteUserString(
+                                listSection->DialogHandle,
+                                L"FileOpenExecutable",
+                                node->ProcessGroup->Representative->FileName->Buffer,
+                                FALSE,
+                                L"Make sure the Explorer executable file is present."
+                                );
+                        }
                     }
                 }
                 break;

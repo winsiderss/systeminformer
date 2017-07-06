@@ -996,7 +996,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem && threadItem->StartAddressFileName)
                     {
-                        PhShellExploreFile(hwndDlg, threadItem->StartAddressFileName->Buffer);
+                        PhShellExecuteUserString(
+                            hwndDlg,
+                            L"FileOpenExecutable",
+                            threadItem->StartAddressFileName->Buffer,
+                            FALSE,
+                            L"Make sure the Explorer executable file is present."
+                            );
                     }
                 }
                 break;

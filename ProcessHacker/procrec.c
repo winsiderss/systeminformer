@@ -235,7 +235,15 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             case IDC_OPENFILENAME:
                 {
                     if (context->Record->FileName)
-                        PhShellExploreFile(hwndDlg, context->Record->FileName->Buffer);
+                    {
+                        PhShellExecuteUserString(
+                            PhMainWndHandle,
+                            L"FileOpenExecutable",
+                            context->Record->FileName->Buffer,
+                            FALSE,
+                            L"Make sure the Explorer executable file is present."
+                            );
+                    }
                 }
                 break;
             case IDC_PROPERTIES:

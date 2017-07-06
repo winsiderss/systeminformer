@@ -118,7 +118,15 @@ VOID PhShowHandleObjectProperties1(
         PhEqualString2(Info->TypeName, L"Mapped file", TRUE) || PhEqualString2(Info->TypeName, L"Mapped image", TRUE))
     {
         if (Info->BestObjectName)
-            PhShellExploreFile(hWnd, Info->BestObjectName->Buffer);
+        {
+            PhShellExecuteUserString(
+                PhMainWndHandle,
+                L"FileOpenExecutable",
+                Info->BestObjectName->Buffer,
+                FALSE,
+                L"Make sure the Explorer executable file is present."
+                );
+        }
         else
             PhShowError(hWnd, L"Unable to open file location because the object is unnamed.");
     }
