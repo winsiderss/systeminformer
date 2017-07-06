@@ -120,20 +120,6 @@ KphOpenProcessJob(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphSuspendProcess(
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphResumeProcess(
-    _In_ HANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 KphTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus
@@ -187,14 +173,6 @@ KphOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphTerminateThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ NTSTATUS ExitStatus
     );
 
 PHLIBAPI
@@ -269,19 +247,6 @@ KphSetInformationObject(
     _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
     _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphDuplicateObject(
-    _In_ HANDLE SourceProcessHandle,
-    _In_ HANDLE SourceHandle,
-    _In_opt_ HANDLE TargetProcessHandle,
-    _Out_opt_ PHANDLE TargetHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Options
     );
 
 PHLIBAPI

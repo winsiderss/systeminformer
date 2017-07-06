@@ -27,11 +27,10 @@ PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_7 61
 #define WINDOWS_8 62
 #define WINDOWS_8_1 63
-#define WINDOWS_10 100
-#define WINDOWS_10_TH1 101
-#define WINDOWS_10_TH2 102
-#define WINDOWS_10_RS1 103
-#define WINDOWS_10_RS2 104
+#define WINDOWS_10 100 // TH1
+#define WINDOWS_10_TH2 101
+#define WINDOWS_10_RS1 102
+#define WINDOWS_10_RS2 103
 #define WINDOWS_NEW MAXLONG
 
 #define WINDOWS_HAS_IMMERSIVE (WindowsVersion >= WINDOWS_8)

@@ -203,7 +203,7 @@ static VOID PhInitializeWindowsVersion(
         switch (buildVersion)
         {
         case 10240:
-            WindowsVersion = WINDOWS_10_TH1;
+            WindowsVersion = WINDOWS_10;
             break;
         case 10586:
             WindowsVersion = WINDOWS_10_TH2;
@@ -215,7 +215,7 @@ static VOID PhInitializeWindowsVersion(
             WindowsVersion = WINDOWS_10_RS2;
             break;
         default:
-            WindowsVersion = WINDOWS_10;
+            WindowsVersion = WINDOWS_NEW;
             break;
         }
     }
