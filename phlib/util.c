@@ -2583,6 +2583,7 @@ NTSTATUS PhCreateProcessWin32Ex(
     )
 {
     NTSTATUS status;
+    PPH_STRING fileName = NULL;
     PPH_STRING commandLine = NULL;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -2590,6 +2591,21 @@ NTSTATUS PhCreateProcessWin32Ex(
 
     if (CommandLine) // duplicate because CreateProcess modifies the string
         commandLine = PhCreateString(CommandLine);
+
+    if (FileName)
+        fileName = PhCreateString(FileName);
+    else
+    {
+        INT cmdlineArgCount;
+        PWSTR* cmdlineArgList;
+
+        // Try extract the filename or CreateProcess might execute the wrong executable.
+        if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
+        {
+            PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
+            LocalFree(cmdlineArgList);
+        }
+    }
 
     newFlags = 0;
     PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
@@ -2607,7 +2623,7 @@ NTSTATUS PhCreateProcessWin32Ex(
     if (!TokenHandle)
     {
         if (CreateProcess(
-            FileName,
+            PhGetString(fileName),
             PhGetString(commandLine),
             NULL,
             NULL,
@@ -2626,7 +2642,7 @@ NTSTATUS PhCreateProcessWin32Ex(
     {
         if (CreateProcessAsUser(
             TokenHandle,
-            FileName,
+            PhGetString(fileName),
             PhGetString(commandLine),
             NULL,
             NULL,
@@ -2642,6 +2658,8 @@ NTSTATUS PhCreateProcessWin32Ex(
             status = PhGetLastWin32ErrorAsNtStatus();
     }
 
+    if (fileName)
+        PhDereferenceObject(fileName);
     if (commandLine)
         PhDereferenceObject(commandLine);
 
