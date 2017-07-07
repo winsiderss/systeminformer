@@ -26,6 +26,7 @@
 #include <winsta.h>
 #include <dbghelp.h>
 #include <appmodel.h>
+#include <shellapi.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -953,7 +954,40 @@ VOID PhShellExecuteUserString(
     // Make sure the user executable string is absolute. We can't use RtlDetermineDosPathNameType_U
     // here because the string may be a URL.
     if (PhFindCharInString(executeString, 0, ':') == -1)
-        PhMoveReference(&executeString, PhConcatStringRef2(&PhApplicationDirectory->sr, &executeString->sr));
+    {
+        INT stringArgCount;
+        PWSTR* stringArgList;
+
+        // (dmex) HACK: Escape the individual executeString components.
+        if ((stringArgList = CommandLineToArgvW(executeString->Buffer, &stringArgCount)) && stringArgCount == 2)
+        {
+            PPH_STRING fileName = PhCreateString(stringArgList[0]);
+            PPH_STRING fileArgs = PhCreateString(stringArgList[1]);
+
+            // Make sure the string is absolute and escape the filename.
+            if (RtlDetermineDosPathNameType_U(fileName->Buffer) == RtlPathTypeRelative)
+                PhMoveReference(&fileName, PhConcatStrings(4, L"\"", PhApplicationDirectory->Buffer, fileName->Buffer, L"\""));
+            else
+                PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
+
+            // Escape the parameters.
+            PhMoveReference(&fileArgs, PhConcatStrings(3, L"\"", fileArgs->Buffer, L"\""));
+
+            // Create the escaped execute string.
+            PhMoveReference(&executeString, PhConcatStrings(3, fileName->Buffer, L" ", fileArgs->Buffer));
+
+            PhDereferenceObject(fileArgs);
+            PhDereferenceObject(fileName);
+            LocalFree(stringArgList);
+        }
+        else
+        {
+            if (RtlDetermineDosPathNameType_U(executeString->Buffer) == RtlPathTypeRelative)
+                PhMoveReference(&executeString, PhConcatStrings(4, L"\"", PhApplicationDirectory->Buffer, executeString->Buffer, L"\""));
+            else
+                PhMoveReference(&executeString, PhConcatStrings(3, L"\"", executeString->Buffer, L"\""));
+        }
+    }
 
     // Replace the token with the string, or use the original string if the token is not present.
     if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
