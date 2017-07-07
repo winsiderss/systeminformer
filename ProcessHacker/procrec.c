@@ -238,7 +238,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                     {
                         PhShellExecuteUserString(
                             PhMainWndHandle,
-                            L"FileOpenExecutable",
+                            L"FileBrowseExecutable",
                             context->Record->FileName->Buffer,
                             FALSE,
                             L"Make sure the Explorer executable file is present."

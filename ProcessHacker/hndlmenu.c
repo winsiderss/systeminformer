@@ -121,7 +121,7 @@ VOID PhShowHandleObjectProperties1(
         {
             PhShellExecuteUserString(
                 PhMainWndHandle,
-                L"FileOpenExecutable",
+                L"FileBrowseExecutable",
                 Info->BestObjectName->Buffer,
                 FALSE,
                 L"Make sure the Explorer executable file is present."

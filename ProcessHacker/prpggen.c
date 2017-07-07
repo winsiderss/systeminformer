@@ -500,7 +500,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     {
                         PhShellExecuteUserString(
                             hwndDlg,
-                            L"FileOpenExecutable",
+                            L"FileBrowseExecutable",
                             processItem->FileName->Buffer,
                             FALSE,
                             L"Make sure the Explorer executable file is present."
