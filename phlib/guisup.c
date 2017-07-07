@@ -906,7 +906,7 @@ BOOLEAN PhModalPropertySheet(
     oldFocus = GetFocus();
     topLevelOwner = Header->hwndParent;
 
-    while (topLevelOwner && (GetWindowLong(topLevelOwner, GWL_STYLE) & WS_CHILD))
+    while (topLevelOwner && (GetWindowLongPtr(topLevelOwner, GWL_STYLE) & WS_CHILD))
         topLevelOwner = GetParent(topLevelOwner);
 
     if (topLevelOwner && (topLevelOwner == GetDesktopWindow() || EnableWindow(topLevelOwner, FALSE)))
