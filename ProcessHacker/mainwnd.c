@@ -1311,7 +1311,7 @@ VOID PhMwpOnCommand(
                 PhReferenceObject(processItem);
                 PhShellExecuteUserString(
                     PhMainWndHandle,
-                    L"FileOpenExecutable",
+                    L"FileBrowseExecutable",
                     processItem->FileName->Buffer,
                     FALSE,
                     L"Make sure the Explorer executable file is present."
@@ -1467,7 +1467,7 @@ VOID PhMwpOnCommand(
                 {
                     PhShellExecuteUserString(
                         PhMainWndHandle,
-                        L"FileOpenExecutable",
+                        L"FileBrowseExecutable",
                         fileName->Buffer,
                         FALSE,
                         L"Make sure the Explorer executable file is present."

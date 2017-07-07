@@ -951,6 +951,9 @@ VOID PhShellExecuteUserString(
 
     executeString = PhGetStringSetting(Setting);
 
+    // Expand environment strings.
+    PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
+
     // Make sure the user executable string is absolute. We can't use RtlDetermineDosPathNameType_U
     // here because the string may be a URL.
     if (PhFindCharInString(executeString, 0, ':') == -1)

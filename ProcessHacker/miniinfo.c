@@ -1703,7 +1703,7 @@ BOOLEAN PhMipListSectionTreeNewCallback(
                         {
                             PhShellExecuteUserString(
                                 listSection->DialogHandle,
-                                L"FileOpenExecutable",
+                                L"FileBrowseExecutable",
                                 node->ProcessGroup->Representative->FileName->Buffer,
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."
