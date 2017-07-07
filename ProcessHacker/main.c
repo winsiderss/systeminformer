@@ -560,6 +560,9 @@ VOID PhInitializeKph(
     PPH_STRING kprocesshackerFileName;
     KPH_PARAMETERS parameters;
 
+    if (WindowsVersion == WINDOWS_NEW)
+        return;
+
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
 
     parameters.SecurityLevel = KphSecurityPrivilegeCheck;
