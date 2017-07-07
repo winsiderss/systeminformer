@@ -2599,7 +2599,7 @@ NTSTATUS PhCreateProcessWin32Ex(
         INT cmdlineArgCount;
         PWSTR* cmdlineArgList;
 
-        // Try extract the filename or CreateProcess might execute the wrong executable.
+        // (dmex) Try extract the filename or CreateProcess might execute the wrong executable.
         if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
         {
             PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
