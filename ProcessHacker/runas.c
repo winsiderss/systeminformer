@@ -425,15 +425,15 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             // we need to be in the target session.
 
                             PH_CREATE_PROCESS_AS_USER_INFO createInfo;
-                            PPH_STRING domainPart;
-                            PPH_STRING userPart;
+                            PPH_STRING domainPart = NULL;
+                            PPH_STRING userPart = NULL;
 
                             PhpSplitUserName(userName->Buffer, &domainPart, &userPart);
 
                             memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
                             createInfo.CommandLine = program->Buffer;
-                            createInfo.UserName = userPart->Buffer;
-                            createInfo.DomainName = domainPart->Buffer;
+                            createInfo.UserName = PhGetString(userPart);
+                            createInfo.DomainName = PhGetString(domainPart);
                             createInfo.Password = PhGetStringOrEmpty(password);
 
                             // Whenever we can, try not to set the desktop name; it breaks a lot of things.
