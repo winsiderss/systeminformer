@@ -256,7 +256,7 @@ NTSTATUS KphSetParameters(
     _In_ PKPH_PARAMETERS Parameters
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker2\\Parameters");
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker3\\Parameters");
     NTSTATUS status;
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;

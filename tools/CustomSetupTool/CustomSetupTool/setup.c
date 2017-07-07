@@ -352,6 +352,23 @@ BOOLEAN SetupUninstallKph(
         SERVICE_STATUS serviceStatus;
 
         if (!(serviceHandle = PhOpenService(
+            L"KProcessHacker2",
+            SERVICE_STOP | DELETE
+            )))
+            break;
+
+        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+        DeleteService(serviceHandle);
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    while (TRUE)
+    {
+        SC_HANDLE serviceHandle;
+        SERVICE_STATUS serviceStatus;
+
+        if (!(serviceHandle = PhOpenService(
             L"KProcessHacker3",
             SERVICE_STOP | DELETE
             )))
