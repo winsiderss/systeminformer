@@ -114,7 +114,7 @@ typedef struct _ETWREG_BASIC_INFORMATION
 
 // Device
 
-#define KPH_DEVICE_SHORT_NAME L"KProcessHacker2"
+#define KPH_DEVICE_SHORT_NAME L"KProcessHacker3"
 #define KPH_DEVICE_TYPE 0x9999
 #define KPH_DEVICE_NAME (L"\\Device\\" KPH_DEVICE_SHORT_NAME)
 
