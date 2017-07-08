@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef _PCRE2_UCP_H
-#define _PCRE2_UCP_H
+#ifndef PCRE2_UCP_H_IDEMPOTENT_GUARD
+#define PCRE2_UCP_H_IDEMPOTENT_GUARD
 
 /* This file contains definitions of the property values that are returned by
 the UCD access macros. New values that are added for new releases of Unicode
@@ -263,6 +263,6 @@ enum {
   ucp_SignWriting
 };
 
-#endif
+#endif  /* PCRE2_UCP_H_IDEMPOTENT_GUARD */
 
 /* End of pcre2_ucp.h */

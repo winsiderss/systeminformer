@@ -206,7 +206,7 @@ print_custring(FILE *f, PCRE2_SPTR ptr)
 {
 while (*ptr != '\0')
   {
-  register uint32_t c = *ptr++;
+  uint32_t c = *ptr++;
   if (PRINTABLE(c)) fprintf(f, "%c", c); else fprintf(f, "\\x{%x}", c);
   }
 }
@@ -216,7 +216,7 @@ print_custring_bylen(FILE *f, PCRE2_SPTR ptr, PCRE2_UCHAR len)
 {
 for (; len > 0; len--)
   {
-  register uint32_t c = *ptr++;
+  uint32_t c = *ptr++;
   if (PRINTABLE(c)) fprintf(f, "%c", c); else fprintf(f, "\\x{%x}", c);
   }
 }

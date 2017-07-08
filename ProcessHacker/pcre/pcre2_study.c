@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains functions for scanning a compiled pattern and
 collecting data (e.g. minimum matching length). */
 
+
 #define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -49,6 +50,10 @@ collecting data (e.g. minimum matching length). */
 
 #include "pcre2_internal.h"
 
+
+/* The maximum remembered capturing brackets minimum. */
+
+#define MAX_CACHE_BACKREF 128
 
 /* Set a bit in the starting code unit bit map. */
 
@@ -71,6 +76,12 @@ length is 16-bits long (on the grounds that anything longer than that is
 pathological), so we give up when we reach that amount. This also means that
 integer overflow for really crazy patterns cannot happen.
 
+Backreference minimum lengths are cached to speed up multiple references. This
+function is called only when the highest back reference in the pattern is less
+than or equal to MAX_CACHE_BACKREF, which is one less than the size of the
+caching vector. The zeroth element contains the number of the highest set
+value.
+
 Arguments:
   re              compiled pattern block
   code            pointer to start of group (the bracket)
@@ -78,6 +89,7 @@ Arguments:
   utf             UTF flag
   recurses        chain of recurse_check to catch mutual recursion
   countptr        pointer to call count (to catch over complexity)
+  backref_cache   vector for caching back references.
 
 Returns:   the minimum length
            -1 \C in UTF-8 mode
@@ -90,7 +102,8 @@ Returns:   the minimum length
 
 static int
 find_minlength(const pcre2_real_code *re, PCRE2_SPTR code,
-  PCRE2_SPTR startcode, BOOL utf, recurse_check *recurses, int *countptr)
+  PCRE2_SPTR startcode, BOOL utf, recurse_check *recurses, int *countptr,
+  int *backref_cache)
 {
 int length = -1;
 int prev_cap_recno = -1;
@@ -101,8 +114,8 @@ uint32_t once_fudge = 0;
 BOOL had_recurse = FALSE;
 BOOL dupcapused = (re->flags & PCRE2_DUPCAPUSED) != 0;
 recurse_check this_recurse;
-register int branchlength = 0;
-register PCRE2_UCHAR *cc = (PCRE2_UCHAR *)code + 1 + LINK_SIZE;
+int branchlength = 0;
+PCRE2_UCHAR *cc = (PCRE2_UCHAR *)code + 1 + LINK_SIZE;
 
 /* If this is a "could be empty" group, its minimum length is 0. */
 
@@ -124,7 +137,7 @@ for (;;)
   {
   int d, min, recno;
   PCRE2_UCHAR *cs, *ce;
-  register PCRE2_UCHAR op = *cc;
+  PCRE2_UCHAR op = *cc;
 
   if (branchlength >= UINT16_MAX) return UINT16_MAX;
 
@@ -166,7 +179,8 @@ for (;;)
     case OP_BRAPOS:
     case OP_SBRAPOS:
     PROCESS_NON_CAPTURE:
-    d = find_minlength(re, cc, startcode, utf, recurses, countptr);
+    d = find_minlength(re, cc, startcode, utf, recurses, countptr,
+      backref_cache);
     if (d < 0) return d;
     branchlength += d;
     do cc += GET(cc, 1); while (*cc == OP_ALT);
@@ -182,11 +196,12 @@ for (;;)
     case OP_SCBRA:
     case OP_CBRAPOS:
     case OP_SCBRAPOS:
-    recno = dupcapused? prev_cap_recno - 1 : (int)GET2(cc, 1+LINK_SIZE);
-    if (recno != prev_cap_recno)
+    recno = (int)GET2(cc, 1+LINK_SIZE);
+    if (dupcapused || recno != prev_cap_recno)
       {
       prev_cap_recno = recno;
-      prev_cap_d = find_minlength(re, cc, startcode, utf, recurses, countptr);
+      prev_cap_d = find_minlength(re, cc, startcode, utf, recurses, countptr,
+        backref_cache);
       if (prev_cap_d < 0) return prev_cap_d;
       }
     branchlength += prev_cap_d;
@@ -456,38 +471,52 @@ for (;;)
 
       d = INT_MAX;
 
-      /* Scan all groups with the same name */
+      /* Scan all groups with the same name; find the shortest. */
 
       while (count-- > 0)
         {
-        ce = cs = (PCRE2_UCHAR *)PRIV(find_bracket)(startcode, utf, GET2(slot, 0));
-        if (cs == NULL) return -2;
-        do ce += GET(ce, 1); while (*ce == OP_ALT);
-        if (cc > cs && cc < ce)    /* Simple recursion */
-          {
-          d = 0;
-          had_recurse = TRUE;
-          break;
-          }
+        int dd, i;
+        recno = GET2(slot, 0);
+
+        if (recno <= backref_cache[0] && backref_cache[recno] >= 0)
+          dd = backref_cache[recno];
         else
           {
-          recurse_check *r = recurses;
-          for (r = recurses; r != NULL; r = r->prev) if (r->group == cs) break;
-          if (r != NULL)           /* Mutual recursion */
+          ce = cs = (PCRE2_UCHAR *)PRIV(find_bracket)(startcode, utf, recno);
+          if (cs == NULL) return -2;
+          do ce += GET(ce, 1); while (*ce == OP_ALT);
+          if (cc > cs && cc < ce)    /* Simple recursion */
             {
-            d = 0;
+            dd = 0;
             had_recurse = TRUE;
-            break;
             }
           else
             {
-            int dd;
-            this_recurse.prev = recurses;
-            this_recurse.group = cs;
-            dd = find_minlength(re, cs, startcode, utf, &this_recurse, countptr);
-            if (dd < d) d = dd;
+            recurse_check *r = recurses;
+            for (r = recurses; r != NULL; r = r->prev)
+              if (r->group == cs) break;
+            if (r != NULL)           /* Mutual recursion */
+              {
+              dd = 0;
+              had_recurse = TRUE;
+              }
+            else
+              {
+              this_recurse.prev = recurses;
+              this_recurse.group = cs;
+              dd = find_minlength(re, cs, startcode, utf, &this_recurse,
+                countptr, backref_cache);
+              if (dd < 0) return dd;
+              }
             }
+
+          backref_cache[recno] = dd;
+          for (i = backref_cache[0] + 1; i < recno; i++) backref_cache[i] = -1;
+          backref_cache[0] = recno;
           }
+
+        if (dd < d) d = dd;
+        if (d <= 0) break;    /* No point looking at any more */
         slot += re->name_entry_size;
         }
       }
@@ -501,34 +530,48 @@ for (;;)
     case OP_REF:
     case OP_REFI:
     if (dupcapused) return -1;
-    if ((re->overall_options & PCRE2_MATCH_UNSET_BACKREF) == 0)
+    recno = GET2(cc, 1);
+    if (recno <= backref_cache[0] && backref_cache[recno] >= 0)
+      d = backref_cache[recno];
+    else
       {
-      ce = cs = (PCRE2_UCHAR *)PRIV(find_bracket)(startcode, utf, GET2(cc, 1));
-      if (cs == NULL) return -2;
-      do ce += GET(ce, 1); while (*ce == OP_ALT);
-      if (cc > cs && cc < ce)    /* Simple recursion */
+      int i;
+      if ((re->overall_options & PCRE2_MATCH_UNSET_BACKREF) == 0)
         {
-        d = 0;
-        had_recurse = TRUE;
-        }
-      else
-        {
-        recurse_check *r = recurses;
-        for (r = recurses; r != NULL; r = r->prev) if (r->group == cs) break;
-        if (r != NULL)           /* Mutual recursion */
+        ce = cs = (PCRE2_UCHAR *)PRIV(find_bracket)(startcode, utf, recno);
+        if (cs == NULL) return -2;
+        do ce += GET(ce, 1); while (*ce == OP_ALT);
+        if (cc > cs && cc < ce)    /* Simple recursion */
           {
           d = 0;
           had_recurse = TRUE;
           }
         else
           {
-          this_recurse.prev = recurses;
-          this_recurse.group = cs;
-          d = find_minlength(re, cs, startcode, utf, &this_recurse, countptr);
+          recurse_check *r = recurses;
+          for (r = recurses; r != NULL; r = r->prev) if (r->group == cs) break;
+          if (r != NULL)           /* Mutual recursion */
+            {
+            d = 0;
+            had_recurse = TRUE;
+            }
+          else
+            {
+            this_recurse.prev = recurses;
+            this_recurse.group = cs;
+            d = find_minlength(re, cs, startcode, utf, &this_recurse, countptr,
+              backref_cache);
+            if (d < 0) return d;
+            }
           }
         }
+      else d = 0;
+
+      backref_cache[recno] = d;
+      for (i = backref_cache[0] + 1; i < recno; i++) backref_cache[i] = -1;
+      backref_cache[0] = recno;
       }
-    else d = 0;
+
     cc += 1 + IMM2_SIZE;
 
     /* Handle repeated back references */
@@ -601,7 +644,7 @@ for (;;)
           this_recurse.prev = recurses;
           this_recurse.group = cs;
           prev_recurse_d = find_minlength(re, cs, startcode, utf, &this_recurse,
-            countptr);
+            countptr, backref_cache);
           if (prev_recurse_d < 0) return prev_recurse_d;
           prev_recurse_recno = recno;
           branchlength += prev_recurse_d;
@@ -792,7 +835,7 @@ Returns:         nothing
 static void
 set_type_bits(pcre2_real_code *re, int cbit_type, unsigned int table_limit)
 {
-register uint32_t c;
+uint32_t c;
 for (c = 0; c < table_limit; c++)
   re->start_bitmap[c] |= re->tables[c+cbits_offset+cbit_type];
 #if defined SUPPORT_UNICODE && PCRE2_CODE_UNIT_WIDTH == 8
@@ -833,7 +876,7 @@ Returns:         nothing
 static void
 set_nottype_bits(pcre2_real_code *re, int cbit_type, unsigned int table_limit)
 {
-register uint32_t c;
+uint32_t c;
 for (c = 0; c < table_limit; c++)
   re->start_bitmap[c] |= ~(re->tables[c+cbits_offset+cbit_type]);
 #if defined SUPPORT_UNICODE && PCRE2_CODE_UNIT_WIDTH == 8
@@ -873,7 +916,7 @@ Returns:       SSB_FAIL     => Failed to find any starting code units
 static int
 set_start_bits(pcre2_real_code *re, PCRE2_SPTR code, BOOL utf)
 {
-register uint32_t c;
+uint32_t c;
 int yield = SSB_DONE;
 
 #if defined SUPPORT_UNICODE && PCRE2_CODE_UNIT_WIDTH == 8
@@ -1546,12 +1589,20 @@ if ((re->overall_options & PCRE2_ANCHORED) == 0 &&
   if (rc == SSB_DONE) re->flags |= PCRE2_FIRSTMAPSET;
   }
 
-/* Find the minimum length of subject string. If it can match an empty string,
-the minimum length is already known. */
+/* Find the minimum length of subject string. If the pattern can match an empty
+string, the minimum length is already known. If there are more back references
+than the size of the vector we are going to cache them in, do nothing. A
+pattern that complicated will probably take a long time to analyze and may in
+any case turn out to be too complicated. Note that back reference minima are
+held as 16-bit numbers. */
 
-if ((re->flags & PCRE2_MATCH_EMPTY) == 0)
+if ((re->flags & PCRE2_MATCH_EMPTY) == 0 &&
+     re->top_backref <= MAX_CACHE_BACKREF)
   {
-  switch(min = find_minlength(re, code, code, utf, NULL, &count))
+  int backref_cache[MAX_CACHE_BACKREF+1];
+  backref_cache[0] = 0;    /* Highest one that is set */
+  min = find_minlength(re, code, code, utf, NULL, &count, backref_cache);
+  switch(min)
     {
     case -1:  /* \C in UTF mode or (*ACCEPT) or over-complex regex */
     break;    /* Leave minlength unchanged (will be zero) */
