@@ -346,6 +346,9 @@
     <ClInclude Include="include\guisup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphuserp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="sha256.h">
       <Filter>Header Files</Filter>
     </ClInclude>
