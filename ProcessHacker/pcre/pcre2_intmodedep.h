@@ -140,7 +140,7 @@ values of 3 or 4 are also supported. */
 #undef LINK_SIZE
 #define LINK_SIZE 1
 #define PUT(a,n,d)   \
-  (a[n] = (d))
+  (a[n] = (PCRE2_UCHAR)(d))
 #define GET(a,n) \
   (a[n])
 #define MAX_PATTERN_SIZE (1 << 16)
@@ -200,11 +200,11 @@ arithmetic results in a signed value. Hence the cast. */
 #endif
 
 /* Other macros that are different for 8-bit mode. The MAX_255 macro checks
-whether its argument is less than 256. The maximum length of a MARK name must
-fit in one code unit; currently it is set to 255 or 65535. The TABLE_GET macro
-is used to access elements of tables containing exactly 256 items. When code
-points can be greater than 255, a check is needed before accessing these
-tables. */
+whether its argument, which is assumed to be one code unit, is less than 256.
+The maximum length of a MARK name must fit in one code unit; currently it is
+set to 255 or 65535. The TABLE_GET macro is used to access elements of tables
+containing exactly 256 items. When code points can be greater than 255, a check
+is needed before accessing these tables. */
 
 #if PCRE2_CODE_UNIT_WIDTH == 8
 #define MAX_255(c) TRUE
@@ -648,18 +648,24 @@ typedef struct pcre2_real_match_data {
 
 #ifndef PCRE2_PCRE2TEST
 
-/* Structure for checking for mutual recursion when scanning compiled code. */
+/* Structures for checking for mutual recursion when scanning compiled or
+parsed code. */
 
 typedef struct recurse_check {
   struct recurse_check *prev;
   PCRE2_SPTR group;
 } recurse_check;
 
+typedef struct parsed_recurse_check {
+  struct parsed_recurse_check *prev;
+  uint32_t *groupptr;
+} parsed_recurse_check;
+
 /* Structure for building a cache when filling in recursion offsets. */
 
 typedef struct recurse_cache {
   PCRE2_SPTR group;
-  int recno;
+  int groupnumber;
 } recurse_cache;
 
 /* Structure for maintaining a chain of pointers to the currently incomplete
@@ -693,9 +699,10 @@ typedef struct compile_block {
   PCRE2_SPTR start_code;           /* The start of the compiled code */
   PCRE2_SPTR start_pattern;        /* The start of the pattern */
   PCRE2_SPTR end_pattern;          /* The end of the pattern */
-  PCRE2_SPTR nestptr[2];           /* Pointer(s) saved for string substitution */
   PCRE2_UCHAR *name_table;         /* The name/number table */
-  size_t workspace_size;           /* Size of workspace */
+  PCRE2_SIZE workspace_size;       /* Size of workspace */
+  PCRE2_SIZE small_ref_offset[10]; /* Offsets for \1 to \9 */
+  PCRE2_SIZE erroroffset;          /* Offset of error in pattern */
   uint16_t names_found;            /* Number of entries so far */
   uint16_t name_entry_size;        /* Size of each entry */
   open_capitem *open_caps;         /* Chain of open capture items */
@@ -703,13 +710,17 @@ typedef struct compile_block {
   uint32_t named_group_list_size;  /* Number of entries in the list */
   uint32_t external_options;       /* External (initial) options */
   uint32_t external_flags;         /* External flag bits to be set */
-  uint32_t bracount;               /* Count of capturing parens as we compile */
-  uint32_t final_bracount;         /* Saved value after first pass */
+  uint32_t bracount;               /* Count of capturing parentheses */
+  uint32_t lastcapture;            /* Last capture encountered */
+  uint32_t *parsed_pattern;        /* Parsed pattern buffer */
+  uint32_t *parsed_pattern_end;    /* Parsed pattern should not get here */
   uint32_t *groupinfo;             /* Group info vector */
   uint32_t top_backref;            /* Maximum back reference */
   uint32_t backref_map;            /* Bitmap of low back refs */
   uint32_t nltype;                 /* Newline type */
   uint32_t nllen;                  /* Newline string length */
+  uint32_t class_range_start;      /* Overall class range start */
+  uint32_t class_range_end;        /* Overall class range end */
   PCRE2_UCHAR nl[4];               /* Newline string when fixed length */
   int  max_lookbehind;             /* Maximum lookbehind (characters) */
   int  parens_depth;               /* Depth of nested parentheses */
@@ -718,9 +729,7 @@ typedef struct compile_block {
   BOOL had_accept;                 /* (*ACCEPT) encountered */
   BOOL had_pruneorskip;            /* (*PRUNE) or (*SKIP) encountered */
   BOOL had_recurse;                /* Had a recursion or subroutine call */
-  BOOL check_lookbehind;           /* Lookbehinds need later checking */
   BOOL dupnames;                   /* Duplicate names exist */
-  BOOL iscondassert;               /* Next assert is a condition */
 } compile_block;
 
 /* Structure for keeping the properties of the in-memory stack used
@@ -836,6 +845,7 @@ typedef struct dfa_match_block {
   PCRE2_SPTR last_used_ptr;       /* Latest consulted character */
   const uint8_t *tables;          /* Character tables */
   PCRE2_SIZE start_offset;        /* The start offset value */
+  uint32_t match_limit_recursion; /* As it says */
   uint32_t moptions;              /* Match options */
   uint32_t poptions;              /* Pattern options */
   uint32_t nltype;                /* Newline type */

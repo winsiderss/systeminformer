@@ -45,6 +45,7 @@ own as part of the PCRE2 library. However, it is also included in the
 compilation of dftables.c, in which case the macro DFTABLES is defined. */
 
 #define HAVE_CONFIG_H
+
 #ifndef DFTABLES
 #  ifdef HAVE_CONFIG_H
 #  include "config.h"

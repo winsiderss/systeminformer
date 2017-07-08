@@ -38,14 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-// dmex: Disable warnings
-#pragma warning(push)
-#pragma warning(disable : 4267)
 
 /* This module is a wrapper that provides a POSIX API to the underlying PCRE2
 functions. */
 
+// dmex: Disable warnings.
+#pragma warning(push)
+#pragma warning(disable : 4267) 
 #define HAVE_CONFIG_H
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -101,7 +102,7 @@ PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
 set, we ensure here that it has no effect. */
 
 #ifndef PCRE2_CALL_CONVENTION
-#define PCRE2_CALL_CONVENTION
+#define PCRE2_CALL_CONVENTION  
 #endif
 
 /* Table to translate PCRE2 compile time error codes into POSIX error codes.
@@ -289,8 +290,7 @@ return 0;
 
 /* A suitable match_data block, large enough to hold all possible captures, was
 obtained when the pattern was compiled, to save having to allocate and free it
-for each match. If REG_NOSUB was specified at compile time, the
-PCRE_NO_AUTO_CAPTURE flag will be set. When this is the case, the nmatch and
+for each match. If REG_NOSUB was specified at compile time, the nmatch and
 pmatch arguments are ignored, and the only result is yes/no/error. */
 
 PCRE2POSIX_EXP_DEFN int PCRE2_CALL_CONVENTION

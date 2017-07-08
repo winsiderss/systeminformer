@@ -41,7 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains functions that scan a compiled pattern and change
 repeats into possessive repeats where possible. */
 
+
 #define HAVE_CONFIG_H
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -589,6 +591,7 @@ for(;;)
       case OP_ASSERTBACK_NOT:
       case OP_ONCE:
       case OP_ONCE_NC:
+
       /* Atomic sub-patterns and assertions can always auto-possessify their
       last iterator. However, if the group was entered as a result of checking
       a previous iterator, this is not possible. */
@@ -605,6 +608,9 @@ for(;;)
     case OP_CBRA:
     next_code = code + GET(code, 1);
     code += PRIV(OP_lengths)[c];
+
+    /* Check each branch. We have to recurse a level for all but the last
+    branch. */
 
     while (*next_code == OP_ALT)
       {
@@ -1046,8 +1052,10 @@ but some compilers complain about an unreachable statement. */
 
 /* Replaces single character iterations with their possessive alternatives
 if appropriate. This function modifies the compiled opcode! Hitting a
-non-existant opcode may indicate a bug in PCRE2, but it can also be caused if a
-bad UTF string was compiled with PCRE2_NO_UTF_CHECK.
+non-existent opcode may indicate a bug in PCRE2, but it can also be caused if a
+bad UTF string was compiled with PCRE2_NO_UTF_CHECK. The rec_limit catches
+overly complicated or large patterns. In these cases, the check just stops,
+leaving the remainder of the pattern unpossessified.
 
 Arguments:
   code        points to start of the byte code
@@ -1061,11 +1069,11 @@ Returns:      0 for success
 int
 PRIV(auto_possessify)(PCRE2_UCHAR *code, BOOL utf, const compile_block *cb)
 {
-register PCRE2_UCHAR c;
+PCRE2_UCHAR c;
 PCRE2_SPTR end;
 PCRE2_UCHAR *repeat_opcode;
 uint32_t list[8];
-int rec_limit;
+int rec_limit = 1000;  /* Was 10,000 but clang+ASAN uses a lot of stack. */
 
 for (;;)
   {
@@ -1080,7 +1088,6 @@ for (;;)
       get_chr_property_list(code, utf, cb->fcc, list) : NULL;
     list[1] = c == OP_STAR || c == OP_PLUS || c == OP_QUERY || c == OP_UPTO;
 
-    rec_limit = 1000;
     if (end != NULL && compare_opcodes(end, utf, cb, list, end, &rec_limit))
       {
       switch(c)
@@ -1137,7 +1144,6 @@ for (;;)
 
       list[1] = (c & 1) == 0;
 
-      rec_limit = 1000;
       if (compare_opcodes(end, utf, cb, list, end, &rec_limit))
         {
         switch (c)

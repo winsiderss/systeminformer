@@ -56,7 +56,7 @@ extern "C" {
 #define REG_NOTBOL    0x0004  /* Maps to PCRE2_NOTBOL */
 #define REG_NOTEOL    0x0008  /* Maps to PCRE2_NOTEOL */
 #define REG_DOTALL    0x0010  /* NOT defined by POSIX; maps to PCRE2_DOTALL */
-#define REG_NOSUB     0x0020  /* Maps to PCRE2_NO_AUTO_CAPTURE */
+#define REG_NOSUB     0x0020  /* Do not report what was matched */
 #define REG_UTF       0x0040  /* NOT defined by POSIX; maps to PCRE2_UTF */
 #define REG_STARTEND  0x0080  /* BSD feature: pass subject string by so,eo */
 #define REG_NOTEMPTY  0x0100  /* NOT defined by POSIX; maps to PCRE2_NOTEMPTY */

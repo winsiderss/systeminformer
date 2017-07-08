@@ -142,20 +142,6 @@ pcre2_match() because of the way it backtracks. */
 #define PCRE2_SPTR CUSTOM_SUBJECT_PTR
 #endif
 
-/* When compiling with the MSVC compiler, it is sometimes necessary to include
-a "calling convention" before exported function names. (This is secondhand
-information; I know nothing about MSVC myself). For example, something like
-
-  void __cdecl function(....)
-
-might be needed. In order so make this easy, all the exported functions have
-PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
-set, we ensure here that it has no effect. */
-
-#ifndef PCRE2_CALL_CONVENTION
-#define PCRE2_CALL_CONVENTION
-#endif
-
 /* When checking for integer overflow in pcre2_compile(), we need to handle
 large integers. If a 64-bit integer type is available, we can use that.
 Otherwise we have to cast to double, which of course requires floating point
@@ -1298,23 +1284,16 @@ mode rather than an escape sequence. It is also used for [^] in JavaScript
 compatibility mode, and for \C in non-utf mode. In non-DOTALL mode, "." behaves
 like \N.
 
-The special values ESC_DU, ESC_du, etc. are used instead of ESC_D, ESC_d, etc.
-when PCRE2_UCP is set and replacement of \d etc by \p sequences is required.
-They must be contiguous, and remain in order so that the replacements can be
-looked up from a table.
-
 Negative numbers are used to encode a backreference (\1, \2, \3, etc.) in
-check_escape(). There are two tests in the code for an escape
-greater than ESC_b and less than ESC_Z to detect the types that may be
-repeated. These are the types that consume characters. If any new escapes are
-put in between that don't consume a character, that code will have to change.
-*/
+check_escape(). There are tests in the code for an escape greater than ESC_b
+and less than ESC_Z to detect the types that may be repeated. These are the
+types that consume characters. If any new escapes are put in between that don't
+consume a character, that code will have to change. */
 
 enum { ESC_A = 1, ESC_G, ESC_K, ESC_B, ESC_b, ESC_D, ESC_d, ESC_S, ESC_s,
        ESC_W, ESC_w, ESC_N, ESC_dum, ESC_C, ESC_P, ESC_p, ESC_R, ESC_H,
        ESC_h, ESC_V, ESC_v, ESC_X, ESC_Z, ESC_z,
-       ESC_E, ESC_Q, ESC_g, ESC_k,
-       ESC_DU, ESC_du, ESC_SU, ESC_su, ESC_WU, ESC_wu };
+       ESC_E, ESC_Q, ESC_g, ESC_k };
 
 
 /********************** Opcode definitions ******************/
@@ -1380,7 +1359,8 @@ enum {
   OP_CIRC,           /* 27 Start of line - not multiline */
   OP_CIRCM,          /* 28 Start of line - multiline */
 
-  /* Single characters; caseful must precede the caseless ones */
+  /* Single characters; caseful must precede the caseless ones, and these
+  must remain in this order, and adjacent. */
 
   OP_CHAR,           /* 29 Match one character, casefully */
   OP_CHARI,          /* 30 Match one character, caselessly */

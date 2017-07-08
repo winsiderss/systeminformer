@@ -39,10 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#define HAVE_CONFIG_H
+
 /* This file contains a function that converts a Unicode character code point
 into a UTF string. The behaviour is different for each code unit width. */
 
-#define HAVE_CONFIG_H
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -83,7 +85,7 @@ PRIV(ord2utf)(uint32_t cvalue, PCRE2_UCHAR *buffer)
 /* Convert to UTF-8 */
 
 #if PCRE2_CODE_UNIT_WIDTH == 8
-register int i, j;
+int i, j;
 for (i = 0; i < PRIV(utf8_table1_size); i++)
   if ((int)cvalue <= PRIV(utf8_table1)[i]) break;
 buffer += i;
