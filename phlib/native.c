@@ -113,15 +113,16 @@ NTSTATUS PhOpenProcess(
     _In_ HANDLE ProcessId
     )
 {
+    NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
 
-    if (KphIsConnected())
+    if (KphIsVerified() && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
     {
-        return KphOpenProcess(
+        status = KphOpenProcess(
             ProcessHandle,
             DesiredAccess,
             &clientId
@@ -130,14 +131,24 @@ NTSTATUS PhOpenProcess(
     else
     {
         InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
-
-        return NtOpenProcess(
+        status = NtOpenProcess(
             ProcessHandle,
             DesiredAccess,
             &objectAttributes,
             &clientId
             );
+
+        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        {
+            status = KphOpenProcess(
+                ProcessHandle,
+                DesiredAccess,
+                &clientId
+                );
+        }
     }
+
+    return status;
 }
 
 /** Limited API for untrusted/external code. */
@@ -175,15 +186,16 @@ NTSTATUS PhOpenThread(
     _In_ HANDLE ThreadId
     )
 {
+    NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
 
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
 
-    if (KphIsConnected())
+    if (KphIsVerified() && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
     {
-        return KphOpenThread(
+        status = KphOpenThread(
             ThreadHandle,
             DesiredAccess,
             &clientId
@@ -192,14 +204,24 @@ NTSTATUS PhOpenThread(
     else
     {
         InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
-
-        return NtOpenThread(
+        status = NtOpenThread(
             ThreadHandle,
             DesiredAccess,
             &objectAttributes,
             &clientId
             );
+
+        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        {
+            status = KphOpenThread(
+                ThreadHandle,
+                DesiredAccess,
+                &clientId
+                );
+        }
     }
+
+    return status;
 }
 
 /** Limited API for untrusted/external code. */
@@ -271,9 +293,11 @@ NTSTATUS PhOpenProcessToken(
     _Out_ PHANDLE TokenHandle
     )
 {
-    if (KphIsConnected())
+    NTSTATUS status;
+
+    if (KphIsVerified() && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
     {
-        return KphOpenProcessToken(
+        status = KphOpenProcessToken(
             ProcessHandle,
             DesiredAccess,
             TokenHandle
@@ -281,12 +305,23 @@ NTSTATUS PhOpenProcessToken(
     }
     else
     {
-        return NtOpenProcessToken(
+        status = NtOpenProcessToken(
             ProcessHandle,
             DesiredAccess,
             TokenHandle
             );
+
+        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        {
+            status = KphOpenProcessToken(
+                ProcessHandle,
+                DesiredAccess,
+                TokenHandle
+                );
+        }
     }
+
+    return status;
 }
 
 NTSTATUS PhGetObjectSecurity(
@@ -365,7 +400,7 @@ NTSTATUS PhTerminateProcess(
 {
     NTSTATUS status;
 
-    if (KphIsConnected())
+    if (KphIsVerified())
     {
         status = KphTerminateProcess(
             ProcessHandle,
@@ -2484,7 +2519,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
         NULL
         );
 
-    status = KphOpenDriver(&driverHandle, &objectAttributes);
+    status = KphOpenDriver(&driverHandle, SYNCHRONIZE, &objectAttributes);
     PhDereferenceObject(driverName);
 
     if (!NT_SUCCESS(status))
