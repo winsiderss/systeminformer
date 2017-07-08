@@ -2199,6 +2199,11 @@ PPH_STRING PhGetApplicationFileName(
     VOID
     )
 {
+    PPH_STRING fileName;
+
+    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+        return fileName;
+
     return PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
 }
 
@@ -2210,13 +2215,20 @@ PPH_STRING PhGetApplicationDirectory(
     )
 {
     PPH_STRING fileName;
-    ULONG indexOfFileName;
+    ULONG_PTR indexOfFileName;
     PPH_STRING path = NULL;
 
-    fileName = PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, &indexOfFileName);
+    fileName = PhGetApplicationFileName();
 
     if (fileName)
     {
+        indexOfFileName = PhFindLastCharInString(fileName, 0, '\\');
+
+        if (indexOfFileName != -1)
+            indexOfFileName++;
+        else
+            indexOfFileName = 0;
+
         if (indexOfFileName != 0)
         {
             // Remove the file name from the path.
