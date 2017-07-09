@@ -375,24 +375,14 @@ INT PhShowMessage(
     ...
     )
 {
-    va_list argptr;
-
-    va_start(argptr, Format);
-
-    return PhShowMessage_V(hWnd, Type, Format, argptr);
-}
-
-INT PhShowMessage_V(
-    _In_ HWND hWnd,
-    _In_ ULONG Type,
-    _In_ PWSTR Format,
-    _In_ va_list ArgPtr
-    )
-{
     INT result;
+    va_list argptr;
     PPH_STRING message;
 
-    message = PhFormatString_V(Format, ArgPtr);
+    va_start(argptr, Format);
+    va_start(argptr, Format);
+    message = PhFormatString_V(Format, argptr);
+    va_end(argptr);
 
     if (!message)
         return -1;

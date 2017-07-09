@@ -278,10 +278,11 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         }
         else
         {
-            if (PhShowMessage(
+            if (PhShowMessage2(
                 context->WindowHandle,
-                MB_YESNO | MB_ICONWARNING,
-                L"The process is 32-bit, but the 32-bit version of Process Hacker could not be located. "
+                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_WARNING_ICON,
+                L"The 32-bit version of Process Hacker could not be located.",
                 L"A 64-bit dump will be created instead. Do you want to continue?"
                 ) == IDNO)
             {

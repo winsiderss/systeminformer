@@ -94,10 +94,11 @@ VOID PeInitializeSettings(
         // change anything.
         if (status == STATUS_FILE_CORRUPT_ERROR)
         {
-            if (PhShowMessage(
+            if (PhShowMessage2(
                 NULL,
-                MB_ICONWARNING | MB_YESNO,
-                L"PE View's settings file is corrupt. Do you want to reset it?\n"
+                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_WARNING_ICON,
+                L"PE View's settings file is corrupt. Do you want to reset it?",
                 L"If you select No, the settings system will not function properly."
                 ) == IDYES)
             {

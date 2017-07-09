@@ -222,16 +222,6 @@ PhShowMessage(
     ...
     );
 
-PHLIBAPI
-INT
-NTAPI
-PhShowMessage_V(
-    _In_ HWND hWnd,
-    _In_ ULONG Type,
-    _In_ PWSTR Format,
-    _In_ va_list ArgPtr
-    );
-
 #define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
 #define PhShowWarning(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
 #define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)

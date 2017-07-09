@@ -537,10 +537,12 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                     goto Cleanup;
 ErrorCase:
-                    if (PhShowMessage(
+                    if (PhShowMessage2(
                         hwndDlg,
-                        MB_ICONERROR | MB_RETRYCANCEL,
-                        L"Unable to change service configuration: %s",
+                        TDCBF_RETRY_BUTTON | TDCBF_CANCEL_BUTTON,
+                        TD_ERROR_ICON,
+                        L"Unable to change service configuration.",
+                        L"%s",
                         PH_AUTO_T(PH_STRING, PhGetWin32Message(GetLastError()))->Buffer
                         ) == IDRETRY)
                     {
