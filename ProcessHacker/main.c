@@ -667,10 +667,11 @@ VOID PhpInitializeSettings(
             // change anything.
             if (status == STATUS_FILE_CORRUPT_ERROR)
             {
-                if (PhShowMessage(
-                    NULL,
-                    MB_ICONWARNING | MB_YESNO,
-                    L"Process Hacker's settings file is corrupt. Do you want to reset it?\n"
+                if (PhShowMessage2(
+                    PhMainWndHandle,
+                    TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                    TD_WARNING_ICON,
+                    L"Process Hacker's settings file is corrupt. Do you want to reset it?",
                     L"If you select No, the settings system will not function properly."
                     ) == IDYES)
                 {

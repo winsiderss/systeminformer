@@ -16,6 +16,7 @@
 *.config eol=crlf
 *.cmd eol=crlf
 *.csproj eol=crlf
+*.def eol=crlf
 *.h eol=crlf
 *.manifest eol=crlf
 *.resx eol=crlf

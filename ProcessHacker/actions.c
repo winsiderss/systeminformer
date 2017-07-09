@@ -1634,7 +1634,7 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
     if (status == STATUS_PORT_NOT_SET)
     {
-        PhShowInformation(hWnd, L"The process is not being debugged.");
+        PhShowInformation2(hWnd, L"The process is not being debugged.", L"");
         return FALSE;
     }
 
@@ -2262,13 +2262,12 @@ BOOLEAN PhUiCloseConnections(
             }
             else
             {
-                if (PhShowMessage(
+                if (PhShowMessage2(
                     hWnd,
-                    MB_ICONERROR | MB_OKCANCEL,
-                    L"Unable to close the TCP connection (from %s:%u). "
-                    L"Make sure Process Hacker is running with administrative privileges.",
-                    Connections[i]->LocalAddressString,
-                    Connections[i]->LocalEndpoint.Port
+                    TDCBF_OK_BUTTON,
+                    TD_ERROR_ICON,
+                    L"Unable to close the TCP connection.",
+                    L"Make sure Process Hacker is running with administrative privileges."
                     ) != IDOK)
                     break;
             }

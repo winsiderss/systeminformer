@@ -380,8 +380,13 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 break;
             case IDC_CLEANUP:
                 {
-                    if (PhShowMessage(hwndDlg, MB_ICONQUESTION | MB_YESNO,
-                        L"Do you want to clean up unused plugin settings?") == IDYES)
+                    if (PhShowMessage2(
+                        hwndDlg,
+                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_INFORMATION_ICON,
+                        L"Do you want to clean up unused plugin settings?",
+                        L""
+                        ) == IDYES)
                     {
                         PhClearIgnoredSettings();
                     }

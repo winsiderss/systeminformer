@@ -207,10 +207,11 @@ VOID PhShowOptionsDialog(
 
             if (RestartRequired)
             {
-                if (PhShowMessage(
+                if (PhShowMessage2(
                     PhMainWndHandle,
-                    MB_ICONQUESTION | MB_YESNO,
-                    L"One or more options you have changed requires a restart of Process Hacker. "
+                    TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                    TD_INFORMATION_ICON,
+                    L"One or more options you have changed requires a restart of Process Hacker.",
                     L"Do you want to restart Process Hacker now?"
                     ) == IDYES)
                 {
@@ -330,10 +331,12 @@ LRESULT CALLBACK PhpOptionsWndProc(
             {
             case IDC_RESET:
                 {
-                    if (PhShowMessage(
+                    if (PhShowMessage2(
                         hwnd,
-                        MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2,
-                        L"Do you want to reset all settings and restart Process Hacker?"
+                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_WARNING_ICON,
+                        L"Do you want to reset all settings and restart Process Hacker?",
+                        L""
                         ) == IDYES)
                     {
                         ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
