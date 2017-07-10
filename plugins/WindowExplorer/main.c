@@ -34,7 +34,6 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
-
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -231,7 +230,7 @@ LOGICAL DllMain(
 
             isClient = FALSE;
 
-            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhLibImageBase"))
+            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhInstanceHandle"))
             {
                 isClient = TRUE;
             }
