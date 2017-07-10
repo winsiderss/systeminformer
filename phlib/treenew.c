@@ -450,7 +450,7 @@ BOOLEAN PhTnpOnCreate(
     }
 
     if (!(Context->VScrollHandle = CreateWindow(
-        L"SCROLLBAR",
+        WC_SCROLLBAR,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_VERT,
         0,
@@ -467,7 +467,7 @@ BOOLEAN PhTnpOnCreate(
     }
 
     if (!(Context->HScrollHandle = CreateWindow(
-        L"SCROLLBAR",
+        WC_SCROLLBAR,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_HORZ,
         0,
@@ -484,7 +484,7 @@ BOOLEAN PhTnpOnCreate(
     }
 
     if (!(Context->FillerBoxHandle = CreateWindow(
-        L"STATIC",
+        WC_STATIC,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
         0,
@@ -5183,8 +5183,8 @@ VOID PhTnpPrepareRowForDraw(
 
         getNodeColor.Flags = 0;
         getNodeColor.Node = Node;
-        getNodeColor.BackColor = RGB(0xff, 0xff, 0xff);
-        getNodeColor.ForeColor = RGB(0x00, 0x00, 0x00);
+        getNodeColor.BackColor = GetSysColor(COLOR_WINDOW); // RGB(0xff, 0xff, 0xff)
+        getNodeColor.ForeColor = GetSysColor(COLOR_WINDOWTEXT); // RGB(0x00, 0x00, 0x00)
 
         if (Context->Callback(
             Context->Handle,
