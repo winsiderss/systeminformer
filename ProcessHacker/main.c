@@ -558,7 +558,6 @@ VOID PhInitializeKph(
 {
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     static PH_STRINGREF processhackerSig = PH_STRINGREF_INIT(L"ProcessHacker.sig");
-
     PPH_STRING kprocesshackerFileName;
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
@@ -571,14 +570,16 @@ VOID PhInitializeKph(
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
 
-    parameters.SecurityLevel = KphSecurityPrivilegeCheck;
+    parameters.SecurityLevel = KphSecuritySignatureCheck;
     parameters.CreateDynamicConfiguration = TRUE;
-    KphConnect2Ex(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
 
-    if (signature = PhpReadSignature(processhackerSigFileName->Buffer, &signatureSize))
+    if (NT_SUCCESS(KphConnect2Ex(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters)))
     {
-        KphVerifyClient(signature, signatureSize);
-        PhFree(signature);
+        if (signature = PhpReadSignature(processhackerSigFileName->Buffer, &signatureSize))
+        {
+            KphVerifyClient(signature, signatureSize);
+            PhFree(signature);
+        }
     }
 
     PhDereferenceObject(kprocesshackerFileName);
