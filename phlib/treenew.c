@@ -340,6 +340,8 @@ VOID PhTnpCreateTreeNewContext(
     context->TooltipId = -1;
     context->TooltipColumnId = -1;
     context->EnableRedraw = 1;
+    context->DefaultBackColor = GetSysColor(COLOR_WINDOW); // RGB(0xff, 0xff, 0xff)
+    context->DefaultForeColor = GetSysColor(COLOR_WINDOWTEXT); // RGB(0x00, 0x00, 0x00)
 
     *Context = context;
 }
@@ -5183,8 +5185,8 @@ VOID PhTnpPrepareRowForDraw(
 
         getNodeColor.Flags = 0;
         getNodeColor.Node = Node;
-        getNodeColor.BackColor = GetSysColor(COLOR_WINDOW); // RGB(0xff, 0xff, 0xff)
-        getNodeColor.ForeColor = GetSysColor(COLOR_WINDOWTEXT); // RGB(0x00, 0x00, 0x00)
+        getNodeColor.BackColor = Context->DefaultBackColor;
+        getNodeColor.ForeColor = Context->DefaultForeColor;
 
         if (Context->Callback(
             Context->Handle,

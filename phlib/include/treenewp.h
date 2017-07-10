@@ -132,6 +132,8 @@ typedef struct _PH_TREENEW_CONTEXT
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
+    COLORREF DefaultBackColor;
+    COLORREF DefaultForeColor;
     LONG SystemBorderX;
     LONG SystemBorderY;
     LONG SystemEdgeX;
