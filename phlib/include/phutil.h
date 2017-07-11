@@ -164,12 +164,11 @@ PhLargeIntegerToLocalSystemTime(
     )
 {
     FILETIME fileTime;
-    FILETIME newFileTime;
 
     fileTime.dwLowDateTime = LargeInteger->LowPart;
     fileTime.dwHighDateTime = LargeInteger->HighPart;
-    FileTimeToLocalFileTime(&fileTime, &newFileTime);
-    FileTimeToSystemTime(&newFileTime, SystemTime);
+    FileTimeToSystemTime(&fileTime, SystemTime);
+    SystemTimeToTzSpecificLocalTime(NULL, SystemTime, SystemTime);
 }
 
 PHLIBAPI
