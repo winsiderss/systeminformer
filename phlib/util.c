@@ -2192,7 +2192,10 @@ PPH_STRING PhGetApplicationFileName(
     PPH_STRING fileName;
 
     if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    {
+        PhMoveReference(&fileName, PhGetFileName(fileName));
         return fileName;
+    }
 
     return PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
 }
