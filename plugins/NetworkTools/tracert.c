@@ -703,7 +703,7 @@ NTSTATUS TracertDialogThreadStart(
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(context->WindowHandle, &message))
+        if (!IsDialogMessage(windowHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
