@@ -768,7 +768,7 @@ PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
     // * If we call PhFindProcessRecord, it cannot find the process because it was
     //   started at 2.5 seconds, not 2 seconds or older.
     //
-    // This mean we must add one second minus one tick (100ns) to the time, giving us
+    // This means we must add one second minus one tick (100ns) to the time, giving us
     // 2.9999999 seconds. This will then make sure we find the process.
     PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
