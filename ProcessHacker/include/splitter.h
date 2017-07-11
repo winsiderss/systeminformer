@@ -20,6 +20,10 @@ typedef struct _PH_HSPLITTER_CONTEXT
     HWND ParentWindow;
     HWND TopWindow;
     HWND BottomWindow;
+
+    HBRUSH FocusBrush;
+    HBRUSH HotBrush;
+    HBRUSH NormalBrush;
 } PH_HSPLITTER_CONTEXT, *PPH_HSPLITTER_CONTEXT;
 
 PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(

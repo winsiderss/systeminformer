@@ -91,16 +91,16 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
                 GetClientRect(hwnd, &clientRect);
 
                 if (context->HasFocus)
-                    FillRect(hdc, &clientRect, CreateSolidBrush(RGB(0x0, 0x0, 0x0)));
+                    FillRect(hdc, &clientRect, context->FocusBrush);
                 else if (context->Hot)
-                    FillRect(hdc, &clientRect, CreateSolidBrush(RGB(0x44, 0x44, 0x44)));
+                    FillRect(hdc, &clientRect, context->HotBrush);
                 else
-                    FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+                    FillRect(hdc, &clientRect, context->NormalBrush);
 
                 EndPaint(hwnd, &paintStruct);
             }
         }
-        return 0;
+        return 1;
     case WM_ERASEBKGND:
         return 1;
     case WM_LBUTTONDOWN:
@@ -145,6 +145,12 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
         return 0;
     case WM_MOUSEMOVE:
         {
+            INT width;
+            INT height;
+            INT NewPos;
+            HDWP deferHandle;
+            POINT cursorPos;
+
             if (!context->Hot)
             {
                 TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
@@ -158,19 +164,17 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
             if (!context->HasFocus)
                 break;
 
-            int Width = GetClientWindowWidth(context->ParentWindow);
-            int NewPos;
-            HDWP deferHandle;
-            POINT cursorPos;
-
             GetCursorPos(&cursorPos);
             ScreenToClient(context->ParentWindow, &cursorPos);
             NewPos = cursorPos.y;
+            width = GetClientWindowWidth(context->ParentWindow);
+            height = GetClientWindowHeight(context->ParentWindow);
 
             if (NewPos < 200)
                 break;
-            if (NewPos > GetClientWindowHeight(context->ParentWindow) - 80)
+            if (NewPos > height - 80)
                 break;
+
             context->SplitterOffset = NewPos;
 
             deferHandle = BeginDeferWindowPos(3);
@@ -180,7 +184,7 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
                 NULL,
                 SPLITTER_PADDING,
                 90,
-                Width - SPLITTER_PADDING * 2,
+                width - SPLITTER_PADDING * 2,
                 cursorPos.y - 90,
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
@@ -190,7 +194,7 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
                 NULL,
                 0,
                 cursorPos.y,
-                Width,
+                width,
                 SPLITTER_PADDING,
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
@@ -200,8 +204,8 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
                 NULL,
                 SPLITTER_PADDING,
                 cursorPos.y + SPLITTER_PADDING,
-                Width - SPLITTER_PADDING * 2,
-                GetClientWindowHeight(context->ParentWindow) - (cursorPos.y + SPLITTER_PADDING) - 65,
+                width - SPLITTER_PADDING * 2,
+                height - (cursorPos.y + SPLITTER_PADDING) - 65,
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
 
@@ -229,6 +233,9 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
     context->TopWindow = TopWindow;
     context->BottomWindow = BottomWindow;
     context->SplitterOffset = PhGetIntegerSetting(L"TokenSplitterPosition");
+    context->FocusBrush = CreateSolidBrush(RGB(0x0, 0x0, 0x0));
+    context->HotBrush = CreateSolidBrush(RGB(0x44, 0x44, 0x44));
+    context->NormalBrush = GetSysColorBrush(COLOR_WINDOW);
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -252,14 +259,14 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
     }
 
     context->Window = CreateWindowEx(
-        WS_EX_CONTROLPARENT | WS_EX_TRANSPARENT,
+        WS_EX_TRANSPARENT,
         L"PhHSplitter",
         NULL,
         WS_CHILD | WS_VISIBLE,
         5,
         5,
-        465,
-        10,
+        5,
+        5,
         ParentWindow,
         NULL,
         PhInstanceHandle,
@@ -277,6 +284,11 @@ VOID PhDeleteHSplitter(
     )
 {
     PhSetIntegerSetting(L"TokenSplitterPosition", Context->SplitterOffset);
+
+    if (Context->FocusBrush)
+        DeleteObject(Context->FocusBrush);
+    if (Context->HotBrush)
+        DeleteObject(Context->HotBrush);
 }
 
 VOID PhHSplitterHandleWmSize(
