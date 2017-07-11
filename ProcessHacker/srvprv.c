@@ -129,6 +129,15 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
 
     if (Information)
     {
+        if (WindowsVersion >= WINDOWS_10_RS2)
+        {
+            // https://github.com/processhacker2/processhacker/issues/120
+            if (Information->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
+                Information->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
+            if (Information->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
+                Information->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
+        }
+
         serviceItem->Name = PhCreateString(Information->lpServiceName);
         serviceItem->Key = serviceItem->Name->sr;
         serviceItem->DisplayName = PhCreateString(Information->lpDisplayName);
@@ -645,6 +654,15 @@ VOID PhServiceProviderUpdate(
             }
             else
             {
+                if (WindowsVersion >= WINDOWS_10_RS2)
+                {
+                    // https://github.com/processhacker2/processhacker/issues/120
+                    if (serviceEntry->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
+                        serviceEntry->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
+                    if (serviceEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
+                        serviceEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
+                }
+
                 if (
                     serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType ||
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
