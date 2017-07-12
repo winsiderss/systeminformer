@@ -119,7 +119,7 @@ VOID PhEditSecurity(
         );
 
     if (PhGetIntegerSetting(L"EnableSecurityAdvancedDialog"))
-        EditSecurityAdvanced(NULL, info, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
+        EditSecurityAdvanced(hWnd, info, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
     else
         EditSecurity(hWnd, info);
 
