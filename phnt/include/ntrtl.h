@@ -1376,22 +1376,12 @@ VOID
 NTAPI
 RtlInitEmptyUnicodeString(
     _Out_ PUNICODE_STRING DestinationString,
-    _In_opt_ PWCHAR Buffer,
-    _In_opt_ USHORT MaximumLength
+    _In_ PWCHAR Buffer,
+    _In_ USHORT MaximumLength
     )
 {
-    if (Buffer)
-    {
-        DestinationString->Buffer = Buffer;
-        DestinationString->MaximumLength = MaximumLength;
-    }
-    else
-    {
-        PTEB currentTeb = NtCurrentTeb();
-        DestinationString->Buffer = currentTeb->StaticUnicodeBuffer;
-        DestinationString->MaximumLength = sizeof(currentTeb->StaticUnicodeBuffer);
-    }
-
+    DestinationString->Buffer = Buffer;
+    DestinationString->MaximumLength = MaximumLength;
     DestinationString->Length = 0;
 }
 
