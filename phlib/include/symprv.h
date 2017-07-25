@@ -169,7 +169,7 @@ ULONG64
 __stdcall
 PhGetModuleBase64(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr
+    _In_ ULONG64 dwAddr
     );
 
 PHLIBAPI
@@ -177,7 +177,7 @@ PVOID
 __stdcall
 PhFunctionTableAccess64(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 AddrBase
+    _In_ ULONG64 AddrBase
     );
 
 #ifndef _DBGHELP_
@@ -189,23 +189,23 @@ typedef struct _tagADDRESS64 *LPADDRESS64;
 
 typedef BOOL (__stdcall *PREAD_PROCESS_MEMORY_ROUTINE64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 qwBaseAddress,
+    _In_ ULONG64 qwBaseAddress,
     _Out_writes_bytes_(nSize) PVOID lpBuffer,
-    _In_ DWORD nSize,
-    _Out_ LPDWORD lpNumberOfBytesRead
+    _In_ ULONG nSize,
+    _Out_ PULONG lpNumberOfBytesRead
     );
 
 typedef PVOID (__stdcall *PFUNCTION_TABLE_ACCESS_ROUTINE64)(
     _In_ HANDLE ahProcess,
-    _In_ DWORD64 AddrBase
+    _In_ ULONG64 AddrBase
     );
 
-typedef DWORD64 (__stdcall *PGET_MODULE_BASE_ROUTINE64)(
+typedef ULONG64 (__stdcall *PGET_MODULE_BASE_ROUTINE64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 Address
+    _In_ ULONG64 Address
     );
 
-typedef DWORD64 (__stdcall *PTRANSLATE_ADDRESS_ROUTINE64)(
+typedef ULONG64 (__stdcall *PTRANSLATE_ADDRESS_ROUTINE64)(
     _In_ HANDLE hProcess,
     _In_ HANDLE hThread,
     _In_ LPADDRESS64 lpaddr
@@ -300,17 +300,17 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhUndecorateName(
-	_In_ HANDLE ProcessHandle,
-	_In_ PCSTR DecoratedName
-);
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PSTR DecoratedName
+    );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhUndecorateNameW(
-	_In_ HANDLE ProcessHandle,
-	_In_ PWSTR DecoratedName
-);
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PWSTR DecoratedName
+    );
 
 #ifdef __cplusplus
 }
