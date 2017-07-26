@@ -1113,11 +1113,11 @@ NTSTATUS PhSvcApiSetTcpEntry(
     ULONG (__stdcall *localSetTcpEntry)(PVOID TcpRow);
     struct
     {
-        DWORD dwState;
-        DWORD dwLocalAddr;
-        DWORD dwLocalPort;
-        DWORD dwRemoteAddr;
-        DWORD dwRemotePort;
+        ULONG dwState;
+        ULONG dwLocalAddr;
+        ULONG dwLocalPort;
+        ULONG dwRemoteAddr;
+        ULONG dwRemotePort;
     } tcpRow;
     ULONG result;
 

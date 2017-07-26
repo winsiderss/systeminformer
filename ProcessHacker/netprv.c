@@ -782,7 +782,7 @@ BOOLEAN PhGetNetworkConnections(
     )
 {
     PVOID table;
-    DWORD tableSize;
+    ULONG tableSize;
     PMIB_TCPTABLE_OWNER_MODULE tcp4Table;
     PMIB_UDPTABLE_OWNER_MODULE udp4Table;
     PMIB_TCP6TABLE_OWNER_MODULE tcp6Table;

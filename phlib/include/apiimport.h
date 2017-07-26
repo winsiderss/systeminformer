@@ -61,7 +61,7 @@ typedef HRESULT (WINAPI *_SHOpenFolderAndSelectItems)(
     _In_ const struct _ITEMIDLIST __unaligned *pidlFolder,
     _In_ UINT cidl,
     _In_reads_opt_(cidl) const struct _ITEMIDLIST __unaligned **apidl,
-    _In_ DWORD dwFlags
+    _In_ ULONG dwFlags
     );
 
 typedef HRESULT (WINAPI *_SHParseDisplayName)(

@@ -5,44 +5,44 @@
 
 typedef struct _CATALOG_INFO
 {
-    DWORD cbStruct;
+    ULONG cbStruct;
     WCHAR wszCatalogFile[MAX_PATH];
 } CATALOG_INFO, *PCATALOG_INFO;
 
 typedef struct tagCRYPTUI_VIEWSIGNERINFO_STRUCT {
-    DWORD dwSize;
+    ULONG dwSize;
     HWND hwndParent;
-    DWORD dwFlags;
+    ULONG dwFlags;
     LPCTSTR szTitle;
     CMSG_SIGNER_INFO *pSignerInfo;
     HCRYPTMSG hMsg;
     LPCSTR pszOID;
-    DWORD_PTR dwReserved;
-    DWORD cStores;
+    ULONG_PTR dwReserved;
+    ULONG cStores;
     HCERTSTORE *rghStores;
-    DWORD cPropSheetPages;
+    ULONG cPropSheetPages;
     LPCPROPSHEETPAGE rgPropSheetPages;
 } CRYPTUI_VIEWSIGNERINFO_STRUCT, *PCRYPTUI_VIEWSIGNERINFO_STRUCT;
 
 typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle)(
     HANDLE hFile,
-    DWORD *pcbHash,
+    ULONG *pcbHash,
     BYTE *pbHash,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle2)(
     HCATADMIN hCatAdmin,
     HANDLE hFile,
-    DWORD *pcbHash,
+    ULONG *pcbHash,
     BYTE *pbHash,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext)(
     HANDLE *phCatAdmin,
     GUID *pgSubsystem,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext2)(
@@ -50,32 +50,32 @@ typedef BOOL (WINAPI *_CryptCATAdminAcquireContext2)(
     const GUID *pgSubsystem,
     PCWSTR pwszHashAlgorithm,
     PCCERT_STRONG_SIGN_PARA pStrongHashPolicy,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef HANDLE (WINAPI *_CryptCATAdminEnumCatalogFromHash)(
     HANDLE hCatAdmin,
     BYTE *pbHash,
-    DWORD cbHash,
-    DWORD dwFlags,
+    ULONG cbHash,
+    ULONG dwFlags,
     HANDLE *phPrevCatInfo
     );
 
 typedef BOOL (WINAPI *_CryptCATCatalogInfoFromContext)(
     HANDLE hCatInfo,
     CATALOG_INFO *psCatInfo,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminReleaseCatalogContext)(
     HANDLE hCatAdmin,
     HANDLE hCatInfo,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminReleaseContext)(
     HANDLE hCatAdmin,
-    DWORD dwFlags
+    ULONG dwFlags
     );
 
 typedef PCRYPT_PROVIDER_DATA (WINAPI *_WTHelperProvDataFromStateData)(
@@ -84,9 +84,9 @@ typedef PCRYPT_PROVIDER_DATA (WINAPI *_WTHelperProvDataFromStateData)(
 
 typedef PCRYPT_PROVIDER_SGNR (WINAPI *_WTHelperGetProvSignerFromChain)(
     CRYPT_PROVIDER_DATA *pProvData,
-    DWORD idxSigner,
+    ULONG idxSigner,
     BOOL fCounterSigner,
-    DWORD idxCounterSigner
+    ULONG idxCounterSigner
     );
 
 typedef LONG (WINAPI *_WinVerifyTrust)(
@@ -95,12 +95,12 @@ typedef LONG (WINAPI *_WinVerifyTrust)(
     LPVOID pWVTData
     );
 
-typedef DWORD (WINAPI *_CertNameToStr)(
-    DWORD dwCertEncodingType,
+typedef ULONG (WINAPI *_CertNameToStr)(
+    ULONG dwCertEncodingType,
     PCERT_NAME_BLOB pName,
-    DWORD dwStrType,
+    ULONG dwStrType,
     LPTSTR psz,
-    DWORD csz
+    ULONG csz
     );
 
 typedef PCCERT_CONTEXT (WINAPI *_CertDuplicateCertificateContext)(

@@ -52,7 +52,7 @@ typedef BOOL (WINAPI *_RunFileDlg)(
 
 typedef HRESULT (WINAPI *_SHAutoComplete)(
     _In_ HWND hwndEdit,
-    _In_ DWORD dwFlags
+    _In_ ULONG dwFlags
     );
 
 extern _IsImmersiveProcess IsImmersiveProcess_I;
