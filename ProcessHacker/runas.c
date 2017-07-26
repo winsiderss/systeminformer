@@ -1015,11 +1015,11 @@ static VOID SetRunAsServiceStatus(
     SetServiceStatus(RunAsServiceStatusHandle, &status);
 }
 
-static DWORD WINAPI RunAsServiceHandlerEx(
-    _In_ DWORD dwControl,
-    _In_ DWORD dwEventType,
-    _In_ LPVOID lpEventData,
-    _In_ LPVOID lpContext
+static ULONG WINAPI RunAsServiceHandlerEx(
+    _In_ ULONG dwControl,
+    _In_ ULONG dwEventType,
+    _In_ PVOID lpEventData,
+    _In_ PVOID lpContext
     )
 {
     switch (dwControl)
@@ -1035,8 +1035,8 @@ static DWORD WINAPI RunAsServiceHandlerEx(
 }
 
 static VOID WINAPI RunAsServiceMain(
-    _In_ DWORD dwArgc,
-    _In_ LPTSTR *lpszArgv
+    _In_ ULONG dwArgc,
+    _In_ PWSTR *lpszArgv
     )
 {
     PPH_STRING portName;

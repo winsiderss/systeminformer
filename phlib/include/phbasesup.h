@@ -112,7 +112,7 @@ PhGetModuleProcAddress(
     _In_ PSTR ProcName
     )
 {
-    HMODULE module;
+    PVOID module;
 
     module = PhGetDllHandle(ModuleName);
 

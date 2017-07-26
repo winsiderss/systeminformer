@@ -895,11 +895,11 @@ NTSTATUS PhSvcCallSetTcpEntry(
     PHSVC_API_MSG m;
     struct
     {
-        DWORD dwState;
-        DWORD dwLocalAddr;
-        DWORD dwLocalPort;
-        DWORD dwRemoteAddr;
-        DWORD dwRemotePort;
+        ULONG dwState;
+        ULONG dwLocalAddr;
+        ULONG dwLocalPort;
+        ULONG dwRemoteAddr;
+        ULONG dwRemotePort;
     } *tcpRow = TcpRow;
 
     if (!PhSvcClPortHandle)

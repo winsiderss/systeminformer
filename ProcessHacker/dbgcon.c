@@ -45,7 +45,7 @@ typedef struct _STRING_TABLE_ENTRY
 } STRING_TABLE_ENTRY, *PSTRING_TABLE_ENTRY;
 
 BOOL ConsoleHandlerRoutine(
-    _In_ DWORD dwCtrlType
+    _In_ ULONG dwCtrlType
     );
 
 VOID PhpPrintHashtableStatistics(
@@ -122,7 +122,7 @@ VOID PhCloseDebugConsole(
 }
 
 static BOOL ConsoleHandlerRoutine(
-    _In_ DWORD dwCtrlType
+    _In_ ULONG dwCtrlType
     )
 {
     switch (dwCtrlType)

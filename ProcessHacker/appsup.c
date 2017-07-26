@@ -1461,7 +1461,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
 {
     BOOLEAN result;
     BOOL (NTAPI *debugSetProcessKillOnExit)(BOOL);
-    BOOL (NTAPI *debugActiveProcessStop)(DWORD);
+    BOOL (NTAPI *debugActiveProcessStop)(ULONG);
     BOOLEAN originalValue;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;

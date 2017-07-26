@@ -1313,7 +1313,7 @@ VOID PhNfpIconClickActivateTimerProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ UINT_PTR idEvent,
-    _In_ DWORD dwTime
+    _In_ ULONG dwTime
     )
 {
     PhPinMiniInformation(MiniInfoActivePinType, 1, 0,
@@ -1334,7 +1334,7 @@ VOID PhNfpIconRestoreHoverTimerProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ UINT_PTR idEvent,
-    _In_ DWORD dwTime
+    _In_ ULONG dwTime
     )
 {
     IconDisableHover = FALSE;

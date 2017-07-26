@@ -29,15 +29,15 @@ typedef BOOL (WINAPI *_SymEnumSymbolsW)(
 
 typedef BOOL (WINAPI *_SymFromAddr)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 Address,
-    _Out_opt_ PDWORD64 Displacement,
+    _In_ ULONG64 Address,
+    _Out_opt_ PULONG64 Displacement,
     _Inout_ PSYMBOL_INFO Symbol
     );
 
 typedef BOOL (WINAPI *_SymFromAddrW)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 Address,
-    _Out_opt_ PDWORD64 Displacement,
+    _In_ ULONG64 Address,
+    _Out_opt_ PULONG64 Displacement,
     _Inout_ PSYMBOL_INFOW Symbol
     );
 
@@ -55,54 +55,54 @@ typedef BOOL (WINAPI *_SymFromNameW)(
 
 typedef BOOL (WINAPI *_SymGetLineFromAddr64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr,
-    _Out_ PDWORD pdwDisplacement,
+    _In_ ULONG64 dwAddr,
+    _Out_ PULONG pdwDisplacement,
     _Out_ PIMAGEHLP_LINE64 Line
     );
 
 typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr,
-    _Out_ PDWORD pdwDisplacement,
+    _In_ ULONG64 dwAddr,
+    _Out_ PULONG pdwDisplacement,
     _Out_ PIMAGEHLP_LINEW64 Line
     );
 
-typedef DWORD64 (WINAPI *_SymLoadModule64)(
+typedef ULONG64 (WINAPI *_SymLoadModule64)(
     _In_ HANDLE hProcess,
     _In_opt_ HANDLE hFile,
     _In_opt_ PCSTR ImageName,
     _In_opt_ PCSTR ModuleName,
-    _In_ DWORD64 BaseOfDll,
-    _In_ DWORD SizeOfDll
+    _In_ ULONG64 BaseOfDll,
+    _In_ ULONG SizeOfDll
     );
 
-typedef DWORD64 (WINAPI *_SymLoadModuleExW)(
+typedef ULONG64 (WINAPI *_SymLoadModuleExW)(
     _In_ HANDLE hProcess,
     _In_ HANDLE hFile,
     _In_ PCWSTR ImageName,
     _In_ PCWSTR ModuleName,
-    _In_ DWORD64 BaseOfDll,
-    _In_ DWORD DllSize,
+    _In_ ULONG64 BaseOfDll,
+    _In_ ULONG DllSize,
     _In_ PMODLOAD_DATA Data,
-    _In_ DWORD Flags
+    _In_ ULONG Flags
     );
 
-typedef DWORD (WINAPI *_SymGetOptions)();
+typedef ULONG (WINAPI *_SymGetOptions)();
 
-typedef DWORD (WINAPI *_SymSetOptions)(
-    _In_ DWORD SymOptions
+typedef ULONG (WINAPI *_SymSetOptions)(
+    _In_ ULONG SymOptions
     );
 
 typedef BOOL (WINAPI *_SymGetSearchPath)(
     _In_ HANDLE hProcess,
     _Out_ PSTR SearchPath,
-    _In_ DWORD SearchPathLength
+    _In_ ULONG SearchPathLength
     );
 
 typedef BOOL (WINAPI *_SymGetSearchPathW)(
     _In_ HANDLE hProcess,
     _Out_ PWSTR SearchPath,
-    _In_ DWORD SearchPathLength
+    _In_ ULONG SearchPathLength
     );
 
 typedef BOOL (WINAPI *_SymSetSearchPath)(
@@ -117,17 +117,17 @@ typedef BOOL (WINAPI *_SymSetSearchPathW)(
 
 typedef BOOL (WINAPI *_SymUnloadModule64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 BaseOfDll
+    _In_ ULONG64 BaseOfDll
     );
 
 typedef PVOID (WINAPI *_SymFunctionTableAccess64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 AddrBase
+    _In_ ULONG64 AddrBase
     );
 
-typedef DWORD64 (WINAPI *_SymGetModuleBase64)(
+typedef ULONG64 (WINAPI *_SymGetModuleBase64)(
     _In_ HANDLE hProcess,
-    _In_ DWORD64 dwAddr
+    _In_ ULONG64 dwAddr
     );
 
 typedef BOOL (WINAPI *_SymRegisterCallbackW64)(
@@ -137,7 +137,7 @@ typedef BOOL (WINAPI *_SymRegisterCallbackW64)(
     );
 
 typedef BOOL (WINAPI *_StackWalk64)(
-    _In_ DWORD MachineType,
+    _In_ ULONG MachineType,
     _In_ HANDLE hProcess,
     _In_ HANDLE hThread,
     _Inout_ LPSTACKFRAME64 StackFrame,
@@ -150,7 +150,7 @@ typedef BOOL (WINAPI *_StackWalk64)(
 
 typedef BOOL (WINAPI *_MiniDumpWriteDump)(
     _In_ HANDLE hProcess,
-    _In_ DWORD ProcessId,
+    _In_ ULONG ProcessId,
     _In_ HANDLE hFile,
     _In_ MINIDUMP_TYPE DumpType,
     _In_ PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
@@ -167,18 +167,18 @@ typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     _In_ ULONG64 data
     );
 
-typedef DWORD(WINAPI *_UnDecorateSymbolName)(
-	_In_  PCSTR DecoratedName,
-	_Out_ PSTR  UnDecoratedName,
-	_In_  DWORD  UndecoratedLength,
-	_In_  DWORD  Flags
-	);
+typedef ULONG (WINAPI *_UnDecorateSymbolName)(
+    _In_ PCSTR DecoratedName,
+    _Out_ PSTR UnDecoratedName,
+    _In_ ULONG UndecoratedLength,
+    _In_ ULONG Flags
+    );
 
-typedef DWORD(WINAPI *_UnDecorateSymbolNameW)(
-	_In_  PCWSTR DecoratedName,
-	_Out_ PWSTR  UnDecoratedName,
-	_In_  DWORD  UndecoratedLength,
-	_In_  DWORD  Flags
-	);
+typedef ULONG (WINAPI *_UnDecorateSymbolNameW)(
+    _In_ PCWSTR DecoratedName,
+    _Out_ PWSTR UnDecoratedName,
+    _In_ ULONG UndecoratedLength,
+    _In_ ULONG Flags
+    );
 
 #endif

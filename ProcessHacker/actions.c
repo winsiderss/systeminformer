@@ -48,7 +48,7 @@
 #include <srvprv.h>
 #include <thrdprv.h>
 
-typedef DWORD (WINAPI *_SetTcpEntry)(
+typedef ULONG (WINAPI *_SetTcpEntry)(
     _In_ PMIB_TCPROW pTcpRow
     );
 
