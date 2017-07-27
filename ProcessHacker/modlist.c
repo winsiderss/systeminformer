@@ -114,6 +114,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(hwnd, PHMOTLC_LOADREASON, FALSE, L"Load reason", 80, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -856,6 +857,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, -1));
                     getCellText->Text = node->FileSizeText->sr;
                 }
+                break;
+            case PHMOTLC_ENTRYPOINT:
+                PhInitializeStringRef(&getCellText->Text, moduleItem->EntryPointAddressString);
                 break;
             default:
                 return FALSE;

@@ -8,6 +8,7 @@ extern PPH_OBJECT_TYPE PhModuleItemType;
 typedef struct _PH_MODULE_ITEM
 {
     PVOID BaseAddress;
+    PVOID EntryPoint;
     ULONG Size;
     ULONG Flags;
     ULONG Type;
@@ -18,6 +19,7 @@ typedef struct _PH_MODULE_ITEM
     PH_IMAGE_VERSION_INFO VersionInfo;
 
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
+    WCHAR EntryPointAddressString[PH_PTR_STR_LEN_1];
 
     BOOLEAN IsFirst;
     BOOLEAN JustProcessed;
