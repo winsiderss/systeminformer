@@ -299,8 +299,9 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Address");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Length");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Result");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Length");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"Result");
 
             PhLoadListViewColumnsFromSetting(L"MemResultsListViewColumns", lvHandle);
 
@@ -532,6 +533,19 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             break;
                         case 1:
                             {
+                                WCHAR baseAddressString[PH_PTR_STR_LEN_1];
+
+                                PhPrintPointer(baseAddressString, result->BaseAddress);
+                                wcsncpy_s(
+                                    dispInfo->item.pszText,
+                                    dispInfo->item.cchTextMax,
+                                    baseAddressString,
+                                    _TRUNCATE
+                                    );
+                            }
+                            break;
+                        case 2:
+                            {
                                 WCHAR lengthString[PH_INT32_STR_LEN_1];
 
                                 PhPrintUInt32(lengthString, (ULONG)result->Length);
@@ -543,7 +557,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                                     );
                             }
                             break;
-                        case 2:
+                        case 3:
                             wcsncpy_s(
                                 dispInfo->item.pszText,
                                 dispInfo->item.cchTextMax,

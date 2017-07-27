@@ -124,6 +124,7 @@ VOID PhFreeForMemorySearch(
 
 PVOID PhCreateMemoryResult(
     _In_ PVOID Address,
+    _In_ PVOID BaseAddress,
     _In_ SIZE_T Length
     )
 {
@@ -136,6 +137,7 @@ PVOID PhCreateMemoryResult(
 
     result->RefCount = 1;
     result->Address = Address;
+    result->BaseAddress = BaseAddress;
     result->Length = Length;
     result->Display.Length = 0;
     result->Display.Buffer = NULL;
@@ -429,6 +431,7 @@ CreateResult:
 
                     if (!(isWide && !detectUnicode) && (result = PhCreateMemoryResult(
                         PTR_ADD_OFFSET(baseAddress, i - bias - lengthInBytes),
+                        baseAddress,
                         lengthInBytes
                         )))
                     {

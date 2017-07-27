@@ -5,6 +5,7 @@ typedef struct _PH_MEMORY_RESULT
 {
     LONG RefCount;
     PVOID Address;
+    PVOID BaseAddress;
     SIZE_T Length;
     PH_STRINGREF Display;
 } PH_MEMORY_RESULT, *PPH_MEMORY_RESULT;
@@ -42,6 +43,7 @@ VOID PhFreeForMemorySearch(
 
 PVOID PhCreateMemoryResult(
     _In_ PVOID Address,
+    _In_ PVOID BaseAddress,
     _In_ SIZE_T Length
     );
 
