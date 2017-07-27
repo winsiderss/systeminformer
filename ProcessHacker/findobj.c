@@ -212,7 +212,7 @@ static int __cdecl PhpStringObjectTypeCompare(
     PWSTR entry1 = *(PWSTR *)elem1;
     PWSTR entry2 = *(PWSTR *)elem2;
 
-    return PhCompareStringZ(entry2, entry1, FALSE);
+    return PhCompareStringZ(entry1, entry2, TRUE);
 }
 
 static VOID PhpPopulateObjectTypes(
@@ -246,8 +246,8 @@ static VOID PhpPopulateObjectTypes(
     // Sort the object types.
     qsort(objectTypeList->Items, objectTypeList->Count, sizeof(PWSTR), PhpStringObjectTypeCompare);
 
-    // HACK: Add the object types in reverse order.
-    for (ULONG i = objectTypeList->Count - 1; i != 0; i--)
+    // Add the types to the object filter combobox.
+    for (ULONG i = 0; i < objectTypeList->Count; i++)
     {
         ComboBox_AddString(FilterTypeCombo, objectTypeList->Items[i]);
         PhFree(objectTypeList->Items[i]);
