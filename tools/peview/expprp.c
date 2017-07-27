@@ -77,7 +77,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                             PPH_STRING forwardName = NULL;
 
                             if (exportFunction.ForwardedName[0] == '?')
-                                forwardName = PhUndecorateName(PvSymbolProvider->ProcessHandle, exportFunction.ForwardedName);
+                                forwardName = PhUndecorateName(PvSymbolProvider, exportFunction.ForwardedName);
                             else
                                 forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
 
@@ -98,7 +98,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                             PPH_STRING exportName = NULL;
 
                             if (exportEntry.Name[0] == '?')
-                                exportName = PhUndecorateName(PvSymbolProvider->ProcessHandle, exportEntry.Name);
+                                exportName = PhUndecorateName(PvSymbolProvider, exportEntry.Name);
                             else
                                 exportName = PhZeroExtendToUtf16(exportEntry.Name);
 
