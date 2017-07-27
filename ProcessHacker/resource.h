@@ -533,6 +533,7 @@
 #define IDC_HANDLESEARCH                1385
 #define IDC_SEARCH                      1387
 #define IDC_FILTEROPTIONS               1389
+#define IDC_FILTERTYPE                  1390
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -738,9 +739,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        231
+#define _APS_NEXT_RESOURCE_VALUE        232
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1390
+#define _APS_NEXT_CONTROL_VALUE         1391
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif
