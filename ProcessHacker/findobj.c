@@ -209,10 +209,10 @@ static int __cdecl PhpStringObjectTypeCompare(
     _In_ const void *elem2
     )
 {
-    PWSTR entry1 = *(PWSTR *)elem1;
-    PWSTR entry2 = *(PWSTR *)elem2;
+    PPH_STRING entry1 = *(PPH_STRING *)elem1;
+    PPH_STRING entry2 = *(PPH_STRING *)elem2;
 
-    return PhCompareStringZ(entry1, entry2, TRUE);
+    return PhCompareString(entry1, entry2, TRUE);
 }
 
 static VOID PhpPopulateObjectTypes(
@@ -236,7 +236,7 @@ static VOID PhpPopulateObjectTypes(
 
         for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
         {
-            PhAddItemList(objectTypeList, PhDuplicateStringZ(objectType->TypeName.Buffer));
+            PhAddItemList(objectTypeList, PhCreateStringFromUnicodeString(&objectType->TypeName));
             objectType = PH_NEXT_OBJECT_TYPE(objectType);
         }
 
@@ -244,13 +244,13 @@ static VOID PhpPopulateObjectTypes(
     }
 
     // Sort the object types.
-    qsort(objectTypeList->Items, objectTypeList->Count, sizeof(PWSTR), PhpStringObjectTypeCompare);
+    qsort(objectTypeList->Items, objectTypeList->Count, sizeof(PVOID), PhpStringObjectTypeCompare);
 
     // Add the types to the object filter combobox.
     for (ULONG i = 0; i < objectTypeList->Count; i++)
     {
-        ComboBox_AddString(FilterTypeCombo, objectTypeList->Items[i]);
-        PhFree(objectTypeList->Items[i]);
+        ComboBox_AddString(FilterTypeCombo, PhGetString(objectTypeList->Items[i]));
+        PhDereferenceObject(objectTypeList->Items[i]);
     }
 
     PhDereferenceObject(objectTypeList);
