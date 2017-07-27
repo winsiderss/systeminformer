@@ -459,6 +459,8 @@ VOID PhModuleProviderUpdate(
 
             moduleItem->BaseAddress = module->BaseAddress;
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+            moduleItem->EntryPoint = module->EntryPoint;
+            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
             moduleItem->Size = module->Size;
             moduleItem->Flags = module->Flags;
             moduleItem->Type = module->Type;
