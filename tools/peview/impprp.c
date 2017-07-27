@@ -63,7 +63,7 @@ VOID PvpProcessImports(
                         PPH_STRING importName = NULL;
 
                         if (importEntry.Name[0] == '?')
-                            importName = PhUndecorateName(PvSymbolProvider->ProcessHandle, importEntry.Name);
+                            importName = PhUndecorateName(PvSymbolProvider, importEntry.Name);
                         else
                             importName = PhZeroExtendToUtf16(importEntry.Name);
 
