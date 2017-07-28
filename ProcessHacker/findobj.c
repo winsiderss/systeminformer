@@ -850,7 +850,7 @@ static NTSTATUS NTAPI SearchHandleFunction(
         _wcsupr(upperTypeName->Buffer);
 
         if ((MatchSearchString(&upperBestObjectName->sr) && MatchTypeString(&upperTypeName->sr)) ||
-            (UseSearchPointer && context->HandleInfo->Object == (PVOID)SearchPointer))
+            (UseSearchPointer && (context->HandleInfo->Object == (PVOID)SearchPointer || context->HandleInfo->HandleValue == SearchPointer)))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
