@@ -5028,6 +5028,8 @@ PPH_STRING PhResolveDevicePrefix(
         PhReleaseQueuedLockShared(&PhDeviceMupPrefixesLock);
     }
 
+    PhTrimToNullTerminatorString(newName);
+
     return newName;
 }
 
