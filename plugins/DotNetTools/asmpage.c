@@ -560,9 +560,9 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            DotNetAsmShowContextMenu(context, mouseEvent->Location);
+            DotNetAsmShowContextMenu(context, contextMenuEvent->Location);
         }
         return TRUE;
     }

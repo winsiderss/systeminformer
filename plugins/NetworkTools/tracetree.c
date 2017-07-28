@@ -352,13 +352,13 @@ BOOLEAN NTAPI TracertTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             SendMessage(
                 context->WindowHandle,
                 WM_COMMAND, 
                 TRACERT_SHOWCONTEXTMENU, 
-                (LPARAM)mouseEvent
+                (LPARAM)contextMenuEvent
                 );
         }
         return TRUE;

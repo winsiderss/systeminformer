@@ -669,9 +669,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            EtShowDiskContextMenu(mouseEvent->Location);
+            EtShowDiskContextMenu(contextMenuEvent->Location);
         }
         return TRUE;
     case TreeNewDestroying:
