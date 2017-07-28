@@ -299,7 +299,7 @@ namespace CustomBuildTool
         {
             try
             {
-                Win32.CopyIfNewer("README.md", "bin\\README.txt");
+                Win32.CopyIfNewer("README.txt", "bin\\README.txt");
                 Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt");
                 Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
                 Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
@@ -872,8 +872,8 @@ namespace CustomBuildTool
             if (string.IsNullOrEmpty(BuildSetupSig))
                 return;
 
-            string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\"");
-            string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an %s\" --abbrev-commit");
+            string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
+            string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
                 Updated = TimeStart.ToString("o"),
