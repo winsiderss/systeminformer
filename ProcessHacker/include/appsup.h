@@ -393,7 +393,6 @@ NTAPI
 PhApplyTreeNewFilters(
     _In_ PPH_TN_FILTER_SUPPORT Support
     );
-// end_phapppub
 
 typedef struct _PH_COPY_CELL_CONTEXT
 {
@@ -402,16 +401,23 @@ typedef struct _PH_COPY_CELL_CONTEXT
     PPH_STRING MenuItemText;
 } PH_COPY_CELL_CONTEXT, *PPH_COPY_CELL_CONTEXT;
 
-BOOLEAN PhInsertCopyCellEMenuItem(
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhInsertCopyCellEMenuItem(
     _In_ struct _PH_EMENU_ITEM *Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
     );
 
-BOOLEAN PhHandleCopyCellEMenuItem(
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhHandleCopyCellEMenuItem(
     _In_ struct _PH_EMENU_ITEM *SelectedItem
     );
+// end_phapppub
 
 BOOLEAN PhShellOpenKey2(
     _In_ HWND hWnd,
