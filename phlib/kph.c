@@ -208,7 +208,7 @@ NTSTATUS KphConnect2Ex(
         }
     }
 
-    if (NT_SUCCESS(status) && started)
+    if (started)
     {
         // Try to open the device again.
         status = KphConnect(fullDeviceName);
