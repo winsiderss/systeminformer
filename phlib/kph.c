@@ -25,8 +25,8 @@
 #include <kphuserp.h>
 
 HANDLE PhKphHandle = NULL;
-BOOLEAN PhKphVerified;
-KPH_KEY PhKphL1Key;
+BOOLEAN PhKphVerified = FALSE;
+KPH_KEY PhKphL1Key = 0;
 
 NTSTATUS KphConnect(
     _In_opt_ PWSTR DeviceName
@@ -196,13 +196,19 @@ NTSTATUS KphConnect2Ex(
 
                 if (StartService(serviceHandle, 0, NULL))
                     started = TRUE;
+                else
+                    status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
             }
 
             CloseServiceHandle(scmHandle);
         }
     }
 
-    if (started)
+    if (NT_SUCCESS(status) && started)
     {
         // Try to open the device again.
         status = KphConnect(fullDeviceName);
