@@ -3,6 +3,7 @@
  *   thread stack viewer
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -180,8 +181,16 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhDereferenceObject(title);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 30, L" ");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 30, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Name");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Stack");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 50, L"Frame");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 50, L"Parameter #1");
+            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 50, L"Parameter #2");
+            PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 50, L"Parameter #3");
+            PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 50, L"Parameter #4");
+            PhAddListViewColumn(lvHandle, 8, 8, 8, LVCFMT_LEFT, 50, L"Address");
+            PhAddListViewColumn(lvHandle, 9, 9, 9, LVCFMT_LEFT, 50, L"Return Address");
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhLoadListViewColumnsFromSetting(L"ThreadStackListViewColumns", lvHandle);
@@ -461,10 +470,39 @@ static NTSTATUS PhpRefreshThreadStack(
             PTHREAD_STACK_ITEM item = ThreadStackContext->List->Items[i];
             INT lvItemIndex;
             WCHAR integerString[PH_INT32_STR_LEN_1];
+            WCHAR addressString[PH_PTR_STR_LEN_1];
 
             PhPrintUInt32(integerString, item->Index);
             lvItemIndex = PhAddListViewItem(ThreadStackContext->ListViewHandle, MAXINT, integerString, item);
             PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 1, PhGetStringOrDefault(item->Symbol, L"???"));
+
+            PhPrintPointer(addressString, item->StackFrame.StackAddress);
+            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 2, addressString);
+
+            PhPrintPointer(addressString, item->StackFrame.FrameAddress);
+            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 3, addressString);
+
+            // There are no params for kernel-mode stack traces.
+            if ((ULONG_PTR)item->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+            {
+                PhPrintPointer(addressString, item->StackFrame.Params[0]);
+                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 4, addressString);
+
+                PhPrintPointer(addressString, item->StackFrame.Params[1]);
+                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 5, addressString);
+
+                PhPrintPointer(addressString, item->StackFrame.Params[2]);
+                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 6, addressString);
+
+                PhPrintPointer(addressString, item->StackFrame.Params[3]);
+                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 7, addressString);
+            }
+
+            PhPrintPointer(addressString, item->StackFrame.PcAddress);
+            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 8, addressString);
+
+            PhPrintPointer(addressString, item->StackFrame.ReturnAddress);
+            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 9, addressString);
         }
 
         SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, TRUE, 0);
