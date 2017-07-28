@@ -275,7 +275,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WCTSHOWCONTEXTMENU, MAKELONG(contextMenuEvent->Location.x, contextMenuEvent->Location.y));
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WCTSHOWCONTEXTMENU, (LPARAM)contextMenuEvent);
         }
         return TRUE;
     case TreeNewHeaderRightClick:

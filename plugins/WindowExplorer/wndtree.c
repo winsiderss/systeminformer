@@ -481,7 +481,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(contextMenuEvent->Location.x, contextMenuEvent->Location.y));
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenuEvent);
         }
         return TRUE;
     }
