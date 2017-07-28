@@ -1,16 +1,57 @@
-Process Hacker is a powerful free and open source process viewer.
+##Process Hacker
 
-## Getting started
+A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.
 
-Simply run ProcessHacker.exe to start Process Hacker. There are two
-versions, 32-bit (x86) and 64-bit (x64). If you are not sure which
-version to use, open Control Panel > System and check the "System
-type". You cannot run the 32-bit version of Process Hacker on a
-64-bit system and expect it to work correctly, unlike other programs.
+[![Build status](https://ci.appveyor.com/api/projects/status/5einmgmy3mnsfjdn?svg=true)](https://ci.appveyor.com/project/pbatard/rufus)
+[![Licence](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+
+![Logo](https://raw.githubusercontent.com/processhacker2/processhacker/master/ProcessHacker/resources/ProcessHacker.png)
+
+* [Official Website](http://processhacker.sourceforge.net/)
+* [FAQ](http://processhacker.sourceforge.net/faq.php)
 
 ## System requirements
 
 Windows 7 or higher, 32-bit or 64-bit.
+
+## Features
+
+
+* A detailed overview of system activity with highlighting.
+* Graphs and statistics allow you quickly to track down resource hogs and runaway processes.
+* Can't edit or delete a file? Discover which processes are using that file.
+* See what programs have active network connections, and close them if necessary.
+* Get real-time information on disk access.
+* View detailed stack traces with kernel-mode, WOW64 and .NET support.
+* Go beyond services.msc: create, edit and control services.
+* Small, portable and no installation required.
+* 100% [Free Software](http://www.gnu.org/philosophy/free-sw.en.html) ([GPL v3](http://www.gnu.org/licenses/gpl-3.0.en.html))
+
+
+## Building the project
+
+
+Requires Visual Studio (2017 or later).
+
+Execute `build_release.cmd` located in the `build` directory to compile the project or load the `ProcessHacker.sln` and `Plugins.sln` solutions if you prefer building the project using Visual Studio.
+
+You can download the free [Visual Studio Community Edition](https://www.visualstudio.com/vs/community/)
+to build, run or develop Process Hacker.
+
+## Additional information
+
+
+You cannot run the 32-bit version of Process Hacker on a
+64-bit system and expect it to work correctly, unlike other programs.
+
+
+
+## Enhancements/Bugs
+
+
+Please use the [GitHub issue tracker](https://github.com/processhacker2/processhacker/issues)
+for reporting problems or suggesting new features.
+
 
 ## Settings
 
@@ -32,8 +73,7 @@ Plugins can be configured from Hacker > Plugins.
 If you experience any crashes involving plugins, make sure they
 are up to date.
 
-The ExtendedTools plugin is only available for Windows Vista and
-above. Disk and Network information provided by this plugin is
+Disk and Network information provided by the ExtendedTools plugin is
 only available when running Process Hacker with administrative
 rights.
 
@@ -49,8 +89,8 @@ assist with certain functionality. This includes:
 * Setting handle attributes
 
 Note that by default, KProcessHacker only allows connections from
-processes with SeDebugPrivilege. To allow Process Hacker to show details
-for all processes when it is not running as administrator:
+processes with administrative privileges (SeDebugPrivilege). To allow Process Hacker 
+to show details for all processes when it is not running as administrator:
 
 1. In Registry Editor, navigate to:
    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\KProcessHacker3
@@ -59,3 +99,4 @@ for all processes when it is not running as administrator:
    not using an official build, you may need to set it to 0 instead.
 4. Restart the KProcessHacker3 service (sc stop KProcessHacker3,
    sc start KProcessHacker3).
+   
