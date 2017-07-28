@@ -518,6 +518,15 @@ VOID ShowMenu(
             }
         }
         break;
+    case MENU_ACTION_COPY:
+        {
+            PPH_STRING text;
+
+            text = PhGetTreeNewText(Context->TreeNewHandle, 0);
+            PhSetClipboardString(Context->TreeNewHandle, &text->sr);
+            PhDereferenceObject(text);
+        }
+        break;
     }
 }
 
@@ -622,6 +631,9 @@ INT_PTR CALLBACK TracertDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MAINMENU_ACTION_PING, L"Ping", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_TRACEROUTE, L"Traceroute", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, NETWORK_ACTION_WHOIS, L"Whois", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MENU_ACTION_COPY, L"Copy", NULL, NULL), -1);
+                        PhInsertCopyCellEMenuItem(menu, MENU_ACTION_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 
                         selectedItem = PhShowEMenu(
                             menu,
@@ -634,7 +646,14 @@ INT_PTR CALLBACK TracertDlgProc(
 
                         if (selectedItem && selectedItem->Id != -1)
                         {
-                            ShowMenu(context, selectedItem->Id);
+                            BOOLEAN handled = FALSE;
+
+                            handled = PhHandleCopyCellEMenuItem(selectedItem);
+
+                            if (!handled)
+                            {
+                                ShowMenu(context, selectedItem->Id);
+                            }
                         }
 
                         PhDestroyEMenu(menu);

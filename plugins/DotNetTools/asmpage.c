@@ -393,7 +393,7 @@ PDNA_NODE DotNetAsmGetSelectedEntry(
 
 VOID DotNetAsmShowContextMenu(
     _In_ PASMPAGE_CONTEXT Context,
-    _In_ POINT Location
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
     )
 {
     PDNA_NODE node;
@@ -405,6 +405,7 @@ VOID DotNetAsmShowContextMenu(
 
     menu = PhCreateEMenu();
     PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_ASSEMBLY_MENU), 0);
+    PhInsertCopyCellEMenuItem(menu, ID_CLR_COPY, Context->TnHandle, ContextMenuEvent->Column);
 
     if (PhIsNullOrEmptyString(node->PathText) || !RtlDoesFileExists_U(node->PathText->Buffer))
     {
@@ -416,31 +417,38 @@ VOID DotNetAsmShowContextMenu(
         Context->WindowHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
-        Location.x,
-        Location.y
+        ContextMenuEvent->Location.x,
+        ContextMenuEvent->Location.y
         );
 
     if (selectedItem && selectedItem->Id != -1)
     {
-        switch (selectedItem->Id)
-        {
-        case ID_CLR_OPENFILELOCATION:
-            {
-                if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
-                {
-                    PhShellExploreFile(Context->WindowHandle, node->PathText->Buffer);
-                }
-            }
-            break;
-        case ID_CLR_COPY:
-            {
-                PPH_STRING text;
+        BOOLEAN handled = FALSE;
 
-                text = PhGetTreeNewText(Context->TnHandle, 0);
-                PhSetClipboardString(Context->TnHandle, &text->sr);
-                PhDereferenceObject(text);
+        handled = PhHandleCopyCellEMenuItem(selectedItem);
+
+        if (!handled)
+        {
+            switch (selectedItem->Id)
+            {
+            case ID_CLR_OPENFILELOCATION:
+                {
+                    if (!PhIsNullOrEmptyString(node->PathText) && RtlDoesFileExists_U(node->PathText->Buffer))
+                    {
+                        PhShellExploreFile(Context->WindowHandle, node->PathText->Buffer);
+                    }
+                }
+                break;
+            case ID_CLR_COPY:
+                {
+                    PPH_STRING text;
+
+                    text = PhGetTreeNewText(Context->TnHandle, 0);
+                    PhSetClipboardString(Context->TnHandle, &text->sr);
+                    PhDereferenceObject(text);
+                }
+                break;
             }
-            break;
         }
     }
 
@@ -562,7 +570,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            DotNetAsmShowContextMenu(context, contextMenuEvent->Location);
+            DotNetAsmShowContextMenu(context, contextMenuEvent);
         }
         return TRUE;
     }

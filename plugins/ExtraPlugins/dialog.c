@@ -371,12 +371,10 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
                 break;
             case ID_WCTSHOWCONTEXTMENU:
                 {
-                    POINT cursorPos;
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM selectedItem;
                     PPLUGIN_NODE selectedNode;
-
-                    GetCursorPos(&cursorPos);
+                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
 
                     if (!(selectedNode = WeGetSelectedWindowNode(context)))
                         break;
@@ -448,8 +446,8 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
                         hwndDlg,
                         PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        cursorPos.x,
-                        cursorPos.y
+                        contextMenuEvent->Location.x,
+                        contextMenuEvent->Location.y
                         );
 
                     if (selectedItem && selectedItem->Id != -1)

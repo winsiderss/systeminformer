@@ -432,13 +432,11 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_SHOWCONTEXTMENU:
                 {
-                    POINT point;
+                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
                     PWE_WINDOW_NODE *windows;
                     ULONG numberOfWindows;
                     PPH_EMENU menu;
-
-                    point.x = (SHORT)LOWORD(lParam);
-                    point.y = (SHORT)HIWORD(lParam);
+                    PPH_EMENU_ITEM selectedItem;
 
                     WeGetSelectedWindowNodes(
                         &context->TreeContext,
@@ -450,6 +448,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         menu = PhCreateEMenu();
                         PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_WINDOW), 0);
+                        PhInsertCopyCellEMenuItem(menu, ID_WINDOW_COPY, context->TreeNewHandle, contextMenuEvent->Column);
                         PhSetFlagsEMenuItem(menu, ID_WINDOW_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                         if (numberOfWindows == 1)
@@ -529,7 +528,22 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             PhSetFlagsEMenuItem(menu, ID_WINDOW_COPY, PH_EMENU_DISABLED, 0);
                         }
 
-                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
+                        selectedItem = PhShowEMenu(
+                            menu, 
+                            hwndDlg, 
+                            PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP, 
+                            contextMenuEvent->Location.x, 
+                            contextMenuEvent->Location.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != -1)
+                        {
+                            BOOLEAN handled = FALSE;
+
+                            handled = PhHandleCopyCellEMenuItem(selectedItem);
+                        }
+
                         PhDestroyEMenu(menu);
                     }
                 }
@@ -854,13 +868,11 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_SHOWCONTEXTMENU:
                 {
-                    POINT point;
+                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
                     PWE_WINDOW_NODE *windows;
                     ULONG numberOfWindows;
                     PPH_EMENU menu;
-
-                    point.x = (SHORT)LOWORD(lParam);
-                    point.y = (SHORT)HIWORD(lParam);
+                    PPH_EMENU selectedItem;
 
                     WeGetSelectedWindowNodes(
                         &context->TreeContext,
@@ -872,6 +884,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         menu = PhCreateEMenu();
                         PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_WINDOW), 0);
+                        PhInsertCopyCellEMenuItem(menu, ID_WINDOW_COPY, context->TreeNewHandle, contextMenuEvent->Column);
                         PhSetFlagsEMenuItem(menu, ID_WINDOW_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                         if (numberOfWindows == 1)
@@ -951,7 +964,22 @@ INT_PTR CALLBACK WepWindowsPageProc(
                             PhSetFlagsEMenuItem(menu, ID_WINDOW_COPY, PH_EMENU_DISABLED, 0);
                         }
 
-                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hwndDlg,
+                            PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            contextMenuEvent->Location.x,
+                            contextMenuEvent->Location.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != -1)
+                        {
+                            BOOLEAN handled = FALSE;
+
+                            handled = PhHandleCopyCellEMenuItem(selectedItem);
+                        }
+
                         PhDestroyEMenu(menu);
                     }
                 }

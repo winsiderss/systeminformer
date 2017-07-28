@@ -671,7 +671,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            EtShowDiskContextMenu(contextMenuEvent->Location);
+            EtShowDiskContextMenu(hwnd, contextMenuEvent);
         }
         return TRUE;
     case TreeNewDestroying:
@@ -916,7 +916,8 @@ VOID EtpInitializeDiskMenu(
 }
 
 VOID EtShowDiskContextMenu(
-    _In_ POINT Location
+    _In_ HWND TreeWindowHandle,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
     )
 {
     PET_DISK_ITEM *diskItems;
@@ -931,6 +932,7 @@ VOID EtShowDiskContextMenu(
 
         menu = PhCreateEMenu();
         PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_DISK), 0);
+        PhInsertCopyCellEMenuItem(menu, ID_DISK_COPY, TreeWindowHandle, ContextMenuEvent->Column);
         PhSetFlagsEMenuItem(menu, ID_DISK_OPENFILELOCATION, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         EtpInitializeDiskMenu(menu, diskItems, numberOfDiskItems);
@@ -940,13 +942,18 @@ VOID EtShowDiskContextMenu(
             PhMainWndHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
-            Location.x,
-            Location.y
+            ContextMenuEvent->Location.x,
+            ContextMenuEvent->Location.y
             );
 
         if (item)
         {
-            EtHandleDiskCommand(item->Id);
+            BOOLEAN handled = FALSE;
+
+            handled = PhHandleCopyCellEMenuItem(item);
+
+            if (!handled)
+                EtHandleDiskCommand(item->Id);
         }
 
         PhDestroyEMenu(menu);

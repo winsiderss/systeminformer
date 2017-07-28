@@ -107,7 +107,8 @@ VOID EtpInitializeDiskMenu(
     );
 
 VOID EtShowDiskContextMenu(
-    _In_ POINT Location
+    _In_ HWND TreeWindowHandle,
+    _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
     );
 
 VOID NTAPI EtpDiskItemAddedHandler(
