@@ -535,8 +535,6 @@ VOID PhModuleProviderUpdate(
                 moduleItem->FileEndOfFile.QuadPart = -1;
             }
 
-            if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
-                moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE || moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
             {
                 // See if the file has already been verified; if not, queue for verification.
 
