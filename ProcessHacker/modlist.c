@@ -662,7 +662,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHMOTLC_NAME:
-                getCellText->Text = moduleItem->Name->sr;
+                getCellText->Text = PhGetStringRef(moduleItem->Name);
                 break;
             case PHMOTLC_BASEADDRESS:
                 PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
@@ -733,16 +733,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
-                if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
-                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE || moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
-                {
-                    PhInitializeStringRef(&getCellText->Text,
-                        moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
-                }
-                else
-                {
-                    PhInitializeEmptyStringRef(&getCellText->Text);
-                }
+                PhInitializeStringRef(&getCellText->Text,
+                    moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
