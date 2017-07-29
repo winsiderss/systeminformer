@@ -1031,40 +1031,47 @@ static VOID PhpUpdateProcessNodeImage(
         PVOID imageBaseAddress;
         PH_REMOTE_MAPPED_IMAGE mappedImage;
 
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        if (ProcessNode->ProcessItem->IsSubsystemProcess)
         {
-            if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
+            ProcessNode->ImageSubsystem = IMAGE_SUBSYSTEM_POSIX_CUI;
+        }
+        else
+        {
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
             {
-                if (NT_SUCCESS(NtReadVirtualMemory(
-                    processHandle,
-                    PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageBaseAddress)),
-                    &imageBaseAddress,
-                    sizeof(PVOID),
-                    NULL
-                    )))
+                if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
                 {
-                    if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
+                    if (NT_SUCCESS(NtReadVirtualMemory(
+                        processHandle,
+                        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageBaseAddress)),
+                        &imageBaseAddress,
+                        sizeof(PVOID),
+                        NULL
+                        )))
                     {
-                        ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                        ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
-
-                        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                        if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
                         {
-                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                        }
-                        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                        {
-                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                        }
+                            ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                            ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
-                        PhUnloadRemoteMappedImage(&mappedImage);
+                            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                            {
+                                ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                                ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                            }
+                            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                            {
+                                ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                                ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                            }
+
+                            PhUnloadRemoteMappedImage(&mappedImage);
+                        }
                     }
                 }
-            }
 
-            NtClose(processHandle);
+                NtClose(processHandle);
+            }
         }
 
         ProcessNode->ValidMask |= PHPN_IMAGE;
@@ -1077,20 +1084,13 @@ static VOID PhpUpdateProcessNodeAppId(
 {
     if (!(ProcessNode->ValidMask & PHPN_APPID))
     {
-        HANDLE processHandle;
         ULONG windowFlags;
         PPH_STRING windowTitle;
 
         PhClearReference(&ProcessNode->AppIdText);
 
-        if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
-        {
-            if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessNode->ProcessId)))
-                goto Done;
-        }
-
-        if (NT_SUCCESS(PhGetProcessWindowTitle(
-            processHandle,
+        if (ProcessNode->ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessWindowTitle(
+            ProcessNode->ProcessItem->QueryHandle,
             &windowFlags,
             &windowTitle
             )))
@@ -1101,9 +1101,6 @@ static VOID PhpUpdateProcessNodeAppId(
                 PhDereferenceObject(windowTitle);
         }
 
-        NtClose(processHandle);
-
-Done:
         ProcessNode->ValidMask |= PHPN_APPID;
     }
 }
