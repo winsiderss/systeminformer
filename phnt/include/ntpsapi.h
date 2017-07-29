@@ -756,8 +756,8 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
     PVOID FirstArgument;
     USHORT SystemCallNumber;
-    USHORT Reserved; // since REDSTONE2
-    ULONG64 WaitTime;
+    //USHORT Reserved; // since REDSTONE2
+    //ULONG64 WaitTime;
 } THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
 // private
