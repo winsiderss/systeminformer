@@ -877,7 +877,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
-                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                             PH_ALIGN_LEFT | PH_ALIGN_TOP,
                             contextMenuEvent->Location.x,
                             contextMenuEvent->Location.y
