@@ -23,23 +23,28 @@
 
 #include <phapp.h>
 
+#include <cpysave.h>
+#include <emenu.h>
 #include <kphuser.h>
 #include <symprv.h>
 
 #include <actions.h>
+#include <colmgr.h>
 #include <phplug.h>
 #include <settings.h>
 #include <thrdprv.h>
 
 #define WM_PH_COMPLETED (WM_APP + 301)
 #define WM_PH_STATUS_UPDATE (WM_APP + 302)
+#define WM_PH_SHOWSTACKMENU (WM_APP + 303)
 
-typedef struct _THREAD_STACK_CONTEXT
+static RECT MinimumSize = { -1, -1, -1, -1 };
+
+typedef struct _PH_THREAD_STACK_CONTEXT
 {
     HANDLE ProcessId;
     HANDLE ThreadId;
     HANDLE ThreadHandle;
-    HWND ListViewHandle;
     PPH_THREAD_PROVIDER ThreadProvider;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     BOOLEAN CustomWalk;
@@ -51,7 +56,17 @@ typedef struct _THREAD_STACK_CONTEXT
     NTSTATUS WalkStatus;
     PPH_STRING StatusMessage;
     PH_QUEUED_LOCK StatusLock;
-} THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
+
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    HWND WindowHandle;
+    HWND TreeNewHandle;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
+} PH_THREAD_STACK_CONTEXT, *PPH_THREAD_STACK_CONTEXT;
 
 typedef struct _THREAD_STACK_ITEM
 {
@@ -59,6 +74,43 @@ typedef struct _THREAD_STACK_ITEM
     ULONG Index;
     PPH_STRING Symbol;
 } THREAD_STACK_ITEM, *PTHREAD_STACK_ITEM;
+
+typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
+{
+    PH_STACK_TREE_COLUMN_INDEX,
+    PH_STACK_TREE_COLUMN_SYMBOL,
+    PH_STACK_TREE_COLUMN_STACKADDRESS,
+    PH_STACK_TREE_COLUMN_FRAMEADDRESS,
+    PH_STACK_TREE_COLUMN_PARAMETER1,
+    PH_STACK_TREE_COLUMN_PARAMETER2,
+    PH_STACK_TREE_COLUMN_PARAMETER3,
+    PH_STACK_TREE_COLUMN_PARAMETER4,
+    PH_STACK_TREE_COLUMN_CONTROLADDRESS,
+    PH_STACK_TREE_COLUMN_RETURNADDRESS,
+    TREE_COLUMN_ITEM_MAXIMUM
+} PH_STACK_TREE_COLUMN_ITEM_NAME;
+
+typedef struct _PH_STACK_TREE_ROOT_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_THREAD_STACK_FRAME StackFrame;
+
+    ULONG Index;
+    PPH_STRING TooltipText;
+    PPH_STRING IndexString;
+    PPH_STRING SymbolString;
+    WCHAR StackAddressString[PH_PTR_STR_LEN_1];
+    WCHAR FrameAddressString[PH_PTR_STR_LEN_1];
+    WCHAR Parameter1String[PH_PTR_STR_LEN_1];
+    WCHAR Parameter2String[PH_PTR_STR_LEN_1];
+    WCHAR Parameter3String[PH_PTR_STR_LEN_1];
+    WCHAR Parameter4String[PH_PTR_STR_LEN_1];
+    WCHAR PcAddressString[PH_PTR_STR_LEN_1];
+    WCHAR ReturnAddressString[PH_PTR_STR_LEN_1];
+
+    PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
+} PH_STACK_TREE_ROOT_NODE, *PPH_STACK_TREE_ROOT_NODE;
 
 INT_PTR CALLBACK PhpThreadStackDlgProc(
     _In_ HWND hwndDlg,
@@ -73,7 +125,7 @@ VOID PhpFreeThreadStackItem(
 
 NTSTATUS PhpRefreshThreadStack(
     _In_ HWND hwnd,
-    _In_ PTHREAD_STACK_CONTEXT ThreadStackContext
+    _In_ PPH_THREAD_STACK_CONTEXT ThreadStackContext
     );
 
 INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
@@ -83,7 +135,526 @@ INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
     _In_ LPARAM lParam
     );
 
-static RECT MinimumSize = { -1, -1, -1, -1 };
+#define SORT_FUNCTION(Column) ThreadStackTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl ThreadStackTreeNewCompare##Column( \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
+    ) \
+{ \
+    PPH_STACK_TREE_ROOT_NODE node1 = *(PPH_STACK_TREE_ROOT_NODE*)_elem1; \
+    PPH_STACK_TREE_ROOT_NODE node2 = *(PPH_STACK_TREE_ROOT_NODE*)_elem2; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+    \
+    return PhModifySort(sortResult, ((PPH_THREAD_STACK_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Index)
+{
+    sortResult = uint64cmp(node1->Index, node2->Index);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Symbol)
+{
+    sortResult = PhCompareString(node1->SymbolString, node2->SymbolString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StackAddress)
+{
+    sortResult = PhCompareStringZ(node1->StackAddressString, node2->StackAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FrameAddress)
+{
+    sortResult = PhCompareStringZ(node1->FrameAddressString, node2->FrameAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StackParameter1)
+{
+    sortResult = PhCompareStringZ(node1->Parameter1String, node2->Parameter1String, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StackParameter2)
+{
+    sortResult = PhCompareStringZ(node1->Parameter2String, node2->Parameter2String, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StackParameter3)
+{
+    sortResult = PhCompareStringZ(node1->Parameter3String, node2->Parameter3String, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StackParameter4)
+{
+    sortResult = PhCompareStringZ(node1->Parameter4String, node2->Parameter4String, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ControlAddress)
+{
+    sortResult = PhCompareStringZ(node1->PcAddressString, node2->PcAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ReturnAddress)
+{
+    sortResult = PhCompareStringZ(node1->ReturnAddressString, node2->ReturnAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+VOID ThreadStackLoadSettingsTreeList(
+    _Inout_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+
+    settings = PhGetStringSetting(L"ThreadStackTreeListColumns");
+    PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
+    PhDereferenceObject(settings);
+}
+
+VOID ThreadStackSaveSettingsTreeList(
+    _Inout_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+
+    settings = PhCmSaveSettings(Context->TreeNewHandle);
+    PhSetStringSetting2(L"ThreadStackTreeListColumns", &settings->sr);
+    PhDereferenceObject(settings);
+}
+
+BOOLEAN ThreadStackNodeHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_STACK_TREE_ROOT_NODE node1 = *(PPH_STACK_TREE_ROOT_NODE *)Entry1;
+    PPH_STACK_TREE_ROOT_NODE node2 = *(PPH_STACK_TREE_ROOT_NODE *)Entry2;
+
+    return node1->Index == node2->Index;
+}
+
+ULONG ThreadStackNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return (*(PPH_STACK_TREE_ROOT_NODE*)Entry)->Index;
+}
+
+VOID DestroyThreadStackNode(
+    _In_ PPH_STACK_TREE_ROOT_NODE Node
+    )
+{
+    PhClearReference(&Node->SymbolString);
+
+    PhDereferenceObject(Node);
+}
+
+PPH_STACK_TREE_ROOT_NODE AddThreadStackNode(
+    _Inout_ PPH_THREAD_STACK_CONTEXT Context,
+    _In_ ULONG Index
+    )
+{
+    PPH_STACK_TREE_ROOT_NODE threadStackNode;
+
+    threadStackNode = PhCreateAlloc(sizeof(PH_STACK_TREE_ROOT_NODE));
+    memset(threadStackNode, 0, sizeof(PH_STACK_TREE_ROOT_NODE));
+
+    PhInitializeTreeNewNode(&threadStackNode->Node);
+
+    memset(threadStackNode->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
+    threadStackNode->Node.TextCache = threadStackNode->TextCache;
+    threadStackNode->Node.TextCacheSize = TREE_COLUMN_ITEM_MAXIMUM;
+
+    threadStackNode->Index = Index;
+
+    PhAddEntryHashtable(Context->NodeHashtable, &threadStackNode);
+    PhAddItemList(Context->NodeList, threadStackNode);
+
+    // TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    return threadStackNode;
+}
+
+PPH_STACK_TREE_ROOT_NODE FindThreadStackNode(
+    _In_ PPH_THREAD_STACK_CONTEXT Context,
+    _In_ ULONG Index
+    )
+{
+    PH_STACK_TREE_ROOT_NODE lookupThreadStackNode;
+    PPH_STACK_TREE_ROOT_NODE lookupThreadStackNodePtr = &lookupThreadStackNode;
+    PPH_STACK_TREE_ROOT_NODE *threadStackNode;
+
+    lookupThreadStackNode.Index = Index;
+
+    threadStackNode = (PPH_STACK_TREE_ROOT_NODE*)PhFindEntryHashtable(
+        Context->NodeHashtable,
+        &lookupThreadStackNodePtr
+        );
+
+    if (threadStackNode)
+        return *threadStackNode;
+    else
+        return NULL;
+}
+
+VOID RemoveThreadStackNode(
+    _In_ PPH_THREAD_STACK_CONTEXT Context,
+    _In_ PPH_STACK_TREE_ROOT_NODE Node
+)
+{
+    ULONG index = 0;
+
+    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
+
+    if ((index = PhFindItemList(Context->NodeList, Node)) != -1)
+    {
+        PhRemoveItemList(Context->NodeList, index);
+    }
+
+    DestroyThreadStackNode(Node);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID UpdateThreadStackNode(
+    _In_ PPH_THREAD_STACK_CONTEXT Context,
+    _In_ PPH_STACK_TREE_ROOT_NODE Node
+    )
+{
+    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
+
+    PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+BOOLEAN NTAPI ThreadStackTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_THREAD_STACK_CONTEXT context = Context;
+    PPH_STACK_TREE_ROOT_NODE node;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+            node = (PPH_STACK_TREE_ROOT_NODE)getChildren->Node;
+
+            if (!getChildren->Node)
+            {
+                static PVOID sortFunctions[] =
+                {
+                    SORT_FUNCTION(Index),
+                    SORT_FUNCTION(Symbol),
+                    SORT_FUNCTION(StackAddress),
+                    SORT_FUNCTION(FrameAddress),
+                    SORT_FUNCTION(StackParameter1),
+                    SORT_FUNCTION(StackParameter2),
+                    SORT_FUNCTION(StackParameter3),
+                    SORT_FUNCTION(StackParameter4),
+                    SORT_FUNCTION(ControlAddress),
+                    SORT_FUNCTION(ReturnAddress),
+                };
+                int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                if (context->TreeNewSortColumn < TREE_COLUMN_ITEM_MAXIMUM)
+                    sortFunction = sortFunctions[context->TreeNewSortColumn];
+                else
+                    sortFunction = NULL;
+
+                if (sortFunction)
+                {
+                    qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
+                }
+
+                getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
+                getChildren->NumberOfChildren = context->NodeList->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+            node = (PPH_STACK_TREE_ROOT_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+            node = (PPH_STACK_TREE_ROOT_NODE)getCellText->Node;
+
+            switch (getCellText->Id)
+            {
+            case PH_STACK_TREE_COLUMN_INDEX:
+                {
+                    PhMoveReference(&node->IndexString, PhFormatUInt64(node->Index, TRUE));
+                    getCellText->Text = PhGetStringRef(node->IndexString);
+                }
+                break;
+            case PH_STACK_TREE_COLUMN_SYMBOL:
+                getCellText->Text = PhGetStringRef(node->SymbolString);
+                break;
+            case PH_STACK_TREE_COLUMN_STACKADDRESS:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->StackAddressString);
+                break;
+            case PH_STACK_TREE_COLUMN_FRAMEADDRESS:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->FrameAddressString);
+                break;
+            case PH_STACK_TREE_COLUMN_PARAMETER1:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->Parameter1String);
+                break;
+            case PH_STACK_TREE_COLUMN_PARAMETER2:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->Parameter2String);
+                break;
+            case PH_STACK_TREE_COLUMN_PARAMETER3:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->Parameter3String);
+                break;
+            case PH_STACK_TREE_COLUMN_PARAMETER4:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->Parameter4String);
+                break;
+            case PH_STACK_TREE_COLUMN_CONTROLADDRESS:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->PcAddressString);
+                break;
+            case PH_STACK_TREE_COLUMN_RETURNADDRESS:
+                PhInitializeStringRefLongHint(&getCellText->Text, node->ReturnAddressString);
+                break;
+            default:
+                return FALSE;
+            }
+
+            getCellText->Flags = TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            node = (PPH_STACK_TREE_ROOT_NODE)getNodeColor->Node;
+
+            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+        }
+        return TRUE;
+    case TreeNewSortChanged:
+        {
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            // Force a rebuild to sort the items.
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+            
+            SendMessage(
+                context->WindowHandle,
+                WM_COMMAND,
+                WM_PH_SHOWSTACKMENU,
+                (LPARAM)contextMenuEvent
+                );
+        }
+        return TRUE;
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenu(&data);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
+    case TreeNewGetCellTooltip:
+        {
+            PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
+            node = (PPH_STACK_TREE_ROOT_NODE)getCellTooltip->Node;
+
+            if (getCellTooltip->Column->Id != 0)
+                return FALSE;
+
+            if (!node->TooltipText)
+            {
+                PH_STRING_BUILDER stringBuilder;
+                PPH_STRING fileName;
+                PH_SYMBOL_LINE_INFORMATION lineInfo;
+
+                PhInitializeStringBuilder(&stringBuilder, 40);
+
+                if (PhGetLineFromAddress(
+                    context->SymbolProvider,
+                    (ULONG64)node->StackFrame.PcAddress,
+                    &fileName,
+                    NULL,
+                    &lineInfo
+                    ))
+                {
+                    PhAppendFormatStringBuilder(
+                        &stringBuilder,
+                        L"File: %s: line %u\n",
+                        fileName->Buffer,
+                        lineInfo.LineNumber
+                        );
+                    PhDereferenceObject(fileName);
+                }
+
+                if (stringBuilder.String->Length != 0)
+                    PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+                if (PhPluginsEnabled)
+                {
+                    PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+                    control.Type = PluginThreadStackGetTooltip;
+                    control.UniqueKey = context;
+                    control.u.GetTooltip.StackFrame = &node->StackFrame;
+                    control.u.GetTooltip.StringBuilder = &stringBuilder;
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+                }
+
+                node->TooltipText = PhFinalStringBuilderString(&stringBuilder);
+            }
+
+            if (!PhIsNullOrEmptyString(node->TooltipText))
+            {
+                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Unfolding = FALSE;
+                getCellTooltip->Font = NULL; // use default font
+                getCellTooltip->MaximumWidth = 550;
+            }
+            else
+            {
+                return FALSE;
+            }
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID ClearThreadStackTree(
+    _In_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        DestroyThreadStackNode(Context->NodeList->Items[i]);
+
+    PhClearHashtable(Context->NodeHashtable);
+    PhClearList(Context->NodeList);
+}
+
+PPH_STACK_TREE_ROOT_NODE GetSelectedThreadStackNode(
+    _In_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    PPH_STACK_TREE_ROOT_NODE windowNode = NULL;
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        windowNode = Context->NodeList->Items[i];
+
+        if (windowNode->Node.Selected)
+            return windowNode;
+    }
+
+    return NULL;
+}
+
+VOID GetSelectedThreadStackNodes(
+    _In_ PPH_THREAD_STACK_CONTEXT Context,
+    _Out_ PPH_STACK_TREE_ROOT_NODE **ThreadStackNodes,
+    _Out_ PULONG NumberOfThreadStackNodes
+    )
+{
+    PPH_LIST list;
+
+    list = PhCreateList(2);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_STACK_TREE_ROOT_NODE node = (PPH_STACK_TREE_ROOT_NODE)Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddItemList(list, node);
+        }
+    }
+
+    *ThreadStackNodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfThreadStackNodes = list->Count;
+
+    PhDereferenceObject(list);
+}
+
+VOID InitializeThreadStackTree(
+    _Inout_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    Context->NodeList = PhCreateList(100);
+    Context->NodeHashtable = PhCreateHashtable(
+        sizeof(PPH_STACK_TREE_ROOT_NODE),
+        ThreadStackNodeHashtableEqualFunction,
+        ThreadStackNodeHashtableHashFunction,
+        100
+        );
+
+    PhSetControlTheme(Context->TreeNewHandle, L"explorer");
+
+    TreeNew_SetCallback(Context->TreeNewHandle, ThreadStackTreeNewCallback, Context);
+
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, TRUE, L"#", 30, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_INDEX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_SYMBOL, TRUE, L"Name", 250, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_SYMBOL, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_STACKADDRESS, FALSE, L"Stack address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_STACKADDRESS, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FRAMEADDRESS, FALSE, L"Frame address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_FRAMEADDRESS, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER1, FALSE, L"Stack parameter #1", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER2, FALSE, L"Stack parameter #2", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER2, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER3, FALSE, L"Stack parameter #3", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER3, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER4, FALSE, L"Stack parameter #4", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER4, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, TRUE, L"Control address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_CONTROLADDRESS, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_RETURNADDRESS, 0);
+
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+
+    ThreadStackLoadSettingsTreeList(Context);
+}
+
+VOID DeleteThreadStackTree(
+    _In_ PPH_THREAD_STACK_CONTEXT Context
+    )
+{
+    ThreadStackSaveSettingsTreeList(Context);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        DestroyThreadStackNode(Context->NodeList->Items[i]);
+    }
+
+    PhDereferenceObject(Context->NodeHashtable);
+    PhDereferenceObject(Context->NodeList);
+}
 
 VOID PhShowThreadStackDialog(
     _In_ HWND ParentWindowHandle,
@@ -93,7 +664,7 @@ VOID PhShowThreadStackDialog(
     )
 {
     NTSTATUS status;
-    THREAD_STACK_CONTEXT threadStackContext;
+    PH_THREAD_STACK_CONTEXT threadStackContext;
     HANDLE threadHandle = NULL;
 
     // If the user is trying to view a system thread stack
@@ -104,7 +675,7 @@ VOID PhShowThreadStackDialog(
         return;
     }
 
-    memset(&threadStackContext, 0, sizeof(THREAD_STACK_CONTEXT));
+    memset(&threadStackContext, 0, sizeof(PH_THREAD_STACK_CONTEXT));
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
     threadStackContext.ThreadProvider = ThreadProvider;
@@ -160,55 +731,42 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPH_THREAD_STACK_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PPH_THREAD_STACK_CONTEXT)lParam;
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_THREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             NTSTATUS status;
-            PTHREAD_STACK_CONTEXT threadStackContext;
-            PPH_STRING title;
-            HWND lvHandle;
-            PPH_LAYOUT_MANAGER layoutManager;
+            
+            context->WindowHandle = hwndDlg;
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
 
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
-            threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)threadStackContext);
+            SetWindowText(hwndDlg, PhaFormatString(L"Stack - thread %u", HandleToUlong(context->ThreadId))->Buffer);
 
-            title = PhFormatString(L"Stack - thread %u", HandleToUlong(threadStackContext->ThreadId));
-            SetWindowText(hwndDlg, title->Buffer);
-            PhDereferenceObject(title);
+            InitializeThreadStackTree(context);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 30, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Stack");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 50, L"Frame");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 50, L"Parameter #1");
-            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 50, L"Parameter #2");
-            PhAddListViewColumn(lvHandle, 6, 6, 6, LVCFMT_LEFT, 50, L"Parameter #3");
-            PhAddListViewColumn(lvHandle, 7, 7, 7, LVCFMT_LEFT, 50, L"Parameter #4");
-            PhAddListViewColumn(lvHandle, 8, 8, 8, LVCFMT_LEFT, 50, L"Address");
-            PhAddListViewColumn(lvHandle, 9, 9, 9, LVCFMT_LEFT, 50, L"Return Address");
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhLoadListViewColumnsFromSetting(L"ThreadStackListViewColumns", lvHandle);
-
-            threadStackContext->ListViewHandle = lvHandle;
-
-            layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
-            PhInitializeLayoutManager(layoutManager, hwndDlg);
-            SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
-
-            PhAddLayoutItem(layoutManager, lvHandle, NULL,
-                PH_ANCHOR_ALL);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_COPY),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_REFRESH),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             if (MinimumSize.left == -1)
             {
@@ -231,18 +789,18 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 PH_PLUGIN_THREAD_STACK_CONTROL control;
 
                 control.Type = PluginThreadStackInitializing;
-                control.UniqueKey = threadStackContext;
-                control.u.Initializing.ProcessId = threadStackContext->ProcessId;
-                control.u.Initializing.ThreadId = threadStackContext->ThreadId;
-                control.u.Initializing.ThreadHandle = threadStackContext->ThreadHandle;
-                control.u.Initializing.SymbolProvider = threadStackContext->SymbolProvider;
+                control.UniqueKey = context;
+                control.u.Initializing.ProcessId = context->ProcessId;
+                control.u.Initializing.ThreadId = context->ThreadId;
+                control.u.Initializing.ThreadHandle = context->ThreadHandle;
+                control.u.Initializing.SymbolProvider = context->SymbolProvider;
                 control.u.Initializing.CustomWalk = FALSE;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
 
-                threadStackContext->CustomWalk = control.u.Initializing.CustomWalk;
+                context->CustomWalk = control.u.Initializing.CustomWalk;
             }
 
-            status = PhpRefreshThreadStack(hwndDlg, threadStackContext);
+            status = PhpRefreshThreadStack(hwndDlg, context);
 
             if (status == STATUS_ABANDONED)
                 EndDialog(hwndDlg, IDCANCEL);
@@ -252,33 +810,26 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
         break;
     case WM_DESTROY:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
-            PTHREAD_STACK_CONTEXT threadStackContext;
-            ULONG i;
+            context->StopWalk = TRUE;
 
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
-            PhDeleteLayoutManager(layoutManager);
-            PhFree(layoutManager);
+            DeleteThreadStackTree(context);
 
-            threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+            PhDeleteLayoutManager(&context->LayoutManager);
 
             if (PhPluginsEnabled)
             {
                 PH_PLUGIN_THREAD_STACK_CONTROL control;
-
                 control.Type = PluginThreadStackUninitializing;
-                control.UniqueKey = threadStackContext;
+                control.UniqueKey = context;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
             }
 
-            for (i = 0; i < threadStackContext->List->Count; i++)
-                PhpFreeThreadStackItem(threadStackContext->List->Items[i]);
+            for (ULONG i = 0; i < context->List->Count; i++)
+                PhpFreeThreadStackItem(context->List->Items[i]);
 
-            PhSaveListViewColumnsToSetting(L"ThreadStackListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
             PhSaveWindowPlacementToSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
 
             RemoveProp(hwndDlg, PhMakeContextAtom());
-            RemoveProp(hwndDlg, L"LayoutManager");
         }
         break;
     case WM_COMMAND:
@@ -295,10 +846,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 {
                     NTSTATUS status;
 
-                    if (!NT_SUCCESS(status = PhpRefreshThreadStack(
-                        hwndDlg,
-                        (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom())
-                        )))
+                    if (!NT_SUCCESS(status = PhpRefreshThreadStack(hwndDlg, context)))
                     {
                         PhShowStatus(hwndDlg, L"Unable to load the stack", status, 0);
                     }
@@ -306,103 +854,43 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 break;
             case IDC_COPY:
                 {
-                    HWND lvHandle;
+                    PPH_STRING text;
 
-                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-
-                    if (ListView_GetSelectedCount(lvHandle) == 0)
-                        PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
-
-                    PhCopyListView(lvHandle);
-                    SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
+                    text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                    PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                    PhDereferenceObject(text);
                 }
                 break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case LVN_GETINFOTIP:
+            case WM_PH_SHOWSTACKMENU:
                 {
-                    LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)header;
-                    HWND lvHandle;
-                    PTHREAD_STACK_CONTEXT threadStackContext;
+                    PPH_EMENU menu;
+                    PPH_STACK_TREE_ROOT_NODE selectedNode;
+                    PPH_EMENU_ITEM selectedItem;
+                    PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
 
-                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
-                    if (header->hwndFrom == lvHandle)
+                    if (selectedNode = GetSelectedThreadStackNode(context))
                     {
-                        PTHREAD_STACK_ITEM stackItem;
-                        PPH_THREAD_STACK_FRAME stackFrame;
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), -1);
+                        PhInsertCopyCellEMenuItem(menu, IDC_COPY, context->TreeNewHandle, contextMenuEvent->Column);
 
-                        if (PhGetListViewItemParam(lvHandle, getInfoTip->iItem, &stackItem))
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hwndDlg,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            contextMenuEvent->Location.x,
+                            contextMenuEvent->Location.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != -1)
                         {
-                            PH_STRING_BUILDER stringBuilder;
-                            PPH_STRING fileName;
-                            PH_SYMBOL_LINE_INFORMATION lineInfo;
+                            BOOLEAN handled = FALSE;
 
-                            stackFrame = &stackItem->StackFrame;
-                            PhInitializeStringBuilder(&stringBuilder, 40);
-
-                            PhAppendFormatStringBuilder(
-                                &stringBuilder,
-                                L"Stack: 0x%Ix, Frame: 0x%Ix\n",
-                                stackFrame->StackAddress,
-                                stackFrame->FrameAddress
-                                );
-
-                            // There are no params for kernel-mode stack traces.
-                            if ((ULONG_PTR)stackFrame->PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
-                            {
-                                PhAppendFormatStringBuilder(
-                                    &stringBuilder,
-                                    L"Parameters: 0x%Ix, 0x%Ix, 0x%Ix, 0x%Ix\n",
-                                    stackFrame->Params[0],
-                                    stackFrame->Params[1],
-                                    stackFrame->Params[2],
-                                    stackFrame->Params[3]
-                                    );
-                            }
-
-                            if (PhGetLineFromAddress(
-                                threadStackContext->SymbolProvider,
-                                (ULONG64)stackFrame->PcAddress,
-                                &fileName,
-                                NULL,
-                                &lineInfo
-                                ))
-                            {
-                                PhAppendFormatStringBuilder(
-                                    &stringBuilder,
-                                    L"File: %s: line %u\n",
-                                    fileName->Buffer,
-                                    lineInfo.LineNumber
-                                    );
-                                PhDereferenceObject(fileName);
-                            }
-
-                            if (stringBuilder.String->Length != 0)
-                                PhRemoveEndStringBuilder(&stringBuilder, 1);
-
-                            if (PhPluginsEnabled)
-                            {
-                                PH_PLUGIN_THREAD_STACK_CONTROL control;
-
-                                control.Type = PluginThreadStackGetTooltip;
-                                control.UniqueKey = threadStackContext;
-                                control.u.GetTooltip.StackFrame = stackFrame;
-                                control.u.GetTooltip.StringBuilder = &stringBuilder;
-                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
-                            }
-
-                            PhCopyListViewInfoTip(getInfoTip, &stringBuilder.String->sr);
-                            PhDeleteStringBuilder(&stringBuilder);
+                            handled = PhHandleCopyCellEMenuItem(selectedItem);
                         }
+
+                        PhDestroyEMenu(menu);
                     }
                 }
                 break;
@@ -411,10 +899,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
         break;
     case WM_SIZE:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
-
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
-            PhLayoutManagerLayout(layoutManager);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZING:
@@ -437,89 +922,76 @@ static VOID PhpFreeThreadStackItem(
 
 static NTSTATUS PhpRefreshThreadStack(
     _In_ HWND hwnd,
-    _In_ PTHREAD_STACK_CONTEXT ThreadStackContext
+    _In_ PPH_THREAD_STACK_CONTEXT Context
     )
 {
     ULONG i;
 
-    ThreadStackContext->StopWalk = FALSE;
-    PhMoveReference(&ThreadStackContext->StatusMessage, PhCreateString(L"Loading stack..."));
+    Context->StopWalk = FALSE;
+    PhMoveReference(&Context->StatusMessage, PhCreateString(L"Loading stack..."));
 
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_PROGRESS),
         hwnd,
         PhpThreadStackProgressDlgProc,
-        (LPARAM)ThreadStackContext
+        (LPARAM)Context
         );
 
-    if (!ThreadStackContext->StopWalk && NT_SUCCESS(ThreadStackContext->WalkStatus))
+    if (!Context->StopWalk && NT_SUCCESS(Context->WalkStatus))
     {
-        for (i = 0; i < ThreadStackContext->List->Count; i++)
-            PhpFreeThreadStackItem(ThreadStackContext->List->Items[i]);
+        for (i = 0; i < Context->List->Count; i++)
+            PhpFreeThreadStackItem(Context->List->Items[i]);
 
-        PhDereferenceObject(ThreadStackContext->List);
-        ThreadStackContext->List = ThreadStackContext->NewList;
-        ThreadStackContext->NewList = PhCreateList(10);
+        PhDereferenceObject(Context->List);
+        Context->List = Context->NewList;
+        Context->NewList = PhCreateList(10);
 
-        SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
-        ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
+        ClearThreadStackTree(Context);
 
-        for (i = 0; i < ThreadStackContext->List->Count; i++)
+        for (i = 0; i < Context->List->Count; i++)
         {
-            PTHREAD_STACK_ITEM item = ThreadStackContext->List->Items[i];
-            INT lvItemIndex;
-            WCHAR integerString[PH_INT32_STR_LEN_1];
-            WCHAR addressString[PH_PTR_STR_LEN_1];
+            PTHREAD_STACK_ITEM item = Context->List->Items[i];
+            PPH_STACK_TREE_ROOT_NODE stackNode;
 
-            PhPrintUInt32(integerString, item->Index);
-            lvItemIndex = PhAddListViewItem(ThreadStackContext->ListViewHandle, MAXINT, integerString, item);
-            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 1, PhGetStringOrDefault(item->Symbol, L"???"));
+            stackNode = AddThreadStackNode(Context, item->Index);
+            stackNode->StackFrame = item->StackFrame;
 
-            PhPrintPointer(addressString, item->StackFrame.StackAddress);
-            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 2, addressString);
+            if (!PhIsNullOrEmptyString(item->Symbol))
+                stackNode->SymbolString = PhReferenceObject(item->Symbol);
 
-            PhPrintPointer(addressString, item->StackFrame.FrameAddress);
-            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 3, addressString);
+            PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
+            PhPrintPointer(stackNode->FrameAddressString, item->StackFrame.FrameAddress);
 
             // There are no params for kernel-mode stack traces.
             if ((ULONG_PTR)item->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
             {
-                PhPrintPointer(addressString, item->StackFrame.Params[0]);
-                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 4, addressString);
-
-                PhPrintPointer(addressString, item->StackFrame.Params[1]);
-                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 5, addressString);
-
-                PhPrintPointer(addressString, item->StackFrame.Params[2]);
-                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 6, addressString);
-
-                PhPrintPointer(addressString, item->StackFrame.Params[3]);
-                PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 7, addressString);
+                PhPrintPointer(stackNode->Parameter1String, item->StackFrame.Params[0]);
+                PhPrintPointer(stackNode->Parameter2String, item->StackFrame.Params[1]);
+                PhPrintPointer(stackNode->Parameter3String, item->StackFrame.Params[2]);
+                PhPrintPointer(stackNode->Parameter4String, item->StackFrame.Params[3]);
             }
 
-            PhPrintPointer(addressString, item->StackFrame.PcAddress);
-            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 8, addressString);
+            PhPrintPointer(stackNode->PcAddressString, item->StackFrame.PcAddress);
+            PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
 
-            PhPrintPointer(addressString, item->StackFrame.ReturnAddress);
-            PhSetListViewSubItem(ThreadStackContext->ListViewHandle, lvItemIndex, 9, addressString);
+            UpdateThreadStackNode(Context, stackNode);
         }
 
-        SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, TRUE, 0);
-        InvalidateRect(ThreadStackContext->ListViewHandle, NULL, FALSE);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
     }
     else
     {
-        for (i = 0; i < ThreadStackContext->NewList->Count; i++)
-            PhpFreeThreadStackItem(ThreadStackContext->NewList->Items[i]);
+        for (i = 0; i < Context->NewList->Count; i++)
+            PhpFreeThreadStackItem(Context->NewList->Items[i]);
 
-        PhClearList(ThreadStackContext->NewList);
+        PhClearList(Context->NewList);
     }
 
-    if (ThreadStackContext->StopWalk)
+    if (Context->StopWalk)
         return STATUS_ABANDONED;
 
-    return ThreadStackContext->WalkStatus;
+    return Context->WalkStatus;
 }
 
 static BOOLEAN NTAPI PhpWalkThreadStackCallback(
@@ -527,7 +999,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
     _In_opt_ PVOID Context
     )
 {
-    PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)Context;
+    PPH_THREAD_STACK_CONTEXT threadStackContext = (PPH_THREAD_STACK_CONTEXT)Context;
     PPH_STRING symbol;
     PTHREAD_STACK_ITEM item;
 
@@ -585,7 +1057,7 @@ static NTSTATUS PhpRefreshThreadStackThreadStart(
 {
     PH_AUTO_POOL autoPool;
     NTSTATUS status;
-    PTHREAD_STACK_CONTEXT threadStackContext = Parameter;
+    PPH_THREAD_STACK_CONTEXT threadStackContext = Parameter;
     CLIENT_ID clientId;
     BOOLEAN defaultWalk;
 
@@ -664,24 +1136,36 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPH_THREAD_STACK_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PPH_THREAD_STACK_CONTEXT)lParam;
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+    }
+    else
+    {
+        context = (PPH_THREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PTHREAD_STACK_CONTEXT threadStackContext;
             HANDLE threadHandle;
 
-            threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)threadStackContext);
-            threadStackContext->ProgressWindowHandle = hwndDlg;
-
-            if (threadHandle = PhCreateThread(0, PhpRefreshThreadStackThreadStart, threadStackContext))
+            context->ProgressWindowHandle = hwndDlg;
+            
+            if (threadHandle = PhCreateThread(0, PhpRefreshThreadStackThreadStart, context))
             {
                 NtClose(threadHandle);
             }
             else
             {
-                threadStackContext->WalkStatus = STATUS_UNSUCCESSFUL;
+                context->WalkStatus = STATUS_UNSUCCESSFUL;
                 EndDialog(hwndDlg, IDOK);
                 break;
             }
@@ -704,10 +1188,8 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
             {
             case IDCANCEL:
                 {
-                    PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
-                    threadStackContext->StopWalk = TRUE;
+                    context->StopWalk = TRUE;
                 }
                 break;
             }
@@ -720,13 +1202,12 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
         break;
     case WM_PH_STATUS_UPDATE:
         {
-            PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
             PPH_STRING message;
 
-            PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
-            message = threadStackContext->StatusMessage;
+            PhAcquireQueuedLockExclusive(&context->StatusLock);
+            message = context->StatusMessage;
             PhReferenceObject(message);
-            PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
+            PhReleaseQueuedLockExclusive(&context->StatusLock);
 
             SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, message->Buffer);
             PhDereferenceObject(message);
@@ -734,5 +1215,5 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
         break;
     }
 
-    return 0;
+    return FALSE;
 }
