@@ -145,8 +145,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ThinRows", L"0");
     PhpAddStringSetting(L"ThreadTreeListColumns", L"");
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder
-    PhpAddStringSetting(L"ThreadStackListViewColumns", L"");
-    PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,380");
+    PhpAddStringSetting(L"ThreadStackTreeListColumns", L"");
+    PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,400");
     PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
     PhpAddIntegerSetting(L"TokenSplitterPosition", L"150");
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
