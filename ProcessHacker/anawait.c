@@ -222,7 +222,7 @@ VOID PhpAnalyzeWaitPassive(
         )))
     {
         NtClose(threadHandle);
-        PhShowInformation(hWnd, L"Unable to determine whether the thread is waiting.");
+        PhShowStatus(hWnd, L"Unable to determine whether the thread is waiting.", status, 0);
         return;
     }
 
