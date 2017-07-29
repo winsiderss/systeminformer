@@ -6208,7 +6208,7 @@ NTSTATUS PhCreatePipe(
     )
 {
     NTSTATUS status;
-    PACL pipeAcl;
+    PACL pipeAcl = NULL;
     HANDLE pipeDirectoryHandle;
     HANDLE pipeReadHandle;
     HANDLE pipeWriteHandle;
@@ -6253,7 +6253,6 @@ NTSTATUS PhCreatePipe(
 
         RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
         oa.SecurityDescriptor = &securityDescriptor;
     }
@@ -6277,6 +6276,9 @@ NTSTATUS PhCreatePipe(
 
     if (!NT_SUCCESS(status))
     {
+        if (pipeAcl)
+            RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
+
         NtClose(pipeDirectoryHandle);
         return status;
     }
@@ -6304,6 +6306,9 @@ NTSTATUS PhCreatePipe(
         *PipeReadHandle = pipeReadHandle;
         *PipeWriteHandle = pipeWriteHandle;
     }
+
+    if (pipeAcl)
+        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
     NtClose(pipeDirectoryHandle);
     return status;
