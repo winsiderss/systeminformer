@@ -9,6 +9,7 @@ A free, powerful, multi-purpose tool that helps you monitor system resources, de
 
 * [Official Website](http://processhacker.sourceforge.net/)
 * [FAQ](http://processhacker.sourceforge.net/faq.php)
+* [Nightly Builds](https://wj32.org/processhacker/nightly.php)
 
 ## System requirements
 
