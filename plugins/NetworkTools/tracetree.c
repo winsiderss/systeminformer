@@ -223,7 +223,7 @@ VOID UpdateTracertNodePingText(
                 PhFormatString(L"%s ms", PhaFormatUInt64(Node->PingList[Index], TRUE)->Buffer)
                 );
 
-            CellText->Text = PhGetStringRef(Node->PingString[Index]);
+            CellText->Text = Node->PingString[Index]->sr;
         }
         else
         {
