@@ -257,6 +257,8 @@ VOID DestroyThreadStackNode(
     _In_ PPH_STACK_TREE_ROOT_NODE Node
     )
 {
+    PhClearReference(&Node->TooltipText);
+    PhClearReference(&Node->IndexString);
     PhClearReference(&Node->SymbolString);
 
     PhDereferenceObject(Node);
