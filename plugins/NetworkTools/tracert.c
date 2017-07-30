@@ -72,7 +72,7 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            PhMoveReference(&resolve->Node->HostnameString, PhCreateString(resolve->SocketAddressHostname));
+            SendMessage(resolve->WindowHandle, WM_TRACERT_HOSTNAME, resolve->Index, (LPARAM)PhCreateString(resolve->SocketAddressHostname));
         }
         else
         {
@@ -100,7 +100,7 @@ NTSTATUS TracertHostnameLookupCallback(
             NI_NAMEREQD
             ))
         {
-            PhMoveReference(&resolve->Node->HostnameString, PhCreateString(resolve->SocketAddressHostname));
+            SendMessage(resolve->WindowHandle, WM_TRACERT_HOSTNAME, resolve->Index, (LPARAM)PhCreateString(resolve->SocketAddressHostname));
         }
         else
         {
@@ -141,7 +141,7 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv4AddressToStringEx(&sockAddrIn, 0, addressString, &addressStringLength)))
         {
-            Node->IpAddressString = PhCreateString(addressString);
+            PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
         }
 
         resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
@@ -149,7 +149,7 @@ VOID TracertQueueHostLookup(
 
         resolve->Type = PH_IPV4_NETWORK_TYPE;
         resolve->WindowHandle = Context->WindowHandle;
-        resolve->Node = Node;
+        resolve->Index = Node->TTL;
 
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
         ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
@@ -176,7 +176,7 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
-            Node->IpAddressString = PhCreateString(addressString);
+            PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
         }
 
         resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
@@ -184,7 +184,7 @@ VOID TracertQueueHostLookup(
 
         resolve->Type = PH_IPV6_NETWORK_TYPE;
         resolve->WindowHandle = Context->WindowHandle;
-        resolve->Node = Node;
+        resolve->Index = Node->TTL;
 
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_family = AF_INET6;
         ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
@@ -687,6 +687,26 @@ INT_PTR CALLBACK TracertDlgProc(
             }
             
             TreeNew_NodesStructured(context->TreeNewHandle);
+        }
+        break;
+    case WM_TRACERT_HOSTNAME:
+        {
+            ULONG index = (ULONG)wParam;
+            PPH_STRING hostName = (PPH_STRING)lParam;
+            PTRACERT_ROOT_NODE traceNode;
+
+            traceNode = FindTracertNode(context, index);
+
+            if (traceNode)
+            {
+                PhMoveReference(&traceNode->HostnameString, hostName);
+
+                UpdateTracertNode(context, traceNode);
+            }
+            else
+            {
+                PhDereferenceObject(hostName);
+            }
         }
         break;
     }
