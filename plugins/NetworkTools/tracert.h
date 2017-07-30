@@ -71,8 +71,7 @@ typedef struct _TRACERT_RESOLVE_WORKITEM
     SOCKADDR_STORAGE SocketAddress;
     HWND WindowHandle;
 
-    PTRACERT_ROOT_NODE Node;
-
+    ULONG Index;
     WCHAR SocketAddressHostname[NI_MAXHOST];
 } TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
 
