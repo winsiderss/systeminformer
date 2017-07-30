@@ -627,16 +627,16 @@ VOID InitializeThreadStackTree(
 
     TreeNew_SetCallback(Context->TreeNewHandle, ThreadStackTreeNewCallback, Context);
 
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, TRUE, L"#", 30, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_INDEX, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_SYMBOL, TRUE, L"Name", 250, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_SYMBOL, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_STACKADDRESS, FALSE, L"Stack address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_STACKADDRESS, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FRAMEADDRESS, FALSE, L"Frame address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_FRAMEADDRESS, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER1, FALSE, L"Stack parameter #1", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER1, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER2, FALSE, L"Stack parameter #2", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER2, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER3, FALSE, L"Stack parameter #3", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER3, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER4, FALSE, L"Stack parameter #4", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_PARAMETER4, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, TRUE, L"Control address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_CONTROLADDRESS, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, PH_STACK_TREE_COLUMN_RETURNADDRESS, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, TRUE, L"#", 30, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_SYMBOL, TRUE, L"Name", 250, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_STACKADDRESS, FALSE, L"Stack address", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FRAMEADDRESS, FALSE, L"Frame address", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER1, FALSE, L"Stack parameter #1", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER2, FALSE, L"Stack parameter #2", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER3, FALSE, L"Stack parameter #3", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_PARAMETER4, FALSE, L"Stack parameter #4", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, FALSE, L"Control address", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
