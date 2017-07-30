@@ -2,7 +2,7 @@
 
 A free, powerful, multi-purpose tool that helps you monitor system resources, debug software and detect malware.
 
-[![Build status](https://ci.appveyor.com/api/projects/status/5einmgmy3mnsfjdn?svg=true)](https://ci.appveyor.com/project/pbatard/rufus)
+[![Build status](https://ci.appveyor.com/api/projects/status/5einmgmy3mnsfjdn?svg=true)](https://ci.appveyor.com/project/processhacker/processhacker2)
 [![Licence](https://img.shields.io/badge/license-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 ![Logo](https://raw.githubusercontent.com/processhacker2/processhacker/master/ProcessHacker/resources/ProcessHacker.png)
