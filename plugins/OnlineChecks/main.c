@@ -346,15 +346,24 @@ VOID NTAPI ServiceMenuInitializingCallback(
     else
         serviceItem = NULL;
 
-    QueryServiceFileName(
-        &serviceItem->Name->sr,
-        &serviceFileName,
-        &serviceBinaryPath
-        );
+    if (serviceItem)
+    {
+        QueryServiceFileName(
+            &serviceItem->Name->sr,
+            &serviceFileName,
+            &serviceBinaryPath
+            );
+    }
 
-    if (serviceBinaryPath) PhDereferenceObject(serviceBinaryPath);
+    if (serviceBinaryPath) 
+        PhDereferenceObject(serviceBinaryPath);
 
-    //  TODO: Possible serviceFileName string memory leak.
+    if (serviceFileName)
+    {
+        // TODO: memory leak or possible use-after-free bug?
+        PhAutoDereferenceObject(serviceFileName);
+    }
+
     sendToMenu = CreateSendToMenu(menuInfo->Menu, serviceFileName ? serviceFileName : NULL);
 
     if (!serviceItem || !serviceFileName)
