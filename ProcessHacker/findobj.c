@@ -172,6 +172,18 @@ BEGIN_SORT_FUNCTION(Handle)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ObjectAddress)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->HandleObject, (ULONG_PTR)node2->HandleObject);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(OriginalName)
+{
+    sortResult = PhCompareString(node1->ObjectNameString, node2->ObjectNameString, TRUE);
+}
+END_SORT_FUNCTION
+
 VOID HandleObjectLoadSettingsTreeList(
     _Inout_ PPH_HANDLE_SEARCH_CONTEXT Context
     )
@@ -209,7 +221,7 @@ ULONG HandleObjectNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashIntPtr((ULONG_PTR)(*(PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)Entry)->HandleObject);
+    return PhHashIntPtr((ULONG_PTR)(*(PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)Entry)->Handle);
 }
 
 VOID DestroyHandleObjectNode(
@@ -226,7 +238,6 @@ VOID DestroyHandleObjectNode(
 
 PPH_HANDLE_OBJECT_TREE_ROOT_NODE AddHandleObjectNode(
     _Inout_ PPH_HANDLE_SEARCH_CONTEXT Context,
-    _In_ PVOID HandleObject,
     _In_ HANDLE Handle
     )
 {
@@ -241,7 +252,6 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE AddHandleObjectNode(
     handleObjectNode->Node.TextCache = handleObjectNode->TextCache;
     handleObjectNode->Node.TextCacheSize = TREE_COLUMN_ITEM_MAXIMUM;
 
-    handleObjectNode->HandleObject = HandleObject;
     handleObjectNode->Handle = Handle;
 
     PhAddEntryHashtable(Context->NodeHashtable, &handleObjectNode);
@@ -254,14 +264,14 @@ PPH_HANDLE_OBJECT_TREE_ROOT_NODE AddHandleObjectNode(
 
 PPH_HANDLE_OBJECT_TREE_ROOT_NODE FindHandleObjectNode(
     _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
-    _In_ PVOID HandleObject
+    _In_ HANDLE Handle
     )
 {
     PH_HANDLE_OBJECT_TREE_ROOT_NODE lookupHandleObjectNode;
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE lookupHandleObjectNodePtr = &lookupHandleObjectNode;
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNode;
 
-    lookupHandleObjectNode.HandleObject = HandleObject;
+    lookupHandleObjectNode.Handle = Handle;
 
     handleObjectNode = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
@@ -329,6 +339,8 @@ BOOLEAN NTAPI HandleObjectTreeNewCallback(
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Handle),
+                    SORT_FUNCTION(ObjectAddress),
+                    SORT_FUNCTION(OriginalName)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -672,7 +684,7 @@ VOID PhpFindObjectAddResultEntries(
 
         processItem = PhReferenceProcessItem(clientId.UniqueProcess);
 
-        objectNode = AddHandleObjectNode(Context, searchResult->Object, searchResult->Handle);
+        objectNode = AddHandleObjectNode(Context, searchResult->Handle);
         objectNode->ProcessId = searchResult->ProcessId;
         objectNode->ResultType = searchResult->ResultType;
         objectNode->ClientIdName = PhGetClientIdNameEx(&clientId, processItem ? processItem->ProcessName : NULL);
@@ -683,7 +695,10 @@ VOID PhpFindObjectAddResultEntries(
         PhPrintPointer(objectNode->HandleString, searchResult->Handle);
 
         if (searchResult->Object)
+        {
+            objectNode->HandleObject = searchResult->Object;
             PhPrintPointer(objectNode->ObjectString, searchResult->Object);
+        }
 
         PhDereferenceObject(processItem);
     }
