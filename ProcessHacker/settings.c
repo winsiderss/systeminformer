@@ -50,7 +50,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
     PhpAddIntegerSetting(L"FindObjRegex", L"0");
-    PhpAddStringSetting(L"FindObjListViewColumns", L"");
+    PhpAddStringSetting(L"FindObjTreeListColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
     PhpAddScalableIntegerPairSetting(L"FindObjWindowSize", L"@96|550,420");
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
