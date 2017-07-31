@@ -473,15 +473,48 @@ BOOLEAN ServiceTreeFilterCallback(
     return FALSE;
 }
 
+// copied from ProcessHacker\netlist.c..
+static PPH_STRING PhpNetworkTreeGetNetworkItemProcessName(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PH_FORMAT format[4];
+
+    if (!NetworkItem->ProcessId)
+        return PhaCreateString(L"Waiting connections");
+
+    PhInitFormatS(&format[1], L" (");
+    PhInitFormatU(&format[2], HandleToUlong(NetworkItem->ProcessId));
+    PhInitFormatC(&format[3], ')');
+
+    if (NetworkItem->ProcessName)
+        PhInitFormatSR(&format[0], NetworkItem->ProcessName->sr);
+    else
+        PhInitFormatS(&format[0], L"Unknown process");
+
+    return PH_AUTO(PhFormat(format, 4, 96));
+}
+
 BOOLEAN NetworkTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     )
 {
     PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)Node;
+    PPH_STRING processNameText;
 
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
+
+    // TODO: We need export the PPH_NETWORK_NODE->ProcessNameText field to search 
+    // waiting/unknown network connections... For now just replicate the data here.
+    processNameText = PhpNetworkTreeGetNetworkItemProcessName(networkNode->NetworkItem);
+
+    if (!PhIsNullOrEmptyString(processNameText))
+    {
+        if (WordMatchStringRef(&processNameText->sr))
+            return TRUE;
+    }
 
     if (!PhIsNullOrEmptyString(networkNode->NetworkItem->ProcessName))
     {
