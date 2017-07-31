@@ -5157,6 +5157,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     moduleInfo.Flags = Module->Flags;
     moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
     moduleInfo.FileName = PhGetFileName(fileName);
+    moduleInfo.OriginalFileName = fileName;
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;
 
@@ -5171,12 +5172,11 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         moduleInfo.LoadTime.QuadPart = 0;
     }
 
-    PhDereferenceObject(fileName);
-
     cont = context->Callback(&moduleInfo, context->Context);
 
     PhDereferenceObject(moduleInfo.Name);
     PhDereferenceObject(moduleInfo.FileName);
+    PhDereferenceObject(moduleInfo.OriginalFileName);
 
     return cont;
 }
@@ -5222,12 +5222,11 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.Flags = module->Flags;
         moduleInfo.Name = PhConvertMultiByteToUtf16(&module->FullPathName[module->OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
+        moduleInfo.OriginalFileName = fileName;
         moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
         moduleInfo.LoadCount = module->LoadCount;
         moduleInfo.LoadReason = -1;
         moduleInfo.LoadTime.QuadPart = 0;
-
-        PhDereferenceObject(fileName);
 
         if (module->OffsetToFileName == 0)
         {
@@ -5247,6 +5246,7 @@ VOID PhpRtlModulesToGenericModules(
 
         PhDereferenceObject(moduleInfo.Name);
         PhDereferenceObject(moduleInfo.FileName);
+        PhDereferenceObject(moduleInfo.OriginalFileName);
 
         if (!cont)
             break;
@@ -5331,6 +5331,7 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     moduleInfo.EntryPoint = NULL;
     moduleInfo.Flags = 0;
     moduleInfo.FileName = PhGetFileName(FileName);
+    moduleInfo.OriginalFileName = FileName;
     moduleInfo.Name = PhGetBaseName(moduleInfo.FileName);
     moduleInfo.LoadOrderIndex = -1;
     moduleInfo.LoadCount = -1;
@@ -5340,6 +5341,7 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     cont = Callback(&moduleInfo, Context);
 
     PhDereferenceObject(moduleInfo.FileName);
+    PhDereferenceObject(moduleInfo.OriginalFileName);
     PhDereferenceObject(moduleInfo.Name);
 
     return cont;
@@ -5445,8 +5447,6 @@ VOID PhpEnumGenericMappedFilesAndImages(
                 Context,
                 BaseAddressHashtable
                 );
-
-            PhDereferenceObject(fileName);
 
             if (!cont)
                 break;
