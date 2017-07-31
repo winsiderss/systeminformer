@@ -141,7 +141,23 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv4AddressToStringEx(&sockAddrIn, 0, addressString, &addressStringLength)))
         {
-            PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
+            if (!PhIsNullOrEmptyString(Node->IpAddressString))
+            {
+                // Make sure we don't append the same address.
+                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
+                {
+                    // Some routes can return multiple addresses for the same ping or 'hop', 
+                    // so make sure we don't lose this information (as every other tracert tool does) 
+                    // and instead append the additional IP address to the node.
+                    PhMoveReference(&Node->IpAddressString, 
+                        PhFormatString(L"%s, %s", PhGetString(Node->IpAddressString), addressString)
+                        );
+                }
+            }
+            else
+            {
+                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
+            }
         }
 
         resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
@@ -176,7 +192,23 @@ VOID TracertQueueHostLookup(
 
         if (NT_SUCCESS(RtlIpv6AddressToStringEx(&sockAddrIn6, 0, 0, addressString, &addressStringLength)))
         {
-            PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
+            if (!PhIsNullOrEmptyString(Node->IpAddressString))
+            {
+                // Make sure we don't append the same address.
+                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
+                {
+                    // Some routes can return multiple addresses for the same ping or 'hop', 
+                    // so make sure we don't lose this information (as every other tracert tool does)
+                    // and instead append the additional IP address to the node.
+                    PhMoveReference(&Node->IpAddressString, 
+                        PhFormatString(L"%s, %s", PhGetString(Node->IpAddressString), addressString)
+                        );
+                }
+            }
+            else
+            {
+                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
+            }
         }
 
         resolve = PhCreateAlloc(sizeof(TRACERT_RESOLVE_WORKITEM));
@@ -695,13 +727,33 @@ INT_PTR CALLBACK TracertDlgProc(
             PPH_STRING hostName = (PPH_STRING)lParam;
             PTRACERT_ROOT_NODE traceNode;
 
-            traceNode = FindTracertNode(context, index);
-
-            if (traceNode)
+            if (traceNode = FindTracertNode(context, index))
             {
-                PhMoveReference(&traceNode->HostnameString, hostName);
+                if (!PhIsNullOrEmptyString(traceNode->HostnameString))
+                {
+                    // Make sure we don't append the same hostname.
+                    if (PhFindStringInString(traceNode->HostnameString, 0, PhGetString(hostName)) == -1)
+                    {
+                        // Some routes can return multiple addresses for the same ping or 'hop', 
+                        // so make sure we don't lose this information (as every other tracert tool does) 
+                        // and instead append the additional hostname to the node.
+                        PhMoveReference(&traceNode->HostnameString,
+                            PhFormatString(L"%s, %s", PhGetString(traceNode->HostnameString), PhGetString(hostName))
+                            );
 
-                UpdateTracertNode(context, traceNode);
+                        UpdateTracertNode(context, traceNode);
+                    }
+                    else
+                    {
+                        PhDereferenceObject(hostName);
+                    }
+                }
+                else
+                {
+                    PhMoveReference(&traceNode->HostnameString, hostName);
+
+                    UpdateTracertNode(context, traceNode);
+                }
             }
             else
             {
