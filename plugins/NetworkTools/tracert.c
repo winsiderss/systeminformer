@@ -725,11 +725,11 @@ INT_PTR CALLBACK TracertDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_REFRESH), TRUE);
 
             Static_SetText(context->WindowHandle, PhaFormatString(
-                L"Tracing %s... Complete", 
+                L"Tracing %s... complete", 
                 context->IpAddressString
                 )->Buffer);
             Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
-                L"Tracing route to %s with %lu bytes of data... Complete.", 
+                L"Tracing route to %s with %lu bytes of data... complete.", 
                 context->IpAddressString, 
                 PhGetIntegerSetting(SETTING_NAME_PING_SIZE)
                 )->Buffer);
