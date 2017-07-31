@@ -104,6 +104,10 @@ TracertGetFilterSupportTreeList(
     VOID
     );
 
+VOID ClearTracertTree(
+    _In_ PNETWORK_TRACERT_CONTEXT Context
+    );
+
 PTRACERT_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     );

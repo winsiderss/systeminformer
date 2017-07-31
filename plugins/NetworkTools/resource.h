@@ -269,6 +269,7 @@
 #define IDC_STATUS                      1023
 #define IDC_GEOIP                       1028
 #define IDC_LIST_TRACERT                1030
+#define IDC_REFRESH                     1031
 
 // Next default values for new objects
 // 
@@ -276,7 +277,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        107
 #define _APS_NEXT_COMMAND_VALUE         40006
-#define _APS_NEXT_CONTROL_VALUE         1031
+#define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
