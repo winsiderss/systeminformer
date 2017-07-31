@@ -60,7 +60,6 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
-    PPH_LIST NodeRootList;
 
     HANDLE TimerQueueHandle;
     HANDLE UpdateTimerHandle;
