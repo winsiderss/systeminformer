@@ -842,6 +842,7 @@ typedef struct _PH_MODULE_INFO
     ULONG Flags;
     PPH_STRING Name;
     PPH_STRING FileName;
+    PPH_STRING OriginalFileName;
 
     USHORT LoadOrderIndex; // -1 if N/A
     USHORT LoadCount; // -1 if N/A
