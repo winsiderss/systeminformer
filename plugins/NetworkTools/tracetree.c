@@ -472,6 +472,8 @@ VOID ClearTracertTree(
 
     PhClearHashtable(Context->NodeHashtable);
     PhClearList(Context->NodeList);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 PTRACERT_ROOT_NODE GetSelectedTracertNode(
