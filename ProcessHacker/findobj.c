@@ -860,11 +860,15 @@ static BOOLEAN NTAPI EnumModulesCallback(
     PSEARCH_MODULE_CONTEXT moduleContext = Context;
     PPH_HANDLE_SEARCH_CONTEXT context = moduleContext->WindowContext;
     PPH_STRING upperFileName;
+    PPH_STRING upperOriginalFileName;
 
     upperFileName = PhDuplicateString(Module->FileName);
     _wcsupr(upperFileName->Buffer);
 
-    if (MatchSearchString(context, &upperFileName->sr) ||
+    upperOriginalFileName = PhDuplicateString(Module->OriginalFileName);
+    _wcsupr(upperOriginalFileName->Buffer);
+
+    if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
         (context->UseSearchPointer && Module->BaseAddress == (PVOID)context->SearchPointer))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
@@ -898,6 +902,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         PhReleaseQueuedLockExclusive(&context->SearchResultsLock);
     }
 
+    PhDereferenceObject(upperOriginalFileName);
     PhDereferenceObject(upperFileName);
 
     return TRUE;
