@@ -1769,6 +1769,12 @@ BEGIN_SORT_FUNCTION(FileSize)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Subprocesses)
+{
+    sortResult = int64cmp(node1->Children->Count, node2->Children->Count);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1887,7 +1893,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CfGuard),
                         SORT_FUNCTION(TimeStamp),
                         SORT_FUNCTION(FileModifiedTime),
-                        SORT_FUNCTION(FileSize)
+                        SORT_FUNCTION(FileSize),
+                        SORT_FUNCTION(Subprocesses)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
