@@ -2583,7 +2583,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_SUBPROCESSCOUNT:
                 {
-                    PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, -1));
+                    PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, TRUE));
                     getCellText->Text = node->SubprocessCountText->sr;
                 }
                 break;
