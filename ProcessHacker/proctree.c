@@ -207,6 +207,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_TIMESTAMP, FALSE, L"Time stamp", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -561,6 +562,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->TimeStampText);
     PhClearReference(&ProcessNode->FileModifiedTimeText);
     PhClearReference(&ProcessNode->FileSizeText);
+    PhClearReference(&ProcessNode->SubprocessCountText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -2570,6 +2572,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhMoveReference(&node->FileSizeText, PhFormatSize(node->FileEndOfFile.QuadPart, -1));
                     getCellText->Text = node->FileSizeText->sr;
+                }
+                break;
+            case PHPRTLC_SUBPROCESSCOUNT:
+                {
+                    PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, -1));
+                    getCellText->Text = node->SubprocessCountText->sr;
                 }
                 break;
             default:
