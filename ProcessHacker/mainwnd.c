@@ -2761,10 +2761,11 @@ VOID PhMwpInitializeSubMenu(
     }
     else if (Index == 2) // Tools
     {
-#ifdef _WIN64
-        if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_HIDDENPROCESSES))
-            PhDestroyEMenuItem(menuItem);
-#endif
+        if (!PhGetIntegerSetting(L"HiddenProcessesMenuEnabled"))
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_HIDDENPROCESSES))
+                PhDestroyEMenuItem(menuItem);
+        }
 
         // Windows 8 Task Manager requires elevation.
         if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
