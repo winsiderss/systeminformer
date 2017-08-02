@@ -390,7 +390,7 @@ VOID PhSipOnShowWindow(
     }
 
     SeparatorControl = CreateWindow(
-        L"STATIC",
+        WC_STATIC,
         NULL,
         WS_CHILD | SS_OWNERDRAW,
         0,
@@ -404,7 +404,7 @@ VOID PhSipOnShowWindow(
         );
 
     RestoreSummaryControl = CreateWindow(
-        L"STATIC",
+        WC_STATIC,
         NULL,
         WS_CHILD | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
         0,
@@ -1143,7 +1143,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
 
     section->PanelId = IDDYNAMIC + SectionList->Count * 2 + 2;
     section->PanelHandle = CreateWindow(
-        L"STATIC",
+        WC_STATIC,
         NULL,
         WS_CHILD | SS_OWNERDRAW | SS_NOTIFY,
         0,
