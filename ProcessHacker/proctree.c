@@ -1028,17 +1028,17 @@ static VOID PhpUpdateProcessNodeImage(
 {
     if (!(ProcessNode->ValidMask & PHPN_IMAGE))
     {
-        HANDLE processHandle;
-        PROCESS_BASIC_INFORMATION basicInfo;
-        PVOID imageBaseAddress;
-        PH_REMOTE_MAPPED_IMAGE mappedImage;
-
         if (ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             ProcessNode->ImageSubsystem = IMAGE_SUBSYSTEM_POSIX_CUI;
         }
         else
         {
+            HANDLE processHandle;
+            PROCESS_BASIC_INFORMATION basicInfo;
+            PVOID imageBaseAddress;
+            PH_REMOTE_MAPPED_IMAGE mappedImage;
+
             if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
             {
                 if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
