@@ -558,6 +558,7 @@ VOID PhInitializeKph(
 {
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     static PH_STRINGREF processhackerSig = PH_STRINGREF_INIT(L"ProcessHacker.sig");
+    NTSTATUS status;
     PPH_STRING kprocesshackerFileName;
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
@@ -573,13 +574,21 @@ VOID PhInitializeKph(
     parameters.SecurityLevel = KphSecuritySignatureCheck;
     parameters.CreateDynamicConfiguration = TRUE;
 
-    if (NT_SUCCESS(KphConnect2Ex(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters)))
+    if (NT_SUCCESS(status = KphConnect2Ex(
+        KPH_DEVICE_SHORT_NAME,
+        kprocesshackerFileName->Buffer,
+        &parameters
+        )))
     {
         if (signature = PhpReadSignature(processhackerSigFileName->Buffer, &signatureSize))
         {
             KphVerifyClient(signature, signatureSize);
             PhFree(signature);
         }
+    }
+    else
+    {
+        PhShowStatus(NULL, L"Unable to load the kernel driver.", status, 0);
     }
 
     PhDereferenceObject(kprocesshackerFileName);
