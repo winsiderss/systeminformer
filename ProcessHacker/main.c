@@ -588,7 +588,8 @@ VOID PhInitializeKph(
     }
     else
     {
-        PhShowStatus(NULL, L"Unable to load the kernel driver.", status, 0);
+        if (PhGetIntegerSetting(L"EnableWarnings"))
+            PhShowStatus(NULL, L"Unable to load the kernel driver.", status, 0);
     }
 
     PhDereferenceObject(kprocesshackerFileName);
