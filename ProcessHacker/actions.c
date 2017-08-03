@@ -59,7 +59,6 @@ static PWSTR DangerousProcesses[] =
 };
 
 static PPH_STRING DebuggerCommand = NULL;
-static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
 static ULONG PhSvcReferenceCount = 0;
 static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
@@ -1397,9 +1396,17 @@ BOOLEAN PhUiDebugProcess(
     _In_ PPH_PROCESS_ITEM Process
     )
 {
+    static PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+#ifdef _WIN64
+    static PH_STRINGREF aeDebugWow64KeyName = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+#endif
     NTSTATUS status;
     BOOLEAN cont = FALSE;
     PH_STRING_BUILDER commandLineBuilder;
+    HANDLE keyHandle;
+    PPH_STRING debugger;
+    PH_STRINGREF commandPart;
+    PH_STRINGREF dummy;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
@@ -1419,39 +1426,33 @@ BOOLEAN PhUiDebugProcess(
     if (!cont)
         return FALSE;
 
-    if (PhBeginInitOnce(&DebuggerCommandInitOnce))
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+#ifdef _WIN64
+        Process->IsWow64 ? &aeDebugWow64KeyName : &aeDebugKeyName,
+#else
+        &aeDebugKeyName,
+#endif
+        0
+        );
+
+    if (NT_SUCCESS(status))
     {
-        static PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
-
-        HANDLE keyHandle;
-        PPH_STRING debugger;
-        PH_STRINGREF commandPart;
-        PH_STRINGREF dummy;
-
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
-            KEY_READ,
-            PH_KEY_LOCAL_MACHINE,
-            &aeDebugKeyName,
-            0
-            )))
+        if (debugger = PH_AUTO(PhQueryRegistryString(keyHandle, L"Debugger")))
         {
-            if (debugger = PH_AUTO(PhQueryRegistryString(keyHandle, L"Debugger")))
+            if (PhSplitStringRefAtChar(&debugger->sr, '"', &dummy, &commandPart) &&
+                PhSplitStringRefAtChar(&commandPart, '"', &commandPart, &dummy))
             {
-                if (PhSplitStringRefAtChar(&debugger->sr, '"', &dummy, &commandPart) &&
-                    PhSplitStringRefAtChar(&commandPart, '"', &commandPart, &dummy))
-                {
-                    DebuggerCommand = PhCreateString2(&commandPart);
-                }
+                DebuggerCommand = PhCreateString2(&commandPart);
             }
-
-            NtClose(keyHandle);
         }
 
-        PhEndInitOnce(&DebuggerCommandInitOnce);
+        NtClose(keyHandle);
     }
 
-    if (!DebuggerCommand)
+    if (PhIsNullOrEmptyString(DebuggerCommand))
     {
         PhShowError(hWnd, L"Unable to locate the debugger.");
         return FALSE;
@@ -1462,7 +1463,7 @@ BOOLEAN PhUiDebugProcess(
     PhAppendCharStringBuilder(&commandLineBuilder, '"');
     PhAppendStringBuilder(&commandLineBuilder, &DebuggerCommand->sr);
     PhAppendCharStringBuilder(&commandLineBuilder, '"');
-    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %u", HandleToUlong(Process->ProcessId));
+    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
 
     status = PhCreateProcessWin32(
         NULL,
