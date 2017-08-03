@@ -258,6 +258,7 @@ VOID NTAPI MainMenuInitializingCallback(
 }
 
 PPH_EMENU_ITEM CreateSendToMenu(
+    _In_ BOOLEAN ProcessesMenu,
     _In_ PPH_EMENU_ITEM Parent,
     _In_ PPH_STRING FileName
     )
@@ -270,7 +271,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"virustotal.com", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", FileName), -1);
 
-    if (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0))
+    if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0)))
     {
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
         PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
@@ -299,7 +300,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     else
         processItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, processItem ? processItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(TRUE, menuInfo->Menu, processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
     if (!processItem || !processItem->FileName)
@@ -322,7 +323,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, moduleItem ? moduleItem->FileName : NULL);
+    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileName : NULL);
 
     if (!moduleItem)
     {
@@ -364,7 +365,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
         PhAutoDereferenceObject(serviceFileName);
     }
 
-    sendToMenu = CreateSendToMenu(menuInfo->Menu, serviceFileName ? serviceFileName : NULL);
+    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, serviceFileName ? serviceFileName : NULL);
 
     if (!serviceItem || !serviceFileName)
     {
