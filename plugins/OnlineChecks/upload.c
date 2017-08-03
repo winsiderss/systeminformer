@@ -25,10 +25,13 @@
 #include <shlobj.h>
 
 PPH_OBJECT_TYPE UploadContextType = NULL;
+PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
 SERVICE_INFO UploadServiceInfo[] =
 {
     { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
+    { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"???", L"file" },
     { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
+    { MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", INTERNET_DEFAULT_HTTPS_PORT, WINHTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
 };
 
 BOOL ReadRequestString(
@@ -794,6 +797,7 @@ NTSTATUS UploadFileThreadStart(
         switch (context->Service)
         {
         case MENUITEM_VIRUSTOTAL_UPLOAD:
+        case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
             {
                 PSTR buffer = NULL;
                 PSTR redirectUrl;
@@ -842,6 +846,7 @@ NTSTATUS UploadFileThreadStart(
             }
             break;
         case MENUITEM_JOTTI_UPLOAD:
+        case MENUITEM_JOTTI_UPLOAD_SERVICE:
             {
                 PSTR buffer = NULL;
                 PSTR redirectUrl;
@@ -958,7 +963,8 @@ NTSTATUS UploadCheckThreadStart(
 
     if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize64)))
     {
-        if (context->Service == MENUITEM_VIRUSTOTAL_UPLOAD)
+        if (context->Service == MENUITEM_VIRUSTOTAL_UPLOAD || 
+            context->Service == MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE)
         {
             if (fileSize64.QuadPart < 32 * 1024 * 1024)
             {
@@ -1012,6 +1018,7 @@ NTSTATUS UploadCheckThreadStart(
     switch (context->Service)
     {
     case MENUITEM_VIRUSTOTAL_UPLOAD:
+    case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
         {
             PSTR uploadUrl = NULL;
             PSTR quote = NULL;
@@ -1114,6 +1121,7 @@ NTSTATUS UploadCheckThreadStart(
         }
         break;
     case MENUITEM_JOTTI_UPLOAD:
+    case MENUITEM_JOTTI_UPLOAD_SERVICE:
         {
             // Create the default upload URL
             context->UploadUrl = PhFormatString(L"https://virusscan.jotti.org%s", serviceInfo->UploadObjectName);
@@ -1276,14 +1284,12 @@ VOID UploadToOnlineService(
     _In_ ULONG Service
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
     PUPLOAD_CONTEXT context;
 
-    if (PhBeginInitOnce(&initOnce))
+    if (PhBeginInitOnce(&UploadContextTypeInitOnce))
     {
         UploadContextType = PhCreateObjectType(L"OnlineChecksObjectType", 0, UploadContextDeleteProcedure);
-        PhEndInitOnce(&initOnce);
+        PhEndInitOnce(&UploadContextTypeInitOnce);
     }
 
     context = (PUPLOAD_CONTEXT)PhCreateObject(sizeof(UPLOAD_CONTEXT), UploadContextType);
@@ -1295,4 +1301,45 @@ VOID UploadToOnlineService(
     context->BaseFileName = PhGetBaseName(context->FileName);
 
     PhCreateThread2(ShowUpdateDialogThread, (PVOID)context);
+}
+
+VOID UploadServiceToOnlineService(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ ULONG Service
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceFileName;
+    PPH_STRING serviceBinaryPath = NULL;
+
+    if (PhBeginInitOnce(&UploadContextTypeInitOnce))
+    {
+        UploadContextType = PhCreateObjectType(L"OnlineChecksObjectType", 0, UploadContextDeleteProcedure);
+        PhEndInitOnce(&UploadContextTypeInitOnce);
+    }
+
+    if (NT_SUCCESS(status = QueryServiceFileName(
+        &ServiceItem->Name->sr,
+        &serviceFileName,
+        &serviceBinaryPath
+        )))
+    {
+        PUPLOAD_CONTEXT context;
+
+        context = (PUPLOAD_CONTEXT)PhCreateObject(sizeof(UPLOAD_CONTEXT), UploadContextType);
+        memset(context, 0, sizeof(UPLOAD_CONTEXT));
+
+        context->Service = Service;
+        context->FileName = serviceFileName;
+        context->BaseFileName = PhGetBaseName(context->FileName);
+
+        PhCreateThread2(ShowUpdateDialogThread, (PVOID)context);
+    }
+    else
+    {
+        PhShowStatus(PhMainWndHandle, L"Unable to query the service", status, 0);
+    }
+
+    if (serviceBinaryPath)
+        PhDereferenceObject(serviceBinaryPath);
 }
