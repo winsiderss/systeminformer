@@ -28,6 +28,43 @@
 
 #define SPLITTER_PADDING 6
 
+typedef struct _PH_HSPLITTER_CONTEXT
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Hot : 1;
+            ULONG HasFocus : 1;
+            ULONG Spare : 30;
+        };
+    };
+
+    LONG SplitterOffset;
+
+    HWND Window;
+    HWND ParentWindow;
+    HWND TopWindow;
+    HWND BottomWindow;
+
+    HBRUSH FocusBrush;
+    HBRUSH HotBrush;
+    HBRUSH NormalBrush;
+
+    PPH_STRING SettingName;
+} PH_HSPLITTER_CONTEXT, *PPH_HSPLITTER_CONTEXT;
+
+VOID PhDeleteHSplitter(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context
+    );
+
+VOID PhHSplitterHandleWmSize(
+    _Inout_ PPH_HSPLITTER_CONTEXT Context,
+    _In_ INT Width,
+    _In_ INT Height
+    );
+
 LONG GetWindowWidth(HWND hwnd)
 {
     RECT Rect;
@@ -60,7 +97,12 @@ LONG GetClientWindowHeight(HWND hwnd)
     return (Rect.bottom - Rect.top);
 }
 
-LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK HSplitterWindowProc(
+    _In_ HWND hwnd, 
+    _In_ UINT uMsg, 
+    _In_ WPARAM wParam, 
+    _In_ LPARAM lParam
+    )
 {
     PPH_HSPLITTER_CONTEXT context = NULL;
 
@@ -217,7 +259,38 @@ LRESULT CALLBACK HSplitterWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
+LRESULT CALLBACK HSplitterParentWindowProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ UINT_PTR uIdSubclass,
+    _In_ ULONG_PTR dwRefData
+    )
+{
+    PPH_HSPLITTER_CONTEXT context = (PPH_HSPLITTER_CONTEXT)dwRefData;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            RemoveWindowSubclass(hwnd, HSplitterParentWindowProc, uIdSubclass);
+
+            PhDeleteHSplitter(context);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhHSplitterHandleWmSize(context, LOWORD(lParam), HIWORD(lParam));
+        }
+        break;
+    }
+
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+}
+
+VOID PhInitializeHSplitter(
+    _In_ PWSTR SettingName,
     _In_ HWND ParentWindow,
     _In_ HWND TopWindow,
     _In_ HWND BottomWindow
@@ -228,11 +301,12 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
 
     context = PhAllocate(sizeof(PH_HSPLITTER_CONTEXT));
     memset(context, 0, sizeof(PH_HSPLITTER_CONTEXT));
-  
+
+    context->SettingName = PhCreateString(SettingName);
     context->ParentWindow = ParentWindow;
     context->TopWindow = TopWindow;
     context->BottomWindow = BottomWindow;
-    context->SplitterOffset = PhGetIntegerSetting(L"TokenSplitterPosition");
+    context->SplitterOffset = PhGetIntegerSetting(SettingName);
     context->FocusBrush = CreateSolidBrush(RGB(0x0, 0x0, 0x0));
     context->HotBrush = CreateSolidBrush(RGB(0x44, 0x44, 0x44));
     context->NormalBrush = GetSysColorBrush(COLOR_WINDOW);
@@ -276,14 +350,15 @@ PPH_HSPLITTER_CONTEXT PhInitializeHSplitter(
     ShowWindow(context->Window, SW_SHOW);
     UpdateWindow(context->Window);
 
-    return context;
+    SetWindowSubclass(ParentWindow, HSplitterParentWindowProc, 0, (ULONG_PTR)context);
 }
 
 VOID PhDeleteHSplitter(
     _Inout_ PPH_HSPLITTER_CONTEXT Context
     )
 {
-    PhSetIntegerSetting(L"TokenSplitterPosition", Context->SplitterOffset);
+    PhSetIntegerSetting(PhGetString(Context->SettingName), Context->SplitterOffset);
+    PhDereferenceObject(Context->SettingName);
 
     if (Context->FocusBrush)
         DeleteObject(Context->FocusBrush);

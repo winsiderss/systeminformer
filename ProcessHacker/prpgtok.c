@@ -24,6 +24,8 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <settings.h>
+
 NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -84,6 +86,14 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+                if (!PhGetIntegerSetting(L"TokenSplitterEnable"))
+                {
+                    PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_GROUPS),
+                        dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                    PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVILEGES),
+                        dialogItem, PH_ANCHOR_ALL);
+                }
 
                 PhDoPropPageLayout(hwndDlg);
 
