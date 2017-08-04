@@ -51,6 +51,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <procprv.h>
 
 #include <shellapi.h>
@@ -457,7 +458,12 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     processItem->ProcessId = ProcessId;
 
     if (!PH_IS_FAKE_PROCESS_ID(ProcessId))
-        PhPrintUInt32(processItem->ProcessIdString, HandleToUlong(ProcessId));
+    {
+        if (PhCsShowHexId)
+            _ultow(HandleToUlong(ProcessId), processItem->ProcessIdString, 16);
+        else
+            PhPrintUInt32(processItem->ProcessIdString, HandleToUlong(ProcessId));
+    }
 
     // Create the statistics buffers.
     PhInitializeCircularBuffer_FLOAT(&processItem->CpuKernelHistory, PhStatisticsSampleCount);

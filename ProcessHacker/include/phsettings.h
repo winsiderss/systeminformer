@@ -17,6 +17,7 @@ EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsPropagateCpuUsage;
 EXT ULONG PhCsScrollToNewProcesses;
 EXT ULONG PhCsShowCpuBelow001;
+EXT ULONG PhCsShowHexId;
 EXT ULONG PhCsUpdateInterval;
 
 EXT ULONG PhCsColorNew;

@@ -137,6 +137,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(L"SessionShadowHotkey", L"106,2"); // VK_MULTIPLY,KBDCTRL
     PhpAddIntegerSetting(L"ShowCommitInSummary", L"1");
     PhpAddIntegerSetting(L"ShowCpuBelow001", L"0");
+    PhpAddIntegerSetting(L"ShowHexId", L"1");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
@@ -213,6 +214,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(PropagateCpuUsage);
     PH_UPDATE_SETTING(ScrollToNewProcesses);
     PH_UPDATE_SETTING(ShowCpuBelow001);
+    PH_UPDATE_SETTING(ShowHexId);
     PH_UPDATE_SETTING(UpdateInterval);
     PH_UPDATE_SETTING(ColorNew);
     PH_UPDATE_SETTING(ColorRemoved);
