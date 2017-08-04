@@ -588,7 +588,7 @@ VOID PhInitializeKph(
     }
     else
     {
-        if (PhGetIntegerSetting(L"EnableWarnings"))
+        if (PhGetIntegerSetting(L"EnableKphWarnings"))
             PhShowStatus(NULL, L"Unable to load the kernel driver.", status, 0);
     }
 
