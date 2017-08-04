@@ -52,7 +52,6 @@ typedef struct _TOKEN_PAGE_CONTEXT
 
     HWND GroupsListViewHandle;
     HWND PrivilegesListViewHandle;
-    PPH_HSPLITTER_CONTEXT HSplitterContext;
 
     PTOKEN_GROUPS Groups;
     PTOKEN_PRIVILEGES Privileges;
@@ -428,12 +427,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSetControlTheme(groupsLv, L"explorer");
             PhSetControlTheme(privilegesLv, L"explorer");
 
-            tokenPageContext->HSplitterContext = PhInitializeHSplitter(
-                hwndDlg, 
-                tokenPageContext->GroupsListViewHandle, 
-                tokenPageContext->PrivilegesListViewHandle
-                );
-
             PhAddListViewColumn(groupsLv, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
             PhAddListViewColumn(groupsLv, 1, 1, 1, LVCFMT_LEFT, 200, L"Flags");
 
@@ -579,6 +572,16 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 NtClose(tokenHandle);
             }
+
+            if (PhGetIntegerSetting(L"TokenSplitterEnable"))
+            {
+                PhInitializeHSplitter(
+                    L"TokenSplitterPosition",
+                    hwndDlg,
+                    tokenPageContext->GroupsListViewHandle,
+                    tokenPageContext->PrivilegesListViewHandle
+                    );
+            }
         }
         break;
     case WM_DESTROY:
@@ -588,7 +591,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
-            if (tokenPageContext->HSplitterContext) PhDeleteHSplitter(tokenPageContext->HSplitterContext);
         }
         break;
     case WM_COMMAND:
@@ -921,9 +923,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 }
             }
         }
-        break;
-    case WM_SIZE:
-        PhHSplitterHandleWmSize(tokenPageContext->HSplitterContext, LOWORD(lParam), HIWORD(lParam));
         break;
     }
 
