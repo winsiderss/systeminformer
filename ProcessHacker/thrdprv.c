@@ -27,6 +27,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <thrdprv.h>
 
 #include <kphuser.h>
@@ -387,7 +388,11 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
-    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
+
+    if (PhCsShowHexId)
+        _ultow(HandleToUlong(ThreadId), threadItem->ThreadIdString, 16);
+    else
+        PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
