@@ -3152,6 +3152,51 @@ typedef struct _SYSDBG_TRIAGE_DUMP
     PHANDLE Handles;
 } SYSDBG_TRIAGE_DUMP, *PSYSDBG_TRIAGE_DUMP;
 
+// private
+typedef struct _SYSDBG_LIVEDUMP_CONTROL_FLAGS
+{
+    union
+    {
+        struct
+        {
+            ULONG UseDumpStorageStack : 1;
+            ULONG CompressMemoryPagesData : 1;
+            ULONG IncludeUserSpaceMemoryPages : 1;
+            ULONG Reserved : 28;
+        };     
+        ULONG AsUlong;
+    };
+} SYSDBG_LIVEDUMP_CONTROL_FLAGS, *PSYSDBG_LIVEDUMP_CONTROL_FLAGS;
+
+// private
+typedef struct _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
+{
+    union
+    {
+        struct
+        {
+            ULONG HypervisorPages : 1;
+            ULONG Reserved : 31;
+        };
+        ULONG AsUlong;
+    };
+} SYSDBG_LIVEDUMP_CONTROL_ADDPAGES, *PSYSDBG_LIVEDUMP_CONTROL_ADDPAGES;
+
+// private
+typedef struct _SYSDBG_LIVEDUMP_CONTROL
+{
+    ULONG Version;
+    ULONG BugCheckCode;
+    ULONG_PTR BugCheckParam1;
+    ULONG_PTR BugCheckParam2;
+    ULONG_PTR BugCheckParam3;
+    ULONG_PTR BugCheckParam4;
+    HANDLE DumpFileHandle;
+    HANDLE CancelEventHandle;
+    SYSDBG_LIVEDUMP_CONTROL_FLAGS Flags;
+    SYSDBG_LIVEDUMP_CONTROL_ADDPAGES AddPagesControl;
+} SYSDBG_LIVEDUMP_CONTROL, *PSYSDBG_LIVEDUMP_CONTROL;
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
