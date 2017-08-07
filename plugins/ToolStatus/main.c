@@ -855,6 +855,16 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), -1);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), -1);
+
+                                        if (WindowsVersion < WINDOWS_8)
+                                        {
+                                            PPH_EMENU_ITEM menuItemRemove;
+
+                                            if (menuItemRemove = PhFindEMenuItem(menuItem, PH_EMENU_FIND_DESCEND, NULL, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS))
+                                                PhDestroyEMenuItem(menuItemRemove);
+                                            if (menuItemRemove = PhFindEMenuItem(menuItem, PH_EMENU_FIND_DESCEND, NULL, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID))
+                                                PhDestroyEMenuItem(menuItemRemove);
+                                        }
                                     }
                                     break;
                                 }
