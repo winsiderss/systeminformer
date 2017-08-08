@@ -309,11 +309,11 @@ BOOLEAN QueryUpdateData(
     HINTERNET httpRequestHandle = NULL;
     ULONG stringBufferLength = 0;
     PSTR stringBuffer = NULL;
-    PH_STRING_BUILDER sb;
     PVOID jsonObject = NULL;
     mxml_node_t* xmlNode = NULL;
     PPH_STRING versionHeader = UpdateVersionString();
     PPH_STRING windowsHeader = UpdateWindowsString();
+    PSTR tempValue = NULL;
 
     if (!(httpSessionHandle = WinHttpOpen(
         NULL,
@@ -421,18 +421,29 @@ BOOLEAN QueryUpdateData(
     if (!(jsonObject = CreateJsonParser(stringBuffer)))
         goto CleanupExit;
 
-    Context->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
-    Context->RevVersion = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "version"));
-    Context->RelDate = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "updated"));
     Context->Size = PhFormatSize(GetJsonValueAsUlong(jsonObject, "size"), 2);
-    Context->Hash = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "hash_setup"));
-    Context->Signature = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "sig"));
-    Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "forum_url"));
-    Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "setup_url"));
-    Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "changelog"));
-
-    if (Context->BuildMessage)
+    if (tempValue = GetJsonValueAsString(jsonObject, "version"))
     {
+        Context->Version = PhConvertUtf8ToUtf16(tempValue);
+        Context->RevVersion = PhConvertUtf8ToUtf16(tempValue);
+    }
+    if (tempValue = GetJsonValueAsString(jsonObject, "updated"))
+        Context->RelDate = PhConvertUtf8ToUtf16(tempValue);
+    if (tempValue = GetJsonValueAsString(jsonObject, "hash_setup"))
+        Context->Hash = PhConvertUtf8ToUtf16(tempValue);
+    if (tempValue = GetJsonValueAsString(jsonObject, "sig"))
+        Context->Signature = PhConvertUtf8ToUtf16(tempValue);
+    if (tempValue = GetJsonValueAsString(jsonObject, "forum_url"))
+        Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(tempValue);
+    if (tempValue = GetJsonValueAsString(jsonObject, "setup_url"))
+        Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(tempValue);
+    if (tempValue = GetJsonValueAsString(jsonObject, "changelog"))
+        Context->BuildMessage = PhConvertUtf8ToUtf16(tempValue);
+
+    if (!PhIsNullOrEmptyString(Context->BuildMessage))
+    {
+        PH_STRING_BUILDER sb;
+
         PhInitializeStringBuilder(&sb, 0x100);
 
         for (SIZE_T i = 0; i < Context->BuildMessage->Length / sizeof(WCHAR); i++)
@@ -450,9 +461,6 @@ BOOLEAN QueryUpdateData(
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
-    if (!ParseVersionString(Context))
-        goto CleanupExit;
-
     if (PhIsNullOrEmptyString(Context->RevVersion))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
@@ -466,6 +474,9 @@ BOOLEAN QueryUpdateData(
     if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->Signature))
+        goto CleanupExit;
+
+    if (!ParseVersionString(Context))
         goto CleanupExit;
 
     success = TRUE;
