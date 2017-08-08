@@ -597,8 +597,6 @@ VOID PhInitializeKph(
             {
                 if (PhGetIntegerSetting(L"EnableKphWarnings"))
                     PhShowStatus(NULL, L"Unable to verify the kernel driver signature.", status, 0);
-
-                KphDisconnect();
             }
 
             PhFree(signature);
@@ -607,8 +605,6 @@ VOID PhInitializeKph(
         {
             if (PhGetIntegerSetting(L"EnableKphWarnings"))
                 PhShowStatus(NULL, L"Unable to load the kernel driver signature.", status, 0);
-
-            KphDisconnect();
         }
     }
     else
