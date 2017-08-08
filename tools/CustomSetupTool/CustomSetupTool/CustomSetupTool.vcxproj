@@ -109,7 +109,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="download.c" />
-    <ClCompile Include="error.c" />
+    <ClCompile Include="errorpage.c" />
     <ClCompile Include="extract.c" />
     <ClCompile Include="appsup.c" />
     <ClCompile Include="json-c\arraylist.c" />
@@ -125,14 +125,15 @@
     <ClCompile Include="json-c\random_seed.c" />
     <ClCompile Include="miniz\minizip.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="page1.c" />
-    <ClCompile Include="page2.c" />
-    <ClCompile Include="page3.c" />
-    <ClCompile Include="page4.c" />
-    <ClCompile Include="page5.c" />
+    <ClCompile Include="startpage.c" />
+    <ClCompile Include="licencepage.c" />
+    <ClCompile Include="configpage.c" />
+    <ClCompile Include="installpage.c" />
+    <ClCompile Include="downloadpage.c" />
     <ClCompile Include="setup.c" />
     <ClCompile Include="uninstall.c" />
     <ClCompile Include="update.c" />
+    <ClCompile Include="updatesetup.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\setup.h" />

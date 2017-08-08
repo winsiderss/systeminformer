@@ -72,7 +72,7 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHORTCUT_ALL_CHECK), TRUE);
             //Button_SetCheck(GetDlgItem(hwndDlg, IDC_KPH_CHECK), TRUE);
             //Button_SetCheck(GetDlgItem(hwndDlg, IDC_DBGTOOLS_CHECK), TRUE);     
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_PHSTART_CHECK), TRUE);
+            //Button_SetCheck(GetDlgItem(hwndDlg, IDC_PHSTART_CHECK), TRUE);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }

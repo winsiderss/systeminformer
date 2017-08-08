@@ -323,19 +323,7 @@ VOID SetupStartKph(
             ))
         {
             NtWaitForSingleObject(processHandle, FALSE, &timeout);
-        }
-
-        SC_HANDLE serviceHandle;
-        BOOLEAN success = FALSE;
-
-        serviceHandle = PhOpenService(L"KProcessHacker3", SERVICE_START);
-
-        if (serviceHandle)
-        {
-            if (StartService(serviceHandle, 0, NULL))
-                success = TRUE;
-
-            CloseServiceHandle(serviceHandle);
+            NtClose(processHandle);
         }
     }
 
@@ -389,21 +377,40 @@ VOID SetupSetWindowsOptions(
 {
     static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
     static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+    HANDLE keyHandle;
     PPH_STRING clientPathString;
     PPH_STRING startmenuFolderString;
 
     clientPathString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\ProcessHacker.exe");
 
+    // Create the startmenu shortcut.
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
     {
-        SetupCreateLink(
-            PhGetString(startmenuFolderString),
-            PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
-            );
+        SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
         PhDereferenceObject(startmenuFolderString);
     }
 
+    // Create the desktop shortcut.
+    if (Context->SetupCreateDesktopShortcut)
+    {
+        if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+        {
+            SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
+            PhDereferenceObject(startmenuFolderString);
+        }
+    }
+
+    // Create the all users shortcut.
+    if (Context->SetupCreateDesktopShortcutAllUsers)
+    {
+        if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+        {
+            SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
+            PhDereferenceObject(startmenuFolderString);
+        }
+    }
+
+    // Create the PE Viewer startmenu shortcut.
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk"))
     {
         PPH_STRING peviewPathString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\peview.exe");
@@ -412,24 +419,25 @@ VOID SetupSetWindowsOptions(
             PhGetString(startmenuFolderString),
             PhGetString(peviewPathString),
             PhGetString(Context->SetupInstallPath)
-            );
+        );
 
         PhDereferenceObject(peviewPathString);
         PhDereferenceObject(startmenuFolderString);
     }
 
+    // Reset the settings file.
     if (Context->SetupResetSettings)
     {
         PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
 
         SetupDeleteDirectoryFile(settingsFileName->Buffer);
+
         PhDereferenceObject(settingsFileName);
     }
 
+    // Set the Windows default Task Manager.
     if (Context->SetupCreateDefaultTaskManager)
     {
-        HANDLE keyHandle;
-        
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
             KEY_WRITE,
@@ -440,19 +448,20 @@ VOID SetupSetWindowsOptions(
         {
             PPH_STRING value;
             UNICODE_STRING valueName;
-     
+
             value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
 
+            // Configure the default Task Manager.
             RtlInitUnicodeString(&valueName, L"Debugger");
             NtSetValueKey(keyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
+
             NtClose(keyHandle);
         }
     }
 
+    // Create the run startup key.
     if (Context->SetupCreateSystemStartup)
-    {     
-        HANDLE keyHandle;
-
+    {
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
             KEY_WRITE,
@@ -470,38 +479,9 @@ VOID SetupSetWindowsOptions(
                 value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\" -hide");
             else
                 value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
-       
+
             NtSetValueKey(keyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
             NtClose(keyHandle);
-        }
-    }
-
-    if (Context->SetupCreateDesktopShortcut)
-    {
-        PPH_STRING desktopFolderString;
-
-        if (desktopFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"));
-        {
-            SetupCreateLink(
-                PhGetString(desktopFolderString), 
-                PhGetString(clientPathString), 
-                PhGetString(Context->SetupInstallPath)
-                );
-            PhDereferenceObject(desktopFolderString);
-        }
-    }
-    else if (Context->SetupCreateDesktopShortcutAllUsers)
-    {
-        PPH_STRING startmenuFolderString;
-
-        if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
-        {
-            SetupCreateLink(
-                PhGetString(startmenuFolderString),
-                PhGetString(clientPathString),
-                PhGetString(Context->SetupInstallPath)
-                );
-            PhDereferenceObject(startmenuFolderString);
         }
     }
 }
@@ -510,6 +490,7 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
+    static PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
     static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
     static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
     PPH_STRING startmenuFolderString;
@@ -527,7 +508,7 @@ VOID SetupDeleteWindowsOptions(
         PhDereferenceObject(startmenuFolderString);
     }
 
-    if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"));
+    if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
     {
         SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
@@ -539,9 +520,17 @@ VOID SetupDeleteWindowsOptions(
         PhDereferenceObject(startmenuFolderString);
     }
 
-    //PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
-    //SetupDeleteDirectoryFile(settingsFileName->Buffer);
-    //PhDereferenceObject(settingsFileName);
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &PhImageOptionsKeyName,
+        0
+        )))
+    {
+        NtDeleteKey(keyHandle);
+        NtClose(keyHandle);
+    }
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -557,7 +546,7 @@ VOID SetupDeleteWindowsOptions(
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
-        KEY_WRITE,
+        KEY_WRITE | DELETE,
         PH_KEY_CURRENT_USER,
         &CurrentUserRunKeyName,
         0
@@ -611,4 +600,41 @@ VOID SetupUpgradeSettingsFile(
  
     PhDereferenceObject(oldSettingsFileName);
     PhDereferenceObject(settingsFilePath);
+}
+
+VOID SetupCreateImageFileExecutionOptions(
+    VOID
+    )
+{
+    static PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
+    HANDLE keyHandle;
+
+    // Set the default Image File Execution Options.
+    if (NT_SUCCESS(PhCreateKey(
+        &keyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &PhImageOptionsKeyName,
+        0,
+        0,
+        NULL
+        )))
+    {
+        static UNICODE_STRING valueName = RTL_CONSTANT_STRING(L"MitigationOptions");
+
+        NtSetValueKey(keyHandle, &valueName, 0, REG_QWORD, &(ULONG64)
+        {
+            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+        }, sizeof(ULONG64));
+
+        NtClose(keyHandle);
+    }
 }

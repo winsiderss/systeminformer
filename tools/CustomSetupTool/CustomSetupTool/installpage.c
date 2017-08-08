@@ -59,6 +59,9 @@ NTSTATUS SetupProgressThread(
     // Create autorun and shortcuts.
     SetupSetWindowsOptions(Context);
 
+    // Set the default image execution options.
+    SetupCreateImageFileExecutionOptions();
+
     // Setup new installation.
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
@@ -76,7 +79,7 @@ CleanupExit:
     return STATUS_FAIL_CHECK;
 }
 
-INT_PTR CALLBACK SetupPropPage4_WndProc(
+INT_PTR CALLBACK SetupInstallPropPage_WndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _Inout_ WPARAM wParam,

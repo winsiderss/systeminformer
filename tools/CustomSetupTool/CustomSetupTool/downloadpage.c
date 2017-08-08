@@ -29,6 +29,9 @@ NTSTATUS SetupDownloadProgressThread(
     if (!SetupQueryUpdateData(Context))
         goto CleanupExit;
 
+    //if (SetupUpdateWebSetupBuild(Context))
+    //    goto CleanupExit;
+
     if (!UpdateDownloadUpdateData(Context))
         goto CleanupExit;
 
@@ -85,8 +88,6 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
             {
             case PSN_SETACTIVE:
                 {
-                    HANDLE threadHandle;
-
                     context->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
                     context->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
                     context->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
@@ -99,8 +100,7 @@ INT_PTR CALLBACK SetupPropPage5_WndProc(
                     // Disable Next/Back buttons
                     PropSheet_SetWizButtons(context->DialogHandle, 0);
 
-                    if (threadHandle = PhCreateThread(0, SetupDownloadProgressThread, context))
-                        NtClose(threadHandle);
+                    PhCreateThread2(SetupDownloadProgressThread, context);
                 }
                 break;
             }

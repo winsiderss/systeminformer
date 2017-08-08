@@ -33,26 +33,34 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
-        private static bool GitExportBuild;
         private static bool BuildNightly;
-        private static string BuildBranch;
-        private static string BuildOutputFolder;
-        private static string BuildCommit;
-        private static string BuildVersion;
-        private static string BuildLongVersion;
-        private static string BuildCount;
-        private static string BuildRevision;
-        private static string BuildMessage;
-        private static long BuildSetupFileLength;
-        private static long BuildBinFileLength;
-        private static string BuildSetupHash;
-        private static string BuildBinHash;
-        private static string BuildSetupSig;
+        private static bool GitExportBuild;
         private static string GitExePath;
         private static string MSBuildExePath;
         private static string CertUtilExePath;
         private static string MakeAppxExePath;
         private static string CustomSignToolPath;
+
+        private static string BuildBranch;
+        private static string BuildOutputFolder;
+        private static string BuildCommit;
+        private static string BuildVersion;
+        private static string BuildWebSetupVersion;
+        private static string BuildLongVersion;
+        private static string BuildCount;
+        private static string BuildRevision;
+        private static string BuildMessage;
+
+        private static long BuildBinFileLength;
+        private static string BuildBinHash;
+
+        private static long BuildSetupFileLength;
+        private static string BuildSetupHash;
+        private static string BuildSetupSig;
+
+        private static long BuildWebSetupFileLength;
+        private static string BuildWebSetupHash;
+        private static string BuildWebSetupSig;
 
 #region Build Config
         private static readonly string[] sdk_directories =
@@ -663,11 +671,48 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool BuildWebSetupExe()
+        {
+            Program.PrintColorMessage("Building build-websetup.exe...", ConsoleColor.Cyan);
+
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit))
+                return false;
+
+            try
+            {
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-websetup.exe");
+
+                File.Move(
+                    "tools\\CustomSetupTool\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
+                    BuildOutputFolder + "\\processhacker-build-websetup.exe"
+                    );
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            try
+            {
+                var webSetupVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe");
+                BuildWebSetupVersion = webSetupVersion.FileVersion.Replace(",", ".");
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[ERROR] " + ex, ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool BuildSetupExe()
         {
             Program.PrintColorMessage("Building build-setup.exe...", ConsoleColor.Cyan);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildVerbose))
+            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln",  BuildFlags.Build32bit | BuildFlags.BuildApi))
                 return false;
 
             try
@@ -802,16 +847,22 @@ namespace CustomBuildTool
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-checksums.txt");
 
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
+                    BuildWebSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe").Length;
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     BuildSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-setup.exe").Length;
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     BuildBinFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-bin.zip").Length;
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
+                    BuildWebSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-websetup.exe");
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     BuildSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-setup.exe");
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     BuildBinHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 StringBuilder sb = new StringBuilder();
+                sb.AppendLine("processhacker-build-websetup.exe");
+                sb.AppendLine("SHA256: " + BuildWebSetupHash + Environment.NewLine);
                 sb.AppendLine("processhacker-build-setup.exe");
                 sb.AppendLine("SHA256: " + BuildSetupHash + Environment.NewLine);
                 sb.AppendLine("processhacker-build-bin.zip");
@@ -830,7 +881,7 @@ namespace CustomBuildTool
 
         public static bool BuildUpdateSignature()
         {
-            Program.PrintColorMessage("Building release signature...", ConsoleColor.Cyan);
+            Program.PrintColorMessage("Building release signatures...", ConsoleColor.Cyan);
 
             if (!File.Exists(CustomSignToolPath))
             {
@@ -844,14 +895,24 @@ namespace CustomBuildTool
                 return true;
             }
 
+            if (!File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
+            {
+                Program.PrintColorMessage("[SKIPPED] websetup-setup.exe not found.", ConsoleColor.Yellow);
+                return false;
+            }
+
             if (!File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
             {
                 Program.PrintColorMessage("[SKIPPED] build-setup.exe not found.", ConsoleColor.Yellow);
                 return false;
             }
 
-            BuildSetupSig = Win32.ShellExecute(
+            BuildWebSetupSig = Win32.ShellExecute(
                 CustomSignToolPath, 
+                "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-websetup.exe -h"
+                );
+            BuildSetupSig = Win32.ShellExecute(
+                CustomSignToolPath,
                 "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-setup.exe -h"
                 );
 
@@ -865,11 +926,17 @@ namespace CustomBuildTool
 
         public static void WebServiceUpdateConfig()
         {
+            if (string.IsNullOrEmpty(BuildVersion))
+                return;
             if (string.IsNullOrEmpty(BuildSetupHash))
+                return;
+            if (string.IsNullOrEmpty(BuildSetupSig))
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
                 return;
-            if (string.IsNullOrEmpty(BuildSetupSig))
+            if (string.IsNullOrEmpty(BuildWebSetupSig))
+                return;
+            if (string.IsNullOrEmpty(BuildWebSetupVersion))
                 return;
 
             string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
@@ -877,14 +944,23 @@ namespace CustomBuildTool
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
                 Updated = TimeStart.ToString("o"),
-                Version = BuildVersion,
                 FileLength = BuildSetupFileLength.ToString(),
                 ForumUrl = "https://wj32.org/processhacker/nightly.php",
-                Setupurl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
-                Binurl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
-                HashSetup = BuildSetupHash,
-                HashBin = BuildBinHash,
-                sig = BuildSetupSig,
+
+                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
+                SetupVersion = BuildVersion,
+                SetupHash = BuildSetupHash,
+                SetupSig = BuildSetupSig,
+
+                BinUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
+                BinHash = BuildBinHash,
+                //BinSig = BuildBinSig,
+
+                WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-websetup.exe",
+                WebSetupHash = BuildWebSetupHash,
+                WebSetupVersion = BuildWebSetupVersion,
+                WebSetupSig = BuildWebSetupSig,
+
                 Message = buildSummary,
                 Changelog = buildChangelog,
             });
@@ -930,12 +1006,14 @@ namespace CustomBuildTool
         {
             string[] buildFileArray =
             {
+                BuildOutputFolder + "\\processhacker-build-websetup.exe",
                 BuildOutputFolder + "\\processhacker-build-setup.exe",
                 BuildOutputFolder + "\\processhacker-build-bin.zip",
                 BuildOutputFolder + "\\processhacker-build-checksums.txt"
             };
             string[] releaseFileArray =
             {
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-websetup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
@@ -1007,16 +1085,22 @@ namespace CustomBuildTool
         {
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
+                StringBuilder compilerOptions = new StringBuilder();
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                if (Flags.HasFlag(BuildFlags.BuildApi))
+                    compilerOptions.Append("PH_BUILD_API;");
+                compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
+                compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
 
                 string error32 = Win32.ShellExecute(
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=Win32 " +
-                    "/p:ExternalCompilerOptions=\"PH_BUILD_API;PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";PHAPP_VERSION_BUILD=\"" + BuildCount + "\"\" " + 
+                    "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
                     Solution
                     );
                 
@@ -1029,16 +1113,22 @@ namespace CustomBuildTool
 
             if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
             {
+                StringBuilder compilerOptions = new StringBuilder();
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                if (Flags.HasFlag(BuildFlags.BuildApi))
+                    compilerOptions.Append("PH_BUILD_API;");
+                compilerOptions.Append("PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";");
+                compilerOptions.Append("PHAPP_VERSION_BUILD=\"" + BuildCount + "\"");
 
                 string error64 = Win32.ShellExecute(
                     MSBuildExePath,
                     "/m /nologo /verbosity:quiet " +
                     "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
                     "/p:Platform=x64 " +
-                    "/p:ExternalCompilerOptions=\"PH_BUILD_API;PHAPP_VERSION_REVISION=\"" + BuildRevision + "\";PHAPP_VERSION_BUILD=\"" + BuildCount + "\"\" " +
+                    "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
                     Solution
                     );
 

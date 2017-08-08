@@ -108,7 +108,7 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildVerbose
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                 {
                     return;
@@ -127,7 +127,9 @@ namespace CustomBuildTool
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyKProcessHacker(
@@ -138,7 +140,9 @@ namespace CustomBuildTool
                     return;
 
                 if (!Build.BuildSolution("plugins\\Plugins.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    BuildFlags.Build32bit | BuildFlags.Build64bit |
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
@@ -159,7 +163,9 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose | 
+                    BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyKProcessHacker(
@@ -177,7 +183,8 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolution("plugins\\Plugins.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
-                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose
+                    BuildFlags.BuildDebug | BuildFlags.BuildVerbose | 
+                    BuildFlags.BuildApi
                     ))
                 {
                     return;
@@ -197,7 +204,9 @@ namespace CustomBuildTool
                 Build.CopyKeyFiles();
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -206,13 +215,18 @@ namespace CustomBuildTool
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
                     return;
 
                 if (!Build.BuildBinZip())
+                    return;
+                if (!Build.BuildWebSetupExe())
                     return;
                 if (!Build.BuildSetupExe())
                     return;
@@ -232,13 +246,19 @@ namespace CustomBuildTool
                 Build.ShowBuildEnvironment("appx", true, true);
                 Build.CopyKeyFiles();
 
-                if (!Build.BuildSolution("ProcessHacker.sln", BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.BuildSolution("ProcessHacker.sln",
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
 
-                if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", 
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
@@ -271,7 +291,9 @@ namespace CustomBuildTool
                 Build.CopyKeyFiles();
      
                 if (!Build.BuildSolution("ProcessHacker.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -281,7 +303,9 @@ namespace CustomBuildTool
                     return;
 
                 if (!Build.BuildSolution("plugins\\Plugins.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | 
+                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
+                    ))
                     return;
 
                 if (!Build.CopyWow64Files(BuildFlags.None))
@@ -373,9 +397,10 @@ namespace CustomBuildTool
     public enum BuildFlags
     {
         None,
-        Build32bit = 0x1,
-        Build64bit = 0x2,
-        BuildDebug = 0x4,
-        BuildVerbose = 0x8
+        Build32bit = 1,
+        Build64bit = 2,
+        BuildDebug = 4,
+        BuildVerbose = 8,
+        BuildApi = 16,
     }
 }

@@ -376,6 +376,8 @@ VOID SetupCreateLink(
     // Save the shortcut to the file system...
     IPersistFile_Save(persistFilePtr, LinkFilePath, TRUE);
 
+    SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH | SHCNF_FLUSHNOWAIT, LinkFilePath, NULL);
+
 CleanupExit:
     if (persistFilePtr)
         IPersistFile_Release(persistFilePtr);
@@ -404,7 +406,9 @@ BOOLEAN DialogPromptExit(
     return buttonPressed == IDNO;
 }
 
-BOOLEAN CheckProcessHackerRunning(VOID)
+BOOLEAN CheckProcessHackerRunning(
+    VOID
+    )
 {
     HANDLE mutantHandle;
     OBJECT_ATTRIBUTES oa;
@@ -432,25 +436,35 @@ BOOLEAN CheckProcessHackerRunning(VOID)
     return FALSE;
 }
 
-BOOLEAN CheckProcessHackerInstalled(VOID)
+BOOLEAN CheckProcessHackerInstalled(
+    VOID
+    )
 {
     BOOLEAN installed = FALSE;
     PPH_STRING installPath;
-    
+    PPH_STRING exePath;
+
     installPath = GetProcessHackerInstallPath();
 
-    if (!PhIsNullOrEmptyString(installPath) && PhEndsWithString2(installPath, L"ProcessHacker.exe", TRUE))
+    if (!PhIsNullOrEmptyString(installPath))
     {
+        exePath = PhConcatStrings2(installPath->Buffer, L"\\ProcessHacker.exe");
+
         // Check if the value has a valid file path.
-        installed = GetFileAttributes(installPath->Buffer) != INVALID_FILE_ATTRIBUTES;
+        installed = GetFileAttributes(PhGetString(exePath)) != INVALID_FILE_ATTRIBUTES;
+
+        PhDereferenceObject(exePath);
     }
 
-    PhClearReference(&installPath);
+    if (installPath)
+        PhDereferenceObject(installPath);
 
     return installed;
 }
 
-PPH_STRING GetProcessHackerInstallPath(VOID)
+PPH_STRING GetProcessHackerInstallPath(
+    VOID
+    )
 {
     HANDLE keyHandle;
     PPH_STRING installPath = NULL;

@@ -104,17 +104,22 @@ typedef struct _PH_SETUP_CONTEXT
     BOOLEAN SetupStartAppAfterExit;
 
     ULONG ErrorCode;
-    PPH_STRING Version;
+    PPH_STRING FilePath;
     PPH_STRING RevVersion;
     PPH_STRING RelDate;
     PPH_STRING Size;
-    PPH_STRING Hash;
-    PPH_STRING Signature;
     PPH_STRING ReleaseNotesUrl;
 
     PPH_STRING BinFileDownloadUrl;
-    //PPH_STRING SetupFileDownloadUrl;
-    PPH_STRING SetupFilePath;
+    PPH_STRING BinFileHash;
+
+    PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFileSignature;
+    PPH_STRING SetupFileVersion;
+
+    PPH_STRING WebSetupFileDownloadUrl;
+    PPH_STRING WebSetupFileSignature;
+    PPH_STRING WebSetupFileVersion;
 
     HWND MainHeaderHandle;
     HWND StatusHandle;
@@ -156,7 +161,7 @@ INT_PTR CALLBACK SetupPropPage3_WndProc(
     _Inout_ LPARAM lParam
     );
 
-INT_PTR CALLBACK SetupPropPage4_WndProc(
+INT_PTR CALLBACK SetupInstallPropPage_WndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _Inout_ WPARAM wParam,
@@ -224,6 +229,10 @@ VOID SetupUpgradeSettingsFile(
     VOID
     );
 
+VOID SetupCreateImageFileExecutionOptions(
+    VOID
+    );
+
 // download.c
 
 BOOLEAN SetupQueryUpdateData(
@@ -244,6 +253,12 @@ BOOLEAN SetupExtractBuild(
 
 VOID SetupShowUpdateDialog(
     VOID
+    );
+
+// updatesetup.c
+
+NTSTATUS SetupUpdateWebSetupBuild(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 // uninstall.c
