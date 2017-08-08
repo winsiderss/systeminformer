@@ -344,7 +344,7 @@ namespace CustomBuildTool
         [DataMember(Name = "bin_sig")] public string BinSig { get; set; }
 
         [DataMember(Name = "setup_url")] public string SetupUrl { get; set; }
-        [DataMember(Name = "hash")] public string SetupHash { get; set; }
+        [DataMember(Name = "hash_setup")] public string SetupHash { get; set; }
         [DataMember(Name = "sig")] public string SetupSig { get; set; }
         [DataMember(Name = "version")] public string SetupVersion { get; set; }
 
