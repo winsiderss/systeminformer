@@ -517,8 +517,9 @@ VOID PhInitializeFont(
     }
 }
 
-PUCHAR PhpReadSignature(
+NTSTATUS PhpReadSignature(
     _In_ PWSTR FileName,
+    _Out_ PUCHAR *Signature,
     _Out_ PULONG SignatureSize
     )
 {
@@ -528,10 +529,10 @@ PUCHAR PhpReadSignature(
     ULONG bufferSize;
     IO_STATUS_BLOCK iosb;
 
-    if (!NT_SUCCESS(PhCreateFileWin32(&fileHandle, FileName, FILE_GENERIC_READ, FILE_ATTRIBUTE_NORMAL,
+    if (!NT_SUCCESS(status = PhCreateFileWin32(&fileHandle, FileName, FILE_GENERIC_READ, FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ, FILE_OPEN, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT)))
     {
-        return NULL;
+        return status;
     }
 
     bufferSize = 1024;
@@ -542,13 +543,14 @@ PUCHAR PhpReadSignature(
 
     if (NT_SUCCESS(status))
     {
+        *Signature = signature;
         *SignatureSize = (ULONG)iosb.Information;
-        return signature;
+        return status;
     }
     else
     {
         PhFree(signature);
-        return NULL;
+        return status;
     }
 }
 
@@ -562,8 +564,6 @@ VOID PhInitializeKph(
     PPH_STRING kprocesshackerFileName;
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
-    PUCHAR signature;
-    ULONG signatureSize;
 
     if (WindowsVersion == WINDOWS_NEW)
         return;
@@ -571,7 +571,7 @@ VOID PhInitializeKph(
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
 
-    parameters.SecurityLevel = KphSecuritySignatureCheck;
+    parameters.SecurityLevel = KphSecuritySignatureAndPrivilegeCheck;
     parameters.CreateDynamicConfiguration = TRUE;
 
     if (NT_SUCCESS(status = KphConnect2Ex(
@@ -580,10 +580,35 @@ VOID PhInitializeKph(
         &parameters
         )))
     {
-        if (signature = PhpReadSignature(processhackerSigFileName->Buffer, &signatureSize))
+        PUCHAR signature;
+        ULONG signatureSize;
+
+        status = PhpReadSignature(
+            processhackerSigFileName->Buffer, 
+            &signature, 
+            &signatureSize
+            );
+
+        if (NT_SUCCESS(status))
         {
-            KphVerifyClient(signature, signatureSize);
+            status = KphVerifyClient(signature, signatureSize);
+
+            if (!NT_SUCCESS(status))
+            {
+                if (PhGetIntegerSetting(L"EnableKphWarnings"))
+                    PhShowStatus(NULL, L"Unable to verify the kernel driver signature.", status, 0);
+
+                KphDisconnect();
+            }
+
             PhFree(signature);
+        }
+        else
+        {
+            if (PhGetIntegerSetting(L"EnableKphWarnings"))
+                PhShowStatus(NULL, L"Unable to load the kernel driver signature.", status, 0);
+
+            KphDisconnect();
         }
     }
     else
