@@ -8,7 +8,13 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
+
+#if defined(PH_BUILD_API)
 #include "../../../../ProcessHacker/include/phappres.h"
+#else
+#define PHAPP_VERSION_NUMBER 1,0,0,0
+#define PHAPP_VERSION_STRING "1,0,0,0"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -34,7 +40,9 @@ END
 2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
+#if defined(PH_BUILD_API)
     "#include ""../../../../ProcessHacker/include/phappres.h""\r\n"
+#endif
     "\0"
 END
 
@@ -100,7 +108,7 @@ END
 //
 // RCDATA
 //
-#if defined(APSTUDIO_INVOKED) || defined(PH_BUILD_API)
+#if defined(PH_BUILD_API)
 
 IDR_BIN_DATA            RCDATA                  "../../../../build/output/processhacker-build-bin.zip"
 

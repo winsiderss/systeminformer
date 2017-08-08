@@ -335,38 +335,26 @@ namespace CustomBuildTool
     [DataContract]
     public class BuildUpdateRequest
     {
-        [DataMember(Name = "updated")]
-        public string Updated { get; set; }
+        [DataMember(Name = "updated")] public string Updated { get; set; }
+        [DataMember(Name = "size")] public string FileLength { get; set; }
+        [DataMember(Name = "forum_url")] public string ForumUrl { get; set; }
 
-        [DataMember(Name = "version")]
-        public string Version { get; set; }
+        [DataMember(Name = "bin_url")] public string BinUrl { get; set; }
+        [DataMember(Name = "hash_bin")] public string BinHash { get; set; }
+        [DataMember(Name = "bin_sig")] public string BinSig { get; set; }
 
-        [DataMember(Name = "size")]
-        public string FileLength { get; set; }
+        [DataMember(Name = "setup_url")] public string SetupUrl { get; set; }
+        [DataMember(Name = "hash")] public string SetupHash { get; set; }
+        [DataMember(Name = "sig")] public string SetupSig { get; set; }
+        [DataMember(Name = "version")] public string SetupVersion { get; set; }
 
-        [DataMember(Name = "forum_url")]
-        public string ForumUrl { get; set; }
+        [DataMember(Name = "websetup_url")] public string WebSetupUrl { get; set; }
+        [DataMember(Name = "websetup_hash")] public string WebSetupHash { get; set; }
+        [DataMember(Name = "websetup_sig")] public string WebSetupSig { get; set; }
+        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
 
-        [DataMember(Name = "setup_url")]
-        public string Setupurl { get; set; }
-
-        [DataMember(Name = "bin_url")]
-        public string Binurl { get; set; }
-
-        [DataMember(Name = "hash_setup")]
-        public string HashSetup { get; set; }
-
-        [DataMember(Name = "hash_bin")]
-        public string HashBin { get; set; }
-
-        [DataMember(Name = "sig")]
-        public string sig { get; set; }
-
-        [DataMember(Name = "message")]
-        public string Message { get; set; }
-
-        [DataMember(Name = "changelog")]
-        public string Changelog { get; set; }
+        [DataMember(Name = "message")] public string Message { get; set; }
+        [DataMember(Name = "changelog")] public string Changelog { get; set; }
     }
 
     [Flags]

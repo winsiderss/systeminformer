@@ -36,18 +36,6 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="page1.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="page2.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="page4.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="page3.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
     <ClCompile Include="extract.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -68,9 +56,6 @@
     </ClCompile>
     <ClCompile Include="download.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="page5.c">
-      <Filter>Source Files\pages</Filter>
     </ClCompile>
     <ClCompile Include="json-c\arraylist.c">
       <Filter>Source Files\json</Filter>
@@ -105,8 +90,26 @@
     <ClCompile Include="json-c\debug.c">
       <Filter>Source Files\json</Filter>
     </ClCompile>
-    <ClCompile Include="error.c">
+    <ClCompile Include="startpage.c">
       <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="licencepage.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="configpage.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="errorpage.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="installpage.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="downloadpage.c">
+      <Filter>Source Files\pages</Filter>
+    </ClCompile>
+    <ClCompile Include="updatesetup.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

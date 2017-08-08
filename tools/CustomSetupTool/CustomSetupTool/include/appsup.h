@@ -68,6 +68,10 @@ HBITMAP LoadPngImageFromResources(
     _In_ PCWSTR Name
     );
 
+BOOLEAN CheckProcessHackerInstalled(
+    VOID
+    );
+
 PPH_STRING GetProcessHackerInstallPath(
     VOID
     );

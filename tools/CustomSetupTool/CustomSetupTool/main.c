@@ -157,6 +157,11 @@ INT WINAPI wWinMain(
         }
     }
 
+#ifdef _DEBUG
+    if (CheckProcessHackerInstalled())
+        SetupMode = SETUP_COMMAND_UNINSTALL;
+#endif
+
     switch (SetupMode)
     {
     case SETUP_COMMAND_INSTALL:
@@ -219,7 +224,7 @@ INT WINAPI wWinMain(
             propSheetPage.pszTitle = PhApplicationName;
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
             propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupPropPage4_WndProc;
+            propSheetPage.pfnDlgProc = SetupInstallPropPage_WndProc;
             pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
             // error page

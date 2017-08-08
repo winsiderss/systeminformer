@@ -74,10 +74,10 @@ BOOLEAN SetupExtractBuild(
 #else
     PPH_BYTES zipPathUtf8;
 
-    if (!Context->SetupFilePath)
+    if (PhIsNullOrEmptyString(Context->FilePath))
         goto CleanupExit;
 
-    zipPathUtf8 = PhConvertUtf16ToUtf8(PhGetString(Context->SetupFilePath));
+    zipPathUtf8 = PhConvertUtf16ToUtf8(PhGetString(Context->FilePath));
 
     if (!(status = mz_zip_reader_init_file(&zip_archive, zipPathUtf8->Buffer, 0)))
         goto CleanupExit;

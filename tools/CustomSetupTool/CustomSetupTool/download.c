@@ -81,7 +81,7 @@ BOOLEAN ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
+    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->SetupFileVersion));
 
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -161,7 +161,6 @@ json_object_ptr json_get_object(
     return NULL;
 }
 
-
 BOOLEAN SetupQueryUpdateData(
     _Inout_ PPH_SETUP_CONTEXT Context
     )
@@ -175,6 +174,7 @@ BOOLEAN SetupQueryUpdateData(
     PVOID jsonObject = NULL;
     PPH_STRING versionHeader = UpdateVersionString();
     PPH_STRING windowsHeader = UpdateWindowsString();
+    PSTR value = NULL;
 
     if (!(httpSessionHandle = WinHttpOpen(
         NULL,
@@ -280,33 +280,52 @@ BOOLEAN SetupQueryUpdateData(
     if (!(jsonObject = json_tokener_parse(stringBuffer)))
         goto CleanupExit;
 
-    Context->Version = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "version")));
-    //Context->RevVersion = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "rev")));
-    Context->RelDate = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "updated")));
-    Context->Size = PhFormatSize(json_object_get_int64(json_get_object(jsonObject, "size")), -1);
-    Context->Hash = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "hash_setup")));
-    Context->Signature = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "sig")));
-    Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "forum_url")));
-    Context->BinFileDownloadUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "bin_url")));
-    //Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(json_object_get_string(json_get_object(jsonObject, "setup_url")));
-    //Context->BuildMessage = PhConvertUtf8ToUtf16(GetJsonValueAsString(jsonObject, "changelog"));
+    if (value = json_object_get_string(json_get_object(jsonObject, "updated")))
+        Context->RelDate = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "size")))
+        Context->Size = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "forum_url")))
+        Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(value);
 
-    if (PhIsNullOrEmptyString(Context->Version))
-        goto CleanupExit;
+    if (value = json_object_get_string(json_get_object(jsonObject, "bin_url")))
+        Context->BinFileDownloadUrl = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "hash_bin")))
+        Context->BinFileHash = PhConvertUtf8ToUtf16(value);
+
+    if (value = json_object_get_string(json_get_object(jsonObject, "setup_url")))
+        Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "sig")))
+        Context->SetupFileSignature = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "version")))
+        Context->SetupFileVersion = PhConvertUtf8ToUtf16(value);
+
+    if (value = json_object_get_string(json_get_object(jsonObject, "websetup_url")))
+        Context->WebSetupFileDownloadUrl = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "websetup_sig")))
+        Context->WebSetupFileSignature = PhConvertUtf8ToUtf16(value);
+    if (value = json_object_get_string(json_get_object(jsonObject, "websetup_version")))
+        Context->WebSetupFileVersion = PhConvertUtf8ToUtf16(value);
+
     if (!ParseVersionString(Context))
         goto CleanupExit;
 
-    if (PhIsNullOrEmptyString(Context->Signature))
-        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->Size))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Hash))
-        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
         goto CleanupExit;
+
     if (PhIsNullOrEmptyString(Context->BinFileDownloadUrl))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->BinFileHash))
+        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->SetupFileSignature))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->SetupFileVersion))
         goto CleanupExit;
  
     success = TRUE;
@@ -381,7 +400,7 @@ BOOLEAN UpdateDownloadUpdateData(
             );
     }
 
-    Context->SetupFilePath = PhFormatString(
+    Context->FilePath = PhFormatString(
         L"%s%s\\processhacker-%lu.%lu.%lu-bin.zip",
         PhGetStringOrEmpty(setupTempPath),
         PhGetStringOrEmpty(randomGuidString),
@@ -389,10 +408,10 @@ BOOLEAN UpdateDownloadUpdateData(
         Context->LatestMinorVersion,
         Context->LatestRevisionVersion
         );
-    if (PhIsNullOrEmptyString(Context->SetupFilePath))
+    if (PhIsNullOrEmptyString(Context->FilePath))
         goto CleanupExit;
 
-    if (fullSetupPath = PhGetFullPath(PhGetString(Context->SetupFilePath), &indexOfFileName))
+    if (fullSetupPath = PhGetFullPath(PhGetString(Context->FilePath), &indexOfFileName))
     {
         PPH_STRING directoryPath;
 
@@ -408,7 +427,7 @@ BOOLEAN UpdateDownloadUpdateData(
 
     if (!NT_SUCCESS(PhCreateFileWin32(
         &tempFileHandle,
-        PhGetString(Context->SetupFilePath),
+        PhGetString(Context->FilePath),
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
