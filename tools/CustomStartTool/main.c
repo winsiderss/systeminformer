@@ -107,19 +107,28 @@ INT WINAPI wWinMain(
     PPH_STRING fileName;
     PPH_STRING currentDirectory;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
 
     if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    {
+        PhShowStatus(NULL, L"InitializeProcThreadAttributeList Error", PhGetLastWin32ErrorAsNtStatus(), 0);
         return 1;
+    }
 
     info.lpAttributeList = PhAllocate(attributeListLength);
    
     if (!InitializeProcThreadAttributeList(info.lpAttributeList, 1, 0, &attributeListLength))
+    {
+        PhShowStatus(NULL, L"InitializeProcThreadAttributeList Error", PhGetLastWin32ErrorAsNtStatus(), 0);
         return 1;
+    }
 
     if (!UpdateProcThreadAttribute(info.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &PhMitigationPolicy, sizeof(ULONG64), NULL, NULL))
+    {
+        PhShowStatus(NULL, L"UpdateProcThreadAttribute Error", PhGetLastWin32ErrorAsNtStatus(), 0);
         return 1;
+    }
 
     currentDirectory = PhGetApplicationDirectory();
     fileName = PhConcatStrings2(currentDirectory->Buffer, L"\\ProcessHacker.exe");
@@ -128,7 +137,7 @@ INT WINAPI wWinMain(
     if (!RtlDoesFileExists_U(fileName->Buffer) && CheckProcessHackerInstalled())
         PhMoveReference(&fileName, GetProcessHackerPath());
 
-    CreateProcess(
+    if (!CreateProcess(
         NULL,
         fileName->Buffer,
         NULL,
@@ -139,7 +148,10 @@ INT WINAPI wWinMain(
         NULL,
         &info.StartupInfo,
         &processInfo
-        );
+        ))
+    {
+        PhShowStatus(NULL, L"CreateProcess Error", PhGetLastWin32ErrorAsNtStatus(), 0);
+    }
 
     PhDereferenceObject(fileName);
 
