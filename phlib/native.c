@@ -6299,19 +6299,29 @@ static BOOLEAN PhpDeleteDirectoryCallback(
         if (NT_SUCCESS(PhCreateFileWin32(
             &directoryHandle,
             PhGetString(fullName),
-            FILE_GENERIC_READ,
+            FILE_GENERIC_READ | DELETE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
+            IO_STATUS_BLOCK isb;
+            FILE_DISPOSITION_INFORMATION fileInfo;
+
             PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, fullName);
 
-            NtClose(directoryHandle);
+            // Delete the directory. 
+            fileInfo.DeleteFile = TRUE;
+            NtSetInformationFile(
+                directoryHandle,
+                &isb,
+                &fileInfo,
+                sizeof(FILE_DISPOSITION_INFORMATION),
+                FileDispositionInformation
+                );
 
-            // Delete the directory.
-            RemoveDirectory(PhGetString(fullName));
+            NtClose(directoryHandle);
         }
     }
     else
@@ -6350,6 +6360,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
             }
         }
 
+        // Delete the file. 
         PhDeleteFileWin32(PhGetString(fullName));
     }
 
@@ -6373,7 +6384,7 @@ NTSTATUS PhDeleteDirectory(
         &directoryHandle,
         PhGetString(DirectoryPath),
         FILE_GENERIC_READ | DELETE,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT

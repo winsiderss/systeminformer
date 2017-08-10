@@ -36,6 +36,7 @@
 #include <apiimport.h>
 #include <lsasup.h>
 #include <mapimg.h>
+#include <settings.h>
 
 #include "md5.h"
 #include "sha.h"
@@ -5049,7 +5050,15 @@ PPH_STRING PhGetCacheDirectory(
     VOID
     )
 {
-    return PhGetKnownLocation(CSIDL_LOCAL_APPDATA, L"\\Process Hacker\\Cache");
+    PPH_STRING executeString;
+
+    // Get the default cache directory.
+    executeString = PhGetStringSetting(L"LocalCachePath");
+
+    // Expand environment strings.
+    PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
+
+    return executeString;
 }
 
 VOID PhClearCacheDirectory(
