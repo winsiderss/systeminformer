@@ -80,7 +80,6 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
     PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
-    PhpAddStringSetting(L"LocalCachePath", L"%LocalAppData%\\Process Hacker\\Cache");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");

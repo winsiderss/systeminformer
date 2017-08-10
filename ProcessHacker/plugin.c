@@ -206,15 +206,29 @@ static BOOLEAN EnumPluginsDirectoryCallback(
 
     if (PhEndsWithStringRef2(&baseName, L".dll", TRUE))
     {
-        if (!PhIsPluginDisabled(&baseName))
+        // Plugin blacklist
+        if (PhEndsWithStringRef2(&baseName, L"CommonUtil.dll", TRUE))
         {
             fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
             memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
             memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
 
-            PhLoadPlugin(fileName);
+            PhDeleteFileWin32(fileName->Buffer);
 
             PhDereferenceObject(fileName);
+        }
+        else
+        {
+            if (!PhIsPluginDisabled(&baseName))
+            {
+                fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
+                memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
+                memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
+
+                PhLoadPlugin(fileName);
+
+                PhDereferenceObject(fileName);
+            }
         }
     }
 
