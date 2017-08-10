@@ -6333,7 +6333,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
             if (NT_SUCCESS(PhCreateFileWin32(
                 &fileHandle,
                 PhGetString(fullName),
-                FILE_GENERIC_WRITE,
+                FILE_GENERIC_READ | FILE_WRITE_ATTRIBUTES,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_WRITE,
                 FILE_OPEN,
