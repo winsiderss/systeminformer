@@ -61,7 +61,7 @@ INT WINAPI wWinMain(
     {
         { 0, L"h", NoArgumentType }
     };
-    PH_STRINGREF commandLine;
+    PPH_STRING commandLine;
 
     if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
@@ -75,16 +75,18 @@ INT WINAPI wWinMain(
 
     PhApplicationName = L"PE Viewer";
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
+    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+        return 1;
 
     PhParseCommandLine(
-        &commandLine,
+        &commandLine->sr,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
         PH_COMMAND_LINE_IGNORE_FIRST_PART,
         PvCommandLineCallback,
         NULL
         );
+    PhDereferenceObject(commandLine);
 
     if (!PvFileName)
     {
