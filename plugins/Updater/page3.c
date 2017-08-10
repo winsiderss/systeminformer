@@ -88,10 +88,8 @@ VOID ShowAvailableDialog(
 
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"A newer build of Process Hacker is available.";
-    config.pszContent = PhaFormatString(L"Version: %lu.%lu.%lu\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
-        Context->MajorVersion,
-        Context->MinorVersion,
-        Context->RevisionVersion,
+    config.pszContent = PhaFormatString(L"Version: %s\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
+        PhGetStringOrEmpty(Context->Version),
         PhGetStringOrEmpty(Context->Size)
         )->Buffer;
 

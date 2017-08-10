@@ -618,3 +618,21 @@ EXPORTS
 	mxmlNewElement
 	mxmlSaveFd
 	mxml_opaque_cb
+
+; json
+	PhCreateJsonParser
+	PhFreeJsonParser
+	PhGetJsonValueAsString
+	PhGetJsonValueAsLong64
+	PhCreateJsonObject
+	PhGetJsonObject
+	PhGetJsonObjectLength
+	PhGetJsonObjectBool
+	PhAddJsonObject
+	PhCreateJsonArray
+	PhAddJsonArrayObject
+	PhGetJsonArrayString
+	PhGetJsonArrayLong64
+	PhGetJsonArrayLength
+	PhGetJsonArrayIndexObject
+	PhGetJsonObjectAsArrayList

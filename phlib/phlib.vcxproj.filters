@@ -15,6 +15,12 @@
     <Filter Include="Mini-XML\Headers">
       <UniqueIdentifier>{874b89c3-fb60-46f3-a62c-49ac88e3026d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Json-C">
+      <UniqueIdentifier>{fd6c74dc-d93e-4dd1-9a8b-5bdf525e0709}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Json-C\Headers">
+      <UniqueIdentifier>{4f0e2a3e-3009-4e13-8d38-e33c46d00044}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basesup.c">
@@ -175,6 +181,42 @@
     </ClCompile>
     <ClCompile Include="mxml\mxml-string.c">
       <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\arraylist.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\debug.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="json.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_c_version.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_object.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_object_iterator.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_tokener.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\json_util.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\libjson.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\linkhash.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\random_seed.c">
+      <Filter>Json-C</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonc\printbuf.c">
+      <Filter>Json-C</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -363,6 +405,60 @@
     </ClInclude>
     <ClInclude Include="mxml\mxml.h">
       <Filter>Mini-XML\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\arraylist.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\bits.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\config.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\debug.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_c_version.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_config.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_inttypes.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_object.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_object_iterator.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_object_private.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_tokener.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_util.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\linkhash.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\math_compat.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\printbuf.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\random_seed.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\json.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

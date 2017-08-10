@@ -24,26 +24,6 @@
 #include "main.h"
 
 PPH_PLUGIN PluginInstance;
-COMMONUTIL_INTERFACE PluginInterface =
-{
-    COMMONUTIL_INTERFACE_VERSION,
-    UtilCreateJsonParser,
-    UtilCleanupJsonParser,
-    UtilGetJsonValueAsString,
-    UtilGetJsonValueAsUlong,
-    UtilGetJsonObjectBool,
-    UtilCreateJsonObject,
-    UtilGetJsonObject,
-    UtilGetJsonObjectLength,
-    UtilJsonAddObject,
-    UtilCreateJsonArray,
-    UtilAddJsonArray,
-    UtilGetJsonArrayString,
-    UtilGetJsonArrayUlong,
-    UtilGetArrayLength,
-    UtilGetObjectArrayIndex,
-    UtilGetObjectArrayList
-};
 
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
@@ -66,7 +46,6 @@ LOGICAL DllMain(
             info->Author = L"dmex";
             info->Description = L"Common Plugin Extensions";
             info->HasOptions = FALSE;
-            info->Interface = &PluginInterface;
         }
         break;
     }

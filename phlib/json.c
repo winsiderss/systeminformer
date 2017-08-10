@@ -1,8 +1,8 @@
 /*
- * Process Hacker Plugins - 
- *   CommonUtil Plugin
+ * Process Hacker -
+ *   json wrapper
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -18,13 +18,16 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
-#include "main.h"
-#include "json-c\json.h"
+#include <ph.h>
+#include <phbasesup.h>
+#include <phutil.h>
 
-json_object_ptr json_get_object(
+#include "jsonc\json.h"
+#include <json.h>
+
+static json_object_ptr json_get_object(
     _In_ json_object_ptr rootObj, 
     _In_ const PSTR key
     )
@@ -39,21 +42,21 @@ json_object_ptr json_get_object(
     return NULL;
 }
 
-PVOID UtilCreateJsonParser(
+PVOID PhCreateJsonParser(
     _In_ PSTR JsonString
     )
 {
     return json_tokener_parse(JsonString);
 }
 
-VOID UtilCleanupJsonParser(
+VOID PhFreeJsonParser(
     _In_ PVOID Object
     )
 {
     json_object_put(Object);
 }
 
-PSTR UtilGetJsonValueAsString(
+PSTR PhGetJsonValueAsString(
     _In_ PVOID Object,
     _In_ PSTR Key
     )
@@ -61,7 +64,7 @@ PSTR UtilGetJsonValueAsString(
     return json_object_get_string(json_get_object(Object, Key));
 }
 
-INT64 UtilGetJsonValueAsUlong(
+INT64 PhGetJsonValueAsLong64(
     _In_ PVOID Object,
     _In_ PSTR Key
     )
@@ -69,14 +72,14 @@ INT64 UtilGetJsonValueAsUlong(
     return json_object_get_int64(json_get_object(Object, Key));
 }
 
-PVOID UtilCreateJsonObject(
+PVOID PhCreateJsonObject(
     VOID
     )
 {
     return json_object_new_object();
 }
 
-PVOID UtilGetJsonObject(
+PVOID PhGetJsonObject(
     _In_ PVOID Object,
     _In_ PSTR Key
     )
@@ -84,22 +87,22 @@ PVOID UtilGetJsonObject(
     return json_get_object(Object, Key);
 }
 
-INT UtilGetJsonObjectLength(
+INT PhGetJsonObjectLength(
     _In_ PVOID Object
     )
 {
     return json_object_object_length(Object);
 }
 
-BOOL UtilGetJsonObjectBool(
+BOOLEAN PhGetJsonObjectBool(
     _In_ PVOID Object,
     _In_ PSTR Key
     )
 {
-    return json_object_get_boolean(json_get_object(Object, Key));
+    return json_object_get_boolean(json_get_object(Object, Key)) == TRUE;
 }
 
-VOID UtilJsonAddObject(
+VOID PhAddJsonObject(
     _In_ PVOID Object,
     _In_ PSTR Key,
     _In_ PSTR Value
@@ -108,14 +111,14 @@ VOID UtilJsonAddObject(
     json_object_object_add(Object, Key, json_object_new_string(Value));
 }
 
-PVOID UtilCreateJsonArray(
+PVOID PhCreateJsonArray(
     VOID
     )
 {
     return json_object_new_array();
 }
 
-VOID UtilAddJsonArray(
+VOID PhAddJsonArrayObject(
     _In_ PVOID Object,
     _In_ PVOID jsonEntry
     )
@@ -123,14 +126,14 @@ VOID UtilAddJsonArray(
     json_object_array_add(Object, jsonEntry);
 }
 
-PSTR UtilGetJsonArrayString(
+PSTR PhGetJsonArrayString(
     _In_ PVOID Object
     )
 {
     return _strdup( json_object_to_json_string(Object) ); // leak
 }
 
-INT64 UtilGetJsonArrayUlong(
+INT64 PhGetJsonArrayLong64(
     _In_ PVOID Object,
     _In_ INT Index
     )
@@ -138,14 +141,14 @@ INT64 UtilGetJsonArrayUlong(
     return json_object_get_int64(json_object_array_get_idx(Object, Index));
 }
 
-INT UtilGetArrayLength(
+INT PhGetJsonArrayLength(
     _In_ PVOID Object
     )
 {
     return json_object_array_length(Object);
 }
 
-PVOID UtilGetObjectArrayIndex(
+PVOID PhGetJsonArrayIndexObject(
     _In_ PVOID Object,
     _In_ INT Index
     )
@@ -153,22 +156,24 @@ PVOID UtilGetObjectArrayIndex(
     return json_object_array_get_idx(Object, Index);
 }
 
-PPH_LIST UtilGetObjectArrayList(
+PVOID PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
     )
 {
-    json_object_iter object_iter;
     PPH_LIST listArray;
+    json_object_iter json_array_ptr;
 
     listArray = PhCreateList(1);
 
-    json_object_object_foreachC(Object, object_iter)
+    json_object_object_foreachC(Object, json_array_ptr)
     {
-        PJSON_ARRAY_LIST_OBJECT object = PhAllocate(sizeof(JSON_ARRAY_LIST_OBJECT));
+        PJSON_ARRAY_LIST_OBJECT object;
+        
+        object = PhAllocate(sizeof(JSON_ARRAY_LIST_OBJECT));
         memset(object, 0, sizeof(JSON_ARRAY_LIST_OBJECT));
 
-        object->Key = object_iter.key;
-        object->Entry = object_iter.val;
+        object->Key = json_array_ptr.key;
+        object->Entry = json_array_ptr.val;
 
         PhAddItemList(listArray, object);
     }

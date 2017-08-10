@@ -211,7 +211,7 @@ PPH_LIST VirusTotalJsonToResultList(
     ULONG arrayLength;
     PPH_LIST results;
 
-    if (!(arrayLength = JsonGetArrayLength(JsonObject)))
+    if (!(arrayLength = PhGetJsonArrayLength(JsonObject)))
         return NULL;
 
     results = PhCreateList(arrayLength);
@@ -222,17 +222,17 @@ PPH_LIST VirusTotalJsonToResultList(
         PVOID jsonArrayObject;
         PSTR fileHash;
 
-        if (!(jsonArrayObject = JsonGetObjectArrayIndex(JsonObject, i)))
+        if (!(jsonArrayObject = PhGetJsonArrayIndexObject(JsonObject, i)))
             continue;
 
         result = PhAllocate(sizeof(VIRUSTOTAL_API_RESULT));
         memset(result, 0, sizeof(VIRUSTOTAL_API_RESULT));
 
-        fileHash = GetJsonValueAsString(jsonArrayObject, "hash");
-        result->Found = GetJsonValueAsBool(jsonArrayObject, "found") == TRUE;
-        result->Positives = GetJsonValueAsUlong(jsonArrayObject, "positives");
-        result->Total = GetJsonValueAsUlong(jsonArrayObject, "total");
+        fileHash = PhGetJsonValueAsString(jsonArrayObject, "hash");
         result->FileHash = fileHash ? PhZeroExtendToUtf16(fileHash) : NULL;
+        result->Found = PhGetJsonObjectBool(jsonArrayObject, "found") == TRUE;
+        result->Positives = PhGetJsonValueAsLong64(jsonArrayObject, "positives");
+        result->Total = PhGetJsonValueAsLong64(jsonArrayObject, "total");
 
         PhAddItemList(results, result);
     }
@@ -279,13 +279,13 @@ VOID VirusTotalBuildJsonArray(
             Entry->FileHash = hashString;
             Entry->FileHashAnsi = PhConvertUtf16ToMultiByte(Entry->FileHash->Buffer);
 
-            entry = CreateJsonObject();
-            JsonAddObject(entry, "autostart_location", "");
-            JsonAddObject(entry, "autostart_entry", "");
-            JsonAddObject(entry, "hash", Entry->FileHashAnsi->Buffer);
-            JsonAddObject(entry, "image_path", Entry->FileNameAnsi->Buffer);
-            JsonAddObject(entry, "creation_datetime", Entry->CreationTime ? Entry->CreationTime->Buffer : "");
-            JsonArrayAddObject(JsonArray, entry);
+            entry = PhCreateJsonObject();
+            PhAddJsonObject(entry, "autostart_location", "");
+            PhAddJsonObject(entry, "autostart_entry", "");
+            PhAddJsonObject(entry, "hash", Entry->FileHashAnsi->Buffer);
+            PhAddJsonObject(entry, "image_path", Entry->FileNameAnsi->Buffer);
+            PhAddJsonObject(entry, "creation_datetime", Entry->CreationTime ? Entry->CreationTime->Buffer : "");
+            PhAddJsonArrayObject(JsonArray, entry);
         }
 
         NtClose(fileHandle);
@@ -585,27 +585,27 @@ CleanupExit:
     //PVOID jsonScanObject;
     PVIRUSTOTAL_FILE_REPORT_RESULT result;
 
-    if (!(jsonRootObject = CreateJsonParser(subRequestBuffer)))
+    if (!(jsonRootObject = PhCreateJsonParser(subRequestBuffer)))
         goto CleanupExit;
 
-    if (!GetJsonValueAsUlong(jsonRootObject, "response_code"))
+    if (PhGetJsonValueAsLong64(jsonRootObject, "response_code") != 0)
         goto CleanupExit;
 
     result = PhAllocate(sizeof(VIRUSTOTAL_FILE_REPORT_RESULT));
     memset(result, 0, sizeof(VIRUSTOTAL_FILE_REPORT_RESULT));
 
-    result->Total = PhFormatUInt64(GetJsonValueAsUlong(jsonRootObject, "total"), FALSE);
-    result->Positives = PhFormatUInt64(GetJsonValueAsUlong(jsonRootObject, "positives"), FALSE);
-    result->Resource = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "resource"));
-    result->ScanId = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_id"));
-    result->Md5 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "md5"));
-    result->Sha1 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha1"));
-    result->Sha256 = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha256"));
-    result->ScanDate = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_date"));
-    result->Permalink = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "permalink"));
-    result->StatusMessage = PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));
+    result->Total = PhFormatUInt64(PhGetJsonValueAsLong64(jsonRootObject, "total"), FALSE);
+    result->Positives = PhFormatUInt64(PhGetJsonValueAsLong64(jsonRootObject, "positives"), FALSE);
+    result->Resource = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "resource"));
+    result->ScanId = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "scan_id"));
+    result->Md5 = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "md5"));
+    result->Sha1 = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "sha1"));
+    result->Sha256 = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "sha256"));
+    result->ScanDate = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "scan_date"));
+    result->Permalink = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "permalink"));
+    result->StatusMessage = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "verbose_msg"));
 
-    //if (jsonScanObject = JsonGetObject(jsonRootObject, "scans"))
+    //if (jsonScanObject = PhGetJsonObject(jsonRootObject, "scans"))
     //{
     //    PPH_LIST jsonArrayList;
     //
@@ -617,9 +617,9 @@ CleanupExit:
     //        {
     //            PJSON_ARRAY_LIST_OBJECT object = jsonArrayList->Items[i];
     //            //BOOLEAN detected = GetJsonValueAsBool(object->Entry, "detected") == TRUE;
-    //            //PSTR version = GetJsonValueAsString(object->Entry, "version");
-    //            //PSTR result = GetJsonValueAsString(object->Entry, "result");
-    //            //PSTR update = GetJsonValueAsString(object->Entry, "update");
+    //            //PSTR version = PhGetJsonValueAsString(object->Entry, "version");
+    //            //PSTR result = PhGetJsonValueAsString(object->Entry, "result");
+    //            //PSTR update = PhGetJsonValueAsString(object->Entry, "update");
     //
     //            PhFree(object);
     //        }
@@ -659,7 +659,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
         PPH_LIST resultTempList = NULL;
         PPH_LIST virusTotalResults = NULL;
 
-        jsonArray = CreateJsonArray();
+        jsonArray = PhCreateJsonArray();
         resultTempList = PhCreateList(30);
 
         PhAcquireQueuedLockExclusive(&ProcessListLock);
@@ -692,19 +692,19 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
             VirusTotalBuildJsonArray(resultTempList->Items[i], jsonArray);
         }
 
-        if (!(jsonArrayToSendString = GetJsonArrayString(jsonArray)))
+        if (!(jsonArrayToSendString = PhGetJsonArrayString(jsonArray)))
             goto CleanupExit;
 
         if (!(jsonApiResult = VirusTotalSendHttpRequest(PhCreateBytes(jsonArrayToSendString))))
             goto CleanupExit;
 
-        if (!(rootJsonObject = CreateJsonParser(jsonApiResult)))
+        if (!(rootJsonObject = PhCreateJsonParser(jsonApiResult)))
             goto CleanupExit;
 
-        if (!(dataJsonObject = JsonGetObject(rootJsonObject, "data")))
+        if (!(dataJsonObject = PhGetJsonObject(rootJsonObject, "data")))
             goto CleanupExit;
 
-        if (!(resultLength = GetJsonValueAsUlong(rootJsonObject, "result")))
+        if (!(resultLength = PhGetJsonValueAsLong64(rootJsonObject, "result")))
             goto CleanupExit;
 
         if (virusTotalResults = VirusTotalJsonToResultList(dataJsonObject))
@@ -758,12 +758,12 @@ CleanupExit:
         
         if (rootJsonObject)
         {
-            CleanupJsonParser(rootJsonObject);
+            PhFreeJsonParser(rootJsonObject);
         }
 
         if (jsonArray)
         {
-            CleanupJsonParser(jsonArray);
+            PhFreeJsonParser(jsonArray);
         }
 
         if (jsonApiResult)

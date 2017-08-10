@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -161,6 +161,18 @@
     <ClCompile Include="hndlinfo.c" />
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
+    <ClCompile Include="json.c" />
+    <ClCompile Include="jsonc\arraylist.c" />
+    <ClCompile Include="jsonc\debug.c" />
+    <ClCompile Include="jsonc\json_c_version.c" />
+    <ClCompile Include="jsonc\json_object.c" />
+    <ClCompile Include="jsonc\json_object_iterator.c" />
+    <ClCompile Include="jsonc\json_tokener.c" />
+    <ClCompile Include="jsonc\json_util.c" />
+    <ClCompile Include="jsonc\libjson.c" />
+    <ClCompile Include="jsonc\linkhash.c" />
+    <ClCompile Include="jsonc\printbuf.c" />
+    <ClCompile Include="jsonc\random_seed.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphdata.c" />
     <ClCompile Include="lsasup.c" />
@@ -201,6 +213,7 @@
     <ClInclude Include="include\filestream.h" />
     <ClInclude Include="include\handle.h" />
     <ClInclude Include="include\hndlinfo.h" />
+    <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphapi.h" />
     <ClInclude Include="include\kphuserp.h" />
     <ClInclude Include="include\lsasup.h" />
@@ -236,6 +249,23 @@
     <ClInclude Include="include\hexeditp.h" />
     <ClInclude Include="include\filestreamp.h" />
     <ClInclude Include="include\kphuser.h" />
+    <ClInclude Include="jsonc\arraylist.h" />
+    <ClInclude Include="jsonc\bits.h" />
+    <ClInclude Include="jsonc\config.h" />
+    <ClInclude Include="jsonc\debug.h" />
+    <ClInclude Include="jsonc\json.h" />
+    <ClInclude Include="jsonc\json_config.h" />
+    <ClInclude Include="jsonc\json_c_version.h" />
+    <ClInclude Include="jsonc\json_inttypes.h" />
+    <ClInclude Include="jsonc\json_object.h" />
+    <ClInclude Include="jsonc\json_object_iterator.h" />
+    <ClInclude Include="jsonc\json_object_private.h" />
+    <ClInclude Include="jsonc\json_tokener.h" />
+    <ClInclude Include="jsonc\json_util.h" />
+    <ClInclude Include="jsonc\linkhash.h" />
+    <ClInclude Include="jsonc\math_compat.h" />
+    <ClInclude Include="jsonc\printbuf.h" />
+    <ClInclude Include="jsonc\random_seed.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="include\ph.h" />
     <ClInclude Include="include\phbase.h" />

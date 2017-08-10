@@ -45,7 +45,7 @@ namespace CustomBuildTool
         private static string BuildOutputFolder;
         private static string BuildCommit;
         private static string BuildVersion;
-        private static string BuildWebSetupVersion;
+        //private static string BuildWebSetupVersion;
         private static string BuildLongVersion;
         private static string BuildCount;
         private static string BuildRevision;
@@ -58,9 +58,9 @@ namespace CustomBuildTool
         private static string BuildSetupHash;
         private static string BuildSetupSig;
 
-        private static long BuildWebSetupFileLength;
-        private static string BuildWebSetupHash;
-        private static string BuildWebSetupSig;
+        //private static long BuildWebSetupFileLength;
+        //private static string BuildWebSetupHash;
+        //private static string BuildWebSetupSig;
 
 #region Build Config
         private static readonly string[] sdk_directories =
@@ -123,6 +123,7 @@ namespace CustomBuildTool
             "guisup.h",
             "hexedit.h",
             "hndlinfo.h",
+            "json.h",
             "kphapi.h",
             "kphuser.h",
             "lsasup.h",
@@ -696,8 +697,8 @@ namespace CustomBuildTool
 
             try
             {
-                var webSetupVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe");
-                BuildWebSetupVersion = webSetupVersion.FileVersion.Replace(",", ".");
+                //var webSetupVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe");
+                //BuildWebSetupVersion = webSetupVersion.FileVersion.Replace(",", ".");
             }
             catch (Exception ex)
             {
@@ -847,22 +848,22 @@ namespace CustomBuildTool
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-checksums.txt"))
                     File.Delete(BuildOutputFolder + "\\processhacker-build-checksums.txt");
 
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
-                    BuildWebSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe").Length;
+                //if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
+                //    BuildWebSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-websetup.exe").Length;
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     BuildSetupFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-setup.exe").Length;
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     BuildBinFileLength = new FileInfo(BuildOutputFolder + "\\processhacker-build-bin.zip").Length;
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
-                    BuildWebSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-websetup.exe");
+                //if (File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
+                //    BuildWebSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-websetup.exe");
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
                     BuildSetupHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-setup.exe");
                 if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
                     BuildBinHash = Verify.HashFile(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("processhacker-build-websetup.exe");
-                sb.AppendLine("SHA256: " + BuildWebSetupHash + Environment.NewLine);
+                //sb.AppendLine("processhacker-build-websetup.exe");
+                //sb.AppendLine("SHA256: " + BuildWebSetupHash + Environment.NewLine);
                 sb.AppendLine("processhacker-build-setup.exe");
                 sb.AppendLine("SHA256: " + BuildSetupHash + Environment.NewLine);
                 sb.AppendLine("processhacker-build-bin.zip");
@@ -895,22 +896,12 @@ namespace CustomBuildTool
                 return true;
             }
 
-            if (!File.Exists(BuildOutputFolder + "\\processhacker-build-websetup.exe"))
-            {
-                Program.PrintColorMessage("[SKIPPED] websetup-setup.exe not found.", ConsoleColor.Yellow);
-                return false;
-            }
-
             if (!File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
             {
                 Program.PrintColorMessage("[SKIPPED] build-setup.exe not found.", ConsoleColor.Yellow);
                 return false;
             }
 
-            BuildWebSetupSig = Win32.ShellExecute(
-                CustomSignToolPath, 
-                "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-websetup.exe -h"
-                );
             BuildSetupSig = Win32.ShellExecute(
                 CustomSignToolPath,
                 "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-setup.exe -h"
@@ -934,10 +925,6 @@ namespace CustomBuildTool
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
                 return;
-            if (string.IsNullOrEmpty(BuildWebSetupSig))
-                return;
-            if (string.IsNullOrEmpty(BuildWebSetupVersion))
-                return;
 
             string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
             string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
@@ -956,10 +943,10 @@ namespace CustomBuildTool
                 BinHash = BuildBinHash,
                 //BinSig = BuildBinSig,
 
-                WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-websetup.exe",
-                WebSetupHash = BuildWebSetupHash,
-                WebSetupVersion = BuildWebSetupVersion,
-                WebSetupSig = BuildWebSetupSig,
+                //WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-websetup.exe",
+                //WebSetupHash = BuildWebSetupHash,
+                //WebSetupVersion = BuildWebSetupVersion,
+                //WebSetupSig = BuildWebSetupSig,
 
                 Message = buildSummary,
                 Changelog = buildChangelog,
@@ -1006,14 +993,14 @@ namespace CustomBuildTool
         {
             string[] buildFileArray =
             {
-                BuildOutputFolder + "\\processhacker-build-websetup.exe",
+                //BuildOutputFolder + "\\processhacker-build-websetup.exe",
                 BuildOutputFolder + "\\processhacker-build-setup.exe",
                 BuildOutputFolder + "\\processhacker-build-bin.zip",
                 BuildOutputFolder + "\\processhacker-build-checksums.txt"
             };
             string[] releaseFileArray =
             {
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-websetup.exe",
+                //BuildOutputFolder + "\\processhacker-websetup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
