@@ -47,6 +47,9 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
+    // Set the default image execution options.
+    SetupCreateImageFileExecutionOptions();
+
     SetupStartKph(Context);
 
     if (!SetupExecuteProcessHacker(Context))

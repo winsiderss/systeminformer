@@ -117,7 +117,7 @@
     <ClCompile Include="startpage.c" />
     <ClCompile Include="licencepage.c" />
     <ClCompile Include="configpage.c" />
-    <ClCompile Include="installpage.c" />
+    <ClCompile Include="install.c" />
     <ClCompile Include="downloadpage.c" />
     <ClCompile Include="setup.c" />
     <ClCompile Include="uninstall.c" />

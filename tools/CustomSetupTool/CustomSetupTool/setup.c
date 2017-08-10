@@ -263,6 +263,7 @@ VOID SetupStartKph(
     {
         HANDLE processHandle;
         LARGE_INTEGER timeout;
+        ULONG retries = 0;
 
         timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
 
@@ -279,6 +280,22 @@ VOID SetupStartKph(
             NtWaitForSingleObject(processHandle, FALSE, &timeout);
             NtClose(processHandle);
         }
+
+        while (retries < 5)
+        {
+            SC_HANDLE serviceHandle;
+            SERVICE_STATUS serviceStatus;
+
+            if (serviceHandle = PhOpenService(L"KProcessHacker3", SERVICE_START))
+            {
+                StartService(serviceHandle, 0, NULL);
+                CloseServiceHandle(serviceHandle);
+                break;
+            }
+
+            Sleep(1000);
+            retries++;
+        }
     }
 
     PhDereferenceObject(clientPath);
@@ -288,38 +305,42 @@ BOOLEAN SetupUninstallKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    while (TRUE)
+    ULONG retries = 0;
+
+    while (retries < 5)
     {
         SC_HANDLE serviceHandle;
         SERVICE_STATUS serviceStatus;
 
-        if (!(serviceHandle = PhOpenService(
-            L"KProcessHacker2",
-            SERVICE_STOP | DELETE
-            )))
+        if (serviceHandle = PhOpenService(L"KProcessHacker2", SERVICE_STOP | DELETE))
+        {
+            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+            DeleteService(serviceHandle);
+            CloseServiceHandle(serviceHandle);
             break;
+        }
 
-        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
-        DeleteService(serviceHandle);
-
-        CloseServiceHandle(serviceHandle);
+        Sleep(1000);
+        retries++;
     }
 
-    while (TRUE)
+    retries = 0;
+
+    while (retries < 5)
     {
         SC_HANDLE serviceHandle;
         SERVICE_STATUS serviceStatus;
 
-        if (!(serviceHandle = PhOpenService(
-            L"KProcessHacker3",
-            SERVICE_STOP | DELETE
-            )))
+        if (serviceHandle = PhOpenService(L"KProcessHacker3", SERVICE_STOP | DELETE))
+        {
+            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+            DeleteService(serviceHandle);
+            CloseServiceHandle(serviceHandle);
             break;
+        }
 
-        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
-        DeleteService(serviceHandle);
-
-        CloseServiceHandle(serviceHandle);
+        Sleep(1000);
+        retries++;
     }
 
     return TRUE;
@@ -331,7 +352,6 @@ VOID SetupSetWindowsOptions(
 {
     static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
     static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-    HANDLE keyHandle;
     PPH_STRING clientPathString;
     PPH_STRING startmenuFolderString;
 
@@ -373,7 +393,7 @@ VOID SetupSetWindowsOptions(
             PhGetString(startmenuFolderString),
             PhGetString(peviewPathString),
             PhGetString(Context->SetupInstallPath)
-        );
+            );
 
         PhDereferenceObject(peviewPathString);
         PhDereferenceObject(startmenuFolderString);
@@ -392,12 +412,17 @@ VOID SetupSetWindowsOptions(
     // Set the Windows default Task Manager.
     if (Context->SetupCreateDefaultTaskManager)
     {
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
-            KEY_WRITE,
+        NTSTATUS status;
+        HANDLE taskmgrKeyHandle = NULL;
+
+        if (NT_SUCCESS(status = PhCreateKey(
+            &taskmgrKeyHandle,
+            KEY_READ | KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
             &TaskMgrImageOptionsKeyName,
-            0
+            0,
+            0,
+            NULL
             )))
         {
             PPH_STRING value;
@@ -407,17 +432,24 @@ VOID SetupSetWindowsOptions(
 
             // Configure the default Task Manager.
             RtlInitUnicodeString(&valueName, L"Debugger");
-            NtSetValueKey(keyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
+            NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
 
-            NtClose(keyHandle);
+            NtClose(taskmgrKeyHandle);
+        }
+        else
+        {
+            PhShowStatus(NULL, L"Unable to set the Windows default Task Manager.", status, 0);
         }
     }
 
     // Create the run startup key.
     if (Context->SetupCreateSystemStartup)
     {
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
+        NTSTATUS status;
+        HANDLE runKeyHandle = NULL;
+
+        if (NT_SUCCESS(status = PhOpenKey(
+            &runKeyHandle,
             KEY_WRITE,
             PH_KEY_CURRENT_USER,
             &CurrentUserRunKeyName,
@@ -434,8 +466,12 @@ VOID SetupSetWindowsOptions(
             else
                 value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
 
-            NtSetValueKey(keyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
-            NtClose(keyHandle);
+            NtSetValueKey(runKeyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
+            NtClose(runKeyHandle);
+        }
+        else
+        {
+            PhShowStatus(NULL, L"Unable to create the startup entry.", status, 0);
         }
     }
 }

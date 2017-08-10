@@ -30,7 +30,7 @@ PH_COMMAND_LINE_OPTION options[] =
     { SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
 };
 
-static NTSTATUS CreateSetupMutant(
+NTSTATUS CreateSetupMutant(
     VOID
     )
 {
@@ -49,7 +49,7 @@ static NTSTATUS CreateSetupMutant(
     return NtCreateMutant(&MutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
 }
 
-static VOID SetupInitializeDpi(
+VOID SetupInitializeDpi(
     VOID
     )
 {
@@ -62,7 +62,7 @@ static VOID SetupInitializeDpi(
     }
 }
 
-static BOOLEAN NTAPI MainPropSheetCommandLineCallback(
+BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
     _In_opt_ PVOID Context
@@ -121,6 +121,83 @@ INT CALLBACK MainPropSheet_Callback(
     return FALSE;
 }
 
+VOID SetupShowInstallDialog(
+    VOID
+    )
+{
+    PROPSHEETPAGE propSheetPage = { sizeof(PROPSHEETPAGE) };
+    PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
+    HPROPSHEETPAGE pages[6];
+
+    propSheetHeader.dwFlags = PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP | PSH_USECALLBACK | PSH_WIZARD_LITE;
+    propSheetHeader.pszIcon = MAKEINTRESOURCE(IDI_ICON1);
+    propSheetHeader.pfnCallback = MainPropSheet_Callback;
+    propSheetHeader.hInstance = PhInstanceHandle;
+    propSheetHeader.phpage = pages;
+
+    // welcome page
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USETITLE;
+    propSheetPage.pszTitle = PhApplicationName;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = SetupPropPage1_WndProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // eula page
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USETITLE;
+    propSheetPage.pszTitle = PhApplicationName;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG2);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = SetupPropPage2_WndProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // config page
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USETITLE;
+    propSheetPage.pszTitle = PhApplicationName;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG3);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = SetupPropPage3_WndProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // download page
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USETITLE;
+    propSheetPage.pszTitle = PhApplicationName;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG5);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = SetupPropPage5_WndProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // extract page
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USETITLE;
+    propSheetPage.pszTitle = PhApplicationName;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = SetupInstallPropPage_WndProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // error page
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USETITLE;
+    propSheetPage.pszTitle = PhApplicationName;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = SetupErrorPage_WndProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    PhModalPropertySheet(&propSheetHeader);
+}
+
 INT WINAPI wWinMain(
     _In_ HINSTANCE Instance,
     _In_opt_ HINSTANCE PrevInstance,
@@ -128,6 +205,8 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
+    PH_STRINGREF commandLine;
+
     if (!NT_SUCCESS(CreateSetupMutant()))
         return 1;
 
@@ -140,105 +219,27 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
     SetupInitializeDpi();
 
-    {
-        PH_STRINGREF commandLine;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
 
-        PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
-        if (!PhParseCommandLine(
-            &commandLine,
-            options,
-            ARRAYSIZE(options),
-            PH_COMMAND_LINE_IGNORE_FIRST_PART,
-            MainPropSheetCommandLineCallback,
-            NULL
-            ))
-        {
-            return 1;
-        }
+    if (!PhParseCommandLine(
+        &commandLine,
+        options,
+        ARRAYSIZE(options),
+        PH_COMMAND_LINE_IGNORE_FIRST_PART,
+        MainPropSheetCommandLineCallback,
+        NULL
+        ))
+    {
+        return 1;
     }
 
-#ifdef _DEBUG
-    if (CheckProcessHackerInstalled())
-        SetupMode = SETUP_COMMAND_UNINSTALL;
-#endif
+    // DEBUG // if (CheckProcessHackerInstalled()) SetupMode = SETUP_COMMAND_UNINSTALL;
 
     switch (SetupMode)
     {
     case SETUP_COMMAND_INSTALL:
     default:
-        {
-            PROPSHEETPAGE propSheetPage = { sizeof(PROPSHEETPAGE) };
-            PROPSHEETHEADER propSheetHeader = { sizeof(PROPSHEETHEADER) };
-            HPROPSHEETPAGE pages[6];
-
-            propSheetHeader.dwFlags = PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP | PSH_USECALLBACK | PSH_WIZARD_LITE;
-            propSheetHeader.pszIcon = MAKEINTRESOURCE(IDI_ICON1);
-            propSheetHeader.pfnCallback = MainPropSheet_Callback;
-            propSheetHeader.hInstance = PhInstanceHandle;
-            propSheetHeader.phpage = pages;
-
-            // welcome page
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.dwFlags = PSP_USETITLE;
-            propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG1);
-            propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupPropPage1_WndProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-            // eula page
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.dwFlags = PSP_USETITLE;
-            propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG2);
-            propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupPropPage2_WndProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-            // config page
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.dwFlags = PSP_USETITLE;
-            propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG3);
-            propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupPropPage3_WndProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-            // download page
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.dwFlags = PSP_USETITLE;
-            propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG5);
-            propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupPropPage5_WndProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-            // extract page
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.dwFlags = PSP_USETITLE;
-            propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DIALOG4);
-            propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupInstallPropPage_WndProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-            // error page
-            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-            propSheetPage.dwFlags = PSP_USETITLE;
-            propSheetPage.pszTitle = PhApplicationName;
-            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
-            propSheetPage.hInstance = PhInstanceHandle;
-            propSheetPage.pfnDlgProc = SetupErrorPage_WndProc;
-            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-            PhModalPropertySheet(&propSheetHeader);
-        }
+        SetupShowInstallDialog();
         break;
     case SETUP_COMMAND_UNINSTALL:
         SetupShowUninstallDialog();
