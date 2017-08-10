@@ -345,6 +345,8 @@ EXPORTS
 	PhGetApplicationDirectory
 	PhGetApplicationFileName
 	PhGetBaseName
+	PhGetCacheDirectory
+	PhGetCacheFileName
 	PhGetDllFileName
 	PhGetFileDialogFileName
 	PhGetFileDialogFilterIndex

@@ -58,7 +58,6 @@ _##Name Name##_Import(VOID) \
     return (_##Name)PhpImportProcedure(&cache, &cacheValid, Module, #Name); \
 }
 
-PH_DEFINE_IMPORT(L"comctl32.dll", TaskDialogIndirect);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationEnlistment);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationResourceManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
