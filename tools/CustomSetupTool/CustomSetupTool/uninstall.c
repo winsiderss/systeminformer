@@ -82,14 +82,14 @@ static VOID TaskDialogCreateIcons(
     HICON smallIcon;
 
     largeIcon = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
+        PhInstanceHandle,
         MAKEINTRESOURCE(IDI_ICON1),
         PH_LOAD_ICON_SIZE_LARGE,
         GetSystemMetrics(SM_CXICON),
         GetSystemMetrics(SM_CYICON)
         );
     smallIcon = PhLoadIcon(
-        NtCurrentPeb()->ImageBaseAddress,
+        PhInstanceHandle,
         MAKEINTRESOURCE(IDI_ICON1),
         PH_LOAD_ICON_SIZE_LARGE,
         GetSystemMetrics(SM_CXSMICON),

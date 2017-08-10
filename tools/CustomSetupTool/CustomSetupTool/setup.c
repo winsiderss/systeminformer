@@ -170,15 +170,19 @@ BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    PH_STRINGREF currentFilePath;
+    PPH_STRING currentFilePath;
     PPH_STRING backupFilePath;
     PPH_STRING uninstallFilePath;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->ImagePathName, &currentFilePath);
+    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
+        return FALSE;
 
     // Check if the user has started the setup from the installation folder.
-    if (PhStartsWithStringRef2(&currentFilePath, PhGetString(Context->SetupInstallPath), TRUE))
+    if (PhStartsWithStringRef2(&currentFilePath->sr, PhGetString(Context->SetupInstallPath), TRUE))
+    {
+        PhDereferenceObject(currentFilePath);
         return TRUE;
+    }
 
     backupFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.bak");
     uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\processhacker-setup.exe");
@@ -211,12 +215,14 @@ BOOLEAN SetupCreateUninstallFile(
         }
     }
 
-    if (!CopyFile(currentFilePath.Buffer, uninstallFilePath->Buffer, TRUE))
+    if (!CopyFile(currentFilePath->Buffer, uninstallFilePath->Buffer, TRUE))
     {
         Context->ErrorCode = GetLastError();
     }
 
     PhDereferenceObject(uninstallFilePath);
+    PhDereferenceObject(currentFilePath);
+
     return TRUE;
 }
 
@@ -599,7 +605,9 @@ VOID SetupCreateImageFileExecutionOptions(
     static PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
     HANDLE keyHandle;
 
-    // Set the default Image File Execution Options.
+    if (WindowsVersion < WINDOWS_10)
+        return;
+
     if (NT_SUCCESS(PhCreateKey(
         &keyHandle,
         KEY_WRITE | DELETE,

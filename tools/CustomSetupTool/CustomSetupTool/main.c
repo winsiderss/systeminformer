@@ -205,7 +205,7 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
-    PH_STRINGREF commandLine;
+    PPH_STRING commandLine;
 
     if (!NT_SUCCESS(CreateSetupMutant()))
         return 1;
@@ -219,10 +219,11 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
     SetupInitializeDpi();
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
+    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+        return 1;
 
     if (!PhParseCommandLine(
-        &commandLine,
+        &commandLine->sr,
         options,
         ARRAYSIZE(options),
         PH_COMMAND_LINE_IGNORE_FIRST_PART,
@@ -230,8 +231,11 @@ INT WINAPI wWinMain(
         NULL
         ))
     {
+        PhDereferenceObject(commandLine);
         return 1;
     }
+
+    PhDereferenceObject(commandLine);
 
     // DEBUG // if (CheckProcessHackerInstalled()) SetupMode = SETUP_COMMAND_UNINSTALL;
 
