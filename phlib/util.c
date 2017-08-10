@@ -1982,6 +1982,24 @@ PPH_STRING PhGetBaseName(
 }
 
 /**
+ * Gets the parent directory from a file name.
+ *
+ * \param FileName The file name.
+ */
+PPH_STRING PhGetBaseDirectory(
+    _In_ PPH_STRING FileName
+    )
+{
+    PH_STRINGREF pathPart;
+    PH_STRINGREF baseNamePart;
+
+    if (!PhSplitStringRefAtLastChar(&FileName->sr, '\\', &pathPart, &baseNamePart))
+        return NULL;
+
+    return PhCreateString2(&pathPart);
+}
+
+/**
  * Retrieves the system directory path.
  */
 PPH_STRING PhGetSystemDirectory(
@@ -5050,15 +5068,7 @@ PPH_STRING PhGetCacheDirectory(
     VOID
     )
 {
-    PPH_STRING executeString;
-
-    // Get the default cache directory.
-    executeString = PhGetStringSetting(L"LocalCachePath");
-
-    // Expand environment strings.
-    PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
-
-    return executeString;
+    return PhGetKnownLocation(CSIDL_LOCAL_APPDATA, L"\\Process Hacker\\Cache");
 }
 
 VOID PhClearCacheDirectory(

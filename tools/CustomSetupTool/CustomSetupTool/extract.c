@@ -177,7 +177,7 @@ BOOLEAN SetupExtractBuild(
 
             if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
             {
-                if (!NT_SUCCESS(PhCreateDirectory(PhGetString(directoryPath))))
+                if (!NT_SUCCESS(PhCreateDirectory(directoryPath)))
                 {
                     PhDereferenceObject(directoryPath);
                     PhDereferenceObject(fullSetupPath);

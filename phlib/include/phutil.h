@@ -579,6 +579,13 @@ PhGetBaseName(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetBaseDirectory(
+    _In_ PPH_STRING FileName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetSystemDirectory(
     VOID
     );

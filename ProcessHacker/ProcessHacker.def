@@ -346,6 +346,7 @@ EXPORTS
 	PhGenerateRandomAlphaString
 	PhGetApplicationDirectory
 	PhGetApplicationFileName
+	PhGetBaseDirectory
 	PhGetBaseName
 	PhGetDllFileName
 	PhGetFileDialogFileName
