@@ -64,8 +64,6 @@
 #define WM_UPDATE_SETUP (WM_APP + 2)
 #define WM_END_SETUP (WM_APP + 3)
 
-extern HANDLE MutantHandle;
-
 typedef enum _SETUP_COMMAND_TYPE
 {
     SETUP_COMMAND_INSTALL,
