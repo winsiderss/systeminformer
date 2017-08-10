@@ -812,6 +812,14 @@ PhQueryRegistryString(
     _In_opt_ PWSTR ValueName
     );
 
+PHLIBAPI
+ULONG64
+NTAPI
+PhQueryRegistryUlong64(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    );
+
 typedef struct _PH_FLAG_MAPPING
 {
     ULONG Flag1;
