@@ -33,6 +33,7 @@
 #include <guisup.h>
 #include <prsht.h>
 #include <appsup.h>
+#include <json.h>
 
 #include <aclapi.h>
 #include <WindowsX.h>
@@ -105,7 +106,6 @@ typedef struct _PH_SETUP_CONTEXT
 
     ULONG ErrorCode;
     PPH_STRING FilePath;
-    PPH_STRING RevVersion;
     PPH_STRING RelDate;
     PPH_STRING Size;
     PPH_STRING ReleaseNotesUrl;
@@ -130,9 +130,6 @@ typedef struct _PH_SETUP_CONTEXT
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
     ULONG CurrentRevisionVersion;
-    ULONG LatestMajorVersion;
-    ULONG LatestMinorVersion;
-    ULONG LatestRevisionVersion;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupLoadImage(
@@ -234,6 +231,16 @@ VOID SetupCreateImageFileExecutionOptions(
     );
 
 // download.c
+
+#define MAKE_VERSION_ULONGLONG(major, minor, build, revision) \
+    (((ULONGLONG)(major) << 48) | \
+    ((ULONGLONG)(minor) << 32) | \
+    ((ULONGLONG)(build) << 16) | \
+    ((ULONGLONG)(revision) <<  0))
+
+ULONG64 ParseVersionString(
+    _Inout_ PPH_STRING VersionString
+    );
 
 BOOLEAN SetupQueryUpdateData(
     _In_ PPH_SETUP_CONTEXT Context

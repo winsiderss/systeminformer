@@ -174,10 +174,8 @@ INT_PTR CALLBACK SetupInstallPropPage_WndProc(
                 )->Buffer);
 #else
             SetWindowText(context->MainHeaderHandle, PhaFormatString(
-                L"Installing Process Hacker %lu.%lu.%lu", 
-                context->LatestMajorVersion, 
-                context->LatestMinorVersion,
-                context->LatestRevisionVersion
+                L"Installing Process Hacker %s", 
+                PhGetString(context->SetupFileVersion)
                 )->Buffer);
 #endif
             SendMessage(context->ProgressHandle, PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);
