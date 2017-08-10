@@ -70,11 +70,7 @@ VOID ShowProgressDialog(
     config.pfCallback = ShowProgressCallbackProc;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = PhaFormatString(L"Downloading update %lu.%lu.%lu...",
-        Context->MajorVersion,
-        Context->MinorVersion,
-        Context->RevisionVersion
-        )->Buffer;
+    config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);

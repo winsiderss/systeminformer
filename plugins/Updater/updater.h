@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2015 dmex
+ * Copyright (C) 2011-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -28,10 +28,11 @@
 #define INITGUID
 #include <phdk.h>
 #include <phappresource.h>
-#include <verify.h>
-#include <workqueue.h>
+#include <json.h>
 #include <mxml.h>
+#include <verify.h>
 #include <settings.h>
+#include <workqueue.h>
 #include <windowsx.h>
 #include <winhttp.h>
 
@@ -88,9 +89,6 @@ typedef struct _PH_UPDATER_CONTEXT
     HWND DialogHandle;
 
     ULONG ErrorCode;
-    ULONG MinorVersion;
-    ULONG MajorVersion;
-    ULONG RevisionVersion;
     ULONG CurrentMinorVersion;
     ULONG CurrentMajorVersion;
     ULONG CurrentRevisionVersion;
@@ -172,6 +170,10 @@ VOID StartInitialCheck(
 
 BOOLEAN UpdaterInstalledUsingSetup(
     VOID
+    );
+
+ULONG64 ParseVersionString(
+    _Inout_ PPH_STRING VersionString
     );
 
 // options.c

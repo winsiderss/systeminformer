@@ -288,87 +288,28 @@ NTSTATUS UpdateDownloadThread(
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
-    PPH_STRING setupTempPath = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PPH_STRING userAgentString = NULL;
-    PPH_STRING fullSetupPath = NULL;
-    PPH_STRING randomGuidString = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
     ULONG indexOfFileName = -1;
-    GUID randomGuid;
-    URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
+    URL_COMPONENTS httpParts = { sizeof(URL_COMPONENTS) };
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
 
-    context->FileDownloadUrl = PhFormatString(
-        L"https://wj32.org/processhacker/plugins/download.php?id=%s&type=64", 
-        PhGetStringOrEmpty(context->Node->Id)
-        );
-
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
-    // Create a user agent string.
-    //userAgentString = PhFormatString(
-    //    L"PH_%lu.%lu_%lu",
-    //    context->CurrentMajorVersion,
-    //    context->CurrentMinorVersion,
-    //    context->CurrentRevisionVersion
-    //    );
-    //if (PhIsNullOrEmptyString(userAgentString))
-    //    goto CleanupExit;
-
-    setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
-    if (PhIsNullOrEmptyString(setupTempPath))
-        goto CleanupExit;
-    if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(setupTempPath))
-        goto CleanupExit;
-
-    // Generate random guid for our directory path.
-    PhGenerateGuid(&randomGuid);
-
-    if (randomGuidString = PhFormatGuid(&randomGuid))
-    {
-        PPH_STRING guidSubString;
-
-        // Strip the left and right curly brackets.
-        guidSubString = PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2);
-
-        PhMoveReference(&randomGuidString, guidSubString);
-    }
-
-    // Append the tempath to our string: %TEMP%RandomString\\processhacker-%lu.%lu-setup.exe
-    // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\processhacker-2.90-setup.exe
-    context->SetupFilePath = PhFormatString(
-        L"%s%s\\%s.zip",
-        PhGetStringOrEmpty(setupTempPath),
-        PhGetStringOrEmpty(randomGuidString),
+    context->SetupFilePath = PhGetCacheFileName(PhaFormatString(
+        L"%s.zip",
         PhGetStringOrEmpty(context->Node->InternalName)
-        );
+        ));
+
     if (PhIsNullOrEmptyString(context->SetupFilePath))
         goto CleanupExit;
 
-    // Create the directory if it does not exist.
-    if (fullSetupPath = PhGetFullPath(PhGetString(context->SetupFilePath), &indexOfFileName))
-    {
-        PPH_STRING directoryPath;
-
-        if (indexOfFileName == -1)
-            goto CleanupExit;
-
-        if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-        {
-            SHCreateDirectoryEx(NULL, PhGetString(directoryPath), NULL);
-            PhDereferenceObject(directoryPath);
-        }
-    }
-
-    // Create output file
     if (!NT_SUCCESS(PhCreateFileWin32(
         &tempFileHandle,
         PhGetStringOrEmpty(context->SetupFilePath),
@@ -382,29 +323,33 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
+    context->FileDownloadUrl = PhFormatString(
+        L"https://wj32.org/processhacker/plugins/download.php?id=%s&type=64",
+        PhGetStringOrEmpty(context->Node->Id)
+        );
+
     // Set lengths to non-zero enabling these params to be cracked.
-    httpUrlComponents.dwSchemeLength = (ULONG)-1;
-    httpUrlComponents.dwHostNameLength = (ULONG)-1;
-    httpUrlComponents.dwUrlPathLength = (ULONG)-1;
+    httpParts.dwSchemeLength = (ULONG)-1;
+    httpParts.dwHostNameLength = (ULONG)-1;
+    httpParts.dwUrlPathLength = (ULONG)-1;
 
     if (!WinHttpCrackUrl(
         PhGetString(context->FileDownloadUrl),
         0,
         0,
-        &httpUrlComponents
+        &httpParts
         ))
     {
         goto CleanupExit;
     }
 
     // Create the Host string.
-    downloadHostPath = PhCreateStringEx(httpUrlComponents.lpszHostName, httpUrlComponents.dwHostNameLength * sizeof(WCHAR));
+    downloadHostPath = PhCreateStringEx(httpParts.lpszHostName, httpParts.dwHostNameLength * sizeof(WCHAR));
     // Create the Path string.
-    downloadUrlPath = PhCreateStringEx(httpUrlComponents.lpszUrlPath, httpUrlComponents.dwUrlPathLength * sizeof(WCHAR));
+    downloadUrlPath = PhCreateStringEx(httpParts.lpszUrlPath, httpParts.dwUrlPathLength * sizeof(WCHAR));
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
-    // Open the HTTP session with the system proxy configuration if available
     if (!(httpSessionHandle = WinHttpOpen(
         PhGetString(userAgentString),
         WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -418,12 +363,10 @@ NTSTATUS UpdateDownloadThread(
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
-        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
         WinHttpSetOption(
             httpSessionHandle,
             WINHTTP_OPTION_DECOMPRESSION,
-            &httpFlags,
+            &(ULONG) { WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE },
             sizeof(ULONG)
             );
     }
@@ -431,7 +374,7 @@ NTSTATUS UpdateDownloadThread(
     if (!(httpConnectionHandle = WinHttpConnect(
         httpSessionHandle,
         PhGetString(downloadHostPath),
-        httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
+        httpParts.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
         0
         )))
     {
@@ -445,7 +388,7 @@ NTSTATUS UpdateDownloadThread(
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
+        WINHTTP_FLAG_REFRESH | (httpParts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
         )))
     {
         goto CleanupExit;
@@ -612,9 +555,6 @@ CleanupExit:
     if (httpSessionHandle)
         WinHttpCloseHandle(httpSessionHandle);
 
-    PhClearReference(&randomGuidString);
-    PhClearReference(&fullSetupPath);
-    PhClearReference(&setupTempPath);
     PhClearReference(&downloadHostPath);
     PhClearReference(&downloadUrlPath);
     PhClearReference(&userAgentString);

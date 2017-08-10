@@ -227,14 +227,14 @@ PPH_STRING UpdateWindowsString(
     return buildLabHeader;
 }
 
-BOOLEAN ParseVersionString(
-    _Inout_ PPH_UPDATER_CONTEXT Context
+ULONG64 ParseVersionString(
+    _Inout_ PPH_STRING VersionString
     )
 {
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->Version));
+    PhInitializeStringRef(&remaining, PhGetString(VersionString));
 
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -244,10 +244,12 @@ BOOLEAN ParseVersionString(
     PhStringToInteger64(&minorPart, 10, &minorInteger);
     PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
-    Context->MajorVersion = (ULONG)majorInteger;
-    Context->MinorVersion = (ULONG)minorInteger;
-    Context->RevisionVersion = (ULONG)revisionInteger;
-    return TRUE;
+    return MAKE_VERSION_ULONGLONG(
+        (ULONG)majorInteger,
+        (ULONG)minorInteger,
+        (ULONG)revisionInteger,
+        0
+        );
 }
 
 BOOLEAN ReadRequestString(
@@ -414,50 +416,32 @@ BOOLEAN QueryUpdateData(
     if (!ReadRequestString(httpRequestHandle, &stringBuffer, &stringBufferLength))
         goto CleanupExit;
 
-    // Check the buffer for valid data
     if (stringBuffer == NULL || stringBuffer[0] == '\0')
         goto CleanupExit;
 
-    if (!(jsonObject = CreateJsonParser(stringBuffer)))
+    if (!(jsonObject = PhCreateJsonParser(stringBuffer)))
         goto CleanupExit;
 
-    Context->Size = PhFormatSize(GetJsonValueAsUlong(jsonObject, "size"), 2);
-    if (tempValue = GetJsonValueAsString(jsonObject, "version"))
+    Context->Size = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "size"), 2);
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "version"))
     {
         Context->Version = PhConvertUtf8ToUtf16(tempValue);
         Context->RevVersion = PhConvertUtf8ToUtf16(tempValue);
     }
-    if (tempValue = GetJsonValueAsString(jsonObject, "updated"))
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "updated"))
         Context->RelDate = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = GetJsonValueAsString(jsonObject, "hash_setup"))
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "hash_setup"))
         Context->Hash = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = GetJsonValueAsString(jsonObject, "sig"))
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "sig"))
         Context->Signature = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = GetJsonValueAsString(jsonObject, "forum_url"))
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "forum_url"))
         Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = GetJsonValueAsString(jsonObject, "setup_url"))
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "setup_url"))
         Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = GetJsonValueAsString(jsonObject, "changelog"))
+    if (tempValue = PhGetJsonValueAsString(jsonObject, "changelog"))
         Context->BuildMessage = PhConvertUtf8ToUtf16(tempValue);
 
-    if (!PhIsNullOrEmptyString(Context->BuildMessage))
-    {
-        PH_STRING_BUILDER sb;
-
-        PhInitializeStringBuilder(&sb, 0x100);
-
-        for (SIZE_T i = 0; i < Context->BuildMessage->Length / sizeof(WCHAR); i++)
-        {
-            if (Context->BuildMessage->Data[i] == '\n')
-                PhAppendStringBuilder2(&sb, L"\r\n");
-            else
-                PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
-        }
-
-        PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
-    }
-
-    CleanupJsonParser(jsonObject);
+    PhFreeJsonParser(jsonObject);
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
@@ -475,8 +459,7 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->Signature))
         goto CleanupExit;
-
-    if (!ParseVersionString(Context))
+    if (PhIsNullOrEmptyString(Context->BuildMessage))
         goto CleanupExit;
 
     success = TRUE;
@@ -500,6 +483,23 @@ CleanupExit:
 
     PhClearReference(&versionHeader);
     PhClearReference(&windowsHeader);
+
+    if (!PhIsNullOrEmptyString(Context->BuildMessage))
+    {
+        PH_STRING_BUILDER sb;
+
+        PhInitializeStringBuilder(&sb, 0x100);
+
+        for (SIZE_T i = 0; i < Context->BuildMessage->Length / sizeof(WCHAR); i++)
+        {
+            if (Context->BuildMessage->Data[i] == '\n')
+                PhAppendStringBuilder2(&sb, L"\r\n");
+            else
+                PhAppendCharStringBuilder(&sb, Context->BuildMessage->Data[i]);
+        }
+
+        PhMoveReference(&Context->BuildMessage, PhFinalStringBuilderString(&sb));
+    }
 
     return success;
 }
@@ -536,12 +536,7 @@ NTSTATUS UpdateCheckSilentThread(
         0
         );
 #else
-    latestVersion = MAKE_VERSION_ULONGLONG(
-        context->MajorVersion,
-        context->MinorVersion,
-        context->RevisionVersion,
-        0
-        );
+    latestVersion = ParseVersionString(context->Version);
 #endif
 
     // Compare the current version against the latest available version
@@ -609,12 +604,7 @@ NTSTATUS UpdateCheckThread(
         0
         );
 #else
-    latestVersion = MAKE_VERSION_ULONGLONG(
-        context->MajorVersion,
-        context->MinorVersion,
-        context->RevisionVersion,
-        0
-        );
+    latestVersion = ParseVersionString(context->Version);
 #endif
 
     if (currentVersion == latestVersion)
@@ -637,6 +627,25 @@ NTSTATUS UpdateCheckThread(
     return STATUS_SUCCESS;
 }
 
+static PPH_STRING UpdaterParseDownloadFileName(
+    _In_ PPH_STRING DownloadUrlPath
+    )
+{
+    PH_STRINGREF pathPart;
+    PH_STRINGREF baseNamePart;
+    PPH_STRING filePath;
+    PPH_STRING downloadFileName;
+
+    if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, '/', &pathPart, &baseNamePart))
+        return NULL;
+
+    downloadFileName = PhCreateString2(&baseNamePart);
+    filePath = PhGetCacheFileName(downloadFileName);
+    PhDereferenceObject(downloadFileName);
+
+    return filePath;
+}
+
 NTSTATUS UpdateDownloadThread(
     _In_ PVOID Parameter
     )
@@ -648,16 +657,11 @@ NTSTATUS UpdateDownloadThread(
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
-    PPH_STRING setupTempPath = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PPH_STRING userAgentString = NULL;
-    PPH_STRING fullSetupPath = NULL;
-    PPH_STRING randomGuidString = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
-    ULONG indexOfFileName = -1;
-    GUID randomGuid;
-    URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
+    URL_COMPONENTS httpParts = { sizeof(URL_COMPONENTS) };
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
@@ -673,57 +677,43 @@ NTSTATUS UpdateDownloadThread(
         context->CurrentMinorVersion,
         context->CurrentRevisionVersion
         );
+
     if (PhIsNullOrEmptyString(userAgentString))
         goto CleanupExit;
 
-    setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
-    if (PhIsNullOrEmptyString(setupTempPath))
-        goto CleanupExit;
+    // Set lengths to non-zero enabling these params to be cracked.
+    httpParts.dwSchemeLength = (ULONG)-1;
+    httpParts.dwHostNameLength = (ULONG)-1;
+    httpParts.dwUrlPathLength = (ULONG)-1;
 
-    if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(setupTempPath))
-        goto CleanupExit;
-
-    // Generate random guid for our directory path.
-    PhGenerateGuid(&randomGuid);
-
-    if (randomGuidString = PhFormatGuid(&randomGuid))
+    if (!WinHttpCrackUrl(
+        PhGetStringOrEmpty(context->SetupFileDownloadUrl),
+        0,
+        0,
+        &httpParts
+        ))
     {
-        PPH_STRING guidSubString;
-
-        // Strip the left and right curly brackets.
-        guidSubString = PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2);
-
-        PhMoveReference(&randomGuidString, guidSubString);
+        context->ErrorCode = GetLastError();
+        goto CleanupExit;
     }
 
-    // Append the tempath to our string: %TEMP%RandomString\\processhacker-%lu.%lu-setup.exe
-    // Example: C:\\Users\\dmex\\AppData\\Temp\\ABCD\\processhacker-2.90-setup.exe
-    context->SetupFilePath = PhFormatString(
-        L"%s%s\\processhacker-%lu.%lu-setup.exe",
-        PhGetStringOrEmpty(setupTempPath),
-        PhGetStringOrEmpty(randomGuidString),
-        context->MajorVersion,
-        context->MinorVersion
-        );
+    // Create the Host string.
+    downloadHostPath = PhCreateStringEx(httpParts.lpszHostName, httpParts.dwHostNameLength * sizeof(WCHAR));
+
+    if (PhIsNullOrEmptyString(downloadHostPath))
+        goto CleanupExit;
+
+    // Create the remote path string.
+    downloadUrlPath = PhCreateStringEx(httpParts.lpszUrlPath, httpParts.dwUrlPathLength * sizeof(WCHAR));
+
+    if (PhIsNullOrEmptyString(downloadUrlPath))
+        goto CleanupExit;
+
+    // Create the local path string.
+    context->SetupFilePath = UpdaterParseDownloadFileName(downloadUrlPath);
+
     if (PhIsNullOrEmptyString(context->SetupFilePath))
         goto CleanupExit;
-
-    // Create the directory if it does not exist.
-    if (fullSetupPath = PhGetFullPath(PhGetString(context->SetupFilePath), &indexOfFileName))
-    {
-        PPH_STRING directoryPath;
-
-        if (indexOfFileName == -1)
-            goto CleanupExit;
-
-        if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-        {
-            SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
-            PhDereferenceObject(directoryPath);
-        }
-    }
 
     // Create output file
     if (!NT_SUCCESS(PhCreateFileWin32(
@@ -738,38 +728,6 @@ NTSTATUS UpdateDownloadThread(
     {
         goto CleanupExit;
     }
-
-    // Set lengths to non-zero enabling these params to be cracked.
-    httpUrlComponents.dwSchemeLength = (ULONG)-1;
-    httpUrlComponents.dwHostNameLength = (ULONG)-1;
-    httpUrlComponents.dwUrlPathLength = (ULONG)-1;
-
-    if (!WinHttpCrackUrl(
-        PhGetStringOrEmpty(context->SetupFileDownloadUrl),
-        0,
-        0,
-        &httpUrlComponents
-        ))
-    {
-        context->ErrorCode = GetLastError();
-        goto CleanupExit;
-    }
-
-    // Create the Host string.
-    downloadHostPath = PhCreateStringEx(
-        httpUrlComponents.lpszHostName,
-        httpUrlComponents.dwHostNameLength * sizeof(WCHAR)
-        );
-    if (PhIsNullOrEmptyString(downloadHostPath))
-        goto CleanupExit;
-
-    // Create the Path string.
-    downloadUrlPath = PhCreateStringEx(
-        httpUrlComponents.lpszUrlPath,
-        httpUrlComponents.dwUrlPathLength * sizeof(WCHAR)
-        );
-    if (PhIsNullOrEmptyString(downloadUrlPath))
-        goto CleanupExit;
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
@@ -799,7 +757,7 @@ NTSTATUS UpdateDownloadThread(
     if (!(httpConnectionHandle = WinHttpConnect(
         httpSessionHandle,
         PhGetString(downloadHostPath),
-        httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
+        httpParts.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
         0
         )))
     {
@@ -814,7 +772,7 @@ NTSTATUS UpdateDownloadThread(
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
+        WINHTTP_FLAG_REFRESH | (httpParts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
         )))
     {
         context->ErrorCode = GetLastError();
@@ -861,11 +819,7 @@ NTSTATUS UpdateDownloadThread(
         IO_STATUS_BLOCK isb;
         BYTE buffer[PAGE_SIZE];
 
-        status = PhFormatString(L"Downloading update %lu.%lu.%lu...",
-            context->MajorVersion,
-            context->MinorVersion,
-            context->RevisionVersion
-            );
+        status = PhFormatString(L"Downloading update %s...", PhGetStringOrEmpty(context->Version));
 
         SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
@@ -995,12 +949,14 @@ CleanupExit:
     if (httpSessionHandle)
         WinHttpCloseHandle(httpSessionHandle);
 
-    PhClearReference(&randomGuidString);
-    PhClearReference(&fullSetupPath);
-    PhClearReference(&setupTempPath);
-    PhClearReference(&downloadHostPath);
-    PhClearReference(&downloadUrlPath);
-    PhClearReference(&userAgentString);
+    if (downloadHostPath)
+        PhDereferenceObject(downloadHostPath);
+
+    if (downloadUrlPath)
+        PhDereferenceObject(downloadUrlPath);
+
+    if (userAgentString)
+        WinHttpCloseHandle(userAgentString);
 
     if (UpdateDialogThreadHandle)
     {

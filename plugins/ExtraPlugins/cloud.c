@@ -53,7 +53,7 @@ NTSTATUS QueryPluginsCallbackThread(
     HINTERNET httpRequestHandle = NULL;
     ULONG xmlStringBufferLength = 0;
     PSTR xmlStringBuffer = NULL;
-    PVOID rootJsonObject;
+    PVOID rootJsonObject = NULL;
     PWCT_CONTEXT context = Parameter;
 
     if (!(httpSessionHandle = WinHttpOpen(
@@ -109,10 +109,10 @@ NTSTATUS QueryPluginsCallbackThread(
     if (!ReadRequestString(httpRequestHandle, &xmlStringBuffer, &xmlStringBufferLength))
         goto CleanupExit;
 
-    if (!(rootJsonObject = CreateJsonParser(xmlStringBuffer)))
+    if (!(rootJsonObject = PhCreateJsonParser(xmlStringBuffer)))
         goto CleanupExit;
 
-    for (INT i = 0; i < JsonGetArrayLength(rootJsonObject); i++)
+    for (INT i = 0; i < PhGetJsonArrayLength(rootJsonObject); i++)
     {
         PVOID jvalue;
         PPLUGIN_NODE entry;
@@ -124,27 +124,27 @@ NTSTATUS QueryPluginsCallbackThread(
         entry = PhCreateAlloc(sizeof(PLUGIN_NODE));
         memset(entry, 0, sizeof(PLUGIN_NODE));
 
-        jvalue = JsonGetObjectArrayIndex(rootJsonObject, i);
-        entry->Id = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_id"));
-        entry->InternalName = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_internal_name"));
-        entry->Name = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_name"));
-        entry->Version = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_version"));
-        entry->Author = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_author"));
-        entry->Description = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_description"));
-        entry->IconUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_icon"));
-        entry->Requirements = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_requirements"));
-        entry->FeedbackUrl = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_feedback"));
-        entry->Screenshots = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_screenshots"));
-        entry->AddedTime = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_datetime_added"));
-        entry->UpdatedTime = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_datetime_updated"));
-        entry->Download_count = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_download_count"));
-        entry->Download_link_32 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_download_link_32"));
-        entry->Download_link_64 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_download_link_64"));
-        entry->SHA2_32 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_hash_32"));
-        entry->SHA2_64 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_hash_64"));
-        entry->HASH_32 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_signed_32"));
-        entry->HASH_64 = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_signed_64"));
-        entry->FileName = PhConvertUtf8ToUtf16(GetJsonValueAsString(jvalue, "plugin_filename"));
+        jvalue = PhGetJsonArrayIndexObject(rootJsonObject, i);
+        entry->Id = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_id"));
+        entry->InternalName = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_internal_name"));
+        entry->Name = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_name"));
+        entry->Version = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_version"));
+        entry->Author = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_author"));
+        entry->Description = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_description"));
+        entry->IconUrl = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_icon"));
+        entry->Requirements = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_requirements"));
+        entry->FeedbackUrl = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_feedback"));
+        entry->Screenshots = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_screenshots"));
+        entry->AddedTime = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_datetime_added"));
+        entry->UpdatedTime = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_datetime_updated"));
+        entry->Download_count = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_download_count"));
+        entry->Download_link_32 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_download_link_32"));
+        entry->Download_link_64 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_download_link_64"));
+        entry->SHA2_32 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_hash_32"));
+        entry->SHA2_64 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_hash_64"));
+        entry->HASH_32 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_signed_32"));
+        entry->HASH_64 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_signed_64"));
+        entry->FileName = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_filename"));
 
         swscanf(
             PhGetString(entry->UpdatedTime),
@@ -252,6 +252,9 @@ NTSTATUS QueryPluginsCallbackThread(
     }
 
 CleanupExit:
+
+    if (rootJsonObject)
+        PhFreeJsonParser(rootJsonObject);
 
     if (httpRequestHandle)
         WinHttpCloseHandle(httpRequestHandle);

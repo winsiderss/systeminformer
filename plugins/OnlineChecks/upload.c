@@ -810,22 +810,22 @@ NTSTATUS UploadFileThreadStart(
                     goto CleanupExit;
                 }
 
-                if (jsonRootObject = CreateJsonParser(buffer))
+                if (jsonRootObject = PhCreateJsonParser(buffer))
                 {
-                    if (!GetJsonValueAsUlong(jsonRootObject, "response_code"))
+                    if (PhGetJsonValueAsLong64(jsonRootObject, "response_code") != 0)
                         goto CleanupExit;
 
-                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "resource"));
-                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "scan_id"));
-                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "sha256"));
-                    // PhZeroExtendToUtf16(GetJsonValueAsString(jsonRootObject, "verbose_msg"));
+                    // PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "resource"));
+                    // PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "scan_id"));
+                    // PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "sha256"));
+                    // PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "verbose_msg"));
 
-                    if (redirectUrl = GetJsonValueAsString(jsonRootObject, "permalink"))
+                    if (redirectUrl = PhGetJsonValueAsString(jsonRootObject, "permalink"))
                     {
                         PhMoveReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
                     }
 
-                    CleanupJsonParser(jsonRootObject);
+                    PhFreeJsonParser(jsonRootObject);
                 }
                 else
                 {
@@ -859,14 +859,14 @@ NTSTATUS UploadFileThreadStart(
                     goto CleanupExit;
                 }
 
-                if (rootJsonObject = CreateJsonParser(buffer))
+                if (rootJsonObject = PhCreateJsonParser(buffer))
                 {
-                    if (redirectUrl = GetJsonValueAsString(rootJsonObject, "redirecturl"))
+                    if (redirectUrl = PhGetJsonValueAsString(rootJsonObject, "redirecturl"))
                     {
                         PhMoveReference(&context->LaunchCommand, PhFormatString(L"http://virusscan.jotti.org%hs", redirectUrl));
                     }
 
-                    CleanupJsonParser(rootJsonObject);
+                    PhFreeJsonParser(rootJsonObject);
                 }
             }
             break;
@@ -1048,28 +1048,30 @@ NTSTATUS UploadCheckThreadStart(
                 goto CleanupExit;
             }
 
-            if (rootJsonObject = CreateJsonParser(subRequestBuffer->Buffer))
+            if (rootJsonObject = PhCreateJsonParser(subRequestBuffer->Buffer))
             {  
-                if (context->FileExists = GetJsonValueAsBool(rootJsonObject, "file_exists"))
+                context->FileExists = PhGetJsonObjectBool(rootJsonObject, "file_exists");
+
+                if (context->FileExists)
                 {
                     INT64 detected = 0;
                     INT64 detectedMax = 0;
                     PVOID detectionRatio;
 
-                    if (detectionRatio = JsonGetObject(rootJsonObject, "detection_ratio"))
+                    if (detectionRatio = PhGetJsonObject(rootJsonObject, "detection_ratio"))
                     {
-                        detected = GetJsonArrayUlong(detectionRatio, 0);
-                        detectedMax = GetJsonArrayUlong(detectionRatio, 1);
+                        detected = PhGetJsonArrayLong64(detectionRatio, 0);
+                        detectedMax = PhGetJsonArrayLong64(detectionRatio, 1);
                     }
 
                     context->Detected = PhFormatString(L"%I64d", detected);
                     context->MaxDetected = PhFormatString(L"%I64d", detectedMax);
-                    context->UploadUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "upload_url"));
-                    context->ReAnalyseUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "reanalyse_url"));
-                    context->LastAnalysisUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_url"));
-                    context->FirstAnalysisDate = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "first_analysis_date"));
-                    context->LastAnalysisDate = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_date"));
-                    context->LastAnalysisAgo = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "last_analysis_ago"));
+                    context->UploadUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "upload_url"));
+                    context->ReAnalyseUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "reanalyse_url"));
+                    context->LastAnalysisUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "last_analysis_url"));
+                    context->FirstAnalysisDate = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "first_analysis_date"));
+                    context->LastAnalysisDate = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "last_analysis_date"));
+                    context->LastAnalysisAgo = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "last_analysis_ago"));
 
                     PhMoveReference(&context->FirstAnalysisDate, VirusTotalStringToTime(context->FirstAnalysisDate));
                     PhMoveReference(&context->LastAnalysisDate, VirusTotalStringToTime(context->LastAnalysisDate));
@@ -1106,7 +1108,7 @@ NTSTATUS UploadCheckThreadStart(
                 }
                 else
                 {
-                    context->UploadUrl = PhZeroExtendToUtf16(GetJsonValueAsString(rootJsonObject, "upload_url"));
+                    context->UploadUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "upload_url"));
 
                     // No file found... Start the upload.
                     if (!PhIsNullOrEmptyString(context->UploadUrl))
@@ -1116,7 +1118,7 @@ NTSTATUS UploadCheckThreadStart(
                     }
                 }
  
-                CleanupJsonParser(rootJsonObject);
+                PhFreeJsonParser(rootJsonObject);
             }
         }
         break;
