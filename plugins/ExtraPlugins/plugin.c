@@ -208,14 +208,9 @@ PPHAPP_PLUGIN PhCreateDisabledPlugin(
     return plugin;
 }
 
-
-
-
-
 PPH_HASHTABLE PluginHashtable = NULL;
 PPH_LIST PluginList = NULL;
 PH_QUEUED_LOCK PluginListLock = PH_QUEUED_LOCK_INIT;
-
 
 PPH_STRING PluginGetVersionInfo(
     _In_ PPH_STRING FileName

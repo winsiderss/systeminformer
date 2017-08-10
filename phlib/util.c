@@ -5021,10 +5021,22 @@ PPH_STRING PhGetCacheDirectory(
     VOID
     )
 {
-    return PhGetKnownLocation(CSIDL_LOCAL_APPDATA, L"\\Process Hacker\\Cache\\");
+    return PhGetKnownLocation(CSIDL_LOCAL_APPDATA, L"\\Process Hacker\\Cache");
 }
 
-PPH_STRING PhGetCacheFileName(
+VOID PhClearCacheDirectory(
+    VOID
+    )
+{
+    PPH_STRING cacheDirectory;
+
+    cacheDirectory = PhGetCacheDirectory();
+    PhDeleteDirectory(cacheDirectory);
+
+    PhDereferenceObject(cacheDirectory);
+}
+
+PPH_STRING PhCreateCacheFile(
     _In_ PPH_STRING FileName
     )
 {
@@ -5050,13 +5062,10 @@ PPH_STRING PhGetCacheFileName(
     {
         PPH_STRING directoryPath;
 
-        if (indexOfFileName != -1)
+        if (indexOfFileName != -1 && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            if (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName))
-            {
-                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
-                PhDereferenceObject(directoryPath);
-            }
+            PhCreateDirectory(directoryPath);
+            PhDereferenceObject(directoryPath);
         }
     }
 
@@ -5064,4 +5073,29 @@ PPH_STRING PhGetCacheFileName(
     PhDereferenceObject(cacheDirectory);
 
     return cacheFullFilePath;
+}
+
+VOID PhDeleteCacheFile(
+    _In_ PPH_STRING FileName
+    )
+{
+    PPH_STRING cacheDirectory;
+    PPH_STRING cacheFullFilePath;
+    ULONG indexOfFileName = -1;
+
+    if (RtlDoesFileExists_U(PhGetString(FileName)))
+    {
+        PhDeleteFileWin32(PhGetString(FileName));
+    }
+
+    if (cacheFullFilePath = PhGetFullPath(PhGetString(FileName), &indexOfFileName))
+    {
+        if (indexOfFileName != -1 && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
+        {
+            PhDeleteDirectory(cacheDirectory);
+            PhDereferenceObject(cacheDirectory);
+        }
+
+        PhDereferenceObject(cacheFullFilePath);
+    }
 }

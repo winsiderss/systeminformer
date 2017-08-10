@@ -45,6 +45,7 @@
 #define PH_UPDATENEWER     (WM_APP + 504)
 #define PH_UPDATESUCCESS   (WM_APP + 505)
 #define PH_UPDATEFAILURE   (WM_APP + 506)
+#define PH_SHOWDIALOG      (WM_APP + 507)
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
@@ -89,9 +90,7 @@ typedef struct _PH_UPDATER_CONTEXT
     HWND DialogHandle;
 
     ULONG ErrorCode;
-    ULONG CurrentMinorVersion;
-    ULONG CurrentMajorVersion;
-    ULONG CurrentRevisionVersion;
+    PPH_STRING CurrentVersionString;
     PPH_STRING Version;
     PPH_STRING RevVersion;
     PPH_STRING RelDate;

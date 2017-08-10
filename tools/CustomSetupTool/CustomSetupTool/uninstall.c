@@ -64,7 +64,7 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    RemoveDirectoryPath(PhGetString(Context->SetupInstallPath));
+    PhDeleteDirectory(Context->SetupInstallPath);
 
     ShowUninstallCompleteDialog(Context);
     return STATUS_SUCCESS;

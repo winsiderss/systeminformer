@@ -291,7 +291,6 @@ NTSTATUS GeoIPUpdateThread(
     PPH_STRING fwLinkUrl = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
-    PPH_STRING directoryPath = NULL;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
@@ -305,7 +304,7 @@ NTSTATUS GeoIPUpdateThread(
     if (!(fwLinkUrl = QueryFwLinkUrl(context)))
         goto CleanupExit;
 
-    context->SetupFilePath = PhGetCacheFileName(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
+    context->SetupFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
     if (PhIsNullOrEmptyString(context->SetupFilePath))
         goto CleanupExit;
 
@@ -603,15 +602,10 @@ CleanupExit:
     if (userAgentString)
         PhDereferenceObject(userAgentString);
 
-    if (RtlDoesFileExists_U(PhGetString(context->SetupFilePath)))
+    if (context->SetupFilePath)
     {
-        PhDeleteFileWin32(PhGetString(context->SetupFilePath));
-    }
-
-    if (directoryPath)
-    {
-        RemoveDirectory(PhGetString(directoryPath));
-        PhDereferenceObject(directoryPath);
+        PhDeleteCacheFile(context->SetupFilePath);
+        PhDereferenceObject(context->SetupFilePath);
     }
 
     if (success)

@@ -417,7 +417,7 @@ NTSTATUS SaveDb(
         if (fullPath = PH_AUTO(PhGetFullPath(ObjectDbPath->Buffer, &indexOfFileName)))
         {
             if (indexOfFileName != -1)
-                SHCreateDirectoryEx(NULL, PhaSubstring(fullPath, 0, indexOfFileName)->Buffer, NULL);
+                PhCreateDirectory(PhaSubstring(fullPath, 0, indexOfFileName));
         }
     }
 

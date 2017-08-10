@@ -6197,6 +6197,221 @@ NTSTATUS PhDeleteFileWin32(
 }
 
 /**
+* Creates a directory path recursively.
+*
+* \param DirectoryPath The Win32 directory path.
+*/
+NTSTATUS PhCreateDirectory(
+    _In_ PPH_STRING DirectoryPath
+    )
+{
+    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
+    PPH_STRING directoryPath = NULL;
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    if (PhIsNullOrEmptyString(DirectoryPath))
+        return STATUS_FAIL_CHECK;
+
+    if (RtlDoesFileExists_U(PhGetString(DirectoryPath)))
+        return STATUS_SUCCESS;
+
+    remainingPart = PhGetStringRef(DirectoryPath);
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remainingPart, '\\', &part, &remainingPart);
+
+        if (part.Length != 0)
+        {
+            if (PhIsNullOrEmptyString(directoryPath))
+                directoryPath = PhCreateString2(&part);
+            else
+            {
+                PPH_STRING tempPathString;
+
+                tempPathString = PhConcatStringRef3(
+                    &directoryPath->sr,
+                    &directorySeparator,
+                    &part
+                    );
+
+                // Check if the directory already exists.
+                if (!RtlDoesFileExists_U(PhGetString(tempPathString)))
+                {
+                    HANDLE directoryHandle;
+
+                    // Create the directory.
+                    if (NT_SUCCESS(PhCreateFileWin32(
+                        &directoryHandle,
+                        PhGetString(tempPathString),
+                        FILE_GENERIC_READ,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        FILE_CREATE,
+                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                        )))
+                    {
+                        NtClose(directoryHandle);
+                    }
+                }
+
+                PhMoveReference(&directoryPath, tempPathString);
+            }
+        }
+    }
+
+    if (directoryPath)
+        PhDereferenceObject(directoryPath);
+
+    if (RtlDoesFileExists_U(PhGetString(DirectoryPath)))
+        return STATUS_SUCCESS;
+    else
+        return STATUS_NOT_FOUND;
+}
+
+static BOOLEAN PhpDeleteDirectoryCallback(
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
+    PPH_STRING parentDirectory = Context;
+    PPH_STRING fullName;
+    PH_STRINGREF baseName;
+
+    baseName.Buffer = Information->FileName;
+    baseName.Length = Information->FileNameLength;
+
+    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
+        return TRUE;
+
+    fullName = PhConcatStringRef3(
+        &parentDirectory->sr,
+        &directorySeparator,
+        &baseName
+        );
+
+    if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        HANDLE directoryHandle;
+
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &directoryHandle,
+            PhGetString(fullName),
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, fullName);
+
+            NtClose(directoryHandle);
+
+            // Delete the directory.
+            RemoveDirectory(PhGetString(fullName));
+        }
+    }
+    else
+    {
+        if (Information->FileAttributes & FILE_ATTRIBUTE_READONLY)
+        {
+            HANDLE fileHandle;
+
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &fileHandle,
+                PhGetString(fullName),
+                FILE_GENERIC_WRITE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_WRITE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
+            {
+                IO_STATUS_BLOCK isb;
+                FILE_BASIC_INFORMATION fileInfo;
+
+                memset(&fileInfo, 0, sizeof(FILE_BASIC_INFORMATION));
+
+                // Clear the read-only flag.
+                fileInfo.FileAttributes = Information->FileAttributes &= ~FILE_ATTRIBUTE_READONLY;
+
+                NtSetInformationFile(
+                    fileHandle,
+                    &isb,
+                    &fileInfo,
+                    sizeof(FILE_BASIC_INFORMATION),
+                    FileBasicInformation
+                    );
+
+                NtClose(fileHandle);
+            }
+        }
+
+        PhDeleteFileWin32(PhGetString(fullName));
+    }
+
+    PhDereferenceObject(fullName);
+    return TRUE;
+}
+
+/**
+* Deletes a directory path recursively.
+*
+* \param DirectoryPath The Win32 directory path.
+*/
+NTSTATUS PhDeleteDirectory(
+    _In_ PPH_STRING DirectoryPath
+    )
+{
+    NTSTATUS status;
+    HANDLE directoryHandle;
+
+    status = PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(DirectoryPath),
+        FILE_GENERIC_READ | DELETE,
+        0,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        IO_STATUS_BLOCK isb;
+        FILE_DISPOSITION_INFORMATION fileInfo;
+
+        // Remove any files or folders inside the directory.
+        status = PhEnumDirectoryFile(
+            directoryHandle, 
+            NULL, 
+            PhpDeleteDirectoryCallback, 
+            DirectoryPath
+            );
+
+        // Remove the directory. 
+        fileInfo.DeleteFile = TRUE;
+        status = NtSetInformationFile(
+            directoryHandle,
+            &isb,
+            &fileInfo,
+            sizeof(FILE_DISPOSITION_INFORMATION),
+            FileDispositionInformation
+            );
+
+        NtClose(directoryHandle);
+    }
+
+    if (!RtlDoesFileExists_U(PhGetString(DirectoryPath)))
+        return STATUS_SUCCESS;
+
+    return status;
+}
+
+/**
 * Creates an anonymous pipe.
 *
 * \param PipeReadHandle The pipe read handle.

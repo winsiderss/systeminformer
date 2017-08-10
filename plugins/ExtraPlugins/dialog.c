@@ -434,11 +434,6 @@ INT_PTR CALLBACK CloudPluginsDlgProc(
                         PhInsertEMenuItem(menu, selectedItem, -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MENU_DISABLE, L"Disable", NULL, NULL), -1);
-
-                        if (!PhGetOwnTokenAttributes().Elevated)
-                        {
-                            PhSetFlagsEMenuItem(menu, ID_MENU_INSTALL, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
-                        }
                     }
 
                     selectedItem = PhShowEMenu(

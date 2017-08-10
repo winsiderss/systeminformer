@@ -91,44 +91,6 @@ PPH_STRING UpdaterGetOpaqueXmlNodeText(
     return PhReferenceEmptyString();
 }
 
-BOOLEAN LastUpdateCheckExpired(
-    VOID
-    )
-{
-#ifdef FORCE_UPDATE_CHECK
-    return TRUE;
-#else
-    ULONG64 lastUpdateTimeTicks = 0;
-    LARGE_INTEGER currentUpdateTimeTicks;
-    //PPH_STRING lastUpdateTimeString;
-
-    // Get the last update check time
-    //lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
-    //PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks);
-
-    // Query the current time
-    PhQuerySystemTime(&currentUpdateTimeTicks);
-
-    // Check if the last update check was more than 7 days ago
-    if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
-    {
-        PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
-
-        // Save the current time
-       // PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
-
-        // Cleanup
-        PhDereferenceObject(currentUpdateTimeString);
-       // P//hDereferenceObject(lastUpdateTimeString);
-        return TRUE;
-    }
-
-    // Cleanup
-    //PhDereferenceObject(lastUpdateTimeString);
-    return FALSE;
-#endif
-}
-
 PPH_STRING UpdateVersionString(
     VOID
     )
@@ -284,6 +246,7 @@ NTSTATUS UpdateDownloadThread(
     BOOLEAN downloadSuccess = FALSE;
     BOOLEAN hashSuccess = FALSE;
     BOOLEAN signatureSuccess = FALSE;
+    LONG updateResult = PH_UPDATEISERRORED;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
@@ -302,7 +265,7 @@ NTSTATUS UpdateDownloadThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
-    context->SetupFilePath = PhGetCacheFileName(PhaFormatString(
+    context->SetupFilePath = PhCreateCacheFile(PhaFormatString(
         L"%s.zip",
         PhGetStringOrEmpty(context->Node->InternalName)
         ));
@@ -563,17 +526,17 @@ CleanupExit:
     {
         if (NT_SUCCESS(SetupExtractBuild(context)))
         {
-            PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
-        }
-        else
-        {
-            PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+            updateResult = PH_UPDATESUCCESS;
         }
     }
-    else
+
+    if (context->SetupFilePath)
     {
-        PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+        PhDeleteCacheFile(context->SetupFilePath);
+        PhDereferenceObject(context->SetupFilePath);
     }
+
+    PostMessage(context->DialogHandle, updateResult, 0, 0);
 
     return STATUS_SUCCESS;
 }

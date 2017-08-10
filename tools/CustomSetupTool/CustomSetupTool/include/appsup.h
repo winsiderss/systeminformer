@@ -44,10 +44,6 @@ PVOID ExtractResourceToBuffer(
     _In_ PWSTR Resource
     );
 
-VOID SetupDeleteDirectoryFile(
-    _In_ PWSTR FileName
-    );
-
 VOID SetupInitializeFont(
     _In_ HWND ControlHandle,
     _In_ LONG Height,
@@ -79,14 +75,5 @@ PPH_STRING GetProcessHackerInstallPath(
 BOOLEAN ShutdownProcessHacker(
     VOID
     );
-
-BOOLEAN CreateDirectoryPath(
-    _In_ PWSTR DirectoryPath
-    );
-
-BOOLEAN RemoveDirectoryPath(
-    _In_ PWSTR DirPath
-    );
-
 
 #endif
