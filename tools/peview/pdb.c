@@ -2369,7 +2369,7 @@ NTSTATUS PeDumpFileSymbols(
 
         // Enumerate user defined types 
         //PrintUserDefinedTypes(Context);
-        //SymEnumTypesW_I(NtCurrentProcess(), Context->BaseAddress, EnumCallbackProc, Context);
+        SymEnumTypesW_I(NtCurrentProcess(), Context->BaseAddress, EnumCallbackProc, Context);
     }
 
 CleanupExit:
