@@ -20,34 +20,7 @@
 
 #include <setup.h>
 
-HANDLE MutantHandle = NULL;
 SETUP_COMMAND_TYPE SetupMode = SETUP_COMMAND_INSTALL;
-PH_COMMAND_LINE_OPTION options[] =
-{
-    { SETUP_COMMAND_INSTALL, L"install", NoArgumentType },
-    { SETUP_COMMAND_UNINSTALL, L"uninstall", NoArgumentType },
-    { SETUP_COMMAND_UPDATE, L"update", NoArgumentType },
-    { SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
-};
-
-NTSTATUS CreateSetupMutant(
-    VOID
-    )
-{
-    OBJECT_ATTRIBUTES oa;
-    UNICODE_STRING mutantName;
-
-    RtlInitUnicodeString(&mutantName, L"\\BaseNamedObjects\\ProcessHackerSetup");
-    InitializeObjectAttributes(
-        &oa,
-        &mutantName,
-        0,
-        NULL,
-        NULL
-        );
-
-    return NtCreateMutant(&MutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
-}
 
 VOID SetupInitializeDpi(
     VOID
@@ -205,10 +178,17 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
+    static PH_COMMAND_LINE_OPTION options[] =
+    {
+        { SETUP_COMMAND_INSTALL, L"install", NoArgumentType },
+        { SETUP_COMMAND_UNINSTALL, L"uninstall", NoArgumentType },
+        { SETUP_COMMAND_UPDATE, L"update", NoArgumentType },
+        { SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
+    };
+    HANDLE mutantHandle;
     PPH_STRING commandLine;
-
-    if (!NT_SUCCESS(CreateSetupMutant()))
-        return 1;
+    OBJECT_ATTRIBUTES oa;
+    UNICODE_STRING mutantName;
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
@@ -237,23 +217,35 @@ INT WINAPI wWinMain(
 
     PhDereferenceObject(commandLine);
 
-    // DEBUG // if (CheckProcessHackerInstalled()) SetupMode = SETUP_COMMAND_UNINSTALL;
+    RtlInitUnicodeString(&mutantName, L"PhSetupMutant");
+    InitializeObjectAttributes(
+        &oa,
+        &mutantName,
+        0,
+        PhGetNamespaceHandle(),
+        NULL
+        );
 
-    switch (SetupMode)
+    if (NT_SUCCESS(NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE)))
     {
-    case SETUP_COMMAND_INSTALL:
-    default:
-        SetupShowInstallDialog();
-        break;
-    case SETUP_COMMAND_UNINSTALL:
-        SetupShowUninstallDialog();
-        break;
-    case SETUP_COMMAND_UPDATE:
-        SetupShowUpdateDialog();
-        break;
-    case SETUP_COMMAND_REPAIR:
-        break;
+        switch (SetupMode)
+        {
+        case SETUP_COMMAND_INSTALL:
+        default:
+            SetupShowInstallDialog();
+            break;
+        case SETUP_COMMAND_UNINSTALL:
+            SetupShowUninstallDialog();
+            break;
+        case SETUP_COMMAND_UPDATE:
+            SetupShowUpdateDialog();
+            break;
+        case SETUP_COMMAND_REPAIR:
+            break;
+        }
+
+        NtClose(mutantHandle);
     }
 
-    return 0;
+    return ERROR_SUCCESS;
 }

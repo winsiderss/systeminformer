@@ -1057,9 +1057,23 @@ PhGetCacheDirectory(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhClearCacheDirectory(
+    VOID
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetCacheFileName(
+PhCreateCacheFile(
+    _In_ PPH_STRING FileName
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteCacheFile(
     _In_ PPH_STRING FileName
     );
 

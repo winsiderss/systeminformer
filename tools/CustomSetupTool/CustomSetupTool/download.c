@@ -405,7 +405,7 @@ BOOLEAN UpdateDownloadUpdateData(
         downloadFileName = PhCreateString2(&baseNamePart);
     }
 
-    Context->FilePath = PhGetCacheFileName(downloadFileName);
+    Context->FilePath = PhCreateCacheFile(downloadFileName);
 
     if (PhIsNullOrEmptyString(Context->FilePath))
         goto CleanupExit;

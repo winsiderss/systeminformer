@@ -37,12 +37,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     context = (PPH_UPDATER_CONTEXT)PhCreateAlloc(sizeof(PH_UPDATER_CONTEXT));
     memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
 
-    PhGetPhVersionNumbers(
-        &context->CurrentMajorVersion, 
-        &context->CurrentMinorVersion, 
-        NULL, 
-        &context->CurrentRevisionVersion
-        );
+    context->CurrentVersionString = PhGetPhVersion();
     context->StartupCheck = StartupCheck;
 
     return context;
@@ -62,7 +57,8 @@ VOID FreeUpdateContext(
     PhClearReference(&Context->SetupFilePath);
     PhClearReference(&Context->SetupFileDownloadUrl);
     PhClearReference(&Context->BuildMessage);
-
+    PhClearReference(&Context->CurrentVersionString);
+    
     PhDereferenceObject(Context);
 }
 
@@ -155,18 +151,20 @@ BOOLEAN LastUpdateCheckExpired(
 
     lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK);
     PhStringToInteger64(&lastUpdateTimeString->sr, 0, &lastUpdateTimeTicks);
-    PhDereferenceObject(lastUpdateTimeString);
 
     if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
     {
-        PPH_STRING currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
-
+        PPH_STRING currentUpdateTimeString;
+        
+        currentUpdateTimeString = PhFormatUInt64(currentUpdateTimeTicks.QuadPart, FALSE);
         PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
 
-        PhDereferenceObject(currentUpdateTimeString);     
+        PhDereferenceObject(currentUpdateTimeString);
+        PhDereferenceObject(lastUpdateTimeString);
         return TRUE;
     }
 
+    PhDereferenceObject(lastUpdateTimeString);
     return FALSE;
 }
 
@@ -521,12 +519,7 @@ NTSTATUS UpdateCheckSilentThread(
     if (!QueryUpdateData(context))
         goto CleanupExit;
 
-    currentVersion = MAKE_VERSION_ULONGLONG(
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion,
-        0
-        );
+    currentVersion = ParseVersionString(context->CurrentVersionString);
 
 #ifdef FORCE_UPDATE_CHECK
     latestVersion = MAKE_VERSION_ULONGLONG(
@@ -542,9 +535,6 @@ NTSTATUS UpdateCheckSilentThread(
     // Compare the current version against the latest available version
     if (currentVersion < latestVersion)
     {
-        // Don't spam the user the second they open PH, delay dialog creation for 3 seconds.
-        //Sleep(3000);
-
         // Check if the user hasn't already opened the dialog.
         if (!UpdateDialogHandle)
         {
@@ -589,12 +579,7 @@ NTSTATUS UpdateCheckThread(
         return STATUS_SUCCESS;
     }
 
-    currentVersion = MAKE_VERSION_ULONGLONG(
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion,
-        0
-        );
+    currentVersion = ParseVersionString(context->CurrentVersionString);
 
 #ifdef FORCE_UPDATE_CHECK
     latestVersion = MAKE_VERSION_ULONGLONG(
@@ -640,7 +625,7 @@ static PPH_STRING UpdaterParseDownloadFileName(
         return NULL;
 
     downloadFileName = PhCreateString2(&baseNamePart);
-    filePath = PhGetCacheFileName(downloadFileName);
+    filePath = PhCreateCacheFile(downloadFileName);
     PhDereferenceObject(downloadFileName);
 
     return filePath;
@@ -672,12 +657,9 @@ NTSTATUS UpdateDownloadThread(
 
     // Create a user agent string.
     userAgentString = PhFormatString(
-        L"PH_%lu.%lu_%lu",
-        context->CurrentMajorVersion,
-        context->CurrentMinorVersion,
-        context->CurrentRevisionVersion
+        L"PH_%s",
+        PhGetStringOrEmpty(context->CurrentVersionString)
         );
-
     if (PhIsNullOrEmptyString(userAgentString))
         goto CleanupExit;
 
@@ -715,13 +697,13 @@ NTSTATUS UpdateDownloadThread(
     if (PhIsNullOrEmptyString(context->SetupFilePath))
         goto CleanupExit;
 
-    // Create output file
+    // Create temporary output file.
     if (!NT_SUCCESS(PhCreateFileWin32(
         &tempFileHandle,
         PhGetString(context->SetupFilePath),
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
@@ -991,7 +973,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_INITDIALOG:
+    case PH_SHOWDIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -1095,6 +1077,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     )
 {
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    UpdateDialogHandle = hwndDlg;
 
     switch (uMsg)
     {
@@ -1177,7 +1160,7 @@ VOID ShowUpdateDialog(
         PhWaitForEvent(&InitializedEvent, NULL);
     }
 
-    PostMessage(UpdateDialogHandle, WM_INITDIALOG, 0, 0);
+    PostMessage(UpdateDialogHandle, PH_SHOWDIALOG, 0, 0);
 }
 
 VOID StartInitialCheck(

@@ -63,6 +63,8 @@ INT WINAPI wWinMain(
     };
     PPH_STRING commandLine;
 
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+
     if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
 
@@ -117,7 +119,6 @@ INT WINAPI wWinMain(
     {
         PPH_STRING targetFileName;
 
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         targetFileName = PvResolveShortcutTarget(PvFileName);
 
         if (targetFileName)

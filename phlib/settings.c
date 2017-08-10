@@ -925,7 +925,7 @@ NTSTATUS PhSaveSettings(
             if (indexOfFileName != -1)
             {
                 directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-                //SHCreateDirectoryEx(NULL, directoryName->Buffer, NULL);
+                //PhCreateDirectory(directoryName);
                 PhDereferenceObject(directoryName);
             }
 

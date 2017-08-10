@@ -977,6 +977,20 @@ PhDeleteFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateDirectory(
+    _In_ PPH_STRING DirectoryPath
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeleteDirectory(
+    _In_ PPH_STRING DirectoryPath
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreatePipe(
     _Out_ PHANDLE PipeReadHandle,
     _Out_ PHANDLE PipeWriteHandle

@@ -152,10 +152,8 @@ VOID ShowLatestVersionDialog(
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"You're running the latest version.";
     config.pszContent = PhaFormatString(
-        L"Version: v%lu.%lu.%lu\r\nCompiled: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
-        Context->CurrentMajorVersion,
-        Context->CurrentMinorVersion,
-        Context->CurrentRevisionVersion,
+        L"Version: v%s\r\nCompiled: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
+        PhGetStringOrEmpty(Context->CurrentVersionString),
         PhaFormatDateTime(&systemTime)->Buffer
         )->Buffer;
 
@@ -180,10 +178,8 @@ VOID ShowNewerVersionDialog(
     config.pszWindowTitle = L"Process Hacker - Updater";
     config.pszMainInstruction = L"You're running a pre-release build.";
     config.pszContent = PhaFormatString(
-        L"Pre-release build: v%lu.%lu.%lu\r\n",
-        Context->CurrentMajorVersion,
-        Context->CurrentMinorVersion,
-        Context->CurrentRevisionVersion
+        L"Pre-release build: v%s\r\n",
+        PhGetStringOrEmpty(Context->CurrentVersionString)
         )->Buffer;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);

@@ -131,16 +131,17 @@ PPH_STRING SetupFindInstallDirectory(
     // Check if the string is valid.
     if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%");
-        PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%");
-        PH_STRINGREF defaultDirectoryName = PH_STRINGREF_INIT(L"\\Process Hacker\\");
+        static PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%");
+        static PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%");
+        static PH_STRINGREF defaultDirectoryName = PH_STRINGREF_INIT(L"\\Process Hacker\\");
         SYSTEM_INFO info;
-        PPH_STRING expandedString;
 
         GetNativeSystemInfo(&info);
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
+            PPH_STRING expandedString;
+
             if (expandedString = PH_AUTO(PhExpandEnvironmentStrings(&programW6432)))
             {
                 setupInstallPath = PhConcatStringRef2(&expandedString->sr, &defaultDirectoryName);
@@ -148,6 +149,8 @@ PPH_STRING SetupFindInstallDirectory(
         }
         else
         {
+            PPH_STRING expandedString;
+
             if (expandedString = PH_AUTO(PhExpandEnvironmentStrings(&programFiles)))
             {
                 setupInstallPath = PhConcatStringRef2(&expandedString->sr, &defaultDirectoryName);
@@ -189,13 +192,13 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (RtlDoesFileExists_U(backupFilePath->Buffer))
     {
-        if (!DeleteFile(backupFilePath->Buffer))
+        if (!NT_SUCCESS(PhDeleteFileWin32(backupFilePath->Buffer)))
         {
             PPH_STRING tempFileName;
             PPH_STRING tempFilePath;
 
             tempFileName = PhCreateString(L"processhacker-setup.old");
-            tempFilePath = PhGetCacheFileName(tempFileName);
+            tempFilePath = PhCreateCacheFile(tempFileName);
 
             if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
             {
@@ -240,7 +243,7 @@ VOID SetupDeleteUninstallFile(
         PPH_STRING tempFilePath;
 
         tempFileName = PhCreateString(L"processhacker-setup.exe");
-        tempFilePath = PhGetCacheFileName(tempFileName);
+        tempFilePath = PhCreateCacheFile(tempFileName);
 
         if (PhIsNullOrEmptyString(tempFilePath))
         {
@@ -258,6 +261,127 @@ CleanupExit:
 
     PhDereferenceObject(uninstallFilePath);
 }
+
+VOID SetupStartService(
+    _In_ PWSTR ServiceName
+    )
+{
+    SC_HANDLE serviceHandle;
+
+    serviceHandle = PhOpenService(
+        ServiceName, 
+        SERVICE_QUERY_STATUS | SERVICE_START
+        );
+
+    if (serviceHandle)
+    {
+        ULONG statusLength = 0;
+        SERVICE_STATUS_PROCESS status;
+
+        memset(&status, 0, sizeof(SERVICE_STATUS_PROCESS));
+
+        if (QueryServiceStatusEx(
+            serviceHandle,
+            SC_STATUS_PROCESS_INFO,
+            (PBYTE)&status,
+            sizeof(SERVICE_STATUS_PROCESS),
+            &statusLength
+            ))
+        {
+            if (status.dwCurrentState != SERVICE_RUNNING)
+            {
+                ULONG attempts = 5;
+
+                do
+                {
+                    StartService(serviceHandle, 0, NULL);
+
+                    if (QueryServiceStatusEx(
+                        serviceHandle,
+                        SC_STATUS_PROCESS_INFO,
+                        (PBYTE)&status,
+                        sizeof(SERVICE_STATUS_PROCESS),
+                        &statusLength
+                        ))
+                    {
+                        if (status.dwCurrentState == SERVICE_RUNNING)
+                        {
+                            break;
+                        }
+                    }
+
+                    Sleep(1000);
+
+                } while (--attempts != 0);
+            }
+        }
+
+        CloseServiceHandle(serviceHandle);
+    }
+}
+
+VOID SetupStopService(
+    _In_ PWSTR ServiceName
+    )
+{
+    SC_HANDLE serviceHandle;
+
+    serviceHandle = PhOpenService(
+        ServiceName,
+        SERVICE_QUERY_STATUS | SERVICE_STOP
+        );
+
+    if (serviceHandle)
+    {
+        ULONG statusLength = 0;
+        SERVICE_STATUS_PROCESS status;
+
+        memset(&status, 0, sizeof(SERVICE_STATUS_PROCESS));
+
+        if (QueryServiceStatusEx(
+            serviceHandle,
+            SC_STATUS_PROCESS_INFO,
+            (PBYTE)&status,
+            sizeof(SERVICE_STATUS_PROCESS),
+            &statusLength
+            ))
+        {
+            if (status.dwCurrentState != SERVICE_STOPPED)
+            {
+                ULONG attempts = 5;
+
+                do
+                {
+                    SERVICE_STATUS serviceStatus;
+
+                    memset(&serviceStatus, 0, sizeof(SERVICE_STATUS));
+
+                    ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+
+                    if (QueryServiceStatusEx(
+                        serviceHandle,
+                        SC_STATUS_PROCESS_INFO,
+                        (PBYTE)&status,
+                        sizeof(SERVICE_STATUS_PROCESS),
+                        &statusLength
+                        ))
+                    {
+                        if (status.dwCurrentState == SERVICE_STOPPED)
+                        {
+                            break;
+                        }
+                    }
+
+                    Sleep(1000);
+
+                } while (--attempts != 0);
+            }
+        }
+
+        CloseServiceHandle(serviceHandle);
+    }
+}
+
 
 VOID SetupStartKph(
     _In_ PPH_SETUP_CONTEXT Context
@@ -287,21 +411,7 @@ VOID SetupStartKph(
             NtClose(processHandle);
         }
 
-        while (retries < 5)
-        {
-            SC_HANDLE serviceHandle;
-            SERVICE_STATUS serviceStatus;
-
-            if (serviceHandle = PhOpenService(L"KProcessHacker3", SERVICE_START))
-            {
-                StartService(serviceHandle, 0, NULL);
-                CloseServiceHandle(serviceHandle);
-                break;
-            }
-
-            Sleep(1000);
-            retries++;
-        }
+        SetupStartService(L"KProcessHacker3");
     }
 
     PhDereferenceObject(clientPath);
@@ -311,43 +421,9 @@ BOOLEAN SetupUninstallKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    ULONG retries = 0;
+    SetupStopService(L"KProcessHacker2");
 
-    while (retries < 5)
-    {
-        SC_HANDLE serviceHandle;
-        SERVICE_STATUS serviceStatus;
-
-        if (serviceHandle = PhOpenService(L"KProcessHacker2", SERVICE_STOP | DELETE))
-        {
-            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
-            DeleteService(serviceHandle);
-            CloseServiceHandle(serviceHandle);
-            break;
-        }
-
-        Sleep(1000);
-        retries++;
-    }
-
-    retries = 0;
-
-    while (retries < 5)
-    {
-        SC_HANDLE serviceHandle;
-        SERVICE_STATUS serviceStatus;
-
-        if (serviceHandle = PhOpenService(L"KProcessHacker3", SERVICE_STOP | DELETE))
-        {
-            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
-            DeleteService(serviceHandle);
-            CloseServiceHandle(serviceHandle);
-            break;
-        }
-
-        Sleep(1000);
-        retries++;
-    }
+    SetupStopService(L"KProcessHacker3");
 
     return TRUE;
 }
@@ -410,7 +486,7 @@ VOID SetupSetWindowsOptions(
     {
         PPH_STRING settingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\settings.xml");
 
-        SetupDeleteDirectoryFile(settingsFileName->Buffer);
+        PhDeleteFileWin32(settingsFileName->Buffer);
 
         PhDereferenceObject(settingsFileName);
     }
@@ -494,25 +570,25 @@ VOID SetupDeleteWindowsOptions(
 
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
     {
-        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDeleteFileWin32(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
     }
 
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk"))
     {
-        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDeleteFileWin32(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
     }
 
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
     {
-        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDeleteFileWin32(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
     }
 
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
     {
-        SetupDeleteDirectoryFile(PhGetString(startmenuFolderString));
+        PhDeleteFileWin32(PhGetString(startmenuFolderString));
         PhDereferenceObject(startmenuFolderString);
     }
 
@@ -628,7 +704,6 @@ VOID SetupCreateImageFileExecutionOptions(
             PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
             PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
             PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-            PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
             PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
             PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
         }, sizeof(ULONG64));

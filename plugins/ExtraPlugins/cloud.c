@@ -313,7 +313,7 @@ NTSTATUS SetupExtractBuild(
             extractPath = PhConcatStringRef3(&directory->sr, &pluginsDirectory, &fileName->sr);
             fullSetupPath = PhGetFullPath(PhGetStringOrEmpty(extractPath), &indexOfFileName);
 
-            SHCreateDirectoryEx(NULL, PhGetStringOrEmpty(fullSetupPath), NULL);
+            PhCreateDirectory(PhGetString(fullSetupPath));
 
             PhDereferenceObject(fullSetupPath);
             PhDereferenceObject(extractPath);
@@ -340,7 +340,8 @@ NTSTATUS SetupExtractBuild(
             {
                 if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
                 {
-                    SHCreateDirectoryEx(NULL, PhGetStringOrEmpty(directoryPath), NULL);
+                    PhCreateDirectory(PhGetString(directoryPath));
+
                     PhDereferenceObject(directoryPath);
                 }
             }

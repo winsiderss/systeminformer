@@ -227,12 +227,14 @@ EXPORTS
 	PhZeroExtendToUtf16Ex
 
 ; phnative
+	PhCreateDirectory
 	PhCreateFileWin32
 	PhCreateFileWin32Ex
 	PhCreateKey
 	PhCreateNamedPipe
 	PhCreatePipe
 	PhConnectPipe
+	PhDeleteDirectory
 	PhDeleteFileWin32
 	PhDisconnectNamedPipe
 	PhEnumDirectoryFile
@@ -345,8 +347,6 @@ EXPORTS
 	PhGetApplicationDirectory
 	PhGetApplicationFileName
 	PhGetBaseName
-	PhGetCacheDirectory
-	PhGetCacheFileName
 	PhGetDllFileName
 	PhGetFileDialogFileName
 	PhGetFileDialogFilterIndex
@@ -636,3 +636,9 @@ EXPORTS
 	PhGetJsonArrayLength
 	PhGetJsonArrayIndexObject
 	PhGetJsonObjectAsArrayList
+
+; cache
+	PhGetCacheDirectory
+	PhClearCacheDirectory
+	PhCreateCacheFile
+	PhDeleteCacheFile
