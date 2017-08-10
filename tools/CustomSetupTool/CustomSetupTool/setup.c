@@ -185,30 +185,21 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (RtlDoesFileExists_U(backupFilePath->Buffer))
     {
-        GUID randomGuid;
-        PPH_STRING tempPath = NULL;
-        PPH_STRING guidString = NULL;
-
-        tempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
-        GetTempPath((ULONG)tempPath->Length / sizeof(WCHAR), tempPath->Buffer);
-
-        PhGenerateGuid(&randomGuid);
-
-        if (guidString = PhFormatGuid(&randomGuid))
+        if (!DeleteFile(backupFilePath->Buffer))
         {
-            PhMoveReference(&guidString, PhSubstring(guidString, 1, guidString->Length / sizeof(WCHAR) - 2));
-        }
+            PPH_STRING tempFileName;
+            PPH_STRING tempFilePath;
 
-        PhMoveReference(&guidString, PhConcatStrings(
-            3,
-            PhGetString(tempPath),
-            L"\\",
-            PhGetString(guidString)
-            ));
+            tempFileName = PhCreateString(L"processhacker-setup.old");
+            tempFilePath = PhGetCacheFileName(tempFileName);
 
-        if (!MoveFile(backupFilePath->Buffer, guidString->Buffer))
-        {
-            Context->ErrorCode = GetLastError();
+            if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
+            {
+                Context->ErrorCode = GetLastError();
+            }
+
+            PhDereferenceObject(tempFilePath);
+            PhDereferenceObject(tempFileName);
         }
     }
 
@@ -239,59 +230,22 @@ VOID SetupDeleteUninstallFile(
 
     if (RtlDoesFileExists_U(uninstallFilePath->Buffer))
     {
-        ULONG indexOfFileName = -1;
-        GUID randomGuid;
-        PPH_STRING setupTempPath = NULL;
-        PPH_STRING randomGuidString = NULL;
-        PPH_STRING fullSetupPath = NULL;
-        PPH_STRING tempFilePath = NULL;
+        PPH_STRING tempFileName;
+        PPH_STRING tempFilePath;
 
-        setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
-        if (PhIsNullOrEmptyString(setupTempPath))
-            goto CleanupExit;
-        if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
-            goto CleanupExit;
-        if (PhIsNullOrEmptyString(setupTempPath))
-            goto CleanupExit;
+        tempFileName = PhCreateString(L"processhacker-setup.exe");
+        tempFilePath = PhGetCacheFileName(tempFileName);
 
-        // Generate random guid for our directory path.
-        PhGenerateGuid(&randomGuid);
-
-        if (randomGuidString = PhFormatGuid(&randomGuid))
-        {
-            PPH_STRING guidSubString;
-
-            // Strip the left and right curly brackets.
-            guidSubString = PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2);
-            PhMoveReference(&randomGuidString, guidSubString);
-        }
-
-        // Append the tempath to our string: %TEMP%RandomString\\processhacker-setup.exe
-        // Example: C:\\Users\\dmex\\AppData\\Temp\\processhacker-setup.exe
-        tempFilePath = PhFormatString(
-            L"%s%s\\processhacker-setup.exe",
-            PhGetStringOrEmpty(setupTempPath),
-            PhGetStringOrEmpty(randomGuidString)
-            );
         if (PhIsNullOrEmptyString(tempFilePath))
-            goto CleanupExit;
-
-        // Create the directory if it does not exist.
-        if (fullSetupPath = PhGetFullPath(PhGetString(tempFilePath), &indexOfFileName))
         {
-            PPH_STRING directoryPath;
-
-            if (indexOfFileName == -1)
-                goto CleanupExit;
-
-            if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-            {
-                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
-                PhDereferenceObject(directoryPath);
-            }
+            PhDereferenceObject(tempFileName);
+            goto CleanupExit;
         }
+    
+        MoveFile(uninstallFilePath->Buffer, tempFilePath->Buffer);
 
-        MoveFile(uninstallFilePath->Buffer, fullSetupPath->Buffer);
+        PhDereferenceObject(tempFilePath);
+        PhDereferenceObject(tempFileName);
     }
 
 CleanupExit:

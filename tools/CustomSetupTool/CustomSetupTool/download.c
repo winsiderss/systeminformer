@@ -3,8 +3,6 @@
 #include <workqueue.h>
 #include <winhttp.h>
 
-#include "json-c\json.h"
-
 PPH_STRING SetupGetVersion(
     VOID
 )
@@ -74,14 +72,14 @@ PPH_STRING UpdateWindowsString(
     return buildLabHeader;
 }
 
-BOOLEAN ParseVersionString(
-    _Inout_ PPH_SETUP_CONTEXT Context
+ULONG64 ParseVersionString(
+    _Inout_ PPH_STRING VersionString
     )
 {
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
-
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(Context->SetupFileVersion));
+    
+    PhInitializeStringRef(&remaining, PhGetString(VersionString));
 
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -91,10 +89,12 @@ BOOLEAN ParseVersionString(
     PhStringToInteger64(&minorPart, 10, &minorInteger);
     PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
-    Context->LatestMajorVersion = (ULONG)majorInteger;
-    Context->LatestMinorVersion = (ULONG)minorInteger;
-    Context->LatestRevisionVersion = (ULONG)revisionInteger;
-    return TRUE;
+    return MAKE_VERSION_ULONGLONG(
+        (ULONG)majorInteger,
+        (ULONG)minorInteger,
+        (ULONG)revisionInteger, 
+        0
+        );
 }
 
 BOOLEAN ReadRequestString(
@@ -144,21 +144,6 @@ BOOLEAN ReadRequestString(
     *Data = data;
 
     return TRUE;
-}
-
-json_object_ptr json_get_object(
-    _In_ json_object_ptr rootObj,
-    _In_ const PSTR key
-)
-{
-    json_object_ptr returnObj;
-
-    if (json_object_object_get_ex(rootObj, key, &returnObj))
-    {
-        return returnObj;
-    }
-
-    return NULL;
 }
 
 BOOLEAN SetupQueryUpdateData(
@@ -277,37 +262,34 @@ BOOLEAN SetupQueryUpdateData(
     if (stringBuffer == NULL || stringBuffer[0] == '\0')
         goto CleanupExit;
 
-    if (!(jsonObject = json_tokener_parse(stringBuffer)))
+    if (!(jsonObject = PhCreateJsonParser(stringBuffer)))
         goto CleanupExit;
 
-    if (value = json_object_get_string(json_get_object(jsonObject, "updated")))
+    if (value = PhGetJsonValueAsString(jsonObject, "updated"))
         Context->RelDate = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "size")))
+    if (value = PhGetJsonValueAsString(jsonObject, "size"))
         Context->Size = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "forum_url")))
+    if (value = PhGetJsonValueAsString(jsonObject, "forum_url"))
         Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(value);
 
-    if (value = json_object_get_string(json_get_object(jsonObject, "bin_url")))
+    if (value = PhGetJsonValueAsString(jsonObject, "bin_url"))
         Context->BinFileDownloadUrl = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "hash_bin")))
+    if (value = PhGetJsonValueAsString(jsonObject, "hash_bin"))
         Context->BinFileHash = PhConvertUtf8ToUtf16(value);
 
-    if (value = json_object_get_string(json_get_object(jsonObject, "setup_url")))
+    if (value = PhGetJsonValueAsString(jsonObject, "setup_url"))
         Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "sig")))
+    if (value = PhGetJsonValueAsString(jsonObject, "sig"))
         Context->SetupFileSignature = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "version")))
+    if (value = PhGetJsonValueAsString(jsonObject, "version"))
         Context->SetupFileVersion = PhConvertUtf8ToUtf16(value);
 
-    if (value = json_object_get_string(json_get_object(jsonObject, "websetup_url")))
+    if (value = PhGetJsonValueAsString(jsonObject, "websetup_url"))
         Context->WebSetupFileDownloadUrl = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "websetup_sig")))
+    if (value = PhGetJsonValueAsString(jsonObject, "websetup_sig"))
         Context->WebSetupFileSignature = PhConvertUtf8ToUtf16(value);
-    if (value = json_object_get_string(json_get_object(jsonObject, "websetup_version")))
+    if (value = PhGetJsonValueAsString(jsonObject, "websetup_version"))
         Context->WebSetupFileVersion = PhConvertUtf8ToUtf16(value);
-
-    if (!ParseVersionString(Context))
-        goto CleanupExit;
 
     if (PhIsNullOrEmptyString(Context->RelDate))
         goto CleanupExit;
@@ -327,7 +309,14 @@ BOOLEAN SetupQueryUpdateData(
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileVersion))
         goto CleanupExit;
- 
+
+    if (PhIsNullOrEmptyString(Context->WebSetupFileDownloadUrl))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->WebSetupFileSignature))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->WebSetupFileVersion))
+        goto CleanupExit;
+
     success = TRUE;
 
 CleanupExit:
@@ -342,7 +331,7 @@ CleanupExit:
         WinHttpCloseHandle(httpSessionHandle);
 
     if (jsonObject)
-        json_object_put(jsonObject);
+        PhFreeJsonParser(jsonObject);
 
     if (stringBuffer)
         PhFree(stringBuffer);
@@ -362,14 +351,11 @@ BOOLEAN UpdateDownloadUpdateData(
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
     HINTERNET httpRequestHandle = NULL;
-    PPH_STRING setupTempPath = NULL;
+    PPH_STRING downloadFileName = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PPH_STRING userAgentString = NULL;
-    PPH_STRING fullSetupPath = NULL;
-    PPH_STRING randomGuidString = NULL;
     ULONG indexOfFileName = -1;
-    GUID randomGuid;
     URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
@@ -384,59 +370,6 @@ BOOLEAN UpdateDownloadUpdateData(
         Context->CurrentMinorVersion,
         Context->CurrentRevisionVersion
         );
-
-    setupTempPath = PhCreateStringEx(NULL, GetTempPath(0, NULL) * sizeof(WCHAR));
-
-    if (GetTempPath((ULONG)setupTempPath->Length / sizeof(WCHAR), setupTempPath->Buffer) == 0)
-        goto CleanupExit;
-
-    PhGenerateGuid(&randomGuid);
-
-    if (randomGuidString = PhFormatGuid(&randomGuid))
-    {
-        PhMoveReference(
-            &randomGuidString, 
-            PhSubstring(randomGuidString, 1, randomGuidString->Length / sizeof(WCHAR) - 2)
-            );
-    }
-
-    Context->FilePath = PhFormatString(
-        L"%s%s\\processhacker-%lu.%lu.%lu-bin.zip",
-        PhGetStringOrEmpty(setupTempPath),
-        PhGetStringOrEmpty(randomGuidString),
-        Context->LatestMajorVersion,
-        Context->LatestMinorVersion,
-        Context->LatestRevisionVersion
-        );
-    if (PhIsNullOrEmptyString(Context->FilePath))
-        goto CleanupExit;
-
-    if (fullSetupPath = PhGetFullPath(PhGetString(Context->FilePath), &indexOfFileName))
-    {
-        PPH_STRING directoryPath;
-
-        if (indexOfFileName == -1)
-            goto CleanupExit;
-
-        if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-        {
-            SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
-            PhDereferenceObject(directoryPath);
-        }
-    }
-
-    if (!NT_SUCCESS(PhCreateFileWin32(
-        &tempFileHandle,
-        PhGetString(Context->FilePath),
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-    {
-        goto CleanupExit;
-    }
 
     httpUrlComponents.dwSchemeLength = (ULONG)-1;
     httpUrlComponents.dwHostNameLength = (ULONG)-1;
@@ -462,10 +395,37 @@ BOOLEAN UpdateDownloadUpdateData(
         httpUrlComponents.dwUrlPathLength * sizeof(WCHAR)
         );
 
-    SetWindowText(Context->MainHeaderHandle, PhFormatString(L"Downloading Process Hacker %lu.%lu.%lu...",
-        Context->LatestMajorVersion,
-        Context->CurrentMinorVersion,
-        Context->LatestRevisionVersion
+    {
+        PH_STRINGREF pathPart;
+        PH_STRINGREF baseNamePart;
+
+        if (!PhSplitStringRefAtLastChar(&downloadUrlPath->sr, '/', &pathPart, &baseNamePart))
+            goto CleanupExit;
+
+        downloadFileName = PhCreateString2(&baseNamePart);
+    }
+
+    Context->FilePath = PhGetCacheFileName(downloadFileName);
+
+    if (PhIsNullOrEmptyString(Context->FilePath))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &tempFileHandle,
+        PhGetString(Context->FilePath),
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    SetWindowText(Context->MainHeaderHandle, PhFormatString(
+        L"Downloading Process Hacker %s...", 
+        PhGetString(Context->SetupFileVersion)
         )->Buffer);
 
     //SetWindowText(Context->SubHeaderHandle, L"Progress: ~ of ~ (0.0%)");
@@ -643,28 +603,10 @@ CleanupExit:
     if (httpSessionHandle)
         WinHttpCloseHandle(httpSessionHandle);
 
-    PhClearReference(&randomGuidString);
-    PhClearReference(&fullSetupPath);
-    PhClearReference(&setupTempPath);
     PhClearReference(&downloadHostPath);
     PhClearReference(&downloadUrlPath);
     PhClearReference(&userAgentString);
-
-    //if (UpdateDialogThreadHandle)
-    //{
-    //    if (downloadSuccess && hashSuccess && signatureSuccess)
-    //    {
-    //        PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
-    //    }
-    //    else if (downloadSuccess)
-    //    {
-    //        PostMessage(context->DialogHandle, PH_UPDATEFAILURE, signatureSuccess, hashSuccess);
-    //    }
-    //    else
-    //    {
-    //        PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
-    //    }
-    //}
-
+    PhClearReference(&downloadFileName);
+    
     return downloadSuccess;
 }
