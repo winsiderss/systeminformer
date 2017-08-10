@@ -3522,6 +3522,34 @@ PPH_STRING PhQueryRegistryString(
     return string;
 }
 
+ULONG64 PhQueryRegistryUlong64(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    )
+{
+    ULONG64 ulong64 = 0;
+    PH_STRINGREF valueName;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    {
+        if (buffer->Type == REG_QWORD)
+        {
+            if (buffer->DataLength == sizeof(ULONG64))
+                ulong64 = *(PULONG64)buffer->Data;
+        }
+
+        PhFree(buffer);
+    }
+
+    return ulong64;
+}
+
 VOID PhMapFlags1(
     _Inout_ PULONG Value2,
     _In_ ULONG Value1,

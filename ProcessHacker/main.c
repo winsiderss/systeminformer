@@ -517,6 +517,68 @@ VOID PhInitializeFont(
     }
 }
 
+VOID PhInitializeMitigationPolicy(
+    VOID
+    )
+{
+    static PH_STRINGREF policyKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
+    static UNICODE_STRING policyKeyValue = RTL_CONSTANT_STRING(L"MitigationOptions");
+    BOOLEAN policyKeyValid = FALSE;
+    HANDLE keyReadHandle;
+    HANDLE keyWriteHandle;
+
+    if (WindowsVersion < WINDOWS_10 || !PhGetOwnTokenAttributes().Elevated)
+        return;
+
+#define DEFAULT_MITIGATION_POLICY_FLAGS \
+    (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyReadHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &policyKeyName,
+        0
+        )))
+    {
+        if (PhQueryRegistryUlong64(keyReadHandle, L"MitigationOptions") == DEFAULT_MITIGATION_POLICY_FLAGS)
+            policyKeyValid = TRUE;
+
+        NtClose(keyReadHandle);
+    }
+
+    if (policyKeyValid)
+        return;
+
+    if (NT_SUCCESS(PhCreateKey(
+        &keyWriteHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &policyKeyName,
+        0,
+        0,
+        NULL
+        )))
+    {
+        NtSetValueKey(
+            keyWriteHandle,
+            &policyKeyValue,
+            0,
+            REG_QWORD,
+            &(ULONG64) { DEFAULT_MITIGATION_POLICY_FLAGS },
+            sizeof(ULONG64)
+            );
+        NtClose(keyWriteHandle);
+    }
+}
+
 NTSTATUS PhpReadSignature(
     _In_ PWSTR FileName,
     _Out_ PUCHAR *Signature,
