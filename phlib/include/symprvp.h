@@ -53,6 +53,40 @@ typedef BOOL (WINAPI *_SymFromNameW)(
     _Inout_ PSYMBOL_INFOW Symbol
     );
 
+typedef BOOL (WINAPI *_SymEnumTypesW)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 BaseOfDll,
+    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
+    _In_opt_ PVOID UserContext
+    );
+
+typedef BOOL (WINAPI *_SymEnumTypes)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 BaseOfDll,
+    _In_ PSYM_ENUMERATESYMBOLS_CALLBACK EnumSymbolsCallback,
+    _In_opt_ PVOID UserContext
+    );
+
+typedef BOOL (WINAPI *_SymGetModuleInfoW64)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 qwAddr,
+    _Out_ PIMAGEHLP_MODULEW64 ModuleInfo
+    );
+
+typedef BOOL (WINAPI *_SymGetTypeFromName)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 BaseOfDll,
+    _In_ PCSTR Name,
+    _Inout_ PSYMBOL_INFO Symbol
+    );
+
+typedef BOOL(WINAPI *_SymGetTypeFromNameW)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 BaseOfDll,
+    _In_ PCWSTR Name,
+    _Inout_ PSYMBOL_INFOW Symbol
+    );
+
 typedef BOOL (WINAPI *_SymGetLineFromAddr64)(
     _In_ HANDLE hProcess,
     _In_ ULONG64 dwAddr,

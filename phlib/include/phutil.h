@@ -1049,6 +1049,20 @@ PhParseCommandLineFuzzy(
     _Out_opt_ PPH_STRING *FullFileName
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetCacheDirectory(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetCacheFileName(
+    _In_ PPH_STRING FileName
+    );
+
 FORCEINLINE
 HANDLE 
 NTAPI

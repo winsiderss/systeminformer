@@ -131,17 +131,17 @@ typedef enum _KPH_SECURITY_LEVEL
 
 typedef struct _KPH_DYN_STRUCT_DATA
 {
-    SHORT EgeGuid;
-    SHORT EpObjectTable;
+    SHORT EgeGuid;                  // dt nt!_ETW_GUID_ENTRY Guid
+    SHORT EpObjectTable;            // dt nt!_EPROCESS ObjectTable
     SHORT Reserved0;
     SHORT Reserved1;
     SHORT Reserved2;
-    SHORT EreGuidEntry;
-    SHORT HtHandleContentionEvent;
-    SHORT OtName;
-    SHORT OtIndex;
+    SHORT EreGuidEntry;             // dt nt!_ETW_REG_ENTRY GuidEntry
+    SHORT HtHandleContentionEvent;  // dt nt!_HANDLE_TABLE HandleContentionEvent
+    SHORT OtName;                   // dt nt!_OBJECT_ATTRIBUTES ObjectName
+    SHORT OtIndex;                  // dt nt!_OBJECT_TYPE Index
     SHORT ObDecodeShift;
-    SHORT ObAttributesShift;
+    SHORT ObAttributesShift;        // dt nt!_HANDLE_TABLE_ENTRY
 } KPH_DYN_STRUCT_DATA, *PKPH_DYN_STRUCT_DATA;
 
 typedef struct _KPH_DYN_PACKAGE

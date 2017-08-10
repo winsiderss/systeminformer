@@ -586,6 +586,9 @@ BOOLEAN PhShowConfirmMessage(
     PPH_STRING verb;
     PPH_STRING verbCaps;
     PPH_STRING action;
+    TASKDIALOGCONFIG config = { sizeof(config) };
+    TASKDIALOG_BUTTON buttons[2];
+    INT button;
 
     // Make sure the verb is all lowercase.
     verb = PhaLowerString(PhaCreateString(Verb));
@@ -597,53 +600,37 @@ BOOLEAN PhShowConfirmMessage(
     // "terminate", "the process" -> "terminate the process"
     action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
 
-    if (TaskDialogIndirect_Import())
+    config.hwndParent = hWnd;
+    config.hInstance = PhInstanceHandle;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;
+    config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
+
+    if (Message)
+        config.pszContent = PhaConcatStrings2(Message, L" Are you sure you want to continue?")->Buffer;
+
+    buttons[0].nButtonID = IDYES;
+    buttons[0].pszButtonText = verbCaps->Buffer;
+    buttons[1].nButtonID = IDNO;
+    buttons[1].pszButtonText = L"Cancel";
+
+    config.cButtons = 2;
+    config.pButtons = buttons;
+    config.nDefaultButton = IDYES;
+
+    if (TaskDialogIndirect(
+        &config,
+        &button,
+        NULL,
+        NULL
+        ) == S_OK)
     {
-        TASKDIALOGCONFIG config = { sizeof(config) };
-        TASKDIALOG_BUTTON buttons[2];
-        INT button;
-
-        config.hwndParent = hWnd;
-        config.hInstance = PhInstanceHandle;
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
-        config.pszWindowTitle = PhApplicationName;
-        config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;
-        config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
-
-        if (Message)
-            config.pszContent = PhaConcatStrings2(Message, L" Are you sure you want to continue?")->Buffer;
-
-        buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = verbCaps->Buffer;
-        buttons[1].nButtonID = IDNO;
-        buttons[1].pszButtonText = L"Cancel";
-
-        config.cButtons = 2;
-        config.pButtons = buttons;
-        config.nDefaultButton = IDYES;
-
-        if (TaskDialogIndirect_Import()(
-            &config,
-            &button,
-            NULL,
-            NULL
-            ) == S_OK)
-        {
-            return button == IDYES;
-        }
-        else
-        {
-            return FALSE;
-        }
+        return button == IDYES;
     }
     else
     {
-        return PhShowMessage(
-            hWnd,
-            MB_YESNO | MB_ICONWARNING,
-            L"Are you sure you want to %s?",
-            action->Buffer
-            ) == IDYES;
+        return FALSE;
     }
 }
 
@@ -5028,4 +5015,53 @@ BOOLEAN PhParseCommandLineFuzzy(
         *FullFileName = NULL;
 
     return FALSE;
+}
+
+PPH_STRING PhGetCacheDirectory(
+    VOID
+    )
+{
+    return PhGetKnownLocation(CSIDL_LOCAL_APPDATA, L"\\Process Hacker\\Cache\\");
+}
+
+PPH_STRING PhGetCacheFileName(
+    _In_ PPH_STRING FileName
+    )
+{
+    PPH_STRING cacheDirectory;
+    PPH_STRING cacheFilePath;
+    PPH_STRING cacheFullFilePath = NULL;
+    ULONG indexOfFileName = -1;
+    WCHAR alphastring[16] = L"";
+
+    cacheDirectory = PhGetCacheDirectory();
+    PhGenerateRandomAlphaString(alphastring, ARRAYSIZE(alphastring));
+
+    cacheFilePath = PhConcatStrings(
+        5,
+        PhGetStringOrEmpty(cacheDirectory),
+        L"\\",
+        alphastring,
+        L"\\",
+        PhGetStringOrEmpty(FileName)
+        );
+
+    if (cacheFullFilePath = PhGetFullPath(PhGetString(cacheFilePath), &indexOfFileName))
+    {
+        PPH_STRING directoryPath;
+
+        if (indexOfFileName != -1)
+        {
+            if (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName))
+            {
+                SHCreateDirectoryEx(NULL, directoryPath->Buffer, NULL);
+                PhDereferenceObject(directoryPath);
+            }
+        }
+    }
+
+    PhDereferenceObject(cacheFilePath);
+    PhDereferenceObject(cacheDirectory);
+
+    return cacheFullFilePath;
 }
