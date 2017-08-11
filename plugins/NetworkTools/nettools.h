@@ -106,12 +106,6 @@ typedef enum _PH_NETWORK_ACTION
 #define WM_TRACERT_COUNTRY (WM_APP + NETWORK_ACTION_TRACEROUTE + 1004)
 
 #define UPDATE_MENUITEM    1005
-#define PH_UPDATEISERRORED (WM_APP + 501)
-#define PH_UPDATEISCURRENT (WM_APP + 503)
-#define PH_UPDATENEWER     (WM_APP + 504)
-#define PH_UPDATESUCCESS   (WM_APP + 505)
-#define PH_UPDATEFAILURE   (WM_APP + 506)
-#define WM_SHOWDIALOG      (WM_APP + 550)
 
 typedef struct _NETWORK_PING_CONTEXT
 {
@@ -302,6 +296,10 @@ VOID ShowCheckingForUpdatesDialog(
 
 // page5.c
 VOID ShowInstallRestartDialog(
+    _In_ PPH_UPDATER_CONTEXT Context
+    );
+
+VOID ShowUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 

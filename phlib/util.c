@@ -3262,13 +3262,13 @@ VOID PhShellExecute(
 
     info.lpFile = FileName;
     info.lpParameters = Parameters;
+    info.fMask = SEE_MASK_FLAG_NO_UI;
     info.nShow = SW_SHOW;
     info.hwnd = hWnd;
 
     if (!ShellExecuteEx(&info))
     {
-        // It already displays error messages by itself.
-        //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+        PhShowStatus(hWnd, L"Unable to execute the program.", 0, GetLastError());
     }
 }
 
@@ -3301,7 +3301,7 @@ BOOLEAN PhShellExecuteEx(
 
     info.lpFile = FileName;
     info.lpParameters = Parameters;
-    info.fMask = SEE_MASK_NOCLOSEPROCESS;
+    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
     info.nShow = ShowWindowType;
     info.hwnd = hWnd;
 
@@ -3388,14 +3388,13 @@ VOID PhShellProperties(
 
     info.lpFile = FileName;
     info.nShow = SW_SHOW;
-    info.fMask = SEE_MASK_INVOKEIDLIST;
+    info.fMask = SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_NO_UI;
     info.lpVerb = L"properties";
     info.hwnd = hWnd;
 
     if (!ShellExecuteEx(&info))
     {
-        // It already displays error messages by itself.
-        //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+        PhShowStatus(hWnd, L"Unable to execute the program.", 0, GetLastError());
     }
 }
 

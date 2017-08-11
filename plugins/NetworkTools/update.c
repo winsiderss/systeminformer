@@ -608,57 +608,20 @@ CleanupExit:
         PhDereferenceObject(context->SetupFilePath);
     }
 
-    if (success)
+    if (context->DialogHandle)
     {
-        if (context->DialogHandle)
-            PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
-    }
-    else
-    {
-        if (context->DialogHandle)
-            PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+        if (success)
+        {
+            ShowInstallRestartDialog(context);
+        }
+        else
+        {
+            ShowUpdateFailedDialog(context);
+        }
     }
 
     PhDereferenceObject(context);
     return STATUS_SUCCESS;
-}
-
-LRESULT CALLBACK TaskDialogSubclassProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
-    )
-{
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
-        }
-        break;
-    case WM_SHOWDIALOG:
-        {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
-            else
-                ShowWindow(hwndDlg, SW_SHOW);
-
-            SetForegroundWindow(hwndDlg);
-        }
-        break;
-    case PH_UPDATESUCCESS:
-        {
-            ShowInstallRestartDialog(context);
-        }
-        break;
-    }
-
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -682,9 +645,6 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
-
-            // Subclass the Taskdialog
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
 
             ShowCheckForUpdatesDialog(context);
         }
