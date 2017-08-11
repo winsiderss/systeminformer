@@ -291,7 +291,7 @@ NTSTATUS GeoIPUpdateThread(
     PPH_STRING fwLinkUrl = NULL;
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
-    URL_COMPONENTS httpUrlComponents = { sizeof(URL_COMPONENTS) };
+    URL_COMPONENTS httpParts = { sizeof(URL_COMPONENTS) };
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
@@ -325,35 +325,37 @@ NTSTATUS GeoIPUpdateThread(
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
     // Set lengths to non-zero enabling these params to be cracked.
-    httpUrlComponents.dwSchemeLength = (ULONG)-1;
-    httpUrlComponents.dwHostNameLength = (ULONG)-1;
-    httpUrlComponents.dwUrlPathLength = (ULONG)-1;
+    httpParts.dwSchemeLength = ULONG_MAX;
+    httpParts.dwHostNameLength = ULONG_MAX;
+    httpParts.dwUrlPathLength = ULONG_MAX;
 
     if (!WinHttpCrackUrl(
         fwLinkUrl->Buffer,
         0,
         0,
-        &httpUrlComponents
+        &httpParts
         ))
     {
         goto CleanupExit;
     }
 
     // Create the Host string.
-    downloadHostPath = PhCreateStringEx(
-        httpUrlComponents.lpszHostName,
-        httpUrlComponents.dwHostNameLength * sizeof(WCHAR)
-        );
-    if (PhIsNullOrEmptyString(downloadHostPath))
+    if (PhIsNullOrEmptyString(downloadHostPath = PhCreateStringEx(
+        httpParts.lpszHostName,
+        httpParts.dwHostNameLength * sizeof(WCHAR)
+        )))
+    {
         goto CleanupExit;
+    }
 
-    // Create the Path string.
-    downloadUrlPath = PhCreateStringEx(
-        httpUrlComponents.lpszUrlPath,
-        httpUrlComponents.dwUrlPathLength * sizeof(WCHAR)
-        );
-    if (PhIsNullOrEmptyString(downloadUrlPath))
+    // Create the remote path string.
+    if (PhIsNullOrEmptyString(downloadUrlPath = PhCreateStringEx(
+        httpParts.lpszUrlPath,
+        httpParts.dwUrlPathLength * sizeof(WCHAR)
+        )))
+    {
         goto CleanupExit;
+    }
 
     if (!(httpSessionHandle = WinHttpOpen(
         PhGetString(userAgentString),
@@ -379,7 +381,7 @@ NTSTATUS GeoIPUpdateThread(
     if (!(httpConnectionHandle = WinHttpConnect(
         httpSessionHandle,
         PhGetString(downloadHostPath),
-        httpUrlComponents.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
+        httpParts.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
         0
         )))
     {
@@ -393,7 +395,7 @@ NTSTATUS GeoIPUpdateThread(
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | (httpUrlComponents.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
+        WINHTTP_FLAG_REFRESH | (httpParts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
         )))
     {
         goto CleanupExit;

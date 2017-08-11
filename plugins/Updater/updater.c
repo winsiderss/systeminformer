@@ -671,9 +671,9 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
 
     // Set lengths to non-zero enabling these params to be cracked.
-    httpParts.dwSchemeLength = (ULONG)-1;
-    httpParts.dwHostNameLength = (ULONG)-1;
-    httpParts.dwUrlPathLength = (ULONG)-1;
+    httpParts.dwSchemeLength = ULONG_MAX;
+    httpParts.dwHostNameLength = ULONG_MAX;
+    httpParts.dwUrlPathLength = ULONG_MAX;
 
     if (!WinHttpCrackUrl(
         PhGetStringOrEmpty(context->SetupFileDownloadUrl),
@@ -687,16 +687,22 @@ NTSTATUS UpdateDownloadThread(
     }
 
     // Create the Host string.
-    downloadHostPath = PhCreateStringEx(httpParts.lpszHostName, httpParts.dwHostNameLength * sizeof(WCHAR));
-
-    if (PhIsNullOrEmptyString(downloadHostPath))
+    if (PhIsNullOrEmptyString(downloadHostPath = PhCreateStringEx(
+        httpParts.lpszHostName,
+        httpParts.dwHostNameLength * sizeof(WCHAR)
+        )))
+    {
         goto CleanupExit;
+    }
 
     // Create the remote path string.
-    downloadUrlPath = PhCreateStringEx(httpParts.lpszUrlPath, httpParts.dwUrlPathLength * sizeof(WCHAR));
-
-    if (PhIsNullOrEmptyString(downloadUrlPath))
+    if (PhIsNullOrEmptyString(downloadUrlPath = PhCreateStringEx(
+        httpParts.lpszUrlPath,
+        httpParts.dwUrlPathLength * sizeof(WCHAR)
+        )))
+    {
         goto CleanupExit;
+    }
 
     // Create the local path string.
     context->SetupFilePath = UpdaterParseDownloadFileName(downloadUrlPath);

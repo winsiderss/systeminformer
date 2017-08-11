@@ -467,9 +467,9 @@ NTSTATUS UploadFileThreadStart(
     serviceInfo = GetUploadServiceInfo(context->Service);
 
     // Set lengths to non-zero enabling these params to be cracked.
-    httpComponents.dwSchemeLength = (ULONG)-1;
-    httpComponents.dwHostNameLength = (ULONG)-1;
-    httpComponents.dwUrlPathLength = (ULONG)-1;
+    httpComponents.dwSchemeLength = ULONG_MAX;
+    httpComponents.dwHostNameLength = ULONG_MAX;
+    httpComponents.dwUrlPathLength = ULONG_MAX;
 
     if (!WinHttpCrackUrl(
         PhGetString(context->UploadUrl),
