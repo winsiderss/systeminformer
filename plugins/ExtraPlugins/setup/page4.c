@@ -39,6 +39,7 @@ HRESULT CALLBACK ShowProgressCallbackProc(
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
+            PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UpdateDownloadThread, context);
         }
         break;

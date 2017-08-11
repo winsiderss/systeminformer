@@ -43,15 +43,6 @@ VOID FreeUpdateContext(
     _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
-    //PhClearReference(&Context->Version);
-    PhClearReference(&Context->RevVersion);
-    //PhClearReference(&Context->RelDate);
-    PhClearReference(&Context->Size);
-    //PhClearReference(&Context->Signature);
-    //PhClearReference(&Context->ReleaseNotesUrl);
-    PhClearReference(&Context->SetupFilePath);
-    PhClearReference(&Context->FileDownloadUrl);
-
     PhDereferenceObject(Context);
 }
 
@@ -254,6 +245,7 @@ NTSTATUS UpdateDownloadThread(
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PPH_STRING userAgentString = NULL;
+    PPH_STRING fileDownloadUrl = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
     ULONG indexOfFileName = -1;
     URL_COMPONENTS httpParts = { sizeof(URL_COMPONENTS) };
@@ -286,30 +278,46 @@ NTSTATUS UpdateDownloadThread(
         goto CleanupExit;
     }
 
-    context->FileDownloadUrl = PhFormatString(
+    fileDownloadUrl = PhFormatString(
         L"https://wj32.org/processhacker/plugins/download.php?id=%s&type=64",
         PhGetStringOrEmpty(context->Node->Id)
         );
 
     // Set lengths to non-zero enabling these params to be cracked.
-    httpParts.dwSchemeLength = (ULONG)-1;
-    httpParts.dwHostNameLength = (ULONG)-1;
-    httpParts.dwUrlPathLength = (ULONG)-1;
+    httpParts.dwSchemeLength = ULONG_MAX;
+    httpParts.dwHostNameLength = ULONG_MAX;
+    httpParts.dwUrlPathLength = ULONG_MAX;
 
     if (!WinHttpCrackUrl(
-        PhGetString(context->FileDownloadUrl),
+        PhGetString(fileDownloadUrl),
         0,
         0,
         &httpParts
         ))
     {
+        PhDereferenceObject(fileDownloadUrl);
         goto CleanupExit;
     }
 
+    PhDereferenceObject(fileDownloadUrl);
+
     // Create the Host string.
-    downloadHostPath = PhCreateStringEx(httpParts.lpszHostName, httpParts.dwHostNameLength * sizeof(WCHAR));
-    // Create the Path string.
-    downloadUrlPath = PhCreateStringEx(httpParts.lpszUrlPath, httpParts.dwUrlPathLength * sizeof(WCHAR));
+    if (PhIsNullOrEmptyString(downloadHostPath = PhCreateStringEx(
+        httpParts.lpszHostName,
+        httpParts.dwHostNameLength * sizeof(WCHAR)
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    // Create the remote path string.
+    if (PhIsNullOrEmptyString(downloadUrlPath = PhCreateStringEx(
+        httpParts.lpszUrlPath,
+        httpParts.dwUrlPathLength * sizeof(WCHAR)
+        )))
+    {
+        goto CleanupExit;
+    }
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
@@ -538,7 +546,10 @@ CleanupExit:
 
     if (updateSuccess)
     {
-        ShowInstallRestartDialog(context);
+        if (PhGetIntegerSetting(L"EnableWarnings"))
+            ShowUninstallRestartDialog(context);
+        else
+            SendMessage(context->DialogHandle, WM_CLOSE, 0, 0);
     }
     else
     {
@@ -569,13 +580,32 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             switch (context->Action)
             {
             case PLUGIN_ACTION_INSTALL:
-                ShowAvailableDialog(context);
+                {
+                    if (PhGetIntegerSetting(L"EnableWarnings"))
+                        ShowAvailableDialog(context);
+                    else
+                        ShowProgressDialog(context);
+                }
                 break;
             case PLUGIN_ACTION_UNINSTALL:
-                ShowPluginUninstallDialog(context);
+                {
+                    if (PhGetIntegerSetting(L"EnableWarnings"))
+                        ShowPluginUninstallDialog(context);
+                    else
+                        ShowPluginUninstallWithoutPrompt(context);
+                }
                 break;
             case PLUGIN_ACTION_RESTART:
-                ShowUninstallRestartDialog(context);
+                {
+                    if (PhGetIntegerSetting(L"EnableWarnings"))
+                    {
+                        ShowUninstallRestartDialog(context);
+                    }
+                    else
+                    {
+                        SendMessage(hwndDlg, WM_CLOSE, 0, 0);
+                    }
+                }
                 break;
             }
         }
