@@ -42,13 +42,7 @@
 #include "resource.h"
 
 #define IDD_WCT_MENUITEM 1000
-#define PH_UPDATEISERRORED (WM_APP + 501)
-#define PH_UPDATEAVAILABLE (WM_APP + 502)
-#define PH_UPDATENEWER     (WM_APP + 504)
-#define PH_UPDATESUCCESS   (WM_APP + 505)
-#define PH_UPDATEFAILURE   (WM_APP + 506)
-#define WM_SHOWDIALOG      (WM_APP + 550)
-#define WM_ACTION          (WM_APP + 1550)
+#define WM_ACTION (WM_APP + 601)
 #define ID_WCTSHOWCONTEXTMENU 19584
 
 #define PLUGIN_NAME L"dmex.ExtraPlugins"
@@ -76,7 +70,7 @@ typedef enum _TREE_PLUGIN_STATE
     PLUGIN_STATE_LOCAL,
     PLUGIN_STATE_RESTART,
     PLUGIN_STATE_REMOTE,
-    PLUGIN_STATE_UPDATE,
+    PLUGIN_STATE_UPDATE
 } TREE_PLUGIN_STATE;
 
 typedef enum _WCT_TREE_COLUMN_ITEM_NAME
@@ -190,7 +184,6 @@ BOOLEAN PhIsPluginLoadedByBaseName(_In_ PPH_STRINGREF BaseName);
 BOOLEAN PhIsPluginDisabled(_In_ PPH_STRINGREF BaseName);
 VOID PhSetPluginDisabled(_In_ PPH_STRINGREF BaseName, _In_ BOOLEAN Disable);
 
-
 VOID InitializePluginsTree(
     _In_ PWCT_CONTEXT context,
     _In_ HWND ParentWindowHandle,
@@ -256,9 +249,6 @@ typedef struct _PH_UPDATER_CONTEXT
     PLUGIN_ACTION Action;
     PPLUGIN_NODE Node;
 
-    PPH_STRING FileDownloadUrl;
-    PPH_STRING RevVersion;
-    PPH_STRING Size;
     PPH_STRING SetupFilePath;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
@@ -274,10 +264,6 @@ BOOLEAN StartInitialCheck(
     );
 
 // page1.c
-VOID InstallPluginDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
-    );
-
 VOID ShowAvailableDialog(_In_ PPH_UPDATER_CONTEXT Context);
 VOID TaskDialogLinkClicked(_In_ PPH_UPDATER_CONTEXT Context);
 VOID ShowProgressDialog(_In_ PPH_UPDATER_CONTEXT Context);
@@ -286,6 +272,9 @@ VOID ShowUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN HashFailed,
     _In_ BOOLEAN SignatureFailed
+    );
+VOID ShowPluginUninstallWithoutPrompt(
+    _In_ PPH_UPDATER_CONTEXT Context
     );
 
 // page6.c
