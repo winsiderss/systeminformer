@@ -516,6 +516,13 @@ NTSTATUS UpdateCheckSilentThread(
     if (!LastUpdateCheckExpired())
         goto CleanupExit;
 #endif
+
+    Sleep(5 * 1000);
+
+    // Clear the application cache directory.
+    PhClearCacheDirectory();
+
+    // Query latest update information from the server.
     if (!QueryUpdateData(context))
         goto CleanupExit;
 
@@ -573,7 +580,7 @@ NTSTATUS UpdateCheckThread(
 
     if (!context->HaveData)
     {
-        PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+        ShowUpdateFailedDialog(context, FALSE, FALSE);
 
         PhDereferenceObject(context);
         return STATUS_SUCCESS;
@@ -595,17 +602,17 @@ NTSTATUS UpdateCheckThread(
     if (currentVersion == latestVersion)
     {
         // User is running the latest version
-        PostMessage(context->DialogHandle, PH_UPDATEISCURRENT, 0, 0);
+        ShowLatestVersionDialog(context);
     }
     else if (currentVersion > latestVersion)
     {
         // User is running a newer version
-        PostMessage(context->DialogHandle, PH_UPDATENEWER, 0, 0);
+        ShowNewerVersionDialog(context);
     }
     else
     {
         // User is running an older version
-        PostMessage(context->DialogHandle, PH_UPDATEAVAILABLE, 0, 0);
+        ShowAvailableDialog(context);
     }
 
     PhDereferenceObject(context);
@@ -944,15 +951,20 @@ CleanupExit:
     {
         if (downloadSuccess && hashSuccess && signatureSuccess)
         {
-            PostMessage(context->DialogHandle, PH_UPDATESUCCESS, 0, 0);
+            ShowUpdateInstallDialog(context);
         }
         else if (downloadSuccess)
         {
-            PostMessage(context->DialogHandle, PH_UPDATEFAILURE, signatureSuccess, hashSuccess);
+            if (signatureSuccess)
+                ShowUpdateFailedDialog(context, TRUE, FALSE);
+            else if (hashSuccess)
+                ShowUpdateFailedDialog(context, FALSE, TRUE);
+            else
+                ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         else
         {
-            PostMessage(context->DialogHandle, PH_UPDATEISERRORED, 0, 0);
+            ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
     }
 
@@ -986,41 +998,6 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     case WM_NCDESTROY:
         {
             RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
-        }
-        break;
-    case PH_UPDATEAVAILABLE:
-        {
-            ShowAvailableDialog(context);
-        }
-        break;
-    case PH_UPDATEISCURRENT:
-        {
-            ShowLatestVersionDialog(context);
-        }
-        break;
-    case PH_UPDATENEWER:
-        {
-            ShowNewerVersionDialog(context);
-        }
-        break;
-    case PH_UPDATESUCCESS:
-        {
-            ShowUpdateInstallDialog(context);
-        }
-        break;
-    case PH_UPDATEFAILURE:
-        {
-            if ((BOOLEAN)wParam)
-                ShowUpdateFailedDialog(context, TRUE, FALSE);
-            else if ((BOOLEAN)lParam)
-                ShowUpdateFailedDialog(context, FALSE, TRUE);
-            else
-                ShowUpdateFailedDialog(context, FALSE, FALSE);
-        }
-        break;
-    case PH_UPDATEISERRORED:
-        {
-            ShowUpdateFailedDialog(context, FALSE, FALSE);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -1077,7 +1054,6 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     )
 {
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
-    UpdateDialogHandle = hwndDlg;
 
     switch (uMsg)
     {
@@ -1095,13 +1071,9 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
 
             if (context->StartupCheck)
-            {
                 ShowAvailableDialog(context);
-            }
             else
-            {
                 ShowCheckForUpdatesDialog(context);
-            }
         }
         break;
     }

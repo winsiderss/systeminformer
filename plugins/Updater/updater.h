@@ -39,13 +39,7 @@
 #include "resource.h"
 
 #define UPDATE_MENUITEM    1001
-#define PH_UPDATEISERRORED (WM_APP + 501)
-#define PH_UPDATEAVAILABLE (WM_APP + 502)
-#define PH_UPDATEISCURRENT (WM_APP + 503)
-#define PH_UPDATENEWER     (WM_APP + 504)
-#define PH_UPDATESUCCESS   (WM_APP + 505)
-#define PH_UPDATEFAILURE   (WM_APP + 506)
-#define PH_SHOWDIALOG      (WM_APP + 507)
+#define PH_SHOWDIALOG      (WM_APP + 501)
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")

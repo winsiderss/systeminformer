@@ -70,6 +70,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 info.lpVerb = PhGetOwnTokenAttributes().Elevated ? NULL : L"runas";
                 info.nShow = SW_SHOW;
                 info.hwnd = hwndDlg;
+                info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI;
 
                 ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
 
@@ -79,11 +80,22 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 }
                 else
                 {
+                    ULONG errorCode = GetLastError();
+
                     // Install failed, cancel the shutdown.
                     ProcessHacker_CancelEarlyShutdown(PhMainWndHandle);
 
-                    // Set button text for next action
-                    //Button_SetText(GetDlgItem(hwndDlg, IDOK), L"Retry");
+                    // Show error dialog.
+                    if (errorCode != ERROR_CANCELLED) // Ignore UAC decline.
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to execute the setup.", 0, GetLastError());
+
+                        if (context->StartupCheck)
+                            ShowAvailableDialog(context);
+                        else
+                            ShowCheckForUpdatesDialog(context);
+                    }
+
                     return S_FALSE;
                 }
             }

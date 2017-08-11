@@ -227,8 +227,7 @@ VOID ShowInstallRestartDialog(
 }
 
 VOID ShowUpdateFailedDialog(
-    _In_ PPH_UPDATER_CONTEXT Context,
-    _In_ BOOLEAN HashFailed
+    _In_ PPH_UPDATER_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -245,15 +244,7 @@ VOID ShowUpdateFailedDialog(
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
     config.pszMainInstruction = L"Error downloading GeoIP database.";
-
-    if (HashFailed)
-    {
-        config.pszContent = L"Hash check failed. Click Retry to download the database again.";
-    }
-    else
-    {
-        config.pszContent = L"Click Retry to download the database again.";
-    }
+    config.pszContent = L"Click Retry to download the database again.";
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }

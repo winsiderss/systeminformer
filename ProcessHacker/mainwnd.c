@@ -1867,7 +1867,7 @@ BOOLEAN PhMwpOnNotify(
             }
             else
             {
-                PhShowStatus(PhMainWndHandle, L"Unable to execute the program", status, 0);
+                PhShowStatus(PhMainWndHandle, L"Unable to execute the program.", status, 0);
                 *Result = RF_RETRY;
             }
 

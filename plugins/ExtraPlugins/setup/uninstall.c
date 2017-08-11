@@ -47,7 +47,7 @@ HRESULT CALLBACK TaskDialogUninstallCallbackProc(
                 PhDereferenceObject(baseNameString);
                 PhDereferenceObject(fileNameString);
 
-                PostMessage(context->DialogHandle, PH_UPDATENEWER, 0, 0);
+                ShowUninstallRestartDialog(context);
                 return S_FALSE;
             }
         }

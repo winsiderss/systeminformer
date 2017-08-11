@@ -246,7 +246,7 @@ NTSTATUS UpdateDownloadThread(
     BOOLEAN downloadSuccess = FALSE;
     BOOLEAN hashSuccess = FALSE;
     BOOLEAN signatureSuccess = FALSE;
-    LONG updateResult = PH_UPDATEISERRORED;
+    BOOLEAN updateSuccess = FALSE;
     HANDLE tempFileHandle = NULL;
     HINTERNET httpSessionHandle = NULL;
     HINTERNET httpConnectionHandle = NULL;
@@ -526,7 +526,7 @@ CleanupExit:
     {
         if (NT_SUCCESS(SetupExtractBuild(context)))
         {
-            updateResult = PH_UPDATESUCCESS;
+            updateSuccess = TRUE;
         }
     }
 
@@ -536,112 +536,16 @@ CleanupExit:
         PhDereferenceObject(context->SetupFilePath);
     }
 
-    PostMessage(context->DialogHandle, updateResult, 0, 0);
-
-    return STATUS_SUCCESS;
-}
-
-LRESULT CALLBACK TaskDialogSubclassProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
-    )
-{
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
-
-    switch (uMsg)
+    if (updateSuccess)
     {
-    case WM_NCDESTROY:
-        {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
-        }
-        break;
-    case WM_APP + 1:
-        {
-            if (IsIconic(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
-            else
-                ShowWindow(hwndDlg, SW_SHOW);
-
-            SetForegroundWindow(hwndDlg);
-        }
-        break;
-    case PH_UPDATEAVAILABLE:
-        {
-            ShowAvailableDialog(context);
-        }
-        break;
-    case PH_UPDATENEWER:
-        {
-            ShowUninstallRestartDialog(context);
-        }
-        break;
-    case PH_UPDATESUCCESS:
-        {
-            ShowInstallRestartDialog(context);
-        }
-        break;
-    case PH_UPDATEFAILURE:
-        {
-            if ((BOOLEAN)wParam)
-                ShowUpdateFailedDialog(context, TRUE, FALSE);
-            else if ((BOOLEAN)lParam)
-                ShowUpdateFailedDialog(context, FALSE, TRUE);
-            else
-                ShowUpdateFailedDialog(context, FALSE, FALSE);
-        }
-        break;
-    case PH_UPDATEISERRORED:
-        {
-            ShowUpdateFailedDialog(context, FALSE, FALSE);
-        }
-        break;
-    //case WM_PARENTNOTIFY:
-    //    {
-    //        if (wParam == WM_CREATE)
-    //        {
-    //            // uMsg == 49251 for expand/collapse button click
-    //            HWND hwndEdit = CreateWindowEx(
-    //                WS_EX_CLIENTEDGE,
-    //                L"EDIT",
-    //                NULL,
-    //                WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL,
-    //                5,
-    //                5,
-    //                390,
-    //                85,
-    //                (HWND)lParam, // parent window
-    //                0,
-    //                NULL,
-    //                NULL
-    //            );
-    //
-    //            PhCreateCommonFont(-11, hwndEdit);
-    //
-    //            // Add text to the window.
-    //            SendMessage(hwndEdit, WM_SETTEXT, 0, (LPARAM)L"TEST");
-    //        }
-    //    }
-    //    break;
-    //case WM_NCACTIVATE:
-    //    {
-    //        if (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle))
-    //        {
-    //            if (!context->FixedWindowStyles)
-    //            {
-    //                SetWindowLongPtr(hwndDlg, GWLP_HWNDPARENT, (LONG_PTR)PhMainWndHandle);
-    //                PhSetWindowExStyle(hwndDlg, WS_EX_APPWINDOW, WS_EX_APPWINDOW);
-    //                context->FixedWindowStyles = TRUE;
-    //            }
-    //        }
-    //    }
-    //    break;
+        ShowInstallRestartDialog(context);
+    }
+    else
+    {
+        ShowUpdateFailedDialog(context, FALSE, FALSE);
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return STATUS_SUCCESS;
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -659,26 +563,19 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     case TDN_CREATED:
         {
             context->DialogHandle = hwndDlg;
-            TaskDialogCreateIcons(context);
 
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
+            TaskDialogCreateIcons(context);
 
             switch (context->Action)
             {
             case PLUGIN_ACTION_INSTALL:
-                {
-                    ShowAvailableDialog(context);
-                }
+                ShowAvailableDialog(context);
                 break;
             case PLUGIN_ACTION_UNINSTALL:
-                {
-                    ShowPluginUninstallDialog(context);
-                }
+                ShowPluginUninstallDialog(context);
                 break;
             case PLUGIN_ACTION_RESTART:
-                {
-                    ShowUninstallRestartDialog(context);
-                }
+                ShowUninstallRestartDialog(context);
                 break;
             }
         }

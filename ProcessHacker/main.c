@@ -178,7 +178,7 @@ INT WINAPI wWinMain(
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
         {
-            PhShowStatus(NULL, L"Unable to execute the command", status, 0);
+            PhShowStatus(NULL, L"Unable to execute the command.", status, 0);
         }
 
         RtlExitUserProcess(status);

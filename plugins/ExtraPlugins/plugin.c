@@ -308,10 +308,6 @@ VOID EnumerateLoadedPlugins(
 
         pluginInstance = CONTAINING_RECORD(links, PHAPP_PLUGIN, Links);
 
-        // HACK: Hide the CommonUtil plugin since it's a required dependency for multiple plugins.
-        if (PhEqualStringRef2(&pluginInstance->Name, L"ProcessHacker.CommonUtil", TRUE))
-            continue;
-
         PhInitializeStringRefLongHint(&pluginBaseName, PhGetPluginBaseName(pluginInstance));
 
         if (PhIsPluginDisabled(&pluginBaseName))
