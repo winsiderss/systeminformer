@@ -219,6 +219,18 @@ VOID PhSetOptionsModuleList(
     case PH_MODULE_FLAGS_SIGNED_OPTION:
         Context->HideSignedModules = !Context->HideSignedModules;
         break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION:
+        Context->HighlightUntrustedModules = !Context->HighlightUntrustedModules;
+        break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_DOTNET_OPTION:
+        Context->HighlightDotNetModules = !Context->HighlightDotNetModules;
+        break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_IMMERSIVE_OPTION:
+        Context->HighlightImmersiveModules = !Context->HighlightImmersiveModules;
+        break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION:
+        Context->HighlightRelocatedModules = !Context->HighlightRelocatedModules;
+        break;
     }
 }
 
@@ -870,14 +882,16 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!moduleItem)
                 ; // Dummy
-            else if (PhCsUseColorDotNet && (moduleItem->Flags & LDRP_COR_IMAGE))
+            else if (context->HighlightUntrustedModules && moduleItem->VerifyResult != VrTrusted)
+                getNodeColor->BackColor = PhCsColorPacked;
+            else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
-            else if (PhCsUseColorImmersiveProcesses && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
+            else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
-            else if (PhCsUseColorRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
+            else if (context->HighlightRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewGetNodeFont:

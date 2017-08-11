@@ -60,6 +60,12 @@ typedef struct _PH_MODULE_NODE
 #define PH_MODULE_FLAGS_MAPPED_OPTION 2
 #define PH_MODULE_FLAGS_STATIC_OPTION 3
 #define PH_MODULE_FLAGS_SIGNED_OPTION 4
+#define PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION 5
+#define PH_MODULE_FLAGS_HIGHLIGHT_DOTNET_OPTION 6
+#define PH_MODULE_FLAGS_HIGHLIGHT_IMMERSIVE_OPTION 7
+#define PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION 8
+#define PH_MODULE_FLAGS_LOAD_MODULE_OPTION 9
+#define PH_MODULE_FLAGS_MODULE_STRINGS_OPTION 10
 
 typedef struct _PH_MODULE_LIST_CONTEXT
 {
@@ -80,7 +86,11 @@ typedef struct _PH_MODULE_LIST_CONTEXT
             ULONG HideMappedModules : 1;
             ULONG HideSignedModules : 1;
             ULONG HideStaticModules : 1;
-            ULONG Spare : 27;
+            ULONG HighlightUntrustedModules : 1;
+            ULONG HighlightDotNetModules : 1;
+            ULONG HighlightImmersiveModules : 1;
+            ULONG HighlightRelocatedModules : 1;
+            ULONG Spare : 23;
         };
     };
 

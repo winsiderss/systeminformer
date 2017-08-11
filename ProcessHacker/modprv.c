@@ -457,21 +457,22 @@ VOID PhModuleProviderUpdate(
 
             moduleItem = PhCreateModuleItem();
 
+            PhReferenceObject(module->Name);
+            PhReferenceObject(module->FileName);
+
             moduleItem->BaseAddress = module->BaseAddress;
-            PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
             moduleItem->EntryPoint = module->EntryPoint;
-            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
             moduleItem->Size = module->Size;
             moduleItem->Flags = module->Flags;
             moduleItem->Type = module->Type;
             moduleItem->LoadReason = module->LoadReason;
             moduleItem->LoadCount = module->LoadCount;
             moduleItem->LoadTime = module->LoadTime;
-
             moduleItem->Name = module->Name;
-            PhReferenceObject(moduleItem->Name);
             moduleItem->FileName = module->FileName;
-            PhReferenceObject(moduleItem->FileName);
+
+            PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);
 

@@ -670,29 +670,49 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM mappedItem;
                     PPH_EMENU_ITEM staticItem;
                     PPH_EMENU_ITEM verifiedItem;
+                    PPH_EMENU_ITEM untrustedItem;
+                    PPH_EMENU_ITEM dotnetItem;
+                    PPH_EMENU_ITEM immersiveItem;
+                    PPH_EMENU_ITEM relocatedItem;
+                    PPH_EMENU_ITEM stringsItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
 
                     menu = PhCreateEMenu();
-
                     PhInsertEMenuItem(menu, dynamicItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_DYNAMIC_OPTION, L"Hide dynamic", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, mappedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MAPPED_OPTION, L"Hide mapped", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, staticItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_STATIC_OPTION, L"Hide static", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Hide verified", NULL, NULL), -1);
-                    
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, dotnetItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_DOTNET_OPTION, L"Highlight .NET modules", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, immersiveItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_IMMERSIVE_OPTION, L"Highlight immersive modules", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, relocatedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION, L"Highlight relocated modules", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, untrustedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION, L"Highlight untrusted modules", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module", NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, stringsItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MODULE_STRINGS_OPTION, L"Strings...", NULL, NULL), -1);
+
                     if (modulesContext->ListContext.HideDynamicModules)
                         dynamicItem->Flags |= PH_EMENU_CHECKED;
-
                     if (modulesContext->ListContext.HideMappedModules)
                         mappedItem->Flags |= PH_EMENU_CHECKED;
-
                     if (modulesContext->ListContext.HideStaticModules)
                         staticItem->Flags |= PH_EMENU_CHECKED;
-
                     if (modulesContext->ListContext.HideSignedModules)
                         verifiedItem->Flags |= PH_EMENU_CHECKED;
-                    
+                    if (modulesContext->ListContext.HighlightDotNetModules)
+                        dotnetItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HighlightImmersiveModules)
+                        immersiveItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HighlightRelocatedModules)
+                        relocatedItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HighlightUntrustedModules)
+                        untrustedItem->Flags |= PH_EMENU_CHECKED;
+
+                    stringsItem->Flags |= PH_EMENU_DISABLED;
+
                     selectedItem = PhShowEMenu(
                         menu,
                         hwndDlg,
@@ -704,11 +724,20 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (selectedItem && selectedItem->Id)
                     {
-                        PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
+                        if (selectedItem->Id == PH_MODULE_FLAGS_LOAD_MODULE_OPTION)
+                        {
+                            PhReferenceObject(processItem);
+                            PhUiInjectDllProcess(hwndDlg, processItem);
+                            PhDereferenceObject(processItem);
+                        }
+                        else
+                        {
+                            PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
 
-                        PhSaveSettingsModuleList(&modulesContext->ListContext);
+                            PhSaveSettingsModuleList(&modulesContext->ListContext);
 
-                        PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
+                            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
+                        }
                     }
 
                     PhDestroyEMenu(menu);
