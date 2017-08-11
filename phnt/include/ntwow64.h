@@ -167,6 +167,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     ULONG ImplicitPathOptions;
     ULONG ReferenceCount;
     ULONG DependentLoadFlags;
+    UCHAR SigningLevel; // since REDSTONE2
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
 
 typedef struct _CURDIR32

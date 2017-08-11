@@ -91,7 +91,7 @@ BOOLEAN PluginsCleanupDirectoryCallback(
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*");
+            static UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*");
 
             PhEnumDirectoryFile(pluginsDirectoryHandle, &pattern, PluginsCleanupDirectoryCallback, PluginsDirectoryPath);
             NtClose(pluginsDirectoryHandle);
