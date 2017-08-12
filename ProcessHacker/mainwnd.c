@@ -89,7 +89,6 @@ static HFONT CurrentCustomFont;
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 static PPH_LIST LegacyAddMenuItemList;
-static BOOLEAN UsersMenuInitialized = FALSE;
 
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
 
@@ -319,11 +318,6 @@ LRESULT CALLBACK PhMwpWndProc(
                 return result;
         }
         break;
-    case WM_WTSSESSION_CHANGE:
-        {
-            PhMwpOnWtsSessionChange((ULONG)wParam, (ULONG)lParam);
-        }
-        break;
     }
 
     if (uMsg >= WM_PH_FIRST && uMsg <= WM_PH_LAST)
@@ -485,9 +479,6 @@ NTSTATUS PhMwpDelayedLoadFunction(
     _In_ PVOID Parameter
     )
 {
-    // Register for window station notifications.
-    WinStationRegisterConsoleNotification(NULL, PhMainWndHandle, WNOTIFY_ALL_SESSIONS);
-
     PhNfLoadStage2();
 
     // Make sure we get closed late in the shutdown process.
@@ -1666,18 +1657,6 @@ VOID PhMwpOnInitMenuPopup(
     if (!found)
         return;
 
-    if (Index == 3)
-    {
-        // Special case for Users menu.
-        if (!UsersMenuInitialized)
-        {
-            PhMwpUpdateUsersMenu();
-            UsersMenuInitialized = TRUE;
-        }
-
-        return;
-    }
-
     // Delete all items in this submenu.
     while (DeleteMenu(Menu, 0, MF_BYPOSITION)) ;
 
@@ -1693,9 +1672,16 @@ VOID PhMwpOnInitMenuPopup(
     SetMenuInfo(Menu, &menuInfo);
 
     menu = PhCreateEMenu();
-    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), Index);
 
-    PhMwpInitializeSubMenu(menu, Index);
+    if (Index == 3) // Special case for Users menu.
+    {
+        PhMwpUpdateUsersMenu(menu);
+    }
+    else
+    {
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND), Index);
+        PhMwpInitializeSubMenu(menu, Index);
+    }
 
     if (PhPluginsEnabled)
     {
@@ -1876,20 +1862,6 @@ BOOLEAN PhMwpOnNotify(
     }
 
     return FALSE;
-}
-
-VOID PhMwpOnWtsSessionChange(
-    _In_ ULONG Reason,
-    _In_ ULONG SessionId
-    )
-{
-    if (Reason == WTS_SESSION_LOGON || Reason == WTS_SESSION_LOGOFF)
-    {
-        if (UsersMenuInitialized)
-        {
-            PhMwpUpdateUsersMenu();
-        }
-    }
 }
 
 ULONG_PTR PhMwpOnUserMessage(
@@ -2557,7 +2529,14 @@ VOID PhMwpDispatchMenuCommand(
     case ID_USER_SENDMESSAGE:
     case ID_USER_PROPERTIES:
         {
-            SelectedUserSessionId = (ULONG)ItemData;
+            PPH_EMENU_ITEM menuItem;
+
+            menuItem = (PPH_EMENU_ITEM)ItemData;
+
+            if (menuItem && menuItem->Parent)
+            {
+                SelectedUserSessionId = PtrToUlong(menuItem->Parent->Context);
+            }
         }
         break;
     }
@@ -3561,31 +3540,22 @@ BOOLEAN PhMwpPluginNotifyEvent(
 }
 
 VOID PhMwpUpdateUsersMenu(
-    VOID
+    _In_ PPH_EMENU UsersMenu
     )
 {
-    HMENU menu;
     PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
-    ULONG j;
-    MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
-
-    menu = SubMenuHandles[3];
-
-    // Delete all items in the Users menu.
-    while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
 
     if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
         for (i = 0; i < numberOfSessions; i++)
         {
-            HMENU userMenu;
+            PPH_EMENU_ITEM userMenu;
             PPH_STRING menuText;
             PPH_STRING escapedMenuText;
             WINSTATIONINFORMATION winStationInfo;
             ULONG returnLength;
-            ULONG numberOfItems;
 
             if (!WinStationQueryInformationW(
                 NULL,
@@ -3615,30 +3585,12 @@ VOID PhMwpUpdateUsersMenu(
             escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
             PhDereferenceObject(menuText);
 
-            userMenu = GetSubMenu(LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_USER)), 0);
-            AppendMenu(
-                menu,
-                MF_STRING | MF_POPUP,
-                (UINT_PTR)userMenu,
-                escapedMenuText->Buffer
-                );
+            PhInsertEMenuItem(UsersMenu, userMenu = PhCreateEMenuItem(0, IDR_USER, escapedMenuText->Buffer, NULL, UlongToPtr(sessions[i].SessionId)), -1);
+            PhLoadResourceEMenuItem(userMenu, PhInstanceHandle, MAKEINTRESOURCE(IDR_USER), 0);
 
             PhDereferenceObject(escapedMenuText);
-
-            menuItemInfo.fMask = MIIM_DATA;
-            menuItemInfo.dwItemData = sessions[i].SessionId;
-
-            numberOfItems = GetMenuItemCount(userMenu);
-
-            if (numberOfItems != -1)
-            {
-                for (j = 0; j < numberOfItems; j++)
-                    SetMenuItemInfo(userMenu, j, TRUE, &menuItemInfo);
-            }
         }
 
         WinStationFreeMemory(sessions);
     }
-
-    DrawMenuBar(PhMainWndHandle);
 }
