@@ -306,7 +306,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation
     //   can be used.
 
-    if (KphIsConnected())
+    if (KphIsConnected() && KphIsVerified())
     {
         PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
