@@ -807,7 +807,11 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             if (status == STATUS_ABANDONED)
                 EndDialog(hwndDlg, IDCANCEL);
             else if (!NT_SUCCESS(status))
-                PhShowStatus(hwndDlg, L"Unable to load the stack", status, 0);
+            {
+                // HACK: Show error dialog on the parent window.
+                PhShowStatus(GetParent(hwndDlg), L"Unable to load the stack.", status, 0);
+                EndDialog(hwndDlg, IDCANCEL);
+            }
         }
         break;
     case WM_DESTROY:
@@ -850,7 +854,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
                     if (!NT_SUCCESS(status = PhpRefreshThreadStack(hwndDlg, context)))
                     {
-                        PhShowStatus(hwndDlg, L"Unable to load the stack", status, 0);
+                        PhShowStatus(hwndDlg, L"Unable to refresh the stack.", status, 0);
                     }
                 }
                 break;
