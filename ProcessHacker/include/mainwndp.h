@@ -119,11 +119,6 @@ BOOLEAN PhMwpOnNotify(
     _Out_ LRESULT *Result
     );
 
-VOID PhMwpOnWtsSessionChange(
-    _In_ ULONG Reason,
-    _In_ ULONG SessionId
-    );
-
 ULONG_PTR PhMwpOnUserMessage(
     _In_ ULONG Message,
     _In_ ULONG_PTR WParam,
@@ -506,7 +501,7 @@ VOID PhMwpOnNetworkItemsUpdated(
 // Users
 
 VOID PhMwpUpdateUsersMenu(
-    VOID
+    _In_ PPH_EMENU UsersMenu
     );
 
 #endif
