@@ -328,7 +328,7 @@ VOID SetupStopService(
 
     serviceHandle = PhOpenService(
         ServiceName,
-        SERVICE_QUERY_STATUS | SERVICE_STOP
+        SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE
         );
 
     if (serviceHandle)
@@ -378,6 +378,8 @@ VOID SetupStopService(
             }
         }
 
+        DeleteService(serviceHandle);
+       
         CloseServiceHandle(serviceHandle);
     }
 }
@@ -422,7 +424,6 @@ BOOLEAN SetupUninstallKph(
     )
 {
     SetupStopService(L"KProcessHacker2");
-
     SetupStopService(L"KProcessHacker3");
 
     return TRUE;
