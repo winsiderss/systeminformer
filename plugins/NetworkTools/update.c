@@ -520,16 +520,21 @@ NTSTATUS GeoIPUpdateThread(
         }
 
         {
-            PPH_STRING gzpath;
+            PPH_STRING dbpath;
             PPH_BYTES mmdbGzPath;
             gzFile gzfile;
 
-            gzpath = PH_AUTO(PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
+            dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
+
+            if (PhIsNullOrEmptyString(dbpath))
+                PhMoveReference(&dbpath, PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
+
+            PhAutoDereferenceObject(dbpath);
             mmdbGzPath = PH_AUTO(PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath)));
 
-            if (RtlDoesFileExists_U(PhGetString(gzpath)))
+            if (RtlDoesFileExists_U(PhGetString(dbpath)))
             {
-                if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(gzpath))))
+                if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(dbpath))))
                     goto CleanupExit;
             }
 
@@ -539,7 +544,7 @@ NTSTATUS GeoIPUpdateThread(
 
                 if (NT_SUCCESS(PhCreateFileWin32(
                     &mmdbFileHandle,
-                    PhGetStringOrEmpty(gzpath),
+                    PhGetStringOrEmpty(dbpath),
                     FILE_GENERIC_READ | FILE_GENERIC_WRITE,
                     FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
