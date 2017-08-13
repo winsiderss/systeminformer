@@ -350,6 +350,14 @@ PhGetTokenGroups(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetTokenRestrictedSids(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_GROUPS* RestrictedSids
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTokenPrivileges(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_PRIVILEGES *Privileges
