@@ -54,6 +54,7 @@ typedef struct _TOKEN_PAGE_CONTEXT
     HWND PrivilegesListViewHandle;
 
     PTOKEN_GROUPS Groups;
+    PTOKEN_GROUPS RestrictedSids;
     PTOKEN_PRIVILEGES Privileges;
     PTOKEN_GROUPS Capabilities;
 
@@ -204,7 +205,8 @@ INT CALLBACK PhpTokenPropPageProc(
 }
 
 PPH_STRING PhGetGroupAttributesString(
-    _In_ ULONG Attributes
+    _In_ ULONG Attributes,
+    _In_ BOOLEAN Restricted
     )
 {
     PWSTR baseString;
@@ -213,40 +215,51 @@ PPH_STRING PhGetGroupAttributesString(
     if (Attributes & SE_GROUP_INTEGRITY)
     {
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
-            return PhCreateString(L"Integrity");
+            string = PhCreateString(L"Integrity");
         else
-            return PhCreateString(L"Integrity (disabled)");
+            string = PhCreateString(L"Integrity (disabled)");
     }
-
-    if (Attributes & SE_GROUP_LOGON_ID)
-        baseString = L"Logon ID";
-    else if (Attributes & SE_GROUP_MANDATORY)
-        baseString = L"Mandatory";
-    else if (Attributes & SE_GROUP_OWNER)
-        baseString = L"Owner";
-    else if (Attributes & SE_GROUP_RESOURCE)
-        baseString = L"Resource";
-    else if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
-        baseString = L"Use for deny only";
     else
-        baseString = NULL;
-
-    if (!baseString)
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-            return PhCreateString(L"Default enabled");
-        else if (Attributes & SE_GROUP_ENABLED)
-            return PhReferenceEmptyString();
+        if (Attributes & SE_GROUP_LOGON_ID)
+            baseString = L"Logon ID";
+        else if (Attributes & SE_GROUP_MANDATORY)
+            baseString = L"Mandatory";
+        else if (Attributes & SE_GROUP_OWNER)
+            baseString = L"Owner";
+        else if (Attributes & SE_GROUP_RESOURCE)
+            baseString = L"Resource";
+        else if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
+            baseString = L"Use for deny only";
         else
-            return PhCreateString(L"Disabled");
+            baseString = NULL;
+
+        if (!baseString)
+        {
+            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+                string = PhCreateString(L"Default enabled");
+            else if (Attributes & SE_GROUP_ENABLED)
+                string = PhReferenceEmptyString();
+            else
+                string = PhCreateString(L"Disabled");
+        }
+        else
+        {
+            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+                string = PhConcatStrings2(baseString, L" (default enabled)");
+            else if (Attributes & SE_GROUP_ENABLED)
+                string = PhCreateString(baseString);
+            else
+                string = PhConcatStrings2(baseString, L" (disabled)");
+        }
     }
 
-    if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-        string = PhConcatStrings2(baseString, L" (default enabled)");
-    else if (Attributes & SE_GROUP_ENABLED)
-        string = PhCreateString(baseString);
-    else
-        string = PhConcatStrings2(baseString, L" (disabled)");
+    if (Restricted)
+    {
+        PPH_STRING prefixString = string;
+        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
+        PhDereferenceObject(prefixString);
+    }
 
     return string;
 }
@@ -332,6 +345,35 @@ PWSTR PhGetElevationTypeString(
     }
 }
 
+VOID PhpUpdateSidsFromTokenGroups(
+    _In_ HWND GroupsLv,
+    _In_ PTOKEN_GROUPS Groups,
+    _In_ BOOLEAN Restricted
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Groups->GroupCount; i++)
+    {
+        INT lvItemIndex;
+        PPH_STRING fullName;
+        PPH_STRING attributesString;
+
+        if (!(fullName = PhGetSidFullName(Groups->Groups[i].Sid, TRUE, NULL)))
+            fullName = PhSidToStringSid(Groups->Groups[i].Sid);
+
+        if (fullName)
+        {
+            lvItemIndex = PhAddListViewItem(GroupsLv, MAXINT, fullName->Buffer, &Groups->Groups[i]);
+            attributesString = PhGetGroupAttributesString(Groups->Groups[i].Attributes, Restricted);
+            PhSetListViewSubItem(GroupsLv, lvItemIndex, 1, attributesString->Buffer);
+
+            PhDereferenceObject(attributesString);
+            PhDereferenceObject(fullName);
+        }
+    }
+}
+
 BOOLEAN PhpUpdateTokenGroups(
     _In_ HWND hwndDlg,
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
@@ -340,7 +382,7 @@ BOOLEAN PhpUpdateTokenGroups(
     )
 {
     PTOKEN_GROUPS groups;
-    ULONG i;
+    PTOKEN_GROUPS restrictedSIDs = NULL;
 
     if (!NT_SUCCESS(PhGetTokenGroups(TokenHandle, &groups)))
         return FALSE;
@@ -349,29 +391,21 @@ BOOLEAN PhpUpdateTokenGroups(
 
     ListView_DeleteAllItems(GroupsLv);
 
-    for (i = 0; i < groups->GroupCount; i++)
+    PhpUpdateSidsFromTokenGroups(GroupsLv, groups, FALSE);
+
+    if (NT_SUCCESS(PhGetTokenRestrictedSids(TokenHandle, &restrictedSIDs)))
     {
-        INT lvItemIndex;
-        PPH_STRING fullName;
-        PPH_STRING attributesString;
-
-        if (!(fullName = PhGetSidFullName(groups->Groups[i].Sid, TRUE, NULL)))
-            fullName = PhSidToStringSid(groups->Groups[i].Sid);
-
-        if (fullName)
-        {
-            lvItemIndex = PhAddListViewItem(GroupsLv, MAXINT, fullName->Buffer, &groups->Groups[i]);
-            attributesString = PhGetGroupAttributesString(groups->Groups[i].Attributes);
-            PhSetListViewSubItem(GroupsLv, lvItemIndex, 1, attributesString->Buffer);
-
-            PhDereferenceObject(attributesString);
-            PhDereferenceObject(fullName);
-        }
+        PhpUpdateSidsFromTokenGroups(GroupsLv, restrictedSIDs, TRUE);
     }
 
     ExtendedListView_SortItems(GroupsLv);
 
     ExtendedListView_SetRedraw(GroupsLv, TRUE);
+
+    if (TokenPageContext->RestrictedSids)
+        PhFree(TokenPageContext->RestrictedSids);
+
+    TokenPageContext->RestrictedSids = restrictedSIDs;
 
     if (TokenPageContext->Groups)
         PhFree(TokenPageContext->Groups);
@@ -1389,7 +1423,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
                             lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, name->Buffer,
                                 &tokenPageContext->Capabilities->Groups[i]);
                             attributesString = PhGetGroupAttributesString(
-                                tokenPageContext->Capabilities->Groups[i].Attributes);
+                                tokenPageContext->Capabilities->Groups[i].Attributes, FALSE);
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, attributesString->Buffer);
 
                             PhDereferenceObject(attributesString);
