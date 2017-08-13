@@ -95,6 +95,20 @@ PhGetStringSetting(
     _In_ PWSTR Name
     );
 
+FORCEINLINE 
+PPH_STRING 
+PhGetExpandStringSetting(
+    _In_ PWSTR Name
+    )
+{
+    PPH_STRING setting;
+
+    setting = PhGetStringSetting(Name);
+    PhMoveReference(&setting, PhExpandEnvironmentStrings(&setting->sr));
+
+    return setting;
+}
+
 _May_raise_
 PHLIBAPI
 VOID
