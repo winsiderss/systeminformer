@@ -454,15 +454,15 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(LocalAddress),
-                    SORT_FUNCTION(LocalHostname),
                     SORT_FUNCTION(LocalPort),
                     SORT_FUNCTION(RemoteAddress),
-                    SORT_FUNCTION(RemoteHostname),
                     SORT_FUNCTION(RemotePort),
                     SORT_FUNCTION(Protocol),
                     SORT_FUNCTION(State),
                     SORT_FUNCTION(Owner),
-                    SORT_FUNCTION(TimeStamp)
+                    SORT_FUNCTION(TimeStamp),
+                    SORT_FUNCTION(LocalHostname),
+                    SORT_FUNCTION(RemoteHostname)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
