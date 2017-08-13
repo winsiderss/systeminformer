@@ -624,6 +624,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSaveListViewColumnsToSetting(L"TokenPrivilegesListViewColumns", tokenPageContext->PrivilegesListViewHandle);
 
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
+            if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
         }
         break;
