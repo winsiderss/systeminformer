@@ -1869,6 +1869,25 @@ NTSTATUS PhGetTokenGroups(
 }
 
 /**
+ * Get a token's restricted SIDs.
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param RestrictedSids A variable which receives a pointer to a structure containing the token's restricted SIDs.
+ * You must free the structure using PhFree() when you no longer need it.
+ */
+NTSTATUS PhGetTokenRestrictedSids(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_GROUPS* RestrictedSids
+)
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenRestrictedSids,
+        RestrictedSids
+        );
+}
+
+/**
  * Gets a token's privileges.
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.

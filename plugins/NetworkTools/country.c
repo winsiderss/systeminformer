@@ -31,11 +31,14 @@ VOID LoadGeoLiteDb(
     VOID
     )
 {
-    PPH_STRING path;
+    PPH_STRING dbpath;
 
-    path = PH_AUTO(PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
+    dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
 
-    if (MMDB_open(PhGetString(path), MMDB_MODE_MMAP, &GeoDb) == MMDB_SUCCESS)
+    if (PhIsNullOrEmptyString(dbpath))
+        PhMoveReference(&dbpath, PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
+
+    if (MMDB_open(PhGetString(dbpath), MMDB_MODE_MMAP, &GeoDb) == MMDB_SUCCESS)
     {
         time_t systemTime;
 
@@ -55,6 +58,8 @@ VOID LoadGeoLiteDb(
 
         GeoDbLoaded = TRUE;
     }
+
+    PhDereferenceObject(dbpath);
 }
 
 VOID FreeGeoLiteDb(

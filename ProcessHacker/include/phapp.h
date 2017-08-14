@@ -789,7 +789,8 @@ VOID PhShowThreadStackDialog(
 // tokprp
 
 PPH_STRING PhGetGroupAttributesString(
-    _In_ ULONG Attributes
+    _In_ ULONG Attributes,
+    _In_ BOOLEAN Restricted
     );
 
 PWSTR PhGetPrivilegeAttributesString(

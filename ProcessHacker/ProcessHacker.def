@@ -639,7 +639,6 @@ EXPORTS
 	PhGetJsonObjectAsArrayList
 
 ; cache
-	PhGetCacheDirectory
 	PhClearCacheDirectory
 	PhCreateCacheFile
 	PhDeleteCacheFile
