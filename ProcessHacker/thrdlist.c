@@ -101,6 +101,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(hwnd, PHTHTLC_STARTADDRESS, TRUE, L"Start address", 180, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumnEx(hwnd, PHTHTLC_PRIORITY, TRUE, L"Priority", 80, PH_ALIGN_LEFT, 4, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHTHTLC_SERVICE, FALSE, L"Service", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHTHTLC_NAME, FALSE, L"Name", 100, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -162,6 +163,13 @@ VOID PhLoadSettingsThreadList(
     if (Context->HasServices)
     {
         column.Id = PHTHTLC_SERVICE;
+        column.Visible = TRUE;
+        TreeNew_SetColumn(Context->TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &column);
+    }
+
+    if (WindowsVersion >= WINDOWS_10_RS1)
+    {
+        column.Id = PHTHTLC_NAME;
         column.Visible = TRUE;
         TreeNew_SetColumn(Context->TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &column);
     }
@@ -417,6 +425,12 @@ BEGIN_SORT_FUNCTION(Service)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhCompareStringWithNull(threadItem1->ThreadName, threadItem2->ThreadName, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -448,7 +462,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(CyclesDelta),
                     SORT_FUNCTION(StartAddress),
                     SORT_FUNCTION(Priority),
-                    SORT_FUNCTION(Service)
+                    SORT_FUNCTION(Service),
+                    SORT_FUNCTION(Name)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -563,6 +578,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PHTHTLC_SERVICE:
                 getCellText->Text = PhGetStringRef(threadItem->ServiceName);
+                break;
+            case PHTHTLC_NAME:
+                getCellText->Text = PhGetStringRef(threadItem->ThreadName);
                 break;
             default:
                 return FALSE;
