@@ -72,15 +72,37 @@ BEGIN_SORT_FUNCTION(Ping4)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Country)
+{
+    sortResult = PhCompareStringWithNull(node1->CountryString, node2->CountryString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IpAddress)
+{
+    sortResult = PhCompareStringWithNull(node1->IpAddressString, node2->IpAddressString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Hostname)
+{
+    sortResult = PhCompareStringWithNull(node1->HostnameString, node2->HostnameString, TRUE);
+}
+END_SORT_FUNCTION
+
 VOID TracertLoadSettingsTreeList(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
     PPH_STRING settings;
+    PH_INTEGER_PAIR sortSettings;
 
-    settings = PhGetStringSetting(SETTING_NAME_TRACERT_LIST_COLUMNS);
+    settings = PhGetStringSetting(SETTING_NAME_TRACERT_TREE_LIST_COLUMNS);
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
+
+    sortSettings = PhGetIntegerPairSetting(SETTING_NAME_TRACERT_TREE_LIST_SORT);
+    TreeNew_SetSort(Context->TreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 }
 
 VOID TracertSaveSettingsTreeList(
@@ -88,10 +110,18 @@ VOID TracertSaveSettingsTreeList(
     )
 {
     PPH_STRING settings;
+    PH_INTEGER_PAIR sortSettings;
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
 
     settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(SETTING_NAME_TRACERT_LIST_COLUMNS, &settings->sr);
+    PhSetStringSetting2(SETTING_NAME_TRACERT_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
+
+    TreeNew_GetSort(Context->TreeNewHandle, &sortColumn, &sortOrder);
+    sortSettings.X = sortColumn;
+    sortSettings.Y = sortOrder;
+    PhSetIntegerPairSetting(SETTING_NAME_TRACERT_TREE_LIST_SORT, sortSettings);
 }
 
 BOOLEAN TracertNodeHashtableEqualFunction(
@@ -268,6 +298,9 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     SORT_FUNCTION(Ping2),
                     SORT_FUNCTION(Ping3),
                     SORT_FUNCTION(Ping4),
+                    SORT_FUNCTION(IpAddress),
+                    SORT_FUNCTION(Hostname),
+                    SORT_FUNCTION(Country),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -549,7 +582,6 @@ VOID InitializeTracertTree(
     //for (INT i = 0; i < MAX_PINGS; i++)
     //    PhAddTreeNewColumn(context->TreeNewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
 
-    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, AscendingSortOrder);
 
     TracertLoadSettingsTreeList(Context);
