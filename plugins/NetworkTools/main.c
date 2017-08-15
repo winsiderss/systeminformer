@@ -593,7 +593,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_PING_SIZE, L"20" }, // 32 byte packet
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_TRACERT_WINDOW_SIZE, L"@96|850,490" },
-                { StringSettingType, SETTING_NAME_TRACERT_LIST_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_TRACERT_TREE_LIST_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_TRACERT_TREE_LIST_SORT, L"0,1" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"30" },
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
