@@ -1108,10 +1108,7 @@ NTSTATUS PhGetProcessMappedFileName(
     }
 
     unicodeString = (PUNICODE_STRING)buffer;
-    *FileName = PhCreateStringEx(
-        unicodeString->Buffer,
-        unicodeString->Length
-        );
+    *FileName = PhCreateStringFromUnicodeString(unicodeString);
     PhFree(buffer);
 
     return status;
@@ -2703,10 +2700,7 @@ NTSTATUS PhGetDriverName(
         )))
         return status;
 
-    *Name = PhCreateStringEx(
-        unicodeString->Buffer,
-        unicodeString->Length
-        );
+    *Name = PhCreateStringFromUnicodeString(unicodeString);
     PhFree(unicodeString);
 
     return status;
@@ -2736,10 +2730,7 @@ NTSTATUS PhGetDriverServiceKeyName(
         )))
         return status;
 
-    *ServiceKeyName = PhCreateStringEx(
-        unicodeString->Buffer,
-        unicodeString->Length
-        );
+    *ServiceKeyName = PhCreateStringFromUnicodeString(unicodeString);
     PhFree(unicodeString);
 
     return status;
