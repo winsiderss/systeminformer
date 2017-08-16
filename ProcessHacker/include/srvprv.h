@@ -11,6 +11,8 @@ PHAPPAPI extern PH_CALLBACK PhServicesUpdatedEvent; // phapppub
 extern BOOLEAN PhEnableServiceNonPoll;
 
 // begin_phapppub
+typedef enum _VERIFY_RESULT VERIFY_RESULT;
+
 typedef struct _PH_SERVICE_ITEM
 {
     PH_STRINGREF Key; // points to Name
@@ -28,13 +30,26 @@ typedef struct _PH_SERVICE_ITEM
     ULONG StartType;
     ULONG ErrorControl;
 // end_phapppub
-    BOOLEAN DelayedStart;
-    BOOLEAN HasTriggers;
 
-    BOOLEAN PendingProcess;
-    BOOLEAN NeedsConfigUpdate;
+    union
+    {
+        BOOLEAN BitFlags;
+        struct
+        {
+            BOOLEAN DelayedStart : 1;
+            BOOLEAN HasTriggers : 1;
+            BOOLEAN PendingProcess : 1;
+            BOOLEAN NeedsConfigUpdate : 1;
+            BOOLEAN JustProcessed : 1;
+            BOOLEAN Spare : 3;
+        };
+    };
+
+    VERIFY_RESULT VerifyResult;
+    PPH_STRING VerifySignerName;
 
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
+
 // begin_phapppub
 } PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
 // end_phapppub
