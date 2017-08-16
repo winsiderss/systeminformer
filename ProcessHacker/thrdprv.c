@@ -588,7 +588,7 @@ NTSTATUS PhpThreadQueryWorker(
         PVOID buffer;
         ULONG bufferSize;
         ULONG returnLength;
-        PUNICODE_STRING unicodeString;
+        PTHREAD_NAME_INFORMATION threadNameInfo;
 
         bufferSize = 0x100;
         buffer = PhAllocate(bufferSize);
@@ -618,9 +618,9 @@ NTSTATUS PhpThreadQueryWorker(
 
         if (NT_SUCCESS(status))
         {
-            unicodeString = (PUNICODE_STRING)buffer;
+            threadNameInfo = (PTHREAD_NAME_INFORMATION)buffer;
 
-            data->ThreadName = PhCreateStringFromUnicodeString(unicodeString);
+            data->ThreadName = PhCreateStringFromUnicodeString(&threadNameInfo->ThreadName);
         }
 
         PhFree(buffer);
