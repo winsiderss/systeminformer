@@ -44,13 +44,11 @@ typedef struct _PH_SERVICE_ITEM
             BOOLEAN Spare : 3;
         };
     };
-
+// begin_phapppub
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
-
-// begin_phapppub
 } PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
 // end_phapppub
 
