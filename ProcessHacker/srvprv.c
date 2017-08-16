@@ -256,6 +256,14 @@ VOID PhMarkNeedsConfigUpdateServiceItem(
         PhpNonPollGate = 1;
 }
 
+VOID PhpResetServiceNonPollGate(
+    VOID
+    )
+{
+    if (PhEnableServiceNonPoll)
+        PhpNonPollGate = 1;
+}
+
 VOID PhpRemoveServiceItem(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -477,8 +485,11 @@ NTSTATUS PhpServiceQueryWorker(
             &data->VerifySignerName,
             FALSE
             );
+
         PhDereferenceObject(serviceFileName);
     }
+
+    PhpResetServiceNonPollGate(); // HACK
 
     RtlInterlockedPushEntrySList(&PhpServiceQueryListHead, &data->ListEntry);
 
@@ -492,7 +503,7 @@ VOID PhpQueueServiceQuery(
     PPH_SERVICE_QUERY_DATA data;
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
-    if (!PhEnableProcessQueryStage2) // Reuse the same setting for convenience.
+    if (!PhEnableProcessQueryStage2)
         return;
 
     data = PhAllocate(sizeof(PH_SERVICE_QUERY_DATA));
@@ -605,7 +616,7 @@ VOID PhServiceProviderUpdate(
 
             data->ServiceItem->VerifyResult = data->VerifyResult;
             data->ServiceItem->VerifySignerName = data->VerifySignerName;
-            data->ServiceItem->JustProcessed = TRUE;
+            data->ServiceItem->NeedsVerifyUpdate = TRUE;
 
             PhDereferenceObject(data->ServiceItem);
             PhFree(data);
@@ -746,8 +757,6 @@ VOID PhServiceProviderUpdate(
             }
             else
             {
-                BOOLEAN modified = FALSE;
-
                 if (WindowsVersion >= WINDOWS_10_RS2)
                 {
                     // https://github.com/processhacker2/processhacker/issues/120
@@ -757,18 +766,13 @@ VOID PhServiceProviderUpdate(
                         serviceEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
                 }
 
-                if (serviceItem->JustProcessed)
-                    modified = TRUE;
-
-                serviceItem->JustProcessed = FALSE;
-
                 if (
-                    modified ||
                     serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType ||
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
                     serviceItem->ControlsAccepted != serviceEntry->ServiceStatusProcess.dwControlsAccepted ||
                     serviceItem->ProcessId != UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId) ||
-                    serviceItem->NeedsConfigUpdate
+                    serviceItem->NeedsConfigUpdate ||
+                    serviceItem->NeedsVerifyUpdate
                     )
                 {
                     PH_SERVICE_MODIFIED_DATA serviceModifiedData;
@@ -861,6 +865,9 @@ VOID PhServiceProviderUpdate(
                         PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
                         serviceItem->NeedsConfigUpdate = FALSE;
                     }
+
+                    if (serviceItem->NeedsVerifyUpdate) // HACK
+                        serviceItem->NeedsVerifyUpdate = FALSE;
 
                     // Raise the service modified event.
                     PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
