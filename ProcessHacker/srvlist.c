@@ -27,6 +27,7 @@
 #include <emenu.h>
 #include <svcsup.h>
 #include <settings.h>
+#include <verify.h>
 
 #include <colmgr.h>
 #include <extmgri.h>
@@ -138,6 +139,8 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_DESCRIPTION, FALSE, L"Description", 200, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"Key modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -528,6 +531,22 @@ BEGIN_SORT_FUNCTION(KeyModifiedTime)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(VerificationStatus)
+{
+    sortResult = intcmp(serviceItem1->VerifyResult, serviceItem2->VerifyResult);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(VerifiedSigner)
+{
+    sortResult = PhCompareStringWithNull(
+        serviceItem1->VerifySignerName,
+        serviceItem2->VerifySignerName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -561,7 +580,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(ErrorControl),
                     SORT_FUNCTION(Group),
                     SORT_FUNCTION(Description),
-                    SORT_FUNCTION(KeyModifiedTime)
+                    SORT_FUNCTION(KeyModifiedTime),
+                    SORT_FUNCTION(VerificationStatus),
+                    SORT_FUNCTION(VerifiedSigner)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -673,6 +694,13 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     PhMoveReference(&node->KeyModifiedTimeText, PhFormatDateTime(&systemTime));
                     getCellText->Text = node->KeyModifiedTimeText->sr;
                 }
+                break;
+            case PHSVTLC_VERIFICATIONSTATUS:
+                PhInitializeStringRef(&getCellText->Text,
+                    serviceItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
+                break;
+            case PHSVTLC_VERIFIEDSIGNER:
+                getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
                 break;
             default:
                 return FALSE;
