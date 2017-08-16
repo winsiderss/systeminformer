@@ -461,7 +461,7 @@ NTSTATUS PhpServiceQueryWorker(
 {
     PPH_SERVICE_QUERY_DATA data = (PPH_SERVICE_QUERY_DATA)Parameter;
     SC_HANDLE serviceHandle;
-    PPH_STRING serviceFileName;
+    PPH_STRING serviceFileName = NULL;
 
     if (serviceHandle = PhOpenService(data->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
     {
