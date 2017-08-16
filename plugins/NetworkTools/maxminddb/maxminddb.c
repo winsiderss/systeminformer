@@ -248,8 +248,8 @@ int MMDB_open(const wchar_t* const filename, uint32_t flags, MMDB_s *const mmdb)
     }
 
 #ifdef _WIN32
-    WSADATA wsa;
-    WSAStartup(MAKEWORD(2, 2), &wsa);
+    //WSADATA wsa; // dmex: disabled since hostname lookup is not used.
+    //WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
 
     uint32_t metadata_size = 0;
@@ -1845,7 +1845,7 @@ LOCAL void free_mmdb_struct(MMDB_s *const mmdb)
         UnmapViewOfFile(mmdb->file_content);
         /* Winsock is only initialized if open was successful so we only have
          * to cleanup then. */
-        WSACleanup();
+        //WSACleanup(); // dmex: disabled since hostname lookup is not used.
 #else
         munmap((void *)mmdb->file_content, mmdb->file_size);
 #endif
