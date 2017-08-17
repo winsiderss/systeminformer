@@ -105,10 +105,10 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,20,176,168,10
     CONTROL         "Install KProcessHacker as a service",IDC_KPH_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,190,168,10
-    CONTROL         "Install latest nightly build (not recommended)",IDC_RESET_CHECK,
+    CONTROL         "Install latest nightly build (not recommended)",IDC_LATEST_NIGHTLY_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,201,161,173,10
     GROUPBOX        "Installation Folder",IDC_STATIC1,10,43,380,40
-    CONTROL         "Reset Process Hacker settings",IDC_RESET_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,176,173,10
+    CONTROL         "Reset Process Hacker settings",IDC_RESET_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,176,173,10
     GROUPBOX        "Additional Options",IDC_STATIC3,10,148,380,59
     CONTROL         "Start Process Hacker after setup exits",IDC_PHSTART_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,190,138,10
