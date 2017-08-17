@@ -332,11 +332,7 @@ BOOLEAN ProcessTreeFilterCallback(
 
             if (serviceItem->ProcessId)
             {
-                WCHAR processIdString[PH_INT32_STR_LEN_1];
-
-                PhPrintUInt32(processIdString, HandleToUlong(serviceItem->ProcessId));
-
-                if (WordMatchStringZ(processIdString))
+                if (WordMatchStringZ(serviceItem->ProcessIdString))
                 {
                     matched = TRUE;
                     break;
@@ -423,11 +419,8 @@ BOOLEAN ServiceTreeFilterCallback(
     if (serviceNode->ServiceItem->ProcessId)
     {
         PPH_PROCESS_NODE processNode;
-        WCHAR processIdString[PH_INT32_STR_LEN_1];
 
-        PhPrintUInt32(processIdString, HandleToUlong(serviceNode->ServiceItem->ProcessId));
-
-        if (WordMatchStringZ(processIdString))
+        if (WordMatchStringZ(serviceNode->ServiceItem->ProcessIdString))
             return TRUE;
 
         // Search the process node
@@ -435,6 +428,51 @@ BOOLEAN ServiceTreeFilterCallback(
         {
             if (ProcessTreeFilterCallback(&processNode->Node, NULL))
                 return TRUE;
+        }
+    }
+
+    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
+    {
+        if (WordMatchStringRef(&serviceNode->ServiceItem->VerifySignerName->sr))
+            return TRUE;
+    }
+
+    if (serviceNode->ServiceItem->VerifyResult != VrUnknown)
+    {
+        switch (serviceNode->ServiceItem->VerifyResult)
+        {
+        case VrNoSignature:
+            if (WordMatchStringZ(L"NoSignature"))
+                return TRUE;
+            break;
+        case VrTrusted:
+            if (WordMatchStringZ(L"Trusted"))
+                return TRUE;
+            break;
+        case VrExpired:
+            if (WordMatchStringZ(L"Expired"))
+                return TRUE;
+            break;
+        case VrRevoked:
+            if (WordMatchStringZ(L"Revoked"))
+                return TRUE;
+            break;
+        case VrDistrust:
+            if (WordMatchStringZ(L"Distrust"))
+                return TRUE;
+            break;
+        case VrSecuritySettings:
+            if (WordMatchStringZ(L"SecuritySettings"))
+                return TRUE;
+            break;
+        case VrBadSignature:
+            if (WordMatchStringZ(L"BadSignature"))
+                return TRUE;
+            break;
+        default:
+            if (WordMatchStringZ(L"Unknown"))
+                return TRUE;
+            break;
         }
     }
 
