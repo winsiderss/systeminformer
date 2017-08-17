@@ -102,11 +102,12 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
 
     if (QueryHandle && entry->Type == PH_LOG_ENTRY_PROCESS_DELETE)
     {
-        PROCESS_BASIC_INFORMATION basicInfo;
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-        if (NT_SUCCESS(PhGetProcessBasicInformation(QueryHandle, &basicInfo)))
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(QueryHandle, &basicInfo)))
         {
-            entry->Process.ExitStatus = basicInfo.ExitStatus;
+            entry->Process.ExitStatus = basicInfo.BasicInfo.ExitStatus;
+            entry->Process.IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
         }
     }
 
@@ -218,7 +219,17 @@ PPH_STRING PhFormatLogEntry(
             HandleToUlong(Entry->Process.ParentProcessId)
             );
     case PH_LOG_ENTRY_PROCESS_DELETE:
-        return PhFormatString(L"Process terminated: %s (%u); exit status 0x%x", Entry->Process.Name->Buffer, HandleToUlong(Entry->Process.ProcessId), Entry->Process.ExitStatus);
+        {
+            ULONG exitstatus = 0;
+            
+            // The exit code for Linux processes is located in the lower 8-bits.
+            if (Entry->Process.IsSubsystemProcess)
+                exitstatus = Entry->Process.ExitStatus >> 8;
+            else
+                exitstatus = Entry->Process.ExitStatus;
+
+            return PhFormatString(L"Process terminated: %s (%u); exit status 0x%x", Entry->Process.Name->Buffer, HandleToUlong(Entry->Process.ProcessId), exitstatus);
+        }
     case PH_LOG_ENTRY_SERVICE_CREATE:
         return PhFormatString(L"Service created: %s (%s)", Entry->Service.Name->Buffer, Entry->Service.DisplayName->Buffer);
     case PH_LOG_ENTRY_SERVICE_DELETE:
