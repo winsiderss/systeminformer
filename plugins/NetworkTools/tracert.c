@@ -178,8 +178,13 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
-            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
+            if (Node->RemoteCountryCode)
+                PhDereferenceObject(Node->RemoteCountryCode);
+            if (Node->RemoteCountryName)
+                PhDereferenceObject(Node->RemoteCountryName);
+
+            Node->RemoteCountryCode = remoteCountryCode;
+            Node->RemoteCountryName = remoteCountryName;
         }
     }
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
@@ -229,8 +234,13 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
-            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
+            if (Node->RemoteCountryCode)
+                PhDereferenceObject(Node->RemoteCountryCode);
+            if (Node->RemoteCountryName)
+                PhDereferenceObject(Node->RemoteCountryName);
+
+            Node->RemoteCountryCode = remoteCountryCode;
+            Node->RemoteCountryName = remoteCountryName;
         }
     }
 }
@@ -650,7 +660,11 @@ INT_PTR CALLBACK TracertDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                DestroyWindow(hwndDlg);
+                {
+                    context->Cancel = TRUE;
+
+                    DestroyWindow(hwndDlg);
+                }
                 break;
             case IDC_REFRESH:
                 {

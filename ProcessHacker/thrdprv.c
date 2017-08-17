@@ -49,6 +49,7 @@ typedef struct _PH_THREAD_QUERY_DATA
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
 
     PPH_STRING ServiceName;
+    PPH_STRING ThreadName;
 } PH_THREAD_QUERY_DATA, *PPH_THREAD_QUERY_DATA;
 
 typedef struct _PH_THREAD_SYMBOL_LOAD_CONTEXT
@@ -198,6 +199,7 @@ VOID PhpThreadProviderDeleteProcedure(
 
             PhClearReference(&data->StartAddressString);
             PhClearReference(&data->ServiceName);
+            PhClearReference(&data->ThreadName);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
         }
@@ -412,6 +414,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
+    if (threadItem->ThreadName) PhDereferenceObject(threadItem->ThreadName);
 }
 
 BOOLEAN PhpThreadHashtableEqualFunction(
@@ -575,6 +578,52 @@ NTSTATUS PhpThreadQueryWorker(
                 serviceTag
                 );
         }
+    }
+
+    // Get the thread name (Windows 10 only).
+
+    if (data->ThreadItem->ThreadHandle && WindowsVersion >= WINDOWS_10_RS1)
+    {
+        NTSTATUS status;
+        PVOID buffer;
+        ULONG bufferSize;
+        ULONG returnLength;
+        PTHREAD_NAME_INFORMATION threadNameInfo;
+
+        bufferSize = 0x100;
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQueryInformationThread(
+            data->ThreadItem->ThreadHandle,
+            ThreadNameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            bufferSize = returnLength;
+            buffer = PhAllocate(bufferSize);
+
+            status = NtQueryInformationThread(
+                data->ThreadItem->ThreadHandle,
+                ThreadNameInformation,
+                buffer,
+                bufferSize,
+                &returnLength
+                );
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            threadNameInfo = (PTHREAD_NAME_INFORMATION)buffer;
+
+            data->ThreadName = PhCreateStringFromUnicodeString(&threadNameInfo->ThreadName);
+        }
+
+        PhFree(buffer);
     }
 
 Done:
@@ -826,6 +875,7 @@ VOID PhpThreadProviderUpdate(
             }
 
             PhMoveReference(&data->ThreadItem->ServiceName, data->ServiceName);
+            PhMoveReference(&data->ThreadItem->ThreadName, data->ThreadName);
 
             data->ThreadItem->JustResolved = TRUE;
 

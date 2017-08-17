@@ -90,6 +90,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|800,600");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
+    PhpAddIntegerSetting(L"MainWindowTabRestoreEnabled", L"0");
+    PhpAddIntegerSetting(L"MainWindowTabRestoreIndex", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
     PhpAddIntegerSetting(L"MemEditBytesPerRow", L"10"); // 16
     PhpAddStringSetting(L"MemEditGotoChoices", L"");

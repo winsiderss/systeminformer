@@ -12,8 +12,9 @@
 #define PHTHTLC_STARTADDRESS 3
 #define PHTHTLC_PRIORITY 4
 #define PHTHTLC_SERVICE 5
+#define PHTHTLC_NAME 6
 
-#define PHTHTLC_MAXIMUM 6
+#define PHTHTLC_MAXIMUM 7
 
 // begin_phapppub
 typedef struct _PH_THREAD_NODE

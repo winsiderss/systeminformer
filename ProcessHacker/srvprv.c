@@ -3,6 +3,7 @@
  *   service provider
  *
  * Copyright (C) 2009-2015 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +23,7 @@
 
 #include <phapp.h>
 #include <srvprv.h>
+#include <workqueue.h>
 
 #include <lsasup.h>
 #include <svcsup.h>
@@ -99,6 +101,16 @@ static HANDLE PhpNonPollEventHandle;
 static PH_QUEUED_LOCK PhpNonPollServiceListLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpNonPollServiceListHead;
 static LIST_ENTRY PhpNonPollServicePendingListHead;
+static SLIST_HEADER PhpServiceQueryListHead;
+
+typedef struct _PH_SERVICE_QUERY_DATA
+{
+    SLIST_ENTRY ListEntry;
+    PPH_SERVICE_ITEM ServiceItem;
+
+    VERIFY_RESULT VerifyResult;
+    PPH_STRING VerifySignerName;
+} PH_SERVICE_QUERY_DATA, *PPH_SERVICE_QUERY_DATA;
 
 BOOLEAN PhServiceProviderInitialization(
     VOID
@@ -111,6 +123,8 @@ BOOLEAN PhServiceProviderInitialization(
         PhpServiceHashtableHashFunction,
         40
         );
+
+    RtlInitializeSListHead(&PhpServiceQueryListHead);
 
     return TRUE;
 }
@@ -238,6 +252,14 @@ VOID PhMarkNeedsConfigUpdateServiceItem(
 {
     ServiceItem->NeedsConfigUpdate = TRUE;
 
+    if (PhEnableServiceNonPoll)
+        PhpNonPollGate = 1;
+}
+
+VOID PhpResetServiceNonPollGate(
+    VOID
+    )
+{
     if (PhEnableServiceNonPoll)
         PhpNonPollGate = 1;
 }
@@ -441,6 +463,63 @@ static ULONG PhpHashServiceNameEntry(
     return PhHashStringRef(&Value->Name, TRUE);
 }
 
+NTSTATUS PhpServiceQueryWorker(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_SERVICE_QUERY_DATA data = (PPH_SERVICE_QUERY_DATA)Parameter;
+    SC_HANDLE serviceHandle;
+    PPH_STRING serviceFileName = NULL;
+
+    if (serviceHandle = PhOpenService(data->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+    {
+        serviceFileName = PhGetServiceRelevantFileName(&data->ServiceItem->Name->sr, serviceHandle);
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (serviceFileName)
+    {
+        data->VerifyResult = PhVerifyFileCached(
+            serviceFileName,
+            NULL,
+            &data->VerifySignerName,
+            FALSE
+            );
+
+        PhDereferenceObject(serviceFileName);
+    }
+
+    PhpResetServiceNonPollGate(); // HACK
+
+    RtlInterlockedPushEntrySList(&PhpServiceQueryListHead, &data->ListEntry);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhpQueueServiceQuery(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    PPH_SERVICE_QUERY_DATA data;
+    PH_WORK_QUEUE_ENVIRONMENT environment;
+
+    if (!PhEnableProcessQueryStage2)
+        return;
+
+    data = PhAllocate(sizeof(PH_SERVICE_QUERY_DATA));
+    memset(data, 0, sizeof(PH_SERVICE_QUERY_DATA));
+    data->ServiceItem = ServiceItem;
+
+    PhReferenceObject(ServiceItem);
+
+    PhInitializeWorkQueueEnvironment(&environment);
+    environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
+    environment.IoPriority = IoPriorityLow;
+    environment.PagePriority = MEMORY_PRIORITY_LOW;
+
+    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryWorker, data, NULL, &environment);
+}
+
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     )
@@ -521,6 +600,27 @@ VOID PhServiceProviderUpdate(
             &entry->HashEntry,
             PhpHashServiceNameEntry(entry)
             );
+    }
+
+    // Go through the queued services query data.
+    {
+        PSLIST_ENTRY entry;
+        PPH_SERVICE_QUERY_DATA data;
+
+        entry = RtlInterlockedFlushSList(&PhpServiceQueryListHead);
+
+        while (entry)
+        {
+            data = CONTAINING_RECORD(entry, PH_SERVICE_QUERY_DATA, ListEntry);
+            entry = entry->Next;
+
+            data->ServiceItem->VerifyResult = data->VerifyResult;
+            data->ServiceItem->VerifySignerName = data->VerifySignerName;
+            data->ServiceItem->NeedsVerifyUpdate = TRUE;
+
+            PhDereferenceObject(data->ServiceItem);
+            PhFree(data);
+        }
     }
 
     // Look for dead services.
@@ -644,6 +744,9 @@ VOID PhServiceProviderUpdate(
                     }
                 }
 
+                // Queue for verification.
+                PhpQueueServiceQuery(serviceItem);
+
                 // Add the service item to the hashtable.
                 PhAcquireQueuedLockExclusive(&PhServiceHashtableLock);
                 PhAddEntryHashtable(PhServiceHashtable, &serviceItem);
@@ -668,7 +771,8 @@ VOID PhServiceProviderUpdate(
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
                     serviceItem->ControlsAccepted != serviceEntry->ServiceStatusProcess.dwControlsAccepted ||
                     serviceItem->ProcessId != UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId) ||
-                    serviceItem->NeedsConfigUpdate
+                    serviceItem->NeedsConfigUpdate ||
+                    serviceItem->NeedsVerifyUpdate
                     )
                 {
                     PH_SERVICE_MODIFIED_DATA serviceModifiedData;
@@ -761,6 +865,9 @@ VOID PhServiceProviderUpdate(
                         PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
                         serviceItem->NeedsConfigUpdate = FALSE;
                     }
+
+                    if (serviceItem->NeedsVerifyUpdate) // HACK
+                        serviceItem->NeedsVerifyUpdate = FALSE;
 
                     // Raise the service modified event.
                     PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);

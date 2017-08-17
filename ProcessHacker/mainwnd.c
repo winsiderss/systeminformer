@@ -227,6 +227,11 @@ BOOLEAN PhMainWndInitialization(
         if (page)
             PhMwpSelectPage(page->Index);
     }
+    else
+    {
+        if (PhGetIntegerSetting(L"MainWindowTabRestoreEnabled"))
+            PhMwpSelectPage(PhGetIntegerSetting(L"MainWindowTabRestoreIndex"));
+    }
 
     if (PhStartupParameters.SysInfo)
         PhShowSystemInformationDialog(PhStartupParameters.SysInfo->Buffer);
@@ -536,6 +541,8 @@ VOID PhMwpOnDestroy(
     VOID
     )
 {
+    PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
+
     // Notify pages and plugins that we are shutting down.
 
     PhMwpNotifyAllPages(MainTabPageDestroy, NULL, NULL);
