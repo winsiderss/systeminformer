@@ -198,15 +198,6 @@ typedef struct _PH_LOG_ENTRY
             HANDLE ParentProcessId;
             PPH_STRING ParentName;
             NTSTATUS ExitStatus;
-            union
-            {
-                BOOLEAN Flags;
-                struct
-                {
-                    BOOLEAN IsSubsystemProcess : 1;
-                    BOOLEAN Spare : 7;
-                };
-            };
         } Process;
         struct
         {
