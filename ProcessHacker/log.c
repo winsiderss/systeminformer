@@ -102,11 +102,15 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
 
     if (QueryHandle && entry->Type == PH_LOG_ENTRY_PROCESS_DELETE)
     {
-        PROCESS_BASIC_INFORMATION basicInfo;
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-        if (NT_SUCCESS(PhGetProcessBasicInformation(QueryHandle, &basicInfo)))
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(QueryHandle, &basicInfo)))
         {
-            entry->Process.ExitStatus = basicInfo.ExitStatus;
+            // The exit code for Linux processes is located in the lower 8-bits.
+            if (basicInfo.IsSubsystemProcess)
+                entry->Process.ExitStatus = basicInfo.BasicInfo.ExitStatus >> 8;
+            else
+                entry->Process.ExitStatus = basicInfo.BasicInfo.ExitStatus;
         }
     }
 

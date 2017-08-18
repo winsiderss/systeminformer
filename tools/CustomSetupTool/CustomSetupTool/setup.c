@@ -384,7 +384,6 @@ VOID SetupStopService(
     }
 }
 
-
 VOID SetupStartKph(
     _In_ PPH_SETUP_CONTEXT Context
     )
