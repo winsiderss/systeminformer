@@ -27,58 +27,22 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-    );
-
-VOID EtShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
-    )
-{
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        ParentWindowHandle,
-        OptionsDlgProc
-        );
-}
-
-INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS), PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
-    case WM_COMMAND:
+    case WM_DESTROY:
         {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR)) == BST_CHECKED);
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR)) == BST_CHECKED);
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
-
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
-            }
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR)) == BST_CHECKED);
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR)) == BST_CHECKED);
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
         }
         break;
     }

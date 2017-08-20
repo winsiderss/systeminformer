@@ -524,8 +524,11 @@ VOID EtHandlePropertiesInitializing(
 
 // options
 
-VOID EtShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
+INT_PTR CALLBACK OptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // thrdact
