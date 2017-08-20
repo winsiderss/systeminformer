@@ -33,42 +33,15 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESERVICESMENU), PhGetIntegerSetting(SETTING_NAME_ENABLE_SERVICES_MENU) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
-    case WM_COMMAND:
+    case WM_DESTROY:
         {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_SERVICES_MENU,
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESERVICESMENU)) == BST_CHECKED);
-
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
-            }
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_SERVICES_MENU, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESERVICESMENU)) == BST_CHECKED);
         }
         break;
     }
 
     return FALSE;
-}
-
-VOID EsShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
-    )
-{
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        ParentWindowHandle,
-        OptionsDlgProc
-        );
 }

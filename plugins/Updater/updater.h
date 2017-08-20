@@ -171,8 +171,11 @@ ULONG64 ParseVersionString(
 
 // options.c
 
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
+INT_PTR CALLBACK OptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK TextDlgProc(

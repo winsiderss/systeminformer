@@ -73,7 +73,20 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    ShowOptionsDialog((HWND)Parameter);
+    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
+    PROPSHEETPAGE propSheetPage;
+
+    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.dwFlags = PSP_USETITLE;
+        propSheetPage.hInstance = PluginInstance->DllBase;
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
+        propSheetPage.pszTitle = L"Updater";
+        propSheetPage.pfnDlgProc = OptionsDlgProc;
+        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 }
 
 LOGICAL DllMain(
@@ -104,7 +117,6 @@ LOGICAL DllMain(
             info->Author = L"dmex";
             info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1121";
-            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
@@ -125,7 +137,7 @@ LOGICAL DllMain(
                 &PluginMenuItemCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
