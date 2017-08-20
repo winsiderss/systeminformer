@@ -33,42 +33,19 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_VIRUSTOTAL),
                 PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_IDC_ENABLE_VIRUSTOTAL_HIGHLIGHT),
                 PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
-    case WM_COMMAND:
+    case WM_DESTROY:
         {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDCANCEL:
-                {
-                    PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, 
-                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_VIRUSTOTAL)) == BST_CHECKED ? 1 : 0);
-
-                    EndDialog(hwndDlg, IDCANCEL);
-                }
-                break;
-            }
+            PhSetIntegerSetting(SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED,
+                Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_VIRUSTOTAL)) == BST_CHECKED ? 1 : 0);
         }
         break;
     }
 
     return FALSE;
-}
-
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
-    )
-{
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parent,
-        OptionsDlgProc
-        );
 }

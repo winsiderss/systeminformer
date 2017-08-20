@@ -34,8 +34,6 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR),
                 ToolStatusConfig.ToolBarEnabled ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR),
@@ -46,53 +44,29 @@ INT_PTR CALLBACK OptionsDlgProc(
                 ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
-    case WM_COMMAND:
+    case WM_DESTROY:
         {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            ToolStatusConfig.ToolBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED;
+            ToolStatusConfig.StatusBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED;
+            ToolStatusConfig.ResolveGhostWindows = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED;
+            ToolStatusConfig.AutoHideMenu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU)) == BST_CHECKED;
+
+            PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+            ToolbarLoadSettings();
+
+            if (ToolStatusConfig.AutoHideMenu)
             {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
-                    ToolStatusConfig.ToolBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_TOOLBAR)) == BST_CHECKED;
-                    ToolStatusConfig.StatusBarEnabled = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_STATUSBAR)) == BST_CHECKED;
-                    ToolStatusConfig.ResolveGhostWindows = Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED;
-                    ToolStatusConfig.AutoHideMenu = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_AUTOHIDE_MENU)) == BST_CHECKED;
-
-                    PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
-
-                    ToolbarLoadSettings();
-
-                    if (ToolStatusConfig.AutoHideMenu)
-                    {
-                        SetMenu(PhMainWndHandle, NULL);
-                    }
-                    else
-                    {
-                        SetMenu(PhMainWndHandle, MainMenu);
-                        DrawMenuBar(PhMainWndHandle);
-                    }
-
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
+                SetMenu(PhMainWndHandle, NULL);
+            }
+            else
+            {
+                SetMenu(PhMainWndHandle, MainMenu);
+                DrawMenuBar(PhMainWndHandle);
             }
         }
         break;
     }
 
     return FALSE;
-}
-
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
-    )
-{
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        Parent,
-        OptionsDlgProc
-        );
 }

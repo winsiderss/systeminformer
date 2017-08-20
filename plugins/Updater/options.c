@@ -43,12 +43,10 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDCANCEL:
+            case IDC_AUTOCHECKBOX:
                 {
                     PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK,
                         Button_GetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX)) == BST_CHECKED);
-
-                    EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
             }
@@ -57,18 +55,6 @@ INT_PTR CALLBACK OptionsDlgProc(
     }
 
     return FALSE;
-}
-
-VOID ShowOptionsDialog(
-    _In_opt_ HWND Parent
-    )
-{
-    DialogBox(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        Parent,
-        OptionsDlgProc
-        );
 }
 
 INT_PTR CALLBACK TextDlgProc(
