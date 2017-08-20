@@ -26,6 +26,9 @@
 #define PH_SETTINGS_PRIVATE
 #include <phsettings.h>
 
+#define PH_UPDATE_SETTING(Name) \
+    (PhCs##Name = PhGetIntegerSetting(L#Name))
+
 VOID PhAddDefaultSettings(
     VOID
     )
@@ -202,14 +205,19 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
     PhpAddIntegerSetting(L"ColorPhysical", L"ffff00");
+
+    PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
+    PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
+    PhpAddIntegerSetting(L"UseColorUnknown", L"1");
+    PhpAddIntegerSetting(L"ColorUnknown", L"507fff"); // Deep Pink
 }
 
 VOID PhUpdateCachedSettings(
     VOID
     )
 {
-    #define PH_UPDATE_SETTING(Name) (PhCs##Name = PhGetIntegerSetting(L#Name))
-    
+    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
+
     PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
@@ -260,4 +268,9 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorIoWrite);
     PH_UPDATE_SETTING(ColorPrivate);
     PH_UPDATE_SETTING(ColorPhysical);
+
+    PH_UPDATE_SETTING(UseColorServiceStop);
+    PH_UPDATE_SETTING(ColorServiceStop);
+    PH_UPDATE_SETTING(UseColorUnknown);
+    PH_UPDATE_SETTING(ColorUnknown);
 }

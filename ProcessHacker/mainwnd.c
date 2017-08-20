@@ -2248,7 +2248,6 @@ VOID PhMwpLoadSettings(
         PhSetWindowOpacity(PhMainWndHandle, opacity);
 
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
-    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");

@@ -882,8 +882,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!moduleItem)
                 ; // Dummy
-            else if (context->HighlightUntrustedModules && moduleItem->VerifyResult != VrTrusted)
-                getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhEnableProcessQueryStage2 && context->HighlightUntrustedModules && moduleItem->VerifyResult != VrTrusted)
+                getNodeColor->BackColor = PhCsColorUnknown;
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))

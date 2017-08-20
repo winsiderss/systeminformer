@@ -29,6 +29,7 @@
 
 #include <extmgri.h>
 #include <procprv.h>
+#include <phsettings.h>
 
 typedef struct _PH_MODULE_QUERY_DATA
 {
