@@ -189,7 +189,6 @@ PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
-BOOLEAN PhEnableProcessQueryStage2 = FALSE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 

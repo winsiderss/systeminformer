@@ -11,6 +11,8 @@
 #define EXT extern
 #endif
 
+EXT BOOLEAN PhEnableProcessQueryStage2;
+
 EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;
@@ -62,6 +64,11 @@ EXT ULONG PhCsColorIoReadOther;
 EXT ULONG PhCsColorIoWrite;
 EXT ULONG PhCsColorPrivate;
 EXT ULONG PhCsColorPhysical;
+
+EXT ULONG PhCsUseColorUnknown;
+EXT ULONG PhCsColorUnknown;
+EXT ULONG PhCsUseColorServiceStop;
+EXT ULONG PhCsColorServiceStop;
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
 
