@@ -31,6 +31,7 @@
 
 #include <mainwnd.h>
 #include <proctree.h>
+#include <phplug.h>
 #include <phsettings.h>
 #include <sysinfo.h>
 
@@ -114,7 +115,7 @@ VOID PhShowOptionsDialog(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[5];
+    HPROPSHEETPAGE pages[30];
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -180,6 +181,20 @@ VOID PhShowOptionsDialog(
         propSheetPage.hInstance = PhInstanceHandle;
         propSheetPage.pfnDlgProc = PhpOptionsGraphsDlgProc;
         pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
+
+        //objectProperties.Parameter = RestartRequired;
+        objectProperties.NumberOfPages = propSheetHeader.nPages;
+        objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
+        objectProperties.Pages = pages;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &objectProperties);
+
+        propSheetHeader.nPages = objectProperties.NumberOfPages;
     }
 
     PageInit = FALSE;
