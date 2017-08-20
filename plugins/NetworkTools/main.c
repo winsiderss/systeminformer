@@ -623,7 +623,6 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Provides ping, traceroute and whois for network connections.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1117";
-            info->HasOptions = TRUE;
   
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
