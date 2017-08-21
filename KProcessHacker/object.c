@@ -321,7 +321,7 @@ NTSTATUS KpiEnumerateProcessHandles(
     ObDereferenceObject(process);
 
     // Write the number of handles if we can.
-    if (BufferLength >= FIELD_OFFSET(KPH_PROCESS_HANDLE_INFORMATION, Handles))
+    if (BufferLength >= (ULONG)FIELD_OFFSET(KPH_PROCESS_HANDLE_INFORMATION, Handles))
     {
         if (AccessMode != KernelMode)
         {

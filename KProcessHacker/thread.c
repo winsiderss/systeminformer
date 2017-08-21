@@ -82,7 +82,7 @@ NTSTATUS KpiOpenThread(
     CLIENT_ID clientId;
     PETHREAD thread;
     KPH_KEY_LEVEL requiredKeyLevel;
-    HANDLE threadHandle;
+    HANDLE threadHandle = NULL;
 
     PAGED_CODE();
 

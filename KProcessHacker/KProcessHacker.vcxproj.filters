@@ -46,6 +46,12 @@
     <ClCompile Include="vm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="verify.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

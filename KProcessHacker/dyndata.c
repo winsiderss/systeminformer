@@ -126,13 +126,13 @@ NTSTATUS KphpLoadDynamicConfiguration(
 
     config = Buffer;
 
-    if (Length < FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages))
+    if (Length < (ULONG)FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages))
         return STATUS_INVALID_PARAMETER;
     if (config->Version != KPH_DYN_CONFIGURATION_VERSION)
         return STATUS_INVALID_PARAMETER;
     if (config->NumberOfPackages > KPH_DYN_MAXIMUM_PACKAGES)
         return STATUS_INVALID_PARAMETER;
-    if (Length < FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages) + config->NumberOfPackages * sizeof(KPH_DYN_PACKAGE))
+    if (Length < (ULONG)FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages) + config->NumberOfPackages * sizeof(KPH_DYN_PACKAGE))
         return STATUS_INVALID_PARAMETER;
 
     dprintf("Loading dynamic configuration with %u package(s)\n", config->NumberOfPackages);

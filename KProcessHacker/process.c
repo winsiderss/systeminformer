@@ -61,7 +61,7 @@ NTSTATUS KpiOpenProcess(
     PEPROCESS process;
     PETHREAD thread;
     KPH_KEY_LEVEL requiredKeyLevel;
-    HANDLE processHandle;
+    HANDLE processHandle = NULL;
 
     PAGED_CODE();
 
@@ -172,7 +172,7 @@ NTSTATUS KpiOpenProcessToken(
     PEPROCESS process;
     PACCESS_TOKEN primaryToken;
     KPH_KEY_LEVEL requiredKeyLevel;
-    HANDLE tokenHandle;
+    HANDLE tokenHandle = NULL;
 
     PAGED_CODE();
 

@@ -25,6 +25,7 @@
 
 // Region and section constants
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define MEM_COMMIT 0x1000
 #define MEM_RESERVE 0x2000
 #define MEM_DECOMMIT 0x4000
@@ -35,18 +36,25 @@
 #define MEM_RESET 0x80000
 #define MEM_TOP_DOWN 0x100000
 #define MEM_WRITE_WATCH 0x200000
+#endif
 #define MEM_PHYSICAL 0x400000
 #define MEM_ROTATE 0x800000
 #define MEM_DIFFERENT_IMAGE_BASE_OK 0x800000
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define MEM_RESET_UNDO 0x1000000
+#endif
 #define MEM_LARGE_PAGES 0x20000000
 #define MEM_4MB_PAGES 0x80000000
-
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SEC_FILE 0x800000
+#endif
 #define SEC_IMAGE 0x1000000
 #define SEC_PROTECTED_IMAGE 0x2000000
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SEC_RESERVE 0x4000000
 #define SEC_COMMIT 0x8000000
+#endif
 #define SEC_NOCACHE 0x10000000
 #define SEC_WRITECOMBINE 0x40000000
 #define SEC_LARGE_PAGES 0x80000000
@@ -56,21 +64,18 @@
 #endif
 
 // private
-typedef enum _MEMORY_INFORMATION_CLASS
-{
-    MemoryBasicInformation, // MEMORY_BASIC_INFORMATION
-    MemoryWorkingSetInformation, // MEMORY_WORKING_SET_INFORMATION
-    MemoryMappedFilenameInformation, // UNICODE_STRING
-    MemoryRegionInformation, // MEMORY_REGION_INFORMATION
-    MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
-    MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
-    MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
-    MemoryRegionInformationEx,
-    MemoryPrivilegedBasicInformation
-} MEMORY_INFORMATION_CLASS;
+// MEMORY_INFORMATION_CLASS
+#define MemoryBasicInformation 0x0 // MEMORY_BASIC_INFORMATION
+#define MemoryWorkingSetInformation 0x1 // MEMORY_WORKING_SET_INFORMATION
+#define MemoryMappedFilenameInformation 0x2 // UNICODE_STRING
+#define MemoryRegionInformation 0x3 // MEMORY_REGION_INFORMATION
+#define MemoryWorkingSetExInformation 0x4 // MEMORY_WORKING_SET_EX_INFORMATION
+#define MemorySharedCommitInformation 0x5 // MEMORY_SHARED_COMMIT_INFORMATION
+#define MemoryImageInformation 0x6 // MEMORY_IMAGE_INFORMATION
+#define MemoryRegionInformationEx 0x7
+#define MemoryPrivilegedBasicInformation 0x8
 
-#if (PHNT_MODE == PHNT_MODE_KERNEL)
-
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef struct _MEMORY_BASIC_INFORMATION
 {
     PVOID BaseAddress;
@@ -471,7 +476,7 @@ NtQueryVirtualMemory(
 #endif
 
 // begin_private
-
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation,
@@ -484,7 +489,7 @@ typedef struct _MEMORY_RANGE_ENTRY
     PVOID VirtualAddress;
     SIZE_T NumberOfBytes;
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
-
+#endif
 // end_private
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
