@@ -64,7 +64,7 @@
 #endif
 
 // private
-// MEMORY_INFORMATION_CLASS
+#if (PHNT_MODE == PHNT_MODE_KERNEL)
 #define MemoryBasicInformation 0x0 // MEMORY_BASIC_INFORMATION
 #define MemoryWorkingSetInformation 0x1 // MEMORY_WORKING_SET_INFORMATION
 #define MemoryMappedFilenameInformation 0x2 // UNICODE_STRING
@@ -74,18 +74,19 @@
 #define MemoryImageInformation 0x6 // MEMORY_IMAGE_INFORMATION
 #define MemoryRegionInformationEx 0x7
 #define MemoryPrivilegedBasicInformation 0x8
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-typedef struct _MEMORY_BASIC_INFORMATION
+#else
+typedef enum _MEMORY_INFORMATION_CLASS
 {
-    PVOID BaseAddress;
-    PVOID AllocationBase;
-    ULONG AllocationProtect;
-    SIZE_T RegionSize;
-    ULONG State;
-    ULONG Protect;
-    ULONG Type;
-} MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
+    MemoryBasicInformation, // MEMORY_BASIC_INFORMATION
+    MemoryWorkingSetInformation, // MEMORY_WORKING_SET_INFORMATION
+    MemoryMappedFilenameInformation, // UNICODE_STRING
+    MemoryRegionInformation, // MEMORY_REGION_INFORMATION
+    MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
+    MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
+    MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
+    MemoryRegionInformationEx,
+    MemoryPrivilegedBasicInformation
+} MEMORY_INFORMATION_CLASS;
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
