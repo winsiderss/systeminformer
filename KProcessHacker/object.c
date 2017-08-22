@@ -41,16 +41,16 @@ typedef struct _KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT
 } KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT, *PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT;
 
 BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
+    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
+    _In_ HANDLE Handle,
+    _In_ PVOID Context
     );
 
 BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
-    __in PHANDLE_TABLE HandleTable,
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
+    _In_ PHANDLE_TABLE HandleTable,
+    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
+    _In_ HANDLE Handle,
+    _In_ PVOID Context
     );
 
 #ifdef ALLOC_PRAGMA
@@ -77,7 +77,7 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
  * longer needed.
  */
 PHANDLE_TABLE KphReferenceProcessHandleTable(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     )
 {
     PHANDLE_TABLE handleTable = NULL;
@@ -106,7 +106,7 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
  * \param Process A process object.
  */
 VOID KphDereferenceProcessHandleTable(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     )
 {
     PAGED_CODE();
@@ -115,8 +115,8 @@ VOID KphDereferenceProcessHandleTable(
 }
 
 VOID KphUnlockHandleTableEntry(
-    __in PHANDLE_TABLE HandleTable,
-    __in PHANDLE_TABLE_ENTRY HandleTableEntry
+    _In_ PHANDLE_TABLE HandleTable,
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
     PEX_PUSH_LOCK handleContentionEvent;
@@ -140,9 +140,9 @@ VOID KphUnlockHandleTableEntry(
 }
 
 BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
+    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
+    _In_ HANDLE Handle,
+    _In_ PVOID Context
     )
 {
     PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context = Context;
@@ -205,10 +205,10 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
 }
 
 BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
-    __in PHANDLE_TABLE HandleTable,
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
+    _In_ PHANDLE_TABLE HandleTable,
+    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
+    _In_ HANDLE Handle,
+    _In_ PVOID Context
     )
 {
     BOOLEAN result;
@@ -232,11 +232,11 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiEnumerateProcessHandles(
-    __in HANDLE ProcessHandle,
-    __out_bcount(BufferLength) PVOID Buffer,
-    __in_opt ULONG BufferLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_opt_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -378,10 +378,10 @@ NTSTATUS KpiEnumerateProcessHandles(
  * \a Buffer.
  */
 NTSTATUS KphQueryNameObject(
-    __in PVOID Object,
-    __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
+    _In_ PVOID Object,
+    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PULONG ReturnLength
     )
 {
     NTSTATUS status;
@@ -429,10 +429,10 @@ NTSTATUS KphQueryNameObject(
  * \a Buffer.
  */
 NTSTATUS KphQueryNameFileObject(
-    __in PFILE_OBJECT FileObject,
-    __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
+    _In_ PFILE_OBJECT FileObject,
+    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PULONG ReturnLength
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -568,13 +568,13 @@ NTSTATUS KphQueryNameFileObject(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiQueryInformationObject(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __out_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -1145,12 +1145,12 @@ NTSTATUS KpiQueryInformationObject(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiSetInformationObject(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -1249,11 +1249,11 @@ NTSTATUS KpiSetInformationObject(
 }
 
 NTSTATUS KphOpenNamedObject(
-    __out PHANDLE ObjectHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in POBJECT_TYPE ObjectType,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;

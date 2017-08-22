@@ -13,8 +13,8 @@ NTKERNELAPI
 VOID
 FASTCALL
 ExfUnblockPushLock(
-    __inout PEX_PUSH_LOCK PushLock,
-    __inout_opt PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock
+    _Inout_ PEX_PUSH_LOCK PushLock,
+    _Inout_opt_ PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock
     );
 
 typedef struct _HANDLE_TABLE_ENTRY
@@ -35,37 +35,37 @@ typedef struct _HANDLE_TABLE_ENTRY
 typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
 
 typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK_61)(
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
+    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
+    _In_ HANDLE Handle,
+    _In_ PVOID Context
     );
 
 // since WIN8
 typedef BOOLEAN (NTAPI *PEX_ENUM_HANDLE_CALLBACK)(
-    __in PHANDLE_TABLE HandleTable,
-    __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
-    __in HANDLE Handle,
-    __in PVOID Context
+    _In_ PHANDLE_TABLE HandleTable,
+    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
+    _In_ HANDLE Handle,
+    _In_ PVOID Context
     );
 
 NTKERNELAPI
 BOOLEAN
 NTAPI
 ExEnumHandleTable(
-    __in PHANDLE_TABLE HandleTable,
-    __in PEX_ENUM_HANDLE_CALLBACK EnumHandleProcedure,
-    __inout PVOID Context,
-    __out_opt PHANDLE Handle
+    _In_ PHANDLE_TABLE HandleTable,
+    _In_ PEX_ENUM_HANDLE_CALLBACK EnumHandleProcedure,
+    _Inout_ PVOID Context,
+    _Out_opt_ PHANDLE Handle
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQuerySystemInformation(
-    __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
-    __in ULONG SystemInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _Out_writes_bytes_opt_(SystemInformationLength) PVOID SystemInformation,
+    _In_ ULONG SystemInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 // IO
@@ -83,47 +83,47 @@ typedef enum _KAPC_ENVIRONMENT
 } KAPC_ENVIRONMENT, *PKAPC_ENVIRONMENT;
 
 typedef VOID (NTAPI *PKNORMAL_ROUTINE)(
-    __in PVOID NormalContext,
-    __in PVOID SystemArgument1,
-    __in PVOID SystemArgument2
+    _In_ PVOID NormalContext,
+    _In_ PVOID SystemArgument1,
+    _In_ PVOID SystemArgument2
     );
 
 typedef VOID KKERNEL_ROUTINE(
-    __in PRKAPC Apc,
-    __inout PKNORMAL_ROUTINE *NormalRoutine,
-    __inout PVOID *NormalContext,
-    __inout PVOID *SystemArgument1,
-    __inout PVOID *SystemArgument2
+    _In_ PRKAPC Apc,
+    _Inout_ PKNORMAL_ROUTINE *NormalRoutine,
+    _Inout_ PVOID *NormalContext,
+    _Inout_ PVOID *SystemArgument1,
+    _Inout_ PVOID *SystemArgument2
     );
 
 typedef KKERNEL_ROUTINE (NTAPI *PKKERNEL_ROUTINE);
 
 typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(
-    __in PRKAPC Apc
+    _In_ PRKAPC Apc
     );
 
 NTKERNELAPI
 VOID
 NTAPI
 KeInitializeApc(
-    __out PRKAPC Apc,
-    __in PRKTHREAD Thread,
-    __in KAPC_ENVIRONMENT Environment,
-    __in PKKERNEL_ROUTINE KernelRoutine,
-    __in_opt PKRUNDOWN_ROUTINE RundownRoutine,
-    __in_opt PKNORMAL_ROUTINE NormalRoutine,
-    __in_opt KPROCESSOR_MODE ProcessorMode,
-    __in_opt PVOID NormalContext
+    _Out_ PRKAPC Apc,
+    _In_ PRKTHREAD Thread,
+    _In_ KAPC_ENVIRONMENT Environment,
+    _In_ PKKERNEL_ROUTINE KernelRoutine,
+    _In_opt_ PKRUNDOWN_ROUTINE RundownRoutine,
+    _In_opt_ PKNORMAL_ROUTINE NormalRoutine,
+    _In_opt_ KPROCESSOR_MODE ProcessorMode,
+    _In_opt_ PVOID NormalContext
     );
 
 NTKERNELAPI
 BOOLEAN
 NTAPI
 KeInsertQueueApc(
-    __inout PRKAPC Apc,
-    __in_opt PVOID SystemArgument1,
-    __in_opt PVOID SystemArgument2,
-    __in KPRIORITY Increment
+    _Inout_ PRKAPC Apc,
+    _In_opt_ PVOID SystemArgument1,
+    _In_opt_ PVOID SystemArgument2,
+    _In_ KPRIORITY Increment
     );
 
 // MM
@@ -132,12 +132,12 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryVirtualMemory(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __in MEMORY_INFORMATION_CLASS MemoryInformationClass,
-    __out_bcount(MemoryInformationLength) PVOID MemoryInformation,
-    __in SIZE_T MemoryInformationLength,
-    __out_opt PSIZE_T ReturnLength
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ SIZE_T MemoryInformationLength,
+    _Out_opt_ PSIZE_T ReturnLength
     );
 
 // OB
@@ -224,36 +224,36 @@ NTKERNELAPI
 POBJECT_TYPE
 NTAPI
 ObGetObjectType(
-    __in PVOID Object
+    _In_ PVOID Object
     );
 
 NTKERNELAPI
 NTSTATUS
 NTAPI
 ObOpenObjectByName(
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in POBJECT_TYPE ObjectType,
-    __in KPROCESSOR_MODE PreviousMode,
-    __in_opt PACCESS_STATE AccessState,
-    __in_opt ACCESS_MASK DesiredAccess,
-    __in PVOID ParseContext,
-    __out PHANDLE Handle
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE PreviousMode,
+    _In_opt_ PACCESS_STATE AccessState,
+    _In_opt_ ACCESS_MASK DesiredAccess,
+    _In_ PVOID ParseContext,
+    _Out_ PHANDLE Handle
     );
 
 NTKERNELAPI
 NTSTATUS
 NTAPI
 ObSetHandleAttributes(
-    __in HANDLE Handle,
-    __in POBJECT_HANDLE_FLAG_INFORMATION HandleFlags,
-    __in KPROCESSOR_MODE PreviousMode
+    _In_ HANDLE Handle,
+    _In_ POBJECT_HANDLE_FLAG_INFORMATION HandleFlags,
+    _In_ KPROCESSOR_MODE PreviousMode
     );
 
 NTKERNELAPI
 NTSTATUS
 ObCloseHandle(
-    __in HANDLE Handle,
-    __in KPROCESSOR_MODE PreviousMode
+    _In_ HANDLE Handle,
+    _In_ KPROCESSOR_MODE PreviousMode
     );
 
 // PS
@@ -262,48 +262,48 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in PROCESSINFOCLASS ProcessInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwSetInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in PROCESSINFOCLASS ProcessInformationClass,
-    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryInformationThread(
-    __in HANDLE ThreadHandle,
-    __in THREADINFOCLASS ThreadInformationClass,
-    __out_bcount(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __out_opt PULONG ReturnLength
+    _In_ HANDLE ThreadHandle,
+    _In_ THREADINFOCLASS ThreadInformationClass,
+    _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 NTKERNELAPI
 NTSTATUS
 NTAPI
 PsLookupProcessThreadByCid(
-    __in PCLIENT_ID ClientId,
-    __out_opt PEPROCESS *Process,
-    __out PETHREAD *Thread
+    _In_ PCLIENT_ID ClientId,
+    _Out_opt_ PEPROCESS *Process,
+    _Out_ PETHREAD *Thread
     );
 
 NTKERNELAPI
 PVOID
 NTAPI
 PsGetThreadWin32Thread(
-    __in PETHREAD Thread
+    _In_ PETHREAD Thread
     );
 
 typedef struct _EJOB *PEJOB;
@@ -314,21 +314,21 @@ NTKERNELAPI
 PEJOB
 NTAPI
 PsGetProcessJob(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     );
 
 NTKERNELAPI
 NTSTATUS
 NTAPI
 PsAcquireProcessExitSynchronization(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     );
 
 NTKERNELAPI
 VOID
 NTAPI
 PsReleaseProcessExitSynchronization(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     );
 
 // RTL
@@ -343,9 +343,9 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlWalkFrameChain(
-    __out PVOID *Callers,
-    __in ULONG Count,
-    __in ULONG Flags
+    _Out_ PVOID *Callers,
+    _In_ ULONG Count,
+    _In_ ULONG Flags
     );
 
 #endif

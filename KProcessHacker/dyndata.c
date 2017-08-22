@@ -26,8 +26,8 @@
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 NTSTATUS KphpLoadDynamicConfiguration(
-    __in PVOID Buffer,
-    __in ULONG Length
+    _In_ PVOID Buffer,
+    _In_ ULONG Length
     );
 
 #ifdef ALLOC_PRAGMA
@@ -53,7 +53,7 @@ NTSTATUS KphDynamicDataInitialization(
 }
 
 NTSTATUS KphReadDynamicDataParameters(
-    __in_opt HANDLE KeyHandle
+    _In_opt_ HANDLE KeyHandle
     )
 {
     NTSTATUS status;
@@ -114,8 +114,8 @@ NTSTATUS KphReadDynamicDataParameters(
 }
 
 NTSTATUS KphpLoadDynamicConfiguration(
-    __in PVOID Buffer,
-    __in ULONG Length
+    _In_ PVOID Buffer,
+    _In_ ULONG Length
     )
 {
     PKPH_DYN_CONFIGURATION config;
