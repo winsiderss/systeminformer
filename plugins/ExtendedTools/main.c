@@ -72,7 +72,20 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    EtShowOptionsDialog((HWND)Parameter);
+    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
+    PROPSHEETPAGE propSheetPage;
+
+    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.dwFlags = PSP_USETITLE;
+        propSheetPage.hInstance = PluginInstance->DllBase;
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
+        propSheetPage.pszTitle = L"ExtendedTools";
+        propSheetPage.pfnDlgProc = OptionsDlgProc;
+        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 }
 
 VOID NTAPI MenuItemCallback(
@@ -470,7 +483,6 @@ LOGICAL DllMain(
             info->Author = L"wj32";
             info->Description = L"Extended functionality for Windows 7 and above, including ETW monitoring, GPU monitoring and a Disk tab.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1114";
-            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
@@ -485,7 +497,7 @@ LOGICAL DllMain(
                 &PluginUnloadCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration

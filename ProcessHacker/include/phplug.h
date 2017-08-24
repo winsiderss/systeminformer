@@ -44,6 +44,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackMemoryItemListControl = 31, // PPH_PLUGIN_MEMORY_ITEM_LIST_CONTROL Data [properties thread]
     GeneralCallbackMiniInformationInitializing = 32, // PPH_PLUGIN_MINIINFO_POINTERS Data [main thread]
     GeneralCallbackMiListSectionMenuInitializing = 33, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+    GeneralCallbackOptionsWindowInitializing, // PPH_PLUGIN_OBJECT_PROPERTIES Data [main thread]
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 

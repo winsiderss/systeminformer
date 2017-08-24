@@ -1353,7 +1353,20 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    ShowOptionsDialog(Parameter);
+    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
+    PROPSHEETPAGE propSheetPage;
+
+    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.dwFlags = PSP_USETITLE;
+        propSheetPage.hInstance = PluginInstance->DllBase;
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
+        propSheetPage.pszTitle = L"ToolStatus";
+        propSheetPage.pfnDlgProc = OptionsDlgProc;
+        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 }
 
 LOGICAL DllMain(
@@ -1387,7 +1400,6 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Adds a Toolbar, Status Bar and Search box.\r\n\r\nModern Toolbar icons by http://www.icons8.com";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1119";
-            info->HasOptions = TRUE;
             info->Interface = &PluginInterface;
 
             PhRegisterCallback(
@@ -1397,7 +1409,7 @@ LOGICAL DllMain(
                 &PluginLoadCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration

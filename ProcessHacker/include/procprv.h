@@ -15,7 +15,6 @@ extern PPH_LIST PhProcessRecordList;
 extern PH_QUEUED_LOCK PhProcessRecordListLock;
 
 extern ULONG PhStatisticsSampleCount;
-extern BOOLEAN PhEnableProcessQueryStage2;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
 

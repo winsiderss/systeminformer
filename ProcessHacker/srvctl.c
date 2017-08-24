@@ -242,17 +242,32 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display name");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 220, L"File name");
 
             PhSetExtendedListView(lvHandle);
 
             for (i = 0; i < servicesContext->NumberOfServices; i++)
             {
+                SC_HANDLE serviceHandle;
                 PPH_SERVICE_ITEM serviceItem;
                 INT lvItemIndex;
 
                 serviceItem = servicesContext->Services[i];
                 lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
+
+                if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+                {
+                    PPH_STRING fileName;
+
+                    if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
+                    {
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
+                        PhDereferenceObject(fileName);
+                    }
+
+                    CloseServiceHandle(serviceHandle);
+                }
             }
 
             ExtendedListView_SortItems(lvHandle);

@@ -30,6 +30,7 @@
 
 #include <extmgri.h>
 #include <procprv.h>
+#include <phsettings.h>
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {

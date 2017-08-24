@@ -743,6 +743,27 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            PPH_SERVICE_ITEM serviceItem;
+
+            node = (PPH_SERVICE_NODE)getNodeColor->Node;
+            serviceItem = node->ServiceItem;
+
+            if (!serviceItem)
+                ; // Dummy
+            else if (PhEnableProcessQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
+            {
+                getNodeColor->Flags = TN_AUTO_FORECOLOR;
+                getNodeColor->BackColor = PhCsColorUnknown;
+            }
+            else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED)
+            {
+                getNodeColor->ForeColor = PhCsColorServiceStop;
+            }
+        }
+        return TRUE;
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;

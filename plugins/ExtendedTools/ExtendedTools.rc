@@ -158,7 +158,6 @@ BEGIN
     CONTROL         "Enable Disk and Network monitoring",IDC_ENABLEETWMONITOR,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,130,10
     CONTROL         "Enable GPU monitoring",IDC_ENABLEGPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,88,10
-    PUSHBUTTON      "Close",IDOK,158,56,50,14
     CONTROL         "Enable Disk and Network graphs",IDC_ENABLESYSINFOGRAPHS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,130,10
 END

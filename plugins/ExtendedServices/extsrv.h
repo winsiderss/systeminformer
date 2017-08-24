@@ -40,8 +40,11 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
 // options
 
-VOID EsShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
+INT_PTR CALLBACK OptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // other
