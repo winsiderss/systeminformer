@@ -109,8 +109,8 @@ VOID RebarLoadSettings(
 {
     if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
     {
-        ToolBarImageSize.cx = PH_SCALE_DPI(GetSystemMetrics(SM_CXSMICON));
-        ToolBarImageSize.cy = PH_SCALE_DPI(GetSystemMetrics(SM_CYSMICON));
+        ToolBarImageSize.cx = GetSystemMetrics(SM_CXSMICON);
+        ToolBarImageSize.cy = GetSystemMetrics(SM_CYSMICON);
         ToolBarImageList = ImageList_Create(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_COLOR32, 0, 0);
     }
 
