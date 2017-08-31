@@ -753,7 +753,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!serviceItem)
                 ; // Dummy
-            else if (PhEnableProcessQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
+            else if (PhEnableServiceQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
             {
                 getNodeColor->Flags = TN_AUTO_FORECOLOR;
                 getNodeColor->BackColor = PhCsColorUnknown;
