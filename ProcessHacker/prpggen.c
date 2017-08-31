@@ -484,20 +484,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (processItem->FileName)
                     {
-                        PPH_STRING fileName;
-
-                        // Note: Workaround for buggy RamDisk software.
-                        fileName = PhGetFileName(processItem->FileName);
-
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"ProgramInspectExecutables",
-                            fileName->Buffer,
+                            processItem->FileName->Buffer,
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
                             );
-
-                        PhDereferenceObject(fileName);
                     }
                 }
                 break;
@@ -505,20 +498,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (processItem->FileName)
                     {
-                        PPH_STRING fileName;
-
-                        // Note: Workaround for buggy RamDisk software.
-                        fileName = PhGetFileName(processItem->FileName);
-
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"FileBrowseExecutable",
-                            fileName->Buffer,
+                            processItem->FileName->Buffer,
                             FALSE,
                             L"Make sure the Explorer executable file is present."
                             );
-
-                        PhDereferenceObject(fileName);
                     }
                 }
                 break;
