@@ -33,7 +33,7 @@ TASKDIALOG_BUTTON DownloadButtonArray[] =
     { IDOK, L"Download" }
 };
 
-HRESULT CALLBACK CheckForUpdatesCallbackProc(
+HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -51,7 +51,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
         {
             if ((INT)wParam == IDOK)
             {
-                ShowCheckingForUpdatesDialog(context);
+                ShowDbCheckingForUpdatesDialog(context);
                 return S_FALSE;
             }
         }
@@ -66,7 +66,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
     return S_OK;
 }
 
-HRESULT CALLBACK CheckingForUpdatesCallbackProc(
+HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -91,7 +91,7 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
     return S_OK;
 }
 
-HRESULT CALLBACK RestartTaskDialogCallbackProc(
+HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -126,7 +126,7 @@ HRESULT CALLBACK RestartTaskDialogCallbackProc(
     return S_OK;
 }
 
-HRESULT CALLBACK FinalTaskDialogCallbackProc(
+HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -148,7 +148,11 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-
+            if ((INT)wParam == IDRETRY)
+            {
+                ShowDbCheckForUpdatesDialog(context);
+                return S_FALSE;
+            }
         }
         break;
     }
@@ -156,7 +160,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     return S_OK;
 }
 
-VOID ShowCheckForUpdatesDialog(
+VOID ShowDbCheckForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
@@ -170,7 +174,7 @@ VOID ShowCheckForUpdatesDialog(
     config.cxWidth = 200;
     config.pButtons = DownloadButtonArray;
     config.cButtons = ARRAYSIZE(DownloadButtonArray);
-    config.pfCallback = CheckForUpdatesCallbackProc;
+    config.pfCallback = CheckForUpdatesDbCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
@@ -180,7 +184,7 @@ VOID ShowCheckForUpdatesDialog(
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
-VOID ShowCheckingForUpdatesDialog(
+VOID ShowDbCheckingForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
@@ -192,7 +196,7 @@ VOID ShowCheckingForUpdatesDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
-    config.pfCallback = CheckingForUpdatesCallbackProc;
+    config.pfCallback = CheckingForUpdatesDbCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
@@ -202,7 +206,7 @@ VOID ShowCheckingForUpdatesDialog(
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
-VOID ShowInstallRestartDialog(
+VOID ShowDbInstallRestartDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
@@ -214,7 +218,7 @@ VOID ShowInstallRestartDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
-    config.pfCallback = RestartTaskDialogCallbackProc;
+    config.pfCallback = RestartDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pButtons = RestartButtonArray;
     config.cButtons = ARRAYSIZE(RestartButtonArray);
@@ -226,7 +230,7 @@ VOID ShowInstallRestartDialog(
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
 
-VOID ShowUpdateFailedDialog(
+VOID ShowDbUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
@@ -239,7 +243,7 @@ VOID ShowUpdateFailedDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
     config.hMainIcon = Context->IconLargeHandle;
     config.cxWidth = 200;
-    config.pfCallback = FinalTaskDialogCallbackProc;
+    config.pfCallback = FinalDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
