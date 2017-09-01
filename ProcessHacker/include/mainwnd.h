@@ -47,7 +47,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_GET_FONT (WM_APP + 137)
 // begin_phapppub
 #define WM_PH_INVOKE (WM_APP + 138)
-#define WM_PH_ADD_MENU_ITEM (WM_APP + 139)
+// WM_PH_DEPRECATED (WM_APP + 139)
 #define WM_PH_CREATE_TAB_PAGE (WM_APP + 140)
 #define WM_PH_REFRESH (WM_APP + 141)
 #define WM_PH_GET_UPDATE_AUTOMATICALLY (WM_APP + 142)
@@ -87,8 +87,6 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
 #define ProcessHacker_Invoke(hWnd, Function, Parameter) \
     PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
-#define ProcessHacker_AddMenuItem(hWnd, AddMenuItem) \
-    ((ULONG_PTR)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
 #define ProcessHacker_CreateTabPage(hWnd, Template) \
     ((struct _PH_MAIN_TAB_PAGE *)SendMessage(hWnd, WM_PH_CREATE_TAB_PAGE, 0, (LPARAM)(Template)))
 #define ProcessHacker_Refresh(hWnd) \
@@ -125,17 +123,6 @@ typedef struct _PH_LAYOUT_PADDING_DATA
     RECT Padding;
 } PH_LAYOUT_PADDING_DATA, *PPH_LAYOUT_PADDING_DATA;
 // end_phapppub
-
-typedef struct _PH_ADD_MENU_ITEM
-{
-    _In_ PVOID Plugin;
-    _In_ ULONG Location;
-    _In_opt_ PWSTR InsertAfter;
-    _In_ ULONG Flags;
-    _In_ ULONG Id;
-    _In_ PWSTR Text;
-    _In_opt_ PVOID Context;
-} PH_ADD_MENU_ITEM, *PPH_ADD_MENU_ITEM;
 
 // begin_phapppub
 typedef enum _PH_MAIN_TAB_PAGE_MESSAGE

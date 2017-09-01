@@ -628,60 +628,6 @@ ULONG PhPluginReserveIds(
 }
 
 /**
- * Adds a menu item to the program's main menu. This function is
- * deprecated. Use \c GeneralCallbackMainMenuInitializing instead.
- *
- * \param Plugin A plugin instance structure.
- * \param Location A handle to the parent menu, or one of the following:
- * \li \c PH_MENU_ITEM_LOCATION_VIEW The "View" menu.
- * \li \c PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
- * \param InsertAfter The text of the menu item to insert the
- * new menu item after. The search is a case-insensitive prefix search
- * that ignores prefix characters (ampersands).
- * \param Id An identifier for the menu item. This should be unique
- * within the plugin.
- * \param Text The text of the menu item.
- * \param Context A user-defined value for the menu item.
- *
- * \return TRUE if the function succeeded, otherwise FALSE.
- *
- * \remarks The \ref PluginCallbackMenuItem callback is invoked when
- * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure
- * will contain the \a Id and \a Context values passed to this function.
- */
-ULONG_PTR PhPluginAddMenuItem(
-    _In_ PPH_PLUGIN Plugin,
-    _In_ ULONG_PTR Location,
-    _In_opt_ PWSTR InsertAfter,
-    _In_ ULONG Id,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Context
-    )
-{
-    PH_ADD_MENU_ITEM addMenuItem;
-
-    addMenuItem.Plugin = Plugin;
-    addMenuItem.InsertAfter = InsertAfter;
-    addMenuItem.Text = Text;
-    addMenuItem.Context = Context;
-
-    if (Location < 0x1000)
-    {
-        addMenuItem.Location = (ULONG)Location;
-    }
-    else
-    {
-        return 0;
-    }
-
-    addMenuItem.Flags = Id & PH_MENU_ITEM_VALID_FLAGS;
-    Id &= ~PH_MENU_ITEM_VALID_FLAGS;
-    addMenuItem.Id = Id;
-
-    return ProcessHacker_AddMenuItem(PhMainWndHandle, &addMenuItem);
-}
-
-/**
  * Retrieves current system statistics.
  */
 VOID PhPluginGetSystemStatistics(
