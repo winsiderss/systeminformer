@@ -88,7 +88,6 @@ static HFONT CurrentCustomFont;
 
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
-static PPH_LIST LegacyAddMenuItemList;
 
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
 
@@ -2072,13 +2071,6 @@ ULONG_PTR PhMwpOnUserMessage(
             function((PVOID)WParam);
         }
         break;
-    case WM_PH_ADD_MENU_ITEM:
-        {
-            PPH_ADD_MENU_ITEM addMenuItem = (PPH_ADD_MENU_ITEM)LParam;
-
-            return PhMwpLegacyAddPluginMenuItem(addMenuItem);
-        }
-        break;
     case WM_PH_CREATE_TAB_PAGE:
         {
             return (ULONG_PTR)PhMwpCreatePage((PPH_MAIN_TAB_PAGE)LParam);
@@ -2550,30 +2542,6 @@ VOID PhMwpDispatchMenuCommand(
     SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
 }
 
-ULONG_PTR PhMwpLegacyAddPluginMenuItem(
-    _In_ PPH_ADD_MENU_ITEM AddMenuItem
-    )
-{
-    PPH_ADD_MENU_ITEM addMenuItem;
-    PPH_PLUGIN_MENU_ITEM pluginMenuItem;
-
-    if (!LegacyAddMenuItemList)
-        LegacyAddMenuItemList = PhCreateList(8);
-
-    addMenuItem = PhAllocateCopy(AddMenuItem, sizeof(PH_ADD_MENU_ITEM));
-    PhAddItemList(LegacyAddMenuItemList, addMenuItem);
-
-    pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
-    memset(pluginMenuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
-    pluginMenuItem->Plugin = AddMenuItem->Plugin;
-    pluginMenuItem->Id = AddMenuItem->Id;
-    pluginMenuItem->Context = AddMenuItem->Context;
-
-    addMenuItem->Context = pluginMenuItem;
-
-    return TRUE;
-}
-
 HBITMAP PhMwpGetShieldBitmap(
     VOID
     )
@@ -2761,50 +2729,6 @@ VOID PhMwpInitializeSubMenu(
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
-            }
-        }
-    }
-
-    if (LegacyAddMenuItemList)
-    {
-        ULONG i;
-        PPH_ADD_MENU_ITEM addMenuItem;
-
-        for (i = 0; i < LegacyAddMenuItemList->Count; i++)
-        {
-            addMenuItem = LegacyAddMenuItemList->Items[i];
-
-            if (addMenuItem->Location == Index)
-            {
-                ULONG insertIndex;
-
-                if (addMenuItem->InsertAfter)
-                {
-                    for (insertIndex = 0; insertIndex < Menu->Items->Count; insertIndex++)
-                    {
-                        menuItem = Menu->Items->Items[insertIndex];
-
-                        if (!(menuItem->Flags & PH_EMENU_SEPARATOR) && (PhCompareUnicodeStringZIgnoreMenuPrefix(
-                            addMenuItem->InsertAfter,
-                            menuItem->Text,
-                            TRUE,
-                            TRUE
-                            ) == 0))
-                        {
-                            insertIndex++;
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    insertIndex = 0;
-                }
-
-                if (addMenuItem->Text[0] == '-' && addMenuItem->Text[1] == 0)
-                    PhInsertEMenuItem(Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), insertIndex);
-                else
-                    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PLUGIN_MENU_ITEM, addMenuItem->Text, NULL, addMenuItem->Context), insertIndex);
             }
         }
     }

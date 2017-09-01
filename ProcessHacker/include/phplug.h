@@ -502,23 +502,6 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 
-// Id flags (non-functional)
-#define PH_MENU_ITEM_SUB_MENU 0x80000000
-#define PH_MENU_ITEM_RETURN_MENU 0x40000000
-#define PH_MENU_ITEM_VALID_FLAGS 0xc0000000
-
-PHAPPAPI
-ULONG_PTR
-NTAPI
-PhPluginAddMenuItem(
-    _In_ PPH_PLUGIN Plugin,
-    _In_ ULONG_PTR Location,
-    _In_opt_ PWSTR InsertAfter,
-    _In_ ULONG Id,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Context
-    );
-
 typedef struct _PH_PLUGIN_SYSTEM_STATISTICS
 {
     PSYSTEM_PERFORMANCE_INFORMATION Performance;
