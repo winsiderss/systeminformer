@@ -108,12 +108,12 @@ namespace CustomBuildTool
         }
 
         public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-        public static readonly IntPtr STD_OUTPUT_HANDLE = new IntPtr(-11);
-        public static readonly IntPtr STD_INPUT_HANDLE = new IntPtr(-10);
-        public static readonly IntPtr STD_ERROR_HANDLE = new IntPtr(-12);
+        public const int STD_OUTPUT_HANDLE = -11;
+        public const int STD_INPUT_HANDLE = -10;
+        public const int STD_ERROR_HANDLE = -12;
 
         [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern IntPtr GetStdHandle(IntPtr StdHandle);
+        public static extern IntPtr GetStdHandle(int StdHandle);
         [DllImport("kernel32.dll", ExactSpelling = true)]
         public static extern bool GetConsoleMode(IntPtr ConsoleHandle, out ConsoleMode Mode);
         [DllImport("kernel32.dll", ExactSpelling = true)]
@@ -160,10 +160,11 @@ namespace CustomBuildTool
 
         public static void Encrypt(string fileName, string outFileName, string secret)
         {
+            FileStream fileOutStream = File.Create(outFileName);
+
             using (Rijndael rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(fileName))
-            using (FileStream fileStream2 = File.Create(outFileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileStream2, rijndael.CreateEncryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write))
             {
                 fileStream.CopyTo(cryptoStream);
             }
@@ -171,10 +172,11 @@ namespace CustomBuildTool
 
         public static void Decrypt(string FileName, string outFileName, string secret)
         {
+            FileStream fileOutStream = File.Create(outFileName);
+
             using (Rijndael rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(FileName))
-            using (FileStream fileStream2 = File.Create(outFileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileStream2, rijndael.CreateDecryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write))
             {
                 fileStream.CopyTo(cryptoStream);
             }
@@ -189,8 +191,9 @@ namespace CustomBuildTool
             //    return BitConverter.ToString(hashBytes).Replace("-", String.Empty);
             //}
 
-            using (FileStream stream = File.OpenRead(FileName))
-            using (BufferedStream bufferedStream = new BufferedStream(stream, 0x1000))
+            FileStream fileInStream = File.OpenRead(FileName);
+
+            using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
             {
                 SHA256Managed sha = new SHA256Managed();
                 byte[] checksum = sha.ComputeHash(bufferedStream);
