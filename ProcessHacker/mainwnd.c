@@ -3518,7 +3518,7 @@ VOID PhMwpUpdateUsersMenu(
             PhInsertEMenuItem(UsersMenu, userMenu = PhCreateEMenuItem(0, IDR_USER, escapedMenuText->Buffer, NULL, UlongToPtr(sessions[i].SessionId)), -1);
             PhLoadResourceEMenuItem(userMenu, PhInstanceHandle, MAKEINTRESOURCE(IDR_USER), 0);
 
-            PhDereferenceObject(escapedMenuText);
+            PhAutoDereferenceObject(escapedMenuText);
         }
 
         WinStationFreeMemory(sessions);
