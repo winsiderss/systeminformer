@@ -124,6 +124,7 @@
 #define IDB_SEARCH_INACTIVE             224
 #define IDB_SEARCH_ACTIVE_BMP           225
 #define IDB_SEARCH_INACTIVE_BMP         226
+#define IDD_OPTIONS                     227
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -535,6 +536,8 @@
 #define IDC_FILTEROPTIONS               1389
 #define IDC_FILTERTYPE                  1390
 #define IDC_TREELIST                    1391
+#define IDC_SECTIONTREE                 1393
+#define IDC_INFO                        1396
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -740,9 +743,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        233
+#define _APS_NEXT_RESOURCE_VALUE        238
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1392
+#define _APS_NEXT_CONTROL_VALUE         1397
 #define _APS_NEXT_SYMED_VALUE           169
 #endif
 #endif

@@ -606,6 +606,8 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             if (context->OptionsChanged)
                 DiskDrivesSaveList();
 
@@ -623,13 +625,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            // Center the property sheet.
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
-            // Hide the OK button.
-            ShowWindow(GetDlgItem(GetParent(hwndDlg), IDOK), SW_HIDE);
-            // Set the Cancel button text.
-            Button_SetText(GetDlgItem(GetParent(hwndDlg), IDCANCEL), L"Close");
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DISKDRIVE_LISTVIEW);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
@@ -641,11 +636,19 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             AddListViewGroup(context->ListViewHandle, 0, L"Connected");
             AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
 
             FindDiskDrives(context);
 
             context->OptionsChanged = FALSE;
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
