@@ -705,6 +705,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             if (context->OptionsChanged)
                 NetAdaptersSaveList();
 
@@ -733,9 +735,18 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             AddListViewGroup(context->ListViewHandle, 0, L"Connected");
             AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
             FindNetworkAdapters(context);
 
             context->OptionsChanged = FALSE;
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_COMMAND:

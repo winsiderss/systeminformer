@@ -67,32 +67,23 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
-    PROPSHEETPAGE propSheetPage;
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.dwFlags = PSP_USETITLE;
-        propSheetPage.hInstance = PluginInstance->DllBase;
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DISKDRIVE_OPTIONS);
-        propSheetPage.pszTitle = L"Disk Drives";
-        propSheetPage.pfnDlgProc = DiskDriveOptionsDlgProc;
-        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+    optionsEntry->CreateSection(
+        L"Disk Drives",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_DISKDRIVE_OPTIONS),
+        DiskDriveOptionsDlgProc,
+        NULL
+        );
 
-    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.dwFlags = PSP_USETITLE;
-        propSheetPage.hInstance = PluginInstance->DllBase;
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_NETADAPTER_OPTIONS);
-        propSheetPage.pszTitle = L"Network Adapters";
-        propSheetPage.pfnDlgProc = NetworkAdapterOptionsDlgProc;
-        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+    optionsEntry->CreateSection(
+        L"Network Adapters",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_NETADAPTER_OPTIONS),
+        NetworkAdapterOptionsDlgProc,
+        NULL
+        );
 }
 
 VOID NTAPI MainWindowShowingCallback(

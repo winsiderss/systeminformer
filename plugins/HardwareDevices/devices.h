@@ -182,14 +182,11 @@ typedef struct _DV_NETADAPTER_CONTEXT
     //HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     BOOLEAN UseAlternateMethod;
+    PH_LAYOUT_MANAGER LayoutManager;
 } DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
 VOID NetAdaptersLoadList(
     VOID
-    );
-
-VOID ShowOptionsDialog(
-    _In_ HWND ParentHandle
     );
 
 // adapter.c
@@ -443,6 +440,7 @@ typedef struct _DV_DISK_OPTIONS_CONTEXT
     HWND ListViewHandle;
     //HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
+    PH_LAYOUT_MANAGER LayoutManager;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
 
 VOID DiskDrivesInitialize(VOID);

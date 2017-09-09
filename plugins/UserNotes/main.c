@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -314,11 +314,14 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    DialogBox(
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
+
+    optionsEntry->CreateSection(
+        L"UserNotes",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
+        OptionsDlgProc,
+        NULL
         );
 }
 
@@ -1344,7 +1347,6 @@ LOGICAL DllMain(
         info->Author = L"dmex, wj32";
         info->Description = L"Allows the user to add comments for processes and services, save process priority and affinity, highlight individual processes and show processes collapsed by default.";
         info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1120";
-        info->HasOptions = TRUE;
 
         InitializeDb();
 
@@ -1361,7 +1363,7 @@ LOGICAL DllMain(
             &PluginUnloadCallbackRegistration
             );
         PhRegisterCallback(
-            PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+            PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
             ShowOptionsCallback,
             NULL,
             &PluginShowOptionsCallbackRegistration
@@ -1479,32 +1481,38 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             SetDlgItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
 
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DATABASE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSetStringSetting2(SETTING_NAME_DATABASE_PATH, &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
-                    PhSetStringSetting2(SETTING_NAME_DATABASE_PATH,
-                        &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
-
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
             case IDC_BROWSE:
                 {
                     static PH_FILETYPE_FILTER filters[] =
