@@ -159,6 +159,11 @@ VOID PhShowOptionsDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    if (PhStartupParameters.ShowOptions)
+        StartLocation = PhStartupParameters.Point;
+    else
+        StartLocation.x = MINLONG;
+
     DialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_OPTIONS),
@@ -258,7 +263,16 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             SendMessage(PhOptionsWindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
             SendMessage(PhOptionsWindowHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
 
-            PhCenterWindow(hwndDlg, NULL);
+            // Set the location of the options window.
+            if (StartLocation.x == MINLONG)
+            {
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            }
+            else
+            {
+                SetWindowPos(hwndDlg, NULL, StartLocation.x, StartLocation.y, 0, 0,
+                    SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
+            }
 
             OptionsTreeControl = GetDlgItem(PhOptionsWindowHandle, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(PhOptionsWindowHandle, IDD_CONTAINER);
@@ -1144,12 +1158,12 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     // WM_PH_CHILD_EXIT gets sent.
                     PhpAdvancedPageSave(hwndDlg);
 
-                    GetWindowRect(GetParent(hwndDlg), &windowRect);
+                    GetWindowRect(GetParent(GetParent(hwndDlg)), &windowRect);
                     WindowHandleForElevate = hwndDlg;
 
                     PhCreateThread2(PhpElevateAdvancedThreadStart, PhFormatString(
                         L"-showoptions -hwnd %Ix -point %u,%u",
-                        (ULONG_PTR)GetParent(hwndDlg),
+                        (ULONG_PTR)GetParent(GetParent(hwndDlg)),
                         windowRect.left + 20,
                         windowRect.top + 20
                         ));
