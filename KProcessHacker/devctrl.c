@@ -22,8 +22,8 @@
 #include <kph.h>
 
 NTSTATUS KphDispatchDeviceControl(
-    __in PDEVICE_OBJECT DeviceObject,
-    __in PIRP Irp
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ PIRP Irp
     )
 {
     NTSTATUS status;

@@ -37,11 +37,11 @@ typedef struct _CAPTURE_BACKTRACE_THREAD_CONTEXT
 KKERNEL_ROUTINE KphpCaptureStackBackTraceThreadSpecialApc;
 
 VOID KphpCaptureStackBackTraceThreadSpecialApc(
-    __in PRKAPC Apc,
-    __inout PKNORMAL_ROUTINE *NormalRoutine,
-    __inout PVOID *NormalContext,
-    __inout PVOID *SystemArgument1,
-    __inout PVOID *SystemArgument2
+    _In_ PRKAPC Apc,
+    _Inout_ PKNORMAL_ROUTINE *NormalRoutine,
+    _Inout_ PVOID *NormalContext,
+    _Inout_ PVOID *SystemArgument1,
+    _Inout_ PVOID *SystemArgument2
     );
 
 #ifdef ALLOC_PRAGMA
@@ -70,19 +70,19 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenThread(
-    __out PHANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCLIENT_ID ClientId,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     CLIENT_ID clientId;
     PETHREAD thread;
     KPH_KEY_LEVEL requiredKeyLevel;
-    HANDLE threadHandle;
+    HANDLE threadHandle = NULL;
 
     PAGED_CODE();
 
@@ -170,10 +170,10 @@ NTSTATUS KpiOpenThread(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenThreadProcess(
-    __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE ProcessHandle,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE ProcessHandle,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -257,11 +257,11 @@ NTSTATUS KpiOpenThreadProcess(
  * \return The number of frames captured.
  */
 ULONG KphCaptureStackBackTrace(
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __in_opt ULONG Flags,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG BackTraceHash
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _In_opt_ ULONG Flags,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG BackTraceHash
     )
 {
     PVOID backTrace[MAX_STACK_DEPTH];
@@ -320,13 +320,13 @@ ULONG KphCaptureStackBackTrace(
  * \return The number of frames captured.
  */
 NTSTATUS KphCaptureStackBackTraceThread(
-    __in PETHREAD Thread,
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG CapturedFrames,
-    __out_opt PULONG BackTraceHash,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ PETHREAD Thread,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -490,11 +490,11 @@ NTSTATUS KphCaptureStackBackTraceThread(
 }
 
 VOID KphpCaptureStackBackTraceThreadSpecialApc(
-    __in PRKAPC Apc,
-    __inout PKNORMAL_ROUTINE *NormalRoutine,
-    __inout PVOID *NormalContext,
-    __inout PVOID *SystemArgument1,
-    __inout PVOID *SystemArgument2
+    _In_ PRKAPC Apc,
+    _Inout_ PKNORMAL_ROUTINE *NormalRoutine,
+    _Inout_ PVOID *NormalContext,
+    _Inout_ PVOID *SystemArgument1,
+    _Inout_ PVOID *SystemArgument2
     )
 {
     PCAPTURE_BACKTRACE_THREAD_CONTEXT context = *SystemArgument1;
@@ -530,13 +530,13 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  * \return The number of frames captured.
  */
 NTSTATUS KpiCaptureStackBackTraceThread(
-    __in HANDLE ThreadHandle,
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG CapturedFrames,
-    __out_opt PULONG BackTraceHash,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -582,12 +582,12 @@ NTSTATUS KpiCaptureStackBackTraceThread(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiQueryInformationThread(
-    __in HANDLE ThreadHandle,
-    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -665,11 +665,11 @@ NTSTATUS KpiQueryInformationThread(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiSetInformationThread(
-    __in HANDLE ThreadHandle,
-    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;

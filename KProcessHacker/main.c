@@ -24,17 +24,17 @@
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
-__drv_dispatchType(IRP_MJ_CREATE) DRIVER_DISPATCH KphDispatchCreate;
-__drv_dispatchType(IRP_MJ_CLOSE) DRIVER_DISPATCH KphDispatchClose;
+_Dispatch_type_(IRP_MJ_CREATE) DRIVER_DISPATCH KphDispatchCreate;
+_Dispatch_type_(IRP_MJ_CLOSE) DRIVER_DISPATCH KphDispatchClose;
 
 ULONG KphpReadIntegerParameter(
-    __in_opt HANDLE KeyHandle,
-    __in PUNICODE_STRING ValueName,
-    __in ULONG DefaultValue
+    _In_opt_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName,
+    _In_ ULONG DefaultValue
     );
 
 NTSTATUS KphpReadDriverParameters(
-    __in PUNICODE_STRING RegistryPath
+    _In_ PUNICODE_STRING RegistryPath
     );
 
 #ifdef ALLOC_PRAGMA
@@ -51,8 +51,8 @@ ULONG KphFeatures;
 KPH_PARAMETERS KphParameters;
 
 NTSTATUS DriverEntry(
-    __in PDRIVER_OBJECT DriverObject,
-    __in PUNICODE_STRING RegistryPath
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PUNICODE_STRING RegistryPath
     )
 {
     NTSTATUS status;
@@ -105,7 +105,7 @@ NTSTATUS DriverEntry(
 }
 
 VOID DriverUnload(
-    __in PDRIVER_OBJECT DriverObject
+    _In_ PDRIVER_OBJECT DriverObject
     )
 {
     PAGED_CODE();
@@ -116,8 +116,8 @@ VOID DriverUnload(
 }
 
 NTSTATUS KphDispatchCreate(
-    __in PDEVICE_OBJECT DeviceObject,
-    __in PIRP Irp
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ PIRP Irp
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -186,8 +186,8 @@ NTSTATUS KphDispatchCreate(
 }
 
 NTSTATUS KphDispatchClose(
-    __in PDEVICE_OBJECT DeviceObject,
-    __in PIRP Irp
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ PIRP Irp
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -223,9 +223,9 @@ NTSTATUS KphDispatchClose(
  * \return The parameter value, or \a DefaultValue if the function failed.
  */
 ULONG KphpReadIntegerParameter(
-    __in_opt HANDLE KeyHandle,
-    __in PUNICODE_STRING ValueName,
-    __in ULONG DefaultValue
+    _In_opt_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName,
+    _In_ ULONG DefaultValue
     )
 {
     NTSTATUS status;
@@ -267,7 +267,7 @@ ULONG KphpReadIntegerParameter(
  * \param RegistryPath The registry path of the driver.
  */
 NTSTATUS KphpReadDriverParameters(
-    __in PUNICODE_STRING RegistryPath
+    _In_ PUNICODE_STRING RegistryPath
     )
 {
     NTSTATUS status;
@@ -329,8 +329,8 @@ NTSTATUS KphpReadDriverParameters(
 }
 
 NTSTATUS KpiGetFeatures(
-    __out PULONG Features,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PULONG Features,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     PAGED_CODE();

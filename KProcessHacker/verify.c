@@ -25,7 +25,7 @@
 #define FILE_MAX_SIZE (32 * 1024 * 1024) // 32 MB
 
 VOID KphpBackoffKey(
-    __in PKPH_CLIENT Client
+    _In_ PKPH_CLIENT Client
     );
 
 static UCHAR KphpTrustedPublicKey[] =
@@ -49,9 +49,9 @@ static UCHAR KphpTrustedPublicKey[] =
 #endif
 
 NTSTATUS KphHashFile(
-    __in PUNICODE_STRING FileName,
-    __out PVOID *Hash,
-    __out PULONG HashSize
+    _In_ PUNICODE_STRING FileName,
+    _Out_ PVOID *Hash,
+    _Out_ PULONG HashSize
     )
 {
     NTSTATUS status;
@@ -98,11 +98,8 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = BCryptCreateHash(hashAlgHandle, &hashHandle, hashObject, hashObjectSize,
-        NULL, 0, 0)))
-    {
+    if (!NT_SUCCESS(status = BCryptCreateHash(hashAlgHandle, &hashHandle, hashObject, hashObjectSize, NULL, 0, 0)))
         goto CleanupExit;
-    }
 
     // Open the file and compute the hash.
 
@@ -146,8 +143,7 @@ NTSTATUS KphHashFile(
         if (bytesToRead > remainingBytes)
             bytesToRead = remainingBytes;
 
-        if (!NT_SUCCESS(status = ZwReadFile(fileHandle, NULL, NULL, NULL, &iosb, buffer, bytesToRead,
-            NULL, NULL)))
+        if (!NT_SUCCESS(status = ZwReadFile(fileHandle, NULL, NULL, NULL, &iosb, buffer, bytesToRead, NULL, NULL)))
         {
             goto CleanupExit;
         }
@@ -192,9 +188,9 @@ CleanupExit:
 }
 
 NTSTATUS KphVerifyFile(
-    __in PUNICODE_STRING FileName,
-    __in_bcount(SignatureSize) PUCHAR Signature,
-    __in ULONG SignatureSize
+    _In_ PUNICODE_STRING FileName,
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize
     )
 {
     NTSTATUS status;
@@ -240,10 +236,10 @@ CleanupExit:
 }
 
 VOID KphVerifyClient(
-    __inout PKPH_CLIENT Client,
-    __in PVOID CodeAddress,
-    __in_bcount(SignatureSize) PUCHAR Signature,
-    __in ULONG SignatureSize
+    _Inout_ PKPH_CLIENT Client,
+    _In_ PVOID CodeAddress,
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize
     )
 {
     NTSTATUS status;
@@ -311,10 +307,10 @@ CleanupExit:
 }
 
 NTSTATUS KpiVerifyClient(
-    __in PVOID CodeAddress,
-    __in_bcount(SignatureSize) PUCHAR Signature,
-    __in ULONG SignatureSize,
-    __in PKPH_CLIENT Client
+    _In_ PVOID CodeAddress,
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize,
+    _In_ PKPH_CLIENT Client
     )
 {
     PUCHAR signature;
@@ -354,7 +350,7 @@ NTSTATUS KpiVerifyClient(
 }
 
 VOID KphGenerateKeysClient(
-    __inout PKPH_CLIENT Client
+    _Inout_ PKPH_CLIENT Client
     )
 {
     ULONGLONG interruptTime;
@@ -389,9 +385,9 @@ VOID KphGenerateKeysClient(
 }
 
 NTSTATUS KphRetrieveKeyViaApc(
-    __inout PKPH_CLIENT Client,
-    __in KPH_KEY_LEVEL KeyLevel,
-    __inout PIRP Irp
+    _Inout_ PKPH_CLIENT Client,
+    _In_ KPH_KEY_LEVEL KeyLevel,
+    _Inout_ PIRP Irp
     )
 {
     PIO_APC_ROUTINE userApcRoutine;
@@ -440,10 +436,10 @@ NTSTATUS KphRetrieveKeyViaApc(
 }
 
 NTSTATUS KphValidateKey(
-    __in KPH_KEY_LEVEL RequiredKeyLevel,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ KPH_KEY_LEVEL RequiredKeyLevel,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     PAGED_CODE();
@@ -478,7 +474,7 @@ NTSTATUS KphValidateKey(
 }
 
 VOID KphpBackoffKey(
-    __in PKPH_CLIENT Client
+    _In_ PKPH_CLIENT Client
     )
 {
     LARGE_INTEGER backoffTime;
