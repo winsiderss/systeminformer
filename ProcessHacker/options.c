@@ -94,7 +94,6 @@ VOID PhOptionsLayoutSectionView(
 
 VOID PhOptionsEnterSectionViewInner(
     _In_ PPH_OPTIONS_SECTION Section,
-    _Inout_ HDWP *DeferHandle,
     _Inout_ HDWP *ContainerDeferHandle
     );
 
@@ -108,14 +107,6 @@ PPH_OPTIONS_SECTION PhOptionsFindSection(
 
 VOID PhOptionsOnSize(
     VOID
-    );
-
-PPH_OPTIONS_SECTION PhOptionsCreateInternalSection(
-    _In_ PWSTR Name,
-    _In_ PVOID Instance,
-    _In_ PWSTR Template,
-    _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
     );
 
 PPH_OPTIONS_SECTION PhOptionsCreateSection(
@@ -134,6 +125,7 @@ static PPH_LIST SectionList = NULL;
 static PPH_OPTIONS_SECTION CurrentSection = NULL;
 static HWND OptionsTreeControl = NULL;
 static HWND ContainerControl = NULL;
+static HIMAGELIST OptionsTreeImageList = NULL;
 
 // All
 static BOOLEAN RestartRequired = FALSE;
@@ -211,7 +203,7 @@ VOID PhShowOptionsDialog(
     }
 }
 
-static HTREEITEM PhOptionsTreeViewAddItem(
+static HTREEITEM PhpOptionsTreeViewAddItem(
     _In_ PWSTR Text,
     _In_ PVOID Context
     )
@@ -229,7 +221,7 @@ static HTREEITEM PhOptionsTreeViewAddItem(
     return TreeView_InsertItem(OptionsTreeControl, &insert);
 }
 
-static PPH_OPTIONS_SECTION GetSelectedSectionTreeView(
+static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
     _In_ HTREEITEM SelectedTreeItem
     )
 {
@@ -274,6 +266,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
             }
 
+            OptionsTreeImageList = ImageList_Create(2, 22, ILC_COLOR, 1, 1);
             OptionsTreeControl = GetDlgItem(PhOptionsWindowHandle, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(PhOptionsWindowHandle, IDD_CONTAINER);
 
@@ -281,15 +274,16 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhSetControlTheme(OptionsTreeControl, L"explorer");
             TreeView_SetExtendedStyle(OptionsTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
-            TreeView_SetImageList(OptionsTreeControl, ImageList_Create(2, 22, ILC_COLOR32, 1, 1), TVSIL_NORMAL); // leak
+            TreeView_SetImageList(OptionsTreeControl, OptionsTreeImageList, TVSIL_NORMAL);
             TreeView_SetBkColor(OptionsTreeControl, GetSysColor(COLOR_3DFACE));
 
             PhInitializeLayoutManager(&WindowLayoutManager, PhOptionsWindowHandle);
-
             PhAddLayoutItem(&WindowLayoutManager, OptionsTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, ContainerControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_RESET), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_RESET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_CLEANUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
@@ -303,15 +297,15 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 if (PhStartupParameters.ShowOptions)
                 {
                     // Disable all pages other than Advanced.
-                    section = PhOptionsCreateInternalSection(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
+                    section = PhOptionsCreateSection(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
                 }
                 else
                 {
-                    section = PhOptionsCreateInternalSection(L"General", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGENERAL), PhpOptionsGeneralDlgProc, NULL);
-                    PhOptionsCreateInternalSection(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
-                    PhOptionsCreateInternalSection(L"Symbols", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTSYMBOLS), PhpOptionsSymbolsDlgProc, NULL);
-                    PhOptionsCreateInternalSection(L"Highlighting", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING), PhpOptionsHighlightingDlgProc, NULL);
-                    PhOptionsCreateInternalSection(L"Graphs", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGRAPHS), PhpOptionsGraphsDlgProc, NULL);
+                    section = PhOptionsCreateSection(L"General", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGENERAL), PhpOptionsGeneralDlgProc, NULL);
+                    PhOptionsCreateSection(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
+                    PhOptionsCreateSection(L"Symbols", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTSYMBOLS), PhpOptionsSymbolsDlgProc, NULL);
+                    PhOptionsCreateSection(L"Highlighting", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING), PhpOptionsHighlightingDlgProc, NULL);
+                    PhOptionsCreateSection(L"Graphs", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGRAPHS), PhpOptionsGraphsDlgProc, NULL);
 
                     if (PhPluginsEnabled)
                     {
@@ -344,6 +338,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhDereferenceObject(SectionList);
             SectionList = NULL;
+
+            ImageList_Destroy(OptionsTreeImageList);
 
             PhDeleteLayoutManager(&WindowLayoutManager);
         }
@@ -391,6 +387,20 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     }
                 }
                 break;
+            case IDC_CLEANUP:
+                {
+                    if (PhShowMessage2(
+                        hwndDlg,
+                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_INFORMATION_ICON,
+                        L"Do you want to clean up unused plugin settings?",
+                        L""
+                        ) == IDYES)
+                    {
+                        PhClearIgnoredSettings();
+                    }
+                }
+                break;
             }
         }
         break;
@@ -422,7 +432,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     LPNMTREEVIEW treeview = (LPNMTREEVIEW)lParam;
                     PPH_OPTIONS_SECTION section;
  
-                    if (section = GetSelectedSectionTreeView(treeview->itemNew.hItem))
+                    if (section = PhpTreeViewGetSelectedSection(treeview->itemNew.hItem))
                     {
                         PhOptionsEnterSectionView(section);
                     }
@@ -493,37 +503,7 @@ PPH_OPTIONS_SECTION PhOptionsCreateSection(
 
     PhAddItemList(SectionList, section);
 
-    PhOptionsTreeViewAddItem(Name, section);
-
-    return section;
-}
-
-PPH_OPTIONS_SECTION PhOptionsCreateInternalSection(
-    _In_ PWSTR Name,
-    _In_ PVOID Instance,
-    _In_ PWSTR Template,
-    _In_ DLGPROC DialogProc,
-    _In_ PVOID Parameter
-    )
-{
-    PPH_OPTIONS_SECTION section;
-
-    section = PhOptionsCreateSection(
-        Name, 
-        Instance, 
-        Template, 
-        DialogProc, 
-        Parameter
-        );
-
-    section->DialogHandle = PhCreateDialogFromTemplate(
-        ContainerControl,
-        DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD,
-        Instance,
-        Template,
-        DialogProc,
-        Parameter
-        );
+    PhpOptionsTreeViewAddItem(Name, section);
 
     return section;
 }
@@ -582,7 +562,6 @@ VOID PhOptionsEnterSectionView(
     ULONG i;
     PPH_OPTIONS_SECTION section;
     PPH_OPTIONS_SECTION oldSection;
-    HDWP deferHandle;
     HDWP containerDeferHandle;
 
     if (CurrentSection == NewSection)
@@ -591,10 +570,9 @@ VOID PhOptionsEnterSectionView(
     oldSection = CurrentSection;
     CurrentSection = NewSection;
 
-    deferHandle = BeginDeferWindowPos(SectionList->Count);
     containerDeferHandle = BeginDeferWindowPos(SectionList->Count);
 
-    PhOptionsEnterSectionViewInner(NewSection, &deferHandle, &containerDeferHandle);
+    PhOptionsEnterSectionViewInner(NewSection, &containerDeferHandle);
     PhOptionsLayoutSectionView();
 
     for (i = 0; i < SectionList->Count; i++)
@@ -602,10 +580,9 @@ VOID PhOptionsEnterSectionView(
         section = SectionList->Items[i];
 
         if (section != NewSection)
-            PhOptionsEnterSectionViewInner(section, &deferHandle, &containerDeferHandle);
+            PhOptionsEnterSectionViewInner(section, &containerDeferHandle);
     }
 
-    EndDeferWindowPos(deferHandle);
     EndDeferWindowPos(containerDeferHandle);
 
     if (NewSection->DialogHandle)
@@ -614,7 +591,6 @@ VOID PhOptionsEnterSectionView(
 
 VOID PhOptionsEnterSectionViewInner(
     _In_ PPH_OPTIONS_SECTION Section,
-    _Inout_ HDWP *DeferHandle,
     _Inout_ HDWP *ContainerDeferHandle
     )
 {
@@ -1136,6 +1112,9 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTLABEL), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC), FALSE);
+
+                EnableWindow(GetDlgItem(PhOptionsWindowHandle, IDC_RESET), FALSE);
+                EnableWindow(GetDlgItem(PhOptionsWindowHandle, IDC_CLEANUP), FALSE);
             }
         }
         break;
