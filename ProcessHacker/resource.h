@@ -225,6 +225,7 @@
 #define IDC_SET                         1085
 #define IDC_RESET                       1086
 #define IDC_PULSE                       1087
+#define IDC_APPLY                       1087
 #define IDC_COUNT                       1088
 #define IDC_ABANDONED                   1089
 #define IDC_CURRENTCOUNT                1090
