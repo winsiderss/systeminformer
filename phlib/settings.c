@@ -165,7 +165,7 @@ static PPH_STRING PhpSettingToString(
         {
             PPH_INTEGER_PAIR integerPair = &Setting->u.IntegerPair;
 
-            return PhFormatString(L"%d,%d", integerPair->X, integerPair->Y);
+            return PhFormatString(L"%ld,%ld", integerPair->X, integerPair->Y);
         }
     case ScalableIntegerPairSettingType:
         {
@@ -174,7 +174,7 @@ static PPH_STRING PhpSettingToString(
             if (!scalableIntegerPair)
                 return PhReferenceEmptyString();
 
-            return PhFormatString(L"@%u|%d,%d", scalableIntegerPair->Scale, scalableIntegerPair->X, scalableIntegerPair->Y);
+            return PhFormatString(L"@%lu|%ld,%ld", scalableIntegerPair->Scale, scalableIntegerPair->X, scalableIntegerPair->Y);
         }
     }
 
