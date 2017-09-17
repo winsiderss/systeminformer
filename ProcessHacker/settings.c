@@ -48,6 +48,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
+    PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
@@ -217,6 +218,7 @@ VOID PhUpdateCachedSettings(
     )
 {
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
+    PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
 
     PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);

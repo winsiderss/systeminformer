@@ -504,7 +504,7 @@ VOID PhpQueueServiceQuery(
     PPH_SERVICE_QUERY_DATA data;
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
-    if (!PhEnableProcessQueryStage2)
+    if (!PhEnableServiceQueryStage2)
         return;
 
     data = PhAllocate(sizeof(PH_SERVICE_QUERY_DATA));

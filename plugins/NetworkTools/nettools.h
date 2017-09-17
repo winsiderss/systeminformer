@@ -288,22 +288,20 @@ VOID ShowGeoIPUpdateDialog(
     _In_opt_ HWND Parent
     );
 
-// page1.c
-VOID ShowCheckForUpdatesDialog(
+// pages.c
+VOID ShowDbCheckForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
-// page2.c
-VOID ShowCheckingForUpdatesDialog(
+VOID ShowDbCheckingForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
-// page5.c
-VOID ShowInstallRestartDialog(
+VOID ShowDbInstallRestartDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
-VOID ShowUpdateFailedDialog(
+VOID ShowDbUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 

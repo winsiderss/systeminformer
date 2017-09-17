@@ -945,7 +945,6 @@ VOID PhShellExecuteUserString(
 
     PPH_STRING executeString;
     PH_STRINGREF stringBefore;
-    PH_STRINGREF stringMiddle;
     PH_STRINGREF stringAfter;
     PPH_STRING ntMessage;
 
@@ -995,8 +994,20 @@ VOID PhShellExecuteUserString(
     // Replace the token with the string, or use the original string if the token is not present.
     if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
-        PhInitializeStringRef(&stringMiddle, String);
-        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter));
+        PPH_STRING stringTemp;
+        PPH_STRING stringMiddle;
+
+        // Note: This code is needed to solve issues with faulty RamDisk software that doesn't use the Mount Manager API
+        // and instead returns \device\ FileName strings. We also can't change the way the process provider stores 
+        // the FileName string since it'll break various features and use-cases required by developers 
+        // who need the raw untranslated FileName string.
+        stringTemp = PhCreateString(String);
+        stringMiddle = PhGetFileName(stringTemp);
+
+        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle->sr, &stringAfter));
+
+        PhDereferenceObject(stringMiddle);
+        PhDereferenceObject(stringTemp);
     }
 
     if (UseShellExecute)

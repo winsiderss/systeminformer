@@ -47,20 +47,15 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
-    PROPSHEETPAGE propSheetPage;
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.dwFlags = PSP_USETITLE;
-        propSheetPage.hInstance = PluginInstance->DllBase;
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
-        propSheetPage.pszTitle = L"NetworkTools";
-        propSheetPage.pfnDlgProc = OptionsDlgProc;
-        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+    optionsEntry->CreateSection(
+        L"NetworkTools",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        OptionsDlgProc,
+        NULL
+        );
 }
 
 static BOOLEAN ValidAddressInfo(

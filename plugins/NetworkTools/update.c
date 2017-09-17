@@ -537,6 +537,19 @@ NTSTATUS GeoIPUpdateThread(
                 if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(dbpath))))
                     goto CleanupExit;
             }
+            else
+            {
+                // Create the directory if it does not exist.
+
+                PPH_STRING fullPath;
+                ULONG indexOfFileName;
+
+                if (fullPath = PH_AUTO(PhGetFullPath(dbpath->Buffer, &indexOfFileName)))
+                {
+                    if (indexOfFileName != -1)
+                        PhCreateDirectory(PhaSubstring(fullPath, 0, indexOfFileName));
+                }
+            }
 
             if (gzfile = gzopen(mmdbGzPath->Buffer, "rb"))
             {
@@ -619,11 +632,11 @@ CleanupExit:
     {
         if (success)
         {
-            ShowInstallRestartDialog(context);
+            ShowDbInstallRestartDialog(context);
         }
         else
         {
-            ShowUpdateFailedDialog(context);
+            ShowDbUpdateFailedDialog(context);
         }
     }
 
@@ -653,7 +666,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Create the Taskdialog icons
             TaskDialogCreateIcons(context);
 
-            ShowCheckForUpdatesDialog(context);
+            ShowDbCheckForUpdatesDialog(context);
         }
         break;
     }

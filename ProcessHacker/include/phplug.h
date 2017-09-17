@@ -325,7 +325,51 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
     PPH_MINIINFO_FIND_SECTION FindSection;
     PPH_MINIINFO_CREATE_LIST_SECTION CreateListSection;
 } PH_PLUGIN_MINIINFO_POINTERS, *PPH_PLUGIN_MINIINFO_POINTERS;
+// end_phapppub
 
+// begin_phapppub
+typedef struct _PH_OPTIONS_SECTION
+{
+    PH_STRINGREF Name;
+    // end_phapppub
+
+    PVOID Instance;
+    PWSTR Template;
+    DLGPROC DialogProc;
+    PVOID Parameter;
+
+    HWND DialogHandle;
+    // begin_phapppub
+} PH_OPTIONS_SECTION, *PPH_OPTIONS_SECTION;
+// end_phapppub
+
+// begin_phapppub
+typedef PPH_OPTIONS_SECTION (NTAPI *PPH_OPTIONS_CREATE_SECTION)(
+    _In_ PWSTR Name,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
+    );
+
+typedef PPH_OPTIONS_SECTION (NTAPI *PPH_OPTIONS_FIND_SECTION)(
+    _In_ PPH_STRINGREF Name
+    );
+
+typedef VOID (NTAPI *PPH_OPTIONS_ENTER_SECTION_VIEW)(
+    _In_ PPH_OPTIONS_SECTION NewSection
+    );
+
+typedef struct _PH_PLUGIN_OPTIONS_POINTERS
+{
+    HWND WindowHandle;
+    PPH_OPTIONS_CREATE_SECTION CreateSection;
+    PPH_OPTIONS_FIND_SECTION FindSection;
+    PPH_OPTIONS_ENTER_SECTION_VIEW EnterSectionView;
+} PH_PLUGIN_OPTIONS_POINTERS, *PPH_PLUGIN_OPTIONS_POINTERS;
+// end_phapppub
+
+// begin_phapppub
 typedef struct _PH_PLUGIN_TREENEW_MESSAGE
 {
     HWND TreeNewHandle;
@@ -501,23 +545,6 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 // Location
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
-
-// Id flags (non-functional)
-#define PH_MENU_ITEM_SUB_MENU 0x80000000
-#define PH_MENU_ITEM_RETURN_MENU 0x40000000
-#define PH_MENU_ITEM_VALID_FLAGS 0xc0000000
-
-PHAPPAPI
-ULONG_PTR
-NTAPI
-PhPluginAddMenuItem(
-    _In_ PPH_PLUGIN Plugin,
-    _In_ ULONG_PTR Location,
-    _In_opt_ PWSTR InsertAfter,
-    _In_ ULONG Id,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Context
-    );
 
 typedef struct _PH_PLUGIN_SYSTEM_STATISTICS
 {

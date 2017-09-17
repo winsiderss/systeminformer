@@ -101,7 +101,7 @@ BEGIN
     CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
     PUSHBUTTON      "Add/Update",IDC_ADD,145,168,50,14
     PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
-    LTEXT           "Examples:\nnote*.exe\nC:\\Windows\\system32\\cmd.exe\nC:\\Windows\\*",IDC_STATIC,7,186,241,36
+    LTEXT           "Examples:\nnote*.exe\nC:\\Windows\\system32\\cmd.exe\nC:\\Windows\\*",IDC_INFO,7,186,241,36
 END
 
 IDD_SERVICES DIALOGEX 0, 0, 255, 229
@@ -118,15 +118,15 @@ BEGIN
     CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
     PUSHBUTTON      "Add/Update",IDC_ADD,145,168,50,14
     PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
-    LTEXT           "Examples:\nWdi*\nseclogon",IDC_STATIC,7,186,241,36
+    LTEXT           "Examples:\nWdi*\nseclogon",IDC_INFO,7,186,241,36
 END
 
-IDD_LOGGING DIALOGEX 0, 0, 255, 229
+IDD_LOGGING DIALOGEX 0, 0, 255, 69
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Logging"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "File",IDC_STATIC,7,7,241,53
+    GROUPBOX        "File",IDC_INFO,7,7,241,53
     LTEXT           "Log all events to this file (leave blank to disable this feature):",IDC_STATIC,13,18,196,8
     EDITTEXT        IDC_LOGFILENAME,13,29,178,12,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse...",IDC_BROWSE,194,28,50,14
@@ -173,7 +173,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 248
         TOPMARGIN, 7
-        BOTTOMMARGIN, 222
+        BOTTOMMARGIN, 62
     END
 
     IDD_GROWL, DIALOG

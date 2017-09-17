@@ -67,36 +67,23 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[2];
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    propSheetHeader.dwFlags =
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP;
-    propSheetHeader.hwndParent = (HWND)Parameter;
-    propSheetHeader.pszCaption = L"Hardware Devices Plugin";
-    propSheetHeader.nPages = 0;
-    propSheetHeader.nStartPage = 0;
-    propSheetHeader.phpage = pages;
+    optionsEntry->CreateSection(
+        L"Disk Drives",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_DISKDRIVE_OPTIONS),
+        DiskDriveOptionsDlgProc,
+        NULL
+        );
 
-    // Disk Drives
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_DISKDRIVE_OPTIONS);
-    propSheetPage.pfnDlgProc = DiskDriveOptionsDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    // Network Adapters
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_NETADAPTER_OPTIONS);
-    propSheetPage.pfnDlgProc = NetworkAdapterOptionsDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    PhModalPropertySheet(&propSheetHeader);
+    optionsEntry->CreateSection(
+        L"Network Adapters",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_NETADAPTER_OPTIONS),
+        NetworkAdapterOptionsDlgProc,
+        NULL
+        );
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -336,7 +323,6 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Plugin for monitoring hardware devices like Disk drives and Network adapters via the System Information window.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1820";
-            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
@@ -351,7 +337,7 @@ LOGICAL DllMain(
                 &PluginUnloadCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration

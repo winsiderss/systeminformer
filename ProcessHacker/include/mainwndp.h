@@ -206,10 +206,6 @@ VOID PhMwpDispatchMenuCommand(
     _In_ ULONG_PTR ItemData
     );
 
-ULONG_PTR PhMwpLegacyAddPluginMenuItem(
-    _In_ PPH_ADD_MENU_ITEM AddMenuItem
-    );
-
 HBITMAP PhMwpGetShieldBitmap(
     VOID
     );
