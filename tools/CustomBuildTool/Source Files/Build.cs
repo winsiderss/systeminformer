@@ -758,9 +758,30 @@ namespace CustomBuildTool
 
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
+                if (File.Exists("bin\\Release32\\ProcessHacker.exe.settings.xml"))
+                    File.Delete("bin\\Release32\\ProcessHacker.exe.settings.xml");
+                if (File.Exists("bin\\Release64\\ProcessHacker.exe.settings.xml"))
+                    File.Delete("bin\\Release64\\ProcessHacker.exe.settings.xml");
 
+                File.Create("bin\\Release32\\ProcessHacker.exe.settings.xml").Dispose();
+                File.Create("bin\\Release64\\ProcessHacker.exe.settings.xml").Dispose();
+            }
+            catch { }
+
+            try
+            {
+                if (File.Exists("bin\\Release32\\usernotesdb.xml"))
+                    File.Delete("bin\\Release32\\usernotesdb.xml");
+                if (File.Exists("bin\\Release64\\usernotesdb.xml"))
+                    File.Delete("bin\\Release64\\usernotesdb.xml");
+
+                File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
+                File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
+            }
+            catch { }
+
+            try
+            {
                 if (Directory.Exists("bin\\x32"))
                     Directory.Delete("bin\\x32", true);
                 if (Directory.Exists("bin\\x64"))
@@ -768,6 +789,9 @@ namespace CustomBuildTool
 
                 Directory.Move("bin\\Release32", "bin\\x32");
                 Directory.Move("bin\\Release64", "bin\\x64");
+
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 Zip.CreateCompressedFolder("bin", BuildOutputFolder + "\\processhacker-build-bin.zip");
 
