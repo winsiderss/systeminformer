@@ -273,7 +273,9 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    static PH_STRINGREF databaseFile = PH_STRINGREF_INIT(L"usernotesdb.xml");
     PPH_PLUGIN toolStatusPlugin;
+    PPH_STRING directory;
     PPH_STRING path;
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
@@ -284,21 +286,29 @@ VOID NTAPI LoadCallback(
             ToolStatusInterface = NULL;
     }
 
-    path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
-    path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
+    directory = PH_AUTO(PhGetApplicationDirectory());
+    path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile));
 
-    LoadCustomColors();
-
-    if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
+    if (RtlDoesFileExists_U(path->Buffer))
     {
-        PPH_STRING directory;
+        SetDbPath(path);
+    }
+    else
+    {
+        path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
+        path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
 
-        directory = PH_AUTO(PhGetApplicationDirectory());
-        path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
+        if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
+        {
+            directory = PH_AUTO(PhGetApplicationDirectory());
+            path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
+        }
+
+        SetDbPath(path);
     }
 
-    SetDbPath(path);
     LoadDb();
+    LoadCustomColors();
 }
 
 VOID NTAPI UnloadCallback(
