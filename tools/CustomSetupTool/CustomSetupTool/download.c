@@ -312,12 +312,12 @@ BOOLEAN SetupQueryUpdateData(
     if (PhIsNullOrEmptyString(Context->SetupFileVersion))
         goto CleanupExit;
 
-    if (PhIsNullOrEmptyString(Context->WebSetupFileDownloadUrl))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->WebSetupFileSignature))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->WebSetupFileVersion))
-        goto CleanupExit;
+    //if (PhIsNullOrEmptyString(Context->WebSetupFileDownloadUrl))
+    //    goto CleanupExit;
+    //if (PhIsNullOrEmptyString(Context->WebSetupFileSignature))
+    //    goto CleanupExit;
+    //if (PhIsNullOrEmptyString(Context->WebSetupFileVersion))
+    //    goto CleanupExit;
 
     success = TRUE;
 

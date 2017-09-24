@@ -96,9 +96,9 @@ BOOLEAN SetupExtractBuild(
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
             continue;
 
-        if (!strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
+        if (strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
             continue;
-        if (!strstr(zipFileStat.m_filename, "usernotesdb.xml"))
+        if (strstr(zipFileStat.m_filename, "usernotesdb.xml"))
             continue;
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
@@ -135,9 +135,9 @@ BOOLEAN SetupExtractBuild(
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
             continue;
 
-        if (!strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
+        if (strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
             continue;
-        if (!strstr(zipFileStat.m_filename, "usernotesdb.xml"))
+        if (strstr(zipFileStat.m_filename, "usernotesdb.xml"))
             continue;
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
@@ -279,4 +279,3 @@ CleanupExit:
 
     return FALSE;
 }
-
