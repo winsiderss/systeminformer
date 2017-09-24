@@ -96,6 +96,11 @@ BOOLEAN SetupExtractBuild(
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
             continue;
 
+        if (!strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
+            continue;
+        if (!strstr(zipFileStat.m_filename, "usernotesdb.xml"))
+            continue;
+
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
             if (!strncmp(zipFileStat.m_filename, "x32\\", 4))
@@ -128,6 +133,11 @@ BOOLEAN SetupExtractBuild(
         mz_zip_archive_file_stat zipFileStat;
 
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
+            continue;
+
+        if (!strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
+            continue;
+        if (!strstr(zipFileStat.m_filename, "usernotesdb.xml"))
             continue;
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
@@ -166,7 +176,12 @@ BOOLEAN SetupExtractBuild(
         if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, bufferLength)) != zipFileStat.m_crc32)
             goto CleanupExit;
 
-        extractPath = PhConcatStrings(3, PhGetString(Context->SetupInstallPath), L"\\", PhGetString(fileName));
+        extractPath = PhConcatStrings(
+            3, 
+            PhGetString(Context->SetupInstallPath), 
+            L"\\", 
+            PhGetString(fileName)
+            );
 
         if (fullSetupPath = PhGetFullPath(extractPath->Buffer, &indexOfFileName))
         {
