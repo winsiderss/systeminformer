@@ -92,27 +92,30 @@ BOOLEAN SetupExtractBuild(
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
         mz_zip_archive_file_stat zipFileStat;
+        PPH_STRING fileName;
 
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
             continue;
 
-        if (strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
-            continue;
-        if (strstr(zipFileStat.m_filename, "usernotesdb.xml"))
-            continue;
+        fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (!strncmp(zipFileStat.m_filename, "x32\\", 4))
+            if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
         }
         else
         {
-            if (!strncmp(zipFileStat.m_filename, "x64\\", 4))
+            if (PhStartsWithString2(fileName, L"x64\\", TRUE))
                 continue;
-            if (!strncmp(zipFileStat.m_filename, "x86\\", 4))
+            if (PhStartsWithString2(fileName, L"x86\\", TRUE))
                 continue;
         }
+
+        if (PhFindStringInString(fileName, 0, L"ProcessHacker.exe.settings.xml") != -1)
+            continue;
+        if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
+            continue;
 
         totalLength += zipFileStat.m_uncomp_size;
     }
@@ -135,29 +138,27 @@ BOOLEAN SetupExtractBuild(
         if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
             continue;
 
-        if (strstr(zipFileStat.m_filename, "ProcessHacker.exe.settings.xml"))
+        fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
+
+        if (PhFindStringInString(fileName, 0, L"ProcessHacker.exe.settings.xml") != -1)
             continue;
-        if (strstr(zipFileStat.m_filename, "usernotesdb.xml"))
+        if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
             continue;
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (!strncmp(zipFileStat.m_filename, "x32\\", 4))
+            if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
-
-            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
             if (PhFindStringInString(fileName, 0, L"x64\\") != -1)
                 PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
         }
         else
         {
-            if (!strncmp(zipFileStat.m_filename, "x64\\", 4))
+            if (PhStartsWithString2(fileName, L"x64\\", TRUE))
                 continue;
-            if (!strncmp(zipFileStat.m_filename, "x86\\", 4))
+            if (PhStartsWithString2(fileName, L"x86\\", TRUE))
                 continue;
-
-            fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
             if (PhFindStringInString(fileName, 0, L"x32\\") != -1)
                 PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / 2) - 4));
@@ -264,18 +265,14 @@ BOOLEAN SetupExtractBuild(
     }
 
     mz_zip_reader_end(&zip_archive);
-
     if (extractPath)
         PhDereferenceObject(extractPath);
-
     return TRUE;
 
 CleanupExit:
 
     mz_zip_reader_end(&zip_archive);
-
     if (extractPath)
         PhDereferenceObject(extractPath);
-
     return FALSE;
 }

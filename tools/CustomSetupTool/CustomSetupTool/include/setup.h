@@ -32,6 +32,7 @@
 #include <ph.h>
 #include <guisup.h>
 #include <prsht.h>
+#include <workqueue.h>
 #include <appsup.h>
 #include <json.h>
 
