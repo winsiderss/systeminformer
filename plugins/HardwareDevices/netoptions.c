@@ -26,9 +26,6 @@
 #include <cfgmgr32.h>
 #include <ndisguid.h>
 
-#define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
-#define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
-
 typedef struct _NET_ENUM_ENTRY
 {
     BOOLEAN DevicePresent;
@@ -227,7 +224,7 @@ VOID AddNetworkAdapterToListView(
         );
 
     if (found)
-        ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+        ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
 
     DeleteNetAdapterId(&adapterId);
 }

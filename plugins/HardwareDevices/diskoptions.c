@@ -23,9 +23,6 @@
 #include "devices.h"
 #include <cfgmgr32.h>
 
-#define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
-#define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
-
 typedef struct _DISK_ENUM_ENTRY
 {
     ULONG DeviceIndex;
@@ -210,7 +207,7 @@ VOID AddDiskDriveToListView(
         );
 
     if (found)
-        ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+        ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
 
     DeleteDiskId(&adapterId);
 }
