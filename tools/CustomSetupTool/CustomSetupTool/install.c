@@ -76,7 +76,6 @@ NTSTATUS SetupProgressThread(
     return STATUS_SUCCESS;
 
 CleanupExit:
-
     PostMessage(Context->DialogHandle, PSM_SETCURSELID, 0, IDD_ERROR);
     return STATUS_FAIL_CHECK;
 }
@@ -139,8 +138,6 @@ INT_PTR CALLBACK SetupInstallPropPage_WndProc(
                 break;
             case PSN_SETACTIVE:
                 {
-                    HANDLE threadHandle;
-
                     context->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
                     context->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
                     context->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
@@ -157,8 +154,7 @@ INT_PTR CALLBACK SetupInstallPropPage_WndProc(
                     {
                         SetupRunning = TRUE;
 
-                        if (threadHandle = PhCreateThread(0, SetupProgressThread, context))
-                            NtClose(threadHandle);
+                        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), SetupProgressThread, context);
                     }
                 }
                 break;

@@ -591,8 +591,8 @@ BOOLEAN UpdateDownloadUpdateData(
                 PhDereferenceObject(subMessage);
                 PhDereferenceObject(statusMessage);
                 PhDereferenceObject(totalSpeed);
-                PhDereferenceObject(totalLength);
                 PhDereferenceObject(totalDownloaded);
+                PhDereferenceObject(totalLength);
             }
         }
 

@@ -20,7 +20,6 @@
 
 #include <setup.h>
 #include <appsup.h>
-#include <workqueue.h>
 
 #define WM_TASKDIALOGINIT (WM_APP + 550)
 HWND UpdateDialogHandle = NULL;
