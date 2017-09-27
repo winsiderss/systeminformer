@@ -319,6 +319,27 @@ static PVOID PhpLookupSetting(
     return setting;
 }
 
+VOID PhEnumSettings(
+    _In_ PPH_SETTINGS_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SETTING setting;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+
+    while (setting = PhNextEnumHashtable(&enumContext))
+    {
+        if (!Callback(setting, Context))
+            break;
+    }
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
+}
+
 _May_raise_ ULONG PhGetIntegerSetting(
     _In_ PWSTR Name
     )
