@@ -47,7 +47,7 @@ VOID PhAddDisabledPlugins(
             lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, PhGetString(displayText), displayText);
             PhReleaseQueuedLockExclusive(&Context->ListLock);
 
-            ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+            ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
         }
     }
 
@@ -143,7 +143,7 @@ INT_PTR CALLBACK DisabledPluginsDlgProc(
                 {
                     switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
-                    case 0x2000: // checked
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
                         {
                             PPH_STRING param = (PPH_STRING)listView->lParam;
 
@@ -163,7 +163,7 @@ INT_PTR CALLBACK DisabledPluginsDlgProc(
                             //context->OptionsChanged = TRUE;
                         }
                         break;
-                    case 0x1000: // unchecked
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
                         {
                             PPH_STRING param = (PPH_STRING)listView->lParam;
 

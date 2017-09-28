@@ -60,9 +60,6 @@
     ((ULONGLONG)(build) << 16) | \
     ((ULONGLONG)(revision) <<  0))
 
-#define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
-#define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
-
 extern PPH_PLUGIN PluginInstance;
 
 typedef enum _TREE_PLUGIN_STATE
