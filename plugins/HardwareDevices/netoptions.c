@@ -744,6 +744,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_COMMAND:
@@ -767,6 +769,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     ListView_DeleteAllItems(context->ListViewHandle);
 
                     FindNetworkAdapters(context);
+
+                    ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
                 break;
             }
