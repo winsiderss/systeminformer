@@ -663,7 +663,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 {
                     switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
-                    case 0x2000: // checked
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
                         {
                             PDV_DISK_ID param = (PDV_DISK_ID)listView->lParam;
 
@@ -678,7 +678,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                             context->OptionsChanged = TRUE;
                         }
                         break;
-                    case 0x1000: // unchecked
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
                         {
                             PDV_DISK_ID param = (PDV_DISK_ID)listView->lParam;
 

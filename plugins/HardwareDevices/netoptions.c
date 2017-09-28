@@ -787,7 +787,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 {
                     switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
-                    case 0x2000: // checked
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
                         {
                             PDV_NETADAPTER_ID param = (PDV_NETADAPTER_ID)listView->lParam;
 
@@ -802,7 +802,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                             context->OptionsChanged = TRUE;
                         }
                         break;
-                    case 0x1000: // unchecked
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
                         {
                             PDV_NETADAPTER_ID param = (PDV_NETADAPTER_ID)listView->lParam;
 
