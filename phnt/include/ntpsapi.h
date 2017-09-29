@@ -180,6 +180,13 @@ typedef enum _PROCESSINFOCLASS
     ProcessDisableSystemAllowedCpuSets,
     ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
     ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
+    ProcessManageWritesToExecutableMemory, // since REDSTONE3
+    ProcessCaptureTrustletLiveDump,
+    ProcessTelemetryCoverage,
+    ProcessEnclaveInformation,
+    ProcessEnableReadWriteVmLogging,
+    ProcessUptimeInformation,
+    ProcessImageSection,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -235,6 +242,8 @@ typedef enum _THREADINFOCLASS
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive,
     ThreadAttachContainer,
+    ThreadManageWritesToExecutableMemory, // since REDSTONE3
+    ThreadPowerThrottlingState,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif

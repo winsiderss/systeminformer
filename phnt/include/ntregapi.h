@@ -120,6 +120,7 @@ typedef enum _KEY_SET_INFORMATION_CLASS
     KeySetVirtualizationInformation, // KEY_SET_VIRTUALIZATION_INFORMATION
     KeySetDebugInformation,
     KeySetHandleTagsInformation, // KEY_HANDLE_TAGS_INFORMATION
+    KeySetLayerInformation,
     MaxKeySetInfoClass
 } KEY_SET_INFORMATION_CLASS;
 

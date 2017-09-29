@@ -66,7 +66,9 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
     MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
     MemoryRegionInformationEx,
-    MemoryPrivilegedBasicInformation
+    MemoryPrivilegedBasicInformation,
+    MemoryEnclaveImageInformation, // since REDSTONE3
+    MemoryBasicInformationCapped
 } MEMORY_INFORMATION_CLASS;
 
 #if (PHNT_MODE == PHNT_MODE_KERNEL)
