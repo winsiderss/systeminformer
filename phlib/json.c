@@ -156,7 +156,7 @@ PVOID PhGetJsonArrayIndexObject(
     return json_object_array_get_idx(Object, Index);
 }
 
-PVOID PhGetJsonObjectAsArrayList(
+PPH_LIST PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
     )
 {
@@ -179,4 +179,19 @@ PVOID PhGetJsonObjectAsArrayList(
     }
 
     return listArray;
+}
+
+PVOID PhLoadJsonObjectFromFile(
+    _In_ PWSTR FileName
+    )
+{
+    return json_object_from_file(FileName);
+}
+
+VOID PhSaveJsonObjectToFile(
+    _In_ PWSTR FileName,
+    _In_ PVOID Object
+    )
+{
+    json_object_to_file(FileName, Object);
 }

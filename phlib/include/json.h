@@ -148,9 +148,24 @@ PhGetJsonArrayIndexObject(
     );
 
 PHLIBAPI
-PVOID
+PPH_LIST
 NTAPI
 PhGetJsonObjectAsArrayList(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhLoadJsonObjectFromFile(
+    _In_ PWSTR FileName
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSaveJsonObjectToFile(
+    _In_ PWSTR FileName,
     _In_ PVOID Object
     );
 
