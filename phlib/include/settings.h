@@ -62,6 +62,19 @@ VOID PhUpdateCachedSettings(
     );
 
 // private
+
+PPH_STRING PhSettingToString(
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_SETTING Setting
+    );
+
+BOOLEAN PhSettingFromString(
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_STRINGREF StringRef,
+    _In_opt_ PPH_STRING String,
+    _Inout_ PPH_SETTING Setting
+    );
+
 typedef BOOLEAN (NTAPI *PPH_SETTINGS_ENUM_CALLBACK)(
     _In_ PPH_SETTING Setting,
     _In_ PVOID Context

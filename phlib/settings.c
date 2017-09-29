@@ -57,18 +57,6 @@ ULONG PhpGetCurrentScale(
     VOID
     );
 
-PPH_STRING PhpSettingToString(
-    _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_SETTING Setting
-    );
-
-BOOLEAN PhpSettingFromString(
-    _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_STRINGREF StringRef,
-    _In_opt_ PPH_STRING String,
-    _Inout_ PPH_SETTING Setting
-    );
-
 VOID PhpFreeSettingValue(
     _In_ PH_SETTING_TYPE Type,
     _In_ PPH_SETTING Setting
@@ -141,7 +129,7 @@ static ULONG PhpGetCurrentScale(
     return dpi;
 }
 
-static PPH_STRING PhpSettingToString(
+PPH_STRING PhSettingToString(
     _In_ PH_SETTING_TYPE Type,
     _In_ PPH_SETTING Setting
     )
@@ -181,7 +169,7 @@ static PPH_STRING PhpSettingToString(
     return PhReferenceEmptyString();
 }
 
-static BOOLEAN PhpSettingFromString(
+BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
     _In_ PPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
@@ -685,14 +673,14 @@ VOID PhConvertIgnoredSettings(
         {
             PhpFreeSettingValue(setting->Type, setting);
 
-            if (!PhpSettingFromString(
+            if (!PhSettingFromString(
                 setting->Type,
                 &((PPH_STRING)ignoredSetting->u.Pointer)->sr,
                 ignoredSetting->u.Pointer,
                 setting
                 ))
             {
-                PhpSettingFromString(
+                PhSettingFromString(
                     setting->Type,
                     &setting->DefaultValue,
                     NULL,
@@ -800,14 +788,14 @@ NTSTATUS PhLoadSettings(
                 {
                     PhpFreeSettingValue(setting->Type, setting);
 
-                    if (!PhpSettingFromString(
+                    if (!PhSettingFromString(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
                         setting
                         ))
                     {
-                        PhpSettingFromString(
+                        PhSettingFromString(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
@@ -912,7 +900,7 @@ NTSTATUS PhSaveSettings(
     {
         PPH_STRING settingValue;
 
-        settingValue = PhpSettingToString(setting->Type, setting);
+        settingValue = PhSettingToString(setting->Type, setting);
         PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
         PhDereferenceObject(settingValue);
     }
@@ -991,7 +979,7 @@ VOID PhResetSettings(
     while (setting = PhNextEnumHashtable(&enumContext))
     {
         PhpFreeSettingValue(setting->Type, setting);
-        PhpSettingFromString(setting->Type, &setting->DefaultValue, NULL, setting);
+        PhSettingFromString(setting->Type, &setting->DefaultValue, NULL, setting);
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
@@ -1010,7 +998,7 @@ VOID PhAddSetting(
     setting.DefaultValue = *DefaultValue;
     memset(&setting.u, 0, sizeof(setting.u));
 
-    PhpSettingFromString(Type, &setting.DefaultValue, NULL, &setting);
+    PhSettingFromString(Type, &setting.DefaultValue, NULL, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
