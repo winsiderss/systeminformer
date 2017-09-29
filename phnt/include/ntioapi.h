@@ -242,6 +242,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileRenameInformationExBypassAccessCheck,
     FileDesiredStorageClassInformation, // FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
     FileStatInformation, // FILE_STAT_INFORMATION
+    FileMemoryPartitionInformation, // since REDSTONE3
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
