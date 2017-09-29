@@ -9,6 +9,9 @@
  *
  */
 
+#include "..\include\phbase.h"
+#include "..\include\phnative.h"
+
 #include "config.h"
 #undef realloc
 
@@ -65,85 +68,123 @@ static int sscanf_is_broken = 0;
 static int sscanf_is_broken_testdone = 0;
 static void sscanf_is_broken_test(void);
 
-struct json_object* json_object_from_file(const char *filename)
+struct json_object* json_object_from_file(wchar_t *filename)
 {
-  //struct printbuf *pb;
-  //struct json_object *obj;
-  //char buf[JSON_FILE_BUF_SIZE];
-  //int fd, ret;
+    NTSTATUS status;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+    struct json_object *obj = NULL;
 
-  //if((fd = open(filename, O_RDONLY)) < 0) {
-  //  MC_ERROR("json_object_from_file: error opening file %s: %s\n",
-  //       filename, strerror(errno));
-  //  return NULL;
-  //}
-  //if(!(pb = printbuf_new())) {
-  //  close(fd);
-  //  MC_ERROR("json_object_from_file: printbuf_new failed\n");
-  //  return NULL;
-  //}
-  //while((ret = read(fd, buf, JSON_FILE_BUF_SIZE)) > 0) {
-  //  printbuf_memappend(pb, buf, ret);
-  //}
-  //close(fd);
-  //if(ret < 0) {
-  //  MC_ERROR("json_object_from_file: error reading file %s: %s\n",
-  //       filename, strerror(errno));
-  //  printbuf_free(pb);
-  //  return NULL;
-  //}
-  //obj = json_tokener_parse(pb->buf);
-  //printbuf_free(pb);
-  return NULL;//obj;
+    status = PhCreateFileWin32(
+        &fileHandle,
+        filename,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PSTR data;
+        ULONG allocatedLength;
+        ULONG dataLength;
+        ULONG returnLength;
+        BYTE buffer[PAGE_SIZE];
+
+        allocatedLength = sizeof(buffer);
+        data = (PSTR)PhAllocate(allocatedLength);
+        dataLength = 0;
+
+        memset(data, 0, allocatedLength);
+
+        while (NT_SUCCESS(NtReadFile(fileHandle, NULL, NULL, NULL, &isb, buffer, PAGE_SIZE, NULL, NULL)))
+        {
+            returnLength = (ULONG)isb.Information;
+
+            if (returnLength == 0)
+                break;
+
+            if (allocatedLength < dataLength + returnLength)
+            {
+                allocatedLength *= 2;
+                data = (PSTR)PhReAllocate(data, allocatedLength);
+            }
+
+            memcpy(data + dataLength, buffer, returnLength);
+
+            dataLength += returnLength;
+        }
+
+        if (allocatedLength < dataLength + 1)
+        {
+            allocatedLength++;
+            data = (PSTR)PhReAllocate(data, allocatedLength);
+        }
+
+        data[dataLength] = 0;
+
+        obj = json_tokener_parse(data);
+
+        PhFree(data);
+    }
+
+    return obj;
 }
 
 /* extended "format and write to file" function */
 
-int json_object_to_file_ext(const char *filename, struct json_object *obj, int flags)
+int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, int flags)
 {
-  //const char *json_str;
-  //int fd, ret;
-  //unsigned int wpos, wsize;
+    NTSTATUS status;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+    PSTR json_str;
+   
+    if (!(json_str = json_object_to_json_string_ext(obj, flags)))
+        return -1;
 
-  //if(!obj) {
-  //  MC_ERROR("json_object_to_file: object is null\n");
-  //  return -1;
-  //}
+    status = PhCreateFileWin32(
+        &fileHandle,
+        filename,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
 
-  //if((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0) {
-  //  MC_ERROR("json_object_to_file: error opening file %s: %s\n",
-  //       filename, strerror(errno));
-  //  return -1;
-  //}
+    if (!NT_SUCCESS(status))
+        return -1;
 
-  //if(!(json_str = json_object_to_json_string_ext(obj,flags))) {
-  //  close(fd);
-  //  return -1;
-  //}
+    status = NtWriteFile(
+        fileHandle, 
+        NULL, 
+        NULL, 
+        NULL,
+        &isb, 
+        json_str, 
+        (ULONG)strlen(json_str),
+        NULL, 
+        NULL
+        );
 
-  //wsize = (unsigned int)(strlen(json_str) & UINT_MAX); /* CAW: probably unnecessary, but the most 64bit safe */
-  //wpos = 0;
-  //while(wpos < wsize) {
-  //  if((ret = write(fd, json_str + wpos, wsize-wpos)) < 0) {
-  //    close(fd);
-  //    MC_ERROR("json_object_to_file: error writing file %s: %s\n",
-  //       filename, strerror(errno));
-  //    return -1;
-  //  }
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(fileHandle);
+        return -1;
+    }
 
-  //  /* because of the above check for ret < 0, we can safely cast and add */
-  //  wpos += (unsigned int)ret;
-  //}
-
-  //close(fd);
-  return 0;
+    NtClose(fileHandle);
+    return 0;
 }
 
 // backwards compatible "format and write to file" function
 
-int json_object_to_file(const char *filename, struct json_object *obj)
+int json_object_to_file(wchar_t *FileName, struct json_object *obj)
 {
-  return json_object_to_file_ext(filename, obj, JSON_C_TO_STRING_PLAIN);
+    return json_object_to_file_ext(FileName, obj, JSON_C_TO_STRING_PRETTY);
 }
 
 int json_parse_double(const char *buf, double *retval)
