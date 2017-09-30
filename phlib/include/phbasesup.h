@@ -1131,12 +1131,22 @@ PhCreateStringEx(
     _In_ SIZE_T Length
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhReferenceEmptyString(
+    VOID
+    );
+
 FORCEINLINE
 PPH_STRING
 PhCreateString2(
     _In_ PPH_STRINGREF String
     )
 {
+    if (String->Length == 0)
+        return PhReferenceEmptyString();
+
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
@@ -1146,15 +1156,11 @@ PhCreateStringFromUnicodeString(
     _In_ PUNICODE_STRING UnicodeString
     )
 {
+    if (UnicodeString->Length == 0)
+        return PhReferenceEmptyString();
+
     return PhCreateStringEx(UnicodeString->Buffer, UnicodeString->Length);
 }
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhReferenceEmptyString(
-    VOID
-    );
 
 PHLIBAPI
 PPH_STRING
