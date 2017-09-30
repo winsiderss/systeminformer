@@ -3156,34 +3156,30 @@ typedef struct _SYSDBG_TRIAGE_DUMP
 } SYSDBG_TRIAGE_DUMP, *PSYSDBG_TRIAGE_DUMP;
 
 // private
-typedef struct _SYSDBG_LIVEDUMP_CONTROL_FLAGS
+typedef union _SYSDBG_LIVEDUMP_CONTROL_FLAGS
 {
-    union
+    struct
     {
-        struct
-        {
-            ULONG UseDumpStorageStack : 1;
-            ULONG CompressMemoryPagesData : 1;
-            ULONG IncludeUserSpaceMemoryPages : 1;
-            ULONG Reserved : 28;
-        };     
-        ULONG AsUlong;
+        ULONG UseDumpStorageStack : 1;
+        ULONG CompressMemoryPagesData : 1;
+        ULONG IncludeUserSpaceMemoryPages : 1;
+        ULONG Reserved : 29;
     };
+    ULONG AsUlong;
 } SYSDBG_LIVEDUMP_CONTROL_FLAGS, *PSYSDBG_LIVEDUMP_CONTROL_FLAGS;
 
 // private
-typedef struct _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
+typedef union _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
 {
-    union
+    struct
     {
-        struct
-        {
-            ULONG HypervisorPages : 1;
-            ULONG Reserved : 31;
-        };
-        ULONG AsUlong;
+        ULONG HypervisorPages : 1;
+        ULONG Reserved : 31;
     };
+    ULONG AsUlong;
 } SYSDBG_LIVEDUMP_CONTROL_ADDPAGES, *PSYSDBG_LIVEDUMP_CONTROL_ADDPAGES;
+
+#define SYSDBG_LIVEDUMP_CONTROL_VERSION 1
 
 // private
 typedef struct _SYSDBG_LIVEDUMP_CONTROL
@@ -3367,7 +3363,8 @@ typedef struct _KUSER_SHARED_DATA
             ULONG DbgSecureBootEnabled : 1;
             ULONG DbgMultiSessionSku : 1;
             ULONG DbgMultiUsersInSessionSku : 1;
-            ULONG SpareBits : 22;
+            ULONG DbgStateSeparationEnabled : 1;
+            ULONG SpareBits : 21;
         };
     };
     ULONG DataFlagsPad[1];
