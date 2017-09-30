@@ -20,8 +20,10 @@ typedef BOOL (WINAPI *_IsImmersiveProcess)(
 #define RFF_CALCDIRECTORY 0x0004
 #define RFF_NOLABEL 0x0008
 #define RFF_NOSEPARATEMEM 0x0020
+#define RFF_OPTRUNAS 0x0040
 
 #define RFN_VALIDATE (-510)
+#define RFN_LIMITEDRUNAS (-511)
 
 typedef struct _NMRUNFILEDLGW
 {
