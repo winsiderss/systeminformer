@@ -686,10 +686,10 @@ VOID SetupCreateImageFileExecutionOptions(
 
     if (NT_SUCCESS(PhCreateKey(
         &keyHandle,
-        KEY_WRITE | DELETE,
+        KEY_WRITE,
         PH_KEY_LOCAL_MACHINE,
         &PhImageOptionsKeyName,
-        0,
+        OBJ_OPENIF,
         0,
         NULL
         )))
