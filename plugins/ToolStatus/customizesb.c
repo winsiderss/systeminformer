@@ -328,7 +328,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             SendMessage(context->DialogHandle, WM_NEXTDLGCTL, (WPARAM)context->CurrentListHandle, TRUE);
         }
-        return TRUE;
+        break;
     case WM_DESTROY:
         {
             StatusBarSaveSettings();
@@ -392,6 +392,11 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                             }
 
                             CustomizeAddStatusBarItem(context, index, indexto);
+                        }
+                        break;
+                    case LBN_KILLFOCUS:
+                        {
+                            Button_Enable(context->AddButtonHandle, FALSE);
                         }
                         break;
                     }
@@ -468,6 +473,13 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                             }
 
                             CustomizeRemoveStatusBarItem(context, index);
+                        }
+                        break;
+                    case LBN_KILLFOCUS:
+                        {
+                            Button_Enable(context->MoveUpButtonHandle, FALSE);
+                            Button_Enable(context->MoveDownButtonHandle, FALSE);
+                            Button_Enable(context->RemoveButtonHandle, FALSE);
                         }
                         break;
                     }
