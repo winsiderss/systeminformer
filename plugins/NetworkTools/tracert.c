@@ -301,13 +301,15 @@ NTSTATUS NetworkTracertThreadStart(
 
     for (ULONG i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
     {
+        PTRACERT_ROOT_NODE node;
         IN_ADDR last4ReplyAddress = in4addr_any;
         IN6_ADDR last6ReplyAddress = in6addr_any;
 
         if (context->Cancel)
             break;
 
-        PTRACERT_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
+        node = AddTracertNode(context, pingOptions.Ttl);
+        PhReferenceObject(node);
 
         for (ULONG ii = 0; ii < DEFAULT_MAXIMUM_PINGS; ii++)
         {
@@ -426,6 +428,8 @@ NTSTATUS NetworkTracertThreadStart(
                 PhFree(icmpReplyBuffer);
             }
         }
+
+        PhDereferenceObject(node);
 
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {

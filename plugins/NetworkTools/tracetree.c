@@ -24,6 +24,49 @@
 #include "tracert.h"
 #include <commonutil.h>
 
+PPH_OBJECT_TYPE TracertTreeNodeItemType;
+
+VOID NTAPI TracertTreeNodeItemDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PTRACERT_ROOT_NODE tracertNode = Object;
+
+    if (tracertNode->TtlString)
+        PhDereferenceObject(tracertNode->TtlString);
+    if (tracertNode->CountryString)
+        PhDereferenceObject(tracertNode->CountryString);
+    if (tracertNode->HostnameString)
+        PhDereferenceObject(tracertNode->HostnameString);
+    if (tracertNode->IpAddressString)
+        PhDereferenceObject(tracertNode->IpAddressString);
+    if (tracertNode->RemoteCountryCode)
+        PhDereferenceObject(tracertNode->RemoteCountryCode);
+    if (tracertNode->RemoteCountryName)
+        PhDereferenceObject(tracertNode->RemoteCountryName);
+
+    for (ULONG i = 0; i < DEFAULT_MAXIMUM_PINGS; i++)
+    {
+        if (tracertNode->PingString[i])
+            PhDereferenceObject(tracertNode->PingString[i]);
+    }
+}
+
+PTRACERT_ROOT_NODE TracertTreeCreateNode(
+    VOID
+    )
+{
+    PTRACERT_ROOT_NODE tracertNode;
+
+    tracertNode = PhCreateObject(sizeof(TRACERT_ROOT_NODE), TracertTreeNodeItemType);
+    memset(tracertNode, 0, sizeof(TRACERT_ROOT_NODE));
+
+    PhInitializeTreeNewNode(&tracertNode->Node);
+
+    return tracertNode;
+}
+
 #define SORT_FUNCTION(Column) TracertTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl TracertTreeNewCompare##Column( \
     _In_ void *_context, \
@@ -146,16 +189,6 @@ VOID DestroyTracertNode(
     _In_ PTRACERT_ROOT_NODE Node
     )
 {
-   PhClearReference(&Node->TtlString);
-   PhClearReference(&Node->CountryString);
-   PhClearReference(&Node->HostnameString);
-   PhClearReference(&Node->IpAddressString);
-   PhClearReference(&Node->RemoteCountryCode);
-   PhClearReference(&Node->RemoteCountryName);
- 
-   for (ULONG i = 0; i < DEFAULT_MAXIMUM_PINGS; i++)
-       PhClearReference(&Node->PingString[i]);
-
    PhDereferenceObject(Node);
 }
 
@@ -166,10 +199,7 @@ PTRACERT_ROOT_NODE AddTracertNode(
 {
     PTRACERT_ROOT_NODE tracertNode;
 
-    tracertNode = PhCreateAlloc(sizeof(TRACERT_ROOT_NODE));
-    memset(tracertNode, 0, sizeof(TRACERT_ROOT_NODE));
-
-    PhInitializeTreeNewNode(&tracertNode->Node);
+    tracertNode = TracertTreeCreateNode();
 
     tracertNode->TTL = TTL;
     memset(tracertNode->PingStatus, STATUS_FAIL_CHECK, sizeof(tracertNode->PingStatus));
@@ -558,6 +588,14 @@ VOID InitializeTracertTree(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        TracertTreeNodeItemType = PhCreateObjectType(L"TracertTreeNodeItem", 0, TracertTreeNodeItemDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
     Context->NodeList = PhCreateList(100);
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PTRACERT_ROOT_NODE),
