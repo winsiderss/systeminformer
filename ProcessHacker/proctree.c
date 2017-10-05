@@ -1128,6 +1128,8 @@ static VOID PhpUpdateProcessNodeAppId(
                                         L"!",
                                         attributeValue1->Buffer
                                         );
+
+                                    break;
                                 }
                             }
                         }
