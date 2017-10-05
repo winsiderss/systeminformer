@@ -743,7 +743,7 @@ PPH_STRING PhGetBasePriorityIncrementString(
     case THREAD_PRIORITY_ERROR_RETURN:
         return NULL;
     default:
-        return PhFormatString(L"%d", Increment);
+        return PhFormatString(L"%ld", Increment);
     }
 }
 
