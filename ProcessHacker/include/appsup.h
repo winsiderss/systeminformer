@@ -8,8 +8,6 @@ extern GUID WIN8_CONTEXT_GUID;
 extern GUID WINBLUE_CONTEXT_GUID;
 extern GUID WINTHRESHOLD_CONTEXT_GUID;
 
-typedef struct PACKAGE_ID PACKAGE_ID;
-
 // begin_phapppub
 PHAPPAPI
 BOOLEAN
@@ -28,12 +26,8 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
-    );
-
 PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
+    _In_ PPH_STRING PackageFullName
     );
 
 // begin_phapppub
