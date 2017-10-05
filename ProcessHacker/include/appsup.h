@@ -152,6 +152,13 @@ PhShellExecuteUserString(
 PHAPPAPI
 VOID
 NTAPI
+PhLoadSymbolProviderDbgHelpFromPath(
+    _In_ PWSTR DbgHelpPath
+    );
+
+PHAPPAPI
+VOID
+NTAPI
 PhLoadSymbolProviderOptions(
     _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     );

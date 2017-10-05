@@ -31,7 +31,6 @@
 #include <symprv.h>
 
 #include <extmgri.h>
-#include <mainwnd.h>
 #include <phplug.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
@@ -1408,7 +1407,7 @@ NTSTATUS PhSvcApiLoadDbgHelp(
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.LoadDbgHelp.i.DbgHelpPath, FALSE, &dbgHelpPath)))
     {
         PH_AUTO(dbgHelpPath);
-        PhLoadDbgHelpFromPath(dbgHelpPath->Buffer);
+        PhLoadSymbolProviderDbgHelpFromPath(dbgHelpPath->Buffer);
         alreadyLoaded = TRUE;
     }
 
