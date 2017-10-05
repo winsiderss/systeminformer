@@ -2286,46 +2286,6 @@ VOID PhMwpSaveWindowState(
         PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
 }
 
-VOID PhLoadDbgHelpFromPath(
-    _In_ PWSTR DbgHelpPath
-    )
-{
-    HMODULE dbghelpModule;
-
-    if (dbghelpModule = LoadLibrary(DbgHelpPath))
-    {
-        PPH_STRING fullDbghelpPath;
-        ULONG indexOfFileName;
-        PH_STRINGREF dbghelpFolder;
-        PPH_STRING symsrvPath;
-
-        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
-
-        if (fullDbghelpPath)
-        {
-            if (indexOfFileName != 0)
-            {
-                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
-
-                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-                dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
-
-                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
-                LoadLibrary(symsrvPath->Buffer);
-                PhDereferenceObject(symsrvPath);
-            }
-
-            PhDereferenceObject(fullDbghelpPath);
-        }
-    }
-    else
-    {
-        dbghelpModule = LoadLibrary(L"dbghelp.dll");
-    }
-
-    PhSymbolProviderCompleteInitialization(dbghelpModule);
-}
-
 VOID PhMwpSymInitHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2334,7 +2294,7 @@ VOID PhMwpSymInitHandler(
     PPH_STRING dbghelpPath;
 
     dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
-    PhLoadDbgHelpFromPath(dbghelpPath->Buffer);
+    PhLoadSymbolProviderDbgHelpFromPath(dbghelpPath->Buffer);
     PhDereferenceObject(dbghelpPath);
 }
 

@@ -207,10 +207,6 @@ BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     );
 
-VOID PhLoadDbgHelpFromPath(
-    _In_ PWSTR DbgHelpPath
-    );
-
 VOID PhAddMiniProcessMenuItems(
     _Inout_ struct _PH_EMENU_ITEM *Menu,
     _In_ HANDLE ProcessId
