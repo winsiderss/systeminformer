@@ -1194,7 +1194,6 @@ NtAllocateUuids(
 
 // rev
 // private
-// source:http://www.microsoft.com/whdc/system/Sysinternals/MoreThan64proc.mspx
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
     SystemBasicInformation, // q: SYSTEM_BASIC_INFORMATION
@@ -2276,12 +2275,19 @@ typedef struct _SYSTEM_SYSTEM_DISK_INFORMATION
     UNICODE_STRING SystemDisk;
 } SYSTEM_SYSTEM_DISK_INFORMATION, *PSYSTEM_SYSTEM_DISK_INFORMATION;
 
-// private
+// private (Windows 8.1 and above)
 typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT
 {
-    ULONGLONG Hits; // ULONG in WIN8
+    ULONGLONG Hits;
     UCHAR PercentFrequency;
 } SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT;
+
+// private (Windows 7 and Windows 8)
+typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8
+{
+    ULONG Hits;
+    UCHAR PercentFrequency;
+} SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8;
 
 // private
 typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION
