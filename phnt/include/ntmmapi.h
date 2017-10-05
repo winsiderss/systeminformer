@@ -24,7 +24,7 @@
 #define PAGE_ENCLAVE_UNVALIDATED    0x20000000
 
 // Region and section constants
-
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define MEM_COMMIT 0x1000
 #define MEM_RESERVE 0x2000
 #define MEM_DECOMMIT 0x4000
@@ -34,19 +34,26 @@
 #define MEM_MAPPED 0x40000
 #define MEM_RESET 0x80000
 #define MEM_TOP_DOWN 0x100000
+#endif
 #define MEM_WRITE_WATCH 0x200000
 #define MEM_PHYSICAL 0x400000
 #define MEM_ROTATE 0x800000
 #define MEM_DIFFERENT_IMAGE_BASE_OK 0x800000
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define MEM_RESET_UNDO 0x1000000
+#endif
 #define MEM_LARGE_PAGES 0x20000000
 #define MEM_4MB_PAGES 0x80000000
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SEC_FILE 0x800000
+#endif
 #define SEC_IMAGE 0x1000000
 #define SEC_PROTECTED_IMAGE 0x2000000
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SEC_RESERVE 0x4000000
 #define SEC_COMMIT 0x8000000
+#endif
 #define SEC_NOCACHE 0x10000000
 #define SEC_WRITECOMBINE 0x40000000
 #define SEC_LARGE_PAGES 0x80000000
@@ -55,6 +62,7 @@
 
 #endif
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
 typedef enum _MEMORY_INFORMATION_CLASS
 {
@@ -70,19 +78,6 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryEnclaveImageInformation, // since REDSTONE3
     MemoryBasicInformationCapped
 } MEMORY_INFORMATION_CLASS;
-
-#if (PHNT_MODE == PHNT_MODE_KERNEL)
-
-typedef struct _MEMORY_BASIC_INFORMATION
-{
-    PVOID BaseAddress;
-    PVOID AllocationBase;
-    ULONG AllocationProtect;
-    SIZE_T RegionSize;
-    ULONG State;
-    ULONG Protect;
-    ULONG Type;
-} MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
@@ -474,6 +469,7 @@ NtQueryVirtualMemory(
 
 // begin_private
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation,
@@ -486,7 +482,7 @@ typedef struct _MEMORY_RANGE_ENTRY
     PVOID VirtualAddress;
     SIZE_T NumberOfBytes;
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
-
+#endif
 // end_private
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
