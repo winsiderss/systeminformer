@@ -61,7 +61,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
-    PhpAddIntegerSetting(L"ForceNoParent", L"0");
+    PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"HiddenProcessesMenuEnabled", L"0");
