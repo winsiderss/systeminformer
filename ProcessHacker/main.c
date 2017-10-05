@@ -668,9 +668,6 @@ VOID PhInitializeKph(
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
 
-    if (WindowsVersion == WINDOWS_NEW)
-        return;
-
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
 
