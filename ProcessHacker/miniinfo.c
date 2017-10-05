@@ -352,7 +352,7 @@ VOID PhMipContainerOnShowWindow(
         for (i = 0; i < MaxMiniInfoPinType; i++)
             PhMipPinCounts[i] = 0;
 
-        Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), BST_UNCHECKED);
+        Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), BST_UNCHECKED);
         PhMipSetPinned(FALSE);
         PhSetIntegerSetting(L"MiniInfoWindowPinned", FALSE);
 
@@ -452,7 +452,7 @@ VOID PhMipOnInitDialog(
     SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
 
     pin = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PIN));
-    SET_BUTTON_ICON(PhMipWindow, IDC_PIN, pin);
+    SET_BUTTON_ICON(PhMipWindow, IDC_PINWINDOW, pin);
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL,
@@ -461,12 +461,12 @@ VOID PhMipOnInitDialog(
         PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL,
         PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PIN), NULL,
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PINWINDOW), NULL,
         PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
     SetWindowSubclass(GetDlgItem(PhMipWindow, IDC_SECTION), PhMipSectionControlHookWndProc, 0, 0);
 
-    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PIN), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
+    Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
 }
 
 VOID PhMipOnShowWindow(
@@ -519,11 +519,11 @@ VOID PhMipOnCommand(
     case IDC_OPTIONS:
         PhMipShowOptionsMenu();
         break;
-    case IDC_PIN:
+    case IDC_PINWINDOW:
         {
             BOOLEAN pinned;
 
-            pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PIN)) == BST_CHECKED;
+            pinned = Button_GetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW)) == BST_CHECKED;
             PhPinMiniInformation(MiniInfoManualPinType, pinned ? 1 : -1, 0, 0, NULL, NULL);
             PhMipSetPinned(pinned);
             PhSetIntegerSetting(L"MiniInfoWindowPinned", pinned);
@@ -987,7 +987,7 @@ VOID PhMipLayout(
             );
     }
 
-    GetWindowRect(GetDlgItem(PhMipWindow, IDC_PIN), &rect);
+    GetWindowRect(GetDlgItem(PhMipWindow, IDC_PINWINDOW), &rect);
     MapWindowPoints(NULL, PhMipWindow, (POINT *)&rect, 2);
 }
 

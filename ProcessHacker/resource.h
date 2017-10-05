@@ -504,7 +504,7 @@
 #define IDC_ZPAGINGPAGEREADSDELTA_V     1369
 #define IDC_BYTESPERROW                 1369
 #define IDC_ZPAGINGPAGEFILEWRITESDELTA_V 1370
-#define IDC_PIN                         1370
+#define IDC_PINWINDOW                   1370
 #define IDC_ZPAGINGMAPPEDWRITESDELTA_V  1371
 #define IDC_ZLISTMODIFIEDPAGEFILE_V     1373
 #define IDC_SECTION                     1375
