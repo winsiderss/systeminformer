@@ -24,7 +24,6 @@
 #include <phapp.h>
 #include <mainwnd.h>
 
-#include <shlobj.h>
 #include <windowsx.h>
 #include <winsta.h>
 
@@ -107,7 +106,7 @@ BOOLEAN PhMainWndInitialization(
         PPH_STRING autoDbghelpPath;
 
         // Try to set up the dbghelp path automatically if this is the first run.
-        if (autoDbghelpPath = PH_AUTO(PhMwpFindDbghelpPath()))
+        if (autoDbghelpPath = PH_AUTO(PhFindDbghelpPath()))
             PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
 
         PhSetIntegerSetting(L"FirstRun", FALSE);
@@ -492,48 +491,6 @@ NTSTATUS PhMwpDelayedLoadFunction(
     //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
 
     return STATUS_SUCCESS;
-}
-
-PPH_STRING PhMwpFindDbghelpPath(
-    VOID
-    )
-{
-    static struct
-    {
-        ULONG Folder;
-        PWSTR AppendPath;
-    } locations[] =
-    {
-#ifdef _WIN64
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
-#else
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
-#endif
-    };
-
-    PPH_STRING path;
-    ULONG i;
-
-    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
-    {
-        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
-
-        if (path)
-        {
-            if (RtlDoesFileExists_U(path->Buffer))
-                return path;
-
-            PhDereferenceObject(path);
-        }
-    }
-
-    return NULL;
 }
 
 VOID PhMwpOnDestroy(

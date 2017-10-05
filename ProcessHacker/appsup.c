@@ -27,6 +27,7 @@
 #include <dbghelp.h>
 #include <appmodel.h>
 #include <shellapi.h>
+#include <shlobj.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -967,6 +968,48 @@ VOID PhShellExecuteUserString(
     }
 
     PhDereferenceObject(executeString);
+}
+
+PPH_STRING PhFindDbghelpPath(
+    VOID
+    )
+{
+    static struct
+    {
+        ULONG Folder;
+        PWSTR AppendPath;
+    } locations[] =
+    {
+#ifdef _WIN64
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
+#else
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
+#endif
+    };
+
+    PPH_STRING path;
+    ULONG i;
+
+    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
+    {
+        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
+
+        if (path)
+        {
+            if (RtlDoesFileExists_U(path->Buffer))
+                return path;
+
+            PhDereferenceObject(path);
+        }
+    }
+
+    return NULL;
 }
 
 VOID PhLoadSymbolProviderDbgHelpFromPath(
