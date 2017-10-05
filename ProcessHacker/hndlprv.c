@@ -306,7 +306,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation
     //   can be used.
 
-    if (KphIsConnected() && KphIsVerified())
+    if (KphIsConnected())
     {
         PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
@@ -316,7 +316,7 @@ NTSTATUS PhEnumHandlesGeneric(
         // this only enumerates handles for a single process and saves a lot of processing.
 
         if (!NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
-            return status;
+            goto FAILED;
 
         convertedHandles = PhAllocate(
             FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
@@ -344,7 +344,7 @@ NTSTATUS PhEnumHandlesGeneric(
     else
     {
         PSYSTEM_HANDLE_INFORMATION_EX handles;
-
+FAILED:
         if (!NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
             return status;
 
