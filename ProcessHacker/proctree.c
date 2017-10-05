@@ -608,7 +608,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS; // Items that always remain valid
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
@@ -1093,66 +1093,65 @@ static VOID PhpUpdateProcessNodeAppId(
 
         if (ProcessNode->ProcessItem->QueryHandle)
         {
-            if (WindowsVersion >= WINDOWS_8 && ProcessNode->ProcessItem->IsImmersive)
+            //if (WindowsVersion >= WINDOWS_8 && ProcessNode->ProcessItem->IsImmersive)
+            //{
+            //    HANDLE tokenHandle;
+            //    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+            //
+            //    if (NT_SUCCESS(PhOpenProcessToken(
+            //        ProcessNode->ProcessItem->QueryHandle,
+            //        TOKEN_QUERY,
+            //        &tokenHandle
+            //        )))
+            //    {
+            //        // rev from GetApplicationUserModelId
+            //        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+            //        {
+            //            for (ULONG i = 0; i < info->AttributeCount; i++)
+            //            {
+            //                static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
+            //                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            //
+            //                if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+            //                {
+            //                    if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+            //                    {
+            //                        PPH_STRING attributeValue1;
+            //                        PPH_STRING attributeValue2;
+            //
+            //                        attributeValue1 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[1]));
+            //                        attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
+            //
+            //                        ProcessNode->AppIdText = PhConcatStrings(
+            //                            3, 
+            //                            attributeValue2->Buffer,
+            //                            L"!",
+            //                            attributeValue1->Buffer
+            //                            );
+            //
+            //                        break;
+            //                    }
+            //                }
+            //            }
+            //
+            //            PhFree(info);
+            //        }
+            //
+            //        NtClose(tokenHandle);
+            //    }
+            //}
+            //else
+
+            if (NT_SUCCESS(PhGetProcessWindowTitle(
+                ProcessNode->ProcessItem->QueryHandle,
+                &windowFlags,
+                &windowTitle
+                )))
             {
-                HANDLE tokenHandle;
-                PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
-            
-                if (NT_SUCCESS(PhOpenProcessToken(
-                    ProcessNode->ProcessItem->QueryHandle,
-                    TOKEN_QUERY,
-                    &tokenHandle
-                    )))
-                {
-                    // rev from GetApplicationUserModelId
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
-                    {
-                        for (ULONG i = 0; i < info->AttributeCount; i++)
-                        {
-                            static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
-                            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-            
-                            if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
-                            {
-                                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-                                {
-                                    PPH_STRING attributeValue1;
-                                    PPH_STRING attributeValue2;
-
-                                    attributeValue1 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[1]));
-                                    attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
-
-                                    ProcessNode->AppIdText = PhConcatStrings(
-                                        3, 
-                                        attributeValue2->Buffer,
-                                        L"!",
-                                        attributeValue1->Buffer
-                                        );
-
-                                    break;
-                                }
-                            }
-                        }
-            
-                        PhFree(info);
-                    }
-            
-                    NtClose(tokenHandle);
-                }
-            }
-            else
-            {
-                if (NT_SUCCESS(PhGetProcessWindowTitle(
-                    ProcessNode->ProcessItem->QueryHandle,
-                    &windowFlags,
-                    &windowTitle
-                    )))
-                {
-                    if (windowFlags & STARTF_TITLEISAPPID)
-                        ProcessNode->AppIdText = windowTitle;
-                    else
-                        PhDereferenceObject(windowTitle);
-                }
+                if (windowFlags & STARTF_TITLEISAPPID)
+                    ProcessNode->AppIdText = windowTitle;
+                else
+                    PhDereferenceObject(windowTitle);
             }
         }
 
