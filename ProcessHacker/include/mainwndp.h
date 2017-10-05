@@ -53,10 +53,6 @@ NTSTATUS PhMwpDelayedLoadFunction(
     _In_ PVOID Parameter
     );
 
-PPH_STRING PhMwpFindDbghelpPath(
-    VOID
-    );
-
 // Event handlers
 
 VOID PhMwpOnDestroy(

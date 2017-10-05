@@ -150,6 +150,13 @@ PhShellExecuteUserString(
     );
 
 PHAPPAPI
+PPH_STRING
+NTAPI
+PhFindDbghelpPath(
+    VOID
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhLoadSymbolProviderDbgHelpFromPath(
