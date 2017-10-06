@@ -38,15 +38,6 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
     _In_ LPARAM lParam
     );
 
-// options
-
-INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
 // other
 
 typedef NTSTATUS (NTAPI *_RtlCreateServiceSid)(
