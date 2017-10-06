@@ -78,6 +78,18 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryEnclaveImageInformation, // since REDSTONE3
     MemoryBasicInformationCapped
 } MEMORY_INFORMATION_CLASS;
+#else
+#define MemoryBasicInformation 0x0
+#define MemoryWorkingSetInformation 0x1
+#define MemoryMappedFilenameInformation 0x2
+#define MemoryRegionInformation 0x3
+#define MemoryWorkingSetExInformation 0x4
+#define MemorySharedCommitInformation 0x5
+#define MemoryImageInformation 0x6
+#define MemoryRegionInformationEx 0x7
+#define MemoryPrivilegedBasicInformation 0x8
+#define MemoryEnclaveImageInformation 0x9
+#define MemoryBasicInformationCapped 0xA
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
