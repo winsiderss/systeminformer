@@ -23,36 +23,10 @@
 #include "extsrv.h"
 
 PPH_PLUGIN PluginInstance;
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
-
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    // Nothing
-}
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-
-    optionsEntry->CreateSection(
-        L"ExtendedServices",
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        OptionsDlgProc,
-        NULL
-        );
-}
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
@@ -441,18 +415,6 @@ LOGICAL DllMain(
             info->Description = L"Extends service management capabilities.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1113";
 
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,
