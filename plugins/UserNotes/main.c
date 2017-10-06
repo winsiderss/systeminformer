@@ -171,12 +171,12 @@ PPH_STRING SaveCustomColors(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-ULONG GetProcessAffinity(
+ULONG_PTR GetProcessAffinity(
     _In_ HANDLE ProcessId
     )
 {
     HANDLE processHandle;
-    ULONG affinityMask = 0;
+    ULONG_PTR affinityMask = 0;
     PROCESS_BASIC_INFORMATION basicInfo;
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -190,7 +190,7 @@ ULONG GetProcessAffinity(
             &basicInfo
             )))
         {
-            affinityMask = (ULONG)basicInfo.AffinityMask;
+            affinityMask = basicInfo.AffinityMask;
         }
 
         NtClose(processHandle);
@@ -646,9 +646,9 @@ VOID NTAPI MenuHookCallback(
                 if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
                 {
                     // Update the process affinity in our database (if the database values are different).
-                    if (object->AffinityMask != (ULONG)newAffinityMask)
+                    if (object->AffinityMask != newAffinityMask)
                     {
-                        object->AffinityMask = (ULONG)newAffinityMask;
+                        object->AffinityMask = newAffinityMask;
                         changed = TRUE;
                     }
                 }
