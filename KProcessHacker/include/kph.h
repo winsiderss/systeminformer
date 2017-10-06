@@ -48,17 +48,17 @@ extern ULONG KphFeatures;
 extern KPH_PARAMETERS KphParameters;
 
 NTSTATUS KpiGetFeatures(
-    __out PULONG Features,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PULONG Features,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // devctrl
 
-__drv_dispatchType(IRP_MJ_DEVICE_CONTROL) DRIVER_DISPATCH KphDispatchDeviceControl;
+_Dispatch_type_(IRP_MJ_DEVICE_CONTROL) DRIVER_DISPATCH KphDispatchDeviceControl;
 
 NTSTATUS KphDispatchDeviceControl(
-    __in PDEVICE_OBJECT DeviceObject,
-    __in PIRP Irp
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _Inout_ PIRP Irp
     );
 
 // dynimp
@@ -68,298 +68,298 @@ VOID KphDynamicImport(
     );
 
 PVOID KphGetSystemRoutineAddress(
-    __in PWSTR SystemRoutineName
+    _In_ PWSTR SystemRoutineName
     );
 
 // object
 
 PHANDLE_TABLE KphReferenceProcessHandleTable(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     );
 
 VOID KphDereferenceProcessHandleTable(
-    __in PEPROCESS Process
+    _In_ PEPROCESS Process
     );
 
 VOID KphUnlockHandleTableEntry(
-    __in PHANDLE_TABLE HandleTable,
-    __in PHANDLE_TABLE_ENTRY HandleTableEntry
+    _In_ PHANDLE_TABLE HandleTable,
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     );
 
 NTSTATUS KpiEnumerateProcessHandles(
-    __in HANDLE ProcessHandle,
-    __out_bcount(BufferLength) PVOID Buffer,
-    __in_opt ULONG BufferLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _Out_writes_bytes_(BufferLength) PVOID Buffer,
+    _In_opt_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KphQueryNameObject(
-    __in PVOID Object,
-    __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
+    _In_ PVOID Object,
+    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PULONG ReturnLength
     );
 
 NTSTATUS KphQueryNameFileObject(
-    __in PFILE_OBJECT FileObject,
-    __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
+    _In_ PFILE_OBJECT FileObject,
+    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PULONG ReturnLength
     );
 
 NTSTATUS KpiQueryInformationObject(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __out_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _Out_writes_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiSetInformationObject(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
-    __in ULONG ObjectInformationLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    _In_reads_bytes_(ObjectInformationLength) PVOID ObjectInformation,
+    _In_ ULONG ObjectInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KphOpenNamedObject(
-    __out PHANDLE ObjectHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in POBJECT_TYPE ObjectType,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE ObjectHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // process
 
 NTSTATUS KpiOpenProcess(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCLIENT_ID ClientId,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiOpenProcessToken(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE TokenHandle,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiOpenProcessJob(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE JobHandle,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE JobHandle,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiTerminateProcess(
-    __in HANDLE ProcessHandle,
-    __in NTSTATUS ExitStatus,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiQueryInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiSetInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // qrydrv
 
 NTSTATUS KpiOpenDriver(
-    __out PHANDLE DriverHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiQueryInformationDriver(
-    __in HANDLE DriverHandle,
-    __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __out_bcount(DriverInformationLength) PVOID DriverInformation,
-    __in ULONG DriverInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE DriverHandle,
+    _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
+    _Out_writes_bytes_(DriverInformationLength) PVOID DriverInformation,
+    _In_ ULONG DriverInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // thread
 
 NTSTATUS KpiOpenThread(
-    __out PHANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCLIENT_ID ClientId,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiOpenThreadProcess(
-    __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE ProcessHandle,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE ProcessHandle,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 ULONG KphCaptureStackBackTrace(
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __in_opt ULONG Flags,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG BackTraceHash
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _In_opt_ ULONG Flags,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG BackTraceHash
     );
 
 NTSTATUS KphCaptureStackBackTraceThread(
-    __in PETHREAD Thread,
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG CapturedFrames,
-    __out_opt PULONG BackTraceHash,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ PETHREAD Thread,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiCaptureStackBackTraceThread(
-    __in HANDLE ThreadHandle,
-    __in ULONG FramesToSkip,
-    __in ULONG FramesToCapture,
-    __out_ecount(FramesToCapture) PVOID *BackTrace,
-    __out_opt PULONG CapturedFrames,
-    __out_opt PULONG BackTraceHash,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID *BackTrace,
+    _Out_opt_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiQueryInformationThread(
-    __in HANDLE ThreadHandle,
-    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 NTSTATUS KpiSetInformationThread(
-    __in HANDLE ThreadHandle,
-    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // util
 
 VOID KphFreeCapturedUnicodeString(
-    __in PUNICODE_STRING CapturedUnicodeString
+    _In_ PUNICODE_STRING CapturedUnicodeString
     );
 
 NTSTATUS KphCaptureUnicodeString(
-    __in PUNICODE_STRING UnicodeString,
-    __out PUNICODE_STRING CapturedUnicodeString
+    _In_ PUNICODE_STRING UnicodeString,
+    _Out_ PUNICODE_STRING CapturedUnicodeString
     );
 
 NTSTATUS KphEnumerateSystemModules(
-    __out PRTL_PROCESS_MODULES *Modules
+    _Out_ PRTL_PROCESS_MODULES *Modules
     );
 
 NTSTATUS KphValidateAddressForSystemModules(
-    __in PVOID Address,
-    __in SIZE_T Length
+    _In_ PVOID Address,
+    _In_ SIZE_T Length
     );
 
 NTSTATUS KphGetProcessMappedFileName(
-    __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out PUNICODE_STRING *FileName
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PUNICODE_STRING *FileName
     );
 
 // verify
 
 NTSTATUS KphHashFile(
-    __in PUNICODE_STRING FileName,
-    __out PVOID *Hash,
-    __out PULONG HashSize
+    _In_ PUNICODE_STRING FileName,
+    _Out_ PVOID *Hash,
+    _Out_ PULONG HashSize
     );
 
 NTSTATUS KphVerifyFile(
-    __in PUNICODE_STRING FileName,
-    __in_bcount(SignatureSize) PUCHAR Signature,
-    __in ULONG SignatureSize
+    _In_ PUNICODE_STRING FileName,
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize
     );
 
 VOID KphVerifyClient(
-    __inout PKPH_CLIENT Client,
-    __in PVOID CodeAddress,
-    __in_bcount(SignatureSize) PUCHAR Signature,
-    __in ULONG SignatureSize
+    _Inout_ PKPH_CLIENT Client,
+    _In_ PVOID CodeAddress,
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize
     );
 
 NTSTATUS KpiVerifyClient(
-    __in PVOID CodeAddress,
-    __in_bcount(SignatureSize) PUCHAR Signature,
-    __in ULONG SignatureSize,
-    __in PKPH_CLIENT Client
+    _In_ PVOID CodeAddress,
+    _In_reads_bytes_(SignatureSize) PUCHAR Signature,
+    _In_ ULONG SignatureSize,
+    _In_ PKPH_CLIENT Client
     );
 
 VOID KphGenerateKeysClient(
-    __inout PKPH_CLIENT Client
+    _Inout_ PKPH_CLIENT Client
     );
 
 NTSTATUS KphRetrieveKeyViaApc(
-    __inout PKPH_CLIENT Client,
-    __in KPH_KEY_LEVEL KeyLevel,
-    __inout PIRP Irp
+    _Inout_ PKPH_CLIENT Client,
+    _In_ KPH_KEY_LEVEL KeyLevel,
+    _Inout_ PIRP Irp
     );
 
 NTSTATUS KphValidateKey(
-    __in KPH_KEY_LEVEL RequiredKeyLevel,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ KPH_KEY_LEVEL RequiredKeyLevel,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // vm
 
 NTSTATUS KphCopyVirtualMemory(
-    __in PEPROCESS FromProcess,
-    __in PVOID FromAddress,
-    __in PEPROCESS ToProcess,
-    __in PVOID ToAddress,
-    __in SIZE_T BufferLength,
-    __in KPROCESSOR_MODE AccessMode,
-    __out PSIZE_T ReturnLength
+    _In_ PEPROCESS FromProcess,
+    _In_ PVOID FromAddress,
+    _In_ PEPROCESS ToProcess,
+    _In_ PVOID ToAddress,
+    _In_ SIZE_T BufferLength,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Out_ PSIZE_T ReturnLength
     );
 
 NTSTATUS KpiReadVirtualMemoryUnsafe(
-    __in_opt HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesRead,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 #endif

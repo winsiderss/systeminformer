@@ -1,7 +1,0 @@
-!IF 0
-
-This builds a clean version of KProcessHacker suitable for driver signing.
-
-!ENDIF
-
-!include ..\sources.inc

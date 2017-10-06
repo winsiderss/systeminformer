@@ -48,12 +48,12 @@
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcess(
-    __out PHANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PCLIENT_ID ClientId,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PCLIENT_ID ClientId,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -119,28 +119,28 @@ NTSTATUS KpiOpenProcess(
             KernelMode,
             &processHandle
             );
-    }
 
-    ObDereferenceObject(process);
-
-    if (NT_SUCCESS(status))
-    {
-        if (AccessMode != KernelMode)
+        if (NT_SUCCESS(status))
         {
-            __try
+            if (AccessMode != KernelMode)
+            {
+                __try
+                {
+                    *ProcessHandle = processHandle;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+            else
             {
                 *ProcessHandle = processHandle;
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
-        }
-        else
-        {
-            *ProcessHandle = processHandle;
         }
     }
+
+    ObDereferenceObject(process);
 
     return status;
 }
@@ -160,12 +160,12 @@ NTSTATUS KpiOpenProcess(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcessToken(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE TokenHandle,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -218,6 +218,25 @@ NTSTATUS KpiOpenProcessToken(
                 KernelMode,
                 &tokenHandle
                 );
+
+            if (NT_SUCCESS(status))
+            {
+                if (AccessMode != KernelMode)
+                {
+                    __try
+                    {
+                        *TokenHandle = tokenHandle;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
+                }
+                else
+                {
+                    *TokenHandle = tokenHandle;
+                }
+            }
         }
 
         PsDereferencePrimaryToken(primaryToken);
@@ -228,25 +247,6 @@ NTSTATUS KpiOpenProcessToken(
     }
 
     ObDereferenceObject(process);
-
-    if (NT_SUCCESS(status))
-    {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *TokenHandle = tokenHandle;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
-        }
-        else
-        {
-            *TokenHandle = tokenHandle;
-        }
-    }
 
     return status;
 }
@@ -260,16 +260,16 @@ NTSTATUS KpiOpenProcessToken(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiOpenProcessJob(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __out PHANDLE JobHandle,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE JobHandle,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
     PEPROCESS process;
     PEJOB job;
-    HANDLE jobHandle = NULL;
+    HANDLE jobHandle;
 
     PAGED_CODE();
 
@@ -310,6 +310,25 @@ NTSTATUS KpiOpenProcessJob(
             AccessMode,
             &jobHandle
             );
+
+        if (NT_SUCCESS(status))
+        {
+            if (AccessMode != KernelMode)
+            {
+                __try
+                {
+                    *JobHandle = jobHandle;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                *JobHandle = jobHandle;
+            }
+        }
     }
     else
     {
@@ -317,25 +336,6 @@ NTSTATUS KpiOpenProcessJob(
     }
 
     ObDereferenceObject(process);
-
-    if (NT_SUCCESS(status))
-    {
-        if (AccessMode != KernelMode)
-        {
-            __try
-            {
-                *JobHandle = jobHandle;
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-            }
-        }
-        else
-        {
-            *JobHandle = jobHandle;
-        }
-    }
 
     return status;
 }
@@ -352,11 +352,11 @@ NTSTATUS KpiOpenProcessJob(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiTerminateProcess(
-    __in HANDLE ProcessHandle,
-    __in NTSTATUS ExitStatus,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -420,12 +420,12 @@ NTSTATUS KpiTerminateProcess(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiQueryInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
@@ -512,11 +512,11 @@ NTSTATUS KpiQueryInformationProcess(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiSetInformationProcess(
-    __in HANDLE ProcessHandle,
-    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
-    __in ULONG ProcessInformationLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;

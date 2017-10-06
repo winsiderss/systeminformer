@@ -22,9 +22,9 @@
 #include <kph.h>
 
 ULONG KphpGetCopyExceptionInfo(
-    __in PEXCEPTION_POINTERS ExceptionInfo,
-    __out PBOOLEAN HaveBadAddress,
-    __out PULONG_PTR BadAddress
+    _In_ PEXCEPTION_POINTERS ExceptionInfo,
+    _Out_ PBOOLEAN HaveBadAddress,
+    _Out_ PULONG_PTR BadAddress
     );
 
 #ifdef ALLOC_PRAGMA
@@ -38,9 +38,9 @@ ULONG KphpGetCopyExceptionInfo(
 #define KPH_POOL_COPY_THRESHOLD 0x3ff
 
 ULONG KphpGetCopyExceptionInfo(
-    __in PEXCEPTION_POINTERS ExceptionInfo,
-    __out PBOOLEAN HaveBadAddress,
-    __out PULONG_PTR BadAddress
+    _In_ PEXCEPTION_POINTERS ExceptionInfo,
+    _Out_ PBOOLEAN HaveBadAddress,
+    _Out_ PULONG_PTR BadAddress
     )
 {
     PEXCEPTION_RECORD exceptionRecord;
@@ -75,13 +75,13 @@ ULONG KphpGetCopyExceptionInfo(
  * \param ReturnLength A variable which receives the number of bytes copied.
  */
 NTSTATUS KphCopyVirtualMemory(
-    __in PEPROCESS FromProcess,
-    __in PVOID FromAddress,
-    __in PEPROCESS ToProcess,
-    __in PVOID ToAddress,
-    __in SIZE_T BufferLength,
-    __in KPROCESSOR_MODE AccessMode,
-    __out PSIZE_T ReturnLength
+    _In_ PEPROCESS FromProcess,
+    _In_ PVOID FromAddress,
+    _In_ PEPROCESS ToProcess,
+    _In_ PVOID ToAddress,
+    _In_ SIZE_T BufferLength,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Out_ PSIZE_T ReturnLength
     )
 {
     UCHAR stackBuffer[KPH_STACK_COPY_BYTES];
@@ -311,14 +311,14 @@ NTSTATUS KphCopyVirtualMemory(
  * \param AccessMode The mode in which to perform access checks.
  */
 NTSTATUS KpiReadVirtualMemoryUnsafe(
-    __in_opt HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __out_bcount(BufferSize) PVOID Buffer,
-    __in SIZE_T BufferSize,
-    __out_opt PSIZE_T NumberOfBytesRead,
-    __in_opt KPH_KEY Key,
-    __in PKPH_CLIENT Client,
-    __in KPROCESSOR_MODE AccessMode
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead,
+    _In_opt_ KPH_KEY Key,
+    _In_ PKPH_CLIENT Client,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status;
