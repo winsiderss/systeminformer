@@ -47,7 +47,7 @@ VOID KphDynamicImport(
  * not be found.
  */
 PVOID KphGetSystemRoutineAddress(
-    __in PWSTR SystemRoutineName
+    _In_ PWSTR SystemRoutineName
     )
 {
     UNICODE_STRING systemRoutineName;

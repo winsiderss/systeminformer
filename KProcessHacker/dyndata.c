@@ -26,8 +26,8 @@
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 NTSTATUS KphpLoadDynamicConfiguration(
-    __in PVOID Buffer,
-    __in ULONG Length
+    _In_ PVOID Buffer,
+    _In_ ULONG Length
     );
 
 #ifdef ALLOC_PRAGMA
@@ -53,7 +53,7 @@ NTSTATUS KphDynamicDataInitialization(
 }
 
 NTSTATUS KphReadDynamicDataParameters(
-    __in_opt HANDLE KeyHandle
+    _In_opt_ HANDLE KeyHandle
     )
 {
     NTSTATUS status;
@@ -114,8 +114,8 @@ NTSTATUS KphReadDynamicDataParameters(
 }
 
 NTSTATUS KphpLoadDynamicConfiguration(
-    __in PVOID Buffer,
-    __in ULONG Length
+    _In_ PVOID Buffer,
+    _In_ ULONG Length
     )
 {
     PKPH_DYN_CONFIGURATION config;
@@ -126,13 +126,13 @@ NTSTATUS KphpLoadDynamicConfiguration(
 
     config = Buffer;
 
-    if (Length < FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages))
+    if (Length < (ULONG)FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages))
         return STATUS_INVALID_PARAMETER;
     if (config->Version != KPH_DYN_CONFIGURATION_VERSION)
         return STATUS_INVALID_PARAMETER;
     if (config->NumberOfPackages > KPH_DYN_MAXIMUM_PACKAGES)
         return STATUS_INVALID_PARAMETER;
-    if (Length < FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages) + config->NumberOfPackages * sizeof(KPH_DYN_PACKAGE))
+    if (Length < (ULONG)FIELD_OFFSET(KPH_DYN_CONFIGURATION, Packages) + config->NumberOfPackages * sizeof(KPH_DYN_PACKAGE))
         return STATUS_INVALID_PARAMETER;
 
     dprintf("Loading dynamic configuration with %u package(s)\n", config->NumberOfPackages);
