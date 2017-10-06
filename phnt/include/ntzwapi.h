@@ -1537,27 +1537,6 @@ ZwExtendSection(
     _Inout_ PLARGE_INTEGER NewSectionSize
     );
 
-#ifndef FILTER_BOOT_OPTION_OPERATION
-typedef enum _FILTER_BOOT_OPTION_OPERATION
-{
-    FilterBootOptionOperationOpenSystemStore,
-    FilterBootOptionOperationSetElement,
-    FilterBootOptionOperationDeleteElement,
-    FilterBootOptionOperationMax
-} FILTER_BOOT_OPTION_OPERATION;
-#endif
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-ZwFilterBootOption(
-    _In_ FILTER_BOOT_OPTION_OPERATION FilterOperation,
-    _In_ ULONG ObjectType,
-    _In_ ULONG ElementType,
-    _In_reads_bytes_opt_(DataSize) PVOID Data,
-    _In_ ULONG DataSize
-    );
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
