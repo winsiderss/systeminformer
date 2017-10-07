@@ -22,6 +22,7 @@
 
 #include <ph.h>
 #include <secedit.h>
+#include <lsasup.h>
 
 #include <guisup.h>
 #include <hndlinfo.h>
@@ -40,6 +41,31 @@ static ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_MapGeneric,
     PhSecurityInformation_GetInheritTypes,
     PhSecurityInformation_PropertySheetPageCallback
+};
+
+static ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
+{
+    PhSecurityInformation2_QueryInterface,
+    PhSecurityInformation2_AddRef,
+    PhSecurityInformation2_Release,
+    PhSecurityInformation2_IsDaclCanonical,
+    PhSecurityInformation2_LookupSids
+};
+
+static IDataObjectVtbl PhDataObject_VTable =
+{
+    PhSecurityDataObject_QueryInterface,
+    PhSecurityDataObject_AddRef,
+    PhSecurityDataObject_Release,
+    PhSecurityDataObject_GetData,
+    PhSecurityDataObject_GetDataHere,
+    PhSecurityDataObject_QueryGetData,
+    PhSecurityDataObject_GetCanonicalFormatEtc,
+    PhSecurityDataObject_SetData,
+    PhSecurityDataObject_EnumFormatEtc,
+    PhSecurityDataObject_DAdvise,
+    PhSecurityDataObject_DUnadvise,
+    PhSecurityDataObject_EnumDAdvise
 };
 
 /**
@@ -172,6 +198,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
     _Out_ PVOID *Object
     )
 {
+    PhSecurityInformation *this = (PhSecurityInformation *)This;
+
     if (
         IsEqualIID(Riid, &IID_IUnknown) ||
         IsEqualIID(Riid, &IID_ISecurityInformation)
@@ -179,6 +207,17 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
     {
         PhSecurityInformation_AddRef(This);
         *Object = This;
+        return S_OK;
+    }
+    else if (IsEqualGUID(Riid, &IID_ISecurityInformation2))
+    {
+        PhSecurityInformation2 *info;
+
+        info = PhAllocate(sizeof(PhSecurityInformation2));
+        info->VTable = &PhSecurityInformation_VTable2;
+        info->RefCount = 1;
+
+        *Object = info;
         return S_OK;
     }
 
@@ -344,6 +383,260 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
         PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
     }
 
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation2_QueryInterface(
+    _In_ ISecurityInformation2 *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
+    )
+{
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_ISecurityInformation2)
+        )
+    {
+        PhSecurityInformation2_AddRef(This);
+        *Object = This;
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation2_AddRef(
+    _In_ ISecurityInformation2 *This
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+
+    this->RefCount++;
+
+    return this->RefCount;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation2_Release(
+    _In_ ISecurityInformation2 *This
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+
+    this->RefCount--;
+
+    if (this->RefCount == 0)
+    {
+        PhFree(this);
+        return 0;
+    }
+
+    return this->RefCount;
+}
+
+BOOL STDMETHODCALLTYPE PhSecurityInformation2_IsDaclCanonical(
+    _In_ ISecurityInformation2 *This,
+    _In_ PACL pDacl
+    )
+{
+    return TRUE;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
+    _In_ ISecurityInformation2 *This,
+    _In_ ULONG cSids,
+    _In_ PSID *rgpSids,
+    _Out_ LPDATAOBJECT *ppdo
+    )
+{
+    PhSecurityIDataObject *info;
+
+    info = PhAllocate(sizeof(PhSecurityInformation));
+    info->VTable = &PhDataObject_VTable;
+    info->RefCount = 1;
+
+    info->SidCount = cSids;
+    info->Sids = rgpSids;
+
+    *ppdo = (LPDATAOBJECT)info;
+
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
+    _In_ IDataObject *This,
+    _In_ REFIID riid,
+    _COM_Outptr_ PVOID *ppvObject
+    )
+{
+    return E_NOTIMPL;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityDataObject_AddRef(
+    _In_ IDataObject *This
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+
+    this->RefCount++;
+
+    return this->RefCount;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityDataObject_Release(
+    _In_ IDataObject *This
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+
+    this->RefCount--;
+
+    if (this->RefCount == 0)
+    {
+        PhFree(this);
+        return 0;
+    }
+
+    return this->RefCount;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetcIn,
+    _Out_ STGMEDIUM *pmedium
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+    PSID_INFO_LIST sidInfoList;
+
+    sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_FIXED, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+    memset(sidInfoList, 0, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+
+    if (sidInfoList)
+    {
+        sidInfoList->cItems = this->SidCount;
+
+        for (ULONG i = 0; i < this->SidCount; i++)
+        {
+            SID_INFO sidInfo;
+            PPH_STRING sidString;
+
+            memset(&sidInfo, 0, sizeof(SID_INFO));
+
+            sidInfo.pSid = this->Sids[i];
+            sidInfo.pwzClass = L"User";
+    
+            if (sidString = PhGetSidFullName(this->Sids[i], TRUE, NULL))
+            {
+                sidInfo.pwzCommonName = PhGetString(sidString);
+            }
+            else
+            {
+                static PH_STRINGREF storeSidMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+                HANDLE keyHandle;
+                PPH_STRING keyPath;
+                PPH_STRING packagePath = NULL;
+
+                sidString = PhSidToStringSid(this->Sids[i]);
+                keyPath = PhConcatStringRef2(&storeSidMappings, &sidString->sr);
+
+                if (NT_SUCCESS(PhOpenKey(
+                    &keyHandle,
+                    KEY_READ,
+                    PH_KEY_CURRENT_USER,
+                    &keyPath->sr,
+                    0
+                    )))
+                {
+                    packagePath = PhQueryRegistryString(keyHandle, L"Moniker");
+                    NtClose(keyHandle);
+                }
+
+                sidInfo.pwzCommonName = PhGetString(packagePath);
+            }
+
+            sidInfoList->aSidInfo[i] = sidInfo;
+        }
+
+        pmedium->hGlobal = (HGLOBAL)sidInfoList;
+
+        return S_OK;
+    }
+    else
+    {
+        return E_NOTIMPL;
+    }
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetDataHere(
+    _In_ IDataObject *This,
+    _In_  FORMATETC *pformatetc,
+    _Inout_ STGMEDIUM *pmedium
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryGetData(
+    _In_ IDataObject *This,
+    _In_opt_ FORMATETC *pformatetc
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetCanonicalFormatEtc(
+    _In_ IDataObject * This,
+    _In_opt_ FORMATETC *pformatectIn,
+    _Out_ FORMATETC *pformatetcOut
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_SetData(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _In_ STGMEDIUM *pmedium,
+    _In_ BOOL fRelease
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumFormatEtc(
+    _In_ IDataObject *This,
+    _In_ ULONG dwDirection,
+    _Out_opt_ IEnumFORMATETC **ppenumFormatEtc
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DAdvise(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _In_ ULONG advf,
+    _In_opt_ IAdviseSink *pAdvSink,
+    _Out_ ULONG *pdwConnection
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DUnadvise(
+    _In_ IDataObject *This,
+    _In_ ULONG dwConnection
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumDAdvise(
+    _In_ IDataObject *This,
+    _Out_opt_ IEnumSTATDATA **ppenumAdvise
+    )
+{
     return E_NOTIMPL;
 }
 
