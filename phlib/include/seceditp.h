@@ -34,6 +34,8 @@ typedef struct
 
     ULONG SidCount;
     PSID *Sids;
+
+    PPH_LIST NameCache;
 } PhSecurityIDataObject;
 
 ISecurityInformation *PhSecurityInformation_Create(
@@ -135,8 +137,8 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
 
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
     _In_ IDataObject *This,
-    _In_ REFIID riid,
-    _Out_ PVOID *ppvObject
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
     );
 
 ULONG STDMETHODCALLTYPE PhSecurityDataObject_AddRef(

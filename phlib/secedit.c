@@ -3,6 +3,7 @@
  *   object security editor
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -28,6 +29,9 @@
 #include <hndlinfo.h>
 #include <settings.h>
 #include <seceditp.h>
+
+#pragma comment(lib, "shlwapi.lib")
+#include <shlwapi.h>
 
 static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {
@@ -211,14 +215,17 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
     }
     else if (IsEqualGUID(Riid, &IID_ISecurityInformation2))
     {
-        PhSecurityInformation2 *info;
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            PhSecurityInformation2 *info;
 
-        info = PhAllocate(sizeof(PhSecurityInformation2));
-        info->VTable = &PhSecurityInformation_VTable2;
-        info->RefCount = 1;
+            info = PhAllocate(sizeof(PhSecurityInformation2));
+            info->VTable = &PhSecurityInformation_VTable2;
+            info->RefCount = 1;
 
-        *Object = info;
-        return S_OK;
+            *Object = info;
+            return S_OK;
+        }
     }
 
     *Object = NULL;
@@ -270,7 +277,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         SI_EDIT_OWNER |
         SI_EDIT_PERMS |
         SI_ADVANCED |
-        SI_NO_ACL_PROTECT |
+        //SI_NO_ACL_PROTECT |
         SI_NO_TREE_APPLY;
     ObjectInfo->hInstance = NULL;
     ObjectInfo->pszObjectName = this->ObjectName->Buffer;
@@ -410,7 +417,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation2_AddRef(
     _In_ ISecurityInformation2 *This
     )
 {
-    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+    PhSecurityInformation2 *this = (PhSecurityInformation2 *)This;
 
     this->RefCount++;
 
@@ -421,7 +428,7 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation2_Release(
     _In_ ISecurityInformation2 *This
     )
 {
-    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+    PhSecurityInformation2 *this = (PhSecurityInformation2 *)This;
 
     this->RefCount--;
 
@@ -449,27 +456,39 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
     _Out_ LPDATAOBJECT *ppdo
     )
 {
-    PhSecurityIDataObject *info;
+    PhSecurityIDataObject *dataObject;
 
-    info = PhAllocate(sizeof(PhSecurityInformation));
-    info->VTable = &PhDataObject_VTable;
-    info->RefCount = 1;
+    dataObject = PhAllocate(sizeof(PhSecurityInformation));
+    dataObject->VTable = &PhDataObject_VTable;
+    dataObject->RefCount = 1;
 
-    info->SidCount = cSids;
-    info->Sids = rgpSids;
+    dataObject->SidCount = cSids;
+    dataObject->Sids = rgpSids;
+    dataObject->NameCache = PhCreateList(1);
 
-    *ppdo = (LPDATAOBJECT)info;
+    *ppdo = (LPDATAOBJECT)dataObject;
 
     return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
     _In_ IDataObject *This,
-    _In_ REFIID riid,
-    _COM_Outptr_ PVOID *ppvObject
+    _In_ REFIID Riid,
+    _COM_Outptr_ PVOID *Object
     )
 {
-    return E_NOTIMPL;
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_IDataObject)
+        )
+    {
+        PhSecurityDataObject_AddRef(This);
+        *Object = This;
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
 }
 
 ULONG STDMETHODCALLTYPE PhSecurityDataObject_AddRef(
@@ -493,6 +512,10 @@ ULONG STDMETHODCALLTYPE PhSecurityDataObject_Release(
 
     if (this->RefCount == 0)
     {
+        for (ULONG i = 0; i < this->NameCache->Count; i++)
+            PhDereferenceObject(this->NameCache->Items[i]);
+        PhDereferenceObject(this->NameCache);
+
         PhFree(this);
         return 0;
     }
@@ -504,68 +527,86 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
     _In_ IDataObject *This,
     _In_ FORMATETC *pformatetcIn,
     _Out_ STGMEDIUM *pmedium
-    )
+)
 {
     PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
     PSID_INFO_LIST sidInfoList;
 
-    sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_FIXED, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
-    memset(sidInfoList, 0, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+    sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+    sidInfoList->cItems = this->SidCount;
 
-    if (sidInfoList)
+    for (ULONG i = 0; i < this->SidCount; i++)
     {
-        sidInfoList->cItems = this->SidCount;
+        SID_INFO sidInfo;
+        PPH_STRING sidString;
+        SID_NAME_USE sidUse;
 
-        for (ULONG i = 0; i < this->SidCount; i++)
+        memset(&sidInfo, 0, sizeof(SID_INFO));
+
+        sidInfo.pSid = this->Sids[i];
+
+        if (IsWellKnownSid(sidInfo.pSid, WinBuiltinAdministratorsSid))
         {
-            SID_INFO sidInfo;
-            PPH_STRING sidString;
-
-            memset(&sidInfo, 0, sizeof(SID_INFO));
-
-            sidInfo.pSid = this->Sids[i];
-            sidInfo.pwzClass = L"User";
-    
-            if (sidString = PhGetSidFullName(this->Sids[i], TRUE, NULL))
-            {
-                sidInfo.pwzCommonName = PhGetString(sidString);
-            }
-            else
-            {
-                static PH_STRINGREF storeSidMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
-                HANDLE keyHandle;
-                PPH_STRING keyPath;
-                PPH_STRING packagePath = NULL;
-
-                sidString = PhSidToStringSid(this->Sids[i]);
-                keyPath = PhConcatStringRef2(&storeSidMappings, &sidString->sr);
-
-                if (NT_SUCCESS(PhOpenKey(
-                    &keyHandle,
-                    KEY_READ,
-                    PH_KEY_CURRENT_USER,
-                    &keyPath->sr,
-                    0
-                    )))
-                {
-                    packagePath = PhQueryRegistryString(keyHandle, L"Moniker");
-                    NtClose(keyHandle);
-                }
-
-                sidInfo.pwzCommonName = PhGetString(packagePath);
-            }
-
             sidInfoList->aSidInfo[i] = sidInfo;
         }
 
-        pmedium->hGlobal = (HGLOBAL)sidInfoList;
+        if (sidString = PhGetSidFullName(sidInfo.pSid, FALSE, &sidUse))
+        {
+            switch (sidUse)
+            {
+            case SidTypeAlias:
+            case SidTypeUser:
+                sidInfo.pwzClass = L"User";
+                break;
+            case SidTypeGroup:
+                sidInfo.pwzClass = L"Group";
+                break;
+            case SidTypeComputer:
+                sidInfo.pwzClass = L"Computer";
+                break;
+            }
 
-        return S_OK;
+            sidInfo.pwzCommonName = PhGetString(sidString);
+            PhAddItemList(this->NameCache, sidString);
+        }
+        else if (sidString = PhSidToStringSid(sidInfo.pSid))
+        {
+            static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+            HANDLE keyHandle;
+            PPH_STRING keyPath;
+            PPH_STRING packageName = NULL;
+
+            keyPath = PhConcatStringRef2(&appcontainerMappings, &sidString->sr);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_CURRENT_USER,
+                &keyPath->sr,
+                0
+                )))
+            {
+                packageName = PhQueryRegistryString(keyHandle, L"Moniker");
+                NtClose(keyHandle);
+            }
+
+            if (packageName)
+            {
+                sidInfo.pwzCommonName = PhGetString(packageName);
+                PhAddItemList(this->NameCache, packageName);
+            }
+
+            PhDereferenceObject(keyPath);
+            PhDereferenceObject(sidString);
+        }
+
+        sidInfoList->aSidInfo[i] = sidInfo;
     }
-    else
-    {
-        return E_NOTIMPL;
-    }
+
+    pmedium->tymed = TYMED_HGLOBAL;
+    pmedium->hGlobal = (HGLOBAL)sidInfoList;
+
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetDataHere(
