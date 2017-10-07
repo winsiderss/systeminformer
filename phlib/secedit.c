@@ -545,11 +545,6 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
 
         sidInfo.pSid = this->Sids[i];
 
-        if (IsWellKnownSid(sidInfo.pSid, WinBuiltinAdministratorsSid))
-        {
-            sidInfoList->aSidInfo[i] = sidInfo;
-        }
-
         if (sidString = PhGetSidFullName(sidInfo.pSid, FALSE, &sidUse))
         {
             switch (sidUse)
