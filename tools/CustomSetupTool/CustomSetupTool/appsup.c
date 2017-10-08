@@ -21,6 +21,8 @@
 #include <setup.h>
 #include <io.h>
 #include <Netlistmgr.h>
+#include <propvarutil.h>
+#include <propkey.h>
 
 VOID ExtractResourceToFile(
     _In_ PWSTR Resource, 
@@ -349,13 +351,15 @@ BOOLEAN ConnectionAvailable(VOID)
 }
 
 VOID SetupCreateLink(
-    _In_ PWSTR LinkFilePath, 
+    _In_ PWSTR AppUserModelId,
+    _In_ PWSTR LinkFilePath,
     _In_ PWSTR FilePath,
     _In_ PWSTR FileParentDir
     )
 {
     IShellLink* shellLinkPtr = NULL;
     IPersistFile* persistFilePtr = NULL;
+    IPropertyStore* propertyStorePtr;
 
     if (FAILED(CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLink, &shellLinkPtr)))
         goto CleanupExit;
@@ -363,9 +367,28 @@ VOID SetupCreateLink(
     if (FAILED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPersistFile, &persistFilePtr)))
         goto CleanupExit;
 
+    if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
+    {
+        PROPVARIANT appIdPropVar;
+
+        PropVariantInit(&appIdPropVar);
+
+        appIdPropVar.vt = VT_BSTR;
+        appIdPropVar.bstrVal = SysAllocString(AppUserModelId);
+
+        if (SUCCEEDED(IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &appIdPropVar)))
+        {
+            IPropertyStore_Commit(propertyStorePtr);
+        }
+
+        PropVariantClear(&appIdPropVar);
+        IPropertyStore_Release(propertyStorePtr);
+    }
+
     // Load existing shell item if it exists...
     //IPersistFile_Load(persistFilePtr, LinkFilePath, STGM_READ)
     //IShellLinkW_SetDescription(shellLinkPtr, FileComment);
+    //IShellLinkW_SetHotkey(shellLinkPtr, MAKEWORD(VK_END, HOTKEYF_CONTROL | HOTKEYF_ALT));
     IShellLinkW_SetWorkingDirectory(shellLinkPtr, FileParentDir);
     IShellLinkW_SetIconLocation(shellLinkPtr, FilePath, 0);
 

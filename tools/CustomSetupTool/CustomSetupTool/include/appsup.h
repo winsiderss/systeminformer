@@ -51,7 +51,8 @@ VOID SetupInitializeFont(
     );
 
 VOID SetupCreateLink(
-    _In_ PWSTR DestFilePath,
+    _In_ PWSTR AppUserModelId,
+    _In_ PWSTR LinkFilePath,
     _In_ PWSTR FilePath,
     _In_ PWSTR FileParentDir
     );

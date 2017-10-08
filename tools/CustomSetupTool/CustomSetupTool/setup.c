@@ -442,18 +442,13 @@ VOID SetupSetWindowsOptions(
     // Create the startmenu shortcut.
     if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
     {
-        SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
+        SetupCreateLink(
+            L"ProcessHacker.Desktop.App", 
+            PhGetString(startmenuFolderString), 
+            PhGetString(clientPathString), 
+            PhGetString(Context->SetupInstallPath)
+            );
         PhDereferenceObject(startmenuFolderString);
-    }
-
-    // Create the desktop shortcut.
-    if (Context->SetupCreateDesktopShortcut)
-    {
-        if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
-        {
-            SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
-            PhDereferenceObject(startmenuFolderString);
-        }
     }
 
     // Create the all users shortcut.
@@ -461,8 +456,30 @@ VOID SetupSetWindowsOptions(
     {
         if (startmenuFolderString = PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
         {
-            SetupCreateLink(PhGetString(startmenuFolderString), PhGetString(clientPathString), PhGetString(Context->SetupInstallPath));
+            SetupCreateLink(
+                L"ProcessHacker.Desktop.App",
+                PhGetString(startmenuFolderString), 
+                PhGetString(clientPathString), 
+                PhGetString(Context->SetupInstallPath)
+                );
             PhDereferenceObject(startmenuFolderString);
+        }
+    }
+    else
+    {
+        // Create the desktop shortcut.
+        if (Context->SetupCreateDesktopShortcut)
+        {
+            if (startmenuFolderString = PhGetKnownLocation(CSIDL_DESKTOPDIRECTORY, L"\\Process Hacker.lnk"))
+            {
+                SetupCreateLink(
+                    L"ProcessHacker.Desktop.App",
+                    PhGetString(startmenuFolderString),
+                    PhGetString(clientPathString),
+                    PhGetString(Context->SetupInstallPath)
+                    );
+                PhDereferenceObject(startmenuFolderString);
+            }
         }
     }
 
@@ -472,6 +489,7 @@ VOID SetupSetWindowsOptions(
         PPH_STRING peviewPathString = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\peview.exe");
 
         SetupCreateLink(
+            L"PeViewer.Desktop.App",
             PhGetString(startmenuFolderString),
             PhGetString(peviewPathString),
             PhGetString(Context->SetupInstallPath)
@@ -495,30 +513,40 @@ VOID SetupSetWindowsOptions(
     if (Context->SetupCreateDefaultTaskManager)
     {
         NTSTATUS status;
-        HANDLE taskmgrKeyHandle = NULL;
+        HANDLE taskmgrKeyHandle;
 
-        if (NT_SUCCESS(status = PhCreateKey(
+        status = PhCreateKey(
             &taskmgrKeyHandle,
             KEY_READ | KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
             &TaskMgrImageOptionsKeyName,
-            0,
+            OBJ_OPENIF,
             0,
             NULL
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             PPH_STRING value;
             UNICODE_STRING valueName;
 
-            value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
-
-            // Configure the default Task Manager.
             RtlInitUnicodeString(&valueName, L"Debugger");
-            NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, value->Buffer, (ULONG)value->Length + 2);
 
+            value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
+            status = NtSetValueKey(
+                taskmgrKeyHandle, 
+                &valueName,
+                0,
+                REG_SZ,
+                value->Buffer, 
+                (ULONG)value->Length + sizeof(UNICODE_NULL)
+                );
+
+            PhDereferenceObject(value);
             NtClose(taskmgrKeyHandle);
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
             PhShowStatus(NULL, L"Unable to set the Windows default Task Manager.", status, 0);
         }
