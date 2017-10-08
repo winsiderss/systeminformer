@@ -199,8 +199,6 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
     _Out_ PVOID *Object
     )
 {
-    PhSecurityInformation *this = (PhSecurityInformation *)This;
-
     if (
         IsEqualIID(Riid, &IID_IUnknown) ||
         IsEqualIID(Riid, &IID_ISecurityInformation)
