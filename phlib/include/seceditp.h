@@ -19,6 +19,25 @@ typedef struct
     BOOLEAN IsPage;
 } PhSecurityInformation;
 
+typedef struct
+{
+    ISecurityInformation2Vtbl *VTable;
+
+    ULONG RefCount;
+} PhSecurityInformation2;
+
+typedef struct
+{
+    IDataObjectVtbl *VTable;
+
+    ULONG RefCount;
+
+    ULONG SidCount;
+    PSID *Sids;
+
+    PPH_LIST NameCache;
+} PhSecurityIDataObject;
+
 ISecurityInformation *PhSecurityInformation_Create(
     _In_ PWSTR ObjectName,
     _In_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -88,6 +107,99 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ SI_PAGE_TYPE uPage
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation2_QueryInterface(
+    _In_ ISecurityInformation2 *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation2_AddRef(
+    _In_ ISecurityInformation2 *This
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation2_Release(
+    _In_ ISecurityInformation2 *This
+    );
+
+BOOL STDMETHODCALLTYPE PhSecurityInformation2_IsDaclCanonical(
+    _In_ ISecurityInformation2 *This,
+    _In_ PACL pDacl
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
+    _In_ ISecurityInformation2 *This,
+    _In_ ULONG cSids,
+    _In_ PSID *rgpSids,
+    _Out_ LPDATAOBJECT *ppdo
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
+    _In_ IDataObject *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityDataObject_AddRef(
+    _In_ IDataObject *This
+    );
+
+ULONG STDMETHODCALLTYPE PhSecurityDataObject_Release(
+    _In_ IDataObject *This
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetcIn,
+    _Out_ STGMEDIUM *pmedium);
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetDataHere(
+    IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _Inout_ STGMEDIUM *pmedium
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryGetData(
+    _In_ IDataObject *This,
+    _In_opt_ FORMATETC *pformatetc
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetCanonicalFormatEtc(
+    _In_ IDataObject *This,
+    _In_opt_ FORMATETC *pformatectIn,
+    _Out_ FORMATETC *pformatetcOut
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_SetData(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _In_ STGMEDIUM *pmedium,
+    _In_ BOOL fRelease
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumFormatEtc(
+    _In_ IDataObject *This,
+    _In_ ULONG dwDirection,
+    _Out_opt_ IEnumFORMATETC **ppenumFormatEtc
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DAdvise(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _In_ ULONG advf,
+    _In_opt_ IAdviseSink *pAdvSink,
+    _Out_ ULONG *pdwConnection
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DUnadvise(
+    _In_ IDataObject *This,
+    _In_ ULONG dwConnection
+    );
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumDAdvise(
+    _In_ IDataObject *This,
+    _Out_opt_ IEnumSTATDATA **ppenumAdvise
     );
 
 #endif
