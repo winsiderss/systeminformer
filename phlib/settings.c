@@ -479,6 +479,21 @@ _May_raise_ PPH_STRING PhGetStringSetting(
     return value;
 }
 
+_May_raise_ BOOLEAN PhGetBinarySetting(
+    _In_ PWSTR Name,
+    _Out_ PVOID Buffer
+    )
+{
+    PPH_STRING setting;
+    BOOLEAN result;
+
+    setting = PhGetStringSetting(Name);
+    result = PhHexStringToBuffer(&setting->sr, (PUCHAR)Buffer);
+    PhDereferenceObject(setting);
+
+    return result;
+}
+
 _May_raise_ VOID PhSetIntegerSetting(
     _In_ PWSTR Name,
     _In_ ULONG Value
@@ -617,6 +632,19 @@ _May_raise_ VOID PhSetStringSetting2(
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
+}
+
+_May_raise_ VOID PhSetBinarySetting(
+    _In_ PWSTR Name,
+    _In_ PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    PPH_STRING binaryString;
+    
+    binaryString = PhBufferToHexString((PUCHAR)Buffer, Length);
+    PhSetStringSetting(Name, binaryString->Buffer);
+    PhDereferenceObject(binaryString);
 }
 
 VOID PhpFreeIgnoredSetting(
