@@ -276,9 +276,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         SI_EDIT_AUDITS |
         SI_EDIT_OWNER |
         SI_EDIT_PERMS |
-        SI_ADVANCED |
+        SI_EDIT_PROPERTIES |
+        SI_ADVANCED;
         //SI_NO_ACL_PROTECT |
-        SI_NO_TREE_APPLY;
+        //SI_NO_TREE_APPLY;
     ObjectInfo->hInstance = NULL;
     ObjectInfo->pszObjectName = this->ObjectName->Buffer;
 
@@ -527,12 +528,12 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
     _In_ IDataObject *This,
     _In_ FORMATETC *pformatetcIn,
     _Out_ STGMEDIUM *pmedium
-)
+    )
 {
     PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
     PSID_INFO_LIST sidInfoList;
 
-    sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+    sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_ZEROINIT, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
     sidInfoList->cItems = this->SidCount;
 
     for (ULONG i = 0; i < this->SidCount; i++)
@@ -549,10 +550,11 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
         {
             switch (sidUse)
             {
-            case SidTypeAlias:
             case SidTypeUser:
+            case SidTypeLogonSession:
                 sidInfo.pwzClass = L"User";
                 break;
+            case SidTypeAlias:
             case SidTypeGroup:
                 sidInfo.pwzClass = L"Group";
                 break;
