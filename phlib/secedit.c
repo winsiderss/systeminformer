@@ -30,9 +30,6 @@
 #include <settings.h>
 #include <seceditp.h>
 
-#pragma comment(lib, "shlwapi.lib")
-#include <shlwapi.h>
-
 static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {
     PhSecurityInformation_QueryInterface,
@@ -276,7 +273,6 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         SI_EDIT_AUDITS |
         SI_EDIT_OWNER |
         SI_EDIT_PERMS |
-        SI_EDIT_PROPERTIES |
         SI_ADVANCED;
         //SI_NO_ACL_PROTECT |
         //SI_NO_TREE_APPLY;
@@ -573,6 +569,16 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
             PPH_STRING keyPath;
             PPH_STRING packageName = NULL;
 
+            if (PhEqualString2(sidString, L"S-1-15-3-4096", FALSE))
+            {
+                // Special case for Edge and Internet Explorer objects.
+                packageName = PhCreateString(L"InternetExplorer (APP_PACKAGE)");
+                sidInfo.pwzCommonName = PhGetString(packageName);;
+                PhAddItemList(this->NameCache, packageName);
+                sidInfoList->aSidInfo[i] = sidInfo;
+                continue;
+            }
+
             keyPath = PhConcatStringRef2(&appcontainerMappings, &sidString->sr);
 
             if (NT_SUCCESS(PhOpenKey(
@@ -589,6 +595,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
 
             if (packageName)
             {
+                PhMoveReference(&packageName, PhFormatString(L"%s (APP_PACKAGE)", PhGetString(packageName)));
                 sidInfo.pwzCommonName = PhGetString(packageName);
                 PhAddItemList(this->NameCache, packageName);
             }
