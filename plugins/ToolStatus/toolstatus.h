@@ -268,11 +268,6 @@ VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
 
 // statusbar.c
 
-typedef struct _STATUSBAR_ITEM
-{
-    ULONG Id;
-} STATUSBAR_ITEM, *PSTATUSBAR_ITEM;
-
 extern ULONG ProcessesUpdatedCount;
 extern HWND StatusBarHandle;
 extern PPH_LIST StatusBarItemList;
