@@ -38,11 +38,13 @@ NTSTATUS PhOpenLsaPolicy(
     _In_opt_ PUNICODE_STRING SystemName
     )
 {
-    OBJECT_ATTRIBUTES oa = { 0 };
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
 
     return LsaOpenPolicy(
         SystemName,
-        &oa,
+        &objectAttributes,
         DesiredAccess,
         PolicyHandle
         );
