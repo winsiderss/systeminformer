@@ -902,7 +902,7 @@ VOID PhpSetDefaultTaskManager(
         HANDLE taskmgrKeyHandle;
         UNICODE_STRING valueName;
 
-        if (NT_SUCCESS(PhCreateKey(
+        status = PhCreateKey(
             &taskmgrKeyHandle,
             KEY_READ | KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
@@ -910,7 +910,9 @@ VOID PhpSetDefaultTaskManager(
             OBJ_OPENIF,
             0,
             NULL
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             RtlInitUnicodeString(&valueName, L"Debugger");
 
@@ -926,11 +928,11 @@ VOID PhpSetDefaultTaskManager(
                 status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, (ULONG)quotedFileName->Length + 2);
             }
 
-            if (!NT_SUCCESS(status))
-                PhShowStatus(ParentWindowHandle, L"Unable to replace Task Manager", status, 0);
-
             NtClose(taskmgrKeyHandle);
         }
+
+        if (!NT_SUCCESS(status))
+            PhShowStatus(ParentWindowHandle, L"Unable to replace Task Manager", status, 0);
 
         if (PhSettingsFileName)
             PhSaveSettings(PhSettingsFileName->Buffer);
@@ -1707,6 +1709,27 @@ COLORREF NTAPI PhpColorItemColorFunction(
     return item->CurrentColor;
 }
 
+UINT_PTR CALLBACK PhpColorDlgHookProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1816,7 +1839,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                             chooseColor.hwndOwner = hwndDlg;
                             chooseColor.rgbResult = item->CurrentColor;
                             chooseColor.lpCustColors = customColors;
-                            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
+                            chooseColor.lpfnHook = PhpColorDlgHookProc;
+                            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK | CC_RGBINIT;
 
                             if (ChooseColor(&chooseColor))
                             {
