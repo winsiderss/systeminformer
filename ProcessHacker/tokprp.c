@@ -818,25 +818,23 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     // Put a radio check on the menu item that corresponds with the current integrity level.
                     // Also disable menu items which correspond to higher integrity levels since
                     // NtSetInformationToken doesn't allow integrity levels to be raised.
-                    if (NT_SUCCESS(tokenPageContext->OpenObject(
+                    if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_QUERY,
                         tokenPageContext->Context
                         )))
                     {
-                        if (NT_SUCCESS(PhGetTokenIntegrityLevel(
+                        if (NT_SUCCESS(status = PhGetTokenIntegrityLevel(
                             tokenHandle,
                             &integrityLevel,
                             NULL
                             )))
                         {
-                            ULONG i;
-
-                            for (i = 0; i < menu->Items->Count; i++)
+                            for (ULONG i = 0; i < menu->Items->Count; i++)
                             {
                                 PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
 
-                                if (menuItem->Id == integrityLevel)
+                                if (menuItem->Id == (ULONG)integrityLevel)
                                 {
                                     menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
                                 }
@@ -848,6 +846,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
 
                         NtClose(tokenHandle);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        for (ULONG i = 0; i < menu->Items->Count; i++)
+                        {
+                            PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
+                            menuItem->Flags |= PH_EMENU_DISABLED;
+                        }
                     }
 
                     selectedItem = PhShowEMenu(
