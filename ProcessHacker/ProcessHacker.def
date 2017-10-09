@@ -636,7 +636,6 @@ EXPORTS
 	PhGetJsonArrayLong64
 	PhGetJsonArrayLength
 	PhGetJsonArrayIndexObject
-	PhGetJsonObjectAsArrayList
 
 ; cache
 	PhClearCacheDirectory
