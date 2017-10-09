@@ -581,11 +581,11 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                             CustomizeAddToolbarItem(context, index, indexto);
                         }
                         break;
-                    case LBN_KILLFOCUS:
-                        {
-                            Button_Enable(context->AddButtonHandle, FALSE);
-                        }
-                        break;
+                    //case LBN_KILLFOCUS:
+                    //    {
+                    //        Button_Enable(context->AddButtonHandle, FALSE);
+                    //    }
+                    //    break;
                     }
                 }
                 break;
@@ -661,13 +661,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                             CustomizeRemoveToolbarItem(context, index);
                         }
                         break;
-                    case LBN_KILLFOCUS:
-                        {
-                            Button_Enable(context->MoveUpButtonHandle, FALSE);
-                            Button_Enable(context->MoveDownButtonHandle, FALSE);
-                            Button_Enable(context->RemoveButtonHandle, FALSE);
-                        }
-                        break;
+                    //case LBN_KILLFOCUS:
+                    //    {
+                    //        Button_Enable(context->MoveUpButtonHandle, FALSE);
+                    //        Button_Enable(context->MoveDownButtonHandle, FALSE);
+                    //        Button_Enable(context->RemoveButtonHandle, FALSE);
+                    //    }
+                    //    break;
                     }
                 }
                 break;

@@ -57,14 +57,7 @@ VOID StatusBarLoadDefault(
 
     for (ULONG i = 0; i < MAX_DEFAULT_STATUSBAR_ITEMS; i++)
     {
-        PSTATUSBAR_ITEM item;
-
-        item = PhAllocate(sizeof(STATUSBAR_ITEM));
-        memset(item, 0, sizeof(STATUSBAR_ITEM));
-
-        item->Id = StatusBarItems[i];
-
-        PhAddItemList(StatusBarItemList, item);
+        PhAddItemList(StatusBarItemList, UlongToPtr(StatusBarItems[i]));
     }
 }
 
@@ -116,14 +109,7 @@ VOID StatusBarLoadSettings(
 
         if (PhStringToInteger64(&idPart, 10, &idInteger))
         {
-            PSTATUSBAR_ITEM item;
-
-            item = PhAllocate(sizeof(STATUSBAR_ITEM));
-            memset(item, 0, sizeof(STATUSBAR_ITEM));
-
-            item->Id = (ULONG)idInteger;
-
-            PhInsertItemList(StatusBarItemList, i, item);
+            PhInsertItemList(StatusBarItemList, i, UlongToPtr((ULONG)idInteger));
         }
     }
 }
@@ -145,12 +131,10 @@ VOID StatusBarSaveSettings(
 
     for (ULONG i = 0; i < StatusBarItemList->Count; i++)
     {
-        PSTATUSBAR_ITEM item = StatusBarItemList->Items[i];
-
         PhAppendFormatStringBuilder(
             &stringBuilder,
             L"%lu|",
-            item->Id
+            PtrToUlong(StatusBarItemList->Items[i])
             );
     }
 
@@ -165,11 +149,6 @@ VOID StatusBarResetSettings(
     VOID
     )
 {
-    for (ULONG i = 0; i < StatusBarItemList->Count; i++)
-    {
-        PhFree(StatusBarItemList->Items[i]);
-    }
-
     PhClearList(StatusBarItemList);
 
     StatusBarLoadDefault();
@@ -296,11 +275,8 @@ VOID StatusBarUpdate(
     {
         SIZE size;
         ULONG width;
-        PSTATUSBAR_ITEM item;
 
-        item = StatusBarItemList->Items[i];
-
-        switch (item->Id)
+        switch (PtrToUlong(StatusBarItemList->Items[i]))
         {
         case ID_STATUS_CPUUSAGE:
             {
