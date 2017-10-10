@@ -160,8 +160,6 @@ HBITMAP PhLoadPngImageFromResource(
     BOOLEAN success = FALSE;
     UINT frameCount = 0;
     ULONG resourceLength = 0;
-    HGLOBAL resourceHandle = NULL;
-    HRSRC resourceHandleSource = NULL;
     WICInProcPointer resourceBuffer = NULL;
     HDC screenHdc = NULL;
     HDC bufferDc = NULL;
@@ -181,18 +179,8 @@ HBITMAP PhLoadPngImageFromResource(
     if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
         goto CleanupExit;
 
-    // Find the resource
-    if ((resourceHandleSource = FindResource(DllBase, Name, L"PNG")) == NULL)
-        goto CleanupExit;
-
-    // Get the resource length
-    resourceLength = SizeofResource(DllBase, resourceHandleSource);
-
     // Load the resource
-    if ((resourceHandle = LoadResource(DllBase, resourceHandleSource)) == NULL)
-        goto CleanupExit;
-
-    if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
+    if (!PhLoadResource(DllBase, Name, L"PNG", &resourceLength, &resourceBuffer))
         goto CleanupExit;
 
     // Create the Stream
@@ -302,8 +290,8 @@ CleanupExit:
     if (wicFactory)
         IWICImagingFactory_Release(wicFactory);
 
-    if (resourceHandle)
-        FreeResource(resourceHandle);
+    if (resourceBuffer)
+        PhFree(resourceBuffer);
 
     if (success)
     {
