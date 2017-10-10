@@ -67,6 +67,13 @@ KphSetParameters(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+KphSetServiceSecurity(
+    _In_ SC_HANDLE ServiceHandle
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 KphInstall(
