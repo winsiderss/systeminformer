@@ -80,15 +80,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     _In_ LPARAM lParam
     );
 
-LRESULT CALLBACK PhpSelectionTreeSubclassProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
-    );
-
 VOID PhOptionsDestroySection(
     _In_ PPH_OPTIONS_SECTION Section
     );
@@ -334,6 +325,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             OptionsTreeControl = GetDlgItem(PhOptionsWindowHandle, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(PhOptionsWindowHandle, IDD_CONTAINER);
 
+            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
+
             PhSetControlTheme(OptionsTreeControl, L"explorer");
             TreeView_SetExtendedStyle(OptionsTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
             TreeView_SetImageList(OptionsTreeControl, OptionsTreeImageList, TVSIL_NORMAL);
@@ -341,14 +334,12 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhInitializeLayoutManager(&WindowLayoutManager, PhOptionsWindowHandle);
             PhAddLayoutItem(&WindowLayoutManager, OptionsTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, ContainerControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_RESET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_CLEANUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-            SetWindowSubclass(OptionsTreeControl, PhpSelectionTreeSubclassProc, 0, 0);
-            SendMessage(OptionsTreeControl, WM_THEMECHANGED, 0, 0);
 
             EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
 
@@ -457,6 +448,23 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_DRAWITEM:
+        {
+            PDRAWITEMSTRUCT drawInfo = (PDRAWITEMSTRUCT)lParam;
+            
+            if (drawInfo->CtlID == IDC_SEPARATOR)
+            {
+                RECT rect;
+
+                rect = drawInfo->rcItem;
+                rect.right = 2;
+                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+                rect.left += 1;
+                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+                return TRUE;
             }
         }
         break;
@@ -1906,145 +1914,3 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 
     return FALSE;
 }
-
-VOID PhpSelectionTreeDrawThemedFrame(
-    _In_ HWND hWnd, 
-    _In_ HRGN UpdateRegion,
-    _In_ HTHEME ThemeData
-    )
-{
-    INT systemEdgeX;
-    INT systemEdgeY;
-    HDC hdc;
-    ULONG flags;
-
-    systemEdgeX = GetSystemMetrics(SM_CXEDGE);
-    systemEdgeY = GetSystemMetrics(SM_CYEDGE);
-
-    if (UpdateRegion == (HRGN)1)
-        UpdateRegion = NULL;
-
-    // Note the use of undocumented flags below. GetDCEx doesn't work without these.
-
-    flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
-
-    if (UpdateRegion)
-        flags |= DCX_INTERSECTRGN | 0x40000;
-
-    if (hdc = GetDCEx(hWnd, UpdateRegion, flags))
-    {
-        RECT windowRect;
-        RECT clientRect;
-        RECT tempRect;
-        LONG sizingBorderWidth;
-        LONG borderX;
-        LONG borderY;
-
-        GetWindowRect(hWnd, &windowRect);
-        windowRect.right -= windowRect.left;
-        windowRect.bottom -= windowRect.top;
-        windowRect.left = 0;
-        windowRect.top = 0;
-
-        clientRect.left = windowRect.left + systemEdgeX;
-        clientRect.top = windowRect.top + systemEdgeY;
-        clientRect.right = windowRect.right - systemEdgeX;
-        clientRect.bottom = windowRect.bottom - systemEdgeY;
-
-        // Make sure we don't paint in the client area.
-        ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
-
-        // Draw the themed border.
-        tempRect = windowRect;
-        tempRect.left = tempRect.right - 2;
-        FillRect(hdc, &tempRect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
-        tempRect.left = tempRect.right - 1;
-        FillRect(hdc, &tempRect, GetSysColorBrush(COLOR_3DSHADOW));
-
-        // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't
-        // fully paint the region.
-
-        if (SUCCEEDED(GetThemeInt(ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
-        {
-            borderX = sizingBorderWidth;
-            borderY = sizingBorderWidth;
-        }
-        else
-        {
-            borderX = GetSystemMetrics(SM_CXBORDER);
-            borderY = GetSystemMetrics(SM_CYBORDER);
-        }
-
-        if (borderX < systemEdgeX || borderY < systemEdgeY)
-        {
-            windowRect.left += systemEdgeX - borderX;
-            windowRect.top += systemEdgeY - borderY;
-            windowRect.right -= systemEdgeX - borderX;
-            windowRect.bottom -= systemEdgeY - borderY;
-
-            FillRect(hdc, &windowRect, GetSysColorBrush(COLOR_3DFACE));
-        }
-
-        ReleaseDC(hWnd, hdc);
-    }
-}
-
-LRESULT CALLBACK PhpSelectionTreeSubclassProc(
-    _In_ HWND hWnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
-    )
-{
-    HTHEME treeThemeData = (HTHEME)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-
-    switch (uMsg)
-    {
-    case WM_DESTROY:
-        {
-            RemoveWindowSubclass(hWnd, PhpSelectionTreeSubclassProc, uIdSubclass);
-
-            CloseThemeData(treeThemeData);
-            SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)NULL);
-        }
-        break;
-    case WM_SYSCOLORCHANGE:
-    case WM_SETFOCUS:
-    case WM_KILLFOCUS:
-    case WM_ENABLE:
-        {
-            if (treeThemeData)
-            {
-                PhpSelectionTreeDrawThemedFrame(hWnd, NULL, treeThemeData);
-            }
-        }
-        break;
-    case WM_THEMECHANGED:
-        {
-            if (treeThemeData)
-            {
-                CloseThemeData(treeThemeData);
-                treeThemeData = NULL;
-            }
-
-            treeThemeData = OpenThemeData(hWnd, VSCLASS_TREEVIEW);
-            SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)treeThemeData);
-            InvalidateRect(hWnd, NULL, TRUE);
-        }
-        break;
-    case WM_NCPAINT:
-        {
-            if (treeThemeData)
-            {
-                PhpSelectionTreeDrawThemedFrame(hWnd, (HRGN)wParam, treeThemeData);
-                return TRUE;
-            }
-        }
-        break;
-    }
-
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-}
-
