@@ -1530,37 +1530,49 @@ PVOID PhGetFileVersionInfo(
     _In_ PWSTR FileName
     )
 {
-    ULONG versionInfoSize;
-    ULONG dummy;
+    HMODULE resourceInstance;
+    HRSRC resourceInfo;
+    ULONG resourceSize;
+    HGLOBAL resourceHandle;
     PVOID versionInfo;
+    PVOID versionInfoCopy = NULL;
 
-    versionInfoSize = GetFileVersionInfoSize(
-        FileName,
-        &dummy
-        );
+    resourceInstance = LoadLibraryEx(FileName, 0, LOAD_LIBRARY_AS_DATAFILE);
 
-    if (versionInfoSize)
-    {
-        versionInfo = PhAllocate(versionInfoSize);
-
-        if (!GetFileVersionInfo(
-            FileName,
-            0,
-            versionInfoSize,
-            versionInfo
-            ))
-        {
-            PhFree(versionInfo);
-
-            return NULL;
-        }
-    }
-    else
-    {
+    if (!resourceInstance)
         return NULL;
+
+    resourceInfo = FindResource(resourceInstance, MAKEINTRESOURCE(VS_VERSION_INFO), VS_FILE_INFO);
+
+    if (!resourceInfo)
+        goto CleanupExit;
+
+    resourceSize = SizeofResource(resourceInstance, resourceInfo);
+
+    if (resourceSize == 0)
+        goto CleanupExit;
+
+    resourceHandle = LoadResource(resourceInstance, resourceInfo);
+
+    if (!resourceHandle)
+        goto CleanupExit;
+
+    versionInfo = LockResource(resourceHandle);
+
+    if (!versionInfo)
+    {
+        FreeResource(resourceHandle);
+        goto CleanupExit;
     }
 
-    return versionInfo;
+    versionInfoCopy = PhAllocateCopy(versionInfo, resourceSize);
+    FreeResource(resourceHandle);
+
+CleanupExit:
+
+    FreeLibrary(resourceInstance);
+
+    return versionInfoCopy;
 }
 
 /**
