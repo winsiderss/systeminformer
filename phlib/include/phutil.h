@@ -1092,74 +1092,13 @@ PhDeleteCacheFile(
     _In_ PPH_STRING FileName
     );
 
-FORCEINLINE
-HANDLE 
+PHLIBAPI
+HANDLE
 NTAPI
 PhGetNamespaceHandle(
     VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\ProcessHacker");
-    static HANDLE directory = NULL;
+    );
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-        OBJECT_ATTRIBUTES objectAttributes;
-        PSECURITY_DESCRIPTOR securityDescriptor;
-        ULONG sdAllocationLength;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-        PSID administratorsSid;
-        PACL dacl;
-
-        // Create the default namespace DACL.
-
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
-
-        sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
-            (ULONG)sizeof(ACL) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(&PhSeLocalSid) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(administratorsSid) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(&PhSeInteractiveSid);
-
-        securityDescriptor = PhAllocate(sdAllocationLength);
-        dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
-
-        RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
-        RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
-
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &namespacePathUs,
-            OBJ_OPENIF,
-            NULL,
-            securityDescriptor
-            );
-
-        NtCreateDirectoryObject(
-            &directory,
-            MAXIMUM_ALLOWED,
-            &objectAttributes
-            );
-
-        PhFree(securityDescriptor);
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return directory;
-}
 PHLIBAPI
 BOOLEAN
 NTAPI
