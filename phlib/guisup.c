@@ -837,47 +837,30 @@ HWND PhCreateDialogFromTemplate(
     _In_ PVOID Parameter
     )
 {
-    HRSRC resourceInfo;
-    ULONG resourceSize;
-    HGLOBAL resourceHandle;
-    PDLGTEMPLATEEX dialog;
-    PDLGTEMPLATEEX dialogCopy;
+    PDLGTEMPLATEEX dialogTemplate;
     HWND dialogHandle;
 
-    resourceInfo = FindResource(Instance, Template, MAKEINTRESOURCE(RT_DIALOG));
-
-    if (!resourceInfo)
+    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
         return NULL;
 
-    resourceSize = SizeofResource(Instance, resourceInfo);
-
-    if (resourceSize == 0)
-        return NULL;
-
-    resourceHandle = LoadResource(Instance, resourceInfo);
-
-    if (!resourceHandle)
-        return NULL;
-
-    dialog = LockResource(resourceHandle);
-
-    if (!dialog)
-        return NULL;
-
-    dialogCopy = PhAllocateCopy(dialog, resourceSize);
-
-    if (dialogCopy->signature == 0xffff)
+    if (dialogTemplate->signature == USHRT_MAX)
     {
-        dialogCopy->style = Style;
+        dialogTemplate->style = Style;
     }
     else
     {
-        ((DLGTEMPLATE *)dialogCopy)->style = Style;
+        ((DLGTEMPLATE *)dialogTemplate)->style = Style;
     }
 
-    dialogHandle = CreateDialogIndirectParam(Instance, (DLGTEMPLATE *)dialogCopy, Parent, DialogProc, (LPARAM)Parameter);
+    dialogHandle = CreateDialogIndirectParam(
+        Instance, 
+        (DLGTEMPLATE *)dialogTemplate, 
+        Parent, 
+        DialogProc, 
+        (LPARAM)Parameter
+        );
 
-    PhFree(dialogCopy);
+    PhFree(dialogTemplate);
 
     return dialogHandle;
 }
