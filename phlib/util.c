@@ -1530,49 +1530,28 @@ PVOID PhGetFileVersionInfo(
     _In_ PWSTR FileName
     )
 {
-    HMODULE resourceInstance;
-    HRSRC resourceInfo;
-    ULONG resourceSize;
-    HGLOBAL resourceHandle;
+    PVOID libraryModule;
     PVOID versionInfo;
-    PVOID versionInfoCopy = NULL;
 
-    resourceInstance = LoadLibraryEx(FileName, 0, LOAD_LIBRARY_AS_DATAFILE);
+    libraryModule = LoadLibraryEx(FileName, NULL, LOAD_LIBRARY_AS_DATAFILE);
 
-    if (!resourceInstance)
+    if (!libraryModule)
         return NULL;
 
-    resourceInfo = FindResource(resourceInstance, MAKEINTRESOURCE(VS_VERSION_INFO), VS_FILE_INFO);
-
-    if (!resourceInfo)
-        goto CleanupExit;
-
-    resourceSize = SizeofResource(resourceInstance, resourceInfo);
-
-    if (resourceSize == 0)
-        goto CleanupExit;
-
-    resourceHandle = LoadResource(resourceInstance, resourceInfo);
-
-    if (!resourceHandle)
-        goto CleanupExit;
-
-    versionInfo = LockResource(resourceHandle);
-
-    if (!versionInfo)
+    if (PhLoadResource(
+        libraryModule, 
+        MAKEINTRESOURCE(VS_VERSION_INFO), 
+        VS_FILE_INFO, 
+        NULL, 
+        &versionInfo
+        ))
     {
-        FreeResource(resourceHandle);
-        goto CleanupExit;
+        FreeLibrary(libraryModule);
+        return versionInfo;
     }
 
-    versionInfoCopy = PhAllocateCopy(versionInfo, resourceSize);
-    FreeResource(resourceHandle);
-
-CleanupExit:
-
-    FreeLibrary(resourceInstance);
-
-    return versionInfoCopy;
+    FreeLibrary(libraryModule);
+    return NULL;
 }
 
 /**
@@ -5156,4 +5135,37 @@ VOID PhDeleteCacheFile(
 
         PhDereferenceObject(cacheFullFilePath);
     }
+}
+
+BOOLEAN PhLoadResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_ PVOID *ResourceBuffer
+    )
+{
+    ULONG resourceLength;
+    PVOID resourceInfo;
+    PVOID resourceBuffer;
+
+    resourceInfo = FindResource(DllBase, Name, Type);
+
+    if (!resourceInfo)
+        return FALSE;
+
+    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceInfo, &resourceBuffer, &resourceLength)))
+        return FALSE;
+
+    if (!resourceBuffer)
+        return FALSE;
+
+    if (resourceLength == 0)
+        return FALSE;
+
+    if (ResourceLength)
+        *ResourceLength = resourceLength;
+    *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
+
+    return TRUE;
 }

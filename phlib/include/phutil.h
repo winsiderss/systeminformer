@@ -1160,6 +1160,16 @@ PhGetNamespaceHandle(
 
     return directory;
 }
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoadResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_ PVOID *ResourceBuffer
+    );
 
 #ifdef __cplusplus
 }
