@@ -862,13 +862,9 @@ HWND PhCreateDialogFromTemplate(
     dialog = LockResource(resourceHandle);
 
     if (!dialog)
-    {
-        FreeResource(resourceHandle);
         return NULL;
-    }
 
     dialogCopy = PhAllocateCopy(dialog, resourceSize);
-    FreeResource(resourceHandle);
 
     if (dialogCopy->signature == 0xffff)
     {
