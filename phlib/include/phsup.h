@@ -458,9 +458,9 @@ FORCEINLINE ULONG PhCountBits(
     return count;
 }
 
-FORCEINLINE ULONG PhRoundNumber(
-    _In_ ULONG Value,
-    _In_ ULONG Granularity
+FORCEINLINE ULONG64 PhRoundNumber(
+    _In_ ULONG64 Value,
+    _In_ ULONG64 Granularity
     )
 {
     return (Value + Granularity / 2) / Granularity * Granularity;

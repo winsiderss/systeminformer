@@ -262,7 +262,7 @@ VOID PhShowDebugConsole(
 
 PPH_STRING PhGetProcessTooltipText(
     _In_ PPH_PROCESS_ITEM Process,
-    _Out_opt_ PULONG ValidToTickCount
+    _Out_opt_ PULONG64 ValidToTickCount
     );
 
 PPH_STRING PhGetServiceTooltipText(
