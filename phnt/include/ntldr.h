@@ -552,6 +552,26 @@ LdrDisableThreadCalloutsForDll(
     _In_ PVOID DllImageBase
     );
     
+// Resources
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrAccessResource(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
+    _Out_opt_ PVOID *ResourceBuffer,
+    _Out_opt_ ULONG *ResourceLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrFindEntryForAddress(
+    _In_ PVOID BaseAddress,
+    _Out_ PLDR_DATA_TABLE_ENTRY *Entry
+    );
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information
@@ -585,17 +605,5 @@ typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX
     ULONG TimeDateStamp;
     PVOID DefaultBase;
 } RTL_PROCESS_MODULE_INFORMATION_EX, *PRTL_PROCESS_MODULE_INFORMATION_EX;
-
-// Resources
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrAccessResource(
-    _In_ PVOID BaseAddress,
-    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
-    _Out_opt_ PVOID *ResourceBuffer,
-    _Out_opt_ ULONG *ResourceLength
-    );
 
 #endif
