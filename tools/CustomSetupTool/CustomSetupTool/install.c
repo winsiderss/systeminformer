@@ -72,6 +72,8 @@ NTSTATUS SetupProgressThread(
     if (Context->SetupInstallKphService)
         SetupStartKph(Context);
 
+    PhClearCacheDirectory();
+
     PostMessage(Context->ExtractPageHandle, WM_END_SETUP, 0, 0);
     return STATUS_SUCCESS;
 
