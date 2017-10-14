@@ -6562,7 +6562,7 @@ NTSTATUS PhCreateNamedPipe(
     )
 {
     NTSTATUS status;
-    PACL pipeAcl;
+    PACL pipeAcl = NULL;
     HANDLE pipeHandle;
     PPH_STRING pipeName;
     LARGE_INTEGER pipeTimeout;
@@ -6588,7 +6588,6 @@ NTSTATUS PhCreateNamedPipe(
 
         RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
         oa.SecurityDescriptor = &securityDescriptor;
     }
@@ -6614,6 +6613,9 @@ NTSTATUS PhCreateNamedPipe(
     {
         *PipeHandle = pipeHandle;
     }
+
+    if (pipeAcl)
+        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
     PhDereferenceObject(pipeName);
     return status;
