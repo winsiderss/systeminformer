@@ -105,20 +105,25 @@ typedef struct _PH_SETUP_CONTEXT
 
     ULONG ErrorCode;
     PPH_STRING FilePath;
+
     PPH_STRING RelDate;
-    PPH_STRING Size;
-    PPH_STRING ReleaseNotesUrl;
+    PPH_STRING RelVersion;
 
     PPH_STRING BinFileDownloadUrl;
+    PPH_STRING BinFileLength;
     PPH_STRING BinFileHash;
+    PPH_STRING BinFileSignature;
 
     PPH_STRING SetupFileDownloadUrl;
+    PPH_STRING SetupFileLength;
+    PPH_STRING SetupFileHash;
     PPH_STRING SetupFileSignature;
-    PPH_STRING SetupFileVersion;
 
     PPH_STRING WebSetupFileDownloadUrl;
-    PPH_STRING WebSetupFileSignature;
     PPH_STRING WebSetupFileVersion;
+    PPH_STRING WebSetupFileLength;
+    PPH_STRING WebSetupFileHash;
+    PPH_STRING WebSetupFileSignature;
 
     HWND MainHeaderHandle;
     HWND StatusHandle;
