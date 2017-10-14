@@ -64,19 +64,21 @@ NTSTATUS PhCommandModeStart(
     {
         { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType }
     };
-    NTSTATUS status = STATUS_SUCCESS;
-    PH_STRINGREF commandLine;
+    NTSTATUS status;
+    PPH_STRING commandLine;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
+    if (!NT_SUCCESS(status = PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+        return status;
 
     PhParseCommandLine(
-        &commandLine,
+        &commandLine->sr,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
         PhpCommandModeOptionCallback,
         NULL
         );
+    PhDereferenceObject(commandLine);
 
     if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
     {
