@@ -206,17 +206,18 @@ VOID PhShowHandleObjectProperties1(
     }
     else if (PhEqualString2(Info->TypeName, L"Section", TRUE))
     {
+        NTSTATUS status;
         HANDLE handle = NULL;
         BOOLEAN readOnly = FALSE;
 
-        if (!NT_SUCCESS(PhpDuplicateHandleFromProcessItem(
+        if (!NT_SUCCESS(status = PhpDuplicateHandleFromProcessItem(
             &handle,
             SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_WRITE,
             Info->ProcessId,
             Info->Handle
             )))
         {
-            PhpDuplicateHandleFromProcessItem(
+            status = PhpDuplicateHandleFromProcessItem(
                 &handle,
                 SECTION_QUERY | SECTION_MAP_READ,
                 Info->ProcessId,
@@ -227,7 +228,6 @@ VOID PhShowHandleObjectProperties1(
 
         if (handle)
         {
-            NTSTATUS status;
             PPH_STRING sectionName = NULL;
             SECTION_BASIC_INFORMATION basicInfo;
             SIZE_T viewSize = PH_MAX_SECTION_EDIT_SIZE;
@@ -236,7 +236,7 @@ VOID PhShowHandleObjectProperties1(
 
             PhGetHandleInformation(NtCurrentProcess(), handle, -1, NULL, NULL, NULL, &sectionName);
 
-            if (NT_SUCCESS(PhGetSectionBasicInformation(handle, &basicInfo)))
+            if (NT_SUCCESS(status = PhGetSectionBasicInformation(handle, &basicInfo)))
             {
                 if (basicInfo.MaximumSize.QuadPart <= PH_MAX_SECTION_EDIT_SIZE)
                     viewSize = (SIZE_T)basicInfo.MaximumSize.QuadPart;
@@ -291,13 +291,18 @@ VOID PhShowHandleObjectProperties1(
                 }
                 else
                 {
-                    PhShowStatus(hWnd, L"Unable to map a view of the section", status, 0);
+                    PhShowStatus(hWnd, L"Unable to map a view of the section.", status, 0);
                 }
             }
 
             PhClearReference(&sectionName);
 
             NtClose(handle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(hWnd, L"Unable to query the section.", status, 0);
         }
     }
     else if (PhEqualString2(Info->TypeName, L"Thread", TRUE))
