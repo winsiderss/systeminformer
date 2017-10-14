@@ -220,7 +220,6 @@ PPH_LIST VirusTotalJsonToResultList(
     {
         PVIRUSTOTAL_API_RESULT result;
         PVOID jsonArrayObject;
-        PSTR fileHash;
 
         if (!(jsonArrayObject = PhGetJsonArrayIndexObject(JsonObject, i)))
             continue;
@@ -228,8 +227,7 @@ PPH_LIST VirusTotalJsonToResultList(
         result = PhAllocate(sizeof(VIRUSTOTAL_API_RESULT));
         memset(result, 0, sizeof(VIRUSTOTAL_API_RESULT));
 
-        fileHash = PhGetJsonValueAsString(jsonArrayObject, "hash");
-        result->FileHash = fileHash ? PhZeroExtendToUtf16(fileHash) : NULL;
+        result->FileHash = PhGetJsonValueAsString(jsonArrayObject, "hash");
         result->Found = PhGetJsonObjectBool(jsonArrayObject, "found") == TRUE;
         result->Positives = PhGetJsonValueAsLong64(jsonArrayObject, "positives");
         result->Total = PhGetJsonValueAsLong64(jsonArrayObject, "total");
@@ -596,14 +594,14 @@ CleanupExit:
 
     result->Total = PhFormatUInt64(PhGetJsonValueAsLong64(jsonRootObject, "total"), FALSE);
     result->Positives = PhFormatUInt64(PhGetJsonValueAsLong64(jsonRootObject, "positives"), FALSE);
-    result->Resource = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "resource"));
-    result->ScanId = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "scan_id"));
-    result->Md5 = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "md5"));
-    result->Sha1 = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "sha1"));
-    result->Sha256 = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "sha256"));
-    result->ScanDate = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "scan_date"));
-    result->Permalink = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "permalink"));
-    result->StatusMessage = PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "verbose_msg"));
+    result->Resource = PhGetJsonValueAsString(jsonRootObject, "resource");
+    result->ScanId = PhGetJsonValueAsString(jsonRootObject, "scan_id");
+    result->Md5 = PhGetJsonValueAsString(jsonRootObject, "md5");
+    result->Sha1 = PhGetJsonValueAsString(jsonRootObject, "sha1");
+    result->Sha256 = PhGetJsonValueAsString(jsonRootObject, "sha256");
+    result->ScanDate = PhGetJsonValueAsString(jsonRootObject, "scan_date");
+    result->Permalink = PhGetJsonValueAsString(jsonRootObject, "permalink");
+    result->StatusMessage = PhGetJsonValueAsString(jsonRootObject, "verbose_msg");
 
     //if (jsonScanObject = PhGetJsonObject(jsonRootObject, "scans"))
     //{
@@ -651,11 +649,11 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
     {
         ULONG i;
         INT64 resultLength;
-        PSTR jsonArrayToSendString;
         PSTR jsonApiResult = NULL;
         PVOID jsonArray;
         PVOID rootJsonObject = NULL;
         PVOID dataJsonObject;
+        PPH_STRING jsonArrayToSendString = NULL;
         PPH_LIST resultTempList = NULL;
         PPH_LIST virusTotalResults = NULL;
 
@@ -695,7 +693,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
         if (!(jsonArrayToSendString = PhGetJsonArrayString(jsonArray)))
             goto CleanupExit;
 
-        if (!(jsonApiResult = VirusTotalSendHttpRequest(PhCreateBytes(jsonArrayToSendString))))
+        if (!(jsonApiResult = VirusTotalSendHttpRequest(PhConvertUtf16ToUtf8(jsonArrayToSendString->Buffer))))
             goto CleanupExit;
 
         if (!(rootJsonObject = PhCreateJsonParser(jsonApiResult)))
@@ -760,6 +758,9 @@ CleanupExit:
         {
             PhFreeJsonParser(rootJsonObject);
         }
+
+        if (jsonArrayToSendString)
+            PhDereferenceObject(jsonArrayToSendString);
 
         if (jsonArray)
         {

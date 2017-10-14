@@ -47,18 +47,16 @@ VOID FreeUpdateContext(
     _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
-    PhClearReference(&Context->Version);
-    PhClearReference(&Context->RevVersion);
-    PhClearReference(&Context->RelDate);
-    PhClearReference(&Context->Size);
-    PhClearReference(&Context->Hash);
-    PhClearReference(&Context->Signature);
-    PhClearReference(&Context->ReleaseNotesUrl);
-    PhClearReference(&Context->SetupFilePath);
-    PhClearReference(&Context->SetupFileDownloadUrl);
-    PhClearReference(&Context->BuildMessage);
     PhClearReference(&Context->CurrentVersionString);
-    
+
+    PhClearReference(&Context->Version);
+    PhClearReference(&Context->RelDate);
+    PhClearReference(&Context->SetupFileDownloadUrl);
+    PhClearReference(&Context->SetupFileLength);
+    PhClearReference(&Context->SetupFileHash);
+    PhClearReference(&Context->SetupFileSignature);
+    PhClearReference(&Context->BuildMessage);
+
     PhDereferenceObject(Context);
 }
 
@@ -77,7 +75,7 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    if (!PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
+    if (!PhIsNullOrEmptyString(Context->BuildMessage))
     {
         DialogBoxParam(
             PluginInstance->DllBase, 
@@ -420,42 +418,27 @@ BOOLEAN QueryUpdateData(
     if (!(jsonObject = PhCreateJsonParser(stringBuffer)))
         goto CleanupExit;
 
-    Context->Size = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "size"), 2);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "version"))
-    {
-        Context->Version = PhConvertUtf8ToUtf16(tempValue);
-        Context->RevVersion = PhConvertUtf8ToUtf16(tempValue);
-    }
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "updated"))
-        Context->RelDate = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "hash_setup"))
-        Context->Hash = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "sig"))
-        Context->Signature = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "forum_url"))
-        Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "setup_url"))
-        Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(tempValue);
-    if (tempValue = PhGetJsonValueAsString(jsonObject, "changelog"))
-        Context->BuildMessage = PhConvertUtf8ToUtf16(tempValue);
+    Context->Version = PhGetJsonValueAsString(jsonObject, "version");
+    Context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
+    Context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
+    Context->SetupFileLength = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "setup_length"), 2);
+    Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
+    Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
+    Context->BuildMessage = PhGetJsonValueAsString(jsonObject, "changelog");
 
     PhFreeJsonParser(jsonObject);
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->RevVersion))
-        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Size))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Hash))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Signature))
+    if (PhIsNullOrEmptyString(Context->SetupFileLength))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->SetupFileHash))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(Context->SetupFileSignature))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->BuildMessage))
         goto CleanupExit;
@@ -911,12 +894,12 @@ NTSTATUS UpdateDownloadThread(
             }
         }
 
-        if (UpdaterVerifyHash(hashContext, context->Hash))
+        if (UpdaterVerifyHash(hashContext, context->SetupFileHash))
         {
             hashSuccess = TRUE;
         }
 
-        if (UpdaterVerifySignature(hashContext, context->Signature))
+        if (UpdaterVerifySignature(hashContext, context->SetupFileSignature))
         {
             signatureSuccess = TRUE;
         }

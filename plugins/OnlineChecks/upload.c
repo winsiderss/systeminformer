@@ -800,7 +800,6 @@ NTSTATUS UploadFileThreadStart(
         case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
             {
                 PSTR buffer = NULL;
-                PSTR redirectUrl;
                 ULONG bufferLength;
                 PVOID jsonRootObject;
 
@@ -820,10 +819,7 @@ NTSTATUS UploadFileThreadStart(
                     // PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "sha256"));
                     // PhZeroExtendToUtf16(PhGetJsonValueAsString(jsonRootObject, "verbose_msg"));
 
-                    if (redirectUrl = PhGetJsonValueAsString(jsonRootObject, "permalink"))
-                    {
-                        PhMoveReference(&context->LaunchCommand, PhZeroExtendToUtf16(redirectUrl));
-                    }
+                    PhMoveReference(&context->LaunchCommand, PhGetJsonValueAsString(jsonRootObject, "permalink"));
 
                     PhFreeJsonParser(jsonRootObject);
                 }
@@ -849,7 +845,6 @@ NTSTATUS UploadFileThreadStart(
         case MENUITEM_JOTTI_UPLOAD_SERVICE:
             {
                 PSTR buffer = NULL;
-                PSTR redirectUrl;
                 ULONG bufferLength;
                 PVOID rootJsonObject;
 
@@ -861,9 +856,12 @@ NTSTATUS UploadFileThreadStart(
 
                 if (rootJsonObject = PhCreateJsonParser(buffer))
                 {
+                    PPH_STRING redirectUrl;
+
                     if (redirectUrl = PhGetJsonValueAsString(rootJsonObject, "redirecturl"))
                     {
-                        PhMoveReference(&context->LaunchCommand, PhFormatString(L"http://virusscan.jotti.org%hs", redirectUrl));
+                        PhMoveReference(&context->LaunchCommand, PhFormatString(L"http://virusscan.jotti.org%s", redirectUrl->Buffer));
+                        PhDereferenceObject(redirectUrl);
                     }
 
                     PhFreeJsonParser(rootJsonObject);
@@ -1066,12 +1064,12 @@ NTSTATUS UploadCheckThreadStart(
 
                     context->Detected = PhFormatString(L"%I64d", detected);
                     context->MaxDetected = PhFormatString(L"%I64d", detectedMax);
-                    context->UploadUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "upload_url"));
-                    context->ReAnalyseUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "reanalyse_url"));
-                    context->LastAnalysisUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "last_analysis_url"));
-                    context->FirstAnalysisDate = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "first_analysis_date"));
-                    context->LastAnalysisDate = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "last_analysis_date"));
-                    context->LastAnalysisAgo = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "last_analysis_ago"));
+                    context->UploadUrl = PhGetJsonValueAsString(rootJsonObject, "upload_url");
+                    context->ReAnalyseUrl = PhGetJsonValueAsString(rootJsonObject, "reanalyse_url");
+                    context->LastAnalysisUrl = PhGetJsonValueAsString(rootJsonObject, "last_analysis_url");
+                    context->FirstAnalysisDate = PhGetJsonValueAsString(rootJsonObject, "first_analysis_date");
+                    context->LastAnalysisDate = PhGetJsonValueAsString(rootJsonObject, "last_analysis_date");
+                    context->LastAnalysisAgo = PhGetJsonValueAsString(rootJsonObject, "last_analysis_ago");
 
                     PhMoveReference(&context->FirstAnalysisDate, VirusTotalStringToTime(context->FirstAnalysisDate));
                     PhMoveReference(&context->LastAnalysisDate, VirusTotalStringToTime(context->LastAnalysisDate));
@@ -1108,7 +1106,7 @@ NTSTATUS UploadCheckThreadStart(
                 }
                 else
                 {
-                    context->UploadUrl = PhZeroExtendToUtf16(PhGetJsonValueAsString(rootJsonObject, "upload_url"));
+                    context->UploadUrl = PhGetJsonValueAsString(rootJsonObject, "upload_url");
 
                     // No file found... Start the upload.
                     if (!PhIsNullOrEmptyString(context->UploadUrl))

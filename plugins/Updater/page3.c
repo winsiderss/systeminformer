@@ -90,7 +90,7 @@ VOID ShowAvailableDialog(
     config.pszMainInstruction = L"A newer build of Process Hacker is available.";
     config.pszContent = PhaFormatString(L"Version: %s\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View Changelog</A>",
         PhGetStringOrEmpty(Context->Version),
-        PhGetStringOrEmpty(Context->Size)
+        PhGetStringOrEmpty(Context->SetupFileLength)
         )->Buffer;
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
