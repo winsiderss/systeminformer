@@ -125,26 +125,26 @@ NTSTATUS QueryPluginsCallbackThread(
         memset(entry, 0, sizeof(PLUGIN_NODE));
 
         jvalue = PhGetJsonArrayIndexObject(rootJsonObject, i);
-        entry->Id = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_id"));
-        entry->InternalName = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_internal_name"));
-        entry->Name = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_name"));
-        entry->Version = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_version"));
-        entry->Author = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_author"));
-        entry->Description = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_description"));
-        entry->IconUrl = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_icon"));
-        entry->Requirements = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_requirements"));
-        entry->FeedbackUrl = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_feedback"));
-        entry->Screenshots = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_screenshots"));
-        entry->AddedTime = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_datetime_added"));
-        entry->UpdatedTime = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_datetime_updated"));
-        entry->Download_count = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_download_count"));
-        entry->Download_link_32 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_download_link_32"));
-        entry->Download_link_64 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_download_link_64"));
-        entry->SHA2_32 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_hash_32"));
-        entry->SHA2_64 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_hash_64"));
-        entry->HASH_32 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_signed_32"));
-        entry->HASH_64 = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_signed_64"));
-        entry->FileName = PhConvertUtf8ToUtf16(PhGetJsonValueAsString(jvalue, "plugin_filename"));
+        entry->Id = PhGetJsonValueAsString(jvalue, "plugin_id");
+        entry->InternalName = PhGetJsonValueAsString(jvalue, "plugin_internal_name");
+        entry->Name = PhGetJsonValueAsString(jvalue, "plugin_name");
+        entry->Version = PhGetJsonValueAsString(jvalue, "plugin_version");
+        entry->Author = PhGetJsonValueAsString(jvalue, "plugin_author");
+        entry->Description = PhGetJsonValueAsString(jvalue, "plugin_description");
+        entry->IconUrl = PhGetJsonValueAsString(jvalue, "plugin_icon");
+        entry->Requirements = PhGetJsonValueAsString(jvalue, "plugin_requirements");
+        entry->FeedbackUrl = PhGetJsonValueAsString(jvalue, "plugin_feedback");
+        entry->Screenshots = PhGetJsonValueAsString(jvalue, "plugin_screenshots");
+        entry->AddedTime = PhGetJsonValueAsString(jvalue, "plugin_datetime_added");
+        entry->UpdatedTime = PhGetJsonValueAsString(jvalue, "plugin_datetime_updated");
+        entry->Download_count = PhGetJsonValueAsString(jvalue, "plugin_download_count");
+        entry->Download_link_32 = PhGetJsonValueAsString(jvalue, "plugin_download_link_32");
+        entry->Download_link_64 = PhGetJsonValueAsString(jvalue, "plugin_download_link_64");
+        entry->SHA2_32 = PhGetJsonValueAsString(jvalue, "plugin_hash_32");
+        entry->SHA2_64 = PhGetJsonValueAsString(jvalue, "plugin_hash_64");
+        entry->HASH_32 = PhGetJsonValueAsString(jvalue, "plugin_signed_32");
+        entry->HASH_64 = PhGetJsonValueAsString(jvalue, "plugin_signed_64");
+        entry->FileName = PhGetJsonValueAsString(jvalue, "plugin_filename");
 
         swscanf(
             PhGetString(entry->UpdatedTime),
