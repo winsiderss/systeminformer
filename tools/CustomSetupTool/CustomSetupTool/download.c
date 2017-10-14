@@ -267,49 +267,38 @@ BOOLEAN SetupQueryUpdateData(
     if (!(jsonObject = PhCreateJsonParser(stringBuffer)))
         goto CleanupExit;
 
-    if (value = PhGetJsonValueAsString(jsonObject, "updated"))
-        Context->RelDate = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "size"))
-        Context->Size = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "forum_url"))
-        Context->ReleaseNotesUrl = PhConvertUtf8ToUtf16(value);
+    Context->RelVersion = PhGetJsonValueAsString(jsonObject, "version");
+    Context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
 
-    if (value = PhGetJsonValueAsString(jsonObject, "bin_url"))
-        Context->BinFileDownloadUrl = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "hash_bin"))
-        Context->BinFileHash = PhConvertUtf8ToUtf16(value);
+    Context->BinFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "bin_url");
+    Context->BinFileLength = PhGetJsonValueAsString(jsonObject, "bin_length");
+    Context->BinFileHash = PhGetJsonValueAsString(jsonObject, "bin_hash");
+    Context->BinFileSignature = PhGetJsonValueAsString(jsonObject, "bin_sig");
 
-    if (value = PhGetJsonValueAsString(jsonObject, "setup_url"))
-        Context->SetupFileDownloadUrl = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "sig"))
-        Context->SetupFileSignature = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "version"))
-        Context->SetupFileVersion = PhConvertUtf8ToUtf16(value);
+    Context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
+    Context->SetupFileLength = PhGetJsonValueAsString(jsonObject, "setup_length");
+    Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
+    Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
-    if (value = PhGetJsonValueAsString(jsonObject, "websetup_url"))
-        Context->WebSetupFileDownloadUrl = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "websetup_sig"))
-        Context->WebSetupFileSignature = PhConvertUtf8ToUtf16(value);
-    if (value = PhGetJsonValueAsString(jsonObject, "websetup_version"))
-        Context->WebSetupFileVersion = PhConvertUtf8ToUtf16(value);
+    Context->WebSetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "websetup_url");
+    Context->WebSetupFileVersion = PhGetJsonValueAsString(jsonObject, "websetup_version");
+    Context->WebSetupFileLength = PhGetJsonValueAsString(jsonObject, "websetup_length");
+    Context->WebSetupFileHash = PhGetJsonValueAsString(jsonObject, "websetup_hash");
+    Context->WebSetupFileSignature = PhGetJsonValueAsString(jsonObject, "websetup_sig");
 
+    if (PhIsNullOrEmptyString(Context->RelVersion))
+        goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->RelDate))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->Size))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->ReleaseNotesUrl))
         goto CleanupExit;
 
     if (PhIsNullOrEmptyString(Context->BinFileDownloadUrl))
         goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->BinFileHash))
+    if (PhIsNullOrEmptyString(Context->BinFileSignature))
         goto CleanupExit;
 
     if (PhIsNullOrEmptyString(Context->SetupFileDownloadUrl))
         goto CleanupExit;
     if (PhIsNullOrEmptyString(Context->SetupFileSignature))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(Context->SetupFileVersion))
         goto CleanupExit;
 
     //if (PhIsNullOrEmptyString(Context->WebSetupFileDownloadUrl))
@@ -427,7 +416,7 @@ BOOLEAN UpdateDownloadUpdateData(
 
     SetWindowText(Context->MainHeaderHandle, PhFormatString(
         L"Downloading Process Hacker %s...", 
-        PhGetString(Context->SetupFileVersion)
+        PhGetString(Context->RelVersion)
         )->Buffer);
 
     //SetWindowText(Context->SubHeaderHandle, L"Progress: ~ of ~ (0.0%)");
