@@ -52,7 +52,7 @@ VOID PhShowLogDialog(
         PhLogWindowHandle = CreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_LOG),
-            PhMainWndHandle,
+            NULL,
             PhpLogDlgProc
             );
         PhRegisterDialog(PhLogWindowHandle);
