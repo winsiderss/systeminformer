@@ -338,26 +338,33 @@ namespace CustomBuildTool
     [DataContract]
     public class BuildUpdateRequest
     {
+        [DataMember(Name = "version")] public string Version { get; set; }
+        [DataMember(Name = "commit")] public string Commit { get; set; }
         [DataMember(Name = "updated")] public string Updated { get; set; }
-        [DataMember(Name = "size")] public string FileLength { get; set; }
-        [DataMember(Name = "forum_url")] public string ForumUrl { get; set; }
 
         [DataMember(Name = "bin_url")] public string BinUrl { get; set; }
-        [DataMember(Name = "hash_bin")] public string BinHash { get; set; }
+        [DataMember(Name = "bin_length")] public string BinLength { get; set; }
+        [DataMember(Name = "bin_hash")] public string BinHash { get; set; }
         [DataMember(Name = "bin_sig")] public string BinSig { get; set; }
 
         [DataMember(Name = "setup_url")] public string SetupUrl { get; set; }
-        [DataMember(Name = "hash_setup")] public string SetupHash { get; set; }
-        [DataMember(Name = "sig")] public string SetupSig { get; set; }
-        [DataMember(Name = "version")] public string SetupVersion { get; set; }
+        [DataMember(Name = "setup_length")] public string SetupLength { get; set; }
+        [DataMember(Name = "setup_hash")] public string SetupHash { get; set; }
+        [DataMember(Name = "setup_sig")] public string SetupSig { get; set; }
 
         [DataMember(Name = "websetup_url")] public string WebSetupUrl { get; set; }
+        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
+        [DataMember(Name = "websetup_length")] public string WebSetupLength { get; set; }
         [DataMember(Name = "websetup_hash")] public string WebSetupHash { get; set; }
         [DataMember(Name = "websetup_sig")] public string WebSetupSig { get; set; }
-        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
 
         [DataMember(Name = "message")] public string Message { get; set; }
         [DataMember(Name = "changelog")] public string Changelog { get; set; }
+
+        [DataMember(Name = "size")] public string FileLengthDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "forum_url")] public string ForumUrlDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "hash_bin")] public string BinHashDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "sig")] public string SetupSigDeprecated { get; set; } // TODO: Remove after most users have updated.
     }
 
     [Flags]
