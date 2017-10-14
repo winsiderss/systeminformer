@@ -53,6 +53,7 @@ namespace CustomBuildTool
 
         private static long BuildBinFileLength;
         private static string BuildBinHash;
+        private static string BuildBinSig;       
 
         private static long BuildSetupFileLength;
         private static string BuildSetupHash;
@@ -259,7 +260,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
                 Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildCommit, ConsoleColor.White);
+                Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.White);
 
                 string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
                 BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
@@ -920,12 +921,21 @@ namespace CustomBuildTool
                 return true;
             }
 
+            if (!File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
+            {
+                Program.PrintColorMessage("[SKIPPED] build-bin.zip not found.", ConsoleColor.Yellow);
+                return false;
+            }
             if (!File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
             {
                 Program.PrintColorMessage("[SKIPPED] build-setup.exe not found.", ConsoleColor.Yellow);
                 return false;
             }
 
+            BuildBinSig = Win32.ShellExecute(
+                CustomSignToolPath,
+                "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-bin.zip -h"
+                );
             BuildSetupSig = Win32.ShellExecute(
                 CustomSignToolPath,
                 "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-setup.exe -h"
@@ -949,23 +959,26 @@ namespace CustomBuildTool
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
                 return;
+            if (string.IsNullOrEmpty(BuildBinSig))
+                return;
 
             string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
             string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
+                Version = BuildVersion,
+                Commit = BuildCommit,
                 Updated = TimeStart.ToString("o"),
-                FileLength = BuildSetupFileLength.ToString(),
-                ForumUrl = "https://wj32.org/processhacker/nightly.php",
-
-                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
-                SetupVersion = BuildVersion,
-                SetupHash = BuildSetupHash,
-                SetupSig = BuildSetupSig,
 
                 BinUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
+                BinLength = BuildBinFileLength.ToString(),
                 BinHash = BuildBinHash,
-                //BinSig = BuildBinSig,
+                BinSig = BuildBinSig,
+
+                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
+                SetupLength = BuildSetupFileLength.ToString(),
+                SetupHash = BuildSetupHash,
+                SetupSig = BuildSetupSig,
 
                 //WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-websetup.exe",
                 //WebSetupHash = BuildWebSetupHash,
@@ -974,6 +987,11 @@ namespace CustomBuildTool
 
                 Message = buildSummary,
                 Changelog = buildChangelog,
+
+                FileLengthDeprecated = BuildSetupFileLength.ToString(),  // TODO: Remove after most users have updated.
+                ForumUrlDeprecated = "https://wj32.org/processhacker/",  // TODO: Remove after most users have updated.
+                SetupSigDeprecated = BuildSetupSig, // TODO: Remove after most users have updated.
+                BinHashDeprecated = BuildBinHash  // TODO: Remove after most users have updated.
             });
 
             if (string.IsNullOrEmpty(buildPostString))
@@ -1087,7 +1105,7 @@ namespace CustomBuildTool
             }
 
             // Update Appveyor build version string.
-            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
+            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + "\" ");
 
             return true;
         }
