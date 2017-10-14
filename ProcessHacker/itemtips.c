@@ -95,7 +95,7 @@ static int __cdecl ServiceForTooltipCompare(
 
 PPH_STRING PhGetProcessTooltipText(
     _In_ PPH_PROCESS_ITEM Process,
-    _Out_opt_ PULONG ValidToTickCount
+    _Out_opt_ PULONG64 ValidToTickCount
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -422,7 +422,7 @@ PPH_STRING PhGetProcessTooltipText(
     }
 
     if (ValidToTickCount)
-        *ValidToTickCount = GetTickCount() + validForMs;
+        *ValidToTickCount = NtGetTickCount64() + validForMs;
 
     // Remove the trailing newline.
     if (stringBuilder.String->Length != 0)

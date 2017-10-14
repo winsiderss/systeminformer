@@ -169,7 +169,7 @@ typedef struct _PH_PROCESS_NODE
     LARGE_INTEGER FileEndOfFile;
 
     PPH_STRING TooltipText;
-    ULONG TooltipTextValidToTickCount;
+    ULONG64 TooltipTextValidToTickCount;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];

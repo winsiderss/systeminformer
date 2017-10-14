@@ -2737,16 +2737,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-            ULONG tickCount;
+            ULONG64 tickCount;
 
             node = (PPH_PROCESS_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0)
                 return FALSE;
 
-            tickCount = GetTickCount();
+            tickCount = NtGetTickCount64();
 
-            if ((LONG)(node->TooltipTextValidToTickCount - tickCount) < 0)
+            if ((LONG64)(node->TooltipTextValidToTickCount - tickCount) < 0)
                 PhClearReference(&node->TooltipText);
             if (!node->TooltipText)
                 node->TooltipText = PhGetProcessTooltipText(node->ProcessItem, &node->TooltipTextValidToTickCount);

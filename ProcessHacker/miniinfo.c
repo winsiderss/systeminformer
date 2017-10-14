@@ -1634,9 +1634,6 @@ BOOLEAN PhMipListSectionTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
             PPH_MIP_GROUP_NODE node = (PPH_MIP_GROUP_NODE)getCellTooltip->Node;
-            ULONG tickCount;
-
-            tickCount = GetTickCount();
 
             // This is useless most of the time because the tooltip doesn't display unless the window is active.
             // TODO: Find a way to make the tooltip display all the time.
