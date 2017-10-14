@@ -990,6 +990,7 @@ namespace CustomBuildTool
 
                 FileLengthDeprecated = BuildSetupFileLength.ToString(),  // TODO: Remove after most users have updated.
                 ForumUrlDeprecated = "https://wj32.org/processhacker/",  // TODO: Remove after most users have updated.
+                SetupHashDeprecated = BuildSetupHash, // TODO: Remove after most users have updated.
                 SetupSigDeprecated = BuildSetupSig, // TODO: Remove after most users have updated.
                 BinHashDeprecated = BuildBinHash  // TODO: Remove after most users have updated.
             });

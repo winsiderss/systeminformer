@@ -364,6 +364,7 @@ namespace CustomBuildTool
         [DataMember(Name = "size")] public string FileLengthDeprecated { get; set; } // TODO: Remove after most users have updated.
         [DataMember(Name = "forum_url")] public string ForumUrlDeprecated { get; set; } // TODO: Remove after most users have updated.
         [DataMember(Name = "hash_bin")] public string BinHashDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "hash_setup")] public string SetupHashDeprecated { get; set; } // TODO: Remove after most users have updated.
         [DataMember(Name = "sig")] public string SetupSigDeprecated { get; set; } // TODO: Remove after most users have updated.
     }
 
