@@ -48,7 +48,7 @@ PhFreeJsonParser(
     );
 
 PHLIBAPI
-PSTR
+PPH_STRING
 NTAPI
 PhGetJsonValueAsString(
     _In_ PVOID Object,
@@ -118,7 +118,7 @@ PhAddJsonArrayObject(
     );
 
 PHLIBAPI
-PSTR
+PPH_STRING
 NTAPI
 PhGetJsonArrayString(
     _In_ PVOID Object
