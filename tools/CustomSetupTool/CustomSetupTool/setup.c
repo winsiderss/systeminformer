@@ -197,12 +197,13 @@ BOOLEAN SetupCreateUninstallFile(
             PPH_STRING tempFileName;
             PPH_STRING tempFilePath;
 
-            tempFileName = PhCreateString(L"processhacker-setup.old");
+            tempFileName = PhCreateString(L"processhacker-setup.bak");
             tempFilePath = PhCreateCacheFile(tempFileName);
 
             if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
             {
                 Context->ErrorCode = GetLastError();
+                return FALSE;
             }
 
             PhDereferenceObject(tempFilePath);
@@ -215,12 +216,14 @@ BOOLEAN SetupCreateUninstallFile(
         if (!MoveFile(uninstallFilePath->Buffer, backupFilePath->Buffer))
         {
             Context->ErrorCode = GetLastError();
+            return FALSE;
         }
     }
 
     if (!CopyFile(currentFilePath->Buffer, uninstallFilePath->Buffer, TRUE))
     {
         Context->ErrorCode = GetLastError();
+        return FALSE;
     }
 
     PhDereferenceObject(uninstallFilePath);
