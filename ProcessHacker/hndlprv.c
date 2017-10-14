@@ -447,7 +447,7 @@ VOID PhHandleProviderUpdate(
     // Make a list of the relevant handles.
     if (filterNeeded)
     {
-        for (i = 0; i < (ULONG)numberOfHandles; i++)
+        for (i = 0; i < numberOfHandles; i++)
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
 
@@ -463,7 +463,7 @@ VOID PhHandleProviderUpdate(
     }
     else
     {
-        for (i = 0; i < (ULONG)numberOfHandles; i++)
+        for (i = 0; i < numberOfHandles; i++)
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
 
