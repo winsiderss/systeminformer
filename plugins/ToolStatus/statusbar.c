@@ -258,14 +258,14 @@ VOID StatusBarUpdate(
 
     // Reset max. widths for Max. CPU Process and Max. I/O Process parts once in a while.
     {
-        LARGE_INTEGER tickCount;
+        ULONG64 tickCount;
 
-        PhQuerySystemTime(&tickCount);
+        tickCount = NtGetTickCount64();
 
-        if (tickCount.QuadPart - lastTickCount >= 10 * PH_TICKS_PER_SEC)
+        if (tickCount - lastTickCount >= 10 * 1000)
         {
             resetMaxWidths = TRUE;
-            lastTickCount = tickCount.QuadPart;
+            lastTickCount = tickCount;
         }
     }
 
