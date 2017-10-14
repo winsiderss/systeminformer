@@ -255,7 +255,7 @@ namespace CustomBuildTool
             if (!GitExportBuild)
             {
                 BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
-                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim();
+                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse HEAD").Trim();
 
                 Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
