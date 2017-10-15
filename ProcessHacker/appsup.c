@@ -1255,7 +1255,7 @@ PPH_STRING PhGetPhVersion(
 VOID PhGetPhVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
-    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG BuildNumber,
     _Out_opt_ PULONG RevisionNumber
     )
 {
@@ -1263,6 +1263,8 @@ VOID PhGetPhVersionNumbers(
         *MajorVersion = PHAPP_VERSION_MAJOR;
     if (MinorVersion)
         *MinorVersion = PHAPP_VERSION_MINOR;
+    if (BuildNumber)
+        *BuildNumber = PHAPP_VERSION_BUILD;
     if (RevisionNumber)
         *RevisionNumber = PHAPP_VERSION_REVISION;
 }
