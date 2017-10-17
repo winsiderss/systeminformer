@@ -264,6 +264,11 @@ NTSTATUS NetworkTracertThreadStart(
         IP_FLAG_DF,
         0
     };
+    WSADATA winsockStartup;
+
+    // WSAStartup required by GetNameInfo.
+    if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
+        goto CleanupExit;
 
     if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
     {
@@ -448,13 +453,15 @@ NTSTATUS NetworkTracertThreadStart(
 CleanupExit:
 
     if (icmpHandle != INVALID_HANDLE_VALUE)
-    {
         IcmpCloseHandle(icmpHandle);
-    }
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
-
     PhDereferenceObject(context);
+
+    if (icmpEchoBuffer)
+        PhDereferenceObject(icmpEchoBuffer);
+
+    WSACleanup();
     return STATUS_SUCCESS;
 }
 
