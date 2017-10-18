@@ -206,8 +206,7 @@ namespace CustomBuildTool
             {
                 if (CheckDependencies)
                 {
-                    Program.PrintColorMessage("Git not installed... Exiting.", ConsoleColor.Red);
-                    return false;
+                    Program.PrintColorMessage("[Warning] Git not installed...", ConsoleColor.Yellow);
                 }
             }
 
@@ -252,7 +251,7 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
-            if (!GitExportBuild)
+            if (!GitExportBuild && File.Exists(GitExePath))
             {
                 BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
                 BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse HEAD").Trim();
@@ -280,7 +279,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(BuildVersion + Environment.NewLine, ConsoleColor.White);
 
-                if (!BuildNightly && ShowLogInfo)
+                if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
                 {
                     Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
                     Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
