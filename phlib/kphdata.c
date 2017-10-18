@@ -145,6 +145,10 @@ NTSTATUS KphInitializeDynamicPackage(
             Package->BuildNumber = 15063;
             Package->ResultingNtVersion = PHNT_REDSTONE2;
             break;
+        case 16299:
+            Package->BuildNumber = 16299;
+            Package->ResultingNtVersion = PHNT_REDSTONE3;
+            break;
         default:
             Package->BuildNumber = USHRT_MAX;
             Package->ResultingNtVersion = PHNT_THRESHOLD;
@@ -272,6 +276,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 15063:
             Package->BuildNumber = 15063;
             Package->ResultingNtVersion = PHNT_REDSTONE2;
+            break;
+        case 16299:
+            Package->BuildNumber = 16299;
+            Package->ResultingNtVersion = PHNT_REDSTONE3;
             break;
         default:
             Package->BuildNumber = USHRT_MAX;
