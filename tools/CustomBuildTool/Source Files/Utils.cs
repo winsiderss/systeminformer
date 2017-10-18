@@ -214,6 +214,7 @@ namespace CustomBuildTool
             {
                 string vswhereResult = Win32.ShellExecute(vswhere,
                     "-latest " +
+                    "-products * " +
                     "-requires Microsoft.Component.MSBuild " +
                     "-property installationPath "
                     );
