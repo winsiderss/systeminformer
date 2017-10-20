@@ -180,12 +180,12 @@ typedef enum _PROCESSINFOCLASS
     ProcessDisableSystemAllowedCpuSets,
     ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
     ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
-    ProcessManageWritesToExecutableMemory, // since REDSTONE3
+    ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ProcessCaptureTrustletLiveDump,
     ProcessTelemetryCoverage,
     ProcessEnclaveInformation,
-    ProcessEnableReadWriteVmLogging,
-    ProcessUptimeInformation,
+    ProcessEnableReadWriteVmLogging, // PROCESS_READWRITEVM_LOGGING_INFORMATION
+    ProcessUptimeInformation, // PROCESS_UPTIME_INFORMATION
     ProcessImageSection,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
@@ -242,8 +242,8 @@ typedef enum _THREADINFOCLASS
     ThreadSubsystemInformation, // q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
     ThreadDbgkWerReportActive,
     ThreadAttachContainer,
-    ThreadManageWritesToExecutableMemory, // since REDSTONE3
-    ThreadPowerThrottlingState,
+    ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ThreadPowerThrottlingState, // THREAD_POWER_THROTTLING_STATE
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -587,6 +587,9 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY SignaturePolicy;
         PROCESS_MITIGATION_FONT_DISABLE_POLICY FontDisablePolicy;
         PROCESS_MITIGATION_IMAGE_LOAD_POLICY ImageLoadPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY SystemCallFilterPolicy;
+        PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY PayloadRestrictionPolicy;
+        PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -725,7 +728,9 @@ typedef struct _PROCESS_JOB_MEMORY_INFO
 typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
 {
     BOOLEAN ProhibitChildProcesses;
-    BOOLEAN EnableAutomaticOverride;
+    //BOOLEAN EnableAutomaticOverride; // REDSTONE2
+    BOOLEAN AlwaysAllowSecureChildProcess; // REDSTONE3
+    BOOLEAN AuditProhibitChildProcesses;
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
 
 typedef struct _PROCESS_WAKE_INFORMATION
@@ -743,6 +748,45 @@ typedef struct _PROCESS_ENERGY_TRACKING_STATE
     ULONG UpdateTag : 1;
     WCHAR Tag[64];
 } PROCESS_ENERGY_TRACKING_STATE, *PPROCESS_ENERGY_TRACKING_STATE;
+
+typedef struct _MANAGE_WRITES_TO_EXECUTABLE_MEMORY
+{
+    ULONG Version : 8;
+    ULONG ProcessEnableWriteExceptions : 1;
+    ULONG ThreadAllowWrites : 1;
+    ULONG Spare : 22;
+} MANAGE_WRITES_TO_EXECUTABLE_MEMORY, *PMANAGE_WRITES_TO_EXECUTABLE_MEMORY;
+
+typedef struct _PROCESS_READWRITEVM_LOGGING_INFORMATION
+{
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN EnableReadVmLogging : 1;
+            BOOLEAN EnableWriteVmLogging : 1;
+            BOOLEAN Unused : 6;
+        };
+    };
+} PROCESS_READWRITEVM_LOGGING_INFORMATION, *PPROCESS_READWRITEVM_LOGGING_INFORMATION;
+
+typedef struct _PROCESS_UPTIME_INFORMATION
+{
+    ULONGLONG QueryInterruptTime;
+    ULONGLONG QueryUnbiasedTime;
+    ULONGLONG EndInterruptTime;
+    ULONGLONG TimeSinceCreation;
+    ULONGLONG Uptime;
+    ULONGLONG SuspendedTime;
+    union
+    {
+        ULONG HangCount : 4;
+        ULONG GhostCount : 4;
+        ULONG Crashed : 1;
+        ULONG Terminated : 1;       
+    };
+} PROCESS_UPTIME_INFORMATION, *PPROCESS_UPTIME_INFORMATION;
 
 // end_private
 
@@ -1258,6 +1302,7 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeSafeOpenPromptOriginClaim,
     PsAttributeBnoIsolation, // PS_BNO_ISOLATION_PARAMETERS
     PsAttributeDesktopAppPolicy, // in ULONG
+    PsAttributeChpe, // since REDSTONE3
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -1409,7 +1454,15 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_RETURN_FLOW_GUARD,
     PS_MITIGATION_OPTION_LOADER_INTEGRITY_CONTINUITY,
     PS_MITIGATION_OPTION_STRICT_CONTROL_FLOW_GUARD,
-    PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT
+    PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT,
+    PS_MITIGATION_OPTION_ROP_STACKPIVOT, // since REDSTONE3
+    PS_MITIGATION_OPTION_ROP_CALLER_CHECK,
+    PS_MITIGATION_OPTION_ROP_SIMEXEC,
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER,
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER_PLUS,
+    PS_MITIGATION_OPTION_RESTRICT_CHILD_PROCESS_CREATION,
+    PS_MITIGATION_OPTION_IMPORT_ADDRESS_FILTER,
+    PS_MITIGATION_OPTION_MODULE_TAMPERING_PROTECTION
 } PS_MITIGATION_OPTION;
 
 // windows-internals-book:"Chapter 5"

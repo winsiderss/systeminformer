@@ -120,7 +120,7 @@ typedef enum _KEY_SET_INFORMATION_CLASS
     KeySetVirtualizationInformation, // KEY_SET_VIRTUALIZATION_INFORMATION
     KeySetDebugInformation,
     KeySetHandleTagsInformation, // KEY_HANDLE_TAGS_INFORMATION
-    KeySetLayerInformation,
+    KeySetLayerInformation, // KEY_SET_LAYER_INFORMATION
     MaxKeySetInfoClass
 } KEY_SET_INFORMATION_CLASS;
 
@@ -138,6 +138,15 @@ typedef struct _KEY_HANDLE_TAGS_INFORMATION
 {
     ULONG HandleTags;
 } KEY_HANDLE_TAGS_INFORMATION, *PKEY_HANDLE_TAGS_INFORMATION;
+
+typedef struct _KEY_SET_LAYER_INFORMATION
+{
+    ULONG IsTombstone : 1;
+    ULONG IsSupersedeLocal : 1;
+    ULONG IsSupersedeTree : 1;
+    ULONG ClassIsInherited : 1;
+    ULONG Reserved : 28;
+} KEY_SET_LAYER_INFORMATION, *PKEY_SET_LAYER_INFORMATION;
 
 typedef struct _KEY_CONTROL_FLAGS_INFORMATION
 {
