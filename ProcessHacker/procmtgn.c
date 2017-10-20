@@ -3,6 +3,7 @@
  *   process mitigation information
  *
  * Copyright (C) 2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -115,6 +116,9 @@ NTSTATUS PhGetProcessMitigationPolicy(
     COPY_PROCESS_MITIGATION_POLICY(Signature, PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY);
     COPY_PROCESS_MITIGATION_POLICY(FontDisable, PROCESS_MITIGATION_FONT_DISABLE_POLICY);
     COPY_PROCESS_MITIGATION_POLICY(ImageLoad, PROCESS_MITIGATION_IMAGE_LOAD_POLICY);
+    COPY_PROCESS_MITIGATION_POLICY(SystemCallFilter, PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY); // REDSTONE3
+    COPY_PROCESS_MITIGATION_POLICY(PayloadRestriction, PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY);
+    COPY_PROCESS_MITIGATION_POLICY(ChildProcess, PROCESS_MITIGATION_CHILD_PROCESS_POLICY);
 
     return status;
 }
@@ -219,6 +223,17 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                 result = TRUE;
             }
+
+            if (data->AllowRemoteDowngrade)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Dynamic code downgradable");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Allow non-AppContainer processes to modify all of the dynamic code settings for the calling process, including relaxing dynamic code restrictions after they have been set.\r\n");
+
+                result = TRUE;
+            }
         }
         break;
     case ProcessStrictHandleCheckPolicy:
@@ -248,6 +263,17 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                 if (LongDescription)
                     *LongDescription = PhCreateString(L"Win32k (GDI/USER) system calls are not allowed.\r\n");
+
+                result = TRUE;
+            }
+
+            if (data->AuditDisallowWin32kSystemCalls)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Win32k system calls (Audit)");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Win32k (GDI/USER) system calls will trigger an ETW event.\r\n");
 
                 result = TRUE;
             }
@@ -386,6 +412,67 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
 
                 if (LongDescription)
                     *LongDescription = PhCreateString(L"Forces images to load from the System32 folder in which Windows is installed first, then from the application directory before the standard DLL search order.\r\n");
+
+                result = TRUE;
+            }
+        }
+        break;
+    case ProcessSystemCallFilterPolicy:
+        {
+            PPROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY data = Data;
+            
+            if (data->FilterId)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"System call filtering");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"System call filtering is active.\r\n");
+
+                result = TRUE;
+            }
+        }
+        break;
+
+    case ProcessPayloadRestrictionPolicy:
+        {
+            PPROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY data = Data;
+
+            if (data->EnableExportAddressFilter || data->EnableExportAddressFilterPlus ||
+                data->EnableImportAddressFilter || data->EnableRopStackPivot ||
+                data->EnableRopCallerCheck || data->EnableRopSimExec)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Payload restrictions");
+
+                if (LongDescription)
+                {
+                    PhInitializeStringBuilder(&sb, 100);
+                    PhAppendStringBuilder2(&sb, L"Payload restrictions are enabled for this process.\r\n");
+                    if (data->EnableExportAddressFilter) PhAppendStringBuilder2(&sb, L"Export Address Filtering is enabled.\r\n");
+                    if (data->EnableExportAddressFilterPlus) PhAppendStringBuilder2(&sb, L"Export Address Filtering (Plus) is enabled.\r\n");
+                    if (data->EnableImportAddressFilter) PhAppendStringBuilder2(&sb, L"Import Address Filtering is enabled.\r\n");
+                    if (data->EnableRopStackPivot) PhAppendStringBuilder2(&sb, L"StackPivot is enabled.\r\n");
+                    if (data->EnableRopCallerCheck) PhAppendStringBuilder2(&sb, L"CallerCheck is enabled.\r\n");
+                    if (data->EnableRopSimExec) PhAppendStringBuilder2(&sb, L"SimExec is enabled.\r\n");
+                    *LongDescription = PhFinalStringBuilderString(&sb);
+                }
+
+                result = TRUE;
+            }
+        }
+        break;
+    case ProcessChildProcessPolicy:
+        {
+            PPROCESS_MITIGATION_CHILD_PROCESS_POLICY data = Data;
+
+            if (data->NoChildProcessCreation)
+            {
+                if (ShortDescription)
+                    *ShortDescription = PhCreateString(L"Child process creation disabled");
+
+                if (LongDescription)
+                    *LongDescription = PhCreateString(L"Child processes cannot be created by this process.\r\n");
 
                 result = TRUE;
             }
