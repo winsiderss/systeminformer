@@ -127,7 +127,9 @@ typedef struct _MEMORY_REGION_INFORMATION
             ULONG MappedPageFile : 1;
             ULONG MappedPhysical : 1;
             ULONG DirectMapped : 1;
-            ULONG Reserved : 26;
+            ULONG SoftwareEnclave : 1; //REDSTONE3
+            ULONG PageSize64K : 1;
+            ULONG Reserved : 24;
         };
     };
     SIZE_T RegionSize;
@@ -205,6 +207,7 @@ typedef struct _MEMORY_IMAGE_INFORMATION
         {
             ULONG ImagePartialMap : 1;
             ULONG ImageNotExecutable : 1;
+            ULONG ImageSigningLevel : 1; // REDSTONE3
             ULONG Reserved : 30;
         };
     };
@@ -378,10 +381,8 @@ typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
         ULONG ExtendedFlags;
         struct
         {
-            ULONG ImageReturnFlowGuardEnabled : 1;
-            ULONG ImageReturnFlowGuardStrict : 1;
             ULONG ImageExportSuppressionEnabled : 1;
-            ULONG Reserved : 29;
+            ULONG Reserved : 31;
         };
     };
 } SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
@@ -480,13 +481,13 @@ NtQueryVirtualMemory(
 #endif
 
 // begin_private
-
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
-    VmPrefetchInformation,
+    VmPrefetchInformation, // ULONG
     VmPagePriorityInformation,
-    VmCfgCallTargetInformation
+    VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
+    VmPageDirtyStateInformation // REDSTONE3
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
 
 typedef struct _MEMORY_RANGE_ENTRY
@@ -494,6 +495,14 @@ typedef struct _MEMORY_RANGE_ENTRY
     PVOID VirtualAddress;
     SIZE_T NumberOfBytes;
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
+
+typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
+{
+    ULONG NumberOfEntries;
+    ULONG Reserved;
+    PULONG NumberOfEntriesProcessed;
+    PCFG_CALL_TARGET_INFO CallTargetInfo;
+} CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
 #endif
 // end_private
 
@@ -664,10 +673,11 @@ typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
     ULONG_PTR ZeroPages;
     ULONG_PTR FreePages;
     ULONG_PTR StandbyPages;
-    ULONG StandbyPageCountByPriority[8]; // since REDSTONE2
-    ULONG RepurposedPagesByPriority[8];
-    ULONG MaximumCommitLimit;
-    ULONG DonatedPagesToPartitions;
+    ULONG_PTR StandbyPageCountByPriority[8]; // since REDSTONE2
+    ULONG_PTR RepurposedPagesByPriority[8];
+    ULONG_PTR MaximumCommitLimit;
+    ULONG_PTR DonatedPagesToPartitions;
+    ULONG PartitionId; // since REDSTONE3
 } MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
 
 // private
@@ -722,7 +732,13 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
             ULONG Spare : 31;
         };
         ULONG AllFlags;
-    };
+    } Flags;
+    
+    ULONG HandleAttributes;
+    ULONG DesiredAccess;
+    HANDLE LowCommitCondition; // \KernelObjects\LowCommitCondition
+    HANDLE HighCommitCondition; // \KernelObjects\HighCommitCondition
+    HANDLE MaximumCommitCondition; // \KernelObjects\MaximumCommitCondition
 } MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION, *PMEMORY_PARTITION_MEMORY_EVENTS_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
