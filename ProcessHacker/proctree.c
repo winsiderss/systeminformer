@@ -972,7 +972,7 @@ static VOID PhpUpdateProcessOsContext(
         {
             if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
             {
-                if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINTHRESHOLD_CONTEXT_GUID))
+                if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN10_CONTEXT_GUID))
                     ProcessNode->OsContextVersion = WINDOWS_10;
                 else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID))
                     ProcessNode->OsContextVersion = WINDOWS_8_1;
