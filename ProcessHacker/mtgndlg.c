@@ -116,6 +116,7 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+            ExtendedListView_SetColumnWidth(lvHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
             ListView_SetItemState(lvHandle, 0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)lvHandle, TRUE);
         }
