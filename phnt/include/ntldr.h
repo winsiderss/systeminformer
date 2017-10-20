@@ -476,13 +476,13 @@ typedef struct _PS_MITIGATION_OPTIONS_MAP
     union
     {
         ULONG_PTR Map[2]; // REDSTONE2
-        struct
-        {
-            ULONG_PTR Depth : 16; // REDSTONE3
-            ULONG_PTR Sequence : 48;
-            ULONG_PTR Reserved : 4;
-            ULONG_PTR NextEntry : 60;
-        };
+        //struct
+        //{
+        //    ULONG_PTR Depth : 16; // REDSTONE3
+        //    ULONG_PTR Sequence : 48;
+        //    ULONG_PTR Reserved : 4;
+        //    ULONG_PTR NextEntry : 60;
+        //};
     };
 } PS_MITIGATION_OPTIONS_MAP, *PPS_MITIGATION_OPTIONS_MAP;
 
