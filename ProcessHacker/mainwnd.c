@@ -528,7 +528,7 @@ VOID PhMwpOnSettingChange(
     if (PhApplicationFont)
         DeleteObject(PhApplicationFont);
 
-    PhInitializeFont(PhMainWndHandle);
+    PhInitializeFont();
 
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 }

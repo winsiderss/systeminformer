@@ -131,7 +131,7 @@ PhUnregisterMessageLoopFilter(
 // end_phapppub
 
 VOID PhInitializeFont(
-    _In_ HWND hWnd
+    VOID
     );
 
 // plugin
