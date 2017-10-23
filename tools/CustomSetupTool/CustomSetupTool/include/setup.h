@@ -71,10 +71,13 @@ typedef enum _SETUP_COMMAND_TYPE
     SETUP_COMMAND_UNINSTALL,
     SETUP_COMMAND_UPDATE,
     SETUP_COMMAND_REPAIR,
+    SETUP_COMMAND_SILENTINSTALL,
 } SETUP_COMMAND_TYPE;
 
 typedef struct _PH_SETUP_CONTEXT
 {
+    SETUP_COMMAND_TYPE SetupMode;
+
     HWND DialogHandle;
     HWND PropSheetBackHandle;
     HWND PropSheetForwardHandle;
@@ -91,19 +94,29 @@ typedef struct _PH_SETUP_CONTEXT
     HICON IconSmallHandle;
     HICON IconLargeHandle;
 
-    PPH_STRING SetupInstallPath;
-    BOOLEAN SetupCreateDesktopShortcut;
-    BOOLEAN SetupCreateDesktopShortcutAllUsers;
-    BOOLEAN SetupCreateDefaultTaskManager;
-    BOOLEAN SetupCreateSystemStartup;
-    BOOLEAN SetupCreateMinimizedSystemStartup;
-    BOOLEAN SetupInstallDebuggingTools;
-    BOOLEAN SetupInstallPeViewAssociations;
-    BOOLEAN SetupInstallKphService;
-    BOOLEAN SetupResetSettings;
-    BOOLEAN SetupStartAppAfterExit;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG SetupCreateDesktopShortcut : 1;
+            ULONG SetupCreateDesktopShortcutAllUsers : 1;
+            ULONG SetupCreateDefaultTaskManager : 1;
+            ULONG SetupCreateSystemStartup : 1;
+            ULONG SetupCreateMinimizedSystemStartup : 1;
+            ULONG SetupInstallDebuggingTools : 1;
+            ULONG SetupInstallPeViewAssociations : 1;
+            ULONG SetupInstallKphService : 1;
+            ULONG SetupResetSettings : 1;
+            ULONG SetupStartAppAfterExit : 1;
+            ULONG Spare : 22;
+        };
+    };
 
     ULONG ErrorCode;
+
+    PPH_STRING SetupInstallPath;
+
     PPH_STRING FilePath;
 
     PPH_STRING RelDate;
@@ -263,7 +276,7 @@ BOOLEAN SetupExtractBuild(
  // update.c
 
 VOID SetupShowUpdateDialog(
-    VOID
+    _In_ SETUP_COMMAND_TYPE SetupMode
     );
 
 // updatesetup.c
