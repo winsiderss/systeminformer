@@ -486,31 +486,17 @@ VOID PhInitializeCommonControls(
 }
 
 VOID PhInitializeFont(
-    _In_ HWND hWnd
+    VOID
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
-    BOOLEAN success;
-    HDC hdc;
-
-    if (hdc = GetDC(hWnd))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        ReleaseDC(hWnd, hdc);
-    }
-    else
-    {
-        PhGlobalDpi = 96;
-    }
-
-    success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
 
     if (
         !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
         !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL))
         )
     {
-        if (success)
+        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
