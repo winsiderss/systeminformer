@@ -1624,52 +1624,53 @@ NtCreateThreadEx(
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // JOBOBJECTINFOCLASS
-#define JobObjectBasicAccountingInformation 1
-#define JobObjectBasicLimitInformation 2
-#define JobObjectBasicProcessIdList 3
-#define JobObjectBasicUIRestrictions 4
-#define JobObjectSecurityLimitInformation 5
-#define JobObjectEndOfJobTimeInformation 6
-#define JobObjectAssociateCompletionPortInformation 7
-#define JobObjectBasicAndIoAccountingInformation 8
-#define JobObjectExtendedLimitInformation 9
-#define JobObjectJobSetInformation 10
-#define JobObjectGroupInformation 11
-#define JobObjectNotificationLimitInformation 12
-#define JobObjectLimitViolationInformation 13
-#define JobObjectGroupInformationEx 14
-#define JobObjectCpuRateControlInformation 15
+// Note: We don't use an enum since it conflicts with the Windows SDK.
+#define JobObjectBasicAccountingInformation 1 // JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+#define JobObjectBasicLimitInformation 2 // JOBOBJECT_BASIC_LIMIT_INFORMATION
+#define JobObjectBasicProcessIdList 3 // JOBOBJECT_BASIC_PROCESS_ID_LIST
+#define JobObjectBasicUIRestrictions 4 // JOBOBJECT_BASIC_UI_RESTRICTIONS
+#define JobObjectSecurityLimitInformation 5 // JOBOBJECT_SECURITY_LIMIT_INFORMATION
+#define JobObjectEndOfJobTimeInformation 6 // JOBOBJECT_END_OF_JOB_TIME_INFORMATION
+#define JobObjectAssociateCompletionPortInformation 7 // JOBOBJECT_ASSOCIATE_COMPLETION_PORT
+#define JobObjectBasicAndIoAccountingInformation 8 // JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION
+#define JobObjectExtendedLimitInformation 9 // JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+#define JobObjectJobSetInformation 10 // JOBOBJECT_JOBSET_INFORMATION
+#define JobObjectGroupInformation 11 // USHORT
+#define JobObjectNotificationLimitInformation 12 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION
+#define JobObjectLimitViolationInformation 13 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION
+#define JobObjectGroupInformationEx 14 // GROUP_AFFINITY (ARRAY)
+#define JobObjectCpuRateControlInformation 15 // JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
 #define JobObjectCompletionFilter 16
 #define JobObjectCompletionCounter 17
-#define JobObjectFreezeInformation 18
-#define JobObjectExtendedAccountingInformation 19
-#define JobObjectWakeInformation 20
+#define JobObjectFreezeInformation 18 // JOBOBJECT_FREEZE_INFORMATION
+#define JobObjectExtendedAccountingInformation 19 // JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
+#define JobObjectWakeInformation 20 // JOBOBJECT_WAKE_INFORMATION
 #define JobObjectBackgroundInformation 21
 #define JobObjectSchedulingRankBiasInformation 22
 #define JobObjectTimerVirtualizationInformation 23
 #define JobObjectCycleTimeNotification 24
 #define JobObjectClearEvent 25
-#define JobObjectInterferenceInformation 26
+#define JobObjectInterferenceInformation 26 // JOBOBJECT_INTERFERENCE_INFORMATION
 #define JobObjectClearPeakJobMemoryUsed 27
-#define JobObjectMemoryUsageInformation 28
+#define JobObjectMemoryUsageInformation 28 // JOBOBJECT_MEMORY_USAGE_INFORMATION // JOBOBJECT_MEMORY_USAGE_INFORMATION_V2
 #define JobObjectSharedCommit 29
 #define JobObjectContainerId 30
 #define JobObjectIoRateControlInformation 31
-#define JobObjectNetRateControlInformation 32
-#define JobObjectNotificationLimitInformation2 33
-#define JobObjectLimitViolationInformation2 34
+#define JobObjectNetRateControlInformation 32 // JOBOBJECT_NET_RATE_CONTROL_INFORMATION
+#define JobObjectNotificationLimitInformation2 33 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2
+#define JobObjectLimitViolationInformation2 34 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2
 #define JobObjectCreateSilo 35
-#define JobObjectSiloBasicInformation 36
-#define JobObjectSiloRootDirectory 37
-#define JobObjectServerSiloBasicInformation 38
-#define JobObjectServerSiloUserSharedData 39
+#define JobObjectSiloBasicInformation 36 // SILOOBJECT_BASIC_INFORMATION
+#define JobObjectSiloRootDirectory 37 // SILOOBJECT_ROOT_DIRECTORY
+#define JobObjectServerSiloBasicInformation 38 // SERVERSILO_BASIC_INFORMATION
+#define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA
 #define JobObjectServerSiloInitialize 40
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42
 #define JobObjectMemoryPartitionInformation 43
 #define JobObjectContainerTelemetryId 44
 #define JobObjectSiloSystemRoot 45
-#define JobObjectEnergyTrackingState 46
+#define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47
 #define MaxJobObjectInfoClass 48
 
