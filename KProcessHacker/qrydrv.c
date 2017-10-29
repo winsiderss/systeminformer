@@ -222,7 +222,7 @@ VOID KphpCopyInfoUnicodeString(
 
     if (UnicodeString)
     {
-        targetBuffer = (PWCHAR)((PCHAR)Information + sizeof(UNICODE_STRING));
+        targetBuffer = (PWCHAR)PTR_ADD_OFFSET(Information, sizeof(UNICODE_STRING));
 
         targetUnicodeString->Length = UnicodeString->Length;
         targetUnicodeString->MaximumLength = UnicodeString->Length;
