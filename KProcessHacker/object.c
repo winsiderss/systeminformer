@@ -91,7 +91,7 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
     // Prevent the process from terminating and get its handle table.
     if (NT_SUCCESS(PsAcquireProcessExitSynchronization(Process)))
     {
-        handleTable = *(PHANDLE_TABLE *)((ULONG_PTR)Process + KphDynEpObjectTable);
+        handleTable = *(PHANDLE_TABLE *)PTR_ADD_OFFSET(Process, KphDynEpObjectTable);
 
         if (!handleTable)
             PsReleaseProcessExitSynchronization(Process);
@@ -133,7 +133,7 @@ VOID KphUnlockHandleTableEntry(
 
     // Allow waiters to wake up.
 
-    handleContentionEvent = (PEX_PUSH_LOCK)((ULONG_PTR)HandleTable + KphDynHtHandleContentionEvent);
+    handleContentionEvent = (PEX_PUSH_LOCK)PTR_ADD_OFFSET(HandleTable, KphDynHtHandleContentionEvent);
 
     if (*(PULONG_PTR)handleContentionEvent != 0)
         ExfUnblockPushLock(handleContentionEvent, NULL);
@@ -167,13 +167,13 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback61(
         objectType = ObGetObjectType(handleInfo.Object);
 
         if (objectType && KphDynOtIndex != -1)
-            handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)((ULONG_PTR)objectType + KphDynOtIndex);
+            handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)PTR_ADD_OFFSET(objectType, KphDynOtIndex);
     }
 
     // Advance the current entry pointer regardless of whether the information will be written; this
     // will allow the parent function to report the correct return length.
     entryInBuffer = context->CurrentEntry;
-    context->CurrentEntry = (PVOID)((ULONG_PTR)context->CurrentEntry + sizeof(KPH_PROCESS_HANDLE));
+    context->CurrentEntry = PTR_ADD_OFFSET(context->CurrentEntry, sizeof(KPH_PROCESS_HANDLE));
     context->Count++;
 
     // Only write if we have not exceeded the buffer length. Also check for a potential overflow (if
@@ -291,7 +291,7 @@ NTSTATUS KpiEnumerateProcessHandles(
 
     // Initialize the enumeration context.
     context.Buffer = Buffer;
-    context.BufferLimit = (PVOID)((ULONG_PTR)Buffer + BufferLength);
+    context.BufferLimit = PTR_ADD_OFFSET(Buffer, BufferLength);
     context.CurrentEntry = ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->Handles;
     context.Count = 0;
     context.Status = STATUS_SUCCESS;
@@ -321,7 +321,7 @@ NTSTATUS KpiEnumerateProcessHandles(
     ObDereferenceObject(process);
 
     // Write the number of handles if we can.
-    if (BufferLength >= (ULONG)FIELD_OFFSET(KPH_PROCESS_HANDLE_INFORMATION, Handles))
+    if (BufferLength >= UFIELD_OFFSET(KPH_PROCESS_HANDLE_INFORMATION, Handles))
     {
         if (AccessMode != KernelMode)
         {
@@ -455,7 +455,7 @@ NTSTATUS KphQueryNameFileObject(
     // Assume failure.
     Buffer->Name.Length = 0;
     // We will place the object name directly after the UNICODE_STRING structure in the buffer.
-    Buffer->Name.Buffer = (PWSTR)((ULONG_PTR)Buffer + sizeof(OBJECT_NAME_INFORMATION));
+    Buffer->Name.Buffer = (PWSTR)PTR_ADD_OFFSET(Buffer, sizeof(OBJECT_NAME_INFORMATION));
     // Retain a local pointer to the object name so we can manipulate the pointer.
     objectName = (PCHAR)Buffer->Name.Buffer;
     // A variable that keeps track of how much space we have used.
@@ -943,7 +943,7 @@ NTSTATUS KpiQueryInformationObject(
 
                     if (objectType)
                     {
-                        objectTypeName = (PUNICODE_STRING)((ULONG_PTR)objectType + KphDynOtName);
+                        objectTypeName = (PUNICODE_STRING)PTR_ADD_OFFSET(objectType, KphDynOtName);
                         RtlInitUnicodeString(&etwRegistrationName, L"EtwRegistration");
 
                         if (!RtlEqualUnicodeString(objectTypeName, &etwRegistrationName, FALSE))
@@ -958,10 +958,10 @@ NTSTATUS KpiQueryInformationObject(
 
                     if (NT_SUCCESS(status))
                     {
-                        guidEntry = *(PVOID *)((ULONG_PTR)etwReg + KphDynEreGuidEntry);
+                        guidEntry = *(PVOID *)PTR_ADD_OFFSET(etwReg, KphDynEreGuidEntry);
 
                         if (guidEntry)
-                            basicInfo.Guid = *(GUID *)((ULONG_PTR)guidEntry + KphDynEgeGuid);
+                            basicInfo.Guid = *(GUID *)PTR_ADD_OFFSET(guidEntry, KphDynEgeGuid);
                         else
                             memset(&basicInfo.Guid, 0, sizeof(GUID));
 

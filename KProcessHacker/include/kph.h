@@ -8,6 +8,15 @@
 #include <bcrypt.h>
 #include <kphapi.h>
 
+// Memory
+
+#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
+#define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
+
+// Zero extension and sign extension macros
+
+#define C_2sTo4(x) ((unsigned int)(signed short)(x))
+
 // Debugging
 
 #ifdef DBG
