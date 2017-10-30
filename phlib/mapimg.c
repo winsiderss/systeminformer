@@ -117,11 +117,7 @@ NTSTATUS PhInitializeMappedImage(
     // Get a pointer to the first section.
 
     MappedImage->NumberOfSections = MappedImage->NtHeaders->FileHeader.NumberOfSections;
-
-    MappedImage->Sections = (PIMAGE_SECTION_HEADER)(
-        ((PCHAR)&MappedImage->NtHeaders->OptionalHeader) +
-        MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader
-        );
+    MappedImage->Sections = IMAGE_FIRST_SECTION(MappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
 }
@@ -153,7 +149,7 @@ NTSTATUS PhLoadMappedImage(
 
         if (!NT_SUCCESS(status))
         {
-            NtUnmapViewOfSection(NtCurrentProcess(), MappedImage->ViewBase);
+            PhUnloadMappedImage(MappedImage);
         }
     }
 
@@ -307,8 +303,8 @@ PVOID PhMappedImageRvaToVa(
     if (Section)
         *Section = section;
 
-    return (PVOID)(
-        (ULONG_PTR)MappedImage->ViewBase +
+    return PTR_ADD_OFFSET(
+        MappedImage->ViewBase, 
         (Rva - section->VirtualAddress) +
         section->PointerToRawData
         );
@@ -316,7 +312,7 @@ PVOID PhMappedImageRvaToVa(
 
 BOOLEAN PhGetMappedImageSectionName(
     _In_ PIMAGE_SECTION_HEADER Section,
-    _Out_writes_opt_z_(Count) PSTR Buffer,
+    _Out_writes_opt_z_(Count) PWSTR Buffer,
     _In_ ULONG Count,
     _Out_opt_ PULONG ReturnCount
     )
@@ -324,7 +320,7 @@ BOOLEAN PhGetMappedImageSectionName(
     BOOLEAN result;
     SIZE_T returnCount;
 
-    result = PhCopyBytesZ(
+    result = PhCopyStringZFromBytes(
         Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,
@@ -525,10 +521,7 @@ NTSTATUS PhLoadRemoteMappedImage(
         return status;
     }
 
-    RemoteMappedImage->Sections = (PIMAGE_SECTION_HEADER)(
-        (PCHAR)RemoteMappedImage->NtHeaders +
-        FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) + ntHeaders.FileHeader.SizeOfOptionalHeader
-        );
+    RemoteMappedImage->Sections = IMAGE_FIRST_SECTION(RemoteMappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
 }
