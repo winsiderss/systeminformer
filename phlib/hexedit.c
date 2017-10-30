@@ -3,6 +3,7 @@
  *   hex editor control
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1289,12 +1290,12 @@ VOID PhpHexEditUpdateScrollbars(
 
     si.fMask = SIF_ALL;
     si.nMin = 0;
-    si.nMax = (Context->Length / Context->BytesPerRow) - 1;
+    si.nMax = Context->Length / Context->BytesPerRow;
     si.nPage = Context->LinesPerPage;
     si.nPos = Context->TopIndex / Context->BytesPerRow;
     SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
 
-    if (si.nMax > (LONG)si.nPage)
+    if (si.nMax > (LONG)si.nPage - 1)
         EnableScrollBar(hwnd, SB_VERT, ESB_ENABLE_BOTH);
 
     // No horizontal scrollbar please.
