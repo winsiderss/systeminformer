@@ -79,7 +79,7 @@ BOOLEAN
 NTAPI
 PhGetMappedImageSectionName(
     _In_ PIMAGE_SECTION_HEADER Section,
-    _Out_writes_opt_z_(Count) PSTR Buffer,
+    _Out_writes_opt_z_(Count) PWSTR Buffer,
     _In_ ULONG Count,
     _Out_opt_ PULONG ReturnCount
     );
