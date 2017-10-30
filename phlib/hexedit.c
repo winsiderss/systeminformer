@@ -211,10 +211,15 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 case SB_PAGEDOWN:
                     if (context->TopIndex < context->Length - mult)
                     {
+                        LONG pageEnd = 0;
+
+                        while (pageEnd < context->Length - mult)
+                            pageEnd += context->BytesPerRow;
+
                         context->TopIndex += mult;
 
-                        if (context->TopIndex > context->Length - mult)
-                            context->TopIndex = context->Length - mult;
+                        if (context->TopIndex > pageEnd)
+                            context->TopIndex = pageEnd;
 
                         REDRAW_WINDOW(hwnd);
                     }
@@ -232,6 +237,15 @@ LRESULT CALLBACK PhpHexEditWndProc(
                     break;
                 case SB_THUMBTRACK:
                     context->TopIndex = currentPosition * context->BytesPerRow;
+                    REDRAW_WINDOW(hwnd);
+                    break;
+                case SB_TOP:
+                    context->TopIndex = 0;
+                    REDRAW_WINDOW(hwnd);
+                    break;
+                case SB_BOTTOM:
+                    while (context->TopIndex < context->Length - mult)
+                        context->TopIndex += context->BytesPerRow;
                     REDRAW_WINDOW(hwnd);
                     break;
                 }
