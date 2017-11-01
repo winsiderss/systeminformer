@@ -1171,20 +1171,12 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
-        PPH_STRING packageFullName = NULL;
-
-        if (processItem->QueryHandle)
-            packageFullName = PhGetProcessPackageFullName(processItem->QueryHandle);
-
         Data->VerifyResult = PhVerifyFileCached(
             processItem->FileName,
-            packageFullName,
+            processItem->PackageFullName,
             &Data->VerifySignerName,
             FALSE
             );
-
-        if (packageFullName)
-            PhDereferenceObject(packageFullName);
 
         status = PhIsExecutablePacked(
             processItem->FileName->Buffer,
