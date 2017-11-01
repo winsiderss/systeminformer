@@ -1045,7 +1045,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         if (IMAGE_SNAP_BY_ORDINAL32(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)IMAGE_ORDINAL32(entry.u1.Ordinal);
+            Entry->Ordinal = IMAGE_ORDINAL32(entry.u1.Ordinal);
 
             return STATUS_SUCCESS;
         }
@@ -1068,7 +1068,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         if (IMAGE_SNAP_BY_ORDINAL64(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)IMAGE_ORDINAL64(entry.u1.Ordinal);
+            Entry->Ordinal = IMAGE_ORDINAL64(entry.u1.Ordinal);
 
             return STATUS_SUCCESS;
         }
@@ -1219,7 +1219,7 @@ NTSTATUS PhGetMappedImageCfg64(
         return status;
 
     // Not every load configuration defines CFG characteristics
-    if (config64->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardFlags))
+    if (config64->Size < UFIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardFlags))
         return STATUS_INVALID_VIEW_SIZE;
 
     CfgConfig->MappedImage = MappedImage;
@@ -1262,7 +1262,7 @@ NTSTATUS PhGetMappedImageCfg64(
     CfgConfig->GuardAdressIatTable = 0;
 
     if (
-        config64->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardAddressTakenIatEntryTable) +
+        config64->Size >= UFIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardAddressTakenIatEntryTable) +
         sizeof(config64->GuardAddressTakenIatEntryTable) +
         sizeof(config64->GuardAddressTakenIatEntryCount)
         )
@@ -1295,7 +1295,7 @@ NTSTATUS PhGetMappedImageCfg64(
     CfgConfig->GuardLongJumpTable = 0;
 
     if (
-        config64->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardLongJumpTargetTable) +
+        config64->Size >= UFIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardLongJumpTargetTable) +
         sizeof(config64->GuardLongJumpTargetTable) +
         sizeof(config64->GuardLongJumpTargetCount)
         )
@@ -1339,7 +1339,7 @@ NTSTATUS PhGetMappedImageCfg32(
         return status;
     
     // Not every load configuration defines CFG characteristics
-    if (config32->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardFlags))
+    if (config32->Size < UFIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardFlags))
         return STATUS_INVALID_VIEW_SIZE;
 
     CfgConfig->MappedImage = MappedImage;
@@ -1382,7 +1382,7 @@ NTSTATUS PhGetMappedImageCfg32(
     CfgConfig->GuardAdressIatTable = 0;
 
     if (
-        config32->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardAddressTakenIatEntryTable) +
+        config32->Size >= UFIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardAddressTakenIatEntryTable) +
         sizeof(config32->GuardAddressTakenIatEntryTable) +
         sizeof(config32->GuardAddressTakenIatEntryCount)
         )
@@ -1415,7 +1415,7 @@ NTSTATUS PhGetMappedImageCfg32(
     CfgConfig->GuardLongJumpTable = 0;
 
     if (
-        config32->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardLongJumpTargetTable) +
+        config32->Size >= UFIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardLongJumpTargetTable) +
         sizeof(config32->GuardLongJumpTargetTable) +
         sizeof(config32->GuardLongJumpTargetCount)
         )
