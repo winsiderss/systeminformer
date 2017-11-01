@@ -531,11 +531,10 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             for (i = 0; i < PvMappedImage.NumberOfSections; i++)
             {
                 INT lvItemIndex;
-                WCHAR sectionName[9];
+                WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
                 WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                if (PhCopyStringZFromBytes(PvMappedImage.Sections[i].Name,
-                    IMAGE_SIZEOF_SHORT_NAME, sectionName, 9, NULL))
+                if (PhGetMappedImageSectionName(&PvMappedImage.Sections[i], sectionName, ARRAYSIZE(sectionName), NULL))
                 {
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
 
