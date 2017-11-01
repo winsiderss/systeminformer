@@ -239,7 +239,7 @@ NTSTATUS PhSvcCaptureSid(
 
     if (sid)
     {
-        if (String->Length < (ULONG)FIELD_OFFSET(struct _SID, IdentifierAuthority) ||
+        if (String->Length < UFIELD_OFFSET(struct _SID, IdentifierAuthority) ||
             String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
             !RtlValidSid(sid))
         {

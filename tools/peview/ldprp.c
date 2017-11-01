@@ -85,21 +85,21 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
                 ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
                 ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
                 \
-                if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardCFCheckFunctionPointer)) \
+                if ((Config)->Size >= UFIELD_OFFSET(Type, GuardCFCheckFunctionPointer)) \
                 { \
                     ADD_VALUE(L"CFG GuardFlags", PhaFormatString(L"0x%Ix", (Config)->GuardFlags)->Buffer); \
                     ADD_VALUE(L"CFG Check Function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFCheckFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Check Dispatch pointer", PhaFormatString(L"0x%Ix", (Config)->GuardCFDispatchFunctionPointer)->Buffer); \
                     ADD_VALUE(L"CFG Function table", PhaFormatString(L"0x%Ix", (Config)->GuardCFFunctionTable)->Buffer); \
                     ADD_VALUE(L"CFG Function table entry count", PhaFormatUInt64((Config)->GuardCFFunctionCount, TRUE)->Buffer); \
-                    if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardAddressTakenIatEntryTable) \
+                    if ((Config)->Size >= UFIELD_OFFSET(Type, GuardAddressTakenIatEntryTable) \
                             + sizeof((Config)->GuardAddressTakenIatEntryTable) \
                             + sizeof((Config)->GuardAddressTakenIatEntryCount)) \
                     { \
                                 ADD_VALUE(L"CFG IatEntry table", PhaFormatString(L"0x%Ix", (Config)->GuardAddressTakenIatEntryTable)->Buffer); \
                                 ADD_VALUE(L"CFG IatEntry table entry count", PhaFormatUInt64((Config)->GuardAddressTakenIatEntryCount, TRUE)->Buffer); \
                     } \
-                    if ((Config)->Size >= (ULONG)FIELD_OFFSET(Type, GuardLongJumpTargetTable) \
+                    if ((Config)->Size >= UFIELD_OFFSET(Type, GuardLongJumpTargetTable) \
                             + sizeof((Config)->GuardLongJumpTargetTable) \
                             + sizeof((Config)->GuardLongJumpTargetCount)) \
                     { \
