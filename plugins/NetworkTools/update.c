@@ -37,14 +37,14 @@ VOID FreeUpdateContext(
     if (Context->FileDownloadUrl)
         PhDereferenceObject(Context->FileDownloadUrl);
 
-    if (Context->FileDownloadUrl)
-        PhDereferenceObject(Context->FileDownloadUrl);
+    if (Context->RevVersion)
+        PhDereferenceObject(Context->RevVersion);
 
-    if (Context->FileDownloadUrl)
-        PhDereferenceObject(Context->FileDownloadUrl);
+    if (Context->Size)
+        PhDereferenceObject(Context->Size);
 
-    if (Context->FileDownloadUrl)
-        PhDereferenceObject(Context->FileDownloadUrl);
+    if (Context->SetupFilePath)
+        PhDereferenceObject(Context->SetupFilePath);
 
     PhDereferenceObject(Context);
 }
