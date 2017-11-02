@@ -305,6 +305,8 @@ typedef struct _PH_MEMORY_CONTEXT
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
+    BOOLEAN UseSearchPointer;
+    ULONG64 SearchPointer;
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY AllocationFilterEntry;
     PPH_TN_FILTER_ENTRY FilterEntry;
