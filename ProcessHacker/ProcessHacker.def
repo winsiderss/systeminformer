@@ -359,6 +359,7 @@ EXPORTS
 	PhGetKnownLocation
 	PhGetMessage
 	PhGetNtMessage
+	PhGetStatusMessage
 	PhGetSystemDirectory
 	PhGetSystemRoot
 	PhGetWin32Message
@@ -629,6 +630,7 @@ EXPORTS
 	PhGetJsonObjectLength
 	PhGetJsonObjectBool
 	PhAddJsonObject
+	PhGetJsonObjectAsArrayList
 	PhCreateJsonArray
 	PhAddJsonArrayObject
 	PhGetJsonArrayString
