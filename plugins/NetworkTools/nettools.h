@@ -26,21 +26,22 @@
 
 #define CINTERFACE
 #define COBJMACROS
-#include <windowsx.h>
 #include <phdk.h>
 #include <phapppub.h>
 #include <phappresource.h>
 #include <settings.h>
 #include <workqueue.h>
+
 #include <windowsx.h>
 #include <windns.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <icmpapi.h>
-#include <winhttp.h>
 #include <shlobj.h>
 #include <uxtheme.h>
+
+#include <http.h>
 
 #include "resource.h"
 
