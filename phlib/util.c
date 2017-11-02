@@ -280,6 +280,10 @@ PPH_STRING PhGetMessage(
     if (!NT_SUCCESS(status))
         return NULL;
 
+    // dmex: We don't support parsing insert sequences.
+    if (messageEntry->Text[0] == '%')
+        return NULL;
+
     if (messageEntry->Flags & MESSAGE_RESOURCE_UNICODE)
     {
         return PhCreateStringEx((PWCHAR)messageEntry->Text, messageEntry->Length);
