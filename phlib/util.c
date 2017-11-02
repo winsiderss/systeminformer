@@ -381,7 +381,6 @@ INT PhShowMessage(
     PPH_STRING message;
 
     va_start(argptr, Format);
-    va_start(argptr, Format);
     message = PhFormatString_V(Format, argptr);
     va_end(argptr);
 
