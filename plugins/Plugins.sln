@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27004.2006
 MinimumVisualStudioVersion = 15.0.26228.4
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{53C3AE07-D96F-4F5C-B407-4195084472CF}"
 	ProjectSection(SolutionItems) = preProject
@@ -32,9 +32,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UserNotes", "UserNotes\User
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HardwareDevices", "HardwareDevices\HardwareDevices.vcxproj", "{5F0D72C4-8319-4B61-9E13-6084B680EB90}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtraPlugins", "ExtraPlugins\ExtraPlugins.vcxproj", "{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommonUtil", "CommonUtil\CommonUtil.vcxitems", "{BFAABF4A-4B1B-4B28-B6CB-B55AB6C1109F}"
 EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		CommonUtil\CommonUtil.vcxitems*{79d24223-1122-40a9-bc8f-46a2089fe089}*SharedItemsImports = 4
+		CommonUtil\CommonUtil.vcxitems*{a0c1595c-fa3e-4b7a-936c-306bc6294c5e}*SharedItemsImports = 4
+		CommonUtil\CommonUtil.vcxitems*{b5e0da09-ea01-4d5a-a9d6-5b22db0c306e}*SharedItemsImports = 4
+		CommonUtil\CommonUtil.vcxitems*{bfaabf4a-4b1b-4b28-b6cb-b55ab6c1109f}*SharedItemsImports = 9
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
@@ -130,16 +136,11 @@ Global
 		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|Win32.Build.0 = Release|Win32
 		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|x64.ActiveCfg = Release|x64
 		{5F0D72C4-8319-4B61-9E13-6084B680EB90}.Release|x64.Build.0 = Release|x64
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Debug|Win32.ActiveCfg = Debug|Win32
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Debug|Win32.Build.0 = Debug|Win32
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Debug|x64.ActiveCfg = Debug|x64
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Debug|x64.Build.0 = Debug|x64
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Release|Win32.ActiveCfg = Release|Win32
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Release|Win32.Build.0 = Release|Win32
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Release|x64.ActiveCfg = Release|x64
-		{96549A3E-D1BD-470E-A5B3-A64803C4DEF5}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F936C56D-6A19-47EB-973F-535DF252210E}
 	EndGlobalSection
 EndGlobal
