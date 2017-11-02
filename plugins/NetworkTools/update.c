@@ -34,16 +34,19 @@ VOID FreeUpdateContext(
     _In_ _Post_invalid_ PPH_UPDATER_CONTEXT Context
     )
 {
-    //PhClearReference(&Context->Version);
-    //PhClearReference(&Context->RevVersion);
-    //PhClearReference(&Context->RelDate);
-    //PhClearReference(&Context->Size);
-    //PhClearReference(&Context->Hash);
-    //PhClearReference(&Context->Signature);
-    //PhClearReference(&Context->ReleaseNotesUrl);
-    //PhClearReference(&Context->SetupFilePath);
-    //PhClearReference(&Context->SetupFileDownloadUrl);
-    //PhClearReference(&Context);
+    if (Context->FileDownloadUrl)
+        PhDereferenceObject(Context->FileDownloadUrl);
+
+    if (Context->FileDownloadUrl)
+        PhDereferenceObject(Context->FileDownloadUrl);
+
+    if (Context->FileDownloadUrl)
+        PhDereferenceObject(Context->FileDownloadUrl);
+
+    if (Context->FileDownloadUrl)
+        PhDereferenceObject(Context->FileDownloadUrl);
+
+    PhDereferenceObject(Context);
 }
 
 VOID TaskDialogCreateIcons(
@@ -65,7 +68,7 @@ VOID TaskDialogLinkClicked(
 }
 
 PPH_STRING UpdateVersionString(
-    _In_ PWSTR UserAgent
+    VOID
     )
 {
     ULONG majorVersion;
@@ -78,7 +81,7 @@ PPH_STRING UpdateVersionString(
 
     if (currentVersion = PhFormatString(L"%lu.%lu.%lu", majorVersion, minorVersion, revisionVersion))
     {
-        versionHeader = PhConcatStrings2(UserAgent, currentVersion->Buffer);
+        versionHeader = PhConcatStrings2(L"ProcessHacker-Build: ", currentVersion->Buffer);
         PhDereferenceObject(currentVersion);
     }
 
@@ -126,155 +129,61 @@ PPH_STRING QueryFwLinkUrl(
     )
 {
     PPH_STRING redirectUrl = NULL;
-    HINTERNET httpSessionHandle = NULL;
-    HINTERNET httpConnectionHandle = NULL;
-    HINTERNET httpRequestHandle = NULL;
-    PPH_STRING versionHeader = UpdateVersionString(L"ProcessHacker_Build: ");
-    PPH_STRING windowsHeader = UpdateWindowsString();
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING versionString = NULL;
+    PPH_STRING userAgentString = NULL;
+    PPH_STRING versionHeader;
+    PPH_STRING windowsHeader;
 
-    if (!(httpSessionHandle = WinHttpOpen(
-        NULL,
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS,
-        0
-        )))
-    {
+    versionString = PhGetPhVersion();
+    userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
+
+    if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
         goto CleanupExit;
-    }
 
-    if (WindowsVersion >= WINDOWS_8_1)
-    {
-        ULONG httpFlags = WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE;
-
-        WinHttpSetOption(
-            httpSessionHandle,
-            WINHTTP_OPTION_DECOMPRESSION,
-            &httpFlags,
-            sizeof(ULONG)
-            );
-    }
-
-    if (!(httpConnectionHandle = WinHttpConnect(
-        httpSessionHandle,
-        L"wj32.org",
-        INTERNET_DEFAULT_HTTPS_PORT,
-        0
-        )))
-    {
+    if (!PhHttpSocketConnect(httpContext, L"wj32.org", PH_HTTP_DEFAULT_HTTPS_PORT))
         goto CleanupExit;
-    }
 
-    if (!(httpRequestHandle = WinHttpOpenRequest(
-        httpConnectionHandle,
+    if (!PhHttpSocketBeginRequest(
+        httpContext,
         NULL,
         L"/processhacker/fwlink/maxminddb.php",
-        NULL,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (versionHeader)
-    {
-        WinHttpAddRequestHeaders(
-            httpRequestHandle,
-            versionHeader->Buffer,
-            (ULONG)versionHeader->Length / sizeof(WCHAR),
-            WINHTTP_ADDREQ_FLAG_ADD
-            );
-    }
-
-    if (windowsHeader)
-    {
-        WinHttpAddRequestHeaders(
-            httpRequestHandle,
-            windowsHeader->Buffer,
-            (ULONG)windowsHeader->Length / sizeof(WCHAR),
-            WINHTTP_ADDREQ_FLAG_ADD
-            );
-    }
-
-    WinHttpSetOption(
-        httpRequestHandle, 
-        WINHTTP_OPTION_DISABLE_FEATURE, 
-        &(ULONG){ WINHTTP_DISABLE_REDIRECTS }, 
-        sizeof(ULONG)
-        );
-      
-    WinHttpSetOption(
-        httpRequestHandle, 
-        WINHTTP_OPTION_DISABLE_FEATURE, 
-        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE }, 
-        sizeof(ULONG)
-        );
-
-    if (!WinHttpSendRequest(
-        httpRequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
-        WINHTTP_NO_REQUEST_DATA,
-        0,
-        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        0
+        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
         ))
     {
         goto CleanupExit;
     }
 
-    if (WinHttpReceiveResponse(httpRequestHandle, NULL))
+    if (versionHeader = UpdateVersionString())
     {
-        ULONG redirectLength = 0;
-
-        if (WinHttpQueryHeaders(
-            httpRequestHandle,
-            WINHTTP_QUERY_LOCATION,
-            WINHTTP_HEADER_NAME_BY_INDEX,
-            NULL,
-            &redirectLength,
-            0
-            ))
-        {
-            goto CleanupExit;
-        }
-
-        if (redirectLength)
-        {
-            redirectUrl = PhCreateStringEx(NULL, redirectLength);
-
-            if (!WinHttpQueryHeaders(
-                httpRequestHandle,
-                WINHTTP_QUERY_LOCATION,
-                WINHTTP_HEADER_NAME_BY_INDEX,
-                redirectUrl->Buffer,
-                &redirectLength,
-                0
-                ))
-            {
-                PhClearReference(&redirectUrl);
-            }
-        }
+        PhHttpSocketAddRequestHeaders(httpContext, versionHeader->Buffer, (ULONG)versionHeader->Length / sizeof(WCHAR));
+        PhDereferenceObject(versionHeader);
     }
+
+    if (windowsHeader = UpdateWindowsString())
+    {
+        PhHttpSocketAddRequestHeaders(httpContext, windowsHeader->Buffer, (ULONG)windowsHeader->Length / sizeof(WCHAR));
+        PhDereferenceObject(windowsHeader);
+    }
+
+    if (!PhHttpSocketSetFeature(httpContext, PH_HTTP_FEATURE_REDIRECTS, FALSE))
+        goto CleanupExit;
+
+    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
+        goto CleanupExit;
+
+    if (!PhHttpSocketEndRequest(httpContext))
+        goto CleanupExit;
+    
+    redirectUrl = PhHttpSocketQueryHeaderString(httpContext, L"Location"); // WINHTTP_QUERY_LOCATION
 
 CleanupExit:
 
-    if (httpRequestHandle)
-        WinHttpCloseHandle(httpRequestHandle);
-
-    if (httpConnectionHandle)
-        WinHttpCloseHandle(httpConnectionHandle);
-
-    if (httpSessionHandle)
-        WinHttpCloseHandle(httpSessionHandle);
+    if (httpContext)
+        PhHttpSocketDestroy(httpContext);
     
-    if (versionHeader)
-        PhDereferenceObject(versionHeader);
-
-    if (windowsHeader)
-        PhDereferenceObject(windowsHeader);
+    PhClearReference(&versionString);
+    PhClearReference(&userAgentString);
 
     return redirectUrl;
 }
@@ -285,19 +194,18 @@ NTSTATUS GeoIPUpdateThread(
 {
     BOOLEAN success = FALSE;
     HANDLE tempFileHandle = NULL;
-    HINTERNET httpSessionHandle = NULL;
-    HINTERNET httpConnectionHandle = NULL;
-    HINTERNET httpRequestHandle = NULL;
     PPH_STRING fwLinkUrl = NULL;
-    PPH_STRING downloadHostPath = NULL;
-    PPH_STRING downloadUrlPath = NULL;
-    URL_COMPONENTS httpParts = { sizeof(URL_COMPONENTS) };
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING versionString = NULL;
+    PPH_STRING userAgentString = NULL;
+    PPH_STRING httpHostName = NULL;
+    PPH_STRING httpHostPath = NULL;
+    USHORT httpHostPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
     ULONG64 timeTicks = 0;
     ULONG64 timeBitsPerSecond = 0;
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
-    PPH_STRING userAgentString = UpdateVersionString(L"ProcessHacker_");
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
 
@@ -305,10 +213,10 @@ NTSTATUS GeoIPUpdateThread(
         goto CleanupExit;
 
     context->SetupFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
+
     if (PhIsNullOrEmptyString(context->SetupFilePath))
         goto CleanupExit;
 
-    // Create output file
     if (!NT_SUCCESS(PhCreateFileWin32(
         &tempFileHandle,
         PhGetString(context->SetupFilePath),
@@ -324,112 +232,57 @@ NTSTATUS GeoIPUpdateThread(
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
-    // Set lengths to non-zero enabling these params to be cracked.
-    httpParts.dwSchemeLength = ULONG_MAX;
-    httpParts.dwHostNameLength = ULONG_MAX;
-    httpParts.dwUrlPathLength = ULONG_MAX;
-
-    if (!WinHttpCrackUrl(
-        fwLinkUrl->Buffer,
-        0,
-        0,
-        &httpParts
+    if (!PhHttpSocketParseUrl(
+        fwLinkUrl,
+        &httpHostName,
+        &httpHostPath,
+        &httpHostPort
         ))
     {
         goto CleanupExit;
     }
 
-    // Create the Host string.
-    if (PhIsNullOrEmptyString(downloadHostPath = PhCreateStringEx(
-        httpParts.lpszHostName,
-        httpParts.dwHostNameLength * sizeof(WCHAR)
-        )))
+    versionString = PhGetPhVersion();
+    userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
+
+    if (!PhHttpSocketCreate(
+        &httpContext,
+        PhGetString(userAgentString)
+        ))
     {
         goto CleanupExit;
     }
 
-    // Create the remote path string.
-    if (PhIsNullOrEmptyString(downloadUrlPath = PhCreateStringEx(
-        httpParts.lpszUrlPath,
-        httpParts.dwUrlPathLength * sizeof(WCHAR)
-        )))
+    if (!PhHttpSocketConnect(
+        httpContext,
+        PhGetString(httpHostName),
+        httpHostPort
+        ))
     {
         goto CleanupExit;
     }
 
-    if (!(httpSessionHandle = WinHttpOpen(
-        PhGetString(userAgentString),
-        WindowsVersion >= WINDOWS_8_1 ? WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY : WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS,
-        0
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (WindowsVersion >= WINDOWS_8_1)
-    {
-        WinHttpSetOption(
-            httpSessionHandle,
-            WINHTTP_OPTION_DECOMPRESSION, 
-            &(ULONG){ WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE }, 
-            sizeof(ULONG)
-            );
-    }
-
-    if (!(httpConnectionHandle = WinHttpConnect(
-        httpSessionHandle,
-        PhGetString(downloadHostPath),
-        httpParts.nScheme == INTERNET_SCHEME_HTTP ? INTERNET_DEFAULT_HTTP_PORT : INTERNET_DEFAULT_HTTPS_PORT,
-        0
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (!(httpRequestHandle = WinHttpOpenRequest(
-        httpConnectionHandle,
+    if (!PhHttpSocketBeginRequest(
+        httpContext,
         NULL,
-        PhGetString(downloadUrlPath),
-        NULL,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_REFRESH | (httpParts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0)
-        )))
+        PhGetString(httpHostPath),
+        PH_HTTP_FLAG_REFRESH | (httpHostPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0)
+        ))
     {
         goto CleanupExit;
     }
-
-    WinHttpSetOption(
-        httpRequestHandle, 
-        WINHTTP_OPTION_DISABLE_FEATURE, 
-        &(ULONG){ WINHTTP_DISABLE_KEEP_ALIVE }, 
-        sizeof(ULONG)
-        );
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
-    if (!WinHttpSendRequest(
-        httpRequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
-        WINHTTP_NO_REQUEST_DATA,
-        0,
-        WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH,
-        0
-        ))
-    {
+    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
         goto CleanupExit;
-    }
 
     SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
 
-    if (WinHttpReceiveResponse(httpRequestHandle, NULL))
+    if (PhHttpSocketEndRequest(httpContext))
     {
         ULONG bytesDownloaded = 0;
         ULONG downloadedBytes = 0;
-        ULONG contentLengthSize = sizeof(ULONG);
         ULONG contentLength = 0;
         PPH_STRING status;
         IO_STATUS_BLOCK isb;
@@ -442,21 +295,19 @@ NTSTATUS GeoIPUpdateThread(
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
         PhDereferenceObject(status);
 
-        if (!WinHttpQueryHeaders(
-            httpRequestHandle,
-            WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER,
-            WINHTTP_HEADER_NAME_BY_INDEX,
-            &contentLength,
-            &contentLengthSize,
-            0
+        if (!PhHttpSocketQueryHeaderUlong(
+            httpContext,
+            PH_HTTP_QUERY_CONTENT_LENGTH,
+            &contentLength
             ))
         {
+            //context->ErrorCode = GetLastError();
             goto CleanupExit;
         }
 
         PhQuerySystemTime(&timeStart);
 
-        while (WinHttpReadData(httpRequestHandle, buffer, PAGE_SIZE, &bytesDownloaded))
+        while (PhHttpSocketReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded))
         {
             // If we get zero bytes, the file was uploaded or there was an error.
             if (bytesDownloaded == 0)
@@ -610,17 +461,13 @@ CleanupExit:
     if (tempFileHandle)
         NtClose(tempFileHandle);
 
-    if (httpRequestHandle)
-        WinHttpCloseHandle(httpRequestHandle);
-
-    if (httpConnectionHandle)
-        WinHttpCloseHandle(httpConnectionHandle);
-
-    if (httpSessionHandle)
-        WinHttpCloseHandle(httpSessionHandle);
+    if (httpContext)
+        PhHttpSocketDestroy(httpContext);
 
     if (userAgentString)
         PhDereferenceObject(userAgentString);
+    if (versionString)
+        PhDereferenceObject(versionString);
 
     if (context->SetupFilePath)
     {
