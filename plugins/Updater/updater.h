@@ -29,12 +29,15 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <json.h>
-#include <mxml.h>
 #include <verify.h>
 #include <settings.h>
 #include <workqueue.h>
+
 #include <windowsx.h>
-#include <winhttp.h>
+#include <shlobj.h>
+
+#include <http.h>
+#include <commonutil.h>
 
 #include "resource.h"
 

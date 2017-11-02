@@ -213,7 +213,7 @@ VOID ShowUpdateFailedDialog(
     config.hMainIcon = Context->IconLargeHandle;
 
     config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Error downloading the update";
+    config.pszMainInstruction = L"Error downloading the update.";
 
     if (SignatureFailed)
     {
@@ -227,22 +227,12 @@ VOID ShowUpdateFailedDialog(
     {
         if (Context->ErrorCode)
         {
-            PPH_STRING message;
-            
-            message = PhGetMessage(
-                GetModuleHandle(L"winhttp.dll"), 
-                0xb, 
-                GetUserDefaultLangID(), 
-                Context->ErrorCode
-                );
-
-            //if (PhIsNullOrEmptyString(message))
-            //    PhMoveReference(&message, PhGetNtMessage(Context->ErrorCode));
-
-            if (message)
-            {          
-                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, message->Buffer)->Buffer;
-                PhDereferenceObject(message);
+            PPH_STRING errorMessage;
+          
+            if (errorMessage = PhHttpSocketGetErrorMessage(Context->ErrorCode))
+            {
+                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+                PhDereferenceObject(errorMessage);
             }
             else
             {
