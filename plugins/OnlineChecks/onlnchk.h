@@ -29,19 +29,21 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <mxml.h>
+#include <http.h>
 #include <json.h>
 #include <commonutil.h>
 #include <workqueue.h>
+
 #include <shlobj.h>
 #include <windowsx.h>
-#include <winhttp.h>
+
 #include "resource.h"
 #include "db.h"
 
 #define PLUGIN_NAME L"ProcessHacker.OnlineChecks"
 #define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
 #define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
+#define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")
 
 #define UM_UPLOAD (WM_APP + 1)
 #define UM_EXISTS (WM_APP + 2)
@@ -55,7 +57,7 @@ typedef struct _SERVICE_INFO
 {
     ULONG Id;
     PWSTR HostName;
-    INTERNET_PORT HostPort;
+    USHORT HostPort;
     ULONG HostFlags;
     PWSTR UploadObjectName;
     PWSTR FileNameFieldName;
@@ -124,7 +126,7 @@ typedef struct _UPLOAD_CONTEXT
     HANDLE UploadThreadHandle;
     HICON IconLargeHandle;
     HICON IconSmallHandle;
-    HINTERNET HttpHandle;
+
     ITaskbarList3* TaskbarListClass;
 
     PPH_STRING FileSize;
@@ -141,6 +143,9 @@ typedef struct _UPLOAD_CONTEXT
     PPH_STRING LastAnalysisDate;
     PPH_STRING LastAnalysisUrl;
     PPH_STRING LastAnalysisAgo;
+
+    PPH_STRING FileHash;
+
 } UPLOAD_CONTEXT, *PUPLOAD_CONTEXT;
 
 // options.c
@@ -160,6 +165,10 @@ NTSTATUS UploadCheckThreadStart(
     _In_ PVOID Parameter
     );
 
+NTSTATUS UploadRecheckThreadStart(
+    _In_ PVOID Parameter
+    );
+
 VOID ShowVirusTotalUploadDialog(
     _In_ PUPLOAD_CONTEXT Context
     );
@@ -174,32 +183,6 @@ VOID ShowVirusTotalProgressDialog(
 
 VOID VirusTotalShowErrorDialog(
     _In_ PUPLOAD_CONTEXT Context
-    );
-
-typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
-{
-    PPH_STRING FileName;
-    PPH_STRING BaseFileName;
-
-    PPH_STRING Total;
-    PPH_STRING Positives;
-    PPH_STRING Resource;
-    PPH_STRING ScanId;
-    PPH_STRING Md5;
-    PPH_STRING Sha1;
-    PPH_STRING Sha256;
-    PPH_STRING ScanDate;
-    PPH_STRING Permalink;
-    PPH_STRING StatusMessage;
-    PPH_LIST ScanResults;
-} VIRUSTOTAL_FILE_REPORT_RESULT, *PVIRUSTOTAL_FILE_REPORT_RESULT;
-
-PPH_STRING VirusTotalStringToTime(
-    _In_ PPH_STRING Time
-    );
-
-PVIRUSTOTAL_FILE_REPORT_RESULT VirusTotalSendHttpFileReportRequest(
-    _In_ PPH_STRING FileHash
     );
 
 // upload
@@ -258,6 +241,68 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResult(
 PPH_BYTES VirusTotalGetCachedDbHash(
     VOID
     );
+
+typedef struct _VT_SYSINT_FILE_REPORT_RESULT
+{
+    PPH_STRING FileName;
+    PPH_STRING BaseFileName;
+
+    PPH_STRING Total;
+    PPH_STRING Positives;
+    PPH_STRING Resource;
+    PPH_STRING ScanId;
+    PPH_STRING Md5;
+    PPH_STRING Sha1;
+    PPH_STRING Sha256;
+    PPH_STRING ScanDate;
+    PPH_STRING Permalink;
+    PPH_STRING StatusMessage;
+    PPH_LIST ScanResults;
+} VT_SYSINT_FILE_REPORT_RESULT, *PVT_SYSINT_FILE_REPORT_RESULT;
+
+PPH_STRING VirusTotalStringToTime(
+    _In_ PPH_STRING Time
+);
+
+typedef struct _VIRUSTOTAL_API_RESPONSE
+{
+    INT64 ResponseCode;
+    PPH_STRING StatusMessage;
+    PPH_STRING PermaLink;
+    PPH_STRING ScanId;
+} VIRUSTOTAL_API_RESPONSE, *PVIRUSTOTAL_API_RESPONSE;
+
+typedef struct _VIRUSTOTAL_FILE_REPORT
+{
+    INT64 ResponseCode;
+    PPH_STRING StatusMessage;
+    PPH_STRING PermaLink;
+    PPH_STRING ScanId;
+
+    PPH_STRING ScanDate;
+    PPH_STRING Positives;
+    PPH_STRING Total;
+    PPH_LIST ScanResults;
+} VIRUSTOTAL_FILE_REPORT, *PVIRUSTOTAL_FILE_REPORT;
+
+typedef struct _VIRUSTOTAL_FILE_REPORT_RESULT
+{
+    BOOLEAN Detected;
+
+    PPH_STRING Vendor;
+    PPH_STRING DetectionName;
+    PPH_STRING EngineVersion;
+    PPH_STRING DatabaseDate;
+} VIRUSTOTAL_FILE_REPORT_RESULT, *PVIRUSTOTAL_FILE_REPORT_RESULT;
+
+PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
+    _In_ PPH_STRING FileHash
+    );
+
+PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
+    _In_ PPH_STRING FileHash
+    );
+
 
 VOID InitializeVirusTotalProcessMonitor(
     VOID

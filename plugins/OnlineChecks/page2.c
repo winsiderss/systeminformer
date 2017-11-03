@@ -46,11 +46,11 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
             if (context->TaskbarListClass)
             {
                 ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
-            }           
+            }
         }
         break;
     case TDN_BUTTON_CLICKED:
-        {         
+        {
             INT buttonID = (INT)wParam;
 
             if (buttonID == IDOK)
