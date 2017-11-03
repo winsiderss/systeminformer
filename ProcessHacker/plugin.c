@@ -198,7 +198,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PCWSTR PhpPluginBlocklist[] =
+    static const PWSTR PhpPluginBlocklist[] =
     {
         L"CommonUtil.dll",
         L"ExtraPlugins.dll"
