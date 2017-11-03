@@ -202,10 +202,6 @@ VOID PhMwpDispatchMenuCommand(
     _In_ ULONG_PTR ItemData
     );
 
-HBITMAP PhMwpGetShieldBitmap(
-    VOID
-    );
-
 VOID PhMwpInitializeSubMenu(
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
