@@ -2459,26 +2459,6 @@ VOID PhMwpDispatchMenuCommand(
     SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
 }
 
-HBITMAP PhMwpGetShieldBitmap(
-    VOID
-    )
-{
-    static HBITMAP shieldBitmap = NULL;
-
-    if (!shieldBitmap)
-    {
-        HICON shieldIcon;
-
-        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
-        {
-            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            DestroyIcon(shieldIcon);
-        }
-    }
-
-    return shieldBitmap;
-}
-
 VOID PhMwpInitializeSubMenu(
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
@@ -2500,7 +2480,7 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhMwpGetShieldBitmap())
+            if (shieldBitmap = PhGetShieldBitmap())
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                     menuItem->Bitmap = shieldBitmap;
@@ -2642,7 +2622,7 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhMwpGetShieldBitmap())
+            if (shieldBitmap = PhGetShieldBitmap())
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;

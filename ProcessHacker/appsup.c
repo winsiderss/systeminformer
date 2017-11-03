@@ -2152,3 +2152,23 @@ PPH_STRING PhPcre2GetErrorMessage(
     buffer->Length = returnLength * sizeof(WCHAR);
     return buffer;
 }
+
+HBITMAP PhGetShieldBitmap(
+    VOID
+    )
+{
+    static HBITMAP shieldBitmap = NULL;
+
+    if (!shieldBitmap)
+    {
+        HICON shieldIcon;
+
+        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
+        {
+            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            DestroyIcon(shieldIcon);
+        }
+    }
+
+    return shieldBitmap;
+}
