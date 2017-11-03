@@ -198,38 +198,42 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
+    static PCWSTR PhpPluginBlocklist[] =
+    {
+        L"CommonUtil.dll",
+        L"ExtraPlugins.dll"
+    };
+    BOOLEAN blacklistedPlugin = FALSE;
     PH_STRINGREF baseName;
     PPH_STRING fileName;
 
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
 
-    if (PhEndsWithStringRef2(&baseName, L".dll", TRUE))
+    for (ULONG i = 0; i < ARRAYSIZE(PhpPluginBlocklist); i++)
     {
-        // Plugin blacklist
-        if (PhEndsWithStringRef2(&baseName, L"CommonUtil.dll", TRUE))
+        if (PhEndsWithStringRef2(&baseName, PhpPluginBlocklist[i], TRUE))
         {
-            fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
-            memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
-            memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
-
-            PhDeleteFileWin32(fileName->Buffer);
-
-            PhDereferenceObject(fileName);
+            blacklistedPlugin = TRUE;
+            break;
         }
-        else
-        {
-            if (!PhIsPluginDisabled(&baseName))
-            {
-                fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
-                memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
-                memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
+    }
 
-                PhLoadPlugin(fileName);
+    if (blacklistedPlugin)
+    {
+        fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
 
-                PhDereferenceObject(fileName);
-            }
-        }
+        PhDeleteFileWin32(fileName->Buffer);
+
+        PhDereferenceObject(fileName);
+    }
+    else if (!PhIsPluginDisabled(&baseName))
+    {
+        fileName = PhConcatStringRef2(&PluginsDirectory->sr, &baseName);
+
+        PhLoadPlugin(fileName);
+
+        PhDereferenceObject(fileName);
     }
 
     return TRUE;
