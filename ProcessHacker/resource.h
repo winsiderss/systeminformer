@@ -39,11 +39,9 @@
 #define IDD_FINDOBJECTS                 130
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
-#define ID_SHOWCONTEXTMENU              132
 #define IDR_PRIVILEGE                   133
 #define IDC_SEPARATOR                   133
 #define IDR_FINDOBJ                     134
-#define IDC_COMMIT                      134
 #define IDD_HIDDENPROCESSES             135
 #define ID_TRAYICONS_REGISTERED         135
 #define IDD_RUNAS                       136
@@ -74,6 +72,7 @@
 #define IDD_NETSTACK                    167
 #define IDD_CREATESERVICE               168
 #define IDD_PROCPERFORMANCE             169
+#define ID_SHOWCONTEXTMENU              169
 #define IDD_PROCSTATISTICS              170
 #define IDD_OPTADVANCED                 171
 #define IDR_ICON                        173
@@ -88,6 +87,7 @@
 #define IDD_MEMSTRING                   185
 #define IDD_OPTGRAPHS                   186
 #define IDD_PLUGINS                     187
+#define IDD_PLUGINMANAGER               187
 #define IDD_HANDLESTATS                 188
 #define IDD_PROCRECORD                  189
 #define IDD_CHOOSEPROCESS               190
@@ -125,6 +125,8 @@
 #define IDB_SEARCH_ACTIVE_BMP           225
 #define IDB_SEARCH_INACTIVE_BMP         226
 #define IDD_OPTIONS                     227
+#define IDD_PLUGINPROPERTIES            228
+#define IDD_PLUGINSDISABLED             241
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -414,7 +416,6 @@
 #define IDC_COMPANYNAME_LINK            1279
 #define IDC_SAMPLECOUNT                 1280
 #define IDC_SAMPLECOUNTLABEL            1281
-#define IDC_DISABLE                     1282
 #define IDC_VIRTUALKEY                  1283
 #define IDC_CTRL                        1284
 #define IDC_ALT                         1285
@@ -523,6 +524,9 @@
 #define IDC_INFO                        1396
 #define IDC_DEFSTATE                    1398
 #define IDC_SETTINGS                    1399
+#define IDC_PLUGINTREE                  1400
+#define IDC_DISABLED                    1401
+#define IDC_LIST_DISABLED               1402
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -551,7 +555,6 @@
 #define ID_PROCESS_AFFINITY             40035
 #define ID_PROCESS_CREATEDUMPFILE       40036
 #define ID_MISCELLANEOUS_DETACHFROMDEBUGGER 40039
-#define ID_MISCELLANEOUS_HEAPS          40040
 #define ID_MISCELLANEOUS_INJECTDLL      40041
 #define ID_PRIORITY_REALTIME            40048
 #define ID_PRIORITY_HIGH                40049
@@ -728,9 +731,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        239
+#define _APS_NEXT_RESOURCE_VALUE        243
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1400
-#define _APS_NEXT_SYMED_VALUE           169
+#define _APS_NEXT_CONTROL_VALUE         1403
+#define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
