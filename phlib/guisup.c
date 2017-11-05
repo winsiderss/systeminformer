@@ -678,34 +678,28 @@ VOID PhGetStockApplicationIcon(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemDirectory;
-        PPH_STRING dllFileName;
-
-        // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
-        // the default application icon.
-
-        if (systemDirectory = PhGetSystemDirectory())
+        if (WindowsVersion < WINDOWS_10)
         {
-            PH_STRINGREF dllBaseName;
-            ULONG index;
+            PPH_STRING systemDirectory;
+            PPH_STRING dllFileName;
 
-            // TODO: Find a better solution.
-            if (WindowsVersion >= WINDOWS_10)
+            // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
+            // the default application icon.
+
+            if (systemDirectory = PhGetSystemDirectory())
             {
-                PhInitializeStringRef(&dllBaseName, L"\\imageres.dll");
-                index = 11;
-            }
-            else
-            {
+                PH_STRINGREF dllBaseName;
+                ULONG index;
+
                 PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
                 index = 0;
+
+                dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
+                PhDereferenceObject(systemDirectory);
+
+                ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
+                PhDereferenceObject(dllFileName);
             }
-
-            dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
-            PhDereferenceObject(systemDirectory);
-
-            ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
-            PhDereferenceObject(dllFileName);
         }
 
         // Fallback icons
