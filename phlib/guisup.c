@@ -710,9 +710,9 @@ VOID PhGetStockApplicationIcon(
 
         // Fallback icons
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0);
 
         PhEndInitOnce(&initOnce);
     }
