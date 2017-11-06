@@ -108,7 +108,7 @@ PVOID PhSvcValidateString(
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
 
-    address = (PCHAR)client->ClientViewBase + String->Offset;
+    address = PTR_ADD_OFFSET(client->ClientViewBase, String->Offset);
 
     if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
         (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||

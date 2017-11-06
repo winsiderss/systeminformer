@@ -5153,7 +5153,7 @@ HANDLE PhGetNamespaceHandle(
             RtlLengthSid(&PhSeInteractiveSid);
 
         securityDescriptor = PhAllocate(sdAllocationLength);
-        dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+        dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
         RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);

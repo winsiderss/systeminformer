@@ -741,7 +741,7 @@ VOID PhSetDesktopWinStaAccess(
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(allAppPackagesSid);
     securityDescriptor = PhAllocate(allocationLength);
-    dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+    dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 

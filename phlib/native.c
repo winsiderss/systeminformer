@@ -4307,12 +4307,12 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
         if (RtlPrefixUnicodeString(&systemRoot, &fileName, TRUE))
         {
-            fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + systemRoot.Length);
+            fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, systemRoot.Length);
             fileName.Length -= systemRoot.Length;
 
             if (RtlPrefixUnicodeString(frameworkPart, &fileName, TRUE))
             {
-                fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + frameworkPart->Length);
+                fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, frameworkPart->Length);
                 fileName.Length -= frameworkPart->Length;
 
                 if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
@@ -5077,7 +5077,7 @@ PPH_STRING PhGetFileName(
         PhGetSystemRoot(&systemRoot);
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 11 * 2);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length, &FileName->Buffer[11], FileName->Length - 11 * 2);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * 2);
     }
     // "system32\" means "C:\Windows\system32\".
     else if (PhStartsWithString2(FileName, L"system32\\", TRUE))
@@ -5088,7 +5088,7 @@ PPH_STRING PhGetFileName(
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + 2 + FileName->Length);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         newFileName->Buffer[systemRoot.Length / 2] = '\\';
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length + 2, FileName->Buffer, FileName->Length);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + 2), FileName->Buffer, FileName->Length);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {

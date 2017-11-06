@@ -822,7 +822,7 @@ VOID PhSetClipboardString(
     memory = GlobalLock(data);
 
     memcpy(memory, String->Buffer, String->Length);
-    *(PWCHAR)((PCHAR)memory + String->Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(memory, String->Length) = 0;
 
     GlobalUnlock(memory);
 
