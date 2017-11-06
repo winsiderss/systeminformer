@@ -332,7 +332,7 @@ NTSTATUS PhReadFileStream(
     // Try to satisfy the request from the buffer.
     memcpy(
         Buffer,
-        (PCHAR)FileStream->Buffer + FileStream->ReadPosition,
+        PTR_ADD_OFFSET(FileStream->Buffer, FileStream->ReadPosition),
         readLength
         );
     FileStream->ReadPosition += readLength;
@@ -348,7 +348,7 @@ NTSTATUS PhReadFileStream(
 
         if (NT_SUCCESS(status = PhpReadFileStream(
             FileStream,
-            (PCHAR)Buffer + readLength,
+            PTR_ADD_OFFSET(Buffer, readLength),
             Length - readLength,
             &readLength2
             )))
@@ -454,7 +454,7 @@ NTSTATUS PhWriteFileStream(
                 writtenLength = Length;
 
             memcpy(
-                (PCHAR)FileStream->Buffer + FileStream->WritePosition,
+                PTR_ADD_OFFSET(FileStream->Buffer, FileStream->WritePosition),
                 Buffer,
                 writtenLength
                 );
@@ -466,7 +466,7 @@ NTSTATUS PhWriteFileStream(
                 return status;
             }
 
-            Buffer = (PCHAR)Buffer + writtenLength;
+            Buffer = PTR_ADD_OFFSET(Buffer, writtenLength);
             Length -= writtenLength;
         }
 

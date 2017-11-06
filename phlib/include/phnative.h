@@ -633,7 +633,7 @@ PhGetKernelFileName(
  */
 #define PH_NEXT_PROCESS(Process) ( \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
-    (PSYSTEM_PROCESS_INFORMATION)((PCHAR)(Process) + \
+    (PSYSTEM_PROCESS_INFORMATION)PTR_ADD_OFFSET((Process), \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) : \
     NULL \
     )
@@ -700,7 +700,7 @@ PhEnumHandlesEx(
     )
 #define PH_NEXT_PAGEFILE(Pagefile) ( \
     ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset ? \
-    (PSYSTEM_PAGEFILE_INFORMATION)((PCHAR)(Pagefile) + \
+    (PSYSTEM_PAGEFILE_INFORMATION)PTR_ADD_OFFSET((Pagefile), \
     ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset) : \
     NULL \
     )

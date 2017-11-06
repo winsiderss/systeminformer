@@ -52,7 +52,7 @@ NTSTATUS PhpCopyProcessMitigationPolicy(
         return status;
     }
 
-    memcpy(Destination, (PCHAR)&policyInfo + Offset, Size);
+    memcpy(Destination, PTR_ADD_OFFSET(&policyInfo, Offset), Size);
     *Status = STATUS_SUCCESS;
 
     return status;
