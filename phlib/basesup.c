@@ -267,11 +267,12 @@ HANDLE PhCreateThread(
     }
 }
 
-VOID PhCreateThread2(
+NTSTATUS PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
     _In_opt_ PVOID Parameter
     )
 {
+    NTSTATUS status;
     HANDLE threadHandle;
     PPHP_BASE_THREAD_CONTEXT context;
 
@@ -279,7 +280,7 @@ VOID PhCreateThread2(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    if (NT_SUCCESS(RtlCreateUserThread(
+    status = RtlCreateUserThread(
         NtCurrentProcess(),
         NULL,
         FALSE,
@@ -290,7 +291,9 @@ VOID PhCreateThread2(
         context,
         &threadHandle,
         NULL
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         PHLIB_INC_STATISTIC(BaseThreadsCreated);
         NtClose(threadHandle);
@@ -300,6 +303,8 @@ VOID PhCreateThread2(
         PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
         PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
     }
+
+    return status;
 }
 
 /**
