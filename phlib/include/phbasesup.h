@@ -41,7 +41,7 @@ PhCreateThread(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
