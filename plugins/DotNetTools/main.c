@@ -26,7 +26,6 @@
 PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginPhSvcRequestCallbackRegistration;
@@ -49,14 +48,6 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
-}
-
-VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -236,12 +227,6 @@ LOGICAL DllMain(
                 UnloadCallback,
                 NULL,
                 &PluginUnloadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
                 );
             //PhRegisterCallback(
             //    PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
