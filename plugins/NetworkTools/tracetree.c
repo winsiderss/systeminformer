@@ -51,6 +51,9 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
         if (tracertNode->PingString[i])
             PhDereferenceObject(tracertNode->PingString[i]);
     }
+
+    if (tracertNode->CountryIcon)
+        DestroyIcon(tracertNode->CountryIcon);
 }
 
 PTRACERT_ROOT_NODE TracertTreeCreateNode(
