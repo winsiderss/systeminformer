@@ -3,6 +3,7 @@
  *   handle provider
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -84,7 +85,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
 
     handleProvider->RunStatus = PhOpenProcess(
         &handleProvider->ProcessHandle,
-        PROCESS_DUP_HANDLE,
+        PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE,
         ProcessId
         );
 
@@ -133,11 +134,13 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
     if (Handle)
     {
         handleItem->Handle = (HANDLE)Handle->HandleValue;
-        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
         handleItem->Object = Handle->Object;
-        PhPrintPointer(handleItem->ObjectString, handleItem->Object);
         handleItem->Attributes = Handle->HandleAttributes;
         handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
+        handleItem->TypeIndex = Handle->ObjectTypeIndex;
+
+        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
+        PhPrintPointer(handleItem->ObjectString, handleItem->Object);
         PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
     }
 
@@ -299,40 +302,34 @@ NTSTATUS PhEnumHandlesGeneric(
     NTSTATUS status;
 
     // There are three ways of enumerating handles:
-    // * When KProcessHacker is available, using KphEnumerateProcessHandles
-    //   is the most efficient method.
-    // * On Windows XP and later, NtQuerySystemInformation with
-    //   SystemExtendedHandleInformation can be used.
-    // * Otherwise, NtQuerySystemInformation with SystemHandleInformation
-    //   can be used.
+    // * On Windows 8 and later, NtQueryInformationProcess with ProcessHandleInformation is the most efficient method.
+    // * On Windows XP and later, NtQuerySystemInformation with SystemExtendedHandleInformation.
+    // * Otherwise, NtQuerySystemInformation with SystemHandleInformation can be used.
 
-    if (KphIsConnected())
+    if (WindowsVersion >= WINDOWS_8)
     {
-        PKPH_PROCESS_HANDLE_INFORMATION handles;
+        PPROCESS_HANDLE_SNAPSHOT_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
         ULONG i;
 
-        // Enumerate handles using KProcessHacker. Unlike with NtQuerySystemInformation,
-        // this only enumerates handles for a single process and saves a lot of processing.
-
-        if (!NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
+        if (!NT_SUCCESS(status = PhEnumHandlesEx2(ProcessHandle, &handles)))
             goto FAILED;
 
         convertedHandles = PhAllocate(
             FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
-            sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->HandleCount
+            sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->NumberOfHandles
             );
 
-        convertedHandles->NumberOfHandles = handles->HandleCount;
+        convertedHandles->NumberOfHandles = handles->NumberOfHandles;
 
-        for (i = 0; i < handles->HandleCount; i++)
+        for (i = 0; i < handles->NumberOfHandles; i++)
         {
-            convertedHandles->Handles[i].Object = handles->Handles[i].Object;
+            convertedHandles->Handles[i].Object = 0;
             convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
-            convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].Handle;
-            convertedHandles->Handles[i].GrantedAccess = (ULONG)handles->Handles[i].GrantedAccess;
+            convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].HandleValue;
+            convertedHandles->Handles[i].GrantedAccess = handles->Handles[i].GrantedAccess;
             convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
-            convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
+            convertedHandles->Handles[i].ObjectTypeIndex = (USHORT)handles->Handles[i].ObjectTypeIndex;
             convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
         }
 
@@ -503,9 +500,20 @@ VOID PhHandleProviderUpdate(
                     // different object wasn't re-opened with the same
                     // handle value. This isn't 100% accurate as pool
                     // addresses may be re-used, but it works well.
-                    if (handleItem->Object == (*tempHashtableValue)->Object)
+                    if (handleItem->Object && handleItem->Object == (*tempHashtableValue)->Object)
                     {
                         found = TRUE;
+                    }
+                    else
+                    {
+                        if (
+                            handleItem->Handle == (HANDLE)(*tempHashtableValue)->HandleValue &&
+                            handleItem->GrantedAccess == (*tempHashtableValue)->GrantedAccess &&
+                            handleItem->TypeIndex == (*tempHashtableValue)->ObjectTypeIndex
+                            )
+                        {
+                            found = TRUE;
+                        }
                     }
                 }
 
