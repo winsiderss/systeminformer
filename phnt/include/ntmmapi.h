@@ -308,8 +308,8 @@ typedef struct _MMPFN_MEMSNAP_INFORMATION
 
 typedef enum _SECTION_INFORMATION_CLASS
 {
-    SectionBasicInformation,
-    SectionImageInformation,
+    SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
+    SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
     SectionRelocationInformation, // name:wow64:whNtQuerySection_SectionRelocationInformation
     SectionOriginalBaseInformation, // PVOID BaseAddress
     SectionInternalImageInformation, // SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
