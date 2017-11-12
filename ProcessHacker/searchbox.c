@@ -496,7 +496,7 @@ HICON PhpSearchBitmapToIcon(
     HBITMAP screenBitmap;
     ICONINFO iconInfo = { 0 };
 
-    screenDc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenDc = GetDC(NULL);
     screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
 
     iconInfo.fIcon = TRUE;
@@ -506,7 +506,7 @@ HICON PhpSearchBitmapToIcon(
     icon = CreateIconIndirect(&iconInfo);
 
     DeleteObject(screenBitmap);
-    DeleteDC(screenDc);
+    ReleaseDC(NULL, screenDc);
 
     return icon;
 }
@@ -644,7 +644,7 @@ HBITMAP PhLoadPngImageFromResource(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenHdc = GetDC(NULL);
     bufferDc = CreateCompatibleDC(screenHdc);
     bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
 
@@ -668,7 +668,7 @@ CleanupExit:
         DeleteDC(bufferDc);
 
     if (screenHdc)
-        DeleteDC(screenHdc);
+        ReleaseDC(NULL, screenHdc);
 
     if (wicBitmapSource)
         IWICBitmapSource_Release(wicBitmapSource);

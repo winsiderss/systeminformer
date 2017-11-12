@@ -160,10 +160,10 @@ HBITMAP PhIconToBitmap(
     iconRectangle.right = Width;
     iconRectangle.bottom = Height;
 
-    screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenHdc = GetDC(NULL);
     hdc = CreateCompatibleDC(screenHdc);
     bitmap = PhpCreateBitmap32(screenHdc, Width, Height, NULL);
-    DeleteDC(screenHdc);
+    ReleaseDC(NULL, screenHdc);
     oldBitmap = SelectObject(hdc, bitmap);
 
     paintParams.dwFlags = BPPF_ERASE;

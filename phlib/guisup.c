@@ -47,10 +47,10 @@ VOID PhGuiSupportInitialization(
     PVOID shell32Handle;
     PVOID shlwapiHandle;
 
-    if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
+    if (hdc = GetDC(NULL))
     {
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        DeleteDC(hdc);
+        ReleaseDC(NULL, hdc);
     }
 
     shell32Handle = LoadLibrary(L"shell32.dll");

@@ -117,10 +117,10 @@ static ULONG PhpGetCurrentScale(
     {
         HDC hdc;
 
-        if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
+        if (hdc = GetDC(NULL))
         {
             dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-            DeleteDC(hdc);
+            ReleaseDC(NULL, hdc);
         }
 
         PhEndInitOnce(&initOnce);
