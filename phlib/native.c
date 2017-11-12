@@ -4142,6 +4142,59 @@ NTSTATUS PhEnumHandlesEx(
 }
 
 /**
+ * Enumerates all open handles.
+ *
+ * \param ProcessHandle A handle to the process. The handle must have PROCESS_LIMITED_INFORMATION access.
+ * \param Handles A variable which receives a pointer to a structure containing information about
+ * handles opened by the process. You must free the structure using PhFree() when you no longer need it.
+ *
+ * \retval STATUS_INSUFFICIENT_RESOURCES The handle information returned by the kernel is too large.
+ *
+ * \remarks This function is only available starting with Windows 8.
+ */
+NTSTATUS PhEnumHandlesEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x1000;
+    ULONG returnLength = 0;
+
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessHandleInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to something very large.
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Handles = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+/**
  * Enumerates all pagefiles.
  *
  * \param Pagefiles A variable which receives a pointer to a buffer containing information about all

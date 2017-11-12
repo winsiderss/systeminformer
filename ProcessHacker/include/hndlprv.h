@@ -18,6 +18,7 @@ typedef struct _PH_HANDLE_ITEM
     PVOID Object;
     ULONG Attributes;
     ACCESS_MASK GrantedAccess;
+    ULONG TypeIndex;
     ULONG FileFlags;
 
     PPH_STRING TypeName;
