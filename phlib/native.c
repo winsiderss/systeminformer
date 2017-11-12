@@ -4144,7 +4144,7 @@ NTSTATUS PhEnumHandlesEx(
 /**
  * Enumerates all open handles.
  *
- * \param ProcessHandle A handle to the process. The handle must have PROCESS_LIMITED_INFORMATION access.
+ * \param ProcessHandle A handle to the process. The handle must have PROCESS_QUERY_INFORMATION access.
  * \param Handles A variable which receives a pointer to a structure containing information about
  * handles opened by the process. You must free the structure using PhFree() when you no longer need it.
  *
@@ -4159,7 +4159,7 @@ NTSTATUS PhEnumHandlesEx2(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 0x1000;
+    ULONG bufferSize = 0x8000;
     ULONG returnLength = 0;
 
     buffer = PhAllocate(bufferSize);
