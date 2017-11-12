@@ -233,6 +233,19 @@ INT WINAPI wWinMain(
         PhLoadPlugins();
     }
 
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+        // Note: The PhInitializeMitigationPolicy function enables the other mitigation policies.
+        // However, we can only enable the ProcessSignaturePolicy after loading plugins.
+        policyInfo.Policy = ProcessSignaturePolicy;
+        policyInfo.SignaturePolicy.Flags = 0;
+        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    }
+
     if (PhStartupParameters.PhSvc)
     {
         MSG message;
@@ -548,7 +561,7 @@ VOID PhInitializeMitigationPolicy(
         KEY_WRITE | DELETE,
         PH_KEY_LOCAL_MACHINE,
         &policyKeyName,
-        0,
+        OBJ_OPENIF,
         0,
         NULL
         )))
