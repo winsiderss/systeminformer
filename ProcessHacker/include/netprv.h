@@ -25,7 +25,7 @@ typedef struct _PH_NETWORK_ITEM
     BOOLEAN ProcessIconValid;
     PPH_STRING OwnerName;
 
-    BOOLEAN JustResolved;
+    ULONG JustResolved;
 
     WCHAR LocalAddressString[65];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];

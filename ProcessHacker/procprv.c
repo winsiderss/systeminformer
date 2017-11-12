@@ -1808,7 +1808,7 @@ VOID PhFlushProcessQueryData(
     PPH_PROCESS_QUERY_DATA data;
     BOOLEAN processed;
 
-    if (!RtlFirstEntrySList(&PhProcessQueryDataListHead))
+    if (RtlQueryDepthSList(&PhProcessQueryDataListHead) == 0)
         return;
 
     entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
@@ -1847,7 +1847,7 @@ VOID PhFlushProcessQueryData(
             }
             else
             {
-                data->ProcessItem->JustProcessed = 1;
+                data->ProcessItem->JustProcessed = TRUE;
             }
         }
 
@@ -2323,7 +2323,7 @@ VOID PhProcessProviderUpdate(
 
             // Max. values
 
-            if (processItem->ProcessId != NULL)
+            if (processItem->ProcessId)
             {
                 if (maxCpuValue < newCpuUsage)
                 {

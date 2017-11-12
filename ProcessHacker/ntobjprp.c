@@ -393,7 +393,7 @@ static VOID PhpRefreshMutantPageInfo(
         {
             PPH_STRING name;
 
-            if (ownerInfo.ClientId.UniqueProcess != NULL)
+            if (ownerInfo.ClientId.UniqueProcess)
             {
                 name = PhGetClientIdName(&ownerInfo.ClientId);
                 SetDlgItemText(hwndDlg, IDC_OWNER, name->Buffer);

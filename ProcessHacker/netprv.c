@@ -456,6 +456,35 @@ VOID PhpUpdateNetworkItemOwner(
     }
 }
 
+VOID PhFlushNetworkQueryData(
+    VOID
+    )
+{
+    PSLIST_ENTRY entry;
+    PPH_NETWORK_ITEM_QUERY_DATA data;
+
+    if (RtlQueryDepthSList(&PhNetworkItemQueryListHead) == 0)
+        return;
+
+    entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
+
+    while (entry)
+    {
+        data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
+        entry = entry->Next;
+
+        if (data->Remote)
+            PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
+        else
+            PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
+
+        data->NetworkItem->JustResolved = TRUE;
+
+        PhDereferenceObject(data->NetworkItem);
+        PhFree(data);
+    }
+}
+
 VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
     )
@@ -476,6 +505,7 @@ VOID PhNetworkProviderUpdate(
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
         return;
 
+    // Look for closed connections.
     {
         PPH_LIST connectionsToRemove = NULL;
         PH_HASHTABLE_ENUM_CONTEXT enumContext;
@@ -527,29 +557,9 @@ VOID PhNetworkProviderUpdate(
     }
 
     // Go through the queued network item query data.
-    {
-        PSLIST_ENTRY entry;
-        PPH_NETWORK_ITEM_QUERY_DATA data;
+    PhFlushNetworkQueryData();
 
-        entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
-
-        while (entry)
-        {
-            data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
-            entry = entry->Next;
-
-            if (data->Remote)
-                PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
-            else
-                PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
-
-            data->NetworkItem->JustResolved = TRUE;
-
-            PhDereferenceObject(data->NetworkItem);
-            PhFree(data);
-        }
-    }
-
+    // Look for new network connections and update existing ones.
     for (i = 0; i < numberOfConnections; i++)
     {
         PPH_NETWORK_ITEM networkItem;
@@ -673,7 +683,7 @@ VOID PhNetworkProviderUpdate(
             BOOLEAN modified = FALSE;
             PPH_PROCESS_ITEM processItem;
 
-            if (networkItem->JustResolved)
+            if (InterlockedExchange(&networkItem->JustResolved, 0) != 0)
                 modified = TRUE;
 
             if (networkItem->State != connections[i].State)
@@ -704,8 +714,6 @@ VOID PhNetworkProviderUpdate(
                     PhDereferenceObject(processItem);
                 }
             }
-
-            networkItem->JustResolved = FALSE;
 
             if (modified)
             {
