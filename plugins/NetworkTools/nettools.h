@@ -274,7 +274,6 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING FileDownloadUrl;
     PPH_STRING RevVersion;
     PPH_STRING Size;
-    PPH_STRING SetupFilePath;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 VOID TaskDialogLinkClicked(

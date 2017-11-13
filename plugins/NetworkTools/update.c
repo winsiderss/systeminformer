@@ -43,9 +43,6 @@ VOID FreeUpdateContext(
     if (Context->Size)
         PhDereferenceObject(Context->Size);
 
-    if (Context->SetupFilePath)
-        PhDereferenceObject(Context->SetupFilePath);
-
     PhDereferenceObject(Context);
 }
 
@@ -196,10 +193,14 @@ NTSTATUS GeoIPUpdateThread(
     HANDLE tempFileHandle = NULL;
     PPH_STRING fwLinkUrl = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING zipFilePath = NULL;
     PPH_STRING versionString = NULL;
     PPH_STRING userAgentString = NULL;
     PPH_STRING httpHostName = NULL;
     PPH_STRING httpHostPath = NULL;
+    PPH_STRING dbpath = NULL;
+    PPH_BYTES mmdbGzPath = NULL;
+    gzFile gzfile = NULL;
     USHORT httpHostPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
@@ -212,14 +213,14 @@ NTSTATUS GeoIPUpdateThread(
     if (!(fwLinkUrl = QueryFwLinkUrl(context)))
         goto CleanupExit;
 
-    context->SetupFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
+    zipFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
 
-    if (PhIsNullOrEmptyString(context->SetupFilePath))
+    if (PhIsNullOrEmptyString(zipFilePath))
         goto CleanupExit;
 
     if (!NT_SUCCESS(PhCreateFileWin32(
         &tempFileHandle,
-        PhGetString(context->SetupFilePath),
+        PhGetString(zipFilePath),
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -371,17 +372,10 @@ NTSTATUS GeoIPUpdateThread(
         }
 
         {
-            PPH_STRING dbpath;
-            PPH_BYTES mmdbGzPath;
-            gzFile gzfile;
-
             dbpath = PhGetExpandStringSetting(SETTING_NAME_DB_LOCATION);
 
             if (PhIsNullOrEmptyString(dbpath))
                 PhMoveReference(&dbpath, PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker\\GeoLite2-Country.mmdb"));
-
-            PhAutoDereferenceObject(dbpath);
-            mmdbGzPath = PH_AUTO(PhConvertUtf16ToUtf8(PhGetString(context->SetupFilePath)));
 
             if (RtlDoesFileExists_U(PhGetString(dbpath)))
             {
@@ -395,12 +389,16 @@ NTSTATUS GeoIPUpdateThread(
                 PPH_STRING fullPath;
                 ULONG indexOfFileName;
 
-                if (fullPath = PH_AUTO(PhGetFullPath(dbpath->Buffer, &indexOfFileName)))
+                if (fullPath = PhGetFullPath(dbpath->Buffer, &indexOfFileName))
                 {
                     if (indexOfFileName != -1)
                         PhCreateDirectory(PhaSubstring(fullPath, 0, indexOfFileName));
+
+                    PhDereferenceObject(fullPath);
                 }
             }
+
+            mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(zipFilePath));
 
             if (gzfile = gzopen(mmdbGzPath->Buffer, "rb"))
             {
@@ -452,11 +450,19 @@ NTSTATUS GeoIPUpdateThread(
                 }
 
                 gzclose(gzfile);
+                gzfile = NULL;
             }
         }
     }
 
 CleanupExit:
+
+    if (gzfile)
+        gzclose(gzfile);
+    if (mmdbGzPath)
+        PhDereferenceObject(mmdbGzPath);
+    if (dbpath)
+        PhDereferenceObject(dbpath);
 
     if (tempFileHandle)
         NtClose(tempFileHandle);
@@ -469,10 +475,10 @@ CleanupExit:
     if (versionString)
         PhDereferenceObject(versionString);
 
-    if (context->SetupFilePath)
+    if (zipFilePath)
     {
-        PhDeleteCacheFile(context->SetupFilePath);
-        PhDereferenceObject(context->SetupFilePath);
+        PhDeleteCacheFile(zipFilePath);
+        PhDereferenceObject(zipFilePath);
     }
 
     if (context->DialogHandle)
