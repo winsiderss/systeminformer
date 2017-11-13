@@ -44,7 +44,6 @@ FORCEINLINE VOID PhChangeShStateTn(
         ULONG64 tickCount; \
         BOOLEAN preferFullInvalidate; \
         HANDLE stateListHandle; \
-        BOOLEAN redrawDisabled = FALSE; \
         BOOLEAN needsFullInvalidate = FALSE; \
 \
         if (!StateList || StateList->Count == 0) \
@@ -72,21 +71,13 @@ FORCEINLINE VOID PhChangeShStateTn(
                     } \
                     else \
                     { \
-                        TreeNew_InvalidateNode(TreeNewHandleForUpdate, node); \
+                        if (TreeNewHandleForUpdate) \
+                            TreeNew_InvalidateNode((TreeNewHandleForUpdate), node); \
                     } \
                 } \
             } \
             else if (node->ShStateFieldName.State == RemovingItemState) \
             { \
-                if (TreeNewHandleForUpdate) \
-                { \
-                    if (!redrawDisabled) \
-                    { \
-                        TreeNew_SetRedraw((TreeNewHandleForUpdate), FALSE); \
-                        redrawDisabled = TRUE; \
-                    } \
-                } \
-\
                 RemoveFunction(node, __VA_ARGS__); \
                 needsFullInvalidate = TRUE; \
             } \
@@ -96,8 +87,6 @@ FORCEINLINE VOID PhChangeShStateTn(
 \
         if (TreeNewHandleForUpdate) \
         { \
-            if (redrawDisabled) \
-                TreeNew_SetRedraw((TreeNewHandleForUpdate), TRUE); \
             if (needsFullInvalidate) \
             { \
                 InvalidateRect((TreeNewHandleForUpdate), NULL, FALSE); \

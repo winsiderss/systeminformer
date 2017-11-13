@@ -521,6 +521,33 @@ VOID PhpQueueServiceQuery(
     PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryWorker, data, NULL, &environment);
 }
 
+VOID PhFlushServiceQueryData(
+    VOID
+    )
+{
+    PSLIST_ENTRY entry;
+    PPH_SERVICE_QUERY_DATA data;
+
+    if (!RtlFirstEntrySList(&PhpServiceQueryListHead))
+        return;
+
+    entry = RtlInterlockedFlushSList(&PhpServiceQueryListHead);
+
+    while (entry)
+    {
+        data = CONTAINING_RECORD(entry, PH_SERVICE_QUERY_DATA, ListEntry);
+        entry = entry->Next;
+
+        data->ServiceItem->VerifyResult = data->VerifyResult;
+        data->ServiceItem->VerifySignerName = data->VerifySignerName;
+
+        data->ServiceItem->NeedsVerifyUpdate = TRUE;
+
+        PhDereferenceObject(data->ServiceItem);
+        PhFree(data);
+    }
+}
+
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     )
@@ -604,25 +631,7 @@ VOID PhServiceProviderUpdate(
     }
 
     // Go through the queued services query data.
-    {
-        PSLIST_ENTRY entry;
-        PPH_SERVICE_QUERY_DATA data;
-
-        entry = RtlInterlockedFlushSList(&PhpServiceQueryListHead);
-
-        while (entry)
-        {
-            data = CONTAINING_RECORD(entry, PH_SERVICE_QUERY_DATA, ListEntry);
-            entry = entry->Next;
-
-            data->ServiceItem->VerifyResult = data->VerifyResult;
-            data->ServiceItem->VerifySignerName = data->VerifySignerName;
-            data->ServiceItem->NeedsVerifyUpdate = TRUE;
-
-            PhDereferenceObject(data->ServiceItem);
-            PhFree(data);
-        }
-    }
+    PhFlushServiceQueryData();
 
     // Look for dead services.
     {

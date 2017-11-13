@@ -3,6 +3,7 @@
  *   Main window: Processes tab
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -43,6 +44,7 @@ PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
 HWND PhMwpProcessTreeNewHandle;
 HWND PhMwpSelectedProcessWindowHandle;
 BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
+PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
@@ -50,9 +52,7 @@ static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static ULONG NeedsSelectPid = 0;
-static BOOLEAN ProcessesNeedsRedraw = FALSE;
 static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
-
 static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 
@@ -68,6 +68,8 @@ BOOLEAN PhMwpProcessesPageCallback(
     case MainTabPageCreate:
         {
             PhMwpProcessesPage = Page;
+
+            PhInitializeProviderEventQueue(&PhMwpProcessEventQueue, 100);
 
             PhRegisterCallback(
                 &PhProcessAddedEvent,
@@ -709,12 +711,7 @@ VOID NTAPI PhMwpProcessAddedHandler(
     // Reference the process item so it doesn't get deleted before
     // we handle the event in the main thread.
     PhReferenceObject(processItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_PROCESS_ADDED,
-        (WPARAM)PhGetRunIdProvider(&PhMwpProcessProviderRegistration),
-        (LPARAM)processItem
-        );
+    PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID NTAPI PhMwpProcessModifiedHandler(
@@ -724,7 +721,7 @@ VOID NTAPI PhMwpProcessModifiedHandler(
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
+    PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID NTAPI PhMwpProcessRemovedHandler(
@@ -736,7 +733,7 @@ VOID NTAPI PhMwpProcessRemovedHandler(
 
     // We already have a reference to the process item, so we don't need to
     // reference it here.
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
+    PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
 VOID NTAPI PhMwpProcessesUpdatedHandler(
@@ -744,7 +741,7 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
+    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, PhGetRunIdProvider(&PhMwpProcessProviderRegistration), 0);
 }
 
 VOID PhMwpOnProcessAdded(
@@ -753,12 +750,6 @@ VOID PhMwpOnProcessAdded(
     )
 {
     PPH_PROCESS_NODE processNode;
-
-    if (!ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, FALSE);
-        ProcessesNeedsRedraw = TRUE;
-    }
 
     processNode = PhAddProcessNode(ProcessItem, RunId);
 
@@ -840,12 +831,6 @@ VOID PhMwpOnProcessRemoved(
 {
     PPH_PROCESS_NODE processNode;
 
-    if (!ProcessesNeedsRedraw)
-    {
-        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, FALSE);
-        ProcessesNeedsRedraw = TRUE;
-    }
-
     PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->QueryHandle, ProcessItem->ProcessName, NULL, NULL);
 
     if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
@@ -872,9 +857,41 @@ VOID PhMwpOnProcessRemoved(
 }
 
 VOID PhMwpOnProcessesUpdated(
-    VOID
+    _In_ ULONG RunId
     )
 {
+    PPH_PROVIDER_EVENT events;
+    ULONG count;
+    ULONG i;
+
+    events = PhFlushProviderEventQueue(&PhMwpProcessEventQueue, RunId, &count);
+
+    if (events)
+    {
+        TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, FALSE);
+
+        for (i = 0; i < count; i++)
+        {
+            PH_PROVIDER_EVENT_TYPE type = PH_PROVIDER_EVENT_TYPE(events[i]);
+            PPH_PROCESS_ITEM processItem = PH_PROVIDER_EVENT_OBJECT(events[i]);
+
+            switch (type)
+            {
+            case ProviderAddedEvent:
+                PhMwpOnProcessAdded(processItem, events[i].RunId);
+                break;
+            case ProviderModifiedEvent:
+                PhMwpOnProcessModified(processItem);
+                break;
+            case ProviderRemovedEvent:
+                PhMwpOnProcessRemoved(processItem);
+                break;
+            }
+        }
+
+        PhFree(events);
+    }
+
     // The modified notification is only sent for special cases.
     // We have to invalidate the text on each update.
     PhTickProcessNodes();
@@ -884,11 +901,8 @@ VOID PhMwpOnProcessesUpdated(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
     }
 
-    if (ProcessesNeedsRedraw)
-    {
+    if (count != 0)
         TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
-        ProcessesNeedsRedraw = FALSE;
-    }
 
     if (NeedsSelectPid != 0)
     {
