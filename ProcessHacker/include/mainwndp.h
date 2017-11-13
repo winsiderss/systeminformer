@@ -121,28 +121,6 @@ ULONG_PTR PhMwpOnUserMessage(
     _In_ ULONG_PTR LParam
     );
 
-// Callbacks
-
-VOID NTAPI PhMwpNetworkItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpNetworkItemModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpNetworkItemRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
-VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
 // Settings
 
 VOID PhMwpLoadSettings(
@@ -276,6 +254,7 @@ extern PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
 extern HWND PhMwpProcessTreeNewHandle;
 extern HWND PhMwpSelectedProcessWindowHandle;
 extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
+extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -352,27 +331,15 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     );
 
-VOID PhMwpOnProcessAdded(
-    _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem,
-    _In_ ULONG RunId
-    );
-
-VOID PhMwpOnProcessModified(
-    _In_ PPH_PROCESS_ITEM ProcessItem
-    );
-
-VOID PhMwpOnProcessRemoved(
-    _In_ PPH_PROCESS_ITEM ProcessItem
-    );
-
 VOID PhMwpOnProcessesUpdated(
-    VOID
+    _In_ ULONG RunId
     );
 
 // Services
 
 extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
 extern HWND PhMwpServiceTreeNewHandle;
+extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
 
 BOOLEAN PhMwpServicesPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -420,27 +387,15 @@ VOID NTAPI PhMwpServicesUpdatedHandler(
     _In_opt_ PVOID Context
     );
 
-VOID PhMwpOnServiceAdded(
-    _In_ _Assume_refs_(1) PPH_SERVICE_ITEM ServiceItem,
-    _In_ ULONG RunId
-    );
-
-VOID PhMwpOnServiceModified(
-    _In_ struct _PH_SERVICE_MODIFIED_DATA *ServiceModifiedData
-    );
-
-VOID PhMwpOnServiceRemoved(
-    _In_ PPH_SERVICE_ITEM ServiceItem
-    );
-
 VOID PhMwpOnServicesUpdated(
-    VOID
+    _In_ ULONG RunId
     );
 
 // Network
 
 extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
 extern HWND PhMwpNetworkTreeNewHandle;
+extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
 
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -469,21 +424,28 @@ VOID PhMwpInitializeNetworkMenu(
     _In_ ULONG NumberOfNetworkItems
     );
 
-VOID PhMwpOnNetworkItemAdded(
-    _In_ ULONG RunId,
-    _In_ _Assume_refs_(1) PPH_NETWORK_ITEM NetworkItem
+VOID PhMwpNetworkItemAddedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
-VOID PhMwpOnNetworkItemModified(
-    _In_ PPH_NETWORK_ITEM NetworkItem
+VOID PhMwpNetworkItemModifiedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
-VOID PhMwpOnNetworkItemRemoved(
-    _In_ PPH_NETWORK_ITEM NetworkItem
+VOID PhMwpNetworkItemRemovedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID PhMwpNetworkItemsUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 VOID PhMwpOnNetworkItemsUpdated(
-    VOID
+    _In_ ULONG RunId
     );
 
 // Users

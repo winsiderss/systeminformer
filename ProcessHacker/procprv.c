@@ -3,6 +3,7 @@
  *   process provider
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1801,14 +1802,13 @@ PPH_STRING PhGetStatisticsTimeString(
 }
 
 VOID PhFlushProcessQueryData(
-    _In_ BOOLEAN SendModifiedEvent
+    VOID
     )
 {
     PSLIST_ENTRY entry;
     PPH_PROCESS_QUERY_DATA data;
-    BOOLEAN processed;
 
-    if (RtlQueryDepthSList(&PhProcessQueryDataListHead) == 0)
+    if (!RtlFirstEntrySList(&PhProcessQueryDataListHead))
         return;
 
     entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
@@ -1817,39 +1817,18 @@ VOID PhFlushProcessQueryData(
     {
         data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
         entry = entry->Next;
-        processed = FALSE;
 
         if (data->Stage == 1)
         {
             PhpFillProcessItemStage1((PPH_PROCESS_QUERY_S1_DATA)data);
             PhSetEvent(&data->ProcessItem->Stage1Event);
-            processed = TRUE;
         }
         else if (data->Stage == 2)
         {
             PhpFillProcessItemStage2((PPH_PROCESS_QUERY_S2_DATA)data);
-            processed = TRUE;
         }
 
-        if (processed)
-        {
-            // Invoke the modified event only if the main provider has sent the added event already.
-            if (SendModifiedEvent && data->ProcessItem->AddedEventSent)
-            {
-                // Since this may be executing on a thread other than the main provider thread, we
-                // need to check whether the process has been removed already. If we don't do this
-                // then users may get a modified event after a removed event for the same process,
-                // which will lead to very bad things happening.
-                PhAcquireQueuedLockExclusive(&data->ProcessItem->RemoveLock);
-                if (!(data->ProcessItem->State & PH_PROCESS_ITEM_REMOVED))
-                    PhInvokeCallback(&PhProcessModifiedEvent, data->ProcessItem);
-                PhReleaseQueuedLockExclusive(&data->ProcessItem->RemoveLock);
-            }
-            else
-            {
-                data->ProcessItem->JustProcessed = TRUE;
-            }
-        }
+        data->ProcessItem->JustProcessed = TRUE;
 
         PhDereferenceObject(data->ProcessItem);
         PhFree(data);
@@ -2106,10 +2085,7 @@ VOID PhProcessProviderUpdate(
                     processItem->Record->ExitTime = exitTime;
 
                     // Raise the process removed event.
-                    // See PhFlushProcessQueryData for why we need to lock here.
-                    PhAcquireQueuedLockExclusive(&processItem->RemoveLock);
                     PhInvokeCallback(&PhProcessRemovedEvent, processItem);
-                    PhReleaseQueuedLockExclusive(&processItem->RemoveLock);
 
                     if (!processesToRemove)
                         processesToRemove = PhCreateList(2);
@@ -2135,7 +2111,7 @@ VOID PhProcessProviderUpdate(
     }
 
     // Go through the queued process query data.
-    PhFlushProcessQueryData(FALSE);
+    PhFlushProcessQueryData();
 
     if (sysTotalTime == 0)
         sysTotalTime = -1; // max. value
@@ -2231,7 +2207,6 @@ VOID PhProcessProviderUpdate(
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
-            processItem->AddedEventSent = TRUE;
 
             // (Ref: for the process item being in the hashtable.)
             // Instead of referencing then dereferencing we simply don't do anything.

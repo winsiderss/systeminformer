@@ -385,11 +385,6 @@ VOID PhMwpApplyUpdateInterval(
 {
     PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
-
-    if (Interval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
-        SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM, NULL);
-    else
-        KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA); // Might not exist
 }
 
 VOID PhMwpInitializeControls(
@@ -1722,12 +1717,15 @@ VOID PhMwpOnTimer(
                 KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
 
             break;
-        default:
-            NOTHING;
+        case 3:
+            {
+                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
+            }
             break;
         }
 
-        PhFlushProcessQueryData(TRUE);
+        PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
+        PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
     }
 }
 
@@ -2056,125 +2054,24 @@ ULONG_PTR PhMwpOnUserMessage(
             PhMwpActivateWindow(!!PhGetIntegerSetting(L"IconTogglesVisibility"));
         }
         break;
-    case WM_PH_PROCESS_ADDED:
-        {
-            ULONG runId = (ULONG)WParam;
-            PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)LParam;
-
-            PhMwpOnProcessAdded(processItem, runId);
-        }
-        break;
-    case WM_PH_PROCESS_MODIFIED:
-        {
-            PhMwpOnProcessModified((PPH_PROCESS_ITEM)LParam);
-        }
-        break;
-    case WM_PH_PROCESS_REMOVED:
-        {
-            PhMwpOnProcessRemoved((PPH_PROCESS_ITEM)LParam);
-        }
-        break;
     case WM_PH_PROCESSES_UPDATED:
         {
-            PhMwpOnProcessesUpdated();
-        }
-        break;
-    case WM_PH_SERVICE_ADDED:
-        {
-            ULONG runId = (ULONG)WParam;
-            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)LParam;
-
-            PhMwpOnServiceAdded(serviceItem, runId);
-        }
-        break;
-    case WM_PH_SERVICE_MODIFIED:
-        {
-            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)LParam;
-
-            PhMwpOnServiceModified(serviceModifiedData);
-            PhFree(serviceModifiedData);
-        }
-        break;
-    case WM_PH_SERVICE_REMOVED:
-        {
-            PhMwpOnServiceRemoved((PPH_SERVICE_ITEM)LParam);
+            PhMwpOnProcessesUpdated((ULONG)WParam);
         }
         break;
     case WM_PH_SERVICES_UPDATED:
         {
-            PhMwpOnServicesUpdated();
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_ADDED:
-        {
-            ULONG runId = (ULONG)WParam;
-            PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)LParam;
-
-            PhMwpOnNetworkItemAdded(runId, networkItem);
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_MODIFIED:
-        {
-            PhMwpOnNetworkItemModified((PPH_NETWORK_ITEM)LParam);
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_REMOVED:
-        {
-            PhMwpOnNetworkItemRemoved((PPH_NETWORK_ITEM)LParam);
+            PhMwpOnServicesUpdated((ULONG)WParam);
         }
         break;
     case WM_PH_NETWORK_ITEMS_UPDATED:
         {
-            PhMwpOnNetworkItemsUpdated();
+            PhMwpOnNetworkItemsUpdated((ULONG)WParam);
         }
         break;
     }
 
     return 0;
-}
-
-VOID NTAPI PhMwpNetworkItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PhReferenceObject(networkItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_NETWORK_ITEM_ADDED,
-        PhGetRunIdProvider(&PhMwpNetworkProviderRegistration),
-        (LPARAM)networkItem
-        );
-}
-
-VOID NTAPI PhMwpNetworkItemModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_MODIFIED, 0, (LPARAM)networkItem);
-}
-
-VOID NTAPI PhMwpNetworkItemRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_REMOVED, 0, (LPARAM)networkItem);
-}
-
-VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
 }
 
 VOID PhMwpLoadSettings(

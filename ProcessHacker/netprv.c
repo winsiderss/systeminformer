@@ -463,7 +463,7 @@ VOID PhFlushNetworkQueryData(
     PSLIST_ENTRY entry;
     PPH_NETWORK_ITEM_QUERY_DATA data;
 
-    if (RtlQueryDepthSList(&PhNetworkItemQueryListHead) == 0)
+    if (!RtlFirstEntrySList(&PhNetworkItemQueryListHead))
         return;
 
     entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);

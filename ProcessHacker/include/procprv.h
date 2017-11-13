@@ -164,7 +164,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsImmersive : 1;
             ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
-            ULONG AddedEventSent : 1;
+            ULONG Unused : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
@@ -342,7 +342,7 @@ PhGetStatisticsTimeString(
 // end_phapppub
 
 VOID PhFlushProcessQueryData(
-    _In_ BOOLEAN SendModifiedEvent
+    VOID
     );
 
 VOID PhProcessProviderUpdate(
