@@ -4163,6 +4163,7 @@ NTSTATUS PhEnumHandlesEx2(
     ULONG returnLength = 0;
 
     buffer = PhAllocate(bufferSize);
+    memset(buffer, 0, bufferSize);
 
     while ((status = NtQueryInformationProcess(
         ProcessHandle,
@@ -4180,6 +4181,7 @@ NTSTATUS PhEnumHandlesEx2(
             return STATUS_INSUFFICIENT_RESOURCES;
 
         buffer = PhAllocate(bufferSize);
+        memset(buffer, 0, bufferSize);
     }
 
     if (NT_SUCCESS(status))
