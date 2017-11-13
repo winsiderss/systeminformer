@@ -2681,7 +2681,7 @@ typedef struct _PROCESS_DISK_COUNTERS
 } PROCESS_DISK_COUNTERS, *PPROCESS_DISK_COUNTERS;
 
 // private
-typedef struct _ENERGY_STATE_DURATION
+typedef union _ENERGY_STATE_DURATION
 {
     union
     {
@@ -2715,8 +2715,8 @@ typedef struct _PROCESS_ENERGY_VALUES
     ULONG CompositionDirtyGenerated;
     ULONG CompositionDirtyPropagated;
     ULONG Reserved1;
-    ULONGLONG AttributedCycles[2][4];
-    ULONGLONG WorkOnBehalfCycles[2][4];
+    ULONGLONG AttributedCycles[4][2];
+    ULONGLONG WorkOnBehalfCycles[4][2];
 } PROCESS_ENERGY_VALUES, *PPROCESS_ENERGY_VALUES;
 
 typedef struct _TIMELINE_BITMAP
