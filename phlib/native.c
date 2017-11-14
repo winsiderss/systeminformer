@@ -4159,39 +4159,43 @@ NTSTATUS PhEnumHandlesEx2(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 0x8000;
+    ULONG bufferSize;
     ULONG returnLength = 0;
+    ULONG attempts = 0;
 
+    bufferSize = 0x8000;
     buffer = PhAllocate(bufferSize);
     memset(buffer, 0, bufferSize);
 
-    while ((status = NtQueryInformationProcess(
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessHandleInformation,
         buffer,
         bufferSize,
         &returnLength
-        )) == STATUS_INFO_LENGTH_MISMATCH)
+        );
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         PhFree(buffer);
-        bufferSize *= 2;
-
-        // Fail if we're resizing the buffer to something very large.
-        if (bufferSize > PH_LARGE_BUFFER_SIZE)
-            return STATUS_INSUFFICIENT_RESOURCES;
-
+        bufferSize = returnLength;
         buffer = PhAllocate(bufferSize);
         memset(buffer, 0, bufferSize);
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessHandleInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+        attempts++;
     }
 
     if (NT_SUCCESS(status))
-    {
         *Handles = buffer;
-    }
     else
-    {
         PhFree(buffer);
-    }
 
     return status;
 }
