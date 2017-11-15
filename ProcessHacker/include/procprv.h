@@ -216,7 +216,7 @@ typedef struct _PH_PROCESS_ITEM
     ULONG PeakNumberOfThreads; // since WIN7
     ULONG HardFaultCount; // since WIN7
 
-    ULONG SequenceNumber;
+    ULONG TimeSequenceNumber;
     PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;
     PH_CIRCULAR_BUFFER_FLOAT CpuUserHistory;
     PH_CIRCULAR_BUFFER_ULONG64 IoReadHistory;
@@ -229,7 +229,9 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINTPTR_DELTA PrivateBytesDelta;
     PPH_STRING PackageFullName;
 
-    PH_QUEUED_LOCK RemoveLock;
+    ULONGLONG ProcessSequenceNumber;
+    PH_KNOWN_PROCESS_TYPE KnownProcessType;
+    ULONG JobObjectId;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 
@@ -248,6 +250,7 @@ typedef struct _PH_PROCESS_RECORD
     HANDLE ProcessId;
     HANDLE ParentProcessId;
     ULONG SessionId;
+    ULONGLONG ProcessSequenceNumber;
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER ExitTime;
 
@@ -396,9 +399,7 @@ PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
 PhReferenceProcessItemForParent(
-    _In_ HANDLE ParentProcessId,
-    _In_ HANDLE ProcessId,
-    _In_ PLARGE_INTEGER CreateTime
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 PHAPPAPI

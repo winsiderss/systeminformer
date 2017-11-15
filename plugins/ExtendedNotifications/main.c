@@ -487,11 +487,7 @@ VOID NotifyGrowl(
         notification = GrowlNotifications[0];
         title = processItem->ProcessName;
 
-        parentProcessItem = PhReferenceProcessItemForParent(
-            processItem->ParentProcessId,
-            processItem->ProcessId,
-            &processItem->CreateTime
-            );
+        parentProcessItem = PhReferenceProcessItemForParent(processItem);
 
         message = PhaFormatString(
             L"The process %s (%lu) was started by %s.",

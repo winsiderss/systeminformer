@@ -1316,6 +1316,22 @@ VOID PhpFillProcessItemStage2(
     processItem->ImportModules = Data->ImportModules;
 }
 
+VOID PhpFillProcessItemExtension(
+    _Inout_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PSYSTEM_PROCESS_INFORMATION Process
+    )
+{
+    PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
+
+    if (WindowsVersion < WINDOWS_10_RS3)
+        return;
+    
+    processExtension = PH_PROCESS_EXTENSION(Process);
+
+    ProcessItem->JobObjectId = processExtension->JobObjectId;
+    ProcessItem->ProcessSequenceNumber = processExtension->ProcessSequenceNumber;
+}
+
 VOID PhpFillProcessItem(
     _Inout_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PSYSTEM_PROCESS_INFORMATION Process
@@ -1411,6 +1427,14 @@ VOID PhpFillProcessItem(
         {
             PhSetReference(&ProcessItem->UserName, PhLocalSystemName);
         }
+    }
+
+    // Known Process Type
+    {
+        ProcessItem->KnownProcessType = PhGetProcessKnownTypeEx(
+            ProcessItem->ProcessId,
+            ProcessItem->FileName
+            );
     }
 
     NtClose(processHandle);
@@ -1759,7 +1783,7 @@ BOOLEAN PhGetStatisticsTime(
     {
         // The sequence number is used to synchronize statistics when a process exits, since that
         // process' history is not updated anymore.
-        index = PhTimeSequenceNumber - ProcessItem->SequenceNumber + Index;
+        index = PhTimeSequenceNumber - ProcessItem->TimeSequenceNumber + Index;
 
         if (index >= PhTimeHistory.Count)
         {
@@ -1987,10 +2011,20 @@ VOID PhProcessProviderUpdate(
         {
             PPH_PROCESS_ITEM processItem;
 
-            if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->CreateTime.QuadPart == process->CreateTime.QuadPart)
-                sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
+            if (WindowsVersion >= WINDOWS_10_RS3)
+            {
+                if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->ProcessSequenceNumber == PH_PROCESS_EXTENSION(process)->ProcessSequenceNumber)
+                    sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
+                else
+                    sysTotalCycleTime += process->CycleTime; // new process
+            }
             else
-                sysTotalCycleTime += process->CycleTime; // new process
+            {
+                if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->CreateTime.QuadPart == process->CreateTime.QuadPart)
+                    sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
+                else
+                    sysTotalCycleTime += process->CycleTime; // new process
+            }
         }
     } while (process = PH_NEXT_PROCESS(process));
 
@@ -2023,6 +2057,8 @@ VOID PhProcessProviderUpdate(
         {
             for (entry = PhProcessHashSet[i]; entry; entry = entry->Next)
             {
+                BOOLEAN processRemoved = FALSE;
+
                 processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
 
                 // Check if the process still exists. Note that we take into account PID re-use by
@@ -2044,7 +2080,18 @@ VOID PhProcessProviderUpdate(
                         processEntry = (PSYSTEM_PROCESS_INFORMATION)processEntry->UniqueProcessKey;
                 }
 
-                if (!processEntry || processEntry->CreateTime.QuadPart != processItem->CreateTime.QuadPart)
+                if (WindowsVersion >= WINDOWS_10_RS3)
+                {
+                    if (!processEntry || PH_PROCESS_EXTENSION(processEntry)->ProcessSequenceNumber != processItem->ProcessSequenceNumber)
+                        processRemoved = TRUE;
+                }
+                else
+                {
+                    if (!processEntry || processEntry->CreateTime.QuadPart != processItem->CreateTime.QuadPart)
+                        processRemoved = TRUE;
+                }
+
+                if (processRemoved)
                 {
                     LARGE_INTEGER exitTime;
 
@@ -2139,7 +2186,8 @@ VOID PhProcessProviderUpdate(
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
-            processItem->SequenceNumber = PhTimeSequenceNumber;
+            PhpFillProcessItemExtension(processItem, process);
+            processItem->TimeSequenceNumber = PhTimeSequenceNumber;
 
             processRecord = PhpCreateProcessRecord(processItem);
             PhpAddProcessRecord(processRecord);
@@ -2224,6 +2272,7 @@ VOID PhProcessProviderUpdate(
 
             PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
+            PhpFillProcessItemExtension(processItem, process);
 
             // Update the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -2239,7 +2288,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
-            processItem->SequenceNumber++;
+            processItem->TimeSequenceNumber++;
             PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
             PhAddItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, processItem->IoWriteDelta.Delta);
             PhAddItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
@@ -2488,6 +2537,7 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord->ProcessId = ProcessItem->ProcessId;
     processRecord->ParentProcessId = ProcessItem->ParentProcessId;
     processRecord->SessionId = ProcessItem->SessionId;
+    processRecord->ProcessSequenceNumber = ProcessItem->ProcessSequenceNumber;
     processRecord->CreateTime = ProcessItem->CreateTime;
 
     PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
@@ -2839,30 +2889,40 @@ VOID PhPurgeProcessRecords(
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
-    _In_ HANDLE ParentProcessId,
-    _In_ HANDLE ProcessId,
-    _In_ PLARGE_INTEGER CreateTime
+    _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PPH_PROCESS_ITEM processItem;
+    PPH_PROCESS_ITEM parentProcessItem;
 
-    if (ParentProcessId == ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
+    if (ProcessItem->ParentProcessId == ProcessItem->ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
         return NULL;
 
     PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
-    processItem = PhpLookupProcessItem(ParentProcessId);
+    parentProcessItem = PhpLookupProcessItem(ProcessItem->ParentProcessId);
 
-    // We make sure that the process item we found is actually the parent process - its start time
-    // must not be larger than the supplied time.
-    if (processItem && processItem->CreateTime.QuadPart <= CreateTime->QuadPart)
-        PhReferenceObject(processItem);
+    if (WindowsVersion >= WINDOWS_10_RS3)
+    {
+        // We make sure that the process item we found is actually the parent process - its start time
+        // must not be larger than the supplied time.
+        if (parentProcessItem && parentProcessItem->ProcessSequenceNumber <= ProcessItem->ProcessSequenceNumber)
+            PhReferenceObject(parentProcessItem);
+        else
+            parentProcessItem = NULL;
+    }
     else
-        processItem = NULL;
+    {
+        // We make sure that the process item we found is actually the parent process - its start time
+        // must not be larger than the supplied time.
+        if (parentProcessItem && parentProcessItem->CreateTime.QuadPart <= ProcessItem->CreateTime.QuadPart)
+            PhReferenceObject(parentProcessItem);
+        else
+            parentProcessItem = NULL;
+    }
 
     PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
-    return processItem;
+    return parentProcessItem;
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
@@ -2875,10 +2935,20 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
 
     processItem = PhpLookupProcessItem(Record->ProcessId);
 
-    if (processItem && processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
-        PhReferenceObject(processItem);
+    if (WindowsVersion >= WINDOWS_10_RS3)
+    {
+        if (processItem && processItem->ProcessSequenceNumber == Record->ProcessSequenceNumber)
+            PhReferenceObject(processItem);
+        else
+            processItem = NULL;
+    }
     else
-        processItem = NULL;
+    {
+        if (processItem && processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
+            PhReferenceObject(processItem);
+        else
+            processItem = NULL;
+    }
 
     PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
