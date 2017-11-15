@@ -127,6 +127,7 @@
 #define IDD_OPTIONS                     227
 #define IDD_PLUGINPROPERTIES            228
 #define IDD_PLUGINSDISABLED             241
+#define IDD_PROCWMIPROVIDERS            242
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
