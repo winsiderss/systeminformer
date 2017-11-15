@@ -759,11 +759,7 @@ VOID PhMwpOnProcessAdded(
         HANDLE parentProcessId = NULL;
         PPH_STRING parentName = NULL;
 
-        if (parentProcess = PhReferenceProcessItemForParent(
-            ProcessItem->ParentProcessId,
-            ProcessItem->ProcessId,
-            &ProcessItem->CreateTime
-            ))
+        if (parentProcess = PhReferenceProcessItemForParent(ProcessItem))
         {
             parentProcessId = parentProcess->ProcessId;
             parentName = parentProcess->ProcessName;

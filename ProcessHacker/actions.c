@@ -1082,13 +1082,28 @@ BOOLEAN PhpUiTerminateTreeProcess(
         {
             if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
             {
-                // Check the creation time to make sure it is a descendant.
-                if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                if (WindowsVersion >= WINDOWS_10_RS3)
                 {
-                    if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                    // Check the sequence number to make sure it is a descendant.
+                    if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
                     {
-                        PhDereferenceObject(processItem);
-                        return FALSE;
+                        if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
+                    }
+                }
+                else
+                {
+                    // Check the creation time to make sure it is a descendant.
+                    if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                    {
+                        if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                        {
+                            PhDereferenceObject(processItem);
+                            return FALSE;
+                        }
                     }
                 }
 

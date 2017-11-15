@@ -142,11 +142,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             {
                 PPH_PROCESS_ITEM parentProcess;
 
-                if (parentProcess = PhReferenceProcessItemForParent(
-                    processItem->ParentProcessId,
-                    processItem->ProcessId,
-                    &processItem->CreateTime
-                    ))
+                if (parentProcess = PhReferenceProcessItemForParent(processItem))
                 {
                     CLIENT_ID clientId;
 

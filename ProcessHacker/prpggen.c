@@ -284,11 +284,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Parent
 
-            if (parentProcess = PhReferenceProcessItemForParent(
-                processItem->ParentProcessId,
-                processItem->ProcessId,
-                &processItem->CreateTime
-                ))
+            if (parentProcess = PhReferenceProcessItemForParent(processItem))
             {
                 clientId.UniqueProcess = parentProcess->ProcessId;
                 clientId.UniqueThread = NULL;

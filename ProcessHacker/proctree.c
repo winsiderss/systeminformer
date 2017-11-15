@@ -208,6 +208,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_JOBOBJECTID, FALSE, L"Job Object ID", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -296,9 +297,16 @@ FORCEINLINE BOOLEAN PhpValidateParentCreateTime(
     _In_ PPH_PROCESS_NODE Parent
     )
 {
-    return
-        PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
-        Parent->ProcessItem->CreateTime.QuadPart <= Child->ProcessItem->CreateTime.QuadPart;
+    if (WindowsVersion >= WINDOWS_10_RS3)
+    {
+        return PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
+            Parent->ProcessItem->ProcessSequenceNumber <= Child->ProcessItem->ProcessSequenceNumber;
+    }
+    else
+    {
+        return PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
+            Parent->ProcessItem->CreateTime.QuadPart <= Child->ProcessItem->CreateTime.QuadPart;
+    }
 }
 
 PPH_PROCESS_NODE PhAddProcessNode(
@@ -1827,6 +1835,12 @@ BEGIN_SORT_FUNCTION(Subprocesses)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(JobObjectId)
+{
+    sortResult = int64cmp(processItem1->JobObjectId, processItem2->JobObjectId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1946,7 +1960,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(TimeStamp),
                         SORT_FUNCTION(FileModifiedTime),
                         SORT_FUNCTION(FileSize),
-                        SORT_FUNCTION(Subprocesses)
+                        SORT_FUNCTION(Subprocesses),
+                        SORT_FUNCTION(JobObjectId)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2637,6 +2652,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, TRUE));
                     getCellText->Text = node->SubprocessCountText->sr;
+                }
+                break;
+            case PHPRTLC_JOBOBJECTID:
+                {
+                    PhpFormatInt32GroupDigits(processItem->JobObjectId, node->JobObjectIdText, sizeof(node->JobObjectIdText), &getCellText->Text);
                 }
                 break;
             default:
