@@ -302,15 +302,9 @@ NTSTATUS PhGetProcessKnownType(
     )
 {
     NTSTATUS status;
-    PH_KNOWN_PROCESS_TYPE knownProcessType;
     PROCESS_BASIC_INFORMATION basicInfo;
-    PH_STRINGREF systemRootPrefix;
     PPH_STRING fileName;
     PPH_STRING newFileName;
-    PH_STRINGREF name;
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-#endif
 
     if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
         ProcessHandle,
@@ -324,8 +318,6 @@ NTSTATUS PhGetProcessKnownType(
         return STATUS_SUCCESS;
     }
 
-    PhGetSystemRoot(&systemRootPrefix);
-
     if (!NT_SUCCESS(status = PhGetProcessImageFileName(
         ProcessHandle,
         &fileName
@@ -336,7 +328,40 @@ NTSTATUS PhGetProcessKnownType(
 
     newFileName = PhGetFileName(fileName);
     PhDereferenceObject(fileName);
-    name = newFileName->sr;
+
+    *KnownProcessType = PhGetProcessKnownTypeEx(
+        basicInfo.UniqueProcessId, 
+        newFileName
+        );
+
+    PhDereferenceObject(newFileName);
+
+    return status;
+}
+
+PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
+    )
+{
+    PH_KNOWN_PROCESS_TYPE knownProcessType;
+    PH_STRINGREF systemRootPrefix;
+    PPH_STRING fileName;
+    PH_STRINGREF name;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (ProcessId == SYSTEM_PROCESS_ID)
+        return SystemProcessType;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return UnknownProcessType;
+
+    PhGetSystemRoot(&systemRootPrefix);
+
+    fileName = PhDuplicateString(FileName);
+    name = fileName->sr;
 
     knownProcessType = UnknownProcessType;
 
@@ -394,19 +419,31 @@ NTSTATUS PhGetProcessKnownType(
                 knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wudfhost.exe", TRUE))
                 knownProcessType = UmdfHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\wbem\\WmiPrvSE.exe", TRUE))
+                knownProcessType = WmiProviderHostType;
+        }
+        else
+        {
+            // Microsoft Edge
+            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
+                knownProcessType = EdgeProcessType;
         }
     }
 
-    PhDereferenceObject(newFileName);
+    PhDereferenceObject(fileName);
 
 #ifdef _WIN64
     if (isWow64)
         knownProcessType |= KnownProcessWow64;
 #endif
 
-    *KnownProcessType = knownProcessType;
-
-    return status;
+    return knownProcessType;
 }
 
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
