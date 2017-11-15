@@ -28,6 +28,7 @@
 
 #include <svcsup.h>
 #include <verify.h>
+#include <lsasup.h>
 
 #include <phplug.h>
 #include <procprv.h>
@@ -41,6 +42,22 @@ VOID PhpFillUmdfDrivers(
 VOID PhpFillRunningTasks(
     _In_ PPH_PROCESS_ITEM Process,
     _Inout_ PPH_STRING_BUILDER Tasks
+    );
+
+VOID PhpFillMicrosoftEdge(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Tasks
+    );
+
+VOID PhpFillWmiProviderHost(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Providers
+    );
+
+// HACK
+PPH_STRING PhQueryWmiHostProcessString(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Inout_ PPH_STRING_BUILDER Providers
     );
 
 static PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
@@ -101,7 +118,6 @@ PPH_STRING PhGetProcessTooltipText(
     PH_STRING_BUILDER stringBuilder;
     ULONG validForMs = 60 * 60 * 1000; // 1 hour
     PPH_STRING tempString;
-    PH_KNOWN_PROCESS_TYPE knownProcessType = UnknownProcessType;
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
@@ -140,20 +156,17 @@ PPH_STRING PhGetProcessTooltipText(
 
     // Known command line information
 
-    if (Process->QueryHandle)
-        PhGetProcessKnownType(Process->QueryHandle, &knownProcessType);
-
     if (Process->CommandLine && Process->QueryHandle)
     {
         PH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine;
 
-        if (knownProcessType != UnknownProcessType && PhaGetProcessKnownCommandLine(
+        if (Process->KnownProcessType != UnknownProcessType && PhaGetProcessKnownCommandLine(
             Process->CommandLine,
-            knownProcessType,
+            Process->KnownProcessType,
             &knownCommandLine
             ))
         {
-            switch (knownProcessType & KnownProcessTypeMask)
+            switch (Process->KnownProcessType & KnownProcessTypeMask)
             {
             case ServiceHostProcessType:
                 PhAppendStringBuilder2(&stringBuilder, L"Service group name:\n    ");
@@ -290,7 +303,7 @@ PPH_STRING PhGetProcessTooltipText(
     }
 
     // Tasks, Drivers
-    switch (knownProcessType & KnownProcessTypeMask)
+    switch (Process->KnownProcessType & KnownProcessTypeMask)
     {
     case TaskHostProcessType:
         {
@@ -327,6 +340,42 @@ PPH_STRING PhGetProcessTooltipText(
 
             validForMs = 10 * 1000; // 10 seconds
         }
+        break;
+    case EdgeProcessType:
+        {
+            PH_STRING_BUILDER container;
+
+            PhInitializeStringBuilder(&container, 40);
+
+            PhpFillMicrosoftEdge(Process, &container);
+
+            if (container.String->Length != 0)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"Edge:\n");
+                PhAppendStringBuilder(&stringBuilder, &container.String->sr);
+            }
+
+            PhDeleteStringBuilder(&container);
+        }
+        break;
+    case WmiProviderHostType:
+        {
+            PH_STRING_BUILDER provider;
+
+            PhInitializeStringBuilder(&provider, 40);
+
+            PhpFillWmiProviderHost(Process, &provider);
+
+            if (provider.String->Length != 0)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"WMI Providers:\n");
+                PhAppendStringBuilder(&stringBuilder, &provider.String->sr);
+            }
+
+            PhDeleteStringBuilder(&provider);
+
+            validForMs = 10 * 1000; // 10 seconds
+        }      
         break;
     }
 
@@ -634,6 +683,77 @@ VOID PhpFillRunningTasks(
 
         ITaskService_Release(taskService);
     }
+}
+
+VOID PhpFillMicrosoftEdge(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Containers
+    )
+{
+    HANDLE tokenHandle;
+    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+    PPH_STRING appContainerSid = NULL;
+
+    if (NT_SUCCESS(PhOpenProcessToken(
+        Process->QueryHandle,
+        TOKEN_QUERY,
+        &tokenHandle
+        )))
+    {
+        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+        {
+            if (appContainerInfo->TokenAppContainer)
+                appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
+
+            PhFree(appContainerInfo);
+        }
+    }
+
+    if (appContainerSid)
+    {
+        static PH_STRINGREF extensionsSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1206159417-1570029349-2913729690-1184509225");
+        static PH_STRINGREF serviceUiSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3513710562-3729412521-1863153555-1462103995");
+        static PH_STRINGREF chakraJitSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1821068571-1793888307-623627345-1529106238");
+        static PH_STRINGREF flashSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3859068477-1314311106-1651661491-1685393560");
+        static PH_STRINGREF backgroundTabPool1Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-4256926629-1688279915-2739229046-3928706915");
+        static PH_STRINGREF backgroundTabPool2Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-2385269614-3243675-834220592-3047885450");
+        static PH_STRINGREF backgroundTabPool3Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-355265979-2879959831-980936148-1241729999");
+
+        if (PhEqualStringRef(&appContainerSid->sr, &extensionsSid, FALSE))
+        {
+            PhAppendStringBuilder2(Containers, L"    Browser Extensions\n");
+        }
+        else if (PhEqualStringRef(&appContainerSid->sr, &serviceUiSid, FALSE))
+        {
+            PhAppendStringBuilder2(Containers, L"    User Interface Service\n");
+        }
+        else if (PhEqualStringRef(&appContainerSid->sr, &chakraJitSid, FALSE))
+        {
+            PhAppendStringBuilder2(Containers, L"    Chakra Jit Compiler\n");
+        }
+        else if (PhEqualStringRef(&appContainerSid->sr, &flashSid, FALSE))
+        {
+            PhAppendStringBuilder2(Containers, L"    Adobe Flash Player\n");
+        }
+        else if (
+            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool1Sid, FALSE) || 
+            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool2Sid, FALSE) ||
+            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool3Sid, FALSE)
+            )
+        {
+            PhAppendStringBuilder2(Containers, L"    Background Tab Pool\n");
+        }
+
+        PhDereferenceObject(appContainerSid);
+    }
+}
+
+VOID PhpFillWmiProviderHost(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Providers
+    )
+{
+    PhQueryWmiHostProcessString(Process, Providers);
 }
 
 PPH_STRING PhGetServiceTooltipText(

@@ -48,6 +48,8 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
     UmdfHostProcessType, // wudfhost
+    EdgeProcessType, // Microsoft Edge
+    WmiProviderHostType,
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,
 
@@ -60,6 +62,14 @@ NTAPI
 PhGetProcessKnownType(
     _In_ HANDLE ProcessHandle,
     _Out_ PH_KNOWN_PROCESS_TYPE *KnownProcessType
+    );
+
+PHAPPAPI
+PH_KNOWN_PROCESS_TYPE
+NTAPI
+PhGetProcessKnownTypeEx(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
     );
 
 typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
