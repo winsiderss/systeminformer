@@ -1879,6 +1879,14 @@ BEGIN
     LTEXT           "Changes may require a restart to take effect.",IDC_INSTRUCTION,2,163,148,8,NOT WS_VISIBLE
 END
 
+IDD_PROCWMIPROVIDERS DIALOGEX 0, 0, 260, 260
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "WMI Providers"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,2,256,256
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2432,6 +2440,14 @@ BEGIN
         RIGHTMARGIN, 307
         TOPMARGIN, 2
         BOTTOMMARGIN, 174
+    END
+
+    IDD_PROCWMIPROVIDERS, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 258
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 258
     END
 END
 #endif    // APSTUDIO_INVOKED

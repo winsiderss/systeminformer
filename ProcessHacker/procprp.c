@@ -650,6 +650,17 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PhAddProcessPropPage(PropContext, newPage);
     }
 
+    // WMI Provider Host
+    if ((PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType)
+    {
+        newPage = PhCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PROCWMIPROVIDERS),
+            PhpProcessWmiProvidersDlgProc,
+            NULL
+            );
+        PhAddProcessPropPage(PropContext, newPage);
+    }
+
     // Plugin-supplied pages
     if (PhPluginsEnabled)
     {
