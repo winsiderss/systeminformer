@@ -202,7 +202,11 @@ typedef struct _TEB
     LCID CurrentLocale;
     ULONG FpSoftwareStatusRegister;
     PVOID ReservedForDebuggerInstrumentation[16];
+#ifdef _WIN64
     PVOID SystemReserved1[30];
+#else
+    PVOID SystemReserved1[26];
+#endif
     
     CHAR PlaceholderCompatibilityMode;
     CHAR PlaceholderReserved[11];
@@ -216,9 +220,15 @@ typedef struct _TEB
     ULONG_PTR InstrumentationCallbackSp;
     ULONG_PTR InstrumentationCallbackPreviousPc;
     ULONG_PTR InstrumentationCallbackPreviousSp;
+#ifdef _WIN64
     ULONG TxFsContext;
+#endif
 
     BOOLEAN InstrumentationCallbackDisabled;
+#ifndef _WIN64
+    UCHAR SpareBytes[23];
+    ULONG TxFsContext;
+#endif
     GDI_TEB_BATCH GdiTebBatch;
     CLIENT_ID RealClientId;
     HANDLE GdiCachedProcessHandle;
