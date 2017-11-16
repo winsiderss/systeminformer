@@ -3,6 +3,7 @@
  *   service list
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -371,17 +372,75 @@ static VOID PhpUpdateServiceNodeDescription(
 {
     if (!(ServiceNode->ValidMask & PHSN_DESCRIPTION))
     {
-        SC_HANDLE serviceHandle;
+        static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+        HANDLE keyHandle;
+        PPH_STRING keyName;
 
-        if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+        keyName = PhConcatStringRef2(&servicesKeyName, &ServiceNode->ServiceItem->Name->sr);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_QUERY_VALUE,
+            PH_KEY_LOCAL_MACHINE,
+            &keyName->sr,
+            0
+            )))
         {
-            PhMoveReference(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
+            LSTATUS result;
+            PWSTR buffer;
+            ULONG bufferSize;
+            ULONG returnLength = 0;
 
-            CloseServiceHandle(serviceHandle);
+            bufferSize = 0x100;
+            buffer = PhAllocate(bufferSize);
+
+            if ((result = RegLoadMUIString(
+                keyHandle,
+                L"Description",
+                buffer,
+                bufferSize,
+                &returnLength,
+                0,
+                NULL
+                )) == ERROR_MORE_DATA)
+            {
+                PhFree(buffer);
+                bufferSize = returnLength;
+                buffer = PhAllocate(bufferSize);
+
+                result = RegLoadMUIString(
+                    keyHandle,
+                    L"Description",
+                    buffer,
+                    bufferSize,
+                    &returnLength,
+                    0,
+                    NULL
+                    );
+            }
+
+            if (result == ERROR_SUCCESS)
+            {
+                PhMoveReference(&ServiceNode->Description, PhCreateStringEx(buffer, returnLength));
+            }
+
+            PhFree(buffer);
+            NtClose(keyHandle);
         }
+
+        PhDereferenceObject(keyName);
 
         ServiceNode->ValidMask |= PHSN_DESCRIPTION;
     }
+
+    // NOTE: Querying the service description via RPC is extremely slow.
+    //SC_HANDLE serviceHandle;
+    //
+    //if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+    //{
+    //    PhMoveReference(&ServiceNode->Description, PhGetServiceDescription(serviceHandle));
+    //    CloseServiceHandle(serviceHandle);
+    //}
 }
 
 static VOID PhpUpdateServiceNodeKey(
@@ -758,7 +817,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 getNodeColor->Flags = TN_AUTO_FORECOLOR;
                 getNodeColor->BackColor = PhCsColorUnknown;
             }
-            else if (PhCsUseColorServiceStop && serviceItem->State == SERVICE_STOPPED)
+            else if (PhCsUseColorServiceStop && serviceItem->StartType == SERVICE_DISABLED)
             {
                 getNodeColor->ForeColor = PhCsColorServiceStop;
             }
