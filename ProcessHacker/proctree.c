@@ -3,6 +3,7 @@
  *   process tree list
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2656,7 +2657,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_JOBOBJECTID:
                 {
-                    PhpFormatInt32GroupDigits(processItem->JobObjectId, node->JobObjectIdText, sizeof(node->JobObjectIdText), &getCellText->Text);
+                    if (processItem->JobObjectId != 0)
+                    {
+                        PhPrintInt32(node->JobObjectIdText, processItem->JobObjectId);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->JobObjectIdText);
+                    }
                 }
                 break;
             default:
