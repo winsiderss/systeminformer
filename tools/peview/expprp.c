@@ -110,7 +110,44 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
                         }
                         else
                         {
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+                            if (exportFunction.Function)
+                            {
+                                PPH_STRING exportName;
+                                
+                                // Try find the export name using symbols.
+                                exportName = PhGetSymbolFromAddress(
+                                    PvSymbolProvider,
+                                    (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
+                                    NULL,
+                                    NULL,
+                                    NULL,
+                                    NULL
+                                    );
+
+                                if (exportName)
+                                {
+                                    static PH_STRINGREF unnamedText = PH_STRINGREF_INIT(L" (unnamed)");
+                                    PH_STRINGREF exportNameText;
+                                    PH_STRINGREF firstPart;
+                                    PH_STRINGREF secondPart;
+
+                                    if (PhSplitStringRefAtLastChar(&exportName->sr, L'!', &firstPart, &secondPart))
+                                        exportNameText = secondPart;
+                                    else
+                                        exportNameText = exportName->sr;
+
+                                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PH_AUTO_T(PH_STRING, PhConcatStringRef2(&exportNameText, &unnamedText))->Buffer);
+                                    PhDereferenceObject(exportName);
+                                }
+                                else
+                                {
+                                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+                                }
+                            }
+                            else
+                            {
+                                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
+                            }
                         }
 
                         PhPrintUInt32(number, exportEntry.Ordinal);
