@@ -29,6 +29,7 @@
 #include <settings.h>
 #include <splitter.h>
 
+#include <windowsx.h>
 #include <uxtheme.h>
 
 typedef struct _ATTRIBUTE_NODE
@@ -947,8 +948,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             {
                 POINT point;
 
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);

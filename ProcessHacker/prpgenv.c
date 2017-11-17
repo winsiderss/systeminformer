@@ -27,6 +27,7 @@
 #include <emenu.h>
 #include <settings.h>
 #include <procprv.h>
+
 #include <windowsx.h>
 #include <uxtheme.h>
 
@@ -165,8 +166,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     PPH_ENVIRONMENT_CONTEXT environmentContext;
     HWND lvHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         environmentContext = propPageContext->Context;
 
@@ -184,8 +184,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         {
             environmentContext = propPageContext->Context = PhAllocate(sizeof(PH_ENVIRONMENT_CONTEXT));
             memset(environmentContext, 0, sizeof(PH_ENVIRONMENT_CONTEXT));
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            environmentContext->ListViewHandle = lvHandle;
+
+            environmentContext->ListViewHandle =  lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhInitializeArray(&environmentContext->Items, sizeof(PH_ENVIRONMENT_ITEM), 100);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -206,7 +206,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(L"EnvironmentListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"EnvironmentListViewColumns", lvHandle);
 
             PhpClearEnvironmentItems(environmentContext);
             PhDeleteArray(&environmentContext->Items);
@@ -382,8 +382,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 PVOID *indices;
                 ULONG numberOfIndices;
 
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);

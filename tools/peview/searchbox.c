@@ -429,9 +429,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ ULONG_PTR dwRefData
     )
 {
-    PEDIT_CONTEXT context;
-
-    context = (PEDIT_CONTEXT)GetProp(hWnd, L"SearchBoxContext");
+    PEDIT_CONTEXT context = (PEDIT_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -443,7 +441,6 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 DeleteObject(context->WindowFont);
 
             RemoveWindowSubclass(hWnd, PhpSearchWndSubclassProc, uIdSubclass);
-            RemoveProp(hWnd, L"SearchBoxContext");
             PhFree(context);
         }
         break;
@@ -704,9 +701,6 @@ VOID PvCreateSearchControl(
     // Set initial text
     if (BannerText)
         Edit_SetCueBannerText(context->WindowHandle, BannerText);
-
-    // Set our window context data.
-    SetProp(context->WindowHandle, L"SearchBoxContext", (HANDLE)context);
 
     // Subclass the Edit control window procedure.
     SetWindowSubclass(context->WindowHandle, PhpSearchWndSubclassProc, 0, (ULONG_PTR)context);

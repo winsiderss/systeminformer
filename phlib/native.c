@@ -5705,7 +5705,7 @@ VOID PhpInitializePredefineKeys(
     HANDLE tokenHandle;
     PTOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
-    WCHAR stringSidBuffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
+    WCHAR stringSidBuffer[SECURITY_MAX_SID_STRING_CHARACTERS];
     PUNICODE_STRING currentUserKeyName;
 
     // Get the string SID of the current user.
