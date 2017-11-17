@@ -2903,8 +2903,8 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
 
     if (WindowsVersion >= WINDOWS_10_RS3)
     {
-        // We make sure that the process item we found is actually the parent process - its start time
-        // must not be larger than the supplied time.
+        // We make sure that the process item we found is actually the parent process - its sequence number
+        // must not be higher than the supplied sequence.
         if (parentProcessItem && parentProcessItem->ProcessSequenceNumber <= ProcessItem->ProcessSequenceNumber)
             PhReferenceObject(parentProcessItem);
         else

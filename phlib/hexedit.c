@@ -23,10 +23,11 @@
 
 #include <ph.h>
 #include <hexedit.h>
-
 #include <guisup.h>
 
 #include <hexeditp.h>
+
+#include <windowsx.h>
 
 // Code originally from http://www.codeguru.com/Cpp/controls/editctrl/article.php/c539
 
@@ -300,8 +301,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG flags = (ULONG)wParam;
             POINT cursorPos;
 
-            cursorPos.x = (LONG)(SHORT)LOWORD(lParam);
-            cursorPos.y = (LONG)(SHORT)HIWORD(lParam);
+            cursorPos.x = GET_X_LPARAM(lParam);
+            cursorPos.y = GET_Y_LPARAM(lParam);
 
             SetFocus(hwnd);
 
@@ -379,8 +380,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG flags = (ULONG)wParam;
             POINT cursorPos;
 
-            cursorPos.x = (LONG)(SHORT)LOWORD(lParam);
-            cursorPos.y = (LONG)(SHORT)HIWORD(lParam);
+            cursorPos.x = GET_X_LPARAM(lParam);
+            cursorPos.y = GET_Y_LPARAM(lParam);
 
             if (
                 context->Data &&

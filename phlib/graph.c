@@ -22,6 +22,7 @@
 
 #include <ph.h>
 
+#include <windowsx.h>
 #include <math.h>
 
 #include <graph.h>
@@ -1129,8 +1130,8 @@ LRESULT CALLBACK PhpGraphWndProc(
             mouseEvent.Header.code = GCN_MOUSEEVENT;
             mouseEvent.Message = uMsg;
             mouseEvent.Keys = (ULONG)wParam;
-            mouseEvent.Point.x = LOWORD(lParam);
-            mouseEvent.Point.y = HIWORD(lParam);
+            mouseEvent.Point.x = GET_X_LPARAM(lParam);
+            mouseEvent.Point.y = GET_Y_LPARAM(lParam);
 
             mouseEvent.Index = (clientRect.right - mouseEvent.Point.x - 1) / context->DrawInfo.Step;
             mouseEvent.TotalCount = context->DrawInfo.LineDataCount;
