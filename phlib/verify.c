@@ -189,7 +189,6 @@ VOID PhpViewSignerInfo(
 
 VERIFY_RESULT PhpVerifyFile(
     _In_ PPH_VERIFY_FILE_INFO Information,
-    _In_ HANDLE FileHandle,
     _In_ ULONG UnionChoice,
     _In_ PVOID UnionData,
     _In_ PGUID ActionId,
@@ -220,7 +219,7 @@ VERIFY_RESULT PhpVerifyFile(
         trustData.dwProvFlags |= WTD_CACHE_ONLY_URL_RETRIEVAL;
     }
 
-    status = WinVerifyTrust_I(NULL, ActionId, &trustData);
+    status = WinVerifyTrust_I(INVALID_HANDLE_VALUE, ActionId, &trustData);
     PhpGetSignaturesFromStateData(trustData.hWVTStateData, Signatures, NumberOfSignatures);
 
     if (status == 0 && (Information->Flags & PH_VERIFY_VIEW_PROPERTIES))
@@ -228,7 +227,7 @@ VERIFY_RESULT PhpVerifyFile(
 
     // Close the state data.
     trustData.dwStateAction = WTD_STATEACTION_CLOSE;
-    WinVerifyTrust_I(NULL, ActionId, &trustData);
+    WinVerifyTrust_I(INVALID_HANDLE_VALUE, ActionId, &trustData);
 
     return PhpStatusToVerifyResult(status);
 }
@@ -365,11 +364,12 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
+                catalogInfo.hMemberFile = FileHandle;
                 catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
                 catalogInfo.pbCalculatedFileHash = fileHash;
                 catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
+                verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
 
                 if (verInfo.pcSignerCertContext)
                     CertFreeCertificateContext_I(verInfo.pcSignerCertContext);
@@ -388,11 +388,12 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
                 catalogInfo.pcwszMemberFilePath = Information->FileName;
+                catalogInfo.hMemberFile = FileHandle;
                 catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
                 catalogInfo.pbCalculatedFileHash = fileHash;
                 catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, FileHandle, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
+                verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
 
                 if (verifyResult == VrTrusted)
                     break;
@@ -451,7 +452,7 @@ NTSTATUS PhVerifyFileEx(
         &fileHandle,
         Information->FileName,
         FILE_GENERIC_READ,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
@@ -462,7 +463,7 @@ NTSTATUS PhVerifyFileEx(
     fileInfo.pcwszFilePath = Information->FileName;
     fileInfo.hFile = fileHandle;
 
-    verifyResult = PhpVerifyFile(Information, fileHandle, WTD_CHOICE_FILE, &fileInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
+    verifyResult = PhpVerifyFile(Information, WTD_CHOICE_FILE, &fileInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
 
     if (verifyResult == VrNoSignature)
     {
