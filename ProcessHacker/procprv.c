@@ -1154,8 +1154,14 @@ VOID PhpProcessQueryStage1(
         PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
     }
 
+    // Immersive
+    if (processHandleLimited && IsImmersiveProcess_I)
+    {
+        processItem->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
+    }
+
     // Package full name
-    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE)
+    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE && processItem->IsImmersive)
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
@@ -1337,9 +1343,6 @@ VOID PhpFillProcessItem(
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
 {
-    NTSTATUS status;
-    HANDLE processHandle = NULL;
-
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
@@ -1352,7 +1355,13 @@ VOID PhpFillProcessItem(
     PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
-    PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
+    // Open a handle to the process for later usage.
+    {
+        PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId);
+
+        if (!ProcessItem->QueryHandle)
+            PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
+    }
 
     // Process information
     {
@@ -1363,9 +1372,9 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (processHandle)
+            if (ProcessItem->QueryHandle)
             {
-                PhGetProcessImageFileNameWin32(processHandle, &ProcessItem->FileName);
+                PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &ProcessItem->FileName);
             }
             else
             {
@@ -1392,27 +1401,20 @@ VOID PhpFillProcessItem(
 
     // Token-related information
     if (
-        processHandle &&
+        ProcessItem->QueryHandle &&
         ProcessItem->ProcessId != SYSTEM_PROCESS_ID // Token of System process can't be opened sometimes
         )
     {
         HANDLE tokenHandle;
 
-        status = PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
-
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(PhOpenProcessToken(ProcessItem->QueryHandle, TOKEN_QUERY, &tokenHandle)))
         {
-            // User name
+            PTOKEN_USER user;
+
+            if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
             {
-                PTOKEN_USER user;
-
-                status = PhGetTokenUser(tokenHandle, &user);
-
-                if (NT_SUCCESS(status))
-                {
-                    ProcessItem->UserName = PhpGetSidFullNameCached(user->User.Sid);
-                    PhFree(user);
-                }
+                ProcessItem->UserName = PhpGetSidFullNameCached(user->User.Sid);
+                PhFree(user);
             }
 
             NtClose(tokenHandle);
@@ -1437,7 +1439,13 @@ VOID PhpFillProcessItem(
             );
     }
 
-    NtClose(processHandle);
+    // On Windows 8.1 and above, processes without threads are reflected processes 
+    // which will not terminate if we have a handle open.
+    if (Process->NumberOfThreads == 0)
+    {
+        NtClose(ProcessItem->QueryHandle);
+        ProcessItem->QueryHandle = NULL;
+    }
 }
 
 FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
@@ -2192,19 +2200,6 @@ VOID PhProcessProviderUpdate(
             processRecord = PhpCreateProcessRecord(processItem);
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
-
-            // Open a handle to the process for later usage.
-            //
-            // Don't try to do this if the process has no threads. On Windows 8.1, processes without
-            // threads are probably reflected processes which will not terminate if we have a handle
-            // open.
-            if (process->NumberOfThreads != 0)
-            {
-                PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
-
-                if (!processItem->QueryHandle)
-                    PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, processItem->ProcessId);
-            }
 
             PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
