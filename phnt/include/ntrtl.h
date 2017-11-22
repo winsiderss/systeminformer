@@ -4562,6 +4562,12 @@ typedef struct _RTL_BITMAP
     PULONG Buffer;
 } RTL_BITMAP, *PRTL_BITMAP;
 
+typedef struct _RTL_BITMAP_EX
+{
+    ULONG64 SizeOfBitMap;
+    PULONG64 Buffer;
+} RTL_BITMAP_EX, *PRTL_BITMAP_EX;
+
 NTSYSAPI
 VOID
 NTAPI
