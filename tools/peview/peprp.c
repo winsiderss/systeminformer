@@ -726,11 +726,11 @@ BOOLEAN PvpLoadDbgHelp(
     // Load symbol path from _NT_SYMBOL_PATH if configured by the user.    
     if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &symbolPathVarName, &symbolPathUs)))
     {
-        symbolSearchPath = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", symbolPathUs.Buffer);
+        symbolSearchPath = PhCreateStringFromUnicodeString(&symbolPathUs);
     }
     else
     {
-        symbolSearchPath = PhCreateString(L"SRV**http://msdl.microsoft.com/download/symbols");
+        symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*http://msdl.microsoft.com/download/symbols");
     }
 
     PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
