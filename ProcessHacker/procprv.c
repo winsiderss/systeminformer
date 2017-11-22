@@ -201,8 +201,8 @@ ULONG PhTotalProcesses;
 ULONG PhTotalThreads;
 ULONG PhTotalHandles;
 
-SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
-SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
+PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
+PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
 
 ULONG64 PhCpuTotalCycleDelta; // real cycle time delta for this period
 PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
@@ -279,19 +279,19 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhProcessRecordList = PhCreateList(40);
 
-    RtlInitUnicodeString(
-        &PhDpcsProcessInformation.ImageName,
-        L"DPCs"
-        );
-    PhDpcsProcessInformation.UniqueProcessId = DPCS_PROCESS_ID;
-    PhDpcsProcessInformation.InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+    PhDpcsProcessInformation = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
+    memset(PhDpcsProcessInformation, 0, sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
 
-    RtlInitUnicodeString(
-        &PhInterruptsProcessInformation.ImageName,
-        L"Interrupts"
-        );
-    PhInterruptsProcessInformation.UniqueProcessId = INTERRUPTS_PROCESS_ID;
-    PhInterruptsProcessInformation.InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+    PhInterruptsProcessInformation = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
+    memset(PhInterruptsProcessInformation, 0, sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
+
+    RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
+    PhDpcsProcessInformation->UniqueProcessId = DPCS_PROCESS_ID;
+    PhDpcsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+
+    RtlInitUnicodeString(&PhInterruptsProcessInformation->ImageName, L"Interrupts");
+    PhInterruptsProcessInformation->UniqueProcessId = INTERRUPTS_PROCESS_ID;
+    PhInterruptsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
 
     PhCpuInformation = PhAllocate(
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
@@ -2043,14 +2043,14 @@ VOID PhProcessProviderUpdate(
 
     if (PhEnableCycleCpuUsage)
     {
-        PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
-        PhInterruptsProcessInformation.CycleTime = PhCpuSystemCycleDelta.Value;
+        PhInterruptsProcessInformation->KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
+        PhInterruptsProcessInformation->CycleTime = PhCpuSystemCycleDelta.Value;
         sysTotalCycleTime += PhCpuSystemCycleDelta.Delta;
     }
     else
     {
-        PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
-        PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
+        PhDpcsProcessInformation->KernelTime = PhCpuTotals.DpcTime;
+        PhInterruptsProcessInformation->KernelTime = PhCpuTotals.InterruptTime;
     }
 
     // Look for dead processes.
@@ -2074,11 +2074,11 @@ VOID PhProcessProviderUpdate(
 
                 if (processItem->ProcessId == DPCS_PROCESS_ID)
                 {
-                    processEntry = &PhDpcsProcessInformation;
+                    processEntry = PhDpcsProcessInformation;
                 }
                 else if (processItem->ProcessId == INTERRUPTS_PROCESS_ID)
                 {
-                    processEntry = &PhInterruptsProcessInformation;
+                    processEntry = PhInterruptsProcessInformation;
                 }
                 else
                 {
@@ -2420,13 +2420,13 @@ VOID PhProcessProviderUpdate(
 
         // Trick ourselves into thinking that the fake processes
         // are on the list.
-        if (process == &PhInterruptsProcessInformation)
+        if (process == PhInterruptsProcessInformation)
         {
             process = NULL;
         }
-        else if (process == &PhDpcsProcessInformation)
+        else if (process == PhDpcsProcessInformation)
         {
-            process = &PhInterruptsProcessInformation;
+            process = PhInterruptsProcessInformation;
         }
         else
         {
@@ -2435,9 +2435,9 @@ VOID PhProcessProviderUpdate(
             if (process == NULL)
             {
                 if (PhEnableCycleCpuUsage)
-                    process = &PhInterruptsProcessInformation;
+                    process = PhInterruptsProcessInformation;
                 else
-                    process = &PhDpcsProcessInformation;
+                    process = PhDpcsProcessInformation;
             }
         }
     }
