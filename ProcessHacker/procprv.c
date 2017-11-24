@@ -111,7 +111,10 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
 
-            ULONG Spare : 23;
+            ULONG IsBeingDebugged : 1;
+            ULONG IsImmersive : 1;
+
+            ULONG Spare : 21;
         };
     };
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -1006,6 +1009,17 @@ VOID PhpProcessQueryStage1(
         }
     }
 
+    // Debugged
+    if (processHandleLimited)
+    {
+        BOOLEAN isBeingDebugged;
+
+        if (NT_SUCCESS(PhGetProcessIsBeingDebugged(processHandleLimited, &isBeingDebugged)))
+        {
+            Data->IsBeingDebugged = isBeingDebugged;
+        }
+    }
+
     // Command line, .NET
     if (processHandleLimited)
     {
@@ -1157,11 +1171,11 @@ VOID PhpProcessQueryStage1(
     // Immersive
     if (processHandleLimited && IsImmersiveProcess_I)
     {
-        processItem->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
+        Data->IsImmersive = !!IsImmersiveProcess_I(processHandleLimited);
     }
 
     // Package full name
-    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE && processItem->IsImmersive)
+    if (processHandleLimited && WINDOWS_HAS_IMMERSIVE && Data->IsImmersive)
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
@@ -1305,6 +1319,8 @@ VOID PhpFillProcessItemStage1(
     processItem->IsProtectedProcess = Data->IsProtectedProcess;
     processItem->IsSecureProcess = Data->IsSecureProcess;
     processItem->IsSubsystemProcess = Data->IsSubsystemProcess;
+    processItem->IsBeingDebugged = Data->IsBeingDebugged;
+    processItem->IsImmersive = Data->IsImmersive;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 }
