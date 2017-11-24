@@ -677,8 +677,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         UNICODE_STRING var;
         PPH_STRING newSearchPath;
 
-        var.Buffer = buffer;
-        var.MaximumLength = sizeof(buffer);
+        RtlInitEmptyUnicodeString(&var, buffer, sizeof(buffer));
 
         if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name, &var)))
             buffer[0] = 0;
