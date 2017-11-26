@@ -36,6 +36,8 @@ typedef struct _PH_NETWORK_ITEM
 
     LARGE_INTEGER CreateTime;
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
+    ULONG LocalScopeId;
+    ULONG RemoteScopeId;
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
 // end_phapppub
 
