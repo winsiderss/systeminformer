@@ -59,6 +59,7 @@
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
+#define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbLoaded;
@@ -212,6 +213,9 @@ INT_PTR CALLBACK OptionsDlgProc(
 // country.c
 typedef struct _NETWORK_EXTENSION
 {
+    LIST_ENTRY ListEntry;
+    PPH_NETWORK_ITEM NetworkItem;
+
     union
     {
         BOOLEAN Flags;
@@ -220,7 +224,8 @@ typedef struct _NETWORK_EXTENSION
             BOOLEAN CountryValid : 1;
             BOOLEAN LocalValid : 1;
             BOOLEAN RemoteValid : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN StatsEnabled : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -229,13 +234,28 @@ typedef struct _NETWORK_EXTENSION
     PPH_STRING RemoteServiceName;
     PPH_STRING RemoteCountryCode;
     PPH_STRING RemoteCountryName;
+
+    ULONG64 NumberOfBytesOut;
+    ULONG64 NumberOfBytesIn;
+    ULONG64 NumberOfLostPackets;
+    ULONG SampleRtt;
+
+    PPH_STRING BytesIn;
+    PPH_STRING BytesOut;
+    PPH_STRING PacketLossText;
+    PPH_STRING LatencyText;
 } NETWORK_EXTENSION, *PNETWORK_EXTENSION;
 
 typedef enum _NETWORK_COLUMN_ID
 {
-    NETWORK_COLUMN_ID_REMOTE_COUNTRY = 1,
-    NETWORK_COLUMN_ID_LOCAL_SERVICE = 2,
-    NETWORK_COLUMN_ID_REMOTE_SERVICE = 3,
+    NETWORK_COLUMN_ID_NONE,
+    NETWORK_COLUMN_ID_REMOTE_COUNTRY,
+    NETWORK_COLUMN_ID_LOCAL_SERVICE,
+    NETWORK_COLUMN_ID_REMOTE_SERVICE,
+    NETWORK_COLUMN_ID_BYTES_IN,
+    NETWORK_COLUMN_ID_BYTES_OUT,
+    NETWORK_COLUMN_ID_PACKETLOSS,
+    NETWORK_COLUMN_ID_LATENCY
 } NETWORK_COLUMN_ID;
 
 // country.c

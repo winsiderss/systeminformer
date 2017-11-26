@@ -36,12 +36,14 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             SetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, PhGetIntegerSetting(SETTING_NAME_PING_SIZE), FALSE);
             SetDlgItemInt(hwndDlg, IDC_MAXHOPS, PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS), FALSE);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_EXTENDED_TCP), PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_DESTROY:
         {
             PhSetIntegerSetting(SETTING_NAME_PING_SIZE, GetDlgItemInt(hwndDlg, IDC_PINGPACKETLENGTH, NULL, FALSE));
             PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, GetDlgItemInt(hwndDlg, IDC_MAXHOPS, NULL, FALSE));
+            PhSetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_EXTENDED_TCP)) == BST_CHECKED);
         }
         break;
     }

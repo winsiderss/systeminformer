@@ -32,13 +32,25 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+
 HWND NetworkTreeNewHandle = NULL;
+BOOLEAN NetworkExtensionEnabled = FALSE;
+LIST_ENTRY NetworkExtensionListHead = { &NetworkExtensionListHead, &NetworkExtensionListHead };
+PH_QUEUED_LOCK NetworkExtensionListLock = PH_QUEUED_LOCK_INIT;
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    // HACK: The GetPerTcpConnectionEStats function requires administrative privileges 
+    // but returns success instead of access denied.
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
+    }
+
     LoadGeoLiteDb();
 }
 
@@ -329,6 +341,18 @@ LONG NTAPI NetworkServiceSortFunction(
     {
     case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
         return PhCompareStringWithNull(extension1->RemoteCountryCode, extension2->RemoteCountryCode, TRUE);
+    case NETWORK_COLUMN_ID_LOCAL_SERVICE:
+        return PhCompareStringWithNull(extension1->LocalServiceName, extension2->LocalServiceName, TRUE);
+    case NETWORK_COLUMN_ID_REMOTE_SERVICE:
+        return PhCompareStringWithNull(extension1->RemoteServiceName, extension2->RemoteServiceName, TRUE);
+    case NETWORK_COLUMN_ID_BYTES_IN:
+        return uint64cmp(extension1->NumberOfBytesIn, extension2->NumberOfBytesIn);
+    case NETWORK_COLUMN_ID_BYTES_OUT:
+        return uint64cmp(extension1->NumberOfBytesOut, extension2->NumberOfBytesOut);
+    case NETWORK_COLUMN_ID_PACKETLOSS:
+        return uint64cmp(extension1->NumberOfLostPackets, extension2->NumberOfLostPackets);
+    case NETWORK_COLUMN_ID_LATENCY:
+        return uint64cmp(extension1->SampleRtt, extension2->SampleRtt);
     }
 
     return 0;
@@ -362,18 +386,51 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     column.Width = 140;
     column.Alignment = PH_ALIGN_LEFT;
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_REMOTE_SERVICE, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Total bytes in";
+    column.Width = 80;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_BYTES_IN, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Total bytes out";
+    column.Width = 80;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_BYTES_OUT, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Packet loss";
+    column.Width = 80;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_PACKETLOSS, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Latency (ms)";
+    column.Width = 80;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_LATENCY, NULL, NetworkServiceSortFunction);
 }
 
 VOID NTAPI NetworkItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
-    )
+)
 {
-    //PPH_NETWORK_ITEM networkItem = Object;
+    PPH_NETWORK_ITEM networkItem = Object;
     PNETWORK_EXTENSION extension = Extension;
 
     memset(extension, 0, sizeof(NETWORK_EXTENSION));
+
+    extension->NetworkItem = networkItem;
+
+    if (NetworkExtensionEnabled)
+    {
+        PhAcquireQueuedLockExclusive(&NetworkExtensionListLock);
+        InsertTailList(&NetworkExtensionListHead, &extension->ListEntry);
+        PhReleaseQueuedLockExclusive(&NetworkExtensionListLock);
+    }
 }
 
 VOID NTAPI NetworkItemDeleteCallback(
@@ -385,11 +442,58 @@ VOID NTAPI NetworkItemDeleteCallback(
     //PPH_NETWORK_ITEM networkItem = Object;
     PNETWORK_EXTENSION extension = Extension;
 
-    PhClearReference(&extension->RemoteCountryCode);
-    PhClearReference(&extension->RemoteCountryName);
+    if (NetworkExtensionEnabled)
+    {
+        PhAcquireQueuedLockExclusive(&NetworkExtensionListLock);
+        RemoveEntryList(&extension->ListEntry);
+        PhReleaseQueuedLockExclusive(&NetworkExtensionListLock);
+    }
+
+    if (extension->LocalServiceName)
+        PhDereferenceObject(extension->LocalServiceName);
+    if (extension->RemoteServiceName)
+        PhDereferenceObject(extension->RemoteServiceName);
+    if (extension->RemoteCountryCode)
+        PhDereferenceObject(extension->RemoteCountryCode);
+    if (extension->RemoteCountryName)
+        PhDereferenceObject(extension->RemoteCountryName);
+    if (extension->BytesIn)
+        PhDereferenceObject(extension->BytesIn);
+    if (extension->BytesOut)
+        PhDereferenceObject(extension->BytesOut);
+    if (extension->PacketLossText)
+        PhDereferenceObject(extension->PacketLossText);
+    if (extension->LatencyText)
+        PhDereferenceObject(extension->LatencyText);
 
     if (extension->CountryIcon)
         DestroyIcon(extension->CountryIcon);
+}
+
+FORCEINLINE VOID PhpNetworkItemToRow(
+    _Out_ PMIB_TCPROW Row,
+     _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    Row->dwState = NetworkItem->State;
+    Row->dwLocalAddr = NetworkItem->LocalEndpoint.Address.Ipv4;
+    Row->dwLocalPort = _byteswap_ushort((USHORT)NetworkItem->LocalEndpoint.Port);
+    Row->dwRemoteAddr = NetworkItem->RemoteEndpoint.Address.Ipv4;
+    Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
+}
+
+FORCEINLINE VOID PhpNetworkItemToRow6(
+    _Out_ PMIB_TCP6ROW Row,
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    Row->State = NetworkItem->State;
+    memcpy(Row->LocalAddr.u.Byte, NetworkItem->LocalEndpoint.Address.Ipv6, 16);
+    Row->dwLocalScopeId = NetworkItem->LocalScopeId;
+    Row->dwLocalPort = _byteswap_ushort((USHORT)NetworkItem->LocalEndpoint.Port);
+    memcpy(Row->RemoteAddr.u.Byte, NetworkItem->RemoteEndpoint.Address.Ipv6, 16);
+    Row->dwRemoteScopeId = NetworkItem->RemoteScopeId;
+    Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
 
 VOID NTAPI NetworkNodeCreateCallback(
@@ -417,6 +521,43 @@ VOID NTAPI NetworkNodeCreateCallback(
         }
 
         extension->CountryValid = TRUE;
+    }
+
+    if (!extension->StatsEnabled)
+    {
+        if (NetworkExtensionEnabled)
+        {
+            if (networkNode->NetworkItem->ProtocolType == PH_TCP4_NETWORK_PROTOCOL)
+            {
+                MIB_TCPROW tcpRow;
+                TCP_ESTATS_DATA_RW_v0 dataRw;
+                TCP_ESTATS_PATH_RW_v0 pathRw;
+
+                dataRw.EnableCollection = TRUE;
+                pathRw.EnableCollection = TRUE;
+
+                PhpNetworkItemToRow(&tcpRow, networkNode->NetworkItem);
+
+                SetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
+                SetPerTcpConnectionEStats(&tcpRow, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
+            }
+            else if (networkNode->NetworkItem->ProtocolType == PH_TCP6_NETWORK_PROTOCOL)
+            {
+                MIB_TCP6ROW tcp6Row;
+                TCP_ESTATS_DATA_RW_v0 dataRw;
+                TCP_ESTATS_PATH_RW_v0 pathRw;
+
+                dataRw.EnableCollection = TRUE;
+                pathRw.EnableCollection = TRUE;
+
+                PhpNetworkItemToRow6(&tcp6Row, networkNode->NetworkItem);
+
+                SetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsData, (PUCHAR)&dataRw, 0, sizeof(TCP_ESTATS_DATA_RW_v0), 0);
+                SetPerTcp6ConnectionEStats(&tcp6Row, TcpConnectionEstatsPath, (PUCHAR)&pathRw, 0, sizeof(TCP_ESTATS_PATH_RW_v0), 0);
+            }
+        }
+
+        extension->StatsEnabled = TRUE;
     }
 }
 
@@ -464,6 +605,30 @@ VOID UpdateNetworkNode(
             }
         }
         break;
+    case NETWORK_COLUMN_ID_BYTES_IN:
+        {
+            if (Extension->NumberOfBytesIn)
+                PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, -1));
+        }
+        break;
+    case NETWORK_COLUMN_ID_BYTES_OUT:
+        {
+            if (Extension->NumberOfBytesOut)
+                PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, -1));
+        }
+        break;
+    case NETWORK_COLUMN_ID_PACKETLOSS:
+        {
+            if (Extension->NumberOfLostPackets)
+                PhMoveReference(&Extension->PacketLossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
+        }
+        break;
+    case NETWORK_COLUMN_ID_LATENCY:
+        {
+            if (Extension->SampleRtt)
+                PhMoveReference(&Extension->LatencyText, PhFormatUInt64(Extension->SampleRtt, TRUE));
+        }
+        break;
     }
 }
 
@@ -496,6 +661,18 @@ VOID NTAPI TreeNewMessageCallback(
                     break;
                 case NETWORK_COLUMN_ID_REMOTE_SERVICE:
                     getCellText->Text = PhGetStringRef(extension->RemoteServiceName);
+                    break;
+                case NETWORK_COLUMN_ID_BYTES_IN:
+                    getCellText->Text = PhGetStringRef(extension->BytesIn);
+                    break;
+                case NETWORK_COLUMN_ID_BYTES_OUT:
+                    getCellText->Text = PhGetStringRef(extension->BytesOut);
+                    break;
+                case NETWORK_COLUMN_ID_PACKETLOSS:
+                    getCellText->Text = PhGetStringRef(extension->PacketLossText);
+                    break;
+                case NETWORK_COLUMN_ID_LATENCY:
+                    getCellText->Text = PhGetStringRef(extension->LatencyText);
                     break;
                 }
             }
@@ -563,21 +740,143 @@ VOID NTAPI TreeNewMessageCallback(
                     extension->RemoteCountryName->Buffer,
                     (INT)extension->RemoteCountryName->Length / 2,
                     &rect,
-                    DT_LEFT | DT_VCENTER | DT_SINGLELINE
+                    DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
 
             if (GeoDbExpired && !extension->CountryIcon)
             {
-                DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                DrawText(hdc, L"Geoip database expired.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
 
             if (!GeoDbLoaded)
             {
-                DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
         }
         break;
+    }
+}
+
+VOID ProcessesUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    static ULONG ProcessesUpdatedCount = 0;
+    PLIST_ENTRY listEntry;
+
+    if (!NetworkExtensionEnabled)
+        return;
+
+    if (ProcessesUpdatedCount < 2)
+    {
+        ProcessesUpdatedCount++;
+        return;
+    }
+
+    for (
+        listEntry = NetworkExtensionListHead.Flink; 
+        listEntry != &NetworkExtensionListHead; 
+        listEntry = listEntry->Flink
+        )
+    {
+        PNETWORK_EXTENSION extension = CONTAINING_RECORD(listEntry, NETWORK_EXTENSION, ListEntry);
+
+        if (!extension || !extension->StatsEnabled)
+            continue;
+
+        if (extension->NetworkItem->ProtocolType == PH_TCP4_NETWORK_PROTOCOL)
+        {
+            MIB_TCPROW tcpRow;
+            TCP_ESTATS_DATA_ROD_v0 dataRod;
+            TCP_ESTATS_PATH_ROD_v0 pathRod;
+
+            PhpNetworkItemToRow(&tcpRow, extension->NetworkItem);
+
+            if (GetPerTcpConnectionEStats(
+                &tcpRow,
+                TcpConnectionEstatsData,
+                NULL,
+                0,
+                0,
+                NULL,
+                0,
+                0,
+                (PUCHAR)&dataRod,
+                0,
+                sizeof(TCP_ESTATS_DATA_ROD_v0)
+                ) == ERROR_SUCCESS)
+            {
+                extension->NumberOfBytesIn = dataRod.DataBytesIn;
+                extension->NumberOfBytesOut = dataRod.DataBytesOut;
+            }
+
+            if (GetPerTcpConnectionEStats(
+                &tcpRow,
+                TcpConnectionEstatsPath,
+                NULL,
+                0,
+                0,
+                NULL,
+                0,
+                0,
+                (PUCHAR)&pathRod,
+                0,
+                sizeof(TCP_ESTATS_PATH_ROD_v0)
+                ) == ERROR_SUCCESS)
+            {
+                extension->NumberOfLostPackets = pathRod.FastRetran + pathRod.PktsRetrans;
+                extension->SampleRtt = pathRod.SampleRtt;
+
+                if (extension->SampleRtt == ULONG_MAX) // HACK
+                    extension->SampleRtt = 0;
+            }
+        }
+        else if (extension->NetworkItem->ProtocolType == PH_TCP6_NETWORK_PROTOCOL)
+        {
+            MIB_TCP6ROW tcp6Row;
+            TCP_ESTATS_DATA_ROD_v0 dataRod;
+            TCP_ESTATS_PATH_ROD_v0 pathRod;
+
+            PhpNetworkItemToRow6(&tcp6Row, extension->NetworkItem);
+
+            if (GetPerTcp6ConnectionEStats(
+                &tcp6Row,
+                TcpConnectionEstatsData,
+                NULL,
+                0,
+                0,
+                NULL,
+                0,
+                0,
+                (PUCHAR)&dataRod,
+                0,
+                sizeof(TCP_ESTATS_DATA_ROD_v0)
+                ) == ERROR_SUCCESS)
+            {
+                extension->NumberOfBytesIn = dataRod.DataBytesIn;
+                extension->NumberOfBytesOut = dataRod.DataBytesOut;
+            }
+
+            if (GetPerTcp6ConnectionEStats(
+                &tcp6Row,
+                TcpConnectionEstatsPath,
+                NULL,
+                0,
+                0,
+                NULL,
+                0,
+                0,
+                (PUCHAR)&pathRod,
+                0,
+                sizeof(TCP_ESTATS_PATH_ROD_v0)
+                ) == ERROR_SUCCESS)
+            {
+                extension->NumberOfLostPackets = pathRod.FastRetran + pathRod.PktsRetrans;
+                extension->SampleRtt = pathRod.SampleRtt;
+            }
+        }
     }
 }
 
@@ -607,6 +906,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
                 { StringSettingType, SETTING_NAME_DB_LOCATION, L"%APPDATA%\\Process Hacker\\GeoLite2-Country.mmdb" },
+                { IntegerSettingType, SETTING_NAME_EXTENDED_TCP_STATS, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -662,6 +962,13 @@ LOGICAL DllMain(
                 NULL,
                 &TreeNewMessageCallbackRegistration
                 );     
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
 
             PhPluginSetObjectExtension(
                 PluginInstance, 
