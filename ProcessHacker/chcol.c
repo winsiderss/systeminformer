@@ -214,7 +214,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDOK:
                 {
-#define ORDER_LIMIT 100
+#define ORDER_LIMIT 200
                     PPH_LIST activeList;
                     ULONG activeCount;
                     ULONG i;
