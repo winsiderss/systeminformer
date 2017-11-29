@@ -3309,10 +3309,11 @@ VOID PhMwpUpdateUsersMenu(
             escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
             PhDereferenceObject(menuText);
 
-            PhInsertEMenuItem(UsersMenu, userMenu = PhCreateEMenuItem(0, IDR_USER, escapedMenuText->Buffer, NULL, UlongToPtr(sessions[i].SessionId)), -1);
+            userMenu = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, IDR_USER, PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(WCHAR)), NULL, UlongToPtr(sessions[i].SessionId));
             PhLoadResourceEMenuItem(userMenu, PhInstanceHandle, MAKEINTRESOURCE(IDR_USER), 0);
+            PhInsertEMenuItem(UsersMenu, userMenu, -1);
 
-            PhAutoDereferenceObject(escapedMenuText);
+            PhDereferenceObject(escapedMenuText);
         }
 
         WinStationFreeMemory(sessions);
