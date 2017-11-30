@@ -128,6 +128,7 @@
 #define IDD_PLUGINPROPERTIES            228
 #define IDD_PLUGINSDISABLED             241
 #define IDD_PROCWMIPROVIDERS            242
+#define IDD_COLUMNSETS                  243
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -221,6 +222,7 @@
 #define IDC_MORE                        1079
 #define IDC_VIEWMITIGATION              1080
 #define IDC_REPLACETASKMANAGER          1080
+#define IDC_RENAME                      1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
 #define IDC_LIMITS                      1083
@@ -359,6 +361,7 @@
 #define IDC_ZIOOTHER_V                  1172
 #define IDC_ZIOOTHERBYTES_V             1173
 #define IDC_MOVEDOWN                    1176
+#define IDC_REMOVE                      1177
 #define IDC_DISPLAYNAME                 1179
 #define IDC_ZPRIORITY_V                 1181
 #define IDC_ZCYCLES_V                   1182
@@ -528,6 +531,7 @@
 #define IDC_PLUGINTREE                  1400
 #define IDC_DISABLED                    1401
 #define IDC_LIST_DISABLED               1402
+#define IDC_COLUMNSETLIST               1403
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -697,6 +701,9 @@
 #define ID_EMPTY_EMPTYSTANDBYLIST       40252
 #define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40253
 #define IDC_BACK                        40255
+#define ID_VIEW_ORGANIZECOLUMNSETS      40256
+#define ID_VIEW_SAVECOLUMNSET           40257
+#define ID_VIEW_LOADCOLUMNSET           40258
 #define ID_DIGIT1                       40263
 #define ID_DIGIT2                       40264
 #define ID_DIGIT3                       40265
@@ -732,9 +739,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        243
+#define _APS_NEXT_RESOURCE_VALUE        244
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1403
+#define _APS_NEXT_CONTROL_VALUE         1404
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

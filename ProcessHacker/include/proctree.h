@@ -242,6 +242,16 @@ VOID PhSaveSettingsProcessTreeList(
     VOID
     );
 
+VOID PhLoadSettingsProcessTreeListEx(
+    _In_ PPH_STRING TreeListSettings,
+    _In_ PPH_STRING TreeSortSettings
+    );
+
+VOID PhSaveSettingsProcessTreeListEx(
+    _Out_ PPH_STRING *TreeListSettings,
+    _Out_ PPH_STRING *TreeSortSettings
+    );
+
 VOID PhReloadSettingsProcessTreeList(
     VOID
     );

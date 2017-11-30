@@ -32,6 +32,7 @@
 #include <phsettings.h>
 
 #include <actions.h>
+#include <colsetmgr.h>
 #include <phplug.h>
 #include <procprp.h>
 #include <procprv.h>
@@ -110,6 +111,7 @@ BOOLEAN PhMwpProcessesPageCallback(
             PPH_EMENU menu = menuInfo->Menu;
             ULONG startIndex = menuInfo->StartIndex;
             PPH_EMENU_ITEM menuItem;
+            PPH_EMENU_ITEM columnSetMenuItem;
 
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"Hide processes from other users", NULL, NULL), startIndex);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide signed processes", NULL, NULL), startIndex + 1);
@@ -134,6 +136,38 @@ BOOLEAN PhMwpProcessesPageCallback(
                 {
                     menuItem->Flags |= PH_EMENU_DISABLED;
                 }
+            }
+
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), startIndex + 4);
+            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organize column sets...", NULL, NULL), startIndex + 5);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SAVECOLUMNSET, L"Save column set...", NULL, NULL), startIndex + 6);
+            PhInsertEMenuItem(menu, columnSetMenuItem = PhCreateEMenuItem(0, 0, L"&Load column set", NULL, NULL), startIndex + 7);
+
+            // Add column set sub menu entries.
+            {
+                ULONG index;
+                PPH_LIST columnSetList;
+
+                columnSetList = PhInitializeColumnSetList(L"ProcessTreeColumnSetConfig");
+
+                if (!columnSetList->Count)
+                {
+                    menuItem->Flags |= PH_EMENU_DISABLED;
+                    columnSetMenuItem->Flags |= PH_EMENU_DISABLED;
+                }
+                else
+                {
+                    for (index = 0; index < columnSetList->Count; index++)
+                    {
+                        PPH_COLUMN_SET_ENTRY entry = columnSetList->Items[index];
+
+                        menuItem = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_VIEW_LOADCOLUMNSET, 
+                            PhAllocateCopy(entry->Name->Buffer, entry->Name->Length + sizeof(WCHAR)), NULL, NULL);
+                        PhInsertEMenuItem(columnSetMenuItem, menuItem, -1);
+                    }
+                }
+
+                PhDeleteColumnSetList(columnSetList);
             }
         }
         return TRUE;
