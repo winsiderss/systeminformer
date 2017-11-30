@@ -234,6 +234,7 @@
     <ClCompile Include="chproc.c" />
     <ClCompile Include="cmdmode.c" />
     <ClCompile Include="colmgr.c" />
+    <ClCompile Include="colsetmgr.c" />
     <ClCompile Include="dbgcon.c" />
     <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />
@@ -348,6 +349,7 @@
     <ClInclude Include="include\actions.h" />
     <ClInclude Include="include\appsup.h" />
     <ClInclude Include="include\colmgr.h" />
+    <ClInclude Include="include\colsetmgr.h" />
     <ClInclude Include="include\extmgr.h" />
     <ClInclude Include="include\extmgri.h" />
     <ClInclude Include="include\heapstruct.h" />

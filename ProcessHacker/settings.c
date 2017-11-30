@@ -127,6 +127,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
+    PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"ProcPropPage", L"General");

@@ -37,6 +37,7 @@
 #include <phsettings.h>
 
 #include <actions.h>
+#include <colsetmgr.h>
 #include <memsrch.h>
 #include <miniinfo.h>
 #include <netlist.h>
@@ -2351,6 +2352,73 @@ VOID PhMwpDispatchMenuCommand(
             }
         }
         break;
+    case ID_VIEW_ORGANIZECOLUMNSETS:
+        {
+            PhShowColumnSetEditorDialog(PhMainWndHandle, L"ProcessTreeColumnSetConfig");
+        }
+        return;
+    case ID_VIEW_SAVECOLUMNSET:
+        {
+            PPH_EMENU_ITEM menuItem;
+            PPH_STRING columnSetName = NULL;
+
+            menuItem = (PPH_EMENU_ITEM)ItemData;
+
+            while (PhaChoiceDialog(
+                PhMainWndHandle,
+                L"Column Set Name",
+                L"Enter a name for this column set:",
+                NULL,
+                0,
+                NULL,
+                PH_CHOICE_DIALOG_USER_CHOICE,
+                &columnSetName,
+                NULL,
+                NULL
+                ))
+            {
+                if (!PhIsNullOrEmptyString(columnSetName))
+                    break;
+            }
+
+            if (!PhIsNullOrEmptyString(columnSetName))
+            {
+                PPH_STRING treeSettings;
+                PPH_STRING sortSettings;
+
+                // Query the current column configuration.
+                PhSaveSettingsProcessTreeListEx(&treeSettings, &sortSettings);
+                // Create the column set for this column configuration.
+                PhSaveSettingsColumnSet(L"ProcessTreeColumnSetConfig", columnSetName, treeSettings, sortSettings);
+
+                PhDereferenceObject(treeSettings);
+                PhDereferenceObject(sortSettings);
+            }
+        }
+        return;
+    case ID_VIEW_LOADCOLUMNSET:
+        {
+            PPH_EMENU_ITEM menuItem;
+            PPH_STRING columnSetName;
+            PPH_STRING treeSettings;
+            PPH_STRING sortSettings;
+
+            menuItem = (PPH_EMENU_ITEM)ItemData;
+            columnSetName = PhCreateString(menuItem->Text);
+
+            // Query the selected column set.
+            if (PhLoadSettingsColumnSet(L"ProcessTreeColumnSetConfig", columnSetName, &treeSettings, &sortSettings))
+            {
+                // Load the column configuration from the selected column set.
+                PhLoadSettingsProcessTreeListEx(treeSettings, sortSettings);
+
+                PhDereferenceObject(treeSettings);
+                PhDereferenceObject(sortSettings);
+            }
+
+            PhDereferenceObject(columnSetName);
+        }
+        return;
     }
 
     SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
@@ -2363,7 +2431,7 @@ VOID PhMwpInitializeSubMenu(
 {
     PPH_EMENU_ITEM menuItem;
 
-    if (Index == 0) // Hacker
+    if (Index == PH_MENU_ITEM_LOCATION_HACKER) // Hacker
     {
         // Fix some menu items.
         if (PhGetOwnTokenAttributes().Elevated)
@@ -2387,7 +2455,7 @@ VOID PhMwpInitializeSubMenu(
         // Fix up the Computer menu.
         PhMwpSetupComputerMenu(Menu);
     }
-    else if (Index == 1) // View
+    else if (Index == PH_MENU_ITEM_LOCATION_VIEW) // View
     {
         PPH_EMENU_ITEM trayIconsMenuItem;
         ULONG i;
@@ -2506,7 +2574,7 @@ VOID PhMwpInitializeSubMenu(
         if (PhMwpUpdateAutomatically && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_UPDATEAUTOMATICALLY)))
             menuItem->Flags |= PH_EMENU_CHECKED;
     }
-    else if (Index == 2) // Tools
+    else if (Index == PH_MENU_ITEM_LOCATION_TOOLS) // Tools
     {
         if (!PhGetIntegerSetting(L"HiddenProcessesMenuEnabled"))
         {
@@ -3309,7 +3377,13 @@ VOID PhMwpUpdateUsersMenu(
             escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
             PhDereferenceObject(menuText);
 
-            userMenu = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, IDR_USER, PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(WCHAR)), NULL, UlongToPtr(sessions[i].SessionId));
+            userMenu = PhCreateEMenuItem(
+                PH_EMENU_TEXT_OWNED, 
+                IDR_USER, 
+                PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(WCHAR)), 
+                NULL, 
+                UlongToPtr(sessions[i].SessionId)
+                );
             PhLoadResourceEMenuItem(userMenu, PhInstanceHandle, MAKEINTRESOURCE(IDR_USER), 0);
             PhInsertEMenuItem(UsersMenu, userMenu, -1);
 

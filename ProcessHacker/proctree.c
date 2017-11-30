@@ -263,6 +263,33 @@ VOID PhSaveSettingsProcessTreeList(
     PhDereferenceObject(sortSettings);
 }
 
+VOID PhLoadSettingsProcessTreeListEx(
+    _In_ PPH_STRING TreeListSettings,
+    _In_ PPH_STRING TreeSortSettings
+    )
+{
+    PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &TreeListSettings->sr, &TreeSortSettings->sr);
+
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    {
+        SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    }
+}
+
+VOID PhSaveSettingsProcessTreeListEx(
+    _Out_ PPH_STRING *TreeListSettings,
+    _Out_ PPH_STRING *TreeSortSettings
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+
+    settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &sortSettings);
+
+    *TreeListSettings = settings;
+    *TreeSortSettings = sortSettings;
+}
+
 VOID PhReloadSettingsProcessTreeList(
     VOID
     )
