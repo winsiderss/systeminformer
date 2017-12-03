@@ -113,7 +113,7 @@ VOID PhSaveSettingsColumnList(
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
     settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
-    PhSetStringSetting2(L"ProcessTreeColumnSetConfig", &settingsString->sr);
+    PhSetStringSetting2(SettingName, &settingsString->sr);
 }
 
 VOID PhDeleteColumnSetList(
@@ -136,6 +136,7 @@ VOID PhDeleteColumnSetList(
     PhDereferenceObject(ColumnSetList);
 }
 
+_Success_(return)
 BOOLEAN PhLoadSettingsColumnSet(
     _In_ PWSTR SettingName,
     _In_ PPH_STRING ColumnSetName,
@@ -151,7 +152,7 @@ BOOLEAN PhLoadSettingsColumnSet(
     PH_STRINGREF remaining;
     PH_STRINGREF part;
 
-    settingsString = PhaGetStringSetting(L"ProcessTreeColumnSetConfig");
+    settingsString = PhaGetStringSetting(SettingName);
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
