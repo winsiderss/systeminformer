@@ -304,16 +304,25 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                             for (i = 0; i < numberOfIndices; i++)
                             {
                                 item = PhItemArray(&environmentContext->Items, PtrToUlong(indices[i]) - 1);
-                                PhSetEnvironmentVariableRemote(processHandle, &item->Name->sr, NULL, &timeout);
+                                status = PhSetEnvironmentVariableRemote(processHandle, &item->Name->sr, NULL, &timeout);
                             }
 
                             NtClose(processHandle);
 
                             PhpRefreshEnvironment(hwndDlg, environmentContext, processItem);
+
+                            if (!NT_SUCCESS(status))
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", status, 0);
+                            }
+                            else if (status == STATUS_TIMEOUT)
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
+                            }
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                            PhShowStatus(hwndDlg, L"Unable to open the process.", status, 0);
                         }
                     }
 
@@ -543,7 +552,12 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
 
                             if (!NT_SUCCESS(status))
                             {
-                                PhShowStatus(hwndDlg, L"Unable to set the environment variable", status, 0);
+                                PhShowStatus(hwndDlg, L"Unable to set the environment variable.", status, 0);
+                                break;
+                            }
+                            else if (status == STATUS_TIMEOUT)
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
                                 break;
                             }
 
