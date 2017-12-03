@@ -482,7 +482,7 @@ VOID PhShowMemoryStringDialog(
 
 VOID PhShowProcessMitigationPolicyDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION *Information
+    _In_ HANDLE ProcessId
     );
 
 // netstk
@@ -614,7 +614,7 @@ NTAPI
 PhCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
+    _In_opt_ PWSTR BannerText
     );
 
 PHAPPAPI
