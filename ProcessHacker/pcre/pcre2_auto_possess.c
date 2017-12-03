@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2017 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains functions that scan a compiled pattern and change
 repeats into possessive repeats where possible. */
 
-
-#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -590,7 +588,6 @@ for(;;)
       case OP_ASSERTBACK:
       case OP_ASSERTBACK_NOT:
       case OP_ONCE:
-      case OP_ONCE_NC:
 
       /* Atomic sub-patterns and assertions can always auto-possessify their
       last iterator. However, if the group was entered as a result of checking
@@ -603,7 +600,6 @@ for(;;)
     continue;
 
     case OP_ONCE:
-    case OP_ONCE_NC:
     case OP_BRA:
     case OP_CBRA:
     next_code = code + GET(code, 1);
@@ -627,8 +623,8 @@ for(;;)
     case OP_BRAMINZERO:
 
     next_code = code + 1;
-    if (*next_code != OP_BRA && *next_code != OP_CBRA
-        && *next_code != OP_ONCE && *next_code != OP_ONCE_NC) return FALSE;
+    if (*next_code != OP_BRA && *next_code != OP_CBRA &&
+        *next_code != OP_ONCE) return FALSE;
 
     do next_code += GET(next_code, 1); while (*next_code == OP_ALT);
 
@@ -1079,7 +1075,7 @@ for (;;)
   {
   c = *code;
 
-  if (c > OP_TABLE_LENGTH) return -1;   /* Something gone wrong */
+  if (c >= OP_TABLE_LENGTH) return -1;   /* Something gone wrong */
 
   if (c >= OP_STAR && c <= OP_TYPEPOSUPTO)
     {

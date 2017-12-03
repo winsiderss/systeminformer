@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2017 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,6 @@ only once - I suspect this was the cause of the problems with the tests.)
 Overall, I concluded that the gains in some cases did not outweigh the losses
 in others, so I abandoned this code. */
 
-#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -84,7 +83,7 @@ in others, so I abandoned this code. */
 #include "pcre2_internal.h"
 
 #define PUBLIC_DFA_MATCH_OPTIONS \
-  (PCRE2_ANCHORED|PCRE2_NOTBOL|PCRE2_NOTEOL|PCRE2_NOTEMPTY| \
+  (PCRE2_ANCHORED|PCRE2_ENDANCHORED|PCRE2_NOTBOL|PCRE2_NOTEOL|PCRE2_NOTEMPTY| \
    PCRE2_NOTEMPTY_ATSTART|PCRE2_NO_UTF_CHECK|PCRE2_PARTIAL_HARD| \
    PCRE2_PARTIAL_SOFT|PCRE2_DFA_SHORTEST|PCRE2_DFA_RESTART)
 
@@ -173,7 +172,7 @@ static const uint8_t coptable[] = {
   0,                             /* Assert not                             */
   0,                             /* Assert behind                          */
   0,                             /* Assert behind not                      */
-  0, 0,                          /* ONCE, ONCE_NC                          */
+  0,                             /* ONCE                                   */
   0, 0, 0, 0, 0,                 /* BRA, BRAPOS, CBRA, CBRAPOS, COND       */
   0, 0, 0, 0, 0,                 /* SBRA, SBRAPOS, SCBRA, SCBRAPOS, SCOND  */
   0, 0,                          /* CREF, DNCREF                           */
@@ -246,7 +245,7 @@ static const uint8_t poptable[] = {
   0,                             /* Assert not                             */
   0,                             /* Assert behind                          */
   0,                             /* Assert behind not                      */
-  0, 0,                          /* ONCE, ONCE_NC                          */
+  0,                             /* ONCE                                   */
   0, 0, 0, 0, 0,                 /* BRA, BRAPOS, CBRA, CBRAPOS, COND       */
   0, 0, 0, 0, 0,                 /* SBRA, SBRAPOS, SCBRA, SCBRAPOS, SCOND  */
   0, 0,                          /* CREF, DNCREF                           */
@@ -376,14 +375,10 @@ internal_dfa_match(
 {
 stateblock *active_states, *new_states, *temp_states;
 stateblock *next_active_state, *next_new_state;
-
 const uint8_t *ctypes, *lcc, *fcc;
 PCRE2_SPTR ptr;
 PCRE2_SPTR end_code;
-PCRE2_SPTR first_op;
-
 dfa_recursion_info new_recursive;
-
 int active_count, new_count, match_count;
 
 /* Some fields in the mb block are frequently referenced, so we load them into
@@ -401,7 +396,8 @@ BOOL utf = FALSE;
 
 BOOL reset_could_continue = FALSE;
 
-if (rlevel++ > mb->match_limit_recursion) return PCRE2_ERROR_RECURSIONLIMIT;
+if (mb->match_call_count++ >= mb->match_limit) return PCRE2_ERROR_MATCHLIMIT;
+if (rlevel++ > mb->match_limit_depth) return PCRE2_ERROR_DEPTHLIMIT;
 offsetcount &= (uint32_t)(-2);  /* Round down */
 
 wscount -= 2;
@@ -418,21 +414,15 @@ active_states = (stateblock *)(workspace + 2);
 next_new_state = new_states = active_states + wscount;
 new_count = 0;
 
-first_op = this_start_code + 1 + LINK_SIZE +
-  ((*this_start_code == OP_CBRA || *this_start_code == OP_SCBRA ||
-    *this_start_code == OP_CBRAPOS || *this_start_code == OP_SCBRAPOS)
-    ? IMM2_SIZE:0);
-
 /* The first thing in any (sub) pattern is a bracket of some sort. Push all
 the alternative states onto the list, and find out where the end is. This
 makes is possible to use this function recursively, when we want to stop at a
 matching internal ket rather than at the end.
 
-If the first opcode in the first alternative is OP_REVERSE, we are dealing with
-a backward assertion. In that case, we have to find out the maximum amount to
-move back, and set up each alternative appropriately. */
+If we are dealing with a backward assertion we have to find out the maximum
+amount to move back, and set up each alternative appropriately. */
 
-if (*first_op == OP_REVERSE)
+if (*this_start_code == OP_ASSERTBACK || *this_start_code == OP_ASSERTBACK_NOT)
   {
   size_t max_back = 0;
   size_t gone_back;
@@ -477,15 +467,17 @@ if (*first_op == OP_REVERSE)
   if (current_subject < mb->start_used_ptr)
     mb->start_used_ptr = current_subject;
 
-  /* Now we can process the individual branches. */
+  /* Now we can process the individual branches. There will be an OP_REVERSE at
+  the start of each branch, except when the length of the branch is zero. */
 
   end_code = this_start_code;
   do
     {
-    size_t back = (size_t)GET(end_code, 2+LINK_SIZE);
+    uint32_t revlen = (end_code[1+LINK_SIZE] == OP_REVERSE)? 1 + LINK_SIZE : 0;
+    size_t back = (revlen == 0)? 0 : (size_t)GET(end_code, 2+LINK_SIZE);
     if (back <= gone_back)
       {
-      int bstate = (int)(end_code - start_code + 2 + 2*LINK_SIZE);
+      int bstate = (int)(end_code - start_code + 1 + LINK_SIZE + revlen);
       ADD_NEW_DATA(-bstate, 0, (int)(gone_back - back));
       }
     end_code += GET(end_code, 1);
@@ -698,7 +690,7 @@ for (;;)
       case OP_TABLE_LENGTH +
         ((sizeof(coptable) == OP_TABLE_LENGTH) &&
          (sizeof(poptable) == OP_TABLE_LENGTH)):
-      break;
+      return 0;
 
 /* ========================================================================== */
       /* Reached a closing bracket. If not at the end of the pattern, carry
@@ -1387,8 +1379,46 @@ for (;;)
           if (!utf) d = *nptr; else { GETCHARLEN(d, nptr, dlen); }
           rgb = UCD_GRAPHBREAK(d);
           if ((PRIV(ucp_gbtable)[lgb] & (1u << rgb)) == 0) break;
+
+          /* Not breaking between Regional Indicators is allowed only if
+          there are an even number of preceding RIs. */
+
+          if (lgb == ucp_gbRegionalIndicator &&
+              rgb == ucp_gbRegionalIndicator)
+            {
+            int ricount = 0;
+            PCRE2_SPTR bptr = nptr - 1;
+#ifdef SUPPORT_UNICODE
+            if (utf) BACKCHAR(bptr);
+#endif
+            /* bptr is pointing to the left-hand character */
+
+            while (bptr > mb->start_subject)
+              {
+              bptr--;
+#ifdef SUPPORT_UNICODE
+              if (utf)
+                {
+                BACKCHAR(bptr);
+                GETCHAR(d, bptr);
+                }
+              else
+#endif
+              d = *bptr;
+              if (UCD_GRAPHBREAK(d) != ucp_gbRegionalIndicator) break;
+              ricount++;
+              }
+            if ((ricount & 1) != 0) break;  /* Grapheme break required */
+            }
+
+          /* If Extend follows E_Base[_GAZ] do not update lgb; this allows
+          any number of Extend before a following E_Modifier. */
+
+          if (rgb != ucp_gbExtend ||
+              (lgb != ucp_gbE_Base && lgb != ucp_gbE_Base_GAZ))
+            lgb = rgb;
+
           ncount++;
-          lgb = rgb;
           nptr += dlen;
           }
         count++;
@@ -1649,8 +1679,46 @@ for (;;)
           if (!utf) d = *nptr; else { GETCHARLEN(d, nptr, dlen); }
           rgb = UCD_GRAPHBREAK(d);
           if ((PRIV(ucp_gbtable)[lgb] & (1u << rgb)) == 0) break;
+
+          /* Not breaking between Regional Indicators is allowed only if
+          there are an even number of preceding RIs. */
+
+          if (lgb == ucp_gbRegionalIndicator &&
+              rgb == ucp_gbRegionalIndicator)
+            {
+            int ricount = 0;
+            PCRE2_SPTR bptr = nptr - 1;
+#ifdef SUPPORT_UNICODE
+            if (utf) BACKCHAR(bptr);
+#endif
+            /* bptr is pointing to the left-hand character */
+
+            while (bptr > mb->start_subject)
+              {
+              bptr--;
+#ifdef SUPPORT_UNICODE
+              if (utf)
+                {
+                BACKCHAR(bptr);
+                GETCHAR(d, bptr);
+                }
+              else
+#endif
+              d = *bptr;
+              if (UCD_GRAPHBREAK(d) != ucp_gbRegionalIndicator) break;
+              ricount++;
+              }
+            if ((ricount & 1) != 0) break;  /* Grapheme break required */
+            }
+
+          /* If Extend follows E_Base[_GAZ] do not update lgb; this allows
+          any number of Extend before a following E_Modifier. */
+
+          if (rgb != ucp_gbExtend ||
+              (lgb != ucp_gbE_Base && lgb != ucp_gbE_Base_GAZ))
+            lgb = rgb;
+
           ncount++;
-          lgb = rgb;
           nptr += dlen;
           }
         ADD_NEW_DATA(-(state_offset + count), 0, ncount);
@@ -1920,8 +1988,46 @@ for (;;)
           if (!utf) d = *nptr; else { GETCHARLEN(d, nptr, dlen); }
           rgb = UCD_GRAPHBREAK(d);
           if ((PRIV(ucp_gbtable)[lgb] & (1u << rgb)) == 0) break;
+
+          /* Not breaking between Regional Indicators is allowed only if
+          there are an even number of preceding RIs. */
+
+          if (lgb == ucp_gbRegionalIndicator &&
+              rgb == ucp_gbRegionalIndicator)
+            {
+            int ricount = 0;
+            PCRE2_SPTR bptr = nptr - 1;
+#ifdef SUPPORT_UNICODE
+            if (utf) BACKCHAR(bptr);
+#endif
+            /* bptr is pointing to the left-hand character */
+
+            while (bptr > mb->start_subject)
+              {
+              bptr--;
+#ifdef SUPPORT_UNICODE
+              if (utf)
+                {
+                BACKCHAR(bptr);
+                GETCHAR(d, bptr);
+                }
+              else
+#endif
+              d = *bptr;
+              if (UCD_GRAPHBREAK(d) != ucp_gbRegionalIndicator) break;
+              ricount++;
+              }
+            if ((ricount & 1) != 0) break;  /* Grapheme break required */
+            }
+
+          /* If Extend follows E_Base[_GAZ] do not update lgb; this allows
+          any number of Extend before a following E_Modifier. */
+
+          if (rgb != ucp_gbExtend ||
+              (lgb != ucp_gbE_Base && lgb != ucp_gbE_Base_GAZ))
+            lgb = rgb;
+
           ncount++;
-          lgb = rgb;
           nptr += dlen;
           }
         if (nptr >= end_subject && (mb->moptions & PCRE2_PARTIAL_HARD) != 0)
@@ -2110,8 +2216,46 @@ for (;;)
           if (!utf) d = *nptr; else { GETCHARLEN(d, nptr, dlen); }
           rgb = UCD_GRAPHBREAK(d);
           if ((PRIV(ucp_gbtable)[lgb] & (1u << rgb)) == 0) break;
+
+          /* Not breaking between Regional Indicators is allowed only if
+          there are an even number of preceding RIs. */
+
+          if (lgb == ucp_gbRegionalIndicator &&
+              rgb == ucp_gbRegionalIndicator)
+            {
+            int ricount = 0;
+            PCRE2_SPTR bptr = nptr - 1;
+#ifdef SUPPORT_UNICODE
+            if (utf) BACKCHAR(bptr);
+#endif
+            /* bptr is pointing to the left-hand character */
+
+            while (bptr > mb->start_subject)
+              {
+              bptr--;
+#ifdef SUPPORT_UNICODE
+              if (utf)
+                {
+                BACKCHAR(bptr);
+                GETCHAR(d, bptr);
+                }
+              else
+#endif
+              d = *bptr;
+              if (UCD_GRAPHBREAK(d) != ucp_gbRegionalIndicator) break;
+              ricount++;
+              }
+            if ((ricount & 1) != 0) break;  /* Grapheme break required */
+            }
+
+          /* If Extend follows E_Base[_GAZ] do not update lgb; this allows
+          any number of Extend before a following E_Modifier. */
+
+          if (rgb != ucp_gbExtend ||
+              (lgb != ucp_gbE_Base && lgb != ucp_gbE_Base_GAZ))
+            lgb = rgb;
+
           ncount++;
-          lgb = rgb;
           nptr += dlen;
           }
         if (nptr >= end_subject && (mb->moptions & PCRE2_PARTIAL_HARD) != 0)
@@ -2137,6 +2281,7 @@ for (;;)
         case 0x2029:
 #endif  /* Not EBCDIC */
         if (mb->bsr_convention == PCRE2_BSR_ANYCRLF) break;
+        /* Fall through */
 
         case CHAR_LF:
         ADD_NEW(state_offset + 1, 0);
@@ -2540,11 +2685,13 @@ for (;;)
           if (isinclass)
             {
             int max = (int)GET2(ecode, 1 + IMM2_SIZE);
-            if (*ecode == OP_CRPOSRANGE)
+
+            if (*ecode == OP_CRPOSRANGE && count >= (int)GET2(ecode, 1))
               {
               active_count--;           /* Remove non-match possibility */
               next_active_state--;
               }
+
             if (++count >= max && max != 0)   /* Max 0 => no limit */
               { ADD_NEW(next_state_offset + 1 + 2 * IMM2_SIZE, 0); }
             else
@@ -2890,7 +3037,6 @@ for (;;)
 
       /*-----------------------------------------------------------------*/
       case OP_ONCE:
-      case OP_ONCE_NC:
         {
         PCRE2_SIZE local_offsets[2];
         int local_workspace[1000];
@@ -3070,7 +3216,7 @@ for (;;)
           )
         )
       match_count = PCRE2_ERROR_PARTIAL;
-    break;        /* In effect, "return", but see the comment below */
+    break;  /* Exit from loop along the subject string */
     }
 
   /* One or more states are active for the next character. */
@@ -3078,11 +3224,13 @@ for (;;)
   ptr += clen;    /* Advance to next subject character */
   }               /* Loop to move along the subject string */
 
-/* Control gets here from "break" a few lines above. We do it this way because
-if we use "return" above, we have compiler trouble. Some compilers warn if
-there's nothing here because they think the function doesn't return a value. On
-the other hand, if we put a dummy statement here, some more clever compilers
-complain that it can't be reached. Sigh. */
+/* Control gets here from "break" a few lines above. If we have a match and
+PCRE2_ENDANCHORED is set, the match fails. */
+
+if (match_count >= 0 &&
+    ((mb->moptions | mb->poptions) & PCRE2_ENDANCHORED) != 0 &&
+    ptr < end_subject)
+  match_count = PCRE2_ERROR_NOMATCH;
 
 return match_count;
 }
@@ -3155,6 +3303,13 @@ if (re == NULL || subject == NULL || workspace == NULL || match_data == NULL)
 if (wscount < 20) return PCRE2_ERROR_DFA_WSSIZE;
 if (start_offset > length) return PCRE2_ERROR_BADOFFSET;
 
+/* Partial matching and PCRE2_ENDANCHORED are currently not allowed at the same
+time. */
+
+if ((options & (PCRE2_PARTIAL_HARD|PCRE2_PARTIAL_SOFT)) != 0 &&
+   ((re->overall_options | options) & PCRE2_ENDANCHORED) != 0)
+  return PCRE2_ERROR_BADOPTION;
+
 /* Check that the first field in the block is the magic number. If it is not,
 return with PCRE2_ERROR_BADMAGIC. */
 
@@ -3217,7 +3372,8 @@ if (mcontext == NULL)
   {
   mb->callout = NULL;
   mb->memctl = re->memctl;
-  mb->match_limit_recursion = PRIV(default_match_context).recursion_limit;
+  mb->match_limit = PRIV(default_match_context).match_limit;
+  mb->match_limit_depth = PRIV(default_match_context).depth_limit;
   }
 else
   {
@@ -3230,10 +3386,15 @@ else
   mb->callout = mcontext->callout;
   mb->callout_data = mcontext->callout_data;
   mb->memctl = mcontext->memctl;
-  mb->match_limit_recursion = mcontext->recursion_limit;
+  mb->match_limit = mcontext->match_limit;
+  mb->match_limit_depth = mcontext->depth_limit;
   }
-if (mb->match_limit_recursion > re->limit_recursion)
-  mb->match_limit_recursion = re->limit_recursion;
+
+if (mb->match_limit > re->limit_match)
+  mb->match_limit = re->limit_match;
+
+if (mb->match_limit_depth > re->limit_depth)
+  mb->match_limit_depth = re->limit_depth;
 
 mb->start_code = (PCRE2_UCHAR *)((uint8_t *)re + sizeof(pcre2_real_code)) +
   re->name_count * re->name_entry_size;
@@ -3243,6 +3404,7 @@ mb->end_subject = end_subject;
 mb->start_offset = start_offset;
 mb->moptions = options;
 mb->poptions = re->overall_options;
+mb->match_call_count = 0;
 
 /* Process the \R and newline settings. */
 
@@ -3258,6 +3420,11 @@ switch(re->newline_convention)
   case PCRE2_NEWLINE_LF:
   mb->nllen = 1;
   mb->nl[0] = CHAR_NL;
+  break;
+
+  case PCRE2_NEWLINE_NUL:
+  mb->nllen = 1;
+  mb->nl[0] = CHAR_NUL;
   break;
 
   case PCRE2_NEWLINE_CRLF:
@@ -3326,34 +3493,27 @@ if (utf && (options & PCRE2_NO_UTF_CHECK) == 0)
   }
 #endif  /* SUPPORT_UNICODE */
 
-/* Set up the first code unit to match, if available. The first_codeunit value
-is never set for an anchored regular expression, but the anchoring may be
-forced at run time, so we have to test for anchoring. The first code unit may
-be unset for an unanchored pattern, of course. If there's no first code unit
-there may be a bitmap of possible first characters. */
+/* Set up the first code unit to match, if available. If there's no first code
+unit there may be a bitmap of possible first characters. */
 
-if (!anchored)
+if ((re->flags & PCRE2_FIRSTSET) != 0)
   {
-  if ((re->flags & PCRE2_FIRSTSET) != 0)
+  has_first_cu = TRUE;
+  first_cu = first_cu2 = (PCRE2_UCHAR)(re->first_codeunit);
+  if ((re->flags & PCRE2_FIRSTCASELESS) != 0)
     {
-    has_first_cu = TRUE;
-    first_cu = first_cu2 = (PCRE2_UCHAR)(re->first_codeunit);
-    if ((re->flags & PCRE2_FIRSTCASELESS) != 0)
-      {
-      first_cu2 = TABLE_GET(first_cu, mb->tables + fcc_offset, first_cu);
+    first_cu2 = TABLE_GET(first_cu, mb->tables + fcc_offset, first_cu);
 #if defined SUPPORT_UNICODE && PCRE2_CODE_UNIT_WIDTH != 8
-      if (utf && first_cu > 127)
-        first_cu2 = (PCRE2_UCHAR)UCD_OTHERCASE(first_cu);
+    if (utf && first_cu > 127)
+      first_cu2 = (PCRE2_UCHAR)UCD_OTHERCASE(first_cu);
 #endif
-      }
     }
-  else
-    if (!startline && (re->flags & PCRE2_FIRSTMAPSET) != 0)
-      start_bits = re->start_bitmap;
   }
+else
+  if (!startline && (re->flags & PCRE2_FIRSTMAPSET) != 0)
+    start_bits = re->start_bitmap;
 
-/* For anchored or unanchored matches, there may be a "last known required
-character" set. */
+/* There may be a "last known required code unit" set. */
 
 if ((re->flags & PCRE2_LASTSET) != 0)
   {
@@ -3399,8 +3559,8 @@ for (;;)
     /* If firstline is TRUE, the start of the match is constrained to the first
     line of a multiline string. That is, the match must be before or at the
     first newline. Implement this by temporarily adjusting end_subject so that
-    we stop the optimization scans at a newline. If the match fails at the
-    newline, later code breaks this loop. */
+    we stop the optimization scans for a first code unit at a newline. If the
+    match fails at the newline, later code breaks this loop. */
 
     if (firstline)
       {
@@ -3420,69 +3580,137 @@ for (;;)
       end_subject = t;
       }
 
-    /* Advance to a unique first code unit if there is one. */
+    /* Anchored: check the first code unit if one is recorded. This may seem
+    pointless but it can help in detecting a no match case without scanning for
+    the required code unit. */
 
-    if (has_first_cu)
+    if (anchored)
       {
-      PCRE2_UCHAR smc;
-      if (first_cu != first_cu2)
-        while (start_match < end_subject &&
-          (smc = UCHAR21TEST(start_match)) != first_cu && smc != first_cu2)
-          start_match++;
-      else
-        while (start_match < end_subject && UCHAR21TEST(start_match) != first_cu)
-          start_match++;
-      }
-
-    /* Or to just after a linebreak for a multiline match */
-
-    else if (startline)
-      {
-      if (start_match > mb->start_subject + start_offset)
+      if (has_first_cu || start_bits != NULL)
         {
-#ifdef SUPPORT_UNICODE
-        if (utf)
+        BOOL ok = start_match < end_subject;
+        if (ok)
           {
-          while (start_match < end_subject && !WAS_NEWLINE(start_match))
+          PCRE2_UCHAR c = UCHAR21TEST(start_match);
+          ok = has_first_cu && (c == first_cu || c == first_cu2);
+          if (!ok && start_bits != NULL)
             {
-            start_match++;
-            ACROSSCHAR(start_match < end_subject, *start_match,
-              start_match++);
+#if PCRE2_CODE_UNIT_WIDTH != 8
+            if (c > 255) c = 255;
+#endif
+            ok = (start_bits[c/8] & (1 << (c&7))) != 0;
             }
           }
-        else
-#endif
-        while (start_match < end_subject && !WAS_NEWLINE(start_match))
-          start_match++;
-
-        /* If we have just passed a CR and the newline option is ANY or
-        ANYCRLF, and we are now at a LF, advance the match position by one more
-        code unit. */
-
-        if (start_match[-1] == CHAR_CR &&
-             (mb->nltype == NLTYPE_ANY || mb->nltype == NLTYPE_ANYCRLF) &&
-             start_match < end_subject &&
-             UCHAR21TEST(start_match) == CHAR_NL)
-          start_match++;
+        if (!ok) break;
         }
       }
 
-    /* Or to a non-unique first code unit if any have been identified. The
-    bitmap contains only 256 bits. When code units are 16 or 32 bits wide, all
-    code units greater than 254 set the 255 bit. */
+    /* Not anchored. Advance to a unique first code unit if there is one. In
+    8-bit mode, the use of memchr() gives a big speed up, even though we have
+    to call it twice in caseless mode, in order to find the earliest occurrence
+    of the character in either of its cases. */
 
-    else if (start_bits != NULL)
+    else
       {
-      while (start_match < end_subject)
+      if (has_first_cu)
         {
-        uint32_t c = UCHAR21TEST(start_match);
+        if (first_cu != first_cu2)  /* Caseless */
+          {
 #if PCRE2_CODE_UNIT_WIDTH != 8
-        if (c > 255) c = 255;
+          PCRE2_UCHAR smc;
+          while (start_match < end_subject &&
+                (smc = UCHAR21TEST(start_match)) != first_cu &&
+                  smc != first_cu2)
+            start_match++;
+#else  /* 8-bit code units */
+          PCRE2_SPTR pp1 =
+            memchr(start_match, first_cu, end_subject-start_match);
+          PCRE2_SPTR pp2 =
+            memchr(start_match, first_cu2, end_subject-start_match);
+          if (pp1 == NULL)
+            start_match = (pp2 == NULL)? end_subject : pp2;
+          else
+            start_match = (pp2 == NULL || pp1 < pp2)? pp1 : pp2;
 #endif
-        if ((start_bits[c/8] & (1 << (c&7))) != 0) break;
-        start_match++;
+          }
+
+        /* The caseful case */
+
+        else
+          {
+#if PCRE2_CODE_UNIT_WIDTH != 8
+          while (start_match < end_subject && UCHAR21TEST(start_match) !=
+                 first_cu)
+            start_match++;
+#else
+          start_match = memchr(start_match, first_cu, end_subject - start_match);
+          if (start_match == NULL) start_match = end_subject;
+#endif
+          }
+
+        /* If we can't find the required code unit, break the bumpalong loop,
+        to force a match failure, except when doing partial matching, when we
+        let the next cycle run at the end of the subject. To see why, consider
+        the pattern /(?<=abc)def/, which partially matches "abc", even though
+        the string does not contain the starting character "d". */
+
+        if ((mb->moptions & (PCRE2_PARTIAL_HARD|PCRE2_PARTIAL_SOFT)) == 0 &&
+            start_match >= end_subject)
+          break;
         }
-      }
+
+      /* If there's no first code unit, advance to just after a linebreak for a
+      multiline match if required. */
+
+      else if (startline)
+        {
+        if (start_match > mb->start_subject + start_offset)
+          {
+#ifdef SUPPORT_UNICODE
+          if (utf)
+            {
+            while (start_match < end_subject && !WAS_NEWLINE(start_match))
+              {
+              start_match++;
+              ACROSSCHAR(start_match < end_subject, *start_match,
+                start_match++);
+              }
+            }
+          else
+#endif
+          while (start_match < end_subject && !WAS_NEWLINE(start_match))
+            start_match++;
+
+          /* If we have just passed a CR and the newline option is ANY or
+          ANYCRLF, and we are now at a LF, advance the match position by one
+          more code unit. */
+
+          if (start_match[-1] == CHAR_CR &&
+               (mb->nltype == NLTYPE_ANY || mb->nltype == NLTYPE_ANYCRLF) &&
+               start_match < end_subject &&
+               UCHAR21TEST(start_match) == CHAR_NL)
+            start_match++;
+          }
+        }
+
+      /* If there's no first code unit or a requirement for a multiline line
+      start, advance to a non-unique first code unit if any have been
+      identified. The bitmap contains only 256 bits. When code units are 16 or
+      32 bits wide, all code units greater than 254 set the 255 bit. */
+
+      else if (start_bits != NULL)
+        {
+        while (start_match < end_subject)
+          {
+          uint32_t c = UCHAR21TEST(start_match);
+#if PCRE2_CODE_UNIT_WIDTH != 8
+          if (c > 255) c = 255;
+#endif
+          if ((start_bits[c/8] & (1 << (c&7))) != 0) break;
+          start_match++;
+          }
+        }
+      }  /* End of first code unit handling */
 
     /* Restore fudged end_subject */
 

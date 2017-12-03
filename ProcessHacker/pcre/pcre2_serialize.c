@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2017 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains functions for serializing and deserializing
 a sequence of compiled codes. */
 
-#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -215,7 +214,10 @@ for (i = 0; i < number_of_codes; i++)
   if (dst_re->magic_number != MAGIC_NUMBER ||
       dst_re->name_entry_size > MAX_NAME_SIZE + IMM2_SIZE + 1 ||
       dst_re->name_count > MAX_NAME_COUNT)
+    {   
+    memctl->free(dst_re, memctl->memory_data); 
     return PCRE2_ERROR_BADSERIALIZEDDATA;
+    } 
 
   /* At the moment only one table is supported. */
 
