@@ -177,6 +177,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                         PhAppendStringBuilder2(&sb, L" (");
                         if (data->EnableHighEntropy) PhAppendStringBuilder2(&sb, L"high entropy, ");
                         if (data->EnableForceRelocateImages) PhAppendStringBuilder2(&sb, L"force relocate, ");
+                        if (data->DisallowStrippedImages) PhAppendStringBuilder2(&sb, L"disallow stripped, ");
                         if (PhEndsWithStringRef2(&sb.String->sr, L", ", FALSE)) PhRemoveEndStringBuilder(&sb, 2);
                         PhAppendCharStringBuilder(&sb, ')');
                     }
