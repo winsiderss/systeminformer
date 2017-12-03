@@ -527,27 +527,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 break;
             case IDC_VIEWMITIGATION:
                 {
-                    NTSTATUS status;
-                    HANDLE processHandle;
-                    PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
-
-                    if (NT_SUCCESS(status = PhOpenProcess(
-                        &processHandle,
-                        PROCESS_QUERY_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
-                        {
-                            PhShowProcessMitigationPolicyDialog(hwndDlg, &information);
-                        }
-
-                        NtClose(processHandle);
-                    }
-                    else
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
-                    }
+                    PhShowProcessMitigationPolicyDialog(hwndDlg, processItem->ProcessId);
                 }
                 break;
             case IDC_TERMINATE:
