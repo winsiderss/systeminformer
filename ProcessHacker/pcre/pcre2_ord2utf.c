@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#define HAVE_CONFIG_H
-
 /* This file contains a function that converts a Unicode character code point
 into a UTF string. The behaviour is different for each code unit width. */
 

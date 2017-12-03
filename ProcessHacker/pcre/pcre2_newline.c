@@ -47,7 +47,6 @@ only NLTYPE_FIXED, which gets handled without these functions, NLTYPE_ANYCRLF,
 and NLTYPE_ANY. The full list of Unicode newline characters is taken from
 http://unicode.org/unicode/reports/tr18/. */
 
-#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

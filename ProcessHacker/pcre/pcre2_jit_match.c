@@ -49,10 +49,10 @@ static SLJIT_NOINLINE int jit_machine_stack_exec(jit_arguments *arguments, jit_f
 sljit_u8 local_space[MACHINE_STACK_SIZE];
 struct sljit_stack local_stack;
 
-local_stack.top = (sljit_sw)&local_space;
-local_stack.base = local_stack.top;
-local_stack.limit = local_stack.base + MACHINE_STACK_SIZE;
-local_stack.max_limit = local_stack.limit;
+local_stack.max_limit = local_space;
+local_stack.limit = local_space;
+local_stack.base = local_space + MACHINE_STACK_SIZE;
+local_stack.top = local_space + MACHINE_STACK_SIZE;
 arguments->stack = &local_stack;
 return executable_func(arguments);
 }

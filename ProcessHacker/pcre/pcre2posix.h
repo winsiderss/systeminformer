@@ -62,6 +62,8 @@ extern "C" {
 #define REG_NOTEMPTY  0x0100  /* NOT defined by POSIX; maps to PCRE2_NOTEMPTY */
 #define REG_UNGREEDY  0x0200  /* NOT defined by POSIX; maps to PCRE2_UNGREEDY */
 #define REG_UCP       0x0400  /* NOT defined by POSIX; maps to PCRE2_UCP */
+#define REG_PEND      0x0800  /* GNU feature: pass end pattern by re_endp */
+#define REG_NOSPEC    0x1000  /* Maps to PCRE2_LITERAL */
 
 /* This is not used by PCRE2, but by defining it we make it easier
 to slot PCRE2 into existing programs that make POSIX calls. */
@@ -91,11 +93,13 @@ enum {
 };
 
 
-/* The structure representing a compiled regular expression. */
+/* The structure representing a compiled regular expression. It is also used
+for passing the pattern end pointer when REG_PEND is set. */
 
 typedef struct {
   void *re_pcre2_code;
   void *re_match_data;
+  const char *re_endp;
   size_t re_nsub;
   size_t re_erroffset;
   int re_cflags;

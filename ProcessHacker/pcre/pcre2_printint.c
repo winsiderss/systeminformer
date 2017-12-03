@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2017 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -340,7 +340,7 @@ for(;;)
       case OP_TABLE_LENGTH +
         ((sizeof(OP_names)/sizeof(const char *) == OP_TABLE_LENGTH) &&
         (sizeof(OP_lengths) == OP_TABLE_LENGTH)):
-      break;
+      return;
 /* ========================================================================== */
 
     case OP_END:
@@ -393,7 +393,6 @@ for(;;)
     case OP_ASSERTBACK:
     case OP_ASSERTBACK_NOT:
     case OP_ONCE:
-    case OP_ONCE_NC:
     case OP_COND:
     case OP_SCOND:
     case OP_REVERSE:
