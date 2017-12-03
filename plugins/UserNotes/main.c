@@ -171,21 +171,23 @@ PPH_STRING SaveCustomColors(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-ULONG_PTR GetProcessAffinity(
-    _In_ HANDLE ProcessId
+NTSTATUS GetProcessAffinity(
+    _In_ HANDLE ProcessId,
+    _Out_ ULONG_PTR *Affinity
     )
 {
+    NTSTATUS status;
     HANDLE processHandle;
     ULONG_PTR affinityMask = 0;
     PROCESS_BASIC_INFORMATION basicInfo;
 
-    if (NT_SUCCESS(PhOpenProcess(
+    if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         ProcessQueryAccess,
         ProcessId
         )))
     {
-        if (NT_SUCCESS(PhGetProcessBasicInformation(
+        if (NT_SUCCESS(status = PhGetProcessBasicInformation(
             processHandle, 
             &basicInfo
             )))
@@ -196,7 +198,10 @@ ULONG_PTR GetProcessAffinity(
         NtClose(processHandle);
     }
 
-    return affinityMask;
+    if (NT_SUCCESS(status))
+        *Affinity = affinityMask;
+
+    return status;
 }
 
 IO_PRIORITY_HINT GetProcessIoPriority(
@@ -438,7 +443,7 @@ VOID NTAPI MenuItemCallback(
             if (!highlightPresent)
             {
                 CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
-                chooseColor.hwndOwner = PhMainWndHandle;
+                chooseColor.hwndOwner = menuItem->OwnerWindow;
                 chooseColor.lpCustColors = ProcessCustomColors;
                 chooseColor.lpfnHook = ColorDlgHookProc;
                 chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
@@ -503,8 +508,18 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                object->AffinityMask = GetProcessAffinity(processItem->ProcessId);
+                NTSTATUS status;
+                ULONG_PTR affinityMask;
+
+                if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->AffinityMask = affinityMask;
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                }
             }
 
             UnlockDb();
@@ -524,8 +539,18 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                    object->AffinityMask = GetProcessAffinity(processItem->ProcessId);
+                    NTSTATUS status;
+                    ULONG_PTR affinityMask;
+
+                    if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                        object->AffinityMask = affinityMask;
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                    }
                 }
 
                 UnlockDb();
@@ -622,6 +647,7 @@ VOID NTAPI MenuHookCallback(
         break;
     case PHAPP_ID_PROCESS_AFFINITY:
         {
+            NTSTATUS status;
             BOOLEAN changed = FALSE;
             ULONG_PTR affinityMask;
             ULONG_PTR newAffinityMask;
@@ -630,14 +656,18 @@ VOID NTAPI MenuHookCallback(
             if (!processItem)
                 break;
 
+            // Query the current process affinity.
+            if (!NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+            {
+                // TODO: Fix issue saving affinity for system processes.
+                break;
+            }
+
             // Don't show the default Process Hacker affinity dialog.
             menuHookInfo->Handled = TRUE;
 
-            // Query the current process affinity.
-            affinityMask = GetProcessAffinity(processItem->ProcessId);
-
             // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(PhMainWndHandle, affinityMask, &newAffinityMask))
+            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, affinityMask, &newAffinityMask))
             {
                 PDB_OBJECT object;
 
