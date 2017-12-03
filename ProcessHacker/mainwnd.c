@@ -2381,7 +2381,7 @@ VOID PhMwpDispatchMenuCommand(
                     break;
             }
 
-            if (columnSetName)
+            if (!PhIsNullOrEmptyString(columnSetName))
             {
                 PPH_STRING treeSettings;
                 PPH_STRING sortSettings;
@@ -2393,7 +2393,6 @@ VOID PhMwpDispatchMenuCommand(
 
                 PhDereferenceObject(treeSettings);
                 PhDereferenceObject(sortSettings);
-                PhDereferenceObject(columnSetName);
             }
         }
         return;
