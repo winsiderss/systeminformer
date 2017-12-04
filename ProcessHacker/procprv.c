@@ -1179,8 +1179,6 @@ VOID PhpProcessQueryStage1(
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
-
-    PhpQueueProcessQueryStage2(processItem);
 }
 
 VOID PhpProcessQueryStage2(
@@ -1323,6 +1321,9 @@ VOID PhpFillProcessItemStage1(
     processItem->IsImmersive = Data->IsImmersive;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
+
+    // Note: Queue stage 2 processing after filling stage1 process data. 
+    PhpQueueProcessQueryStage2(processItem);
 }
 
 VOID PhpFillProcessItemStage2(
