@@ -820,6 +820,14 @@ PhQueryRegistryString(
     );
 
 PHLIBAPI
+ULONG
+NTAPI
+PhQueryRegistryUlong(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    );
+
+PHLIBAPI
 ULONG64
 NTAPI
 PhQueryRegistryUlong64(
@@ -891,6 +899,7 @@ PhShowFileDialog(
 #define PH_FILEDIALOG_DEFAULTEXPANDED 0x40
 #define PH_FILEDIALOG_STRICTFILETYPES 0x80
 #define PH_FILEDIALOG_PICKFOLDERS 0x100
+#define PH_FILEDIALOG_NOPATHVALIDATE 0x200
 
 PHLIBAPI
 ULONG
@@ -1108,6 +1117,13 @@ PhLoadResource(
     _In_ PCWSTR Type,
     _Out_opt_ ULONG *ResourceLength,
     _Out_ PVOID *ResourceBuffer
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhLoadIndirectString(
+    _In_ PWSTR SourceString
     );
 
 #ifdef __cplusplus

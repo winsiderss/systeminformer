@@ -3512,6 +3512,34 @@ PPH_STRING PhQueryRegistryString(
     return string;
 }
 
+ULONG PhQueryRegistryUlong(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    )
+{
+    ULONG ulong = 0;
+    PH_STRINGREF valueName;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    {
+        if (buffer->Type == REG_DWORD)
+        {
+            if (buffer->DataLength == sizeof(ULONG))
+                ulong = *(PULONG)buffer->Data;
+        }
+
+        PhFree(buffer);
+    }
+
+    return ulong;
+}
+
 ULONG64 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_opt_ PWSTR ValueName
@@ -5215,4 +5243,97 @@ BOOLEAN PhLoadResource(
     *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
 
     return TRUE;
+}
+
+PPH_STRING PhLoadString(
+    _In_ PVOID DllBase,
+    _In_ ULONG ResourceId
+    )
+{
+    PPH_STRING string = NULL;
+    ULONG resourceLength;
+    PVOID resourceBuffer;
+    ULONG stringCount;
+    PWSTR stringBuffer;
+    ULONG i;
+
+    if (!PhLoadResource(
+        DllBase,
+        MAKEINTRESOURCE((LOWORD(ResourceId) >> 4) + 1),
+        RT_STRING,
+        &resourceLength,
+        &resourceBuffer
+        ))
+    {
+        return NULL;
+    }
+
+    stringBuffer = resourceBuffer;
+    stringCount = ResourceId & 0x000F;
+
+    for (i = 0; i < stringCount; i++) // dmex: Copied from ReactOS.
+    {
+        stringBuffer += *stringBuffer + 1;
+    }
+
+    i = min(resourceLength - 1, *stringBuffer);
+
+    if (i > 0)
+    {
+        string = PhCreateStringEx(stringBuffer + 1, i * sizeof(WCHAR));
+    }
+
+    PhFree(resourceBuffer);
+    return string;
+}
+
+PPH_STRING PhLoadIndirectString(
+    _In_ PWSTR SourceString
+    )
+{
+    PPH_STRING indirectString = NULL;
+
+    if (SourceString[0] == L'@')
+    {
+        PPH_STRING libraryString;
+        PVOID libraryModule;
+        PH_STRINGREF sourceRef;
+        PH_STRINGREF dllNameRef;
+        PH_STRINGREF dllIndexRef;
+        ULONG64 index64;
+        LONG index;
+
+        PhInitializeStringRefLongHint(&sourceRef, SourceString);
+        PhSkipStringRef(&sourceRef, sizeof(WCHAR)); // Skip the @ character.
+
+        if (!PhSplitStringRefAtChar(&sourceRef, L',', &dllNameRef, &dllIndexRef))
+            return NULL;
+        if (!PhStringToInteger64(&dllIndexRef, 10, &index64))
+            return NULL;
+
+        libraryString = PhCreateString2(&dllNameRef);
+        index = (LONG)index64;
+
+        if (libraryString->Buffer[0] == L'%')
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&libraryString->sr))
+                PhMoveReference(&libraryString, expandedString);
+        }
+
+        if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE))
+        { 
+            indirectString = PhLoadString(libraryModule, -index);
+            FreeLibrary(libraryModule);
+        }
+
+        PhDereferenceObject(libraryString);
+    }
+    else
+    {
+        //indirectString = PhCreateString(SourceString);
+    }
+
+    return indirectString;
 }
