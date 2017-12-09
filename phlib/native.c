@@ -5942,6 +5942,89 @@ NTSTATUS PhOpenKey(
     return status;
 }
 
+// rev from RegLoadAppKey
+/**
+ * Loads the specified registry hive file into a private application hive.
+ *
+ * \param KeyHandle A variable which receives a handle to the key.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the key.
+ * \param Flags Optional flags for loading the hive.
+ */
+NTSTATUS PhLoadAppKey(
+    _Out_ PHANDLE KeyHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    GUID guid;
+    UNICODE_STRING fileName;
+    UNICODE_STRING objectName; 
+    UNICODE_STRING guidStringUs;
+    OBJECT_ATTRIBUTES targetAttributes;
+    OBJECT_ATTRIBUTES sourceAttributes;
+    WCHAR objectNameBuffer[MAX_PATH];
+
+    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
+
+    PhGenerateGuid(&guid);
+
+    if (!NT_SUCCESS(status = RtlStringFromGUID(&guid, &guidStringUs)))
+        return status;
+
+    if (!NT_SUCCESS(status = RtlAppendUnicodeToString(&objectName, L"\\REGISTRY\\A\\")))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    InitializeObjectAttributes(
+        &targetAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    InitializeObjectAttributes(
+        &sourceAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtLoadKeyEx(
+        &targetAttributes,
+        &sourceAttributes,
+        REG_APP_HIVE | Flags,
+        NULL,
+        NULL,
+        DesiredAccess,
+        KeyHandle,
+        NULL
+        );
+
+    RtlFreeUnicodeString(&fileName);
+
+CleanupExit:
+    RtlFreeUnicodeString(&guidStringUs);
+
+    return status;
+}
+
 /**
  * Gets information about a registry key.
  *

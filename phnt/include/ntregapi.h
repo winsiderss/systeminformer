@@ -534,6 +534,12 @@ NtUnloadKey(
     _In_ POBJECT_ATTRIBUTES TargetKey
     );
 
+//
+// NtUnloadKey2 Flags (from winnt.h)
+//
+//#define REG_FORCE_UNLOAD            1
+//#define REG_UNLOAD_LEGAL_FLAGS      (REG_FORCE_UNLOAD)
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
