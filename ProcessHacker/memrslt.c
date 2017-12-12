@@ -108,7 +108,7 @@ static PPH_STRING PhpGetStringForSelectedResults(
 
         result = Results->Items[i];
 
-        PhAppendFormatStringBuilder(&stringBuilder, L"0x%Ix (%u): %s\r\n", result->Address, result->Length,
+        PhAppendFormatStringBuilder(&stringBuilder, L"0x%Ix (%lu): %s\r\n", result->Address, result->Length,
             result->Display.Buffer ? result->Display.Buffer : L"");
     }
 
