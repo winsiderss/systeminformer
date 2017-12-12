@@ -88,11 +88,6 @@ VOID NTAPI PhpPointerListDeleteProcedure(
     _In_ ULONG Flags
     );
 
-VOID NTAPI PhpQueueDeleteProcedure(
-    _In_ PVOID Object,
-    _In_ ULONG Flags
-    );
-
 VOID NTAPI PhpHashtableDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

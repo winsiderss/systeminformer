@@ -114,7 +114,7 @@ VOID PhSetOptionsMemoryList(
 
 VOID PhReplaceMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context,
-    _In_ PPH_MEMORY_ITEM_LIST List
+    _In_opt_ PPH_MEMORY_ITEM_LIST List
     );
 
 VOID PhUpdateMemoryNode(
