@@ -294,7 +294,7 @@ BOOLEAN PhUiCreateDumpFileProcess(
 // about
 
 VOID PhShowAboutDialog(
-    _In_ HWND ParentWindowHandle
+    VOID
     );
 
 PPH_STRING PhGetDiagnosticsString(
