@@ -943,7 +943,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_ABOUT:
         {
-            PhShowAboutDialog(PhMainWndHandle);
+            PhShowAboutDialog();
         }
         break;
     case ID_PROCESS_TERMINATE:
