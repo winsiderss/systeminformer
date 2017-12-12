@@ -543,7 +543,11 @@ VOID PhMwpInitializeProcessMenu(
 
         // If the user selected a fake process, disable all but
         // a few menu items.
-        if (PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId))
+        if (
+            PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId) || 
+            Processes[0]->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
+            Processes[0]->ProcessId == SYSTEM_PROCESS_ID // TODO: Some menu entires could be enabled for the system process?
+            )
         {
             PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
             PhEnableEMenuItem(Menu, ID_PROCESS_PROPERTIES, TRUE);
