@@ -45,9 +45,6 @@
     <ClCompile Include="customizesb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="searchbox.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

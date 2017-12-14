@@ -3,6 +3,7 @@
  *   process tree list
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -208,6 +209,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, -1, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_JOBOBJECTID, FALSE, L"Job Object ID", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -261,6 +263,33 @@ VOID PhSaveSettingsProcessTreeList(
     PhDereferenceObject(sortSettings);
 }
 
+VOID PhLoadSettingsProcessTreeListEx(
+    _In_ PPH_STRING TreeListSettings,
+    _In_ PPH_STRING TreeSortSettings
+    )
+{
+    PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &TreeListSettings->sr, &TreeSortSettings->sr);
+
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    {
+        SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    }
+}
+
+VOID PhSaveSettingsProcessTreeListEx(
+    _Out_ PPH_STRING *TreeListSettings,
+    _Out_ PPH_STRING *TreeSortSettings
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+
+    settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, 0, &sortSettings);
+
+    *TreeListSettings = settings;
+    *TreeSortSettings = sortSettings;
+}
+
 VOID PhReloadSettingsProcessTreeList(
     VOID
     )
@@ -296,9 +325,16 @@ FORCEINLINE BOOLEAN PhpValidateParentCreateTime(
     _In_ PPH_PROCESS_NODE Parent
     )
 {
-    return
-        PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
-        Parent->ProcessItem->CreateTime.QuadPart <= Child->ProcessItem->CreateTime.QuadPart;
+    if (WindowsVersion >= WINDOWS_10_RS3)
+    {
+        return PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
+            Parent->ProcessItem->ProcessSequenceNumber <= Child->ProcessItem->ProcessSequenceNumber;
+    }
+    else
+    {
+        return PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
+            Parent->ProcessItem->CreateTime.QuadPart <= Child->ProcessItem->CreateTime.QuadPart;
+    }
 }
 
 PPH_PROCESS_NODE PhAddProcessNode(
@@ -972,7 +1008,7 @@ static VOID PhpUpdateProcessOsContext(
         {
             if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
             {
-                if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINTHRESHOLD_CONTEXT_GUID))
+                if (IsEqualGUID(&ProcessNode->OsContextGuid, &WIN10_CONTEXT_GUID))
                     ProcessNode->OsContextVersion = WINDOWS_10;
                 else if (IsEqualGUID(&ProcessNode->OsContextGuid, &WINBLUE_CONTEXT_GUID))
                     ProcessNode->OsContextVersion = WINDOWS_8_1;
@@ -1091,16 +1127,68 @@ static VOID PhpUpdateProcessNodeAppId(
 
         PhClearReference(&ProcessNode->AppIdText);
 
-        if (ProcessNode->ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessWindowTitle(
-            ProcessNode->ProcessItem->QueryHandle,
-            &windowFlags,
-            &windowTitle
-            )))
+        if (ProcessNode->ProcessItem->QueryHandle)
         {
-            if (windowFlags & STARTF_TITLEISAPPID)
-                ProcessNode->AppIdText = windowTitle;
-            else
-                PhDereferenceObject(windowTitle);
+            //if (WindowsVersion >= WINDOWS_8 && ProcessNode->ProcessItem->IsImmersive)
+            //{
+            //    HANDLE tokenHandle;
+            //    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+            //
+            //    if (NT_SUCCESS(PhOpenProcessToken(
+            //        ProcessNode->ProcessItem->QueryHandle,
+            //        TOKEN_QUERY,
+            //        &tokenHandle
+            //        )))
+            //    {
+            //        // rev from GetApplicationUserModelId
+            //        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+            //        {
+            //            for (ULONG i = 0; i < info->AttributeCount; i++)
+            //            {
+            //                static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
+            //                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+            //
+            //                if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+            //                {
+            //                    if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+            //                    {
+            //                        PPH_STRING attributeValue1;
+            //                        PPH_STRING attributeValue2;
+            //
+            //                        attributeValue1 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[1]));
+            //                        attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
+            //
+            //                        ProcessNode->AppIdText = PhConcatStrings(
+            //                            3, 
+            //                            attributeValue2->Buffer,
+            //                            L"!",
+            //                            attributeValue1->Buffer
+            //                            );
+            //
+            //                        break;
+            //                    }
+            //                }
+            //            }
+            //
+            //            PhFree(info);
+            //        }
+            //
+            //        NtClose(tokenHandle);
+            //    }
+            //}
+            //else
+
+            if (NT_SUCCESS(PhGetProcessWindowTitle(
+                ProcessNode->ProcessItem->QueryHandle,
+                &windowFlags,
+                &windowTitle
+                )))
+            {
+                if (windowFlags & STARTF_TITLEISAPPID)
+                    ProcessNode->AppIdText = windowTitle;
+                else
+                    PhDereferenceObject(windowTitle);
+            }
         }
 
         ProcessNode->ValidMask |= PHPN_APPID;
@@ -1775,6 +1863,12 @@ BEGIN_SORT_FUNCTION(Subprocesses)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(JobObjectId)
+{
+    sortResult = int64cmp(processItem1->JobObjectId, processItem2->JobObjectId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1894,7 +1988,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(TimeStamp),
                         SORT_FUNCTION(FileModifiedTime),
                         SORT_FUNCTION(FileSize),
-                        SORT_FUNCTION(Subprocesses)
+                        SORT_FUNCTION(Subprocesses),
+                        SORT_FUNCTION(JobObjectId)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2587,6 +2682,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     getCellText->Text = node->SubprocessCountText->sr;
                 }
                 break;
+            case PHPRTLC_JOBOBJECTID:
+                {
+                    if (processItem->JobObjectId != 0)
+                    {
+                        PhPrintInt32(node->JobObjectIdText, processItem->JobObjectId);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->JobObjectIdText);
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -2685,16 +2789,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-            ULONG tickCount;
+            ULONG64 tickCount;
 
             node = (PPH_PROCESS_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0)
                 return FALSE;
 
-            tickCount = GetTickCount();
+            tickCount = NtGetTickCount64();
 
-            if ((LONG)(node->TooltipTextValidToTickCount - tickCount) < 0)
+            if ((LONG64)(node->TooltipTextValidToTickCount - tickCount) < 0)
                 PhClearReference(&node->TooltipText);
             if (!node->TooltipText)
                 node->TooltipText = PhGetProcessTooltipText(node->ProcessItem, &node->TooltipTextValidToTickCount);

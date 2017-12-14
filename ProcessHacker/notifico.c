@@ -754,7 +754,7 @@ VOID PhNfpBeginBitmap2(
     {
         HDC screenHdc;
 
-        screenHdc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+        screenHdc = GetDC(NULL);
         Context->Hdc = CreateCompatibleDC(screenHdc);
 
         memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
@@ -765,7 +765,7 @@ VOID PhNfpBeginBitmap2(
         Context->Header.biBitCount = 32;
         Context->Bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
-        DeleteDC(screenHdc);
+        ReleaseDC(NULL, screenHdc);
 
         Context->Initialized = TRUE;
     }

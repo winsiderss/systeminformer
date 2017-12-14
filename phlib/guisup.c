@@ -43,8 +43,15 @@ VOID PhGuiSupportInitialization(
     VOID
     )
 {
-    HMODULE shell32Handle;
-    HMODULE shlwapiHandle;
+    HDC hdc;
+    PVOID shell32Handle;
+    PVOID shlwapiHandle;
+
+    if (hdc = GetDC(NULL))
+    {
+        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
+        ReleaseDC(NULL, hdc);
+    }
 
     shell32Handle = LoadLibrary(L"shell32.dll");
     shlwapiHandle = LoadLibrary(L"shlwapi.dll");
@@ -671,41 +678,35 @@ VOID PhGetStockApplicationIcon(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemDirectory;
-        PPH_STRING dllFileName;
-
-        // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
-        // the default application icon.
-
-        if (systemDirectory = PhGetSystemDirectory())
+        if (WindowsVersion < WINDOWS_10)
         {
-            PH_STRINGREF dllBaseName;
-            ULONG index;
+            PPH_STRING systemDirectory;
+            PPH_STRING dllFileName;
 
-            // TODO: Find a better solution.
-            if (WindowsVersion >= WINDOWS_10)
+            // imageres,11 (Windows 10 and above), user32,0 (Vista and above) or shell32,2 (XP) contains
+            // the default application icon.
+
+            if (systemDirectory = PhGetSystemDirectory())
             {
-                PhInitializeStringRef(&dllBaseName, L"\\imageres.dll");
-                index = 11;
-            }
-            else
-            {
+                PH_STRINGREF dllBaseName;
+                ULONG index;
+
                 PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
                 index = 0;
+
+                dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
+                PhDereferenceObject(systemDirectory);
+
+                ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
+                PhDereferenceObject(dllFileName);
             }
-
-            dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
-            PhDereferenceObject(systemDirectory);
-
-            ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
-            PhDereferenceObject(dllFileName);
         }
 
         // Fallback icons
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0);
 
         PhEndInitOnce(&initOnce);
     }
@@ -821,7 +822,7 @@ VOID PhSetClipboardString(
     memory = GlobalLock(data);
 
     memcpy(memory, String->Buffer, String->Length);
-    *(PWCHAR)((PCHAR)memory + String->Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(memory, String->Length) = 0;
 
     GlobalUnlock(memory);
 
@@ -837,47 +838,30 @@ HWND PhCreateDialogFromTemplate(
     _In_ PVOID Parameter
     )
 {
-    HRSRC resourceInfo;
-    ULONG resourceSize;
-    HGLOBAL resourceHandle;
-    PDLGTEMPLATEEX dialog;
-    PDLGTEMPLATEEX dialogCopy;
+    PDLGTEMPLATEEX dialogTemplate;
     HWND dialogHandle;
 
-    resourceInfo = FindResource(Instance, Template, MAKEINTRESOURCE(RT_DIALOG));
-
-    if (!resourceInfo)
+    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
         return NULL;
 
-    resourceSize = SizeofResource(Instance, resourceInfo);
-
-    if (resourceSize == 0)
-        return NULL;
-
-    resourceHandle = LoadResource(Instance, resourceInfo);
-
-    if (!resourceHandle)
-        return NULL;
-
-    dialog = LockResource(resourceHandle);
-
-    if (!dialog)
-        return NULL;
-
-    dialogCopy = PhAllocateCopy(dialog, resourceSize);
-
-    if (dialogCopy->signature == 0xffff)
+    if (dialogTemplate->signature == USHRT_MAX)
     {
-        dialogCopy->style = Style;
+        dialogTemplate->style = Style;
     }
     else
     {
-        ((DLGTEMPLATE *)dialogCopy)->style = Style;
+        ((DLGTEMPLATE *)dialogTemplate)->style = Style;
     }
 
-    dialogHandle = CreateDialogIndirectParam(Instance, (DLGTEMPLATE *)dialogCopy, Parent, DialogProc, (LPARAM)Parameter);
+    dialogHandle = CreateDialogIndirectParam(
+        Instance, 
+        (DLGTEMPLATE *)dialogTemplate, 
+        Parent, 
+        DialogProc, 
+        (LPARAM)Parameter
+        );
 
-    PhFree(dialogCopy);
+    PhFree(dialogTemplate);
 
     return dialogHandle;
 }

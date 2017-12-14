@@ -38,11 +38,13 @@ NTSTATUS PhOpenLsaPolicy(
     _In_opt_ PUNICODE_STRING SystemName
     )
 {
-    OBJECT_ATTRIBUTES oa = { 0 };
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
 
     return LsaOpenPolicy(
         SystemName,
-        &oa,
+        &objectAttributes,
         DesiredAccess,
         PolicyHandle
         );
@@ -459,7 +461,7 @@ PPH_STRING PhSidToStringSid(
     PPH_STRING string;
     UNICODE_STRING us;
 
-    string = PhCreateStringEx(NULL, MAX_UNICODE_STACK_BUFFER_LENGTH * sizeof(WCHAR));
+    string = PhCreateStringEx(NULL, SECURITY_MAX_SID_STRING_CHARACTERS * sizeof(WCHAR));
     PhStringRefToUnicodeString(&string->sr, &us);
 
     if (NT_SUCCESS(RtlConvertSidToUnicodeString(

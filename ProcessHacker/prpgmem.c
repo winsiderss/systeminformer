@@ -256,6 +256,15 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     if (PhIsNullOrEmptyString(memoryContext->SearchboxText))
         return TRUE;
 
+    if (
+        memoryContext->UseSearchPointer && 
+        (memoryNode->MemoryItem->BaseAddress == (PVOID)memoryContext->SearchPointer ||
+        memoryNode->MemoryItem->AllocationBase == (PVOID)memoryContext->SearchPointer)
+        )
+    {
+        return TRUE;
+    }
+
     if (memoryNode->BaseAddressText[0])
     {
         if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, memoryNode->BaseAddressText))
@@ -408,6 +417,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                     if (!PhEqualString(memoryContext->SearchboxText, newSearchboxText, FALSE))
                     {
+                        // Try to get a search pointer from the search string.
+                        memoryContext->UseSearchPointer = PhStringToInteger64(&newSearchboxText->sr, 0, &memoryContext->SearchPointer);
+
                         // Cache the current search text for our callback.
                         PhMoveReference(&memoryContext->SearchboxText, newSearchboxText);
 

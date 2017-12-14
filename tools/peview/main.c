@@ -37,19 +37,6 @@ static BOOLEAN NTAPI PvCommandLineCallback(
     return TRUE;
 }
 
-static VOID PvpInitializeDpi(
-    VOID
-    )
-{
-    HDC hdc;
-
-    if (hdc = CreateIC(L"DISPLAY", NULL, NULL, NULL))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        DeleteDC(hdc);
-    }
-}
-
 INT WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -69,7 +56,6 @@ INT WINAPI wWinMain(
         return 1;
 
     PhGuiSupportInitialization();
-    PvpInitializeDpi();
     PhSettingsInitialization();
     PeInitializeSettings();
     PvPropInitialization();
@@ -94,7 +80,7 @@ INT WINAPI wWinMain(
     {
         static PH_FILETYPE_FILTER filters[] =
         {
-            { L"Supported files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi;*.pdb)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi;*.pdb" },
+            { L"Supported files (*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi;*.pdb)", L"*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.efi;*.pdb" },
             { L"All files (*.*)", L"*.*" }
         };
         PVOID fileDialog;

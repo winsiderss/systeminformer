@@ -27,6 +27,7 @@
 #include <dbghelp.h>
 #include <appmodel.h>
 #include <shellapi.h>
+#include <shlobj.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -41,32 +42,12 @@
 
 #include "pcre/pcre2.h"
 
-typedef LONG (WINAPI *_GetPackageFullName)(
-    _In_ HANDLE hProcess,
-    _Inout_ UINT32 *packageFullNameLength,
-    _Out_opt_ PWSTR packageFullName
-    );
-
-typedef LONG (WINAPI *_GetPackagePath)(
-    _In_ PACKAGE_ID *packageId,
-    _Reserved_ UINT32 reserved,
-    _Inout_ UINT32 *pathLength,
-    _Out_opt_ PWSTR path
-    );
-
-typedef LONG (WINAPI *_PackageIdFromFullName)(
-    _In_ PCWSTR packageFullName,
-    _In_ UINT32 flags,
-    _Inout_ UINT32 *bufferLength,
-    _Out_opt_ BYTE *buffer
-    );
-
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
 GUID VISTA_CONTEXT_GUID = { 0xe2011457, 0x1546, 0x43c5, { 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0 } };
 GUID WIN7_CONTEXT_GUID = { 0x35138b9a, 0x5d96, 0x4fbd, { 0x8e, 0x2d, 0xa2, 0x44, 0x02, 0x25, 0xf9, 0x3a } };
 GUID WIN8_CONTEXT_GUID = { 0x4a2f28e3, 0x53b9, 0x4441, { 0xba, 0x9c, 0xd6, 0x9d, 0x4a, 0x4a, 0x6e, 0x38 } };
 GUID WINBLUE_CONTEXT_GUID = { 0x1f676c76, 0x80e1, 0x4239, { 0x95, 0xbb, 0x83, 0xd0, 0xf6, 0xd0, 0xda, 0x78 } };
-GUID WINTHRESHOLD_CONTEXT_GUID = { 0x8e0f7a12, 0xbfb3, 0x4fe8, { 0xb9, 0xa5, 0x48, 0xfd, 0x50, 0xa1, 0x5a, 0x9a } };
+GUID WIN10_CONTEXT_GUID = { 0x8e0f7a12, 0xbfb3, 0x4fe8, { 0xb9, 0xa5, 0x48, 0xfd, 0x50, 0xa1, 0x5a, 0x9a } };
 
 /**
  * Determines whether a process is suspended.
@@ -165,7 +146,7 @@ NTSTATUS PhGetProcessSwitchContext(
         {
             if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pUnused)),
                 &data,
                 sizeof(PVOID),
                 NULL
@@ -242,119 +223,70 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )
 {
-    static _GetPackageFullName getPackageFullName = NULL;
+    HANDLE tokenHandle;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    PPH_STRING name = NULL;
 
-    LONG result;
-    PPH_STRING name;
-    ULONG nameLength;
-
-    if (!getPackageFullName)
-        getPackageFullName = PhGetModuleProcAddress(L"kernel32.dll", "GetPackageFullName");
-    if (!getPackageFullName)
-        return NULL;
-
-    nameLength = 101;
-    name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
-
-    result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
+    if (NT_SUCCESS(PhOpenProcessToken(
+        ProcessHandle,
+        TOKEN_QUERY,
+        &tokenHandle
+        )))
     {
-        PhDereferenceObject(name);
-        name = PhCreateStringEx(NULL, (nameLength - 1) * 2);
+        // rev from PackageIdFromFullName
+        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+        {
+            for (ULONG i = 0; i < info->AttributeCount; i++)
+            {
+                static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
+                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
 
-        result = getPackageFullName(ProcessHandle, &nameLength, name->Buffer);
+                if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
+                {
+                    if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+                    {
+                        name = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
+                        break;
+                    }
+                }
+            }
+
+            PhFree(info);
+        }
+
+        NtClose(tokenHandle);
     }
 
-    if (result == ERROR_SUCCESS)
-    {
-        PhTrimToNullTerminatorString(name);
-        return name;
-    }
-    else
-    {
-        PhDereferenceObject(name);
-        return NULL;
-    }
-}
-
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
-    )
-{
-    static _PackageIdFromFullName packageIdFromFullName = NULL;
-
-    LONG result;
-    PVOID packageIdBuffer;
-    ULONG packageIdBufferSize;
-
-    if (!packageIdFromFullName)
-        packageIdFromFullName = PhGetModuleProcAddress(L"kernel32.dll", "PackageIdFromFullName");
-    if (!packageIdFromFullName)
-        return NULL;
-
-    packageIdBufferSize = 100;
-    packageIdBuffer = PhAllocate(packageIdBufferSize);
-
-    result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
-    {
-        PhFree(packageIdBuffer);
-        packageIdBuffer = PhAllocate(packageIdBufferSize);
-
-        result = packageIdFromFullName(PackageFullName, PACKAGE_INFORMATION_BASIC, &packageIdBufferSize, (PBYTE)packageIdBuffer);
-    }
-
-    if (result == ERROR_SUCCESS)
-    {
-        return packageIdBuffer;
-    }
-    else
-    {
-        PhFree(packageIdBuffer);
-        return NULL;
-    }
+    return name;
 }
 
 PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
+    _In_ PPH_STRING PackageFullName
     )
 {
-    static _GetPackagePath getPackagePath = NULL;
+    static PH_STRINGREF storeAppPackages = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages\\");
+    HANDLE keyHandle;
+    PPH_STRING keyPath;
+    PPH_STRING packagePath = NULL;
 
-    LONG result;
-    PPH_STRING path;
-    ULONG pathLength;
+    keyPath = PhConcatStringRef2(&storeAppPackages, &PackageFullName->sr);
 
-    if (!getPackagePath)
-        getPackagePath = PhGetModuleProcAddress(L"kernel32.dll", "GetPackagePath");
-    if (!getPackagePath)
-        return NULL;
-
-    pathLength = 101;
-    path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
-
-    result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
-
-    if (result == ERROR_INSUFFICIENT_BUFFER)
+    // rev from GetPackagePath
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyPath->sr,
+        0
+        )))
     {
-        PhDereferenceObject(path);
-        path = PhCreateStringEx(NULL, (pathLength - 1) * 2);
-
-        result = getPackagePath(PackageId, 0, &pathLength, path->Buffer);
+        packagePath = PhQueryRegistryString(keyHandle, L"PackageRootFolder");
+        NtClose(keyHandle);
     }
 
-    if (result == ERROR_SUCCESS)
-    {
-        PhTrimToNullTerminatorString(path);
-        return path;
-    }
-    else
-    {
-        PhDereferenceObject(path);
-        return NULL;
-    }
+    PhDereferenceObject(keyPath);
+
+    return packagePath;
 }
 
 /**
@@ -370,15 +302,9 @@ NTSTATUS PhGetProcessKnownType(
     )
 {
     NTSTATUS status;
-    PH_KNOWN_PROCESS_TYPE knownProcessType;
     PROCESS_BASIC_INFORMATION basicInfo;
-    PH_STRINGREF systemRootPrefix;
     PPH_STRING fileName;
     PPH_STRING newFileName;
-    PH_STRINGREF name;
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-#endif
 
     if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
         ProcessHandle,
@@ -392,8 +318,6 @@ NTSTATUS PhGetProcessKnownType(
         return STATUS_SUCCESS;
     }
 
-    PhGetSystemRoot(&systemRootPrefix);
-
     if (!NT_SUCCESS(status = PhGetProcessImageFileName(
         ProcessHandle,
         &fileName
@@ -404,7 +328,40 @@ NTSTATUS PhGetProcessKnownType(
 
     newFileName = PhGetFileName(fileName);
     PhDereferenceObject(fileName);
-    name = newFileName->sr;
+
+    *KnownProcessType = PhGetProcessKnownTypeEx(
+        basicInfo.UniqueProcessId, 
+        newFileName
+        );
+
+    PhDereferenceObject(newFileName);
+
+    return status;
+}
+
+PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
+    )
+{
+    PH_KNOWN_PROCESS_TYPE knownProcessType;
+    PH_STRINGREF systemRootPrefix;
+    PPH_STRING fileName;
+    PH_STRINGREF name;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (ProcessId == SYSTEM_PROCESS_ID)
+        return SystemProcessType;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return UnknownProcessType;
+
+    PhGetSystemRoot(&systemRootPrefix);
+
+    fileName = PhDuplicateString(FileName);
+    name = fileName->sr;
 
     knownProcessType = UnknownProcessType;
 
@@ -462,19 +419,31 @@ NTSTATUS PhGetProcessKnownType(
                 knownProcessType = TaskHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wudfhost.exe", TRUE))
                 knownProcessType = UmdfHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\wbem\\WmiPrvSE.exe", TRUE))
+                knownProcessType = WmiProviderHostType;
+        }
+        else
+        {
+            // Microsoft Edge
+            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
+                knownProcessType = EdgeProcessType;
+            else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
+                knownProcessType = EdgeProcessType;
         }
     }
 
-    PhDereferenceObject(newFileName);
+    PhDereferenceObject(fileName);
 
 #ifdef _WIN64
     if (isWow64)
         knownProcessType |= KnownProcessWow64;
 #endif
 
-    *KnownProcessType = knownProcessType;
-
-    return status;
+    return knownProcessType;
 }
 
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
@@ -945,7 +914,6 @@ VOID PhShellExecuteUserString(
 
     PPH_STRING executeString;
     PH_STRINGREF stringBefore;
-    PH_STRINGREF stringMiddle;
     PH_STRINGREF stringAfter;
     PPH_STRING ntMessage;
 
@@ -995,8 +963,20 @@ VOID PhShellExecuteUserString(
     // Replace the token with the string, or use the original string if the token is not present.
     if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
-        PhInitializeStringRef(&stringMiddle, String);
-        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter));
+        PPH_STRING stringTemp;
+        PPH_STRING stringMiddle;
+
+        // Note: This code is needed to solve issues with faulty RamDisk software that doesn't use the Mount Manager API
+        // and instead returns \device\ FileName strings. We also can't change the way the process provider stores 
+        // the FileName string since it'll break various features and use-cases required by developers 
+        // who need the raw untranslated FileName string.
+        stringTemp = PhCreateString(String);
+        stringMiddle = PhGetFileName(stringTemp);
+
+        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle->sr, &stringAfter));
+
+        PhDereferenceObject(stringMiddle);
+        PhDereferenceObject(stringTemp);
     }
 
     if (UseShellExecute)
@@ -1025,6 +1005,88 @@ VOID PhShellExecuteUserString(
     }
 
     PhDereferenceObject(executeString);
+}
+
+PPH_STRING PhFindDbghelpPath(
+    VOID
+    )
+{
+    static struct
+    {
+        ULONG Folder;
+        PWSTR AppendPath;
+    } locations[] =
+    {
+#ifdef _WIN64
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
+#else
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
+#endif
+    };
+
+    PPH_STRING path;
+    ULONG i;
+
+    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
+    {
+        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
+
+        if (path)
+        {
+            if (RtlDoesFileExists_U(path->Buffer))
+                return path;
+
+            PhDereferenceObject(path);
+        }
+    }
+
+    return NULL;
+}
+
+VOID PhLoadSymbolProviderDbgHelpFromPath(
+    _In_ PWSTR DbgHelpPath
+    )
+{
+    HMODULE dbghelpModule;
+
+    if (dbghelpModule = LoadLibrary(DbgHelpPath))
+    {
+        PPH_STRING fullDbghelpPath;
+        ULONG indexOfFileName;
+        PH_STRINGREF dbghelpFolder;
+        PPH_STRING symsrvPath;
+
+        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+
+        if (fullDbghelpPath)
+        {
+            if (indexOfFileName != 0)
+            {
+                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
+
+                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
+                dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
+
+                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+                LoadLibrary(symsrvPath->Buffer);
+                PhDereferenceObject(symsrvPath);
+            }
+
+            PhDereferenceObject(fullDbghelpPath);
+        }
+    }
+    else
+    {
+        dbghelpModule = LoadLibrary(L"dbghelp.dll");
+    }
+
+    PhSymbolProviderCompleteInitialization(dbghelpModule);
 }
 
 VOID PhLoadSymbolProviderOptions(
@@ -1230,7 +1292,7 @@ PPH_STRING PhGetPhVersion(
 VOID PhGetPhVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
-    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG BuildNumber,
     _Out_opt_ PULONG RevisionNumber
     )
 {
@@ -1238,6 +1300,8 @@ VOID PhGetPhVersionNumbers(
         *MajorVersion = PHAPP_VERSION_MAJOR;
     if (MinorVersion)
         *MinorVersion = PHAPP_VERSION_MINOR;
+    if (BuildNumber)
+        *BuildNumber = PHAPP_VERSION_BUILD;
     if (RevisionNumber)
         *RevisionNumber = PHAPP_VERSION_REVISION;
 }
@@ -2124,4 +2188,24 @@ PPH_STRING PhPcre2GetErrorMessage(
 
     buffer->Length = returnLength * sizeof(WCHAR);
     return buffer;
+}
+
+HBITMAP PhGetShieldBitmap(
+    VOID
+    )
+{
+    static HBITMAP shieldBitmap = NULL;
+
+    if (!shieldBitmap)
+    {
+        HICON shieldIcon;
+
+        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
+        {
+            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            DestroyIcon(shieldIcon);
+        }
+    }
+
+    return shieldBitmap;
 }

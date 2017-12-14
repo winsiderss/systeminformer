@@ -76,6 +76,8 @@ typedef enum _LDR_DLL_LOAD_REASON
     LoadReasonDynamicLoad,
     LoadReasonAsImageLoad,
     LoadReasonAsDataLoad,
+    LoadReasonEnclavePrimary, // REDSTONE3
+    LoadReasonEnclaveDependency,
     LoadReasonUnknown = -1
 } LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
 
@@ -471,8 +473,24 @@ LdrUnregisterDllNotification(
 // private
 typedef struct _PS_MITIGATION_OPTIONS_MAP
 {
-    ULONG_PTR Map[2];
+    union
+    {
+        ULONG_PTR Map[2]; // REDSTONE2
+        //struct
+        //{
+        //    ULONG_PTR Depth : 16; // REDSTONE3
+        //    ULONG_PTR Sequence : 48;
+        //    ULONG_PTR Reserved : 4;
+        //    ULONG_PTR NextEntry : 60;
+        //};
+    };
 } PS_MITIGATION_OPTIONS_MAP, *PPS_MITIGATION_OPTIONS_MAP;
+
+// private
+typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP
+{
+    ULONG_PTR Map[2];
+} PS_MITIGATION_AUDIT_OPTIONS_MAP, *PPS_MITIGATION_AUDIT_OPTIONS_MAP;
 
 // private
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
@@ -496,6 +514,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
     ULONG_PTR CfgBitMapSize;
     ULONG_PTR Wow64CfgBitMap;
     ULONG_PTR Wow64CfgBitMapSize;
+    PS_MITIGATION_AUDIT_OPTIONS_MAP MitigationAuditOptionsMap; // REDSTONE3
 } PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
@@ -552,6 +571,26 @@ LdrDisableThreadCalloutsForDll(
     _In_ PVOID DllImageBase
     );
     
+// Resources
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrAccessResource(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
+    _Out_opt_ PVOID *ResourceBuffer,
+    _Out_opt_ ULONG *ResourceLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrFindEntryForAddress(
+    _In_ PVOID BaseAddress,
+    _Out_ PLDR_DATA_TABLE_ENTRY *Entry
+    );
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information

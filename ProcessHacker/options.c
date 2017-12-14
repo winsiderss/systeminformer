@@ -25,6 +25,8 @@
 
 #include <commdlg.h>
 #include <windowsx.h>
+#include <uxtheme.h>
+#include <vssym32.h>
 
 #include <colorbox.h>
 #include <settings.h>
@@ -33,24 +35,8 @@
 #include <proctree.h>
 #include <phplug.h>
 #include <phsettings.h>
-#include <sysinfo.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)
-
-INT CALLBACK PhpOptionsPropSheetProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ LPARAM lParam
-    );
-
-LRESULT CALLBACK PhpOptionsWndProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
-    );
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -87,11 +73,78 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PhOptionsDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhOptionsDestroySection(
+    _In_ PPH_OPTIONS_SECTION Section
+    );
+
+VOID PhOptionsEnterSectionView(
+    _In_ PPH_OPTIONS_SECTION NewSection
+    );
+
+VOID PhOptionsLayoutSectionView(
+    VOID
+    );
+
+VOID PhOptionsEnterSectionViewInner(
+    _In_ PPH_OPTIONS_SECTION Section,
+    _Inout_ HDWP *ContainerDeferHandle
+    );
+
+VOID PhOptionsCreateSectionDialog(
+    _In_ PPH_OPTIONS_SECTION Section
+    );
+
+PPH_OPTIONS_SECTION PhOptionsFindSection(
+    _In_ PPH_STRINGREF Name
+    );
+
+VOID PhOptionsOnSize(
+    VOID
+    );
+
+PPH_OPTIONS_SECTION PhOptionsCreateSection(
+    _In_ PWSTR Name,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
+    );
+
+PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
+    _In_ PWSTR Name,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
+    );
+
+BOOLEAN PhpIsDefaultTaskManager(
+    VOID
+    );
+
+VOID PhpSetDefaultTaskManager(
+    _In_ HWND ParentWindowHandle
+    );
+
+static HWND PhOptionsWindowHandle = NULL;
+static PPH_LIST PhOptionsDialogList = NULL;
+static PH_LAYOUT_MANAGER WindowLayoutManager;
+
+static PPH_LIST SectionList = NULL;
+static PPH_OPTIONS_SECTION CurrentSection = NULL;
+static HWND OptionsTreeControl = NULL;
+static HWND ContainerControl = NULL;
+static HIMAGELIST OptionsTreeImageList = NULL;
+
 // All
-static BOOLEAN PageInit;
-static BOOLEAN PressedOk;
-static BOOLEAN RestartRequired;
-static POINT StartLocation;
+static BOOLEAN RestartRequired = FALSE;
 
 // General
 static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
@@ -99,11 +152,11 @@ static BOOLEAN CurrentUserRunPresent;
 static BOOLEAN CurrentUserRunStartHidden;
 static HFONT CurrentFontInstance;
 static PPH_STRING NewFontSelection;
+static HIMAGELIST GeneralListviewImageList = NULL;
 
 // Advanced
 static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 static PPH_STRING OldTaskMgrDebugger;
-static BOOLEAN OldReplaceTaskMgr;
 static HWND WindowHandleForElevate;
 
 // Highlighting
@@ -113,241 +166,248 @@ VOID PhShowOptionsDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[30];
-
-    propSheetHeader.dwFlags =
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_USECALLBACK |
-        PSH_USEPSTARTPAGE;
-    propSheetHeader.hInstance = PhInstanceHandle;
-    propSheetHeader.hwndParent = ParentWindowHandle;
-    propSheetHeader.pszCaption = L"Options";
-    propSheetHeader.nPages = 0;
-    propSheetHeader.pStartPage = !PhStartupParameters.ShowOptions ? L"General" : L"Advanced";
-    propSheetHeader.phpage = pages;
-    propSheetHeader.pfnCallback = PhpOptionsPropSheetProc;
-
-    if (!PhStartupParameters.ShowOptions)
-    {
-        // Disable all pages other than Advanced.
-        // General page
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGENERAL);
-        propSheetPage.hInstance = PhInstanceHandle;
-        propSheetPage.pfnDlgProc = PhpOptionsGeneralDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
-
-    // Advanced page
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTADVANCED);
-    propSheetPage.hInstance = PhInstanceHandle;
-    propSheetPage.pfnDlgProc = PhpOptionsAdvancedDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    if (!PhStartupParameters.ShowOptions)
-    {
-        // Symbols page
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTSYMBOLS);
-        propSheetPage.hInstance = PhInstanceHandle;
-        propSheetPage.pfnDlgProc = PhpOptionsSymbolsDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
-
-    if (!PhStartupParameters.ShowOptions)
-    {
-        // Highlighting page
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING);
-        propSheetPage.hInstance = PhInstanceHandle;
-        propSheetPage.pfnDlgProc = PhpOptionsHighlightingDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
-
-    if (!PhStartupParameters.ShowOptions)
-    {
-        // Graphs page
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGRAPHS);
-        propSheetPage.hInstance = PhInstanceHandle;
-        propSheetPage.pfnDlgProc = PhpOptionsGraphsDlgProc;
-        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
-
-        //objectProperties.Parameter = RestartRequired;
-        objectProperties.NumberOfPages = propSheetHeader.nPages;
-        objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
-        objectProperties.Pages = pages;
-
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &objectProperties);
-
-        propSheetHeader.nPages = objectProperties.NumberOfPages;
-    }
-
-    PageInit = FALSE;
-    PressedOk = FALSE;
-    RestartRequired = FALSE;
-
     if (PhStartupParameters.ShowOptions)
-        StartLocation = PhStartupParameters.Point;
-    else
-        StartLocation.x = MINLONG;
-
-    OldTaskMgrDebugger = NULL;
-
-    PhModalPropertySheet(&propSheetHeader);
-
-    if (PressedOk)
     {
-        if (!PhStartupParameters.ShowOptions)
-        {
-            PhUpdateCachedSettings();
-            ProcessHacker_SaveAllSettings(PhMainWndHandle);
-            PhInvalidateAllProcessNodes();
-            PhReloadSettingsProcessTreeList();
-            PhSiNotifyChangeSettings();
+        PhpSetDefaultTaskManager(ParentWindowHandle);
+    }
+    else
+    {
+        DialogBox(
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_OPTIONS),
+            ParentWindowHandle,
+            PhOptionsDialogProc
+            );
 
-            if (RestartRequired)
-            {
-                if (PhShowMessage2(
-                    PhMainWndHandle,
-                    TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                    TD_INFORMATION_ICON,
-                    L"One or more options you have changed requires a restart of Process Hacker.",
-                    L"Do you want to restart Process Hacker now?"
-                    ) == IDYES)
-                {
-                    ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-                    PhShellProcessHacker(
-                        PhMainWndHandle,
-                        L"-v",
-                        SW_SHOW,
-                        0,
-                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                        0,
-                        NULL
-                        );
-                    ProcessHacker_Destroy(PhMainWndHandle);
-                }
-            }
-        }
-        else
+        PhUpdateCachedSettings();
+        ProcessHacker_SaveAllSettings(PhMainWndHandle);
+        PhInvalidateAllProcessNodes();
+        PhReloadSettingsProcessTreeList();
+        PhSiNotifyChangeSettings();
+
+        if (RestartRequired)
         {
-            // Main window not available.
-            if (PhSettingsFileName)
-                PhSaveSettings(PhSettingsFileName->Buffer);
+            if (PhShowMessage2(
+                PhMainWndHandle,
+                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_INFORMATION_ICON,
+                L"One or more options you have changed requires a restart of Process Hacker.",
+                L"Do you want to restart Process Hacker now?"
+                ) == IDYES)
+            {
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                PhShellProcessHacker(
+                    PhMainWndHandle,
+                    L"-v",
+                    SW_SHOW,
+                    0,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                    0,
+                    NULL
+                    );
+                ProcessHacker_Destroy(PhMainWndHandle);
+            }
         }
     }
 }
 
-INT CALLBACK PhpOptionsPropSheetProc(
+static HTREEITEM PhpOptionsTreeViewAddItem(
+    _In_ PWSTR Text,
+    _In_ PVOID Context,
+    _In_ HTREEITEM InsertAfter
+    )
+{
+    TV_INSERTSTRUCT insert;
+
+    memset(&insert, 0, sizeof(TV_INSERTSTRUCT));
+
+    insert.hParent = TVI_ROOT;
+    insert.hInsertAfter = InsertAfter;
+    insert.item.mask = TVIF_TEXT | TVIF_PARAM;
+    insert.item.pszText = Text;
+    insert.item.lParam = (LPARAM)Context;
+
+    return TreeView_InsertItem(OptionsTreeControl, &insert);
+}
+
+static VOID PhpOptionsShowHideTreeViewItem(
+    _In_ BOOLEAN Hide
+    )
+{
+    HTREEITEM tvItemGeneral = NULL;
+    HTREEITEM tvItemAdvanced = NULL;
+    HTREEITEM tvItemCurrent;
+    
+    tvItemCurrent = TreeView_GetRoot(OptionsTreeControl);
+
+    while (tvItemCurrent)
+    {
+        TVITEM tvItem;
+        WCHAR buffer[MAX_PATH];
+
+        tvItem.mask = TVIF_TEXT | TVIF_HANDLE;
+        tvItem.hItem = tvItemCurrent;
+        tvItem.cchTextMax = ARRAYSIZE(buffer);
+        tvItem.pszText = buffer;
+
+        if (TreeView_GetItem(OptionsTreeControl, &tvItem))
+        {
+            if (PhEqualStringZ(buffer, L"Advanced", TRUE))
+            {
+                tvItemAdvanced = tvItemCurrent;
+            }
+            else if (PhEqualStringZ(buffer, L"General", TRUE))
+            {
+                tvItemGeneral = tvItemCurrent;
+            }
+        }
+
+        tvItemCurrent = TreeView_GetNextSibling(OptionsTreeControl, tvItemCurrent);
+    }
+
+    if (Hide)
+    {
+        if (tvItemAdvanced)
+            TreeView_DeleteItem(OptionsTreeControl, tvItemAdvanced);
+    }
+    else
+    {
+        static PH_STRINGREF sectionName = PH_STRINGREF_INIT(L"Advanced");
+
+        if (tvItemGeneral)
+        {
+            PhpOptionsTreeViewAddItem(
+                sectionName.Buffer, 
+                PhOptionsFindSection(&sectionName), 
+                tvItemGeneral
+                );
+        }
+    }
+}
+
+static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
+    _In_ HTREEITEM SelectedTreeItem
+    )
+{
+    TVITEM tvItem;
+
+    if (!SelectedTreeItem)
+        return NULL;
+
+    tvItem.mask = TVIF_PARAM | TVIF_HANDLE;
+    tvItem.hItem = SelectedTreeItem;
+
+    if (!TreeView_GetItem(OptionsTreeControl, &tvItem))
+        return NULL;
+
+    return (PPH_OPTIONS_SECTION)tvItem.lParam;
+}
+
+INT_PTR CALLBACK PhOptionsDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
+    _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     switch (uMsg)
     {
-    case PSCB_BUTTONPRESSED:
+    case WM_INITDIALOG:
         {
-            if (lParam == PSBTN_OK)
+            PhOptionsWindowHandle = hwndDlg;
+
+            SendMessage(PhOptionsWindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(PhOptionsWindowHandle, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            OptionsTreeImageList = ImageList_Create(2, 22, ILC_COLOR, 1, 1);
+            OptionsTreeControl = GetDlgItem(PhOptionsWindowHandle, IDC_SECTIONTREE);
+            ContainerControl = GetDlgItem(PhOptionsWindowHandle, IDD_CONTAINER);
+
+            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
+
+            PhSetControlTheme(OptionsTreeControl, L"explorer");
+            TreeView_SetExtendedStyle(OptionsTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
+            TreeView_SetImageList(OptionsTreeControl, OptionsTreeImageList, TVSIL_NORMAL);
+            TreeView_SetBkColor(OptionsTreeControl, GetSysColor(COLOR_3DFACE));
+
+            PhInitializeLayoutManager(&WindowLayoutManager, PhOptionsWindowHandle);
+            PhAddLayoutItem(&WindowLayoutManager, OptionsTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SEPARATOR), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, ContainerControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_RESET), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_CLEANUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
+
             {
-                PressedOk = TRUE;
+                PPH_OPTIONS_SECTION section;
+
+                SectionList = PhCreateList(8);
+                CurrentSection = NULL;
+
+                section = PhOptionsCreateSection(L"General", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGENERAL), PhpOptionsGeneralDlgProc, NULL);
+                PhOptionsCreateSectionAdvanced(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
+                PhOptionsCreateSection(L"Symbols", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTSYMBOLS), PhpOptionsSymbolsDlgProc, NULL);
+                PhOptionsCreateSection(L"Highlighting", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING), PhpOptionsHighlightingDlgProc, NULL);
+                PhOptionsCreateSection(L"Graphs", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGRAPHS), PhpOptionsGraphsDlgProc, NULL);
+
+                if (PhPluginsEnabled)
+                {
+                    PH_PLUGIN_OPTIONS_POINTERS pointers;
+
+                    pointers.WindowHandle = PhOptionsWindowHandle;
+                    pointers.CreateSection = PhOptionsCreateSection;
+                    pointers.FindSection = PhOptionsFindSection;
+                    pointers.EnterSectionView = PhOptionsEnterSectionView;
+
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &pointers);
+                }
+
+                PhOptionsEnterSectionView(section);
+                PhOptionsOnSize();
             }
         }
         break;
-    }
-
-    return 0;
-}
-
-static VOID PhpPageInit(
-    _In_ HWND hwndDlg
-    )
-{
-    if (!PageInit)
-    {
-        HWND optionsWindow;
-        HWND resetButton;
-        RECT clientRect;
-        RECT rect;
-
-        optionsWindow = GetParent(hwndDlg);
-        SetWindowSubclass(optionsWindow, PhpOptionsWndProc, 0, 0);
-
-        // Create the Reset button.
-        GetClientRect(optionsWindow, &clientRect);
-        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
-        MapWindowPoints(NULL, optionsWindow, (POINT *)&rect, 2);
-        resetButton = CreateWindowEx(
-            WS_EX_NOPARENTNOTIFY,
-            WC_BUTTON,
-            L"Reset",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-            clientRect.right - rect.right,
-            rect.top,
-            rect.right - rect.left,
-            rect.bottom - rect.top,
-            optionsWindow,
-            (HMENU)IDC_RESET,
-            PhInstanceHandle,
-            NULL
-            );
-        SendMessage(resetButton, WM_SETFONT, SendMessage(GetDlgItem(optionsWindow, IDCANCEL), WM_GETFONT, 0, 0), TRUE);
-
-        if (PhStartupParameters.ShowOptions)
-            ShowWindow(resetButton, SW_HIDE);
-
-        // Set the location of the options window.
-        if (StartLocation.x == MINLONG)
+    case WM_NCDESTROY:
         {
-            PhCenterWindow(optionsWindow, GetParent(optionsWindow));
+            ULONG i;
+            PPH_OPTIONS_SECTION section;
+
+            for (i = 0; i < SectionList->Count; i++)
+            {
+                section = SectionList->Items[i];
+                PhOptionsDestroySection(section);
+            }
+
+            PhDereferenceObject(SectionList);
+            SectionList = NULL;
+
+            ImageList_Destroy(OptionsTreeImageList);
+
+            PhDeleteLayoutManager(&WindowLayoutManager);
         }
-        else
+        break;
+    case WM_SIZE:
         {
-            SetWindowPos(optionsWindow, NULL, StartLocation.x, StartLocation.y, 0, 0,
-                SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
+            PhOptionsOnSize();
         }
-
-        PageInit = TRUE;
-    }
-}
-
-LRESULT CALLBACK PhpOptionsWndProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
-    )
-{
-    switch (uMsg)
-    {
-    case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhpOptionsWndProc, uIdSubclass);
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
+            case IDCANCEL:
+            case IDOK:
+                EndDialog(hwndDlg, IDOK);
+                break;
             case IDC_RESET:
                 {
                     if (PhShowMessage2(
-                        hwnd,
+                        hwndDlg,
                         TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                         TD_WARNING_ICON,
                         L"Do you want to reset all settings and restart Process Hacker?",
@@ -374,12 +434,262 @@ LRESULT CALLBACK PhpOptionsWndProc(
                     }
                 }
                 break;
+            case IDC_CLEANUP:
+                {
+                    if (PhShowMessage2(
+                        hwndDlg,
+                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_INFORMATION_ICON,
+                        L"Do you want to clean up unused plugin settings?",
+                        L""
+                        ) == IDYES)
+                    {
+                        PhClearIgnoredSettings();
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_DRAWITEM:
+        {
+            PDRAWITEMSTRUCT drawInfo = (PDRAWITEMSTRUCT)lParam;
+            
+            if (drawInfo->CtlID == IDC_SEPARATOR)
+            {
+                RECT rect;
+
+                rect = drawInfo->rcItem;
+                rect.right = 2;
+                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DHIGHLIGHT));
+                rect.left += 1;
+                FillRect(drawInfo->hDC, &rect, GetSysColorBrush(COLOR_3DSHADOW));
+                return TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case TVN_SELCHANGED:
+                {
+                    LPNMTREEVIEW treeview = (LPNMTREEVIEW)lParam;
+                    PPH_OPTIONS_SECTION section;
+ 
+                    if (section = PhpTreeViewGetSelectedSection(treeview->itemNew.hItem))
+                    {
+                        PhOptionsEnterSectionView(section);
+                    }
+                }
+                break;
+            case NM_SETCURSOR:
+                {
+                    if (header->hwndFrom == OptionsTreeControl)
+                    {
+                        HCURSOR cursor = (HCURSOR)LoadImage(
+                            NULL,
+                            IDC_ARROW,
+                            IMAGE_CURSOR,
+                            0,
+                            0,
+                            LR_SHARED
+                            );
+
+                        if (cursor != GetCursor())
+                        {
+                            SetCursor(cursor);
+                        }
+
+                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                        return TRUE;
+                    }
+                }
+                break;
             }
         }
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return FALSE;
+}
+
+VOID PhOptionsOnSize(
+    VOID
+    )
+{
+    PhLayoutManagerLayout(&WindowLayoutManager);
+
+    if (SectionList && SectionList->Count != 0)
+    {
+        PhOptionsLayoutSectionView();
+    }
+}
+
+PPH_OPTIONS_SECTION PhOptionsCreateSection(
+    _In_ PWSTR Name,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
+    )
+{
+    PPH_OPTIONS_SECTION section;
+
+    section = PhAllocate(sizeof(PH_OPTIONS_SECTION));
+    memset(section, 0, sizeof(PH_OPTIONS_SECTION));
+
+    PhInitializeStringRefLongHint(&section->Name, Name);
+
+    section->Instance = Instance;
+    section->Template = Template;
+    section->DialogProc = DialogProc;
+    section->Parameter = Parameter;
+
+    PhAddItemList(SectionList, section);
+
+    PhpOptionsTreeViewAddItem(Name, section, TVI_LAST);
+
+    return section;
+}
+
+PPH_OPTIONS_SECTION PhOptionsCreateSectionAdvanced(
+    _In_ PWSTR Name,
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_ DLGPROC DialogProc,
+    _In_ PVOID Parameter
+    )
+{
+    PPH_OPTIONS_SECTION section;
+
+    section = PhAllocate(sizeof(PH_OPTIONS_SECTION));
+    memset(section, 0, sizeof(PH_OPTIONS_SECTION));
+
+    PhInitializeStringRefLongHint(&section->Name, Name);
+
+    section->Instance = Instance;
+    section->Template = Template;
+    section->DialogProc = DialogProc;
+    section->Parameter = Parameter;
+
+    PhAddItemList(SectionList, section);
+
+    return section;
+}
+
+VOID PhOptionsDestroySection(
+    _In_ PPH_OPTIONS_SECTION Section
+    )
+{
+    PhFree(Section);
+}
+
+PPH_OPTIONS_SECTION PhOptionsFindSection(
+    _In_ PPH_STRINGREF Name
+    )
+{
+    ULONG i;
+    PPH_OPTIONS_SECTION section;
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+
+        if (PhEqualStringRef(&section->Name, Name, TRUE))
+            return section;
+    }
+
+    return NULL;
+}
+
+VOID PhOptionsLayoutSectionView(
+    VOID
+    )
+{
+    if (CurrentSection && CurrentSection->DialogHandle)
+    {
+        RECT clientRect;
+
+        GetClientRect(ContainerControl, &clientRect);
+
+        SetWindowPos(
+            CurrentSection->DialogHandle,
+            NULL,
+            0,
+            0,
+            clientRect.right - clientRect.left,
+            clientRect.bottom - clientRect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+    }
+}
+
+VOID PhOptionsEnterSectionView(
+    _In_ PPH_OPTIONS_SECTION NewSection
+    )
+{
+    ULONG i;
+    PPH_OPTIONS_SECTION section;
+    PPH_OPTIONS_SECTION oldSection;
+    HDWP containerDeferHandle;
+
+    if (CurrentSection == NewSection)
+        return;
+
+    oldSection = CurrentSection;
+    CurrentSection = NewSection;
+
+    containerDeferHandle = BeginDeferWindowPos(SectionList->Count);
+
+    PhOptionsEnterSectionViewInner(NewSection, &containerDeferHandle);
+    PhOptionsLayoutSectionView();
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+
+        if (section != NewSection)
+            PhOptionsEnterSectionViewInner(section, &containerDeferHandle);
+    }
+
+    EndDeferWindowPos(containerDeferHandle);
+
+    if (NewSection->DialogHandle)
+        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+}
+
+VOID PhOptionsEnterSectionViewInner(
+    _In_ PPH_OPTIONS_SECTION Section,
+    _Inout_ HDWP *ContainerDeferHandle
+    )
+{
+    if (Section == CurrentSection && !Section->DialogHandle)
+        PhOptionsCreateSectionDialog(Section);
+
+    if (Section->DialogHandle)
+    {
+        if (Section == CurrentSection)
+            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY | SWP_NOREDRAW);
+        else
+            *ContainerDeferHandle = DeferWindowPos(*ContainerDeferHandle, Section->DialogHandle, NULL, 0, 0, 0, 0, SWP_HIDEWINDOW_ONLY | SWP_NOREDRAW);
+    }
+}
+
+VOID PhOptionsCreateSectionDialog(
+    _In_ PPH_OPTIONS_SECTION Section
+    )
+{
+    Section->DialogHandle = PhCreateDialogFromTemplate(
+        ContainerControl,
+        DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD,
+        Section->Instance,
+        Section->Template,
+        Section->DialogProc,
+        Section->Parameter
+        );
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
@@ -387,14 +697,26 @@ LRESULT CALLBACK PhpOptionsWndProc(
 #define SetSettingForDlgItemCheck(hwndDlg, Id, Name) \
     PhSetIntegerSetting(Name, Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED)
 #define SetSettingForDlgItemCheckRestartRequired(hwndDlg, Id, Name) \
-    do { \
-        BOOLEAN __oldValue = !!PhGetIntegerSetting(Name); \
-        BOOLEAN __newValue = Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED; \
-        if (__newValue != __oldValue) \
-            RestartRequired = TRUE; \
-        PhSetIntegerSetting(Name, __newValue); \
-    } while (0)
-#define DialogChanged PropSheet_Changed(GetParent(hwndDlg), hwndDlg)
+{ \
+    BOOLEAN __oldValue = !!PhGetIntegerSetting(Name); \
+    BOOLEAN __newValue = Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED; \
+    if (__newValue != __oldValue) \
+        RestartRequired = TRUE; \
+    PhSetIntegerSetting(Name, __newValue); \
+}
+
+#define SetLvItemCheckForSetting(ListViewHandle, Index, Name) \
+    ListView_SetCheckState(ListViewHandle, Index, !!PhGetIntegerSetting(Name));
+#define SetSettingForLvItemCheck(ListViewHandle, Index, Name) \
+    PhSetIntegerSetting(Name, ListView_GetCheckState(ListViewHandle, Index) == BST_CHECKED)
+#define SetSettingForLvItemCheckRestartRequired(ListViewHandle, Index, Name) \
+{ \
+    BOOLEAN __oldValue = !!PhGetIntegerSetting(Name); \
+    BOOLEAN __newValue = ListView_GetCheckState(ListViewHandle, Index) == BST_CHECKED; \
+    if (__newValue != __oldValue) \
+        RestartRequired = TRUE; \
+    PhSetIntegerSetting(Name, __newValue); \
+}
 
 static BOOLEAN GetCurrentFont(
     _Out_ PLOGFONT Font
@@ -500,6 +822,305 @@ static VOID WriteCurrentUserRun(
     }
 }
 
+static BOOLEAN PathMatchesPh(
+    _In_ PPH_STRING Path
+    )
+{
+    BOOLEAN match = FALSE;
+
+    if (PhEqualString(OldTaskMgrDebugger, PhApplicationFileName, TRUE))
+    {
+        match = TRUE;
+    }
+    // Allow for a quoted value.
+    else if (
+        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + sizeof(WCHAR) * 2 &&
+        OldTaskMgrDebugger->Buffer[0] == '"' &&
+        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
+        )
+    {
+        PH_STRINGREF partInside;
+
+        partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
+        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * 2;
+
+        if (PhEqualStringRef(&partInside, &PhApplicationFileName->sr, TRUE))
+            match = TRUE;
+    }
+
+    return match;
+}
+
+BOOLEAN PhpIsDefaultTaskManager(
+    VOID
+    )
+{
+    HANDLE taskmgrKeyHandle;
+    BOOLEAN alreadyReplaced = FALSE;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &taskmgrKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &TaskMgrImageOptionsKeyName,
+        0
+        )))
+    {
+        PhClearReference(&OldTaskMgrDebugger);
+
+        if (OldTaskMgrDebugger = PhQueryRegistryString(taskmgrKeyHandle, L"Debugger"))
+        {
+            alreadyReplaced = PathMatchesPh(OldTaskMgrDebugger);
+        }
+
+        NtClose(taskmgrKeyHandle);
+    }
+
+    return alreadyReplaced;
+}
+
+VOID PhpSetDefaultTaskManager(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    PWSTR message;
+
+    if (PhpIsDefaultTaskManager())
+        message = L"Do you want to restore the default Windows Task Manager?";
+    else
+        message = L"Do you want to make Process Hacker the default Windows Task Manager?";
+
+    if (PhShowMessage2(
+        ParentWindowHandle,
+        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_INFORMATION_ICON,
+        L"",
+        message
+        ) == IDYES)
+    {
+        NTSTATUS status;
+        HANDLE taskmgrKeyHandle;
+        UNICODE_STRING valueName;
+
+        status = PhCreateKey(
+            &taskmgrKeyHandle,
+            KEY_READ | KEY_WRITE,
+            PH_KEY_LOCAL_MACHINE,
+            &TaskMgrImageOptionsKeyName,
+            OBJ_OPENIF,
+            0,
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            RtlInitUnicodeString(&valueName, L"Debugger");
+
+            if (PhpIsDefaultTaskManager())
+            {
+                status = NtDeleteValueKey(taskmgrKeyHandle, &valueName);
+            }
+            else
+            {
+                PPH_STRING quotedFileName;
+
+                quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\""));
+                status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, (ULONG)quotedFileName->Length + 2);
+            }
+
+            NtClose(taskmgrKeyHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+            PhShowStatus(ParentWindowHandle, L"Unable to replace Task Manager", status, 0);
+
+        if (PhSettingsFileName)
+            PhSaveSettings(PhSettingsFileName->Buffer);
+    }
+}
+
+VOID PhpRefreshTaskManagerState(
+    _In_ HWND WindowHandle
+    )
+{
+    if (!PhGetOwnTokenAttributes().Elevated)
+    {
+        SendMessage(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), BCM_SETSHIELD, 0, TRUE);
+    }
+
+    if (PhpIsDefaultTaskManager())
+    {
+        Static_SetText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is the default Task Manager:");
+        Button_SetText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Restore default...");
+    }
+    else
+    {
+        Static_SetText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is not the default Task Manager:");
+        Button_SetText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Make default...");
+    }
+}
+
+typedef enum _PHP_OPTIONS_INDEX
+{
+    PHP_OPTIONS_INDEX_SINGLE_INSTANCE,
+    PHP_OPTIONS_INDEX_HIDE_WHENCLOSED,
+    PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED,
+    PHP_OPTIONS_INDEX_START_ATLOGON,
+    PHP_OPTIONS_INDEX_START_HIDDEN,
+    PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW,
+    PHP_OPTIONS_INDEX_ENABLE_DRIVER,
+    PHP_OPTIONS_INDEX_ENABLE_WARNINGS,
+    PHP_OPTIONS_INDEX_ENABLE_PLUGINS,
+    PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE,
+    PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS,
+    PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE,
+    PHP_OPTIONS_INDEX_ENABLE_STAGE2,
+    PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START,
+    PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK,
+    PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY,
+    PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE,
+    PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS,
+} PHP_OPTIONS_GENERAL_INDEX;
+
+VOID PhpSetListViewItemState(
+    _In_ HWND ListViewHandle, 
+    _In_ INT Index, 
+    _In_ BOOLEAN Hide
+    )
+{
+    ListView_SetItemState(ListViewHandle, Index, INDEXTOSTATEIMAGEMASK(Hide ? 0 : 1), LVIS_STATEIMAGEMASK);
+}
+
+static VOID PhpAdvancedPageLoad(
+    _In_ HWND hwndDlg
+    )
+{
+    HWND listViewHandle;
+
+    listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+
+    SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
+    SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
+
+    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
+        EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
+
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"Allow only one instance", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"Hide when closed", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"Hide when minimized", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, L"Start when I log on", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"Start hidden", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"Enable tray information window", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"Enable kernel-mode driver", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"Enable warnings", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"Enable plugins", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"Resolve network addresses", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"Show tooltips instantly", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"Check images for digital signatures", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"Collapse services on start", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"Single-click tray icons", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"Icon click toggles visibility", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"Include usage of collapsed processes", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS, L"Show advanced options", NULL);
+
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"EnableKph");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"CollapseServicesOnStart");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
+
+    if (CurrentUserRunPresent)
+    {
+        ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, TRUE);
+
+        if (CurrentUserRunStartHidden)
+            ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
+    }
+    else
+    {
+        PhpSetListViewItemState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
+    }
+}
+
+static VOID PhpAdvancedPageSave(
+    _In_ HWND hwndDlg
+    )
+{
+    HWND listViewHandle;
+    ULONG sampleCount;
+
+    listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+    sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
+
+    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
+
+    if (sampleCount == 0)
+        sampleCount = 1;
+
+    if (sampleCount != PhGetIntegerSetting(L"SampleCount"))
+        RestartRequired = TRUE;
+
+    PhSetIntegerSetting(L"SampleCount", sampleCount);
+    PhSetStringSetting2(L"SearchEngine", &PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr);
+    PhSetStringSetting2(L"ProgramInspectExecutables", &PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr);
+    PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
+    PhSetIntegerSetting(L"IconProcesses", GetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, NULL, FALSE));
+
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENMINIMIZED, L"HideOnMinimize");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"MiniInfoWindowEnabled");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"EnableKph");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"EnableWarnings");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"EnablePlugins");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS, L"EnableInstantTooltips");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_STAGE2, L"EnableStage2");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_COLLAPSE_SERVICES_ON_START, L"CollapseServicesOnStart");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_SINGLE_CLICK, L"IconSingleClick");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ICON_TOGGLE_VISIBILITY, L"IconTogglesVisibility");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_PROPAGATE_CPU_USAGE, L"PropagateCpuUsage");
+
+    WriteCurrentUserRun(
+        ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,
+        ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN) == BST_CHECKED
+        );
+}
+
+static NTSTATUS PhpElevateAdvancedThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_STRING arguments;
+
+    arguments = Parameter;
+    PhShellProcessHacker(
+        WindowHandleForElevate,
+        arguments->Buffer,
+        SW_SHOW,
+        PH_SHELL_EXECUTE_ADMIN,
+        PH_SHELL_APP_PROPAGATE_PARAMETERS,
+        INFINITE,
+        NULL
+        );
+    PhDereferenceObject(arguments);
+
+    PostMessage(WindowHandleForElevate, WM_PH_CHILD_EXIT, 0, 0);
+
+    return STATUS_SUCCESS;
+}
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -508,52 +1129,47 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             HWND comboBoxHandle;
+            HWND listviewHandle;
             ULONG i;
             LOGFONT font;
 
-            PhpPageInit(hwndDlg);
-
+            GeneralListviewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1);
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
+            listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
 
-            for (i = 0; i < sizeof(PhSizeUnitNames) / sizeof(PWSTR); i++)
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_PEVIEWER), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, listviewHandle, NULL, PH_ANCHOR_ALL);
+
+            PhSetListViewStyle(listviewHandle, FALSE, TRUE);
+            ListView_SetExtendedListViewStyleEx(listviewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
+            ListView_SetImageList(listviewHandle, GeneralListviewImageList, LVSIL_SMALL);
+            PhSetControlTheme(listviewHandle, L"explorer");
+            PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
+            PhSetExtendedListView(listviewHandle);
+
+            for (i = 0; i < ARRAYSIZE(PhSizeUnitNames); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
-
-            SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
-            SetDlgItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
 
             if (PhMaxSizeUnit != -1)
                 ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
             else
-                ComboBox_SetCurSel(comboBoxHandle, sizeof(PhSizeUnitNames) / sizeof(PWSTR) - 1);
+                ComboBox_SetCurSel(comboBoxHandle, ARRAYSIZE(PhSizeUnitNames) - 1);
+
+            SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PhaGetStringSetting(L"SearchEngine")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PEVIEWER, PhaGetStringSetting(L"ProgramInspectExecutables")->Buffer);
 
             SetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(L"IconProcesses"), FALSE);
 
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEONMINIMIZE, L"HideOnMinimize");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ICONTOGGLESVISIBILITY, L"IconTogglesVisibility");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
-
             ReadCurrentUserRun();
-
-            if (CurrentUserRunPresent)
-            {
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_STARTATLOGON), BST_CHECKED);
-
-                if (CurrentUserRunStartHidden)
-                    Button_SetCheck(GetDlgItem(hwndDlg, IDC_STARTHIDDEN), BST_CHECKED);
-            }
-            else
-            {
-                EnableWindow(GetDlgItem(hwndDlg, IDC_STARTHIDDEN), FALSE);
-            }
 
             // Set the font of the button for a nice preview.
             if (GetCurrentFont(&font))
@@ -563,25 +1179,36 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 if (CurrentFontInstance)
                     SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
             }
+
+            PhpAdvancedPageLoad(hwndDlg);
+            PhpRefreshTaskManagerState(hwndDlg);
         }
         break;
     case WM_DESTROY:
         {
+            if (NewFontSelection)
+            {
+                PhSetStringSetting2(L"Font", &NewFontSelection->sr);
+                PostMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+            }
+
+            PhpAdvancedPageSave(hwndDlg);
+
             if (CurrentFontInstance)
                 DeleteObject(CurrentFontInstance);
 
             PhClearReference(&NewFontSelection);
+            PhClearReference(&OldTaskMgrDebugger);
+
+            ImageList_Destroy(GeneralListviewImageList);
+
+            PhDeleteLayoutManager(&LayoutManager);
         }
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDC_STARTATLOGON:
-                {
-                    EnableWindow(GetDlgItem(hwndDlg, IDC_STARTHIDDEN), Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTATLOGON)) == BST_CHECKED);
-                }
-                break;
             case IDC_FONT:
                 {
                     LOGFONT font;
@@ -615,312 +1242,13 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     }
                 }
                 break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_APPLY:
+            case IDC_REPLACETASKMANAGER:
                 {
-                    BOOLEAN startAtLogon;
-                    BOOLEAN startHidden;
-
-                    PhSetStringSetting2(L"SearchEngine", &(PhaGetDlgItemText(hwndDlg, IDC_SEARCHENGINE)->sr));
-                    PhSetStringSetting2(L"ProgramInspectExecutables", &(PhaGetDlgItemText(hwndDlg, IDC_PEVIEWER)->sr));
-                    PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
-                    PhSetIntegerSetting(L"IconProcesses", GetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, NULL, FALSE));
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONMINIMIZE, L"HideOnMinimize");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ICONTOGGLESVISIBILITY, L"IconTogglesVisibility");
-                    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
-
-                    startAtLogon = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTATLOGON)) == BST_CHECKED;
-                    startHidden = Button_GetCheck(GetDlgItem(hwndDlg, IDC_STARTHIDDEN)) == BST_CHECKED;
-                    WriteCurrentUserRun(startAtLogon, startHidden);
-
-                    if (NewFontSelection)
-                    {
-                        PhSetStringSetting2(L"Font", &NewFontSelection->sr);
-                        PostMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
-                    }
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
-        }
-        break;
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PathMatchesPh(
-    _In_ PPH_STRING Path
-    )
-{
-    BOOLEAN match = FALSE;
-
-    if (PhEqualString(OldTaskMgrDebugger, PhApplicationFileName, TRUE))
-    {
-        match = TRUE;
-    }
-    // Allow for a quoted value.
-    else if (
-        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + sizeof(WCHAR) * 2 &&
-        OldTaskMgrDebugger->Buffer[0] == '"' &&
-        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == '"'
-        )
-    {
-        PH_STRINGREF partInside;
-
-        partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * 2;
-
-        if (PhEqualStringRef(&partInside, &PhApplicationFileName->sr, TRUE))
-            match = TRUE;
-    }
-
-    return match;
-}
-
-VOID PhpAdvancedPageLoad(
-    _In_ HWND hwndDlg
-    )
-{
-    HWND changeButton;
-
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
-    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
-
-    SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
-    SetDlgItemCheckForSetting(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
-
-    if (PhGetIntegerSetting(L"SampleCountAutomatic"))
-        EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
-
-    // Replace Task Manager
-
-    changeButton = GetDlgItem(hwndDlg, IDC_CHANGE);
-
-    if (PhGetOwnTokenAttributes().Elevated)
-    {
-        ShowWindow(changeButton, SW_HIDE);
-    }
-    else
-    {
-        SendMessage(changeButton, BCM_SETSHIELD, 0, TRUE);
-    }
-
-    {
-        HANDLE taskmgrKeyHandle = NULL;
-        ULONG disposition;
-        BOOLEAN success = FALSE;
-        BOOLEAN alreadyReplaced = FALSE;
-
-        // See if we can write to the key.
-        if (NT_SUCCESS(PhCreateKey(
-            &taskmgrKeyHandle,
-            KEY_READ | KEY_WRITE,
-            PH_KEY_LOCAL_MACHINE,
-            &TaskMgrImageOptionsKeyName,
-            0,
-            0,
-            &disposition
-            )))
-        {
-            success = TRUE;
-        }
-
-        if (taskmgrKeyHandle || NT_SUCCESS(PhOpenKey(
-            &taskmgrKeyHandle,
-            KEY_READ,
-            PH_KEY_LOCAL_MACHINE,
-            &TaskMgrImageOptionsKeyName,
-            0
-            )))
-        {
-            PhClearReference(&OldTaskMgrDebugger);
-
-            if (OldTaskMgrDebugger = PhQueryRegistryString(taskmgrKeyHandle, L"Debugger"))
-            {
-                alreadyReplaced = PathMatchesPh(OldTaskMgrDebugger);
-            }
-
-            NtClose(taskmgrKeyHandle);
-        }
-
-        if (!success)
-            EnableWindow(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER), FALSE);
-
-        OldReplaceTaskMgr = alreadyReplaced;
-        Button_SetCheck(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER), alreadyReplaced ? BST_CHECKED : BST_UNCHECKED);
-    }
-}
-
-VOID PhpAdvancedPageSave(
-    _In_ HWND hwndDlg
-    )
-{
-    ULONG sampleCount;
-
-    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
-    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
-    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
-    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
-    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
-    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_ENABLECYCLECPUUSAGE, L"EnableCycleCpuUsage");
-
-    sampleCount = GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE);
-    SetSettingForDlgItemCheckRestartRequired(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC, L"SampleCountAutomatic");
-
-    if (sampleCount == 0)
-        sampleCount = 1;
-
-    if (sampleCount != PhGetIntegerSetting(L"SampleCount"))
-        RestartRequired = TRUE;
-
-    PhSetIntegerSetting(L"SampleCount", sampleCount);
-
-    // Replace Task Manager
-    if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)))
-    {
-        NTSTATUS status;
-        HANDLE taskmgrKeyHandle;
-        BOOLEAN replaceTaskMgr;
-        UNICODE_STRING valueName;
-
-        replaceTaskMgr = Button_GetCheck(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)) == BST_CHECKED;
-
-        if (OldReplaceTaskMgr != replaceTaskMgr)
-        {
-            // We should have created the key back in PhpAdvancedPageLoad, which is why
-            // we're opening the key here.
-            if (NT_SUCCESS(PhOpenKey(
-                &taskmgrKeyHandle,
-                KEY_WRITE,
-                PH_KEY_LOCAL_MACHINE,
-                &TaskMgrImageOptionsKeyName,
-                0
-                )))
-            {
-                RtlInitUnicodeString(&valueName, L"Debugger");
-
-                if (replaceTaskMgr)
-                {
-                    PPH_STRING quotedFileName;
-
-                    quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\""));
-                    status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, (ULONG)quotedFileName->Length + 2);
-                }
-                else
-                {
-                    status = NtDeleteValueKey(taskmgrKeyHandle, &valueName);
-                }
-
-                if (!NT_SUCCESS(status))
-                    PhShowStatus(hwndDlg, L"Unable to replace Task Manager", status, 0);
-
-                NtClose(taskmgrKeyHandle);
-            }
-        }
-    }
-}
-
-NTSTATUS PhpElevateAdvancedThreadStart(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_STRING arguments;
-
-    arguments = Parameter;
-    PhShellProcessHacker(
-        WindowHandleForElevate,
-        arguments->Buffer,
-        SW_SHOW,
-        PH_SHELL_EXECUTE_ADMIN,
-        PH_SHELL_APP_PROPAGATE_PARAMETERS,
-        INFINITE,
-        NULL
-        );
-    PhDereferenceObject(arguments);
-
-    PostMessage(WindowHandleForElevate, WM_PH_CHILD_EXIT, 0, 0);
-
-    return STATUS_SUCCESS;
-}
-
-INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            PhpPageInit(hwndDlg);
-            PhpAdvancedPageLoad(hwndDlg);
-
-            if (PhStartupParameters.ShowOptions)
-            {
-                // Disable all controls except for Replace Task Manager.
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEWARNINGS), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEKERNELMODEDRIVER), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLESTAGE2), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLENETWORKRESOLVE), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_PROPAGATECPUUSAGE), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLECYCLECPUUSAGE), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTLABEL), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTAUTOMATIC), FALSE);
-            }
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhClearReference(&OldTaskMgrDebugger);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDC_CHANGE:
-                {
-                    RECT windowRect;
-
-                    // Save the options so they don't get "overwritten" when
-                    // WM_PH_CHILD_EXIT gets sent.
-                    PhpAdvancedPageSave(hwndDlg);
-
-                    GetWindowRect(GetParent(hwndDlg), &windowRect);
                     WindowHandleForElevate = hwndDlg;
-                    
+
                     PhCreateThread2(PhpElevateAdvancedThreadStart, PhFormatString(
-                        L"-showoptions -hwnd %Ix -point %u,%u",
-                        (ULONG_PTR)GetParent(hwndDlg),
-                        windowRect.left + 20,
-                        windowRect.top + 20
+                        L"-showoptions -hwnd %Ix",
+                        (ULONG_PTR)GetParent(GetParent(hwndDlg))
                         ));
                 }
                 break;
@@ -932,24 +1260,322 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             }
         }
         break;
+    case WM_PH_CHILD_EXIT:
+        {
+            PhpRefreshTaskManagerState(hwndDlg);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            //if (header->code == LVN_ITEMCHANGING)
+            //{
+            //    LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
+            //
+            //    if (listView->uChanged & LVIF_STATE)
+            //    {
+            //        switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+            //        {
+            //        case INDEXTOSTATEIMAGEMASK(2): // checked
+            //            {
+            //                switch (listView->iItem)
+            //                {
+            //                case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
+            //                    {
+            //                        if (PhShowMessage2(
+            //                            PhOptionsWindowHandle,
+            //                            TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON,
+            //                            TD_WARNING_ICON,
+            //                            L"WARNING",
+            //                            L"DO NOT change advanced settings unless you know what you're doing..."
+            //                            ) == IDOK)
+            //                        {
+            //                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
+            //                            return FALSE;
+            //                        }
+            //                        else
+            //                        {
+            //                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+            //                            return TRUE;
+            //                        }   
+            //                    }
+            //                    break;
+            //                }
+            //            }
+            //            break;
+            //        }
+            //    }
+            //}
+
+            if (header->code == LVN_ITEMCHANGED)
+            {
+                LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
+
+                if (listView->uChanged & LVIF_STATE)
+                {
+                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    {
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
+                        {
+                            switch (listView->iItem)
+                            {
+                            case PHP_OPTIONS_INDEX_START_ATLOGON:
+                                {
+                                    PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, FALSE);
+                                }
+                                break;
+                            case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
+                                {
+                                    PhpOptionsShowHideTreeViewItem(FALSE);
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
+                        {
+                            switch (listView->iItem)
+                            {
+                            case PHP_OPTIONS_INDEX_START_ATLOGON:
+                                {
+                                    PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
+                                }
+                                break;
+                            case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
+                                {
+                                    PhpOptionsShowHideTreeViewItem(TRUE);
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        break;
+    //case WM_CTLCOLORSTATIC:
+    //    {
+    //        static HFONT BoldFont = NULL; // leak
+    //        HWND control = (HWND)lParam;
+    //        HDC hdc = (HDC)wParam;
+    //
+    //        if (GetDlgCtrlID(control) == IDC_DEFSTATE)
+    //        {
+    //            if (!BoldFont)
+    //                BoldFont = PhDuplicateFontWithNewWeight((HFONT)SendMessage(control, WM_GETFONT, 0, 0), FW_BOLD);
+    //
+    //            SetBkMode(hdc, TRANSPARENT);
+    //
+    //            if (!PhpIsDefaultTaskManager())
+    //            {
+    //                SelectObject(hdc, BoldFont);
+    //            }
+    //        }
+    //    }
+    //    break;
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhpOptionsSettingsCallback(
+    _In_ PPH_SETTING Setting,
+    _In_ PVOID Context
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhAddListViewItem(Context, MAXINT, Setting->Name.Buffer, Setting);
+
+    switch (Setting->Type)
+    {
+    case StringSettingType:
+        PhSetListViewSubItem(Context, lvItemIndex, 1, L"String");
+        break;
+    case IntegerSettingType:
+        PhSetListViewSubItem(Context, lvItemIndex, 1, L"Integer");
+        break;
+    case IntegerPairSettingType:
+        PhSetListViewSubItem(Context, lvItemIndex, 1, L"IntegerPair");
+        break;
+    case ScalableIntegerPairSettingType:
+        PhSetListViewSubItem(Context, lvItemIndex, 1, L"ScalableIntegerPair");
+        break;
+    }
+
+    PhSetListViewSubItem(Context, lvItemIndex, 2, PH_AUTO_T(PH_STRING, PhSettingToString(Setting->Type, Setting))->Buffer);
+    PhSetListViewSubItem(Context, lvItemIndex, 3, Setting->DefaultValue.Buffer);
+
+    return TRUE;
+}
+
+static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PPH_SETTING setting = (PPH_SETTING)lParam;
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER)));
+            
+            SetWindowText(hwndDlg, L"Setting Editor");
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            SetProp(hwndDlg, PhMakeContextAtom(), setting);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_VALUE), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            SetDlgItemText(hwndDlg, IDC_NAME, setting->Name.Buffer);
+            SetDlgItemText(hwndDlg, IDC_VALUE, PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting))->Buffer);
+
+            EnableWindow(GetDlgItem(hwndDlg, IDC_NAME), FALSE);
+
+            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            RemoveProp(hwndDlg, PhMakeContextAtom());
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                {
+                    PPH_SETTING setting = (PPH_SETTING)GetProp(hwndDlg, PhMakeContextAtom());
+                    PPH_STRING settingValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
+
+                    if (!PhSettingFromString(
+                        setting->Type,
+                        &settingValue->sr,
+                        settingValue,
+                        setting
+                        ))
+                    {
+                        PhSettingFromString(
+                            setting->Type,
+                            &setting->DefaultValue,
+                            NULL,
+                            setting
+                            );
+                    }
+
+                    EndDialog(hwndDlg, IDOK);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND listviewHandle;
+
+            listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, listviewHandle, NULL, PH_ANCHOR_ALL);
+
+            PhSetListViewStyle(listviewHandle, FALSE, TRUE);
+            PhSetControlTheme(listviewHandle, L"explorer");
+            PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
+            PhAddListViewColumn(listviewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Type");
+            PhAddListViewColumn(listviewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Value");
+            PhAddListViewColumn(listviewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Default");
+            PhSetExtendedListView(listviewHandle);
+
+            PhEnumSettings(PhpOptionsSettingsCallback, listviewHandle);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
             switch (header->code)
             {
-            case PSN_APPLY:
+            case NM_DBLCLK:
                 {
-                    PhpAdvancedPageSave(hwndDlg);
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                    if (header->idFrom == IDC_SETTINGS)
+                    {
+                        PPH_SETTING setting;
+                        INT index;
+
+                        if (setting = PhGetSelectedListViewItemParam(header->hwndFrom))
+                        {
+                            DialogBoxParam(
+                                PhInstanceHandle,
+                                MAKEINTRESOURCE(IDD_EDITENV),
+                                hwndDlg,
+                                PhpOptionsAdvancedEditDlgProc,
+                                (LPARAM)setting
+                                );
+
+                            if ((index = PhFindListViewItemByFlags(header->hwndFrom, -1, LVNI_SELECTED)) != -1)
+                            {
+                                PhSetListViewSubItem(header->hwndFrom, index, 2, PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting))->Buffer);
+                            }
+                        }
+                    }
                 }
-                return TRUE;
+                break;
             }
-        }
-        break;
-    case WM_PH_CHILD_EXIT:
-        {
-            PhpAdvancedPageLoad(hwndDlg);
         }
         break;
     }
@@ -964,16 +1590,21 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PhpPageInit(hwndDlg);
-
             SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, PhaGetStringSetting(L"DbgHelpPath")->Buffer);
             SetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
 
             SetDlgItemCheckForSetting(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPSEARCHPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
         }
         break;
     case WM_COMMAND:
@@ -1008,36 +1639,29 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
             }
         }
         break;
-    case WM_NOTIFY:
+    case WM_SIZE:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PPH_STRING dbgHelpPath = PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH);
 
-            switch (header->code)
-            {
-            case PSN_APPLY:
-                {
-                    PPH_STRING dbgHelpPath = PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH);
+            if (!PhEqualString(dbgHelpPath, PhaGetStringSetting(L"DbgHelpPath"), TRUE))
+                RestartRequired = TRUE;
 
-                    if (!PhEqualString(dbgHelpPath, PhaGetStringSetting(L"DbgHelpPath"), TRUE))
-                        RestartRequired = TRUE;
+            PhSetStringSetting2(L"DbgHelpPath", &dbgHelpPath->sr);
+            PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+            SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
 
-                    PhSetStringSetting2(L"DbgHelpPath", &dbgHelpPath->sr);
-                    PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
+            PhDeleteLayoutManager(&LayoutManager);
         }
         break;
     }
 
     return FALSE;
 }
-
-#define CROSS_INDEX 0
-#define TICK_INDEX 1
 
 typedef struct _COLOR_ITEM
 {
@@ -1085,7 +1709,7 @@ COLORREF NTAPI PhpColorItemColorFunction(
     return item->CurrentColor;
 }
 
-INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
+UINT_PTR CALLBACK PhpColorDlgHookProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1096,10 +1720,29 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG i;
+            PhCenterWindow(hwndDlg, PhOptionsWindowHandle);
 
-            PhpPageInit(hwndDlg);
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
+        }
+        break;
+    }
 
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
             // Highlighting Duration
             SetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, PhCsHighlightingDuration, FALSE);
 
@@ -1117,7 +1760,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhSetExtendedListView(HighlightingListViewHandle);
             ExtendedListView_SetItemColorFunction(HighlightingListViewHandle, PhpColorItemColorFunction);
 
-            for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+            for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
             {
                 INT lvItemIndex;
 
@@ -1126,25 +1769,50 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                 ColorItems[i].CurrentUse = !!PhGetIntegerSetting(ColorItems[i].UseSettingName);
                 ListView_SetCheckState(HighlightingListViewHandle, lvItemIndex, ColorItems[i].CurrentUse);
             }
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, HighlightingListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ENABLEALL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DISABLEALL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, GetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, NULL, FALSE));
+            PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
+            PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
+
+            for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
+            {
+                ColorItems[i].CurrentUse = !!ListView_GetCheckState(HighlightingListViewHandle, i);
+                PhSetIntegerSetting(ColorItems[i].SettingName, ColorItems[i].CurrentColor);
+                PhSetIntegerSetting(ColorItems[i].UseSettingName, ColorItems[i].CurrentUse);
+            }
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+
+            ExtendedListView_SetColumnWidth(HighlightingListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_ENABLEALL:
                 {
-                    ULONG i;
-
-                    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+                    for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
                         ListView_SetCheckState(HighlightingListViewHandle, i, TRUE);
                 }
                 break;
             case IDC_DISABLEALL:
                 {
-                    ULONG i;
-
-                    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+                    for (ULONG i = 0; i < ARRAYSIZE(ColorItems); i++)
                         ListView_SetCheckState(HighlightingListViewHandle, i, FALSE);
                 }
                 break;
@@ -1157,24 +1825,6 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
             switch (header->code)
             {
-            case PSN_APPLY:
-                {
-                    ULONG i;
-
-                    PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, GetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, NULL, FALSE));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
-
-                    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
-                    {
-                        ColorItems[i].CurrentUse = !!ListView_GetCheckState(HighlightingListViewHandle, i);
-                        PhSetIntegerSetting(ColorItems[i].SettingName, ColorItems[i].CurrentColor);
-                        PhSetIntegerSetting(ColorItems[i].UseSettingName, ColorItems[i].CurrentUse);
-                    }
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
             case NM_DBLCLK:
                 {
                     if (header->hwndFrom == HighlightingListViewHandle)
@@ -1183,13 +1833,14 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
                         if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
                         {
-                            CHOOSECOLOR chooseColor = { sizeof(chooseColor) };
+                            CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
                             COLORREF customColors[16] = { 0 };
 
                             chooseColor.hwndOwner = hwndDlg;
                             chooseColor.rgbResult = item->CurrentColor;
                             chooseColor.lpCustColors = customColors;
-                            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
+                            chooseColor.lpfnHook = PhpColorDlgHookProc;
+                            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK | CC_RGBINIT;
 
                             if (ChooseColor(&chooseColor))
                             {
@@ -1233,8 +1884,6 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhpPageInit(hwndDlg);
-
             // Show Text
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
             SetDlgItemCheckForSetting(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
@@ -1248,28 +1897,17 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL), PhCsColorPhysical);
         }
         break;
-    case WM_NOTIFY:
+    case WM_DESTROY:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_APPLY:
-                {
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, L"ShowCommitInSummary");
-                    PH_SET_INTEGER_CACHED_SETTING(ColorCpuUser, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUUSER)));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorCpuKernel, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL)));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorIoReadOther, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IORO)));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorIoWrite, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IOW)));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorPrivate, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PRIVATE)));
-                    PH_SET_INTEGER_CACHED_SETTING(ColorPhysical, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL)));
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
+            SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
+            SetSettingForDlgItemCheck(hwndDlg, IDC_USEOLDCOLORS, L"GraphColorMode");
+            SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWCOMMITINSUMMARY, L"ShowCommitInSummary");
+            PH_SET_INTEGER_CACHED_SETTING(ColorCpuUser, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUUSER)));
+            PH_SET_INTEGER_CACHED_SETTING(ColorCpuKernel, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL)));
+            PH_SET_INTEGER_CACHED_SETTING(ColorIoReadOther, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IORO)));
+            PH_SET_INTEGER_CACHED_SETTING(ColorIoWrite, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IOW)));
+            PH_SET_INTEGER_CACHED_SETTING(ColorPrivate, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PRIVATE)));
+            PH_SET_INTEGER_CACHED_SETTING(ColorPhysical, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL)));
         }
         break;
     }

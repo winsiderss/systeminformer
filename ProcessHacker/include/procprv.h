@@ -164,7 +164,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsImmersive : 1;
             ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
-            ULONG AddedEventSent : 1;
+            ULONG Unused : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
@@ -216,7 +216,7 @@ typedef struct _PH_PROCESS_ITEM
     ULONG PeakNumberOfThreads; // since WIN7
     ULONG HardFaultCount; // since WIN7
 
-    ULONG SequenceNumber;
+    ULONG TimeSequenceNumber;
     PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;
     PH_CIRCULAR_BUFFER_FLOAT CpuUserHistory;
     PH_CIRCULAR_BUFFER_ULONG64 IoReadHistory;
@@ -229,7 +229,9 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINTPTR_DELTA PrivateBytesDelta;
     PPH_STRING PackageFullName;
 
-    PH_QUEUED_LOCK RemoveLock;
+    ULONGLONG ProcessSequenceNumber;
+    PH_KNOWN_PROCESS_TYPE KnownProcessType;
+    ULONG JobObjectId;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 
@@ -248,6 +250,7 @@ typedef struct _PH_PROCESS_RECORD
     HANDLE ProcessId;
     HANDLE ParentProcessId;
     ULONG SessionId;
+    ULONGLONG ProcessSequenceNumber;
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER ExitTime;
 
@@ -311,13 +314,13 @@ typedef struct _PH_VERIFY_FILE_INFO *PPH_VERIFY_FILE_INFO;
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
     _In_ PPH_VERIFY_FILE_INFO Information,
-    _In_opt_ PWSTR PackageFullName,
+    _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName
     );
 
 VERIFY_RESULT PhVerifyFileCached(
     _In_ PPH_STRING FileName,
-    _In_opt_ PWSTR PackageFullName,
+    _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName,
     _In_ BOOLEAN CachedOnly
     );
@@ -342,7 +345,7 @@ PhGetStatisticsTimeString(
 // end_phapppub
 
 VOID PhFlushProcessQueryData(
-    _In_ BOOLEAN SendModifiedEvent
+    VOID
     );
 
 VOID PhProcessProviderUpdate(
@@ -396,9 +399,7 @@ PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
 PhReferenceProcessItemForParent(
-    _In_ HANDLE ParentProcessId,
-    _In_ HANDLE ProcessId,
-    _In_ PLARGE_INTEGER CreateTime
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 PHAPPAPI

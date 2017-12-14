@@ -90,8 +90,9 @@
 #define PHPRTLC_FILEMODIFIEDTIME 77
 #define PHPRTLC_FILESIZE 78
 #define PHPRTLC_SUBPROCESSCOUNT 79
+#define PHPRTLC_JOBOBJECTID 80
 
-#define PHPRTLC_MAXIMUM 80
+#define PHPRTLC_MAXIMUM 81
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -169,7 +170,7 @@ typedef struct _PH_PROCESS_NODE
     LARGE_INTEGER FileEndOfFile;
 
     PPH_STRING TooltipText;
-    ULONG TooltipTextValidToTickCount;
+    ULONG64 TooltipTextValidToTickCount;
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
@@ -215,6 +216,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
     PPH_STRING SubprocessCountText;
+    WCHAR JobObjectIdText[PH_INT32_STR_LEN_1];
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
@@ -238,6 +240,16 @@ VOID PhLoadSettingsProcessTreeList(
 
 VOID PhSaveSettingsProcessTreeList(
     VOID
+    );
+
+VOID PhLoadSettingsProcessTreeListEx(
+    _In_ PPH_STRING TreeListSettings,
+    _In_ PPH_STRING TreeSortSettings
+    );
+
+VOID PhSaveSettingsProcessTreeListEx(
+    _Out_ PPH_STRING *TreeListSettings,
+    _Out_ PPH_STRING *TreeSortSettings
     );
 
 VOID PhReloadSettingsProcessTreeList(

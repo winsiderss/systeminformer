@@ -51,7 +51,7 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
     BOOLEAN Stop;
     BOOLEAN Succeeded;
 
-    ULONG LastTickCount;
+    ULONG64 LastTickCount;
 } PROCESS_MINIDUMP_CONTEXT, *PPROCESS_MINIDUMP_CONTEXT;
 
 BOOLEAN PhpCreateProcessMiniDumpWithProgress(
@@ -410,9 +410,9 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             {
                 PPROCESS_MINIDUMP_CONTEXT context =
                     (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-                ULONG currentTickCount;
+                ULONG64 currentTickCount;
 
-                currentTickCount = GetTickCount();
+                currentTickCount = NtGetTickCount64();
 
                 if (currentTickCount - context->LastTickCount >= 2000)
                 {
@@ -438,7 +438,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             case PH_MINIDUMP_STATUS_UPDATE:
                 SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, (PWSTR)lParam);
                 InvalidateRect(GetDlgItem(hwndDlg, IDC_PROGRESSTEXT), NULL, FALSE);
-                context->LastTickCount = GetTickCount();
+                context->LastTickCount = NtGetTickCount64();
                 break;
             case PH_MINIDUMP_ERROR:
                 PhShowStatus(hwndDlg, L"Unable to create the minidump", 0, (ULONG)lParam);

@@ -242,6 +242,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileRenameInformationExBypassAccessCheck,
     FileDesiredStorageClassInformation, // FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
     FileStatInformation, // FILE_STAT_INFORMATION
+    FileMemoryPartitionInformation, // FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -679,6 +680,7 @@ typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
     WCHAR FileName[1];
 } FILE_ID_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_EXTD_BOTH_DIR_INFORMATION;
 
+// private
 typedef struct _FILE_STAT_INFORMATION
 {
     LARGE_INTEGER FileId;
@@ -693,6 +695,21 @@ typedef struct _FILE_STAT_INFORMATION
     ULONG NumberOfLinks;
     ULONG EffectiveAccess;
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
+
+// private
+typedef struct _FILE_MEMORY_PARTITION_INFORMATION
+{
+    HANDLE OwnerPartitionHandle;
+    union
+    {
+        struct
+        {
+            UCHAR NoCrossPartitionAccess;
+            UCHAR Spare[3];
+        };
+        ULONG AllFlags;
+    } Flags;
+} FILE_MEMORY_PARTITION_INFORMATION, *PFILE_MEMORY_PARTITION_INFORMATION;
 
 // NtQueryDirectoryFile types
 

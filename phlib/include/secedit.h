@@ -59,7 +59,10 @@ FORCEINLINE ACCESS_MASK PhGetAccessForGetSecurity(
     if (
         (SecurityInformation & OWNER_SECURITY_INFORMATION) ||
         (SecurityInformation & GROUP_SECURITY_INFORMATION) ||
-        (SecurityInformation & DACL_SECURITY_INFORMATION)
+        (SecurityInformation & DACL_SECURITY_INFORMATION) ||
+        (SecurityInformation & LABEL_SECURITY_INFORMATION) ||
+        (SecurityInformation & ATTRIBUTE_SECURITY_INFORMATION) ||
+        (SecurityInformation & SCOPE_SECURITY_INFORMATION)
         )
     {
         access |= READ_CONTROL;
@@ -68,6 +71,11 @@ FORCEINLINE ACCESS_MASK PhGetAccessForGetSecurity(
     if (SecurityInformation & SACL_SECURITY_INFORMATION)
     {
         access |= ACCESS_SYSTEM_SECURITY;
+    }
+
+    if (SecurityInformation & BACKUP_SECURITY_INFORMATION)
+    {
+        access |= READ_CONTROL | ACCESS_SYSTEM_SECURITY;
     }
 
     return access;
@@ -81,20 +89,36 @@ FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
 
     if (
         (SecurityInformation & OWNER_SECURITY_INFORMATION) ||
-        (SecurityInformation & GROUP_SECURITY_INFORMATION)
+        (SecurityInformation & GROUP_SECURITY_INFORMATION) ||
+        (SecurityInformation & LABEL_SECURITY_INFORMATION)
         )
     {
         access |= WRITE_OWNER;
     }
 
-    if (SecurityInformation & DACL_SECURITY_INFORMATION)
+    if (
+        (SecurityInformation & DACL_SECURITY_INFORMATION) ||
+        (SecurityInformation & ATTRIBUTE_SECURITY_INFORMATION) ||
+        (SecurityInformation & PROTECTED_DACL_SECURITY_INFORMATION) ||
+        (SecurityInformation & UNPROTECTED_DACL_SECURITY_INFORMATION)
+        )
     {
         access |= WRITE_DAC;
     }
 
-    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    if (
+        (SecurityInformation & SACL_SECURITY_INFORMATION) ||
+        (SecurityInformation & SCOPE_SECURITY_INFORMATION) ||
+        (SecurityInformation & PROTECTED_SACL_SECURITY_INFORMATION) ||
+        (SecurityInformation & UNPROTECTED_SACL_SECURITY_INFORMATION)
+        )
     {
         access |= ACCESS_SYSTEM_SECURITY;
+    }
+
+    if (SecurityInformation & BACKUP_SECURITY_INFORMATION)
+    {
+        access |= WRITE_DAC | WRITE_OWNER | ACCESS_SYSTEM_SECURITY;
     }
 
     return access;

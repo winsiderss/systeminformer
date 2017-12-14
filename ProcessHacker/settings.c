@@ -48,6 +48,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"1");
+    PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableWindowText", L"1");
@@ -60,7 +61,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
-    PhpAddIntegerSetting(L"ForceNoParent", L"0");
+    PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"HiddenProcessesMenuEnabled", L"0");
@@ -115,14 +116,18 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(L"MiniInfoWindowPosition", L"200,200");
     PhpAddIntegerSetting(L"MiniInfoWindowRefreshAutomatically", L"1");
     PhpAddScalableIntegerPairSetting(L"MiniInfoWindowSize", L"@96|10,200");
-    PhpAddIntegerSetting(L"ModuleListFlags", L"0");
+    PhpAddIntegerSetting(L"ModuleTreeListFlags", L"1");
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
     PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
     PhpAddStringSetting(L"NetworkTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
+    PhpAddIntegerPairSetting(L"PluginManagerWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"PluginManagerWindowSize", L"@96|900,590");
+    PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
+    PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"ProcPropPage", L"General");
@@ -160,6 +165,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"TokenSplitterPosition", L"150");
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
+    PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
+    PhpAddStringSetting(L"WmiProviderListViewColumns", L"");
 
     // Colors are specified with R in the lowest byte, then G, then B. So: bbggrr.
     PhpAddIntegerSetting(L"ColorNew", L"00ff7f"); // Chartreuse
@@ -217,6 +224,7 @@ VOID PhUpdateCachedSettings(
     )
 {
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
+    PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
 
     PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);

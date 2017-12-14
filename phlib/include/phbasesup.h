@@ -41,7 +41,7 @@ PhCreateThread(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
@@ -1028,7 +1028,7 @@ PhEndsWithStringRef(
     if (Suffix->Length > String->Length)
         return FALSE;
 
-    sr.Buffer = (PWCHAR)((PCHAR)String->Buffer + String->Length - Suffix->Length);
+    sr.Buffer = (PWCHAR)PTR_ADD_OFFSET(String->Buffer, String->Length - Suffix->Length);
     sr.Length = Suffix->Length;
 
     return PhEqualStringRef(&sr, Suffix, IgnoreCase);
@@ -1056,7 +1056,7 @@ PhSkipStringRef(
     _In_ LONG_PTR Length
     )
 {
-    String->Buffer = (PWCH)((PCHAR)String->Buffer + Length);
+    String->Buffer = (PWCH)PTR_ADD_OFFSET(String->Buffer, Length);
     String->Length -= Length;
 }
 
@@ -1131,12 +1131,22 @@ PhCreateStringEx(
     _In_ SIZE_T Length
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhReferenceEmptyString(
+    VOID
+    );
+
 FORCEINLINE
 PPH_STRING
 PhCreateString2(
     _In_ PPH_STRINGREF String
     )
 {
+    if (String->Length == 0)
+        return PhReferenceEmptyString();
+
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
@@ -1146,15 +1156,11 @@ PhCreateStringFromUnicodeString(
     _In_ PUNICODE_STRING UnicodeString
     )
 {
+    if (UnicodeString->Length == 0)
+        return PhReferenceEmptyString();
+
     return PhCreateStringEx(UnicodeString->Buffer, UnicodeString->Length);
 }
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhReferenceEmptyString(
-    VOID
-    );
 
 PHLIBAPI
 PPH_STRING
@@ -2236,7 +2242,7 @@ PhItemArray(
     _In_ SIZE_T Index
     )
 {
-    return (PCHAR)Array->Items + Index * Array->ItemSize;
+    return PTR_ADD_OFFSET(Array->Items, Index * Array->ItemSize);
 }
 
 PHLIBAPI

@@ -172,7 +172,7 @@ VOID PhLoadSettingsModuleList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    flags = PhGetIntegerSetting(L"ModuleListFlags");
+    flags = PhGetIntegerSetting(L"ModuleTreeListFlags");
     settings = PhGetStringSetting(L"ModuleTreeListColumns");
     sortSettings = PhGetStringSetting(L"ModuleTreeListSort");
 
@@ -192,7 +192,7 @@ VOID PhSaveSettingsModuleList(
 
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
-    PhSetIntegerSetting(L"ModuleListFlags", Context->Flags);
+    PhSetIntegerSetting(L"ModuleTreeListFlags", Context->Flags);
     PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ModuleTreeListSort", &sortSettings->sr);
 

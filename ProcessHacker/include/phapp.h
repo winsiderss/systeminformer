@@ -131,7 +131,7 @@ PhUnregisterMessageLoopFilter(
 // end_phapppub
 
 VOID PhInitializeFont(
-    _In_ HWND hWnd
+    VOID
     );
 
 // plugin
@@ -262,7 +262,7 @@ VOID PhShowDebugConsole(
 
 PPH_STRING PhGetProcessTooltipText(
     _In_ PPH_PROCESS_ITEM Process,
-    _Out_opt_ PULONG ValidToTickCount
+    _Out_opt_ PULONG64 ValidToTickCount
     );
 
 PPH_STRING PhGetServiceTooltipText(
@@ -294,7 +294,7 @@ BOOLEAN PhUiCreateDumpFileProcess(
 // about
 
 VOID PhShowAboutDialog(
-    _In_ HWND ParentWindowHandle
+    VOID
     );
 
 PPH_STRING PhGetDiagnosticsString(
@@ -482,7 +482,7 @@ VOID PhShowMemoryStringDialog(
 
 VOID PhShowProcessMitigationPolicyDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION *Information
+    _In_ HANDLE ProcessId
     );
 
 // netstk
@@ -614,7 +614,7 @@ NTAPI
 PhCreateSearchControl(
     _In_ HWND Parent,
     _In_ HWND WindowHandle,
-    _In_ PWSTR BannerText
+    _In_opt_ PWSTR BannerText
     );
 
 PHAPPAPI

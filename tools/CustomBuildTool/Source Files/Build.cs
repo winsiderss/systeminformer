@@ -53,6 +53,7 @@ namespace CustomBuildTool
 
         private static long BuildBinFileLength;
         private static string BuildBinHash;
+        private static string BuildBinSig;       
 
         private static long BuildSetupFileLength;
         private static string BuildSetupHash;
@@ -205,8 +206,7 @@ namespace CustomBuildTool
             {
                 if (CheckDependencies)
                 {
-                    Program.PrintColorMessage("Git not installed... Exiting.", ConsoleColor.Red);
-                    return false;
+                    Program.PrintColorMessage("[Warning] Git not installed...", ConsoleColor.Yellow);
                 }
             }
 
@@ -251,15 +251,15 @@ namespace CustomBuildTool
 
         public static void ShowBuildEnvironment(string Platform, bool ShowBuildInfo, bool ShowLogInfo)
         {
-            if (!GitExportBuild)
+            if (!GitExportBuild && File.Exists(GitExePath))
             {
                 BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
-                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse --short HEAD").Trim();
+                BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse HEAD").Trim();
 
                 Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
                 Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildCommit, ConsoleColor.White);
+                Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.White);
 
                 string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
                 BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
@@ -272,14 +272,14 @@ namespace CustomBuildTool
                 BuildCount = "0";
 
             BuildVersion = "3.0." + BuildRevision;
-            BuildLongVersion = "3.0." + BuildRevision + "." + BuildCount;
+            BuildLongVersion = "3.0." + BuildCount + "." + BuildRevision;
 
             if (ShowBuildInfo && !GitExportBuild)
             {
                 Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
                 Program.PrintColorMessage(BuildVersion + Environment.NewLine, ConsoleColor.White);
 
-                if (!BuildNightly && ShowLogInfo)
+                if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
                 {
                     Win32.GetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), out ConsoleMode mode);
                     Win32.SetConsoleMode(Win32.GetStdHandle(Win32.STD_OUTPUT_HANDLE), mode | ConsoleMode.ENABLE_VIRTUAL_TERMINAL_PROCESSING);
@@ -758,9 +758,30 @@ namespace CustomBuildTool
 
             try
             {
-                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
-                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
+                if (File.Exists("bin\\Release32\\ProcessHacker.exe.settings.xml"))
+                    File.Delete("bin\\Release32\\ProcessHacker.exe.settings.xml");
+                if (File.Exists("bin\\Release64\\ProcessHacker.exe.settings.xml"))
+                    File.Delete("bin\\Release64\\ProcessHacker.exe.settings.xml");
 
+                File.Create("bin\\Release32\\ProcessHacker.exe.settings.xml").Dispose();
+                File.Create("bin\\Release64\\ProcessHacker.exe.settings.xml").Dispose();
+            }
+            catch { }
+
+            try
+            {
+                if (File.Exists("bin\\Release32\\usernotesdb.xml"))
+                    File.Delete("bin\\Release32\\usernotesdb.xml");
+                if (File.Exists("bin\\Release64\\usernotesdb.xml"))
+                    File.Delete("bin\\Release64\\usernotesdb.xml");
+
+                File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
+                File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
+            }
+            catch { }
+
+            try
+            {
                 if (Directory.Exists("bin\\x32"))
                     Directory.Delete("bin\\x32", true);
                 if (Directory.Exists("bin\\x64"))
@@ -768,6 +789,9 @@ namespace CustomBuildTool
 
                 Directory.Move("bin\\Release32", "bin\\x32");
                 Directory.Move("bin\\Release64", "bin\\x64");
+
+                if (File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
+                    File.Delete(BuildOutputFolder + "\\processhacker-build-bin.zip");
 
                 Zip.CreateCompressedFolder("bin", BuildOutputFolder + "\\processhacker-build-bin.zip");
 
@@ -896,12 +920,21 @@ namespace CustomBuildTool
                 return true;
             }
 
+            if (!File.Exists(BuildOutputFolder + "\\processhacker-build-bin.zip"))
+            {
+                Program.PrintColorMessage("[SKIPPED] build-bin.zip not found.", ConsoleColor.Yellow);
+                return false;
+            }
             if (!File.Exists(BuildOutputFolder + "\\processhacker-build-setup.exe"))
             {
                 Program.PrintColorMessage("[SKIPPED] build-setup.exe not found.", ConsoleColor.Yellow);
                 return false;
             }
 
+            BuildBinSig = Win32.ShellExecute(
+                CustomSignToolPath,
+                "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-bin.zip -h"
+                );
             BuildSetupSig = Win32.ShellExecute(
                 CustomSignToolPath,
                 "sign -k build\\nightly.key " + BuildOutputFolder + "\\processhacker-build-setup.exe -h"
@@ -925,23 +958,26 @@ namespace CustomBuildTool
                 return;
             if (string.IsNullOrEmpty(BuildBinHash))
                 return;
+            if (string.IsNullOrEmpty(BuildBinSig))
+                return;
 
             string buildChangelog = Win32.ShellExecute(GitExePath, "log -n 30 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\"");
             string buildSummary = Win32.ShellExecute(GitExePath, "log -n 5 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %s (%an)\" --abbrev-commit");
             string buildPostString = Json<BuildUpdateRequest>.Serialize(new BuildUpdateRequest
             {
+                Version = BuildVersion,
+                Commit = BuildCommit,
                 Updated = TimeStart.ToString("o"),
-                FileLength = BuildSetupFileLength.ToString(),
-                ForumUrl = "https://wj32.org/processhacker/nightly.php",
-
-                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
-                SetupVersion = BuildVersion,
-                SetupHash = BuildSetupHash,
-                SetupSig = BuildSetupSig,
 
                 BinUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-bin.zip",
+                BinLength = BuildBinFileLength.ToString(),
                 BinHash = BuildBinHash,
-                //BinSig = BuildBinSig,
+                BinSig = BuildBinSig,
+
+                SetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-" + BuildVersion + "-setup.exe",
+                SetupLength = BuildSetupFileLength.ToString(),
+                SetupHash = BuildSetupHash,
+                SetupSig = BuildSetupSig,
 
                 //WebSetupUrl = "https://ci.appveyor.com/api/projects/processhacker/processhacker2/artifacts/processhacker-websetup.exe",
                 //WebSetupHash = BuildWebSetupHash,
@@ -950,6 +986,12 @@ namespace CustomBuildTool
 
                 Message = buildSummary,
                 Changelog = buildChangelog,
+
+                FileLengthDeprecated = BuildSetupFileLength.ToString(),  // TODO: Remove after most users have updated.
+                ForumUrlDeprecated = "https://wj32.org/processhacker/",  // TODO: Remove after most users have updated.
+                SetupHashDeprecated = BuildSetupHash, // TODO: Remove after most users have updated.
+                SetupSigDeprecated = BuildSetupSig, // TODO: Remove after most users have updated.
+                BinHashDeprecated = BuildBinHash  // TODO: Remove after most users have updated.
             });
 
             if (string.IsNullOrEmpty(buildPostString))
@@ -1063,7 +1105,7 @@ namespace CustomBuildTool
             }
 
             // Update Appveyor build version string.
-            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + " (" + BuildCommit + ")\" ");
+            Win32.ShellExecute("appveyor", "UpdateBuild -Version \"" + BuildLongVersion + "\" ");
 
             return true;
         }

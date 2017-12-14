@@ -88,11 +88,6 @@ VOID NTAPI PhpPointerListDeleteProcedure(
     _In_ ULONG Flags
     );
 
-VOID NTAPI PhpQueueDeleteProcedure(
-    _In_ PVOID Object,
-    _In_ ULONG Flags
-    );
-
 VOID NTAPI PhpHashtableDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -267,11 +262,12 @@ HANDLE PhCreateThread(
     }
 }
 
-VOID PhCreateThread2(
+NTSTATUS PhCreateThread2(
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
     _In_opt_ PVOID Parameter
     )
 {
+    NTSTATUS status;
     HANDLE threadHandle;
     PPHP_BASE_THREAD_CONTEXT context;
 
@@ -279,7 +275,7 @@ VOID PhCreateThread2(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    if (NT_SUCCESS(RtlCreateUserThread(
+    status = RtlCreateUserThread(
         NtCurrentProcess(),
         NULL,
         FALSE,
@@ -290,7 +286,9 @@ VOID PhCreateThread2(
         context,
         &threadHandle,
         NULL
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
         PHLIB_INC_STATISTIC(BaseThreadsCreated);
         NtClose(threadHandle);
@@ -300,6 +298,8 @@ VOID PhCreateThread2(
         PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
         PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
     }
+
+    return status;
 }
 
 /**
@@ -922,7 +922,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
         if (NT_SUCCESS(status))
         {
             // RtlMultiByteToUnicodeN doesn't null terminate the string.
-            *(PWCHAR)((PCHAR)OutputBuffer + unicodeBytes) = 0;
+            *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = 0;
             copied = TRUE;
         }
         else
@@ -1151,7 +1151,7 @@ LONG PhCompareStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
-    end = (PWCHAR)((PCHAR)s1 + (l1 <= l2 ? l1 : l2));
+    end = (PWCHAR)PTR_ADD_OFFSET(s1, l1 <= l2 ? l1 : l2);
 
     if (!IgnoreCase)
     {
@@ -1440,7 +1440,7 @@ ULONG_PTR PhFindLastCharInStringRef(
     PWCHAR buffer;
     SIZE_T length;
 
-    buffer = (PWCHAR)((PCHAR)String->Buffer + String->Length);
+    buffer = (PWCHAR)PTR_ADD_OFFSET(String->Buffer, String->Length);
     length = String->Length / sizeof(WCHAR);
 
     if (!IgnoreCase)
@@ -1622,7 +1622,7 @@ BOOLEAN PhSplitStringRefAtChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Buffer = (PWCHAR)PTR_ADD_OFFSET(input.Buffer, index * sizeof(WCHAR) + sizeof(WCHAR));
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
@@ -1669,7 +1669,7 @@ BOOLEAN PhSplitStringRefAtLastChar(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + sizeof(WCHAR));
+    SecondPart->Buffer = (PWCHAR)PTR_ADD_OFFSET(input.Buffer, index * sizeof(WCHAR) + sizeof(WCHAR));
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - sizeof(WCHAR);
 
     return TRUE;
@@ -1718,7 +1718,7 @@ BOOLEAN PhSplitStringRefAtString(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = index * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + index * sizeof(WCHAR) + Separator->Length);
+    SecondPart->Buffer = (PWCHAR)PTR_ADD_OFFSET(input.Buffer, index * sizeof(WCHAR) + Separator->Length);
     SecondPart->Length = input.Length - index * sizeof(WCHAR) - Separator->Length;
 
     return TRUE;
@@ -1855,7 +1855,7 @@ BOOLEAN PhSplitStringRefEx(
     }
     else
     {
-        s = (PWCHAR)((PCHAR)input.Buffer + input.Length - sizeof(WCHAR));
+        s = (PWCHAR)PTR_ADD_OFFSET(input.Buffer, input.Length - sizeof(WCHAR));
         direction = -1;
     }
 
@@ -1945,7 +1945,7 @@ CharFound:
 SeparatorFound:
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = separatorIndex * sizeof(WCHAR);
-    SecondPart->Buffer = (PWCHAR)((PCHAR)input.Buffer + separatorIndex * sizeof(WCHAR) + separatorLength);
+    SecondPart->Buffer = (PWCHAR)PTR_ADD_OFFSET(input.Buffer, separatorIndex * sizeof(WCHAR) + separatorLength);
     SecondPart->Length = input.Length - separatorIndex * sizeof(WCHAR) - separatorLength;
 
     if (SeparatorPart)
@@ -2016,7 +2016,7 @@ VOID PhTrimStringRef(
         {
             trimCount = 0;
             count = String->Length / sizeof(WCHAR);
-            s = (PWCHAR)((PCHAR)String->Buffer + String->Length - sizeof(WCHAR));
+            s = (PWCHAR)PTR_ADD_OFFSET(String->Buffer, String->Length - sizeof(WCHAR));
 
             while (count-- != 0)
             {
@@ -2085,7 +2085,7 @@ CharFound:
     {
         trimCount = 0;
         count = String->Length / sizeof(WCHAR);
-        s = (PWCHAR)((PCHAR)String->Buffer + String->Length - sizeof(WCHAR));
+        s = (PWCHAR)PTR_ADD_OFFSET(String->Buffer, String->Length - sizeof(WCHAR));
 
         while (count-- != 0)
         {
@@ -2146,7 +2146,7 @@ PPH_STRING PhCreateStringEx(
     assert(!(Length & 1));
     string->Length = Length;
     string->Buffer = string->Data;
-    *(PWCHAR)((PCHAR)string->Buffer + Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(string->Buffer, Length) = 0;
 
     if (Buffer)
     {
@@ -2260,7 +2260,7 @@ PPH_STRING PhConcatStrings_V(
             stringLength = PhCountStringZ(arg) * sizeof(WCHAR);
 
         memcpy(
-            (PCHAR)string->Buffer + totalLength,
+            PTR_ADD_OFFSET(string->Buffer, totalLength),
             arg,
             stringLength
             );
@@ -2294,7 +2294,7 @@ PPH_STRING PhConcatStrings2(
         length1
         );
     memcpy(
-        (PCHAR)string->Buffer + length1,
+        PTR_ADD_OFFSET(string->Buffer, length1),
         String2,
         length2
         );
@@ -2320,7 +2320,7 @@ PPH_STRING PhConcatStringRef2(
 
     string = PhCreateStringEx(NULL, String1->Length + String2->Length);
     memcpy(string->Buffer, String1->Buffer, String1->Length);
-    memcpy((PCHAR)string->Buffer + String1->Length, String2->Buffer, String2->Length);
+    memcpy(PTR_ADD_OFFSET(string->Buffer, String1->Length), String2->Buffer, String2->Length);
 
     return string;
 }
@@ -3474,7 +3474,7 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
     )
 {
     assert(!(StringBuilder->String->Length & 1));
-    *(PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length) = 0;
+    *(PWCHAR)PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length) = 0;
 }
 
 /**
@@ -3540,7 +3540,7 @@ VOID PhAppendStringBuilderEx(
     if (String)
     {
         memcpy(
-            (PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length,
+            PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length),
             String,
             Length
             );
@@ -3566,7 +3566,7 @@ VOID PhAppendCharStringBuilder(
         PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + sizeof(WCHAR));
     }
 
-    *(PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length) = Character;
+    *(PWCHAR)PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length) = Character;
     StringBuilder->String->Length += sizeof(WCHAR);
     PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
@@ -3594,7 +3594,7 @@ VOID PhAppendCharStringBuilder2(
     }
 
     wmemset(
-        (PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length),
+        PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length),
         Character,
         Count
         );
@@ -3619,6 +3619,7 @@ VOID PhAppendFormatStringBuilder(
 
     va_start(argptr, Format);
     PhAppendFormatStringBuilder_V(StringBuilder, Format, argptr);
+    va_end(argptr);
 }
 
 VOID PhAppendFormatStringBuilder_V(
@@ -3641,7 +3642,7 @@ VOID PhAppendFormatStringBuilder_V(
         PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + lengthInBytes);
 
     _vsnwprintf(
-        (PWCHAR)((PCHAR)StringBuilder->String->Buffer + StringBuilder->String->Length),
+        PTR_ADD_OFFSET(StringBuilder->String->Buffer, StringBuilder->String->Length),
         length,
         Format,
         ArgPtr

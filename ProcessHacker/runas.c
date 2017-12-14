@@ -370,6 +370,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 {
                     NTSTATUS status;
                     PPH_STRING program;
+                    PPH_STRING programEscaped;
                     PPH_STRING userName;
                     PPH_STRING password;
                     PPH_STRING logonTypeString;
@@ -381,6 +382,15 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     program = PhaGetDlgItemText(hwndDlg, IDC_PROGRAM);
                     userName = PhaGetDlgItemText(hwndDlg, IDC_USERNAME);
                     logonTypeString = PhaGetDlgItemText(hwndDlg, IDC_TYPE);
+
+                    if (PhIsNullOrEmptyString(program))
+                        break;
+
+                    // Escape the path. (dmex: poor man's PathQuoteSpaces)
+                    if (!PhStartsWithString2(program, L"\"", FALSE) && PhFindCharInString(program, 0, L' ') != -1)
+                    {
+                        programEscaped = PhaConcatStrings(3, L"\"", PhGetString(program), L"\"");
+                    }
 
                     // Fix up the user name if it doesn't have a domain.
                     if (PhFindCharInString(userName, 0, '\\') == -1)
@@ -431,7 +441,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             PhpSplitUserName(userName->Buffer, &domainPart, &userPart);
 
                             memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
-                            createInfo.CommandLine = program->Buffer;
+                            createInfo.CommandLine = programEscaped->Buffer;
                             createInfo.UserName = PhGetString(userPart);
                             createInfo.DomainName = PhGetString(domainPart);
                             createInfo.Password = PhGetStringOrEmpty(password);
@@ -457,7 +467,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         {
                             status = PhExecuteRunAsCommand2(
                                 hwndDlg,
-                                program->Buffer,
+                                programEscaped->Buffer,
                                 userName->Buffer,
                                 PhGetStringOrEmpty(password),
                                 logonType,
@@ -741,7 +751,7 @@ VOID PhSetDesktopWinStaAccess(
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(allAppPackagesSid);
     securityDescriptor = PhAllocate(allocationLength);
-    dacl = (PACL)((PCHAR)securityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+    dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 

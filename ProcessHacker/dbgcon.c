@@ -240,16 +240,16 @@ static VOID PhpDumpObjectInfo(
     __try
     {
         wprintf(L"Type: %s\n", objectType->Name);
-        wprintf(L"Reference count: %d\n", ObjectHeader->RefCount);
+        wprintf(L"Reference count: %ld\n", ObjectHeader->RefCount);
         wprintf(L"Flags: %x\n", ObjectHeader->Flags);
 
         if (objectType == PhObjectTypeObject)
         {
             wprintf(L"Name: %s\n", ((PPH_OBJECT_TYPE)object)->Name);
-            wprintf(L"Number of objects: %u\n", ((PPH_OBJECT_TYPE)object)->NumberOfObjects);
+            wprintf(L"Number of objects: %lu\n", ((PPH_OBJECT_TYPE)object)->NumberOfObjects);
             wprintf(L"Flags: %u\n", ((PPH_OBJECT_TYPE)object)->Flags);
             wprintf(L"Type index: %u\n", ((PPH_OBJECT_TYPE)object)->TypeIndex);
-            wprintf(L"Free list count: %u\n", ((PPH_OBJECT_TYPE)object)->FreeList.Count);
+            wprintf(L"Free list count: %lu\n", ((PPH_OBJECT_TYPE)object)->FreeList.Count);
         }
         else if (objectType == PhStringType)
         {
@@ -677,8 +677,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         UNICODE_STRING var;
         PPH_STRING newSearchPath;
 
-        var.Buffer = buffer;
-        var.MaximumLength = sizeof(buffer);
+        RtlInitEmptyUnicodeString(&var, buffer, sizeof(buffer));
 
         if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name, &var)))
             buffer[0] = 0;
@@ -1329,12 +1328,12 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     PLIST_ENTRY workQueueItemEntry;
 
                     wprintf(L"Work queue at %s\n", PhpGetSymbolForAddress(workQueue));
-                    wprintf(L"Maximum threads: %u\n", workQueue->MaximumThreads);
-                    wprintf(L"Minimum threads: %u\n", workQueue->MinimumThreads);
-                    wprintf(L"No work timeout: %d\n", workQueue->NoWorkTimeout);
+                    wprintf(L"Maximum threads: %lu\n", workQueue->MaximumThreads);
+                    wprintf(L"Minimum threads: %lu\n", workQueue->MinimumThreads);
+                    wprintf(L"No work timeout: %lu\n", workQueue->NoWorkTimeout);
 
-                    wprintf(L"Current threads: %u\n", workQueue->CurrentThreads);
-                    wprintf(L"Busy count: %u\n", workQueue->BusyCount);
+                    wprintf(L"Current threads: %lu\n", workQueue->CurrentThreads);
+                    wprintf(L"Busy count: %lu\n", workQueue->BusyCount);
 
                     PhAcquireQueuedLockExclusive(&workQueue->QueueLock);
 
@@ -1388,7 +1387,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 do
                 {
-                    wprintf(L"\tRecord at %Ix: %s (%u) (refs: %d)\n", (ULONG_PTR)record, record->ProcessName->Buffer, HandleToUlong(record->ProcessId), record->RefCount);
+                    wprintf(L"\tRecord at %Ix: %s (%lu) (refs: %ld)\n", (ULONG_PTR)record, record->ProcessName->Buffer, HandleToUlong(record->ProcessId), record->RefCount);
 
                     if (record->FileName)
                         wprintf(L"\t\t%s\n", record->FileName->Buffer);

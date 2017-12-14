@@ -125,52 +125,35 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.ObAttributesShift = 17;
     }
     // Windows 10
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10240)
+    else if (majorVersion == 10 && minorVersion == 0)
     {
-        Package->BuildNumber = 10240;
-        Package->ResultingNtVersion = PHNT_THRESHOLD;
-
-        Package->StructData.EgeGuid = 0x18;
-        Package->StructData.EpObjectTable = 0x418;
-        Package->StructData.EreGuidEntry = 0x20;
-        Package->StructData.HtHandleContentionEvent = 0x30;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28;
-        Package->StructData.ObDecodeShift = 16;
-        Package->StructData.ObAttributesShift = 17;
-    }
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10586)
-    {
-        Package->BuildNumber = 10586;
-        Package->ResultingNtVersion = PHNT_THRESHOLD2;
-
-        Package->StructData.EgeGuid = 0x18;
-        Package->StructData.EpObjectTable = 0x418;
-        Package->StructData.EreGuidEntry = 0x20;
-        Package->StructData.HtHandleContentionEvent = 0x30;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28;
-        Package->StructData.ObDecodeShift = 16;
-        Package->StructData.ObAttributesShift = 17;
-    }
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 14393)
-    {
-        Package->BuildNumber = 14393;
-        Package->ResultingNtVersion = PHNT_REDSTONE;
-
-        Package->StructData.EgeGuid = 0x18;
-        Package->StructData.EpObjectTable = 0x418;
-        Package->StructData.EreGuidEntry = 0x20;
-        Package->StructData.HtHandleContentionEvent = 0x30;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28;
-        Package->StructData.ObDecodeShift = 16;
-        Package->StructData.ObAttributesShift = 17;
-    }
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 15063)
-    {
-        Package->BuildNumber = 15063;
-        Package->ResultingNtVersion = PHNT_REDSTONE2;
+        switch (buildNumber)
+        {
+        case 10240:
+            Package->BuildNumber = 10240;
+            Package->ResultingNtVersion = PHNT_THRESHOLD;
+            break;
+        case 10586:
+            Package->BuildNumber = 10586;
+            Package->ResultingNtVersion = PHNT_THRESHOLD2;
+            break;
+        case 14393:
+            Package->BuildNumber = 14393;
+            Package->ResultingNtVersion = PHNT_REDSTONE;
+            break;
+        case 15063:
+            Package->BuildNumber = 15063;
+            Package->ResultingNtVersion = PHNT_REDSTONE2;
+            break;
+        case 16299:
+            Package->BuildNumber = 16299;
+            Package->ResultingNtVersion = PHNT_REDSTONE3;
+            break;
+        default:
+            Package->BuildNumber = USHRT_MAX;
+            Package->ResultingNtVersion = PHNT_THRESHOLD;
+            break;
+        }
 
         Package->StructData.EgeGuid = 0x18;
         Package->StructData.EpObjectTable = 0x418;
@@ -274,43 +257,35 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.OtIndex = 0x14;
     }
     // Windows 10
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10240)
+    else if (majorVersion == 10 && minorVersion == 0)
     {
-        Package->BuildNumber = 10240;
-        Package->ResultingNtVersion = PHNT_THRESHOLD;
-
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0x154;
-        Package->StructData.EreGuidEntry = 0x10;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
-    }
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 10586)
-    {
-        Package->BuildNumber = 10586;
-        Package->ResultingNtVersion = PHNT_THRESHOLD2;
-
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0x154;
-        Package->StructData.EreGuidEntry = 0x10;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
-    }
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 14393)
-    {
-        Package->BuildNumber = 14393;
-        Package->ResultingNtVersion = PHNT_REDSTONE;
-
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0x154;
-        Package->StructData.EreGuidEntry = 0x10;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
-    }
-    else if (majorVersion == 10 && minorVersion == 0 && buildNumber == 15063)
-    {
-        Package->BuildNumber = 15063;
-        Package->ResultingNtVersion = PHNT_REDSTONE2;
+        switch (buildNumber)
+        {
+        case 10240:
+            Package->BuildNumber = 10240;
+            Package->ResultingNtVersion = PHNT_THRESHOLD;
+            break;
+        case 10586:
+            Package->BuildNumber = 10586;
+            Package->ResultingNtVersion = PHNT_THRESHOLD2;
+            break;
+        case 14393:
+            Package->BuildNumber = 14393;
+            Package->ResultingNtVersion = PHNT_REDSTONE;
+            break;
+        case 15063:
+            Package->BuildNumber = 15063;
+            Package->ResultingNtVersion = PHNT_REDSTONE2;
+            break;
+        case 16299:
+            Package->BuildNumber = 16299;
+            Package->ResultingNtVersion = PHNT_REDSTONE3;
+            break;
+        default:
+            Package->BuildNumber = USHRT_MAX;
+            Package->ResultingNtVersion = PHNT_THRESHOLD;
+            break;
+        }
 
         Package->StructData.EgeGuid = 0xc;
         Package->StructData.EpObjectTable = 0x154;

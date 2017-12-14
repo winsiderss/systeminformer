@@ -184,6 +184,21 @@ static VOID PhpRefreshControls(
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), FALSE);
     }
+
+    if (PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_TYPE), L"Driver", FALSE))
+    {
+        EnableWindow(GetDlgItem(hwndDlg, IDC_USERACCOUNT), FALSE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), FALSE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), FALSE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_SERVICEDLL), FALSE);
+    }
+    else
+    {
+        EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), TRUE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), TRUE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_SERVICEDLL), TRUE);
+    }
 }
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(

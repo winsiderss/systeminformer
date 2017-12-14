@@ -59,7 +59,7 @@ namespace CustomBuildTool
                 File.Delete(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
@@ -93,7 +93,7 @@ namespace CustomBuildTool
                 File.Delete(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
@@ -111,7 +111,7 @@ namespace CustomBuildTool
                 File.Delete(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {

@@ -531,11 +531,10 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             for (i = 0; i < PvMappedImage.NumberOfSections; i++)
             {
                 INT lvItemIndex;
-                WCHAR sectionName[9];
+                WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
                 WCHAR pointer[PH_PTR_STR_LEN_1];
 
-                if (PhCopyStringZFromBytes(PvMappedImage.Sections[i].Name,
-                    IMAGE_SIZEOF_SHORT_NAME, sectionName, 9, NULL))
+                if (PhGetMappedImageSectionName(&PvMappedImage.Sections[i], sectionName, ARRAYSIZE(sectionName), NULL))
                 {
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, sectionName, NULL);
 
@@ -667,7 +666,7 @@ VOID PvpLoadDbgHelpFromPath(
 {
     HMODULE dbghelpModule;
 
-    if (dbghelpModule = LoadLibrary(DbgHelpPath))
+    if (DbgHelpPath && (dbghelpModule = LoadLibrary(DbgHelpPath)))
     {
         PPH_STRING fullDbghelpPath;
         ULONG indexOfFileName;
@@ -703,39 +702,85 @@ VOID PvpLoadDbgHelpFromPath(
     PhSymbolProviderCompleteInitialization(dbghelpModule);
 }
 
+PPH_STRING PhFindDbghelpPath(
+    VOID
+    )
+{
+    static struct
+    {
+        ULONG Folder;
+        PWSTR AppendPath;
+    } locations[] =
+    {
+#ifdef _WIN64
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
+#else
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
+        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
+#endif
+    };
+
+    PPH_STRING path;
+    ULONG i;
+
+    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
+    {
+        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
+
+        if (path)
+        {
+            if (RtlDoesFileExists_U(path->Buffer))
+                return path;
+
+            PhDereferenceObject(path);
+        }
+    }
+
+    return NULL;
+}
+
+
 BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
     )
 {
     static UNICODE_STRING symbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
     PPH_STRING symbolSearchPath;
+    PPH_STRING dbgHelpPath;
     PPH_SYMBOL_PROVIDER symbolProvider;
-    WCHAR buffer[512] = L"";
-    UNICODE_STRING symbolPathUs =
-    {
-        .Buffer = buffer,
-        .Length = sizeof(buffer) - sizeof(UNICODE_NULL),
-        .MaximumLength = sizeof(buffer)
-    };
+    UNICODE_STRING symbolPathUs;
+    WCHAR buffer[512];
 
+    RtlInitEmptyUnicodeString(&symbolPathUs, buffer, sizeof(buffer));
+    
     if (!PhSymbolProviderInitialization())
         return FALSE;
 
-    PvpLoadDbgHelpFromPath(L"C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll");
+    dbgHelpPath = PhFindDbghelpPath();
+    PvpLoadDbgHelpFromPath(PhGetString(dbgHelpPath));
     symbolProvider = PhCreateSymbolProvider(NULL);
 
     // Load symbol path from _NT_SYMBOL_PATH if configured by the user.    
     if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &symbolPathVarName, &symbolPathUs)))
     {
-        symbolSearchPath = PhFormatString(L"SRV*%s*http://msdl.microsoft.com/download/symbols", symbolPathUs.Buffer);
+        symbolSearchPath = PhCreateStringFromUnicodeString(&symbolPathUs);
     }
     else
     {
-        symbolSearchPath = PhCreateString(L"SRV**http://msdl.microsoft.com/download/symbols");
+        // Set the default path (C:\\Symbols is the default hard-coded path for livekd). 
+        symbolSearchPath = PhCreateString(L"SRV*C:\\Symbols*http://msdl.microsoft.com/download/symbols");
     }
 
     PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
     PhDereferenceObject(symbolSearchPath);
+
+    if (dbgHelpPath)
+        PhDereferenceObject(dbgHelpPath);
 
     *SymbolProvider = symbolProvider;
     return TRUE;

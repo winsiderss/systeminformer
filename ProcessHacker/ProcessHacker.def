@@ -38,7 +38,6 @@ EXPORTS
 
 ; phconfig
 	PhGlobalDpi DATA
-	PhHeapHandle DATA
 	PhIsExecutingInWow64
 	PhInstanceHandle DATA
 	PhOsVersion DATA
@@ -182,6 +181,8 @@ EXPORTS
 	PhInsertStringBuilderEx
 	PhIntegerToString64
 	PhInvokeCallback
+	PhLoadIndirectString
+	PhLoadResource
 	PhLocalTimeToSystemTime
 	PhLowerBoundElementAvlTree
 	PhLowerDualBoundElementAvlTree
@@ -285,6 +286,7 @@ EXPORTS
 	PhInjectDllProcess
 	PhListenNamedPipe
 	PhOpenKey
+	PhLoadAppKey
 	PhOpenProcess = PhOpenProcessPublic
 	PhOpenThread = PhOpenThreadPublic
 	PhOpenThreadProcess
@@ -360,6 +362,7 @@ EXPORTS
 	PhGetKnownLocation
 	PhGetMessage
 	PhGetNtMessage
+	PhGetStatusMessage
 	PhGetSystemDirectory
 	PhGetSystemRoot
 	PhGetWin32Message
@@ -373,6 +376,8 @@ EXPORTS
 	PhParseCommandLineFuzzy
 	PhParseCommandLinePart
 	PhQueryRegistryString
+	PhQueryRegistryUlong
+	PhQueryRegistryUlong64
 	PhReferenceObjects
 	PhSetFileDialogFileName
 	PhSetFileDialogFilter
@@ -630,13 +635,13 @@ EXPORTS
 	PhGetJsonObjectLength
 	PhGetJsonObjectBool
 	PhAddJsonObject
+	PhGetJsonObjectAsArrayList
 	PhCreateJsonArray
 	PhAddJsonArrayObject
 	PhGetJsonArrayString
 	PhGetJsonArrayLong64
 	PhGetJsonArrayLength
 	PhGetJsonArrayIndexObject
-	PhGetJsonObjectAsArrayList
 
 ; cache
 	PhClearCacheDirectory

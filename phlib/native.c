@@ -4142,6 +4142,65 @@ NTSTATUS PhEnumHandlesEx(
 }
 
 /**
+ * Enumerates all open handles.
+ *
+ * \param ProcessHandle A handle to the process. The handle must have PROCESS_QUERY_INFORMATION access.
+ * \param Handles A variable which receives a pointer to a structure containing information about
+ * handles opened by the process. You must free the structure using PhFree() when you no longer need it.
+ *
+ * \retval STATUS_INSUFFICIENT_RESOURCES The handle information returned by the kernel is too large.
+ *
+ * \remarks This function is only available starting with Windows 8.
+ */
+NTSTATUS PhEnumHandlesEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength = 0;
+    ULONG attempts = 0;
+
+    bufferSize = 0x8000;
+    buffer = PhAllocate(bufferSize);
+    memset(buffer, 0, bufferSize);
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessHandleInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+        memset(buffer, 0, bufferSize);
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessHandleInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+        attempts++;
+    }
+
+    if (NT_SUCCESS(status))
+        *Handles = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+/**
  * Enumerates all pagefiles.
  *
  * \param Pagefiles A variable which receives a pointer to a buffer containing information about all
@@ -4307,12 +4366,12 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
         if (RtlPrefixUnicodeString(&systemRoot, &fileName, TRUE))
         {
-            fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + systemRoot.Length);
+            fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, systemRoot.Length);
             fileName.Length -= systemRoot.Length;
 
             if (RtlPrefixUnicodeString(frameworkPart, &fileName, TRUE))
             {
-                fileName.Buffer = (PWCHAR)((PCHAR)fileName.Buffer + frameworkPart->Length);
+                fileName.Buffer = (PWCHAR)PTR_ADD_OFFSET(fileName.Buffer, frameworkPart->Length);
                 fileName.Length -= frameworkPart->Length;
 
                 if (fileName.Length >= 4 * sizeof(WCHAR)) // vx.x
@@ -5077,7 +5136,7 @@ PPH_STRING PhGetFileName(
         PhGetSystemRoot(&systemRoot);
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + FileName->Length - 11 * 2);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length, &FileName->Buffer[11], FileName->Length - 11 * 2);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * 2);
     }
     // "system32\" means "C:\Windows\system32\".
     else if (PhStartsWithString2(FileName, L"system32\\", TRUE))
@@ -5088,7 +5147,7 @@ PPH_STRING PhGetFileName(
         newFileName = PhCreateStringEx(NULL, systemRoot.Length + 2 + FileName->Length);
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         newFileName->Buffer[systemRoot.Length / 2] = '\\';
-        memcpy((PCHAR)newFileName->Buffer + systemRoot.Length + 2, FileName->Buffer, FileName->Length);
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + 2), FileName->Buffer, FileName->Length);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {
@@ -5646,7 +5705,7 @@ VOID PhpInitializePredefineKeys(
     HANDLE tokenHandle;
     PTOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
-    WCHAR stringSidBuffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
+    WCHAR stringSidBuffer[SECURITY_MAX_SID_STRING_CHARACTERS];
     PUNICODE_STRING currentUserKeyName;
 
     // Get the string SID of the current user.
@@ -5879,6 +5938,89 @@ NTSTATUS PhOpenKey(
 
     if (needsClose)
         NtClose(needsClose);
+
+    return status;
+}
+
+// rev from RegLoadAppKey
+/**
+ * Loads the specified registry hive file into a private application hive.
+ *
+ * \param KeyHandle A variable which receives a handle to the key.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the key.
+ * \param Flags Optional flags for loading the hive.
+ */
+NTSTATUS PhLoadAppKey(
+    _Out_ PHANDLE KeyHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    GUID guid;
+    UNICODE_STRING fileName;
+    UNICODE_STRING objectName; 
+    UNICODE_STRING guidStringUs;
+    OBJECT_ATTRIBUTES targetAttributes;
+    OBJECT_ATTRIBUTES sourceAttributes;
+    WCHAR objectNameBuffer[MAX_PATH];
+
+    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
+
+    PhGenerateGuid(&guid);
+
+    if (!NT_SUCCESS(status = RtlStringFromGUID(&guid, &guidStringUs)))
+        return status;
+
+    if (!NT_SUCCESS(status = RtlAppendUnicodeToString(&objectName, L"\\REGISTRY\\A\\")))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    InitializeObjectAttributes(
+        &targetAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    InitializeObjectAttributes(
+        &sourceAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtLoadKeyEx(
+        &targetAttributes,
+        &sourceAttributes,
+        REG_APP_HIVE | Flags,
+        NULL,
+        NULL,
+        DesiredAccess,
+        KeyHandle,
+        NULL
+        );
+
+    RtlFreeUnicodeString(&fileName);
+
+CleanupExit:
+    RtlFreeUnicodeString(&guidStringUs);
 
     return status;
 }
@@ -6562,7 +6704,7 @@ NTSTATUS PhCreateNamedPipe(
     )
 {
     NTSTATUS status;
-    PACL pipeAcl;
+    PACL pipeAcl = NULL;
     HANDLE pipeHandle;
     PPH_STRING pipeName;
     LARGE_INTEGER pipeTimeout;
@@ -6588,7 +6730,6 @@ NTSTATUS PhCreateNamedPipe(
 
         RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlSetDaclSecurityDescriptor(&securityDescriptor, TRUE, pipeAcl, FALSE);
-        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
         oa.SecurityDescriptor = &securityDescriptor;
     }
@@ -6614,6 +6755,9 @@ NTSTATUS PhCreateNamedPipe(
     {
         *PipeHandle = pipeHandle;
     }
+
+    if (pipeAcl)
+        RtlFreeHeap(RtlProcessHeap(), 0, pipeAcl);
 
     PhDereferenceObject(pipeName);
     return status;

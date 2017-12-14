@@ -108,12 +108,12 @@ namespace CustomBuildTool
         }
 
         public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-        public static readonly IntPtr STD_OUTPUT_HANDLE = new IntPtr(-11);
-        public static readonly IntPtr STD_INPUT_HANDLE = new IntPtr(-10);
-        public static readonly IntPtr STD_ERROR_HANDLE = new IntPtr(-12);
+        public const int STD_OUTPUT_HANDLE = -11;
+        public const int STD_INPUT_HANDLE = -10;
+        public const int STD_ERROR_HANDLE = -12;
 
         [DllImport("kernel32.dll", ExactSpelling = true)]
-        public static extern IntPtr GetStdHandle(IntPtr StdHandle);
+        public static extern IntPtr GetStdHandle(int StdHandle);
         [DllImport("kernel32.dll", ExactSpelling = true)]
         public static extern bool GetConsoleMode(IntPtr ConsoleHandle, out ConsoleMode Mode);
         [DllImport("kernel32.dll", ExactSpelling = true)]
@@ -160,10 +160,11 @@ namespace CustomBuildTool
 
         public static void Encrypt(string fileName, string outFileName, string secret)
         {
+            FileStream fileOutStream = File.Create(outFileName);
+
             using (Rijndael rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(fileName))
-            using (FileStream fileStream2 = File.Create(outFileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileStream2, rijndael.CreateEncryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write))
             {
                 fileStream.CopyTo(cryptoStream);
             }
@@ -171,10 +172,11 @@ namespace CustomBuildTool
 
         public static void Decrypt(string FileName, string outFileName, string secret)
         {
+            FileStream fileOutStream = File.Create(outFileName);
+
             using (Rijndael rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(FileName))
-            using (FileStream fileStream2 = File.Create(outFileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileStream2, rijndael.CreateDecryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write))
             {
                 fileStream.CopyTo(cryptoStream);
             }
@@ -189,8 +191,9 @@ namespace CustomBuildTool
             //    return BitConverter.ToString(hashBytes).Replace("-", String.Empty);
             //}
 
-            using (FileStream stream = File.OpenRead(FileName))
-            using (BufferedStream bufferedStream = new BufferedStream(stream, 0x1000))
+            FileStream fileInStream = File.OpenRead(FileName);
+
+            using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
             {
                 SHA256Managed sha = new SHA256Managed();
                 byte[] checksum = sha.ComputeHash(bufferedStream);
@@ -211,6 +214,7 @@ namespace CustomBuildTool
             {
                 string vswhereResult = Win32.ShellExecute(vswhere,
                     "-latest " +
+                    "-products * " +
                     "-requires Microsoft.Component.MSBuild " +
                     "-property installationPath "
                     );
@@ -335,26 +339,34 @@ namespace CustomBuildTool
     [DataContract]
     public class BuildUpdateRequest
     {
+        [DataMember(Name = "version")] public string Version { get; set; }
+        [DataMember(Name = "commit")] public string Commit { get; set; }
         [DataMember(Name = "updated")] public string Updated { get; set; }
-        [DataMember(Name = "size")] public string FileLength { get; set; }
-        [DataMember(Name = "forum_url")] public string ForumUrl { get; set; }
 
         [DataMember(Name = "bin_url")] public string BinUrl { get; set; }
-        [DataMember(Name = "hash_bin")] public string BinHash { get; set; }
+        [DataMember(Name = "bin_length")] public string BinLength { get; set; }
+        [DataMember(Name = "bin_hash")] public string BinHash { get; set; }
         [DataMember(Name = "bin_sig")] public string BinSig { get; set; }
 
         [DataMember(Name = "setup_url")] public string SetupUrl { get; set; }
-        [DataMember(Name = "hash_setup")] public string SetupHash { get; set; }
-        [DataMember(Name = "sig")] public string SetupSig { get; set; }
-        [DataMember(Name = "version")] public string SetupVersion { get; set; }
+        [DataMember(Name = "setup_length")] public string SetupLength { get; set; }
+        [DataMember(Name = "setup_hash")] public string SetupHash { get; set; }
+        [DataMember(Name = "setup_sig")] public string SetupSig { get; set; }
 
         [DataMember(Name = "websetup_url")] public string WebSetupUrl { get; set; }
+        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
+        [DataMember(Name = "websetup_length")] public string WebSetupLength { get; set; }
         [DataMember(Name = "websetup_hash")] public string WebSetupHash { get; set; }
         [DataMember(Name = "websetup_sig")] public string WebSetupSig { get; set; }
-        [DataMember(Name = "websetup_version")] public string WebSetupVersion { get; set; }
 
         [DataMember(Name = "message")] public string Message { get; set; }
         [DataMember(Name = "changelog")] public string Changelog { get; set; }
+
+        [DataMember(Name = "size")] public string FileLengthDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "forum_url")] public string ForumUrlDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "hash_bin")] public string BinHashDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "hash_setup")] public string SetupHashDeprecated { get; set; } // TODO: Remove after most users have updated.
+        [DataMember(Name = "sig")] public string SetupSigDeprecated { get; set; } // TODO: Remove after most users have updated.
     }
 
     [Flags]

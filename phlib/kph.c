@@ -180,6 +180,8 @@ NTSTATUS KphConnect2Ex(
             {
                 created = TRUE;
 
+                KphSetServiceSecurity(serviceHandle);
+
                 // Set parameters if the caller supplied them. Note that we fail the entire function
                 // if this fails, because failing to set parameters like SecurityLevel may result in
                 // security vulnerabilities.
@@ -215,7 +217,7 @@ NTSTATUS KphConnect2Ex(
     }
 
 CreateAndConnectEnd:
-    if (created)
+    if (created && serviceHandle)
     {
         // "Delete" the service. Since we (may) have a handle to the device, the SCM will delete the
         // service automatically when it is stopped (upon reboot). If we don't have a handle to the
@@ -344,6 +346,54 @@ SetValuesEnd:
     return status;
 }
 
+VOID KphSetServiceSecurity(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    ULONG sdAllocationLength;
+    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+    PSID administratorsSid;
+    PACL dacl;
+
+    administratorsSid = (PSID)administratorsSidBuffer;
+    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
+    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+    sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
+        (ULONG)sizeof(ACL) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&PhSeServiceSid) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(administratorsSid) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&PhSeInteractiveSid);
+
+    securityDescriptor = PhAllocate(sdAllocationLength);
+    dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+
+    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, &PhSeServiceSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, SERVICE_ALL_ACCESS, administratorsSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, 
+        SERVICE_QUERY_CONFIG |
+        SERVICE_QUERY_STATUS |
+        SERVICE_START |
+        SERVICE_STOP |
+        SERVICE_INTERROGATE |
+        DELETE,
+        &PhSeInteractiveSid
+        );
+    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+
+    SetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
+
+    PhFree(securityDescriptor);
+}
+
 NTSTATUS KphInstall(
     _In_opt_ PWSTR DeviceName,
     _In_ PWSTR FileName
@@ -388,6 +438,8 @@ NTSTATUS KphInstallEx(
 
     if (serviceHandle)
     {
+        KphSetServiceSecurity(serviceHandle);
+
         // See KphConnect2Ex for more details.
         if (Parameters)
         {

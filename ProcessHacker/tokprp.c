@@ -29,6 +29,7 @@
 #include <settings.h>
 #include <splitter.h>
 
+#include <windowsx.h>
 #include <uxtheme.h>
 
 typedef struct _ATTRIBUTE_NODE
@@ -388,7 +389,6 @@ BOOLEAN PhpUpdateTokenGroups(
         return FALSE;
 
     ExtendedListView_SetRedraw(GroupsLv, FALSE);
-
     ListView_DeleteAllItems(GroupsLv);
 
     PhpUpdateSidsFromTokenGroups(GroupsLv, groups, FALSE);
@@ -399,7 +399,6 @@ BOOLEAN PhpUpdateTokenGroups(
     }
 
     ExtendedListView_SortItems(GroupsLv);
-
     ExtendedListView_SetRedraw(GroupsLv, TRUE);
 
     if (TokenPageContext->RestrictedSids)
@@ -411,6 +410,59 @@ BOOLEAN PhpUpdateTokenGroups(
         PhFree(TokenPageContext->Groups);
 
     TokenPageContext->Groups = groups;
+
+    return TRUE;
+}
+
+BOOLEAN PhpUpdateTokenPrivileges(
+    _In_ HWND hwndDlg,
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
+    _In_ HWND PrivilegesLv,
+    _In_ HANDLE TokenHandle
+    )
+{
+    PTOKEN_PRIVILEGES privileges;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetTokenPrivileges(TokenHandle, &privileges)))
+        return FALSE;
+
+    ExtendedListView_SetRedraw(PrivilegesLv, FALSE);
+    ListView_DeleteAllItems(PrivilegesLv);
+
+    for (i = 0; i < privileges->PrivilegeCount; i++)
+    {
+        INT lvItemIndex;
+        PPH_STRING privilegeName;
+        PPH_STRING privilegeDisplayName;
+
+        if (PhLookupPrivilegeName(
+            &privileges->Privileges[i].Luid,
+            &privilegeName
+            ))
+        {
+            privilegeDisplayName = NULL;
+            PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
+
+            // Name
+            lvItemIndex = PhAddListViewItem(PrivilegesLv, MAXINT, privilegeName->Buffer, &privileges->Privileges[i]);
+            // Status
+            PhSetListViewSubItem(PrivilegesLv, lvItemIndex, 1, PhGetPrivilegeAttributesString(privileges->Privileges[i].Attributes));
+            // Description
+            PhSetListViewSubItem(PrivilegesLv, lvItemIndex, 2, PhGetString(privilegeDisplayName));
+
+            if (privilegeDisplayName) PhDereferenceObject(privilegeDisplayName);
+            PhDereferenceObject(privilegeName);
+        }
+    }
+
+    ExtendedListView_SortItems(PrivilegesLv);
+    ExtendedListView_SetRedraw(PrivilegesLv, TRUE);
+
+    if (TokenPageContext->Privileges)
+        PhFree(TokenPageContext->Privileges);
+
+    TokenPageContext->Privileges = privileges;
 
     return TRUE;
 }
@@ -494,7 +546,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 BOOLEAN isVirtualizationEnabled;
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
                 PPH_STRING appContainerSid;
-                ULONG i;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
@@ -569,40 +620,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PhpUpdateTokenGroups(hwndDlg, tokenPageContext, groupsLv, tokenHandle);
 
                 // Privileges
-                if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &tokenPageContext->Privileges)))
-                {
-                    for (i = 0; i < tokenPageContext->Privileges->PrivilegeCount; i++)
-                    {
-                        INT lvItemIndex;
-                        PPH_STRING privilegeName;
-                        PPH_STRING privilegeDisplayName;
-
-                        if (PhLookupPrivilegeName(
-                            &tokenPageContext->Privileges->Privileges[i].Luid,
-                            &privilegeName
-                            ))
-                        {
-                            privilegeDisplayName = NULL;
-                            PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
-
-                            // Name
-                            lvItemIndex = PhAddListViewItem(privilegesLv, MAXINT, privilegeName->Buffer,
-                                &tokenPageContext->Privileges->Privileges[i]);
-                            // Status
-                            PhSetListViewSubItem(privilegesLv, lvItemIndex, 1,
-                                PhGetPrivilegeAttributesString(
-                                tokenPageContext->Privileges->Privileges[i].Attributes));
-                            // Description
-                            PhSetListViewSubItem(privilegesLv, lvItemIndex, 2,
-                                PhGetString(privilegeDisplayName));
-
-                            if (privilegeDisplayName) PhDereferenceObject(privilegeDisplayName);
-                            PhDereferenceObject(privilegeName);
-                        }
-                    }
-
-                    ExtendedListView_SortItems(privilegesLv);
-                }
+                PhpUpdateTokenPrivileges(hwndDlg, tokenPageContext, privilegesLv, tokenHandle);
 
                 NtClose(tokenHandle);
             }
@@ -818,25 +836,23 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     // Put a radio check on the menu item that corresponds with the current integrity level.
                     // Also disable menu items which correspond to higher integrity levels since
                     // NtSetInformationToken doesn't allow integrity levels to be raised.
-                    if (NT_SUCCESS(tokenPageContext->OpenObject(
+                    if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                         &tokenHandle,
                         TOKEN_QUERY,
                         tokenPageContext->Context
                         )))
                     {
-                        if (NT_SUCCESS(PhGetTokenIntegrityLevel(
+                        if (NT_SUCCESS(status = PhGetTokenIntegrityLevel(
                             tokenHandle,
                             &integrityLevel,
                             NULL
                             )))
                         {
-                            ULONG i;
-
-                            for (i = 0; i < menu->Items->Count; i++)
+                            for (ULONG i = 0; i < menu->Items->Count; i++)
                             {
                                 PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
 
-                                if (menuItem->Id == integrityLevel)
+                                if (menuItem->Id == (ULONG)integrityLevel)
                                 {
                                     menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
                                 }
@@ -848,6 +864,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
 
                         NtClose(tokenHandle);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        for (ULONG i = 0; i < menu->Items->Count; i++)
+                        {
+                            PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
+                            menuItem->Flags |= PH_EMENU_DISABLED;
+                        }
                     }
 
                     selectedItem = PhShowEMenu(
@@ -895,7 +920,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     );
 
                                 if (NT_SUCCESS(status))
-                                    PhpUpdateTokenGroups(hwndDlg, tokenPageContext, GetDlgItem(hwndDlg, IDC_GROUPS), tokenHandle);
+                                {
+                                    PhpUpdateTokenGroups(hwndDlg, tokenPageContext, tokenPageContext->GroupsListViewHandle, tokenHandle);
+                                    PhpUpdateTokenPrivileges(hwndDlg, tokenPageContext, tokenPageContext->PrivilegesListViewHandle, tokenHandle);
+                                }
 
                                 NtClose(tokenHandle);
                             }
@@ -940,8 +968,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             {
                 POINT point;
 
-                point.x = (SHORT)LOWORD(lParam);
-                point.y = (SHORT)HIWORD(lParam);
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint((HWND)wParam, &point);

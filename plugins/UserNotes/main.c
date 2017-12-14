@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -171,32 +171,37 @@ PPH_STRING SaveCustomColors(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-ULONG GetProcessAffinity(
-    _In_ HANDLE ProcessId
+NTSTATUS GetProcessAffinity(
+    _In_ HANDLE ProcessId,
+    _Out_ ULONG_PTR *Affinity
     )
 {
+    NTSTATUS status;
     HANDLE processHandle;
-    ULONG affinityMask = 0;
+    ULONG_PTR affinityMask = 0;
     PROCESS_BASIC_INFORMATION basicInfo;
 
-    if (NT_SUCCESS(PhOpenProcess(
+    if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         ProcessQueryAccess,
         ProcessId
         )))
     {
-        if (NT_SUCCESS(PhGetProcessBasicInformation(
+        if (NT_SUCCESS(status = PhGetProcessBasicInformation(
             processHandle, 
             &basicInfo
             )))
         {
-            affinityMask = (ULONG)basicInfo.AffinityMask;
+            affinityMask = basicInfo.AffinityMask;
         }
 
         NtClose(processHandle);
     }
 
-    return affinityMask;
+    if (NT_SUCCESS(status))
+        *Affinity = affinityMask;
+
+    return status;
 }
 
 IO_PRIORITY_HINT GetProcessIoPriority(
@@ -273,7 +278,9 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    static PH_STRINGREF databaseFile = PH_STRINGREF_INIT(L"usernotesdb.xml");
     PPH_PLUGIN toolStatusPlugin;
+    PPH_STRING directory;
     PPH_STRING path;
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
@@ -284,21 +291,29 @@ VOID NTAPI LoadCallback(
             ToolStatusInterface = NULL;
     }
 
-    path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
-    path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
+    directory = PH_AUTO(PhGetApplicationDirectory());
+    path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile));
 
-    LoadCustomColors();
-
-    if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
+    if (RtlDoesFileExists_U(path->Buffer))
     {
-        PPH_STRING directory;
+        SetDbPath(path);
+    }
+    else
+    {
+        path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
+        path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
 
-        directory = PH_AUTO(PhGetApplicationDirectory());
-        path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
+        if (RtlDetermineDosPathNameType_U(path->Buffer) == RtlPathTypeRelative)
+        {
+            directory = PH_AUTO(PhGetApplicationDirectory());
+            path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
+        }
+
+        SetDbPath(path);
     }
 
-    SetDbPath(path);
     LoadDb();
+    LoadCustomColors();
 }
 
 VOID NTAPI UnloadCallback(
@@ -314,11 +329,14 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    DialogBox(
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
+
+    optionsEntry->CreateSection(
+        L"UserNotes",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
-        (HWND)Parameter,
-        OptionsDlgProc
+        OptionsDlgProc,
+        NULL
         );
 }
 
@@ -425,7 +443,7 @@ VOID NTAPI MenuItemCallback(
             if (!highlightPresent)
             {
                 CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
-                chooseColor.hwndOwner = PhMainWndHandle;
+                chooseColor.hwndOwner = menuItem->OwnerWindow;
                 chooseColor.lpCustColors = ProcessCustomColors;
                 chooseColor.lpfnHook = ColorDlgHookProc;
                 chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_SOLIDCOLOR | CC_ENABLEHOOK;
@@ -490,8 +508,18 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                object->AffinityMask = GetProcessAffinity(processItem->ProcessId);
+                NTSTATUS status;
+                ULONG_PTR affinityMask;
+
+                if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->AffinityMask = affinityMask;
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                }
             }
 
             UnlockDb();
@@ -511,8 +539,18 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                    object->AffinityMask = GetProcessAffinity(processItem->ProcessId);
+                    NTSTATUS status;
+                    ULONG_PTR affinityMask;
+
+                    if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                        object->AffinityMask = affinityMask;
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                    }
                 }
 
                 UnlockDb();
@@ -609,6 +647,7 @@ VOID NTAPI MenuHookCallback(
         break;
     case PHAPP_ID_PROCESS_AFFINITY:
         {
+            NTSTATUS status;
             BOOLEAN changed = FALSE;
             ULONG_PTR affinityMask;
             ULONG_PTR newAffinityMask;
@@ -617,14 +656,18 @@ VOID NTAPI MenuHookCallback(
             if (!processItem)
                 break;
 
+            // Query the current process affinity.
+            if (!NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+            {
+                // TODO: Fix issue saving affinity for system processes.
+                break;
+            }
+
             // Don't show the default Process Hacker affinity dialog.
             menuHookInfo->Handled = TRUE;
 
-            // Query the current process affinity.
-            affinityMask = GetProcessAffinity(processItem->ProcessId);
-
             // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(PhMainWndHandle, affinityMask, &newAffinityMask))
+            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, affinityMask, &newAffinityMask))
             {
                 PDB_OBJECT object;
 
@@ -633,9 +676,9 @@ VOID NTAPI MenuHookCallback(
                 if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
                 {
                     // Update the process affinity in our database (if the database values are different).
-                    if (object->AffinityMask != (ULONG)newAffinityMask)
+                    if (object->AffinityMask != newAffinityMask)
                     {
-                        object->AffinityMask = (ULONG)newAffinityMask;
+                        object->AffinityMask = newAffinityMask;
                         changed = TRUE;
                     }
                 }
@@ -1344,7 +1387,6 @@ LOGICAL DllMain(
         info->Author = L"dmex, wj32";
         info->Description = L"Allows the user to add comments for processes and services, save process priority and affinity, highlight individual processes and show processes collapsed by default.";
         info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1120";
-        info->HasOptions = TRUE;
 
         InitializeDb();
 
@@ -1361,7 +1403,7 @@ LOGICAL DllMain(
             &PluginUnloadCallbackRegistration
             );
         PhRegisterCallback(
-            PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+            PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
             ShowOptionsCallback,
             NULL,
             &PluginShowOptionsCallbackRegistration
@@ -1479,32 +1521,38 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             SetDlgItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
 
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DATABASE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDCANCEL), TRUE);
+
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSetStringSetting2(SETTING_NAME_DATABASE_PATH, &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                {
-                    PhSetStringSetting2(SETTING_NAME_DATABASE_PATH,
-                        &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
-
-                    EndDialog(hwndDlg, IDOK);
-                }
-                break;
             case IDC_BROWSE:
                 {
                     static PH_FILETYPE_FILTER filters[] =

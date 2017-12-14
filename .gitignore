@@ -78,11 +78,12 @@ build/output/
 plugins-extra/
 sdk/
 
-KProcessHacker/*.log
-KProcessHacker/*.err
-KProcessHacker/*.wrn
-KProcessHacker/*/objchk_*
-KProcessHacker/*/objfre_*
+!KProcessHacker/bin/
+KProcessHacker/bin/Debug32/
+KProcessHacker/bin/Debug64/
+KProcessHacker/bin/Release32/
+KProcessHacker/bin/Release64/
+KProcessHacker/bin/*
 
 !plugins/SamplePlugin/bin/
 plugins/SamplePlugin/bin/Debug32/

@@ -22,8 +22,8 @@
 #include <kph.h>
 
 VOID KphpCopyInfoUnicodeString(
-    __out PVOID Information,
-    __in_opt PUNICODE_STRING UnicodeString
+    _Out_ PVOID Information,
+    _In_opt_ PUNICODE_STRING UnicodeString
     );
 
 #ifdef ALLOC_PRAGMA
@@ -33,10 +33,10 @@ VOID KphpCopyInfoUnicodeString(
 #endif
 
 NTSTATUS KpiOpenDriver(
-    __out PHANDLE DriverHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes,
-    __in KPROCESSOR_MODE AccessMode
+    _Out_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     PAGED_CODE();
@@ -51,12 +51,12 @@ NTSTATUS KpiOpenDriver(
 }
 
 NTSTATUS KpiQueryInformationDriver(
-    __in HANDLE DriverHandle,
-    __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __out_bcount(DriverInformationLength) PVOID DriverInformation,
-    __in ULONG DriverInformationLength,
-    __out_opt PULONG ReturnLength,
-    __in KPROCESSOR_MODE AccessMode
+    _In_ HANDLE DriverHandle,
+    _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
+    _Out_writes_bytes_(DriverInformationLength) PVOID DriverInformation,
+    _In_ ULONG DriverInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -211,8 +211,8 @@ NTSTATUS KpiQueryInformationDriver(
 }
 
 VOID KphpCopyInfoUnicodeString(
-    __out PVOID Information,
-    __in_opt PUNICODE_STRING UnicodeString
+    _Out_ PVOID Information,
+    _In_opt_ PUNICODE_STRING UnicodeString
     )
 {
     PUNICODE_STRING targetUnicodeString = Information;
@@ -222,7 +222,7 @@ VOID KphpCopyInfoUnicodeString(
 
     if (UnicodeString)
     {
-        targetBuffer = (PWCHAR)((PCHAR)Information + sizeof(UNICODE_STRING));
+        targetBuffer = (PWCHAR)PTR_ADD_OFFSET(Information, sizeof(UNICODE_STRING));
 
         targetUnicodeString->Length = UnicodeString->Length;
         targetUnicodeString->MaximumLength = UnicodeString->Length;

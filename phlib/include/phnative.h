@@ -633,10 +633,16 @@ PhGetKernelFileName(
  */
 #define PH_NEXT_PROCESS(Process) ( \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
-    (PSYSTEM_PROCESS_INFORMATION)((PCHAR)(Process) + \
+    (PSYSTEM_PROCESS_INFORMATION)PTR_ADD_OFFSET((Process), \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) : \
     NULL \
     )
+
+#define PH_PROCESS_EXTENSION(Process) \
+    ((PSYSTEM_PROCESS_INFORMATION_EXTENSION)PTR_ADD_OFFSET((Process), \
+    FIELD_OFFSET(SYSTEM_PROCESS_INFORMATION, Threads) + \
+    sizeof(SYSTEM_THREAD_INFORMATION) * \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
 
 PHLIBAPI
 NTSTATUS
@@ -691,6 +697,14 @@ PhEnumHandlesEx(
     _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumHandlesEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
+    );
+
 #define PH_FIRST_PAGEFILE(Pagefiles) ( \
     /* The size of a pagefile can never be 0. A TotalSize of 0
      * is used to indicate that there are no pagefiles.
@@ -700,7 +714,7 @@ PhEnumHandlesEx(
     )
 #define PH_NEXT_PAGEFILE(Pagefile) ( \
     ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset ? \
-    (PSYSTEM_PAGEFILE_INFORMATION)((PCHAR)(Pagefile) + \
+    (PSYSTEM_PAGEFILE_INFORMATION)PTR_ADD_OFFSET((Pagefile), \
     ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset) : \
     NULL \
     )
@@ -919,6 +933,16 @@ PhOpenKey(
     _In_opt_ HANDLE RootDirectory,
     _In_ PPH_STRINGREF ObjectName,
     _In_ ULONG Attributes
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadAppKey(
+    _Out_ PHANDLE KeyHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG Flags
     );
 
 PHLIBAPI

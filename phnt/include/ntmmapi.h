@@ -24,7 +24,7 @@
 #define PAGE_ENCLAVE_UNVALIDATED    0x20000000
 
 // Region and section constants
-
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define MEM_COMMIT 0x1000
 #define MEM_RESERVE 0x2000
 #define MEM_DECOMMIT 0x4000
@@ -34,19 +34,26 @@
 #define MEM_MAPPED 0x40000
 #define MEM_RESET 0x80000
 #define MEM_TOP_DOWN 0x100000
+#endif
 #define MEM_WRITE_WATCH 0x200000
 #define MEM_PHYSICAL 0x400000
 #define MEM_ROTATE 0x800000
 #define MEM_DIFFERENT_IMAGE_BASE_OK 0x800000
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define MEM_RESET_UNDO 0x1000000
+#endif
 #define MEM_LARGE_PAGES 0x20000000
 #define MEM_4MB_PAGES 0x80000000
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SEC_FILE 0x800000
+#endif
 #define SEC_IMAGE 0x1000000
 #define SEC_PROTECTED_IMAGE 0x2000000
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SEC_RESERVE 0x4000000
 #define SEC_COMMIT 0x8000000
+#endif
 #define SEC_NOCACHE 0x10000000
 #define SEC_WRITECOMBINE 0x40000000
 #define SEC_LARGE_PAGES 0x80000000
@@ -55,6 +62,7 @@
 
 #endif
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
 typedef enum _MEMORY_INFORMATION_CLASS
 {
@@ -66,21 +74,22 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
     MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
     MemoryRegionInformationEx,
-    MemoryPrivilegedBasicInformation
+    MemoryPrivilegedBasicInformation,
+    MemoryEnclaveImageInformation, // since REDSTONE3
+    MemoryBasicInformationCapped
 } MEMORY_INFORMATION_CLASS;
-
-#if (PHNT_MODE == PHNT_MODE_KERNEL)
-
-typedef struct _MEMORY_BASIC_INFORMATION
-{
-    PVOID BaseAddress;
-    PVOID AllocationBase;
-    ULONG AllocationProtect;
-    SIZE_T RegionSize;
-    ULONG State;
-    ULONG Protect;
-    ULONG Type;
-} MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
+#else
+#define MemoryBasicInformation 0x0
+#define MemoryWorkingSetInformation 0x1
+#define MemoryMappedFilenameInformation 0x2
+#define MemoryRegionInformation 0x3
+#define MemoryWorkingSetExInformation 0x4
+#define MemorySharedCommitInformation 0x5
+#define MemoryImageInformation 0x6
+#define MemoryRegionInformationEx 0x7
+#define MemoryPrivilegedBasicInformation 0x8
+#define MemoryEnclaveImageInformation 0x9
+#define MemoryBasicInformationCapped 0xA
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
@@ -118,7 +127,9 @@ typedef struct _MEMORY_REGION_INFORMATION
             ULONG MappedPageFile : 1;
             ULONG MappedPhysical : 1;
             ULONG DirectMapped : 1;
-            ULONG Reserved : 26;
+            ULONG SoftwareEnclave : 1; //REDSTONE3
+            ULONG PageSize64K : 1;
+            ULONG Reserved : 24;
         };
     };
     SIZE_T RegionSize;
@@ -196,6 +207,7 @@ typedef struct _MEMORY_IMAGE_INFORMATION
         {
             ULONG ImagePartialMap : 1;
             ULONG ImageNotExecutable : 1;
+            ULONG ImageSigningLevel : 1; // REDSTONE3
             ULONG Reserved : 30;
         };
     };
@@ -296,8 +308,8 @@ typedef struct _MMPFN_MEMSNAP_INFORMATION
 
 typedef enum _SECTION_INFORMATION_CLASS
 {
-    SectionBasicInformation,
-    SectionImageInformation,
+    SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
+    SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
     SectionRelocationInformation, // name:wow64:whNtQuerySection_SectionRelocationInformation
     SectionOriginalBaseInformation, // PVOID BaseAddress
     SectionInternalImageInformation, // SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
@@ -369,10 +381,8 @@ typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
         ULONG ExtendedFlags;
         struct
         {
-            ULONG ImageReturnFlowGuardEnabled : 1;
-            ULONG ImageReturnFlowGuardStrict : 1;
             ULONG ImageExportSuppressionEnabled : 1;
-            ULONG Reserved : 29;
+            ULONG Reserved : 31;
         };
     };
 } SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
@@ -471,12 +481,13 @@ NtQueryVirtualMemory(
 #endif
 
 // begin_private
-
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
-    VmPrefetchInformation,
+    VmPrefetchInformation, // ULONG
     VmPagePriorityInformation,
-    VmCfgCallTargetInformation
+    VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
+    VmPageDirtyStateInformation // REDSTONE3
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
 
 typedef struct _MEMORY_RANGE_ENTRY
@@ -485,6 +496,14 @@ typedef struct _MEMORY_RANGE_ENTRY
     SIZE_T NumberOfBytes;
 } MEMORY_RANGE_ENTRY, *PMEMORY_RANGE_ENTRY;
 
+typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
+{
+    ULONG NumberOfEntries;
+    ULONG Reserved;
+    PULONG NumberOfEntriesProcessed;
+    PCFG_CALL_TARGET_INFO CallTargetInfo;
+} CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
+#endif
 // end_private
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -619,6 +638,14 @@ NtAreMappedFilesTheSame(
 
 // Partitions
 
+#ifndef MEMORY_PARTITION_QUERY_ACCESS
+#define MEMORY_PARTITION_QUERY_ACCESS 0x0001
+#define MEMORY_PARTITION_MODIFY_ACCESS 0x0002
+#define MEMORY_PARTITION_ALL_ACCESS \
+    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | \
+     MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
+#endif
+
 // private
 typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
 {
@@ -646,10 +673,11 @@ typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
     ULONG_PTR ZeroPages;
     ULONG_PTR FreePages;
     ULONG_PTR StandbyPages;
-    ULONG StandbyPageCountByPriority[8]; // since REDSTONE2
-    ULONG RepurposedPagesByPriority[8];
-    ULONG MaximumCommitLimit;
-    ULONG DonatedPagesToPartitions;
+    ULONG_PTR StandbyPageCountByPriority[8]; // since REDSTONE2
+    ULONG_PTR RepurposedPagesByPriority[8];
+    ULONG_PTR MaximumCommitLimit;
+    ULONG_PTR DonatedPagesToPartitions;
+    ULONG PartitionId; // since REDSTONE3
 } MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
 
 // private
@@ -704,7 +732,13 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
             ULONG Spare : 31;
         };
         ULONG AllFlags;
-    };
+    } Flags;
+    
+    ULONG HandleAttributes;
+    ULONG DesiredAccess;
+    HANDLE LowCommitCondition; // \KernelObjects\LowCommitCondition
+    HANDLE HighCommitCondition; // \KernelObjects\HighCommitCondition
+    HANDLE MaximumCommitCondition; // \KernelObjects\MaximumCommitCondition
 } MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION, *PMEMORY_PARTITION_MEMORY_EVENTS_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)

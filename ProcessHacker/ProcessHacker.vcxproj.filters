@@ -381,6 +381,12 @@
     <ClCompile Include="settings.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="prpgwmi.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="colsetmgr.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
@@ -540,6 +546,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phsettings.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\colsetmgr.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

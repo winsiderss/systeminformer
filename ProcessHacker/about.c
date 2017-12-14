@@ -128,13 +128,13 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 }
 
 VOID PhShowAboutDialog(
-    _In_ HWND ParentWindowHandle
+    VOID
     )
 {
     DialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_ABOUT),
-        ParentWindowHandle,
+        NULL,
         PhpAboutDlgProc
         );
 }

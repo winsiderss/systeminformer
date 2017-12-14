@@ -20,7 +20,6 @@
 
 #include <setup.h>
 #include <appsup.h>
-#include <workqueue.h>
 
 #define WM_TASKDIALOGINIT (WM_APP + 550)
 HWND UpdateDialogHandle = NULL;
@@ -55,6 +54,8 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupExecuteProcessHacker(Context))
         goto CleanupExit;
 
+    PhClearCacheDirectory();
+
     PostMessage(Context->DialogHandle, WM_QUIT, 0, 0);
     PhDereferenceObject(Context);  
     return STATUS_SUCCESS;
@@ -67,13 +68,15 @@ CleanupExit:
 }
 
 PPH_SETUP_CONTEXT CreateUpdateContext(
-    VOID
+    _In_ SETUP_COMMAND_TYPE SetupMode
     )
 {
     PPH_SETUP_CONTEXT context;
 
     context = (PPH_SETUP_CONTEXT)PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
     memset(context, 0, sizeof(PH_SETUP_CONTEXT));
+
+    context->SetupMode = SetupMode;
 
     return context;
 }
@@ -235,12 +238,25 @@ VOID SetupShowUpdatingDialog(
     config.pfCallback = SetupUpdatingTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = PhaFormatString(
-        L"Updating to version %lu.%lu.%lu...", 
-        PHAPP_VERSION_MAJOR, 
-        PHAPP_VERSION_MINOR, 
-        PHAPP_VERSION_REVISION
-        )->Buffer;
+
+    if (Context->SetupMode = SETUP_COMMAND_SILENTINSTALL)
+    {
+        config.pszMainInstruction = PhaFormatString(
+            L"Installing Process Hacker %lu.%lu.%lu...",
+            PHAPP_VERSION_MAJOR,
+            PHAPP_VERSION_MINOR,
+            PHAPP_VERSION_REVISION
+            )->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = PhaFormatString(
+            L"Updating to version %lu.%lu.%lu...",
+            PHAPP_VERSION_MAJOR,
+            PHAPP_VERSION_MINOR,
+            PHAPP_VERSION_REVISION
+            )->Buffer;
+    }
 
     SendMessage(Context->DialogHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)&config);
 }
@@ -279,10 +295,9 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 }
 
 VOID SetupShowUpdateDialog(
-    VOID
+    _In_ SETUP_COMMAND_TYPE SetupMode
     )
 {
-    PVOID context;
     TASKDIALOGCONFIG config;
     PH_AUTO_POOL autoPool;
 
@@ -290,13 +305,12 @@ VOID SetupShowUpdateDialog(
 
     PhInitializeAutoPool(&autoPool);
 
-    context = CreateUpdateContext();
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pszWindowTitle = PhApplicationName;
     config.pfCallback = TaskDialogBootstrapCallback;
-    config.lpCallbackData = (LONG_PTR)context;
+    config.lpCallbackData = (LONG_PTR)CreateUpdateContext(SetupMode);
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 

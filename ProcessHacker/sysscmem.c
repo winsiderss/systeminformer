@@ -336,7 +336,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
                 3,
                 3,
                 MemoryDialog,
-                (HMENU)IDC_COMMIT,
+                NULL,
                 PhInstanceHandle,
                 NULL
                 );
@@ -351,7 +351,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
                 3,
                 3,
                 MemoryDialog,
-                (HMENU)IDC_PHYSICAL,
+                NULL,
                 PhInstanceHandle,
                 NULL
                 );

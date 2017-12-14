@@ -24,7 +24,6 @@
 #include <phapp.h>
 #include <mainwnd.h>
 
-#include <shlobj.h>
 #include <windowsx.h>
 #include <winsta.h>
 
@@ -38,6 +37,7 @@
 #include <phsettings.h>
 
 #include <actions.h>
+#include <colsetmgr.h>
 #include <memsrch.h>
 #include <miniinfo.h>
 #include <netlist.h>
@@ -88,7 +88,6 @@ static HFONT CurrentCustomFont;
 
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
-static PPH_LIST LegacyAddMenuItemList;
 
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
 
@@ -108,7 +107,7 @@ BOOLEAN PhMainWndInitialization(
         PPH_STRING autoDbghelpPath;
 
         // Try to set up the dbghelp path automatically if this is the first run.
-        if (autoDbghelpPath = PH_AUTO(PhMwpFindDbghelpPath()))
+        if (autoDbghelpPath = PH_AUTO(PhFindDbghelpPath()))
             PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
 
         PhSetIntegerSetting(L"FirstRun", FALSE);
@@ -387,11 +386,6 @@ VOID PhMwpApplyUpdateInterval(
 {
     PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
-
-    if (Interval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
-        SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM, NULL);
-    else
-        KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA); // Might not exist
 }
 
 VOID PhMwpInitializeControls(
@@ -495,48 +489,6 @@ NTSTATUS PhMwpDelayedLoadFunction(
     return STATUS_SUCCESS;
 }
 
-PPH_STRING PhMwpFindDbghelpPath(
-    VOID
-    )
-{
-    static struct
-    {
-        ULONG Folder;
-        PWSTR AppendPath;
-    } locations[] =
-    {
-#ifdef _WIN64
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
-#else
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
-#endif
-    };
-
-    PPH_STRING path;
-    ULONG i;
-
-    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
-    {
-        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
-
-        if (path)
-        {
-            if (RtlDoesFileExists_U(path->Buffer))
-                return path;
-
-            PhDereferenceObject(path);
-        }
-    }
-
-    return NULL;
-}
-
 VOID PhMwpOnDestroy(
     VOID
     )
@@ -572,7 +524,7 @@ VOID PhMwpOnSettingChange(
     if (PhApplicationFont)
         DeleteObject(PhApplicationFont);
 
-    PhInitializeFont(PhMainWndHandle);
+    PhInitializeFont();
 
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 }
@@ -991,7 +943,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_ABOUT:
         {
-            PhShowAboutDialog(PhMainWndHandle);
+            PhShowAboutDialog();
         }
         break;
     case ID_PROCESS_TERMINATE:
@@ -1766,12 +1718,15 @@ VOID PhMwpOnTimer(
                 KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
 
             break;
-        default:
-            NOTHING;
+        case 3:
+            {
+                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
+            }
             break;
         }
 
-        PhFlushProcessQueryData(TRUE);
+        PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
+        PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
     }
 }
 
@@ -2072,13 +2027,6 @@ ULONG_PTR PhMwpOnUserMessage(
             function((PVOID)WParam);
         }
         break;
-    case WM_PH_ADD_MENU_ITEM:
-        {
-            PPH_ADD_MENU_ITEM addMenuItem = (PPH_ADD_MENU_ITEM)LParam;
-
-            return PhMwpLegacyAddPluginMenuItem(addMenuItem);
-        }
-        break;
     case WM_PH_CREATE_TAB_PAGE:
         {
             return (ULONG_PTR)PhMwpCreatePage((PPH_MAIN_TAB_PAGE)LParam);
@@ -2107,125 +2055,24 @@ ULONG_PTR PhMwpOnUserMessage(
             PhMwpActivateWindow(!!PhGetIntegerSetting(L"IconTogglesVisibility"));
         }
         break;
-    case WM_PH_PROCESS_ADDED:
-        {
-            ULONG runId = (ULONG)WParam;
-            PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)LParam;
-
-            PhMwpOnProcessAdded(processItem, runId);
-        }
-        break;
-    case WM_PH_PROCESS_MODIFIED:
-        {
-            PhMwpOnProcessModified((PPH_PROCESS_ITEM)LParam);
-        }
-        break;
-    case WM_PH_PROCESS_REMOVED:
-        {
-            PhMwpOnProcessRemoved((PPH_PROCESS_ITEM)LParam);
-        }
-        break;
     case WM_PH_PROCESSES_UPDATED:
         {
-            PhMwpOnProcessesUpdated();
-        }
-        break;
-    case WM_PH_SERVICE_ADDED:
-        {
-            ULONG runId = (ULONG)WParam;
-            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)LParam;
-
-            PhMwpOnServiceAdded(serviceItem, runId);
-        }
-        break;
-    case WM_PH_SERVICE_MODIFIED:
-        {
-            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)LParam;
-
-            PhMwpOnServiceModified(serviceModifiedData);
-            PhFree(serviceModifiedData);
-        }
-        break;
-    case WM_PH_SERVICE_REMOVED:
-        {
-            PhMwpOnServiceRemoved((PPH_SERVICE_ITEM)LParam);
+            PhMwpOnProcessesUpdated((ULONG)WParam);
         }
         break;
     case WM_PH_SERVICES_UPDATED:
         {
-            PhMwpOnServicesUpdated();
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_ADDED:
-        {
-            ULONG runId = (ULONG)WParam;
-            PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)LParam;
-
-            PhMwpOnNetworkItemAdded(runId, networkItem);
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_MODIFIED:
-        {
-            PhMwpOnNetworkItemModified((PPH_NETWORK_ITEM)LParam);
-        }
-        break;
-    case WM_PH_NETWORK_ITEM_REMOVED:
-        {
-            PhMwpOnNetworkItemRemoved((PPH_NETWORK_ITEM)LParam);
+            PhMwpOnServicesUpdated((ULONG)WParam);
         }
         break;
     case WM_PH_NETWORK_ITEMS_UPDATED:
         {
-            PhMwpOnNetworkItemsUpdated();
+            PhMwpOnNetworkItemsUpdated((ULONG)WParam);
         }
         break;
     }
 
     return 0;
-}
-
-VOID NTAPI PhMwpNetworkItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PhReferenceObject(networkItem);
-    PostMessage(
-        PhMainWndHandle,
-        WM_PH_NETWORK_ITEM_ADDED,
-        PhGetRunIdProvider(&PhMwpNetworkProviderRegistration),
-        (LPARAM)networkItem
-        );
-}
-
-VOID NTAPI PhMwpNetworkItemModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_MODIFIED, 0, (LPARAM)networkItem);
-}
-
-VOID NTAPI PhMwpNetworkItemRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
-
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_REMOVED, 0, (LPARAM)networkItem);
-}
-
-VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
 }
 
 VOID PhMwpLoadSettings(
@@ -2294,46 +2141,6 @@ VOID PhMwpSaveWindowState(
         PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
 }
 
-VOID PhLoadDbgHelpFromPath(
-    _In_ PWSTR DbgHelpPath
-    )
-{
-    HMODULE dbghelpModule;
-
-    if (dbghelpModule = LoadLibrary(DbgHelpPath))
-    {
-        PPH_STRING fullDbghelpPath;
-        ULONG indexOfFileName;
-        PH_STRINGREF dbghelpFolder;
-        PPH_STRING symsrvPath;
-
-        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
-
-        if (fullDbghelpPath)
-        {
-            if (indexOfFileName != 0)
-            {
-                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
-
-                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-                dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
-
-                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
-                LoadLibrary(symsrvPath->Buffer);
-                PhDereferenceObject(symsrvPath);
-            }
-
-            PhDereferenceObject(fullDbghelpPath);
-        }
-    }
-    else
-    {
-        dbghelpModule = LoadLibrary(L"dbghelp.dll");
-    }
-
-    PhSymbolProviderCompleteInitialization(dbghelpModule);
-}
-
 VOID PhMwpSymInitHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -2342,7 +2149,7 @@ VOID PhMwpSymInitHandler(
     PPH_STRING dbghelpPath;
 
     dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
-    PhLoadDbgHelpFromPath(dbghelpPath->Buffer);
+    PhLoadSymbolProviderDbgHelpFromPath(dbghelpPath->Buffer);
     PhDereferenceObject(dbghelpPath);
 }
 
@@ -2545,53 +2352,76 @@ VOID PhMwpDispatchMenuCommand(
             }
         }
         break;
+    case ID_VIEW_ORGANIZECOLUMNSETS:
+        {
+            PhShowColumnSetEditorDialog(PhMainWndHandle, L"ProcessTreeColumnSetConfig");
+        }
+        return;
+    case ID_VIEW_SAVECOLUMNSET:
+        {
+            PPH_EMENU_ITEM menuItem;
+            PPH_STRING columnSetName = NULL;
+
+            menuItem = (PPH_EMENU_ITEM)ItemData;
+
+            while (PhaChoiceDialog(
+                PhMainWndHandle,
+                L"Column Set Name",
+                L"Enter a name for this column set:",
+                NULL,
+                0,
+                NULL,
+                PH_CHOICE_DIALOG_USER_CHOICE,
+                &columnSetName,
+                NULL,
+                NULL
+                ))
+            {
+                if (!PhIsNullOrEmptyString(columnSetName))
+                    break;
+            }
+
+            if (!PhIsNullOrEmptyString(columnSetName))
+            {
+                PPH_STRING treeSettings;
+                PPH_STRING sortSettings;
+
+                // Query the current column configuration.
+                PhSaveSettingsProcessTreeListEx(&treeSettings, &sortSettings);
+                // Create the column set for this column configuration.
+                PhSaveSettingsColumnSet(L"ProcessTreeColumnSetConfig", columnSetName, treeSettings, sortSettings);
+
+                PhDereferenceObject(treeSettings);
+                PhDereferenceObject(sortSettings);
+            }
+        }
+        return;
+    case ID_VIEW_LOADCOLUMNSET:
+        {
+            PPH_EMENU_ITEM menuItem;
+            PPH_STRING columnSetName;
+            PPH_STRING treeSettings;
+            PPH_STRING sortSettings;
+
+            menuItem = (PPH_EMENU_ITEM)ItemData;
+            columnSetName = PhCreateString(menuItem->Text);
+
+            // Query the selected column set.
+            if (PhLoadSettingsColumnSet(L"ProcessTreeColumnSetConfig", columnSetName, &treeSettings, &sortSettings))
+            {
+                // Load the column configuration from the selected column set.
+                PhLoadSettingsProcessTreeListEx(treeSettings, sortSettings);
+
+                PhDereferenceObject(treeSettings);
+                PhDereferenceObject(sortSettings);
+            }
+
+            PhDereferenceObject(columnSetName);
+        }
+        return;
     }
 
     SendMessage(PhMainWndHandle, WM_COMMAND, ItemId, 0);
-}
-
-ULONG_PTR PhMwpLegacyAddPluginMenuItem(
-    _In_ PPH_ADD_MENU_ITEM AddMenuItem
-    )
-{
-    PPH_ADD_MENU_ITEM addMenuItem;
-    PPH_PLUGIN_MENU_ITEM pluginMenuItem;
-
-    if (!LegacyAddMenuItemList)
-        LegacyAddMenuItemList = PhCreateList(8);
-
-    addMenuItem = PhAllocateCopy(AddMenuItem, sizeof(PH_ADD_MENU_ITEM));
-    PhAddItemList(LegacyAddMenuItemList, addMenuItem);
-
-    pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
-    memset(pluginMenuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
-    pluginMenuItem->Plugin = AddMenuItem->Plugin;
-    pluginMenuItem->Id = AddMenuItem->Id;
-    pluginMenuItem->Context = AddMenuItem->Context;
-
-    addMenuItem->Context = pluginMenuItem;
-
-    return TRUE;
-}
-
-HBITMAP PhMwpGetShieldBitmap(
-    VOID
-    )
-{
-    static HBITMAP shieldBitmap = NULL;
-
-    if (!shieldBitmap)
-    {
-        HICON shieldIcon;
-
-        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
-        {
-            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
-            DestroyIcon(shieldIcon);
-        }
-    }
-
-    return shieldBitmap;
 }
 
 VOID PhMwpInitializeSubMenu(
@@ -2601,7 +2431,7 @@ VOID PhMwpInitializeSubMenu(
 {
     PPH_EMENU_ITEM menuItem;
 
-    if (Index == 0) // Hacker
+    if (Index == PH_MENU_ITEM_LOCATION_HACKER) // Hacker
     {
         // Fix some menu items.
         if (PhGetOwnTokenAttributes().Elevated)
@@ -2615,7 +2445,7 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhMwpGetShieldBitmap())
+            if (shieldBitmap = PhGetShieldBitmap())
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                     menuItem->Bitmap = shieldBitmap;
@@ -2625,7 +2455,7 @@ VOID PhMwpInitializeSubMenu(
         // Fix up the Computer menu.
         PhMwpSetupComputerMenu(Menu);
     }
-    else if (Index == 1) // View
+    else if (Index == PH_MENU_ITEM_LOCATION_VIEW) // View
     {
         PPH_EMENU_ITEM trayIconsMenuItem;
         ULONG i;
@@ -2744,7 +2574,7 @@ VOID PhMwpInitializeSubMenu(
         if (PhMwpUpdateAutomatically && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_UPDATEAUTOMATICALLY)))
             menuItem->Flags |= PH_EMENU_CHECKED;
     }
-    else if (Index == 2) // Tools
+    else if (Index == PH_MENU_ITEM_LOCATION_TOOLS) // Tools
     {
         if (!PhGetIntegerSetting(L"HiddenProcessesMenuEnabled"))
         {
@@ -2757,54 +2587,10 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhMwpGetShieldBitmap())
+            if (shieldBitmap = PhGetShieldBitmap())
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
-            }
-        }
-    }
-
-    if (LegacyAddMenuItemList)
-    {
-        ULONG i;
-        PPH_ADD_MENU_ITEM addMenuItem;
-
-        for (i = 0; i < LegacyAddMenuItemList->Count; i++)
-        {
-            addMenuItem = LegacyAddMenuItemList->Items[i];
-
-            if (addMenuItem->Location == Index)
-            {
-                ULONG insertIndex;
-
-                if (addMenuItem->InsertAfter)
-                {
-                    for (insertIndex = 0; insertIndex < Menu->Items->Count; insertIndex++)
-                    {
-                        menuItem = Menu->Items->Items[insertIndex];
-
-                        if (!(menuItem->Flags & PH_EMENU_SEPARATOR) && (PhCompareUnicodeStringZIgnoreMenuPrefix(
-                            addMenuItem->InsertAfter,
-                            menuItem->Text,
-                            TRUE,
-                            TRUE
-                            ) == 0))
-                        {
-                            insertIndex++;
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    insertIndex = 0;
-                }
-
-                if (addMenuItem->Text[0] == '-' && addMenuItem->Text[1] == 0)
-                    PhInsertEMenuItem(Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), insertIndex);
-                else
-                    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PLUGIN_MENU_ITEM, addMenuItem->Text, NULL, addMenuItem->Context), insertIndex);
             }
         }
     }
@@ -3591,8 +3377,15 @@ VOID PhMwpUpdateUsersMenu(
             escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
             PhDereferenceObject(menuText);
 
-            PhInsertEMenuItem(UsersMenu, userMenu = PhCreateEMenuItem(0, IDR_USER, escapedMenuText->Buffer, NULL, UlongToPtr(sessions[i].SessionId)), -1);
+            userMenu = PhCreateEMenuItem(
+                PH_EMENU_TEXT_OWNED, 
+                IDR_USER, 
+                PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(WCHAR)), 
+                NULL, 
+                UlongToPtr(sessions[i].SessionId)
+                );
             PhLoadResourceEMenuItem(userMenu, PhInstanceHandle, MAKEINTRESOURCE(IDR_USER), 0);
+            PhInsertEMenuItem(UsersMenu, userMenu, -1);
 
             PhDereferenceObject(escapedMenuText);
         }

@@ -23,41 +23,10 @@
 #include "extsrv.h"
 
 PPH_PLUGIN PluginInstance;
-static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
-static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
-static PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
-
-VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    // Nothing
-}
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
-    PROPSHEETPAGE propSheetPage;
-
-    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.dwFlags = PSP_USETITLE;
-        propSheetPage.hInstance = PluginInstance->DllBase;
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
-        propSheetPage.pszTitle = L"ExtendedServices";
-        propSheetPage.pfnDlgProc = OptionsDlgProc;
-        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
-}
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 
 VOID NTAPI MenuItemCallback(
     _In_opt_ PVOID Parameter,
@@ -446,18 +415,6 @@ LOGICAL DllMain(
             info->Description = L"Extends service management capabilities.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1113";
 
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
-                ShowOptionsCallback,
-                NULL,
-                &PluginShowOptionsCallbackRegistration
-                );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,

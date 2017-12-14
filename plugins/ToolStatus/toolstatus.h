@@ -2,8 +2,8 @@
  * Process Hacker ToolStatus -
  *   toolstatus header
  *
- * Copyright (C) 2011-2016 dmex
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2011-2016 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -41,7 +41,7 @@
 #define PLUGIN_NAME TOOLSTATUS_PLUGIN_NAME
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
 #define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
-#define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarConfig")
+#define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
 #define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
@@ -267,11 +267,6 @@ VOID ToolbarUpdateGraphs(VOID);
 VOID ToolbarUpdateGraphsInfo(LPNMHDR Header);
 
 // statusbar.c
-
-typedef struct _STATUSBAR_ITEM
-{
-    ULONG Id;
-} STATUSBAR_ITEM, *PSTATUSBAR_ITEM;
 
 extern ULONG ProcessesUpdatedCount;
 extern HWND StatusBarHandle;

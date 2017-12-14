@@ -26,9 +26,6 @@
 #include <cfgmgr32.h>
 #include <ndisguid.h>
 
-#define ITEM_CHECKED (INDEXTOSTATEIMAGEMASK(2))
-#define ITEM_UNCHECKED (INDEXTOSTATEIMAGEMASK(1))
-
 typedef struct _NET_ENUM_ENTRY
 {
     BOOLEAN DevicePresent;
@@ -227,7 +224,7 @@ VOID AddNetworkAdapterToListView(
         );
 
     if (found)
-        ListView_SetItemState(Context->ListViewHandle, lvItemIndex, ITEM_CHECKED, LVIS_STATEIMAGEMASK);
+        ListView_SetCheckState(Context->ListViewHandle, lvItemIndex, TRUE);
 
     DeleteNetAdapterId(&adapterId);
 }
@@ -705,6 +702,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
         if (uMsg == WM_DESTROY)
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
+
             if (context->OptionsChanged)
                 NetAdaptersSaveList();
 
@@ -733,9 +732,20 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             AddListViewGroup(context->ListViewHandle, 0, L"Connected");
             AddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
             FindNetworkAdapters(context);
 
             context->OptionsChanged = FALSE;
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_COMMAND:
@@ -759,6 +769,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     ListView_DeleteAllItems(context->ListViewHandle);
 
                     FindNetworkAdapters(context);
+
+                    ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
                 break;
             }
@@ -779,7 +791,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 {
                     switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                     {
-                    case 0x2000: // checked
+                    case INDEXTOSTATEIMAGEMASK(2): // checked
                         {
                             PDV_NETADAPTER_ID param = (PDV_NETADAPTER_ID)listView->lParam;
 
@@ -794,7 +806,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                             context->OptionsChanged = TRUE;
                         }
                         break;
-                    case 0x1000: // unchecked
+                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
                         {
                             PDV_NETADAPTER_ID param = (PDV_NETADAPTER_ID)listView->lParam;
 

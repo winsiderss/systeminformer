@@ -883,6 +883,12 @@ BOOLEAN PvSymbolTreeFilterCallback(
             return TRUE;
     }
 
+    if (node->Pointer[0])
+    {
+        if (WordMatchStringZ(context, node->Pointer))
+            return TRUE;
+    }
+
     return FALSE;
 }
 

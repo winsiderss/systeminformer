@@ -31,7 +31,6 @@
 #include <symprv.h>
 
 #include <extmgri.h>
-#include <mainwnd.h>
 #include <phplug.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
@@ -109,7 +108,7 @@ PVOID PhSvcValidateString(
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
 
-    address = (PCHAR)client->ClientViewBase + String->Offset;
+    address = PTR_ADD_OFFSET(client->ClientViewBase, String->Offset);
 
     if ((ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
         (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
@@ -240,7 +239,7 @@ NTSTATUS PhSvcCaptureSid(
 
     if (sid)
     {
-        if (String->Length < (ULONG)FIELD_OFFSET(struct _SID, IdentifierAuthority) ||
+        if (String->Length < UFIELD_OFFSET(struct _SID, IdentifierAuthority) ||
             String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
             !RtlValidSid(sid))
         {
@@ -1408,7 +1407,7 @@ NTSTATUS PhSvcApiLoadDbgHelp(
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.LoadDbgHelp.i.DbgHelpPath, FALSE, &dbgHelpPath)))
     {
         PH_AUTO(dbgHelpPath);
-        PhLoadDbgHelpFromPath(dbgHelpPath->Buffer);
+        PhLoadSymbolProviderDbgHelpFromPath(dbgHelpPath->Buffer);
         alreadyLoaded = TRUE;
     }
 

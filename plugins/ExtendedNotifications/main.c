@@ -3,6 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2011 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -122,7 +123,6 @@ LOGICAL DllMain(
             info->Author = L"wj32";
             info->Description = L"Filters notifications.";
             info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1112";
-            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
@@ -131,7 +131,7 @@ LOGICAL DllMain(
                 &PluginLoadCallbackRegistration
                 );
             PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
@@ -339,53 +339,36 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[4];
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    propSheetHeader.dwFlags =
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
-    propSheetHeader.hwndParent = (HWND)Parameter;
-    propSheetHeader.pszCaption = L"Extended Notifications";
-    propSheetHeader.nPages = 0;
-    propSheetHeader.nStartPage = 0;
-    propSheetHeader.phpage = pages;
-
-    // Processes
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PROCESSES);
-    propSheetPage.pfnDlgProc = ProcessesDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    // Services
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SERVICES);
-    propSheetPage.pfnDlgProc = ServicesDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    // Logging
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_LOGGING);
-    propSheetPage.pfnDlgProc = LoggingDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    // Growl
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.hInstance = PluginInstance->DllBase;
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_GROWL);
-    propSheetPage.pfnDlgProc = GrowlDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    PhModalPropertySheet(&propSheetHeader);
+    optionsEntry->CreateSection(
+        L"Notifications - Processes",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_PROCESSES),
+        ProcessesDlgProc,
+        NULL
+        );
+    optionsEntry->CreateSection(
+        L"Notifications - Services",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_SERVICES),
+        ServicesDlgProc,
+        NULL
+        );
+    optionsEntry->CreateSection(
+        L"Notifications - Logging",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_LOGGING),
+        LoggingDlgProc,
+        NULL
+        );
+    optionsEntry->CreateSection(
+        L"Notifications - Growl",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_GROWL),
+        GrowlDlgProc,
+        NULL
+        );
 }
 
 BOOLEAN MatchFilterList(
@@ -504,11 +487,7 @@ VOID NotifyGrowl(
         notification = GrowlNotifications[0];
         title = processItem->ProcessName;
 
-        parentProcessItem = PhReferenceProcessItemForParent(
-            processItem->ParentProcessId,
-            processItem->ProcessId,
-            &processItem->CreateTime
-            );
+        parentProcessItem = PhReferenceProcessItemForParent(processItem);
 
         message = PhaFormatString(
             L"The process %s (%lu) was started by %s.",
@@ -875,6 +854,7 @@ INT_PTR CALLBACK ProcessesDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
     INT_PTR result;
 
     if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
@@ -885,42 +865,44 @@ INT_PTR CALLBACK ProcessesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
-
             EditingProcessFilterList = PhCreateList(ProcessFilterList->Count + 10);
             CopyFilterList(EditingProcessFilterList, ProcessFilterList);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingProcessFilterList);
         }
         break;
     case WM_DESTROY:
         {
+            PPH_STRING string;
+
+            ClearFilterList(ProcessFilterList);
+            CopyFilterList(ProcessFilterList, EditingProcessFilterList);
+
+            string = SaveFilterList(ProcessFilterList);
+            PhSetStringSetting2(SETTING_NAME_PROCESS_LIST, &string->sr);
+            PhDereferenceObject(string);
+
             ClearFilterList(EditingProcessFilterList);
             PhDereferenceObject(EditingProcessFilterList);
             EditingProcessFilterList = NULL;
+
+            PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_NOTIFY:
+    case WM_SIZE:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_APPLY:
-                {
-                    PPH_STRING string;
-
-                    ClearFilterList(ProcessFilterList);
-                    CopyFilterList(ProcessFilterList, EditingProcessFilterList);
-
-                    string = SaveFilterList(ProcessFilterList);
-                    PhSetStringSetting2(SETTING_NAME_PROCESS_LIST, &string->sr);
-                    PhDereferenceObject(string);
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     }
@@ -935,9 +917,12 @@ INT_PTR CALLBACK ServicesDlgProc(
     _In_ LPARAM lParam
     )
 {
-    if (HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
+    static PH_LAYOUT_MANAGER LayoutManager;
+    INT_PTR result;
+
+    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
         GetDlgItem(hwndDlg, IDC_LIST), EditingServiceFilterList))
-        return FALSE;
+        return result;
 
     switch (uMsg)
     {
@@ -946,37 +931,41 @@ INT_PTR CALLBACK ServicesDlgProc(
             EditingServiceFilterList = PhCreateList(ServiceFilterList->Count + 10);
             CopyFilterList(EditingServiceFilterList, ServiceFilterList);
 
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
             AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingServiceFilterList);
         }
         break;
     case WM_DESTROY:
         {
+            PPH_STRING string;
+
+            ClearFilterList(ServiceFilterList);
+            CopyFilterList(ServiceFilterList, EditingServiceFilterList);
+
+            string = SaveFilterList(ServiceFilterList);
+            PhSetStringSetting2(SETTING_NAME_SERVICE_LIST, &string->sr);
+            PhDereferenceObject(string);
+
             ClearFilterList(EditingServiceFilterList);
             PhDereferenceObject(EditingServiceFilterList);
             EditingServiceFilterList = NULL;
+
+            PhDeleteLayoutManager(&LayoutManager);
         }
         break;
-    case WM_NOTIFY:
+    case WM_SIZE:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_APPLY:
-                {
-                    PPH_STRING string;
-
-                    ClearFilterList(ServiceFilterList);
-                    CopyFilterList(ServiceFilterList, EditingServiceFilterList);
-
-                    string = SaveFilterList(ServiceFilterList);
-                    PhSetStringSetting2(SETTING_NAME_SERVICE_LIST, &string->sr);
-                    PhDereferenceObject(string);
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     }
@@ -991,11 +980,30 @@ INT_PTR CALLBACK LoggingDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, ((PPH_STRING)PH_AUTO(PhGetStringSetting(SETTING_NAME_LOG_FILENAME)))->Buffer);
+            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LOGFILENAME), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)->sr);
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     case WM_COMMAND:
@@ -1030,22 +1038,6 @@ INT_PTR CALLBACK LoggingDlgProc(
             }
         }
         break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_APPLY:
-                {
-                    PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PhaGetDlgItemText(hwndDlg, IDC_LOGFILENAME)->sr);
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
-        }
-        break;
     }
 
     return FALSE;
@@ -1058,6 +1050,8 @@ INT_PTR CALLBACK GrowlDlgProc(
     _In_ LPARAM lParam
     )
 {
+    static PH_LAYOUT_MANAGER LayoutManager;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -1065,30 +1059,24 @@ INT_PTR CALLBACK GrowlDlgProc(
             SetDlgItemText(hwndDlg, IDC_LICENSE, PH_AUTO_T(PH_STRING, PhConvertUtf8ToUtf16(gntp_send_license_text))->Buffer);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL), PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL) ? BST_CHECKED : BST_UNCHECKED);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LICENSE), NULL, PH_ANCHOR_ALL);
         }
         break;
-    case WM_NOTIFY:
+    case WM_DESTROY:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_GROWL, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL)) == BST_CHECKED);
 
-            switch (header->code)
-            {
-            case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_ENABLEGROWL));
-                }
-                return TRUE;
-            case PSN_APPLY:
-                {
-                    PhSetIntegerSetting(SETTING_NAME_ENABLE_GROWL, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGROWL)) == BST_CHECKED);
+            if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
+                RegisterGrowl(FALSE);
 
-                    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GROWL))
-                        RegisterGrowl(FALSE);
-
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
-                }
-                return TRUE;
-            }
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
         }
         break;
     }

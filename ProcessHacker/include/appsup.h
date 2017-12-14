@@ -6,9 +6,7 @@ extern GUID VISTA_CONTEXT_GUID;
 extern GUID WIN7_CONTEXT_GUID;
 extern GUID WIN8_CONTEXT_GUID;
 extern GUID WINBLUE_CONTEXT_GUID;
-extern GUID WINTHRESHOLD_CONTEXT_GUID;
-
-typedef struct PACKAGE_ID PACKAGE_ID;
+extern GUID WIN10_CONTEXT_GUID;
 
 // begin_phapppub
 PHAPPAPI
@@ -28,12 +26,8 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
-PACKAGE_ID *PhPackageIdFromFullName(
-    _In_ PWSTR PackageFullName
-    );
-
 PPH_STRING PhGetPackagePath(
-    _In_ PACKAGE_ID *PackageId
+    _In_ PPH_STRING PackageFullName
     );
 
 // begin_phapppub
@@ -54,6 +48,8 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     TaskHostProcessType, // taskeng, taskhost, taskhostex
     ExplorerProcessType, // explorer
     UmdfHostProcessType, // wudfhost
+    EdgeProcessType, // Microsoft Edge
+    WmiProviderHostType,
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,
 
@@ -66,6 +62,14 @@ NTAPI
 PhGetProcessKnownType(
     _In_ HANDLE ProcessHandle,
     _Out_ PH_KNOWN_PROCESS_TYPE *KnownProcessType
+    );
+
+PHAPPAPI
+PH_KNOWN_PROCESS_TYPE
+NTAPI
+PhGetProcessKnownTypeEx(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING FileName
     );
 
 typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
@@ -156,6 +160,20 @@ PhShellExecuteUserString(
     );
 
 PHAPPAPI
+PPH_STRING
+NTAPI
+PhFindDbghelpPath(
+    VOID
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhLoadSymbolProviderDbgHelpFromPath(
+    _In_ PWSTR DbgHelpPath
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhLoadSymbolProviderOptions(
@@ -234,7 +252,7 @@ NTAPI
 PhGetPhVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
-    _Reserved_ PULONG Reserved,
+    _Out_opt_ PULONG BuildNumber,
     _Out_opt_ PULONG RevisionNumber
     );
 
@@ -426,6 +444,10 @@ BOOLEAN PhShellOpenKey2(
 
 PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
+    );
+
+HBITMAP PhGetShieldBitmap(
+    VOID
     );
 
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0) // phapppub

@@ -150,20 +150,15 @@ VOID NTAPI ShowOptionsCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
-    PROPSHEETPAGE propSheetPage;
+    PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
-    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
-    {
-        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-        propSheetPage.dwFlags = PSP_USETITLE;
-        propSheetPage.hInstance = PluginInstance->DllBase;
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
-        propSheetPage.pszTitle = L"OnlineChecks";
-        propSheetPage.pfnDlgProc = OptionsDlgProc;
-        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
-    }
+    optionsEntry->CreateSection(
+        L"OnlineChecks",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        OptionsDlgProc,
+        NULL
+        );
 }
 
 VOID NTAPI MenuItemCallback(
@@ -269,7 +264,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL), -1);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to VirusTotal...", NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
+    //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, -1);
 
     if (VirusTotalScanningEnabled)
@@ -725,7 +720,8 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED, L"0" },
-                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, L"0" }
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS, L"0" },
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

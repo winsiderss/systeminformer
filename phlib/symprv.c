@@ -156,7 +156,14 @@ VOID PhSymbolProviderCompleteInitialization(
     UnDecorateSymbolNameW_I = PhGetProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
 
     if (SymGetOptions_I && SymSetOptions_I)
-        SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEFERRED_LOADS | SYMOPT_FAVOR_COMPRESSED | SYMOPT_UNDNAME);
+    {
+        SymSetOptions_I(
+            SymGetOptions_I() |
+            SYMOPT_AUTO_PUBLICS | SYMOPT_CASE_INSENSITIVE | SYMOPT_DEFERRED_LOADS |
+            SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_INCLUDE_32BIT_MODULES |
+            SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME
+            );
+    }
 }
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(

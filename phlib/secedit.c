@@ -3,6 +3,7 @@
  *   object security editor
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +23,7 @@
 
 #include <ph.h>
 #include <secedit.h>
+#include <lsasup.h>
 
 #include <guisup.h>
 #include <hndlinfo.h>
@@ -40,6 +42,31 @@ static ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_MapGeneric,
     PhSecurityInformation_GetInheritTypes,
     PhSecurityInformation_PropertySheetPageCallback
+};
+
+static ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
+{
+    PhSecurityInformation2_QueryInterface,
+    PhSecurityInformation2_AddRef,
+    PhSecurityInformation2_Release,
+    PhSecurityInformation2_IsDaclCanonical,
+    PhSecurityInformation2_LookupSids
+};
+
+static IDataObjectVtbl PhDataObject_VTable =
+{
+    PhSecurityDataObject_QueryInterface,
+    PhSecurityDataObject_AddRef,
+    PhSecurityDataObject_Release,
+    PhSecurityDataObject_GetData,
+    PhSecurityDataObject_GetDataHere,
+    PhSecurityDataObject_QueryGetData,
+    PhSecurityDataObject_GetCanonicalFormatEtc,
+    PhSecurityDataObject_SetData,
+    PhSecurityDataObject_EnumFormatEtc,
+    PhSecurityDataObject_DAdvise,
+    PhSecurityDataObject_DUnadvise,
+    PhSecurityDataObject_EnumDAdvise
 };
 
 /**
@@ -181,6 +208,20 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
         *Object = This;
         return S_OK;
     }
+    else if (IsEqualGUID(Riid, &IID_ISecurityInformation2))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            PhSecurityInformation2 *info;
+
+            info = PhAllocate(sizeof(PhSecurityInformation2));
+            info->VTable = &PhSecurityInformation_VTable2;
+            info->RefCount = 1;
+
+            *Object = info;
+            return S_OK;
+        }
+    }
 
     *Object = NULL;
     return E_NOINTERFACE;
@@ -230,9 +271,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         SI_EDIT_AUDITS |
         SI_EDIT_OWNER |
         SI_EDIT_PERMS |
-        SI_ADVANCED |
-        SI_NO_ACL_PROTECT |
-        SI_NO_TREE_APPLY;
+        SI_ADVANCED;
+        //SI_NO_ACL_PROTECT |
+        //SI_NO_TREE_APPLY;
     ObjectInfo->hInstance = NULL;
     ObjectInfo->pszObjectName = this->ObjectName->Buffer;
 
@@ -344,6 +385,301 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
         PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
     }
 
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation2_QueryInterface(
+    _In_ ISecurityInformation2 *This,
+    _In_ REFIID Riid,
+    _Out_ PVOID *Object
+    )
+{
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_ISecurityInformation2)
+        )
+    {
+        PhSecurityInformation2_AddRef(This);
+        *Object = This;
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation2_AddRef(
+    _In_ ISecurityInformation2 *This
+    )
+{
+    PhSecurityInformation2 *this = (PhSecurityInformation2 *)This;
+
+    this->RefCount++;
+
+    return this->RefCount;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityInformation2_Release(
+    _In_ ISecurityInformation2 *This
+    )
+{
+    PhSecurityInformation2 *this = (PhSecurityInformation2 *)This;
+
+    this->RefCount--;
+
+    if (this->RefCount == 0)
+    {
+        PhFree(this);
+        return 0;
+    }
+
+    return this->RefCount;
+}
+
+BOOL STDMETHODCALLTYPE PhSecurityInformation2_IsDaclCanonical(
+    _In_ ISecurityInformation2 *This,
+    _In_ PACL pDacl
+    )
+{
+    return TRUE;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityInformation2_LookupSids(
+    _In_ ISecurityInformation2 *This,
+    _In_ ULONG cSids,
+    _In_ PSID *rgpSids,
+    _Out_ LPDATAOBJECT *ppdo
+    )
+{
+    PhSecurityIDataObject *dataObject;
+
+    dataObject = PhAllocate(sizeof(PhSecurityInformation));
+    dataObject->VTable = &PhDataObject_VTable;
+    dataObject->RefCount = 1;
+
+    dataObject->SidCount = cSids;
+    dataObject->Sids = rgpSids;
+    dataObject->NameCache = PhCreateList(1);
+
+    *ppdo = (LPDATAOBJECT)dataObject;
+
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryInterface(
+    _In_ IDataObject *This,
+    _In_ REFIID Riid,
+    _COM_Outptr_ PVOID *Object
+    )
+{
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_IDataObject)
+        )
+    {
+        PhSecurityDataObject_AddRef(This);
+        *Object = This;
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityDataObject_AddRef(
+    _In_ IDataObject *This
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+
+    this->RefCount++;
+
+    return this->RefCount;
+}
+
+ULONG STDMETHODCALLTYPE PhSecurityDataObject_Release(
+    _In_ IDataObject *This
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+
+    this->RefCount--;
+
+    if (this->RefCount == 0)
+    {
+        for (ULONG i = 0; i < this->NameCache->Count; i++)
+            PhDereferenceObject(this->NameCache->Items[i]);
+        PhDereferenceObject(this->NameCache);
+
+        PhFree(this);
+        return 0;
+    }
+
+    return this->RefCount;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetcIn,
+    _Out_ STGMEDIUM *pmedium
+    )
+{
+    PhSecurityIDataObject *this = (PhSecurityIDataObject *)This;
+    PSID_INFO_LIST sidInfoList;
+
+    sidInfoList = (PSID_INFO_LIST)GlobalAlloc(GMEM_ZEROINIT, sizeof(SID_INFO_LIST) + (sizeof(SID_INFO) * this->SidCount));
+    sidInfoList->cItems = this->SidCount;
+
+    for (ULONG i = 0; i < this->SidCount; i++)
+    {
+        SID_INFO sidInfo;
+        PPH_STRING sidString;
+        SID_NAME_USE sidUse;
+
+        memset(&sidInfo, 0, sizeof(SID_INFO));
+
+        sidInfo.pSid = this->Sids[i];
+
+        if (sidString = PhGetSidFullName(sidInfo.pSid, FALSE, &sidUse))
+        {
+            switch (sidUse)
+            {
+            case SidTypeUser:
+            case SidTypeLogonSession:
+                sidInfo.pwzClass = L"User";
+                break;
+            case SidTypeAlias:
+            case SidTypeGroup:
+                sidInfo.pwzClass = L"Group";
+                break;
+            case SidTypeComputer:
+                sidInfo.pwzClass = L"Computer";
+                break;
+            }
+
+            sidInfo.pwzCommonName = PhGetString(sidString);
+            PhAddItemList(this->NameCache, sidString);
+        }
+        else if (sidString = PhSidToStringSid(sidInfo.pSid))
+        {
+            static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+            HANDLE keyHandle;
+            PPH_STRING keyPath;
+            PPH_STRING packageName = NULL;
+
+            if (PhEqualString2(sidString, L"S-1-15-3-4096", FALSE))
+            {
+                // Special case for Edge and Internet Explorer objects.
+                packageName = PhCreateString(L"InternetExplorer (APP_PACKAGE)");
+                sidInfo.pwzCommonName = PhGetString(packageName);;
+                PhAddItemList(this->NameCache, packageName);
+                sidInfoList->aSidInfo[i] = sidInfo;
+                continue;
+            }
+
+            keyPath = PhConcatStringRef2(&appcontainerMappings, &sidString->sr);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &keyHandle,
+                KEY_READ,
+                PH_KEY_CURRENT_USER,
+                &keyPath->sr,
+                0
+                )))
+            {
+                packageName = PhQueryRegistryString(keyHandle, L"Moniker");
+                NtClose(keyHandle);
+            }
+
+            if (packageName)
+            {
+                PhMoveReference(&packageName, PhFormatString(L"%s (APP_PACKAGE)", PhGetString(packageName)));
+                sidInfo.pwzCommonName = PhGetString(packageName);
+                PhAddItemList(this->NameCache, packageName);
+            }
+
+            PhDereferenceObject(keyPath);
+            PhDereferenceObject(sidString);
+        }
+
+        sidInfoList->aSidInfo[i] = sidInfo;
+    }
+
+    pmedium->tymed = TYMED_HGLOBAL;
+    pmedium->hGlobal = (HGLOBAL)sidInfoList;
+
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetDataHere(
+    _In_ IDataObject *This,
+    _In_  FORMATETC *pformatetc,
+    _Inout_ STGMEDIUM *pmedium
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_QueryGetData(
+    _In_ IDataObject *This,
+    _In_opt_ FORMATETC *pformatetc
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetCanonicalFormatEtc(
+    _In_ IDataObject * This,
+    _In_opt_ FORMATETC *pformatectIn,
+    _Out_ FORMATETC *pformatetcOut
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_SetData(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _In_ STGMEDIUM *pmedium,
+    _In_ BOOL fRelease
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumFormatEtc(
+    _In_ IDataObject *This,
+    _In_ ULONG dwDirection,
+    _Out_opt_ IEnumFORMATETC **ppenumFormatEtc
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DAdvise(
+    _In_ IDataObject *This,
+    _In_ FORMATETC *pformatetc,
+    _In_ ULONG advf,
+    _In_opt_ IAdviseSink *pAdvSink,
+    _Out_ ULONG *pdwConnection
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_DUnadvise(
+    _In_ IDataObject *This,
+    _In_ ULONG dwConnection
+    )
+{
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE PhSecurityDataObject_EnumDAdvise(
+    _In_ IDataObject *This,
+    _Out_opt_ IEnumSTATDATA **ppenumAdvise
+    )
+{
     return E_NOTIMPL;
 }
 

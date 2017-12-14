@@ -350,7 +350,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
-        return TRUE;
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))

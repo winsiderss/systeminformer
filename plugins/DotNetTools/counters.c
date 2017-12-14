@@ -60,7 +60,7 @@ PVOID GetLegacyBlockTableEntry(
         // Directory has offset in bytes of block
         ULONG offsetEntry = IpcBlock->FullIPCHeader.EntryTable[EntryId].Offset;
 
-        return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
+        return PTR_ADD_OFFSET(IpcBlock, offsetBase + offsetEntry);
     }
     else
     {
@@ -71,7 +71,7 @@ PVOID GetLegacyBlockTableEntry(
         // Directory has offset in bytes of block
         ULONG offsetEntry = IpcBlock->FullIPCHeader.EntryTable[EntryId].Offset;
 
-        return ((PBYTE)IpcBlock) + offsetBase + offsetEntry;
+        return PTR_ADD_OFFSET(IpcBlock, offsetBase + offsetEntry);
     }
 }
 

@@ -28,7 +28,6 @@ BOOLEAN IsHookClient;
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
@@ -48,14 +47,6 @@ VOID NTAPI UnloadCallback(
     )
 {
     WeHookServerUninitialization();
-}
-
-VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    NOTHING;
 }
 
 BOOL CALLBACK WepEnumDesktopProc(
@@ -276,12 +267,6 @@ LOGICAL DllMain(
                 NULL,
                 &PluginUnloadCallbackRegistration
                 );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-            //    ShowOptionsCallback,
-            //    NULL,
-            //    &PluginShowOptionsCallbackRegistration
-            //    );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,

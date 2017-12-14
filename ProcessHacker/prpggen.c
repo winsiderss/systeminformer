@@ -36,7 +36,7 @@
 #include <settings.h>
 
 static PWSTR ProtectedSignerStrings[] =
-    { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)" };
+    { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
 
 NTSTATUS PhpProcessGeneralOpenProcess(
     _Out_ PHANDLE Handle,
@@ -284,11 +284,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Parent
 
-            if (parentProcess = PhReferenceProcessItemForParent(
-                processItem->ParentProcessId,
-                processItem->ProcessId,
-                &processItem->CreateTime
-                ))
+            if (parentProcess = PhReferenceProcessItemForParent(processItem))
             {
                 clientId.UniqueProcess = parentProcess->ProcessId;
                 clientId.UniqueThread = NULL;
@@ -531,27 +527,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 break;
             case IDC_VIEWMITIGATION:
                 {
-                    NTSTATUS status;
-                    HANDLE processHandle;
-                    PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION information;
-
-                    if (NT_SUCCESS(status = PhOpenProcess(
-                        &processHandle,
-                        PROCESS_QUERY_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        if (NT_SUCCESS(PhGetProcessMitigationPolicy(processHandle, &information)))
-                        {
-                            PhShowProcessMitigationPolicyDialog(hwndDlg, &information);
-                        }
-
-                        NtClose(processHandle);
-                    }
-                    else
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
-                    }
+                    PhShowProcessMitigationPolicyDialog(hwndDlg, processItem->ProcessId);
                 }
                 break;
             case IDC_TERMINATE:
@@ -613,7 +589,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                                 info.hWnd = hwndDlg;
                                 PhVerifyFileWithAdditionalCatalog(
                                     &info,
-                                    PhGetString(processItem->PackageFullName),
+                                    processItem->PackageFullName,
                                     NULL
                                     );
                             }

@@ -77,16 +77,11 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
                     }
                 }
             }
-
-            goto DefaultWndProc;
         }
         break;
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 VOID AddRemoveDeviceChangeCallback(

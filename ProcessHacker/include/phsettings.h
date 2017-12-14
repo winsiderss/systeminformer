@@ -12,6 +12,7 @@
 #endif
 
 EXT BOOLEAN PhEnableProcessQueryStage2;
+EXT BOOLEAN PhEnableServiceQueryStage2;
 
 EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsForceNoParent;

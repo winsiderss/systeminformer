@@ -580,15 +580,14 @@ VOID PhSipOnCommand(
                     GetMonitorInfo(MonitorFromWindow(PhSipWindow, MONITOR_DEFAULTTOPRIMARY), &info)
                     )
                 {
-                    ULONG padding = CurrentParameters.WindowPadding / 2;
                     PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, 0);
                     SetWindowPos(
                         PhSipWindow, 
                         HWND_TOPMOST, 
-                        info.rcMonitor.left - padding,
-                        info.rcMonitor.top - padding,
-                        (info.rcMonitor.right - info.rcMonitor.left) + padding * 2,
-                        (info.rcMonitor.bottom - info.rcMonitor.top) + padding * 2,
+                        info.rcMonitor.left,
+                        info.rcMonitor.top,
+                        (info.rcMonitor.right - info.rcMonitor.left),
+                        (info.rcMonitor.bottom - info.rcMonitor.top),
                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED
                         );
                 }
@@ -597,7 +596,7 @@ VOID PhSipOnCommand(
             {
                 PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, WS_OVERLAPPEDWINDOW);
                 SetWindowPlacement(PhSipWindow, &windowLayout);
-                SetWindowPos(PhSipWindow, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+                SetWindowPos(PhSipWindow, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
             }
         }
         break;

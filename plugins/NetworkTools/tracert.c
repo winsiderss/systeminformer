@@ -264,6 +264,11 @@ NTSTATUS NetworkTracertThreadStart(
         IP_FLAG_DF,
         0
     };
+    WSADATA winsockStartup;
+
+    // WSAStartup required by GetNameInfo.
+    if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
+        goto CleanupExit;
 
     if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * 2 + 2))
     {
@@ -301,13 +306,15 @@ NTSTATUS NetworkTracertThreadStart(
 
     for (ULONG i = 0; i < DEFAULT_MAXIMUM_HOPS; i++)
     {
+        PTRACERT_ROOT_NODE node;
         IN_ADDR last4ReplyAddress = in4addr_any;
         IN6_ADDR last6ReplyAddress = in6addr_any;
 
         if (context->Cancel)
             break;
 
-        PTRACERT_ROOT_NODE node = AddTracertNode(context, pingOptions.Ttl);
+        node = AddTracertNode(context, pingOptions.Ttl);
+        PhReferenceObject(node);
 
         for (ULONG ii = 0; ii < DEFAULT_MAXIMUM_PINGS; ii++)
         {
@@ -427,6 +434,8 @@ NTSTATUS NetworkTracertThreadStart(
             }
         }
 
+        PhDereferenceObject(node);
+
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
             if (!memcmp(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
@@ -444,13 +453,15 @@ NTSTATUS NetworkTracertThreadStart(
 CleanupExit:
 
     if (icmpHandle != INVALID_HANDLE_VALUE)
-    {
         IcmpCloseHandle(icmpHandle);
-    }
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
-
     PhDereferenceObject(context);
+
+    if (icmpEchoBuffer)
+        PhDereferenceObject(icmpEchoBuffer);
+
+    WSACleanup();
     return STATUS_SUCCESS;
 }
 

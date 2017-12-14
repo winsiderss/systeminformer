@@ -280,6 +280,10 @@ PPH_STRING PhGetMessage(
     if (!NT_SUCCESS(status))
         return NULL;
 
+    // dmex: We don't support parsing insert sequences.
+    if (messageEntry->Text[0] == '%')
+        return NULL;
+
     if (messageEntry->Flags & MESSAGE_RESOURCE_UNICODE)
     {
         return PhCreateStringEx((PWCHAR)messageEntry->Text, messageEntry->Length);
@@ -380,7 +384,6 @@ INT PhShowMessage(
     va_list argptr;
     PPH_STRING message;
 
-    va_start(argptr, Format);
     va_start(argptr, Format);
     message = PhFormatString_V(Format, argptr);
     va_end(argptr);
@@ -1530,37 +1533,28 @@ PVOID PhGetFileVersionInfo(
     _In_ PWSTR FileName
     )
 {
-    ULONG versionInfoSize;
-    ULONG dummy;
+    PVOID libraryModule;
     PVOID versionInfo;
 
-    versionInfoSize = GetFileVersionInfoSize(
-        FileName,
-        &dummy
-        );
+    libraryModule = LoadLibraryEx(FileName, NULL, LOAD_LIBRARY_AS_DATAFILE);
 
-    if (versionInfoSize)
-    {
-        versionInfo = PhAllocate(versionInfoSize);
-
-        if (!GetFileVersionInfo(
-            FileName,
-            0,
-            versionInfoSize,
-            versionInfo
-            ))
-        {
-            PhFree(versionInfo);
-
-            return NULL;
-        }
-    }
-    else
-    {
+    if (!libraryModule)
         return NULL;
+
+    if (PhLoadResource(
+        libraryModule, 
+        MAKEINTRESOURCE(VS_VERSION_INFO), 
+        VS_FILE_INFO, 
+        NULL, 
+        &versionInfo
+        ))
+    {
+        FreeLibrary(libraryModule);
+        return versionInfo;
     }
 
-    return versionInfo;
+    FreeLibrary(libraryModule);
+    return NULL;
 }
 
 /**
@@ -2006,40 +2000,18 @@ PPH_STRING PhGetSystemDirectory(
     VOID
     )
 {
+    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
     static PPH_STRING cachedSystemDirectory = NULL;
-
     PPH_STRING systemDirectory;
-    ULONG bufferSize;
-    ULONG returnLength;
+    PH_STRINGREF systemRootString;
 
     // Use the cached value if possible.
 
-    systemDirectory = cachedSystemDirectory;
+    if (cachedSystemDirectory)
+        return PhReferenceObject(cachedSystemDirectory);
 
-    if (systemDirectory)
-        return PhReferenceObject(systemDirectory);
-
-    bufferSize = 0x40;
-    systemDirectory = PhCreateStringEx(NULL, bufferSize * 2);
-
-    returnLength = GetSystemDirectory(systemDirectory->Buffer, bufferSize);
-
-    if (returnLength > bufferSize)
-    {
-        PhDereferenceObject(systemDirectory);
-        bufferSize = returnLength;
-        systemDirectory = PhCreateStringEx(NULL, bufferSize * 2);
-
-        returnLength = GetSystemDirectory(systemDirectory->Buffer, bufferSize);
-    }
-
-    if (returnLength == 0)
-    {
-        PhDereferenceObject(systemDirectory);
-        return NULL;
-    }
-
-    PhTrimToNullTerminatorString(systemDirectory);
+    PhGetSystemRoot(&systemRootString);
+    systemDirectory = PhConcatStringRef2(&systemRootString, &system32String);
 
     // Try to cache the value.
     if (_InterlockedCompareExchangePointer(
@@ -2305,11 +2277,11 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     )
 {
     NTSTATUS status;
-    ULONG startTickCount;
-    ULONG currentTickCount;
-    LONG currentTimeout;
+    ULONG64 startTickCount;
+    ULONG64 currentTickCount;
+    ULONG64 currentTimeout;
 
-    startTickCount = GetTickCount();
+    startTickCount = NtGetTickCount64();
     currentTimeout = Timeout;
 
     while (TRUE)
@@ -2347,10 +2319,10 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
         if (Timeout != INFINITE)
         {
-            currentTickCount = GetTickCount();
+            currentTickCount = NtGetTickCount64();
             currentTimeout = Timeout - (currentTickCount - startTickCount);
 
-            if (currentTimeout < 0)
+            if ((LONG64)currentTimeout < 0)
                 return STATUS_TIMEOUT;
         }
     }
@@ -3538,6 +3510,34 @@ PPH_STRING PhQueryRegistryString(
     }
 
     return string;
+}
+
+ULONG PhQueryRegistryUlong(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    )
+{
+    ULONG ulong = 0;
+    PH_STRINGREF valueName;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    {
+        if (buffer->Type == REG_DWORD)
+        {
+            if (buffer->DataLength == sizeof(ULONG))
+                ulong = *(PULONG)buffer->Data;
+        }
+
+        PhFree(buffer);
+    }
+
+    return ulong;
 }
 
 ULONG64 PhQueryRegistryUlong64(
@@ -5144,4 +5144,196 @@ VOID PhDeleteCacheFile(
 
         PhDereferenceObject(cacheFullFilePath);
     }
+}
+
+HANDLE PhGetNamespaceHandle(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\ProcessHacker");
+    static HANDLE directory = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+        OBJECT_ATTRIBUTES objectAttributes;
+        PSECURITY_DESCRIPTOR securityDescriptor;
+        ULONG sdAllocationLength;
+        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+        PSID administratorsSid;
+        PACL dacl;
+
+        // Create the default namespace DACL.
+
+        administratorsSid = (PSID)administratorsSidBuffer;
+        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
+        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+        sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
+            (ULONG)sizeof(ACL) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            RtlLengthSid(&PhSeLocalSid) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            RtlLengthSid(administratorsSid) +
+            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+            RtlLengthSid(&PhSeInteractiveSid);
+
+        securityDescriptor = PhAllocate(sdAllocationLength);
+        dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+
+        RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+        RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
+        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
+        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
+        RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &namespacePathUs,
+            OBJ_OPENIF,
+            NULL,
+            securityDescriptor
+            );
+
+        NtCreateDirectoryObject(
+            &directory,
+            MAXIMUM_ALLOWED,
+            &objectAttributes
+            );
+
+        PhFree(securityDescriptor);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return directory;
+}
+
+BOOLEAN PhLoadResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_ PVOID *ResourceBuffer
+    )
+{
+    ULONG resourceLength;
+    PVOID resourceInfo;
+    PVOID resourceBuffer;
+
+    resourceInfo = FindResource(DllBase, Name, Type);
+
+    if (!resourceInfo)
+        return FALSE;
+
+    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceInfo, &resourceBuffer, &resourceLength)))
+        return FALSE;
+
+    if (!resourceBuffer)
+        return FALSE;
+
+    if (resourceLength == 0)
+        return FALSE;
+
+    if (ResourceLength)
+        *ResourceLength = resourceLength;
+    *ResourceBuffer = PhAllocateCopy(resourceBuffer, resourceLength);
+
+    return TRUE;
+}
+
+PPH_STRING PhLoadString(
+    _In_ PVOID DllBase,
+    _In_ ULONG ResourceId
+    )
+{
+    PPH_STRING string = NULL;
+    ULONG resourceLength;
+    PVOID resourceBuffer;
+    ULONG stringCount;
+    PWSTR stringBuffer;
+    ULONG i;
+
+    if (!PhLoadResource(
+        DllBase,
+        MAKEINTRESOURCE((LOWORD(ResourceId) >> 4) + 1),
+        RT_STRING,
+        &resourceLength,
+        &resourceBuffer
+        ))
+    {
+        return NULL;
+    }
+
+    stringBuffer = resourceBuffer;
+    stringCount = ResourceId & 0x000F;
+
+    for (i = 0; i < stringCount; i++) // dmex: Copied from ReactOS.
+    {
+        stringBuffer += *stringBuffer + 1;
+    }
+
+    i = min(resourceLength - 1, *stringBuffer);
+
+    if (i > 0)
+    {
+        string = PhCreateStringEx(stringBuffer + 1, i * sizeof(WCHAR));
+    }
+
+    PhFree(resourceBuffer);
+    return string;
+}
+
+PPH_STRING PhLoadIndirectString(
+    _In_ PWSTR SourceString
+    )
+{
+    PPH_STRING indirectString = NULL;
+
+    if (SourceString[0] == L'@')
+    {
+        PPH_STRING libraryString;
+        PVOID libraryModule;
+        PH_STRINGREF sourceRef;
+        PH_STRINGREF dllNameRef;
+        PH_STRINGREF dllIndexRef;
+        ULONG64 index64;
+        LONG index;
+
+        PhInitializeStringRefLongHint(&sourceRef, SourceString);
+        PhSkipStringRef(&sourceRef, sizeof(WCHAR)); // Skip the @ character.
+
+        if (!PhSplitStringRefAtChar(&sourceRef, L',', &dllNameRef, &dllIndexRef))
+            return NULL;
+        if (!PhStringToInteger64(&dllIndexRef, 10, &index64))
+            return NULL;
+
+        libraryString = PhCreateString2(&dllNameRef);
+        index = (LONG)index64;
+
+        if (libraryString->Buffer[0] == L'%')
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&libraryString->sr))
+                PhMoveReference(&libraryString, expandedString);
+        }
+
+        if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE))
+        { 
+            indirectString = PhLoadString(libraryModule, -index);
+            FreeLibrary(libraryModule);
+        }
+
+        PhDereferenceObject(libraryString);
+    }
+    else
+    {
+        //indirectString = PhCreateString(SourceString);
+    }
+
+    return indirectString;
 }

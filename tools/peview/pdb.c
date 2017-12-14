@@ -2328,7 +2328,12 @@ NTSTATUS PeDumpFileSymbols(
     SymGetTypeInfo_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
     SymSetContext_I = PhGetProcedureAddress(dbghelpHandle, "SymSetContext", 0);
 
-    SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEBUG | SYMOPT_UNDNAME);
+    SymSetOptions_I(
+        SymGetOptions_I() |
+        SYMOPT_AUTO_PUBLICS | SYMOPT_CASE_INSENSITIVE |
+        SYMOPT_DEFERRED_LOADS | SYMOPT_FAIL_CRITICAL_ERRORS | SYMOPT_INCLUDE_32BIT_MODULES |
+        SYMOPT_LOAD_LINES | SYMOPT_OMAP_FIND_NEAREST | SYMOPT_UNDNAME // SYMOPT_DEBUG
+        );
 
     if (!SymInitialize_I(NtCurrentProcess(), NULL, FALSE))
         return 1;

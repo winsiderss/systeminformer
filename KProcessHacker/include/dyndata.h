@@ -41,7 +41,7 @@ NTSTATUS KphDynamicDataInitialization(
     );
 
 NTSTATUS KphReadDynamicDataParameters(
-    __in_opt HANDLE KeyHandle
+    _In_opt_ HANDLE KeyHandle
     );
 
 #endif

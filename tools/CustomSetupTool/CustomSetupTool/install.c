@@ -72,11 +72,12 @@ NTSTATUS SetupProgressThread(
     if (Context->SetupInstallKphService)
         SetupStartKph(Context);
 
+    PhClearCacheDirectory();
+
     PostMessage(Context->ExtractPageHandle, WM_END_SETUP, 0, 0);
     return STATUS_SUCCESS;
 
 CleanupExit:
-
     PostMessage(Context->DialogHandle, PSM_SETCURSELID, 0, IDD_ERROR);
     return STATUS_FAIL_CHECK;
 }
@@ -139,8 +140,6 @@ INT_PTR CALLBACK SetupInstallPropPage_WndProc(
                 break;
             case PSN_SETACTIVE:
                 {
-                    HANDLE threadHandle;
-
                     context->MainHeaderHandle = GetDlgItem(hwndDlg, IDC_MAINHEADER);
                     context->StatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_STATUS);
                     context->SubStatusHandle = GetDlgItem(hwndDlg, IDC_INSTALL_SUBSTATUS);
@@ -157,8 +156,7 @@ INT_PTR CALLBACK SetupInstallPropPage_WndProc(
                     {
                         SetupRunning = TRUE;
 
-                        if (threadHandle = PhCreateThread(0, SetupProgressThread, context))
-                            NtClose(threadHandle);
+                        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), SetupProgressThread, context);
                     }
                 }
                 break;
@@ -177,7 +175,7 @@ INT_PTR CALLBACK SetupInstallPropPage_WndProc(
 #else
             SetWindowText(context->MainHeaderHandle, PhaFormatString(
                 L"Installing Process Hacker %s", 
-                PhGetString(context->SetupFileVersion)
+                PhGetString(context->RelVersion)
                 )->Buffer);
 #endif
             SendMessage(context->ProgressHandle, PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);

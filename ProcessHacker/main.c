@@ -233,6 +233,19 @@ INT WINAPI wWinMain(
         PhLoadPlugins();
     }
 
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+        // Note: The PhInitializeMitigationPolicy function enables the other mitigation policies.
+        // However, we can only enable the ProcessSignaturePolicy after loading plugins.
+        policyInfo.Policy = ProcessSignaturePolicy;
+        policyInfo.SignaturePolicy.Flags = 0;
+        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    }
+
     if (PhStartupParameters.PhSvc)
     {
         MSG message;
@@ -486,31 +499,17 @@ VOID PhInitializeCommonControls(
 }
 
 VOID PhInitializeFont(
-    _In_ HWND hWnd
+    VOID
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
-    BOOLEAN success;
-    HDC hdc;
-
-    if (hdc = GetDC(hWnd))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        ReleaseDC(hWnd, hdc);
-    }
-    else
-    {
-        PhGlobalDpi = 96;
-    }
-
-    success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
 
     if (
         !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
         !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL))
         )
     {
-        if (success)
+        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
@@ -562,7 +561,7 @@ VOID PhInitializeMitigationPolicy(
         KEY_WRITE | DELETE,
         PH_KEY_LOCAL_MACHINE,
         &policyKeyName,
-        0,
+        OBJ_OPENIF,
         0,
         NULL
         )))
@@ -616,6 +615,47 @@ NTSTATUS PhpReadSignature(
     }
 }
 
+VOID PhpShowKphError(
+    _In_ PWSTR Message, 
+    _In_opt_ NTSTATUS Status
+    )
+{
+    if (Status == STATUS_NO_SUCH_FILE)
+    {
+        PhShowError2(
+            NULL,
+            Message,
+            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+            );
+    }
+    else
+    {
+        PPH_STRING errorMessage;
+        PPH_STRING statusMessage;
+
+        if (errorMessage = PhGetStatusMessage(Status, 0))
+        {
+            statusMessage = PhConcatStrings(
+                3,
+                errorMessage->Buffer,
+                L"\r\n\r\n",
+                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+                );
+            PhShowError2(NULL, Message, statusMessage->Buffer);
+            PhDereferenceObject(statusMessage);
+            PhDereferenceObject(errorMessage);
+        }
+        else
+        {
+            PhShowError2(
+                NULL, 
+                Message, 
+                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+                );
+        }
+    }
+}
+
 VOID PhInitializeKph(
     VOID
     )
@@ -627,11 +667,15 @@ VOID PhInitializeKph(
     PPH_STRING processhackerSigFileName;
     KPH_PARAMETERS parameters;
 
-    if (WindowsVersion == WINDOWS_NEW)
-        return;
-
     kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
     processhackerSigFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &processhackerSig);
+
+    if (!RtlDoesFileExists_U(kprocesshackerFileName->Buffer))
+    {
+        if (PhGetIntegerSetting(L"EnableKphWarnings"))
+            PhpShowKphError(L"The Process Hacker kernel driver 'kprocesshacker.sys' was not found in the application directory.", STATUS_NO_SUCH_FILE);
+        return;
+    }
 
     parameters.SecurityLevel = KphSecuritySignatureAndPrivilegeCheck;
     parameters.CreateDynamicConfiguration = TRUE;
@@ -658,7 +702,7 @@ VOID PhInitializeKph(
             if (!NT_SUCCESS(status))
             {
                 if (PhGetIntegerSetting(L"EnableKphWarnings"))
-                    PhShowStatus(NULL, L"Unable to verify the kernel driver signature.", status, 0);
+                    PhpShowKphError(L"Unable to verify the kernel driver signature.", status);
             }
 
             PhFree(signature);
@@ -666,13 +710,13 @@ VOID PhInitializeKph(
         else
         {
             if (PhGetIntegerSetting(L"EnableKphWarnings"))
-                PhShowStatus(NULL, L"Unable to load the kernel driver signature.", status, 0);
+                PhpShowKphError(L"Unable to load the kernel driver signature.", status);
         }
     }
     else
     {
         if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated)
-            PhShowStatus(NULL, L"Unable to load the kernel driver.", status, 0);
+            PhpShowKphError(L"Unable to load the kernel driver.", status);
     }
 
     PhDereferenceObject(kprocesshackerFileName);

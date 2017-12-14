@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 of strings. These are used instead of strcmp() etc because the standard
 functions work only on 8-bit data. */
 
-#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

@@ -117,11 +117,7 @@ NTSTATUS PhInitializeMappedImage(
     // Get a pointer to the first section.
 
     MappedImage->NumberOfSections = MappedImage->NtHeaders->FileHeader.NumberOfSections;
-
-    MappedImage->Sections = (PIMAGE_SECTION_HEADER)(
-        ((PCHAR)&MappedImage->NtHeaders->OptionalHeader) +
-        MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader
-        );
+    MappedImage->Sections = IMAGE_FIRST_SECTION(MappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
 }
@@ -153,7 +149,7 @@ NTSTATUS PhLoadMappedImage(
 
         if (!NT_SUCCESS(status))
         {
-            NtUnmapViewOfSection(NtCurrentProcess(), MappedImage->ViewBase);
+            PhUnloadMappedImage(MappedImage);
         }
     }
 
@@ -307,8 +303,8 @@ PVOID PhMappedImageRvaToVa(
     if (Section)
         *Section = section;
 
-    return (PVOID)(
-        (ULONG_PTR)MappedImage->ViewBase +
+    return PTR_ADD_OFFSET(
+        MappedImage->ViewBase, 
         (Rva - section->VirtualAddress) +
         section->PointerToRawData
         );
@@ -316,7 +312,7 @@ PVOID PhMappedImageRvaToVa(
 
 BOOLEAN PhGetMappedImageSectionName(
     _In_ PIMAGE_SECTION_HEADER Section,
-    _Out_writes_opt_z_(Count) PSTR Buffer,
+    _Out_writes_opt_z_(Count) PWSTR Buffer,
     _In_ ULONG Count,
     _Out_opt_ PULONG ReturnCount
     )
@@ -324,7 +320,7 @@ BOOLEAN PhGetMappedImageSectionName(
     BOOLEAN result;
     SIZE_T returnCount;
 
-    result = PhCopyBytesZ(
+    result = PhCopyStringZFromBytes(
         Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,
@@ -525,10 +521,7 @@ NTSTATUS PhLoadRemoteMappedImage(
         return status;
     }
 
-    RemoteMappedImage->Sections = (PIMAGE_SECTION_HEADER)(
-        (PCHAR)RemoteMappedImage->NtHeaders +
-        FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) + ntHeaders.FileHeader.SizeOfOptionalHeader
-        );
+    RemoteMappedImage->Sections = IMAGE_FIRST_SECTION(RemoteMappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
 }
@@ -1052,7 +1045,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         if (IMAGE_SNAP_BY_ORDINAL32(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)IMAGE_ORDINAL32(entry.u1.Ordinal);
+            Entry->Ordinal = IMAGE_ORDINAL32(entry.u1.Ordinal);
 
             return STATUS_SUCCESS;
         }
@@ -1075,7 +1068,7 @@ NTSTATUS PhGetMappedImageImportEntry(
         if (IMAGE_SNAP_BY_ORDINAL64(entry.u1.Ordinal))
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)IMAGE_ORDINAL64(entry.u1.Ordinal);
+            Entry->Ordinal = IMAGE_ORDINAL64(entry.u1.Ordinal);
 
             return STATUS_SUCCESS;
         }
@@ -1226,7 +1219,7 @@ NTSTATUS PhGetMappedImageCfg64(
         return status;
 
     // Not every load configuration defines CFG characteristics
-    if (config64->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardFlags))
+    if (!RTL_CONTAINS_FIELD(config64, config64->Size, GuardFlags))
         return STATUS_INVALID_VIEW_SIZE;
 
     CfgConfig->MappedImage = MappedImage;
@@ -1245,7 +1238,7 @@ NTSTATUS PhGetMappedImageCfg64(
     CfgConfig->NumberOfGuardFunctionEntries = config64->GuardCFFunctionCount;
     CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
         MappedImage,
-        (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config64->GuardCFFunctionTable, MappedImage->NtHeaders->OptionalHeader.ImageBase),
+        (ULONG)(config64->GuardCFFunctionTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
         NULL
         );
 
@@ -1268,16 +1261,12 @@ NTSTATUS PhGetMappedImageCfg64(
     CfgConfig->NumberOfGuardAdressIatEntries = 0;
     CfgConfig->GuardAdressIatTable = 0;
 
-    if (
-        config64->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardAddressTakenIatEntryTable) +
-        sizeof(config64->GuardAddressTakenIatEntryTable) +
-        sizeof(config64->GuardAddressTakenIatEntryCount)
-        )
+    if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardAddressTakenIatEntryTable))
     {
         CfgConfig->NumberOfGuardAdressIatEntries = config64->GuardAddressTakenIatEntryCount;
         CfgConfig->GuardAdressIatTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config64->GuardAddressTakenIatEntryTable, MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            (ULONG)(config64->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
             NULL
             );
 
@@ -1301,16 +1290,12 @@ NTSTATUS PhGetMappedImageCfg64(
     CfgConfig->NumberOfGuardLongJumpEntries = 0;
     CfgConfig->GuardLongJumpTable = 0;
 
-    if (
-        config64->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY64, GuardLongJumpTargetTable) +
-        sizeof(config64->GuardLongJumpTargetTable) +
-        sizeof(config64->GuardLongJumpTargetCount)
-        )
+    if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardLongJumpTargetTable))
     {
         CfgConfig->NumberOfGuardLongJumpEntries = config64->GuardLongJumpTargetCount;
         CfgConfig->GuardLongJumpTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config64->GuardLongJumpTargetTable, MappedImage->NtHeaders->OptionalHeader.ImageBase),
+            (ULONG)(config64->GuardLongJumpTargetTable - MappedImage->NtHeaders->OptionalHeader.ImageBase),
             NULL
             );
 
@@ -1346,7 +1331,7 @@ NTSTATUS PhGetMappedImageCfg32(
         return status;
     
     // Not every load configuration defines CFG characteristics
-    if (config32->Size < (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardFlags))
+    if (!RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
         return STATUS_INVALID_VIEW_SIZE;
 
     CfgConfig->MappedImage = MappedImage;
@@ -1365,7 +1350,7 @@ NTSTATUS PhGetMappedImageCfg32(
     CfgConfig->NumberOfGuardFunctionEntries = config32->GuardCFFunctionCount;
     CfgConfig->GuardFunctionTable = PhMappedImageRvaToVa(
         MappedImage,
-        (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardCFFunctionTable , MappedImage->NtHeaders32->OptionalHeader.ImageBase),
+        config32->GuardCFFunctionTable - MappedImage->NtHeaders32->OptionalHeader.ImageBase,
         NULL
         );
     
@@ -1388,16 +1373,12 @@ NTSTATUS PhGetMappedImageCfg32(
     CfgConfig->NumberOfGuardAdressIatEntries = 0;
     CfgConfig->GuardAdressIatTable = 0;
 
-    if (
-        config32->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardAddressTakenIatEntryTable) +
-        sizeof(config32->GuardAddressTakenIatEntryTable) +
-        sizeof(config32->GuardAddressTakenIatEntryCount)
-        )
+    if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardAddressTakenIatEntryTable))
     {
         CfgConfig->NumberOfGuardAdressIatEntries = config32->GuardAddressTakenIatEntryCount;
         CfgConfig->GuardAdressIatTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardAddressTakenIatEntryTable, MappedImage->NtHeaders32->OptionalHeader.ImageBase),
+            config32->GuardAddressTakenIatEntryTable - MappedImage->NtHeaders32->OptionalHeader.ImageBase,
             NULL
             );
 
@@ -1421,16 +1402,12 @@ NTSTATUS PhGetMappedImageCfg32(
     CfgConfig->NumberOfGuardLongJumpEntries = 0;
     CfgConfig->GuardLongJumpTable = 0;
 
-    if (
-        config32->Size >= (ULONG)FIELD_OFFSET(IMAGE_LOAD_CONFIG_DIRECTORY32, GuardLongJumpTargetTable) +
-        sizeof(config32->GuardLongJumpTargetTable) +
-        sizeof(config32->GuardLongJumpTargetCount)
-        )
+    if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardLongJumpTargetTable))
     {
         CfgConfig->NumberOfGuardLongJumpEntries = config32->GuardLongJumpTargetCount;
         CfgConfig->GuardLongJumpTable = PhMappedImageRvaToVa(
             MappedImage,
-            (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(config32->GuardLongJumpTargetTable, MappedImage->NtHeaders32->OptionalHeader.ImageBase),
+            config32->GuardLongJumpTargetTable - MappedImage->NtHeaders32->OptionalHeader.ImageBase,
             NULL
             );
 
