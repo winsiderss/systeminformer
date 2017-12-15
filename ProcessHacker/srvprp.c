@@ -185,7 +185,8 @@ static VOID PhpRefreshControls(
         EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), FALSE);
     }
 
-    if (PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_TYPE), L"Driver", FALSE))
+    if (PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_TYPE), L"Driver", FALSE) ||
+        PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_TYPE), L"FS driver", FALSE))
     {
         EnableWindow(GetDlgItem(hwndDlg, IDC_USERACCOUNT), FALSE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), FALSE);
@@ -552,17 +553,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                     goto Cleanup;
 ErrorCase:
-                    if (PhShowMessage2(
-                        hwndDlg,
-                        TDCBF_RETRY_BUTTON | TDCBF_CANCEL_BUTTON,
-                        TD_ERROR_ICON,
-                        L"Unable to change service configuration.",
-                        L"%s",
-                        PH_AUTO_T(PH_STRING, PhGetWin32Message(GetLastError()))->Buffer
-                        ) == IDRETRY)
-                    {
-                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
-                    }
+
+                    PhShowStatus(hwndDlg, L"Unable to change service configuration.", 0, GetLastError());
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
 
 Cleanup:
                     if (newServicePassword)
