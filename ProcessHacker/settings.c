@@ -223,9 +223,6 @@ VOID PhUpdateCachedSettings(
     VOID
     )
 {
-    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
-    PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
-
     PH_UPDATE_SETTING(CollapseServicesOnStart);
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
