@@ -609,24 +609,36 @@ VOID UpdateNetworkNode(
         {
             if (Extension->NumberOfBytesIn)
                 PhMoveReference(&Extension->BytesIn, PhFormatSize(Extension->NumberOfBytesIn, -1));
+
+            if (!NetworkExtensionEnabled && !Extension->BytesIn && PhGetOwnTokenAttributes().Elevated)
+                PhMoveReference(&Extension->BytesIn, PhCreateString(L"Extended TCP statisitics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_BYTES_OUT:
         {
             if (Extension->NumberOfBytesOut)
                 PhMoveReference(&Extension->BytesOut, PhFormatSize(Extension->NumberOfBytesOut, -1));
+
+            if (!NetworkExtensionEnabled && !Extension->BytesOut && PhGetOwnTokenAttributes().Elevated)
+                PhMoveReference(&Extension->BytesOut, PhCreateString(L"Extended TCP statisitics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_PACKETLOSS:
         {
             if (Extension->NumberOfLostPackets)
                 PhMoveReference(&Extension->PacketLossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
+
+            if (!NetworkExtensionEnabled && !Extension->PacketLossText && PhGetOwnTokenAttributes().Elevated)
+                PhMoveReference(&Extension->PacketLossText, PhCreateString(L"Extended TCP statisitics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_LATENCY:
         {
             if (Extension->SampleRtt)
                 PhMoveReference(&Extension->LatencyText, PhFormatUInt64(Extension->SampleRtt, TRUE));
+
+            if (!NetworkExtensionEnabled && !Extension->LatencyText && PhGetOwnTokenAttributes().Elevated)
+                PhMoveReference(&Extension->LatencyText, PhCreateString(L"Extended TCP statisitics are disabled"));
         }
         break;
     }

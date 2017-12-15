@@ -178,13 +178,8 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            if (Node->RemoteCountryCode)
-                PhDereferenceObject(Node->RemoteCountryCode);
-            if (Node->RemoteCountryName)
-                PhDereferenceObject(Node->RemoteCountryName);
-
-            Node->RemoteCountryCode = remoteCountryCode;
-            Node->RemoteCountryName = remoteCountryName;
+            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
@@ -234,13 +229,8 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            if (Node->RemoteCountryCode)
-                PhDereferenceObject(Node->RemoteCountryCode);
-            if (Node->RemoteCountryName)
-                PhDereferenceObject(Node->RemoteCountryName);
-
-            Node->RemoteCountryCode = remoteCountryCode;
-            Node->RemoteCountryName = remoteCountryName;
+            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }
 }
