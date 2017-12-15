@@ -956,14 +956,11 @@ VOID PhpProcessQueryStage1(
 
     if (processItem->FileName)
     {
-        // Small icon, large icon.
-        if (ExtractIconEx(
+        if (!PhExtractIcon(
             processItem->FileName->Buffer,
-            0,
             &Data->LargeIcon,
-            &Data->SmallIcon,
-            1
-            ) == 0)
+            &Data->SmallIcon
+            ))
         {
             Data->LargeIcon = NULL;
             Data->SmallIcon = NULL;

@@ -338,13 +338,11 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             {
                 PhInitializeImageVersionInfo(&PvImageVersionInfo, PvFileName->Buffer);
 
-                if (ExtractIconEx(
+                if (!PhExtractIcon(
                     PvFileName->Buffer,
-                    0,
                     &PvImageLargeIcon,
-                    NULL,
-                    1
-                    ) == 0)
+                    NULL
+                    ))
                 {
                     PvImageLargeIcon = PhGetFileShellIcon(PvFileName->Buffer, NULL, TRUE);
                 }
