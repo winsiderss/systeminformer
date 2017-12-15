@@ -117,7 +117,8 @@ BOOLEAN PhMwpServicesPageCallback(
         return TRUE;
     case MainTabPageLoadSettings:
         {
-            // Nothing
+            if (PhGetIntegerSetting(L"HideDriverServices"))
+                DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
         }
         return TRUE;
     case MainTabPageSaveSettings:
@@ -159,11 +160,7 @@ VOID PhMwpNeedServiceTreeList(
     if (!ServiceTreeListLoaded)
     {
         ServiceTreeListLoaded = TRUE;
-
         PhLoadSettingsServiceTreeList();
-
-        if (PhGetIntegerSetting(L"HideDriverServices"))
-            DriverFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpDriverServiceTreeFilter, NULL);
     }
 }
 
