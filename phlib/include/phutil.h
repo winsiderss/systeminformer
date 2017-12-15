@@ -1126,6 +1126,15 @@ PhLoadIndirectString(
     _In_ PWSTR SourceString
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhExtractIcon(
+    _In_ PWSTR FileName,
+    _In_ HICON *IconLarge,
+    _In_ HICON *IconSmall
+    );
+
 #ifdef __cplusplus
 }
 #endif
