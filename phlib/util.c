@@ -2527,12 +2527,12 @@ FORCEINLINE VOID PhpConvertProcessInformation(
 
     if (ProcessHandle)
         *ProcessHandle = ProcessInfo->hProcess;
-    else
+    else if (ProcessInfo->hProcess)
         NtClose(ProcessInfo->hProcess);
 
     if (ThreadHandle)
         *ThreadHandle = ProcessInfo->hThread;
-    else
+    else if (ProcessInfo->hThread)
         NtClose(ProcessInfo->hThread);
 }
 
@@ -3894,7 +3894,8 @@ static const PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
     { PH_FILEDIALOG_OVERWRITEPROMPT, FOS_OVERWRITEPROMPT },
     { PH_FILEDIALOG_DEFAULTEXPANDED, FOS_DEFAULTNOMINIMODE },
     { PH_FILEDIALOG_STRICTFILETYPES, FOS_STRICTFILETYPES },
-    { PH_FILEDIALOG_PICKFOLDERS, FOS_PICKFOLDERS }
+    { PH_FILEDIALOG_PICKFOLDERS, FOS_PICKFOLDERS },
+    { PH_FILEDIALOG_NOPATHVALIDATE, FOS_NOVALIDATE },
 };
 
 static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
@@ -3904,7 +3905,8 @@ static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
     { PH_FILEDIALOG_FILEMUSTEXIST, OFN_FILEMUSTEXIST },
     { PH_FILEDIALOG_SHOWHIDDEN, OFN_FORCESHOWHIDDEN },
     { PH_FILEDIALOG_NODEREFERENCELINKS, OFN_NODEREFERENCELINKS },
-    { PH_FILEDIALOG_OVERWRITEPROMPT, OFN_OVERWRITEPROMPT }
+    { PH_FILEDIALOG_OVERWRITEPROMPT, OFN_OVERWRITEPROMPT },
+    { PH_FILEDIALOG_NOPATHVALIDATE, OFN_NOVALIDATE }
 };
 
 /**
