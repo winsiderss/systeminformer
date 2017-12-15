@@ -211,7 +211,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorIoReadOther", L"00ffff");
     PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
-    PhpAddIntegerSetting(L"ColorPhysical", L"ffff00");
+    PhpAddIntegerSetting(L"ColorPhysical", L"ff8000"); // Blue
 
     PhpAddIntegerSetting(L"UseColorServiceStop", L"1");
     PhpAddIntegerSetting(L"ColorServiceStop", L"6d6d6d"); // Dark grey
