@@ -689,16 +689,14 @@ VOID PhGetStockApplicationIcon(
             if (systemDirectory = PhGetSystemDirectory())
             {
                 PH_STRINGREF dllBaseName;
-                ULONG index;
 
                 PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
-                index = 0;
-
                 dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
-                PhDereferenceObject(systemDirectory);
 
-                ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
+                PhExtractIcon(dllFileName->Buffer, &largeIcon, &smallIcon);
+
                 PhDereferenceObject(dllFileName);
+                PhDereferenceObject(systemDirectory);
             }
         }
 
@@ -735,12 +733,10 @@ HICON PhGetFileShellIcon(
 
         if (FileName)
         {
-            ExtractIconEx(
+            PhExtractIcon(
                 FileName,
-                0,
                 LargeIcon ? &icon : NULL,
-                !LargeIcon ? &icon : NULL,
-                1
+                !LargeIcon ? &icon : NULL
                 );
         }
 
@@ -752,7 +748,7 @@ HICON PhGetFileShellIcon(
                 );
 
             if (icon)
-                icon = DuplicateIcon(NULL, icon);
+                icon = CopyIcon(icon);
         }
 
         return icon;

@@ -320,7 +320,7 @@ FORCEINLINE ULONG PhHashProcessNode(
     return HandleToUlong(Value->ProcessId) / 4;
 }
 
-FORCEINLINE BOOLEAN PhpValidateParentCreateTime(
+FORCEINLINE BOOLEAN PhpValidateParentProcessNode(
     _In_ PPH_PROCESS_NODE Child,
     _In_ PPH_PROCESS_NODE Parent
     )
@@ -375,7 +375,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
     // Find this process' parent and add the process to it if we found it.
     if (
         (parentNode = PhFindProcessNode(ProcessItem->ParentProcessId)) &&
-        PhpValidateParentCreateTime(processNode, parentNode)
+        PhpValidateParentProcessNode(processNode, parentNode)
         )
     {
         PhAddItemList(parentNode->Children, processNode);
@@ -397,7 +397,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
         if (
             node != processNode && // for cases where the parent PID = PID (e.g. System Idle Process)
             node->ProcessItem->ParentProcessId == ProcessItem->ProcessId &&
-            PhpValidateParentCreateTime(node, processNode)
+            PhpValidateParentProcessNode(node, processNode)
             )
         {
             node->Parent = processNode;

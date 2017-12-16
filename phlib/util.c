@@ -2527,12 +2527,12 @@ FORCEINLINE VOID PhpConvertProcessInformation(
 
     if (ProcessHandle)
         *ProcessHandle = ProcessInfo->hProcess;
-    else
+    else if (ProcessInfo->hProcess)
         NtClose(ProcessInfo->hProcess);
 
     if (ThreadHandle)
         *ThreadHandle = ProcessInfo->hThread;
-    else
+    else if (ProcessInfo->hThread)
         NtClose(ProcessInfo->hThread);
 }
 
@@ -3894,7 +3894,8 @@ static const PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
     { PH_FILEDIALOG_OVERWRITEPROMPT, FOS_OVERWRITEPROMPT },
     { PH_FILEDIALOG_DEFAULTEXPANDED, FOS_DEFAULTNOMINIMODE },
     { PH_FILEDIALOG_STRICTFILETYPES, FOS_STRICTFILETYPES },
-    { PH_FILEDIALOG_PICKFOLDERS, FOS_PICKFOLDERS }
+    { PH_FILEDIALOG_PICKFOLDERS, FOS_PICKFOLDERS },
+    { PH_FILEDIALOG_NOPATHVALIDATE, FOS_NOVALIDATE },
 };
 
 static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
@@ -3904,7 +3905,8 @@ static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
     { PH_FILEDIALOG_FILEMUSTEXIST, OFN_FILEMUSTEXIST },
     { PH_FILEDIALOG_SHOWHIDDEN, OFN_FORCESHOWHIDDEN },
     { PH_FILEDIALOG_NODEREFERENCELINKS, OFN_NODEREFERENCELINKS },
-    { PH_FILEDIALOG_OVERWRITEPROMPT, OFN_OVERWRITEPROMPT }
+    { PH_FILEDIALOG_OVERWRITEPROMPT, OFN_OVERWRITEPROMPT },
+    { PH_FILEDIALOG_NOPATHVALIDATE, OFN_NOVALIDATE }
 };
 
 /**
@@ -5287,6 +5289,12 @@ PPH_STRING PhLoadString(
     return string;
 }
 
+// rev from SHLoadIndirectString
+/**
+ * Extracts a specified text resource when given that resource in the form of an indirect string (a string that begins with the '@' symbol).
+ *
+ * \param SourceString The indirect string from which the resource will be retrieved.
+ */
 PPH_STRING PhLoadIndirectString(
     _In_ PWSTR SourceString
     )
@@ -5336,4 +5344,22 @@ PPH_STRING PhLoadIndirectString(
     }
 
     return indirectString;
+}
+
+// rev from ExtractIconExW
+BOOLEAN PhExtractIcon(
+    _In_ PWSTR FileName, 
+    _In_ HICON *IconLarge,
+    _In_ HICON *IconSmall
+    )
+{
+    static UINT (WINAPI *PrivateExtractIconExW)(PCWSTR, INT, HICON*, HICON*, UINT) = NULL;
+
+    if (!PrivateExtractIconExW) 
+        PrivateExtractIconExW = PhGetModuleProcAddress(L"user32.dll", "PrivateExtractIconExW");
+
+    if (!PrivateExtractIconExW)
+        return FALSE;
+
+    return PrivateExtractIconExW(FileName, 0, IconLarge, IconSmall, 1) > 0;
 }

@@ -665,12 +665,10 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     if (processItem->FileName)
     {
         // Small icon, large icon.
-        ExtractIconEx(
+        PhExtractIcon(
             processItem->FileName->Buffer,
-            0,
             &processItem->LargeIcon,
-            &processItem->SmallIcon,
-            1
+            &processItem->SmallIcon
             );
 
         // Version info.
