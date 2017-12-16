@@ -386,10 +386,23 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     if (PhIsNullOrEmptyString(program))
                         break;
 
-                    // Escape the path. (dmex: poor man's PathQuoteSpaces)
-                    if (!PhStartsWithString2(program, L"\"", FALSE) && PhFindCharInString(program, 0, L' ') != -1)
+                    if (RtlDoesFileExists_U(program->Buffer))
                     {
-                        programEscaped = PhaConcatStrings(3, L"\"", PhGetString(program), L"\"");
+                        // Escape the path. (dmex: poor man's PathQuoteSpaces)
+                        if (!PhStartsWithString2(program, L"\"", FALSE) && PhFindCharInString(program, 0, L' ') != -1)
+                            programEscaped = PhaConcatStrings(3, L"\"", PhGetString(program), L"\"");
+                        else
+                            programEscaped = program;
+                    }
+                    else
+                    {
+                        WCHAR buffer[MAX_PATH];
+
+                        // The user typed a name without a path so attempt to locate the executable.
+                        if (PhSearchFilePath(program->Buffer, L".exe", buffer))
+                            programEscaped = PhaConcatStrings(3, L"\"", buffer, L"\"");
+                        else
+                            programEscaped = NULL;
                     }
 
                     // Fix up the user name if it doesn't have a domain.
@@ -441,7 +454,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             PhpSplitUserName(userName->Buffer, &domainPart, &userPart);
 
                             memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
-                            createInfo.CommandLine = programEscaped->Buffer;
+                            createInfo.CommandLine = PhGetString(programEscaped);
                             createInfo.UserName = PhGetString(userPart);
                             createInfo.DomainName = PhGetString(domainPart);
                             createInfo.Password = PhGetStringOrEmpty(password);
@@ -467,7 +480,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         {
                             status = PhExecuteRunAsCommand2(
                                 hwndDlg,
-                                programEscaped->Buffer,
+                                PhGetString(programEscaped),
                                 userName->Buffer,
                                 PhGetStringOrEmpty(password),
                                 logonType,
