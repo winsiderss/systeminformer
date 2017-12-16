@@ -1074,6 +1074,15 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhSearchFilePath(
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Extension,
+    _Out_writes_(MAX_PATH) PWSTR Buffer
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetCacheDirectory(

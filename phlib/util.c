@@ -4860,59 +4860,6 @@ PPH_STRING PhEscapeCommandLinePart(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-BOOLEAN PhpSearchFilePath(
-    _In_ PWSTR FileName,
-    _In_opt_ PWSTR Extension,
-    _Out_writes_(MAX_PATH) PWSTR Buffer
-    )
-{
-    NTSTATUS status;
-    ULONG result;
-    UNICODE_STRING fileName;
-    OBJECT_ATTRIBUTES objectAttributes;
-    FILE_BASIC_INFORMATION basicInfo;
-
-    result = SearchPath(
-        NULL,
-        FileName,
-        Extension,
-        MAX_PATH,
-        Buffer,
-        NULL
-        );
-
-    if (result == 0 || result >= MAX_PATH)
-        return FALSE;
-
-    // Make sure this is not a directory.
-
-    if (!NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
-        Buffer,
-        &fileName,
-        NULL,
-        NULL
-        )))
-        return FALSE;
-
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &fileName,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
-
-    status = NtQueryAttributesFile(&objectAttributes, &basicInfo);
-    RtlFreeUnicodeString(&fileName);
-
-    if (!NT_SUCCESS(status))
-        return FALSE;
-    if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        return FALSE;
-
-    return TRUE;
-}
-
 /**
  * Parses a command line string. If the string does not contain quotation marks around the file name
  * part, the function determines the file name to use.
@@ -4984,7 +4931,7 @@ BOOLEAN PhParseCommandLineFuzzy(
 
             tempCommandLine = PhCreateString2(&commandLine);
 
-            if (PhpSearchFilePath(tempCommandLine->Buffer, L".exe", buffer))
+            if (PhSearchFilePath(tempCommandLine->Buffer, L".exe", buffer))
             {
                 *FullFileName = PhCreateString(buffer);
             }
@@ -5030,7 +4977,7 @@ BOOLEAN PhParseCommandLineFuzzy(
             *(remainingPart.Buffer - 1) = 0;
         }
 
-        result = PhpSearchFilePath(temp.Buffer, L".exe", buffer);
+        result = PhSearchFilePath(temp.Buffer, L".exe", buffer);
 
         if (found)
         {
@@ -5064,6 +5011,60 @@ BOOLEAN PhParseCommandLineFuzzy(
 
     return FALSE;
 }
+
+BOOLEAN PhSearchFilePath(
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR Extension,
+    _Out_writes_(MAX_PATH) PWSTR Buffer
+    )
+{
+    NTSTATUS status;
+    ULONG result;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    FILE_BASIC_INFORMATION basicInfo;
+
+    result = SearchPath(
+        NULL,
+        FileName,
+        Extension,
+        MAX_PATH,
+        Buffer,
+        NULL
+        );
+
+    if (result == 0 || result >= MAX_PATH)
+        return FALSE;
+
+    // Make sure this is not a directory.
+
+    if (!NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
+        Buffer,
+        &fileName,
+        NULL,
+        NULL
+        )))
+        return FALSE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtQueryAttributesFile(&objectAttributes, &basicInfo);
+    RtlFreeUnicodeString(&fileName);
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+    if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        return FALSE;
+
+    return TRUE;
+}
+
 
 PPH_STRING PhGetCacheDirectory(
     VOID
@@ -5353,10 +5354,16 @@ BOOLEAN PhExtractIcon(
     _In_ HICON *IconSmall
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static UINT (WINAPI *PrivateExtractIconExW)(PCWSTR, INT, HICON*, HICON*, UINT) = NULL;
 
-    if (!PrivateExtractIconExW) 
-        PrivateExtractIconExW = PhGetModuleProcAddress(L"user32.dll", "PrivateExtractIconExW");
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (!PrivateExtractIconExW)
+            PrivateExtractIconExW = PhGetModuleProcAddress(L"user32.dll", "PrivateExtractIconExW");
+
+        PhEndInitOnce(&initOnce);
+    }
 
     if (!PrivateExtractIconExW)
         return FALSE;
