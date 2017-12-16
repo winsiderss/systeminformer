@@ -173,8 +173,8 @@ BOOLEAN PhServiceProviderInitialization(
 
     if (WindowsVersion > WINDOWS_7)
     {
-        SubscribeServiceChangeNotifications_I = PhGetModuleProcAddress(L"secHost.dll", "SubscribeServiceChangeNotifications");
-        UnsubscribeServiceChangeNotifications_I = PhGetModuleProcAddress(L"secHost.dll", "UnsubscribeServiceChangeNotifications");
+        SubscribeServiceChangeNotifications_I = PhGetModuleProcAddress(L"sechost.dll", "SubscribeServiceChangeNotifications");
+        UnsubscribeServiceChangeNotifications_I = PhGetModuleProcAddress(L"sechost.dll", "UnsubscribeServiceChangeNotifications");
     }
 
     return TRUE;
