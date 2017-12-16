@@ -181,8 +181,8 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
     if (miscMenu)
     {
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"Unloaded modules", processItem), -1);
-        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"WS watch", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"&Unloaded modules", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"&WS watch", processItem), -1);
     }
 }
 
@@ -207,7 +207,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
         insertIndex = 0;
 
     PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO,
-        L"Cancel I/O", threadItem), insertIndex);
+        L"Ca&ncel I/O", threadItem), insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
@@ -250,7 +250,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     ModuleProcessId = menuInfo->u.Module.ProcessId;
 
     PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_MODULE_SERVICES,
-        L"Services", moduleItem), insertIndex);
+        L"Ser&vices", moduleItem), insertIndex);
 
     if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }

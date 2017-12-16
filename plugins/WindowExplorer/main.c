@@ -143,13 +143,13 @@ VOID NTAPI MainMenuInitializingCallback(
     else
         insertIndex = 0;
 
-    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_VIEW_WINDOWS, L"Windows", NULL), insertIndex);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_VIEW_WINDOWS, L"&Windows", NULL), insertIndex);
 
     if (PhGetIntegerSetting(SETTING_NAME_SHOW_DESKTOP_WINDOWS))
     {
         insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
 
-        PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_VIEW_DESKTOPWINDOWS, L"Desktop Windows...", NULL), insertIndex);
+        PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_VIEW_DESKTOPWINDOWS, L"Deskto&p Windows...", NULL), insertIndex);
     }
 }
 
@@ -194,7 +194,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
         insertIndex = 0;
 
     PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_WINDOWS,
-        L"Windows", threadItem), insertIndex);
+        L"&Windows", threadItem), insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }

@@ -1617,7 +1617,7 @@ VOID PhInitializeTreeNewColumnMenuEx(
         if (resetSortMenuItem)
             PhInsertEMenuItem(Data->Menu, resetSortMenuItem, -1);
 
-        PhInsertEMenuItem(Data->Menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
+        PhInsertEMenuItem(Data->Menu, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(Data->Menu, chooseColumnsMenuItem, -1);
 
         if (TreeNew_GetFixedColumn(Data->TreeNewHandle))
