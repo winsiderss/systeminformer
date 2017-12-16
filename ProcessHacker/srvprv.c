@@ -1129,6 +1129,11 @@ VOID CALLBACK PhpServicePropertyChangeNotifyCallback(
     PPHP_SERVICE_NOTIFY_CONTEXT notifyContext = Context;
     PPH_SERVICE_ITEM serviceItem;
 
+    // Note: Ignore deleted nofications since we handle this elsewhere and our
+    // notify context gets destroyed before services.exe invokes this callback. 
+    if (ServiceNotifyFlags == SERVICE_NOTIFY_DELETED)
+        return;
+
     if (notifyContext->JustAddedNotifyRegistration)
     {
         notifyContext->JustAddedNotifyRegistration = FALSE;
