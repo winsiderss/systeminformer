@@ -1924,7 +1924,7 @@ static VOID PhpShowErrorService(
     PhShowStatus(
         hWnd,
         PhaFormatString(
-        L"Unable to %s %s",
+        L"Unable to %s %s.",
         Verb,
         Service->Name->Buffer
         )->Buffer,
