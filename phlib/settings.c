@@ -83,7 +83,7 @@ VOID PhSettingsInitialization(
     PhIgnoredSettings = PhCreateList(4);
 
     PhAddDefaultSettings();
-    //PhUpdateCachedSettings();
+    PhUpdateCachedSettings();
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
