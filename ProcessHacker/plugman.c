@@ -732,9 +732,9 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
                     menu = PhCreateEMenu();
                     //PhInsertEMenuItem(menu, uninstallItem = PhCreateEMenuItem(0, PH_PLUGIN_TREE_ITEM_MENU_UNINSTALL, L"Uninstall", NULL, NULL), -1);
-                    //PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_PLUGIN_TREE_ITEM_MENU_DISABLE, L"Disable", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES, L"Properties", NULL, NULL), -1);
 
                     //if (!PhGetOwnTokenAttributes().Elevated)

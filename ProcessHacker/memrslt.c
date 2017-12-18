@@ -633,7 +633,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
                         menu = PhCreateEMenu();
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MEMORY_READWRITEMEMORY, L"Read/Write memory", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), -1);
                         GetCursorPos(&point);
 

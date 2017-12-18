@@ -260,10 +260,10 @@ VOID NTAPI MainMenuInitializingCallback(
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
-    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Online Checks", NULL);
-    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"Enable VirusTotal scanning", NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"Upload file to VirusTotal...", NULL), -1);
+    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Online Checks", NULL);
+    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"&Enable VirusTotal scanning", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhCreateEMenuSeparator(), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"&Upload file to VirusTotal...", NULL), -1);
     //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, -1);
 
@@ -281,19 +281,19 @@ PPH_EMENU_ITEM CreateSendToMenu(
     PPH_EMENU_ITEM menuItem;
     ULONG insertIndex;
 
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"virustotal.com", FileName), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", FileName), -1);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD, L"&virustotal.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD, L"virusscan.&jotti.org", FileName), -1);
 
     if (ProcessesMenu && (menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, L"Search online", 0)))
     {
         insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
         PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
-        PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), insertIndex + 2);
+        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), insertIndex + 2);
     }
     else
     {
-        PhInsertEMenuItem(Parent, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(Parent, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(Parent, sendToMenu, -1);
     }
 
@@ -359,10 +359,10 @@ VOID NTAPI ServiceMenuInitializingCallback(
     else
         serviceItem = NULL;
 
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"virustotal.com", serviceItem ? serviceItem : NULL), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", serviceItem ? serviceItem : NULL), -1);
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem ? serviceItem : NULL), -1);
+    PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), -1);
     PhInsertEMenuItem(menuInfo->Menu, sendToMenu, -1);
 
     if (!serviceItem)

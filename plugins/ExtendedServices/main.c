@@ -154,7 +154,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
         // * There are no extra submenus.
         if (serviceList->Count != 1)
         {
-            servicesMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Services", NULL);
+            servicesMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Ser&vices", NULL);
         }
 
         // Create and add a menu item for each service.
@@ -174,7 +174,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
             if (serviceList->Count == 1)
             {
                 // "Service (Xxx)"
-                escapedName = PhaFormatString(L"Service (%s)", escapedName->Buffer);
+                escapedName = PhaFormatString(L"Ser&vice (%s)", escapedName->Buffer);
             }
 
             serviceMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, escapedName->Buffer, NULL);
@@ -185,11 +185,11 @@ VOID NTAPI ProcessMenuInitializingCallback(
                 servicesMenuItem = serviceMenuItem;
             }
 
-            PhInsertEMenuItem(serviceMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_GOTOSERVICE, L"Go to service", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, startMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_START, L"Start", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, continueMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_CONTINUE, L"Continue", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, pauseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_PAUSE, L"Pause", serviceItem), -1);
-            PhInsertEMenuItem(serviceMenuItem, stopMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_STOP, L"Stop", serviceItem), -1);
+            PhInsertEMenuItem(serviceMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_GOTOSERVICE, L"&Go to service", serviceItem), -1);
+            PhInsertEMenuItem(serviceMenuItem, startMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_START, L"Sta&rt", serviceItem), -1);
+            PhInsertEMenuItem(serviceMenuItem, continueMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_CONTINUE, L"&Continue", serviceItem), -1);
+            PhInsertEMenuItem(serviceMenuItem, pauseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_PAUSE, L"&Pause", serviceItem), -1);
+            PhInsertEMenuItem(serviceMenuItem, stopMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_STOP, L"St&op", serviceItem), -1);
 
             // Massive copy and paste from mainwnd.c.
             // == START ==
@@ -383,7 +383,7 @@ VOID NTAPI ServiceMenuInitializingCallback(
 
         PhInsertEMenuItem(
             menuInfo->Menu,
-            PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"Restart", menuInfo->u.Service.Services[0]),
+            PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"R&estart", menuInfo->u.Service.Services[0]),
             indexOfMenuItem + 1
             );
     }
