@@ -1105,6 +1105,9 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
 {
     WCHAR t;
 
+    if (!A || !B)
+        return -1;
+
     if (!IgnoreCase)
     {
         while (TRUE)
