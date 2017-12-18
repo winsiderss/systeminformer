@@ -2588,6 +2588,19 @@ NTSTATUS PhCreateProcessWin32Ex(
             PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
             LocalFree(cmdlineArgList);
         }
+
+        if (!RtlDoesFileExists_U(fileName->Buffer))
+        {
+            WCHAR buffer[MAX_PATH];
+
+            // The user typed a name without a path so attempt to locate the executable.
+            if (PhSearchFilePath(fileName->Buffer, L".exe", buffer))
+                PhMoveReference(&fileName, PhCreateString(buffer));
+            else
+                fileName = NULL;
+        }
+        else
+            fileName = NULL;
     }
 
     newFlags = 0;
