@@ -974,7 +974,7 @@ VOID PhGetSelectedMemoryNodes(
         PPH_MEMORY_NODE node = Context->RegionNodeList->Items[i];
 
         if (node->Node.Selected)
-                PhAddItemArray(&array, &node);
+            PhAddItemArray(&array, &node);
     }
 
     *NumberOfMemoryNodes = (ULONG)array.Count;
