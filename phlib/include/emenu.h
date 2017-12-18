@@ -58,11 +58,6 @@ VOID PhDestroyEMenuItem(
     _In_ PPH_EMENU_ITEM Item
     );
 
-/**
-* Creates a menu separator.
-*/
-#define PhCreateEMenuSeparator() PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, L"", NULL, NULL)
-
 #define PH_EMENU_FIND_DESCEND 0x1
 #define PH_EMENU_FIND_STARTSWITH 0x2
 #define PH_EMENU_FIND_LITERAL 0x4
@@ -180,6 +175,14 @@ PPH_EMENU_ITEM PhShowEMenu(
     );
 
 // Convenience functions
+
+FORCEINLINE
+PPH_EMENU_ITEM PhCreateEMenuSeparator(
+    VOID
+    )
+{
+    return PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL);
+}
 
 PHLIBAPI
 BOOLEAN PhSetFlagsEMenuItem(
