@@ -241,7 +241,7 @@ VOID ShowDeviceMenu(
     menu = PhCreateEMenu();
     //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), -1);
     //PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), -1);
-    //PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+    //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Properties", NULL, NULL), -1);
 
     selectedItem = PhShowEMenu(

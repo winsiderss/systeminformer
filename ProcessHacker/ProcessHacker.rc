@@ -81,7 +81,7 @@ BEGIN
     POPUP "&Hacker"
     BEGIN
         MENUITEM "&Run...\aCtrl+R",             ID_HACKER_RUN
-        MENUITEM "Run as administrator...",     ID_HACKER_RUNASADMINISTRATOR
+        MENUITEM "Run as ad&ministrator...",    ID_HACKER_RUNASADMINISTRATOR
         MENUITEM "Run as &limited user...",     ID_HACKER_RUNASLIMITEDUSER
         MENUITEM "Run &as...\aCtrl+Shift+R",    ID_HACKER_RUNAS
         MENUITEM "Show &details for all processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
@@ -123,35 +123,35 @@ BEGIN
         MENUITEM "&Always on top",              ID_VIEW_ALWAYSONTOP
         POPUP "&Opacity"
         BEGIN
-            MENUITEM "10%",                         ID_OPACITY_10
-            MENUITEM "20%",                         ID_OPACITY_20
-            MENUITEM "30%",                         ID_OPACITY_30
-            MENUITEM "40%",                         ID_OPACITY_40
-            MENUITEM "50%",                         ID_OPACITY_50
-            MENUITEM "60%",                         ID_OPACITY_60
-            MENUITEM "70%",                         ID_OPACITY_70
-            MENUITEM "80%",                         ID_OPACITY_80
-            MENUITEM "90%",                         ID_OPACITY_90
-            MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
+            MENUITEM "&10%",                        ID_OPACITY_10
+            MENUITEM "&20%",                        ID_OPACITY_20
+            MENUITEM "&30%",                        ID_OPACITY_30
+            MENUITEM "&40%",                        ID_OPACITY_40
+            MENUITEM "&50%",                        ID_OPACITY_50
+            MENUITEM "&60%",                        ID_OPACITY_60
+            MENUITEM "&70%",                        ID_OPACITY_70
+            MENUITEM "&80%",                        ID_OPACITY_80
+            MENUITEM "&90%",                        ID_OPACITY_90
+            MENUITEM "&Opaque",                     ID_OPACITY_OPAQUE
         END
         MENUITEM SEPARATOR
         MENUITEM "&Refresh\aF5",                ID_VIEW_REFRESH
         POPUP "Refresh i&nterval"
         BEGIN
-            MENUITEM "Fast (0.5s)",                 ID_UPDATEINTERVAL_FAST
-            MENUITEM "Normal (1s)",                 ID_UPDATEINTERVAL_NORMAL
-            MENUITEM "Below normal (2s)",           ID_UPDATEINTERVAL_BELOWNORMAL
-            MENUITEM "Slow (5s)",                   ID_UPDATEINTERVAL_SLOW
-            MENUITEM "Very slow (10s)",             ID_UPDATEINTERVAL_VERYSLOW
+            MENUITEM "&Fast (0.5s)",                ID_UPDATEINTERVAL_FAST
+            MENUITEM "&Normal (1s)",                ID_UPDATEINTERVAL_NORMAL
+            MENUITEM "&Below normal (2s)",          ID_UPDATEINTERVAL_BELOWNORMAL
+            MENUITEM "&Slow (5s)",                  ID_UPDATEINTERVAL_SLOW
+            MENUITEM "&Very slow (10s)",            ID_UPDATEINTERVAL_VERYSLOW
         END
         MENUITEM "Refresh a&utomatically\aF6",  ID_VIEW_UPDATEAUTOMATICALLY
     END
     POPUP "&Tools"
     BEGIN
-        MENUITEM "Create service...",           ID_TOOLS_CREATESERVICE
-        MENUITEM "Hidden processes",            ID_TOOLS_HIDDENPROCESSES
-        MENUITEM "Inspect executable file...",  ID_TOOLS_INSPECTEXECUTABLEFILE
-        MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
+        MENUITEM "&Create service...",          ID_TOOLS_CREATESERVICE
+        MENUITEM "&Hidden processes",           ID_TOOLS_HIDDENPROCESSES
+        MENUITEM "Inspect e&xecutable file...", ID_TOOLS_INSPECTEXECUTABLEFILE
+        MENUITEM "&Pagefiles",                  ID_TOOLS_PAGEFILES
         MENUITEM "Start &Task Manager",         ID_TOOLS_STARTTASKMANAGER
     END
     POPUP "&Users"
@@ -181,32 +181,32 @@ BEGIN
         MENUITEM "&Token",                      ID_THREAD_TOKEN
         POPUP "Analy&ze"
         BEGIN
-            MENUITEM "Wait",                        ID_ANALYZE_WAIT
+            MENUITEM "&Wait",                       ID_ANALYZE_WAIT
         END
         POPUP "&Priority"
         BEGIN
-            MENUITEM "Time critical",               ID_PRIORITY_TIMECRITICAL
-            MENUITEM "Highest",                     ID_PRIORITY_HIGHEST
-            MENUITEM "Above normal",                ID_PRIORITY_ABOVENORMAL
-            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
-            MENUITEM "Below normal",                ID_PRIORITY_BELOWNORMAL
-            MENUITEM "Lowest",                      ID_PRIORITY_LOWEST
-            MENUITEM "Idle",                        ID_PRIORITY_IDLE
+            MENUITEM "Time &critical",              ID_PRIORITY_TIMECRITICAL
+            MENUITEM "&Highest",                    ID_PRIORITY_HIGHEST
+            MENUITEM "&Above normal",               ID_PRIORITY_ABOVENORMAL
+            MENUITEM "&Normal",                     ID_PRIORITY_NORMAL
+            MENUITEM "&Below normal",               ID_PRIORITY_BELOWNORMAL
+            MENUITEM "&Lowest",                     ID_PRIORITY_LOWEST
+            MENUITEM "&Idle",                       ID_PRIORITY_IDLE
         END
-        POPUP "I/O priority"
+        POPUP "&I/O priority"
         BEGIN
-            MENUITEM "High",                        ID_IOPRIORITY_HIGH
-            MENUITEM "Normal",                      ID_IOPRIORITY_NORMAL
-            MENUITEM "Low",                         ID_IOPRIORITY_LOW
-            MENUITEM "Very low",                    ID_IOPRIORITY_VERYLOW
+            MENUITEM "&High",                       ID_IOPRIORITY_HIGH
+            MENUITEM "&Normal",                     ID_IOPRIORITY_NORMAL
+            MENUITEM "&Low",                        ID_IOPRIORITY_LOW
+            MENUITEM "&Very low",                   ID_IOPRIORITY_VERYLOW
         END
-        POPUP "Page priority"
+        POPUP "Pa&ge priority"
         BEGIN
-            MENUITEM "Normal",                      ID_PAGEPRIORITY_NORMAL
-            MENUITEM "Below normal",                ID_PAGEPRIORITY_BELOWNORMAL
-            MENUITEM "Medium",                      ID_PAGEPRIORITY_MEDIUM
-            MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
-            MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
+            MENUITEM "&Normal",                     ID_PAGEPRIORITY_NORMAL
+            MENUITEM "&Below normal",               ID_PAGEPRIORITY_BELOWNORMAL
+            MENUITEM "&Medium",                     ID_PAGEPRIORITY_MEDIUM
+            MENUITEM "&Low",                        ID_PAGEPRIORITY_LOW
+            MENUITEM "&Very low",                   ID_PAGEPRIORITY_VERYLOW
         END
         MENUITEM SEPARATOR
         MENUITEM "&Copy\aCtrl+C",               ID_THREAD_COPY
@@ -267,39 +267,39 @@ BEGIN
         MENUITEM "Res&ume",                     ID_PROCESS_RESUME
         MENUITEM "Res&tart",                    ID_PROCESS_RESTART
         MENUITEM SEPARATOR
-        MENUITEM "Create dump file...",         ID_PROCESS_CREATEDUMPFILE
-        MENUITEM "Debug",                       ID_PROCESS_DEBUG
-        MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
+        MENUITEM "Create dump fi&le...",        ID_PROCESS_CREATEDUMPFILE
+        MENUITEM "De&bug",                      ID_PROCESS_DEBUG
+        MENUITEM "Virtuali&zation",             ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
         MENUITEM "&Affinity",                   ID_PROCESS_AFFINITY
         POPUP "&Priority"
         BEGIN
-            MENUITEM "Real time",                   ID_PRIORITY_REALTIME
-            MENUITEM "High",                        ID_PRIORITY_HIGH
-            MENUITEM "Above normal",                ID_PRIORITY_ABOVENORMAL
-            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
-            MENUITEM "Below normal",                ID_PRIORITY_BELOWNORMAL
-            MENUITEM "Idle",                        ID_PRIORITY_IDLE
+            MENUITEM "&Real time",                  ID_PRIORITY_REALTIME
+            MENUITEM "&High",                       ID_PRIORITY_HIGH
+            MENUITEM "&Above normal",               ID_PRIORITY_ABOVENORMAL
+            MENUITEM "&Normal",                     ID_PRIORITY_NORMAL
+            MENUITEM "&Below normal",               ID_PRIORITY_BELOWNORMAL
+            MENUITEM "&Idle",                       ID_PRIORITY_IDLE
         END
         POPUP "&I/O priority"
         BEGIN
-            MENUITEM "High",                        ID_IOPRIORITY_HIGH
-            MENUITEM "Normal",                      ID_IOPRIORITY_NORMAL
-            MENUITEM "Low",                         ID_IOPRIORITY_LOW
-            MENUITEM "Very low",                    ID_IOPRIORITY_VERYLOW
+            MENUITEM "&High",                       ID_IOPRIORITY_HIGH
+            MENUITEM "&Normal",                     ID_IOPRIORITY_NORMAL
+            MENUITEM "&Low",                        ID_IOPRIORITY_LOW
+            MENUITEM "&Very low",                   ID_IOPRIORITY_VERYLOW
         END
         POPUP "&Miscellaneous"
         BEGIN
-            MENUITEM "Detach from debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
-            MENUITEM "GDI handles",                 ID_MISCELLANEOUS_GDIHANDLES
-            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
-            POPUP "Page priority"
+            MENUITEM "&Detach from debugger",       ID_MISCELLANEOUS_DETACHFROMDEBUGGER
+            MENUITEM "GDI &handles",                ID_MISCELLANEOUS_GDIHANDLES
+            MENUITEM "&Inject DLL...",              ID_MISCELLANEOUS_INJECTDLL
+            POPUP "Pa&ge priority"
             BEGIN
-                MENUITEM "Normal",                      ID_PAGEPRIORITY_NORMAL
-                MENUITEM "Below normal",                ID_PAGEPRIORITY_BELOWNORMAL
-                MENUITEM "Medium",                      ID_PAGEPRIORITY_MEDIUM
-                MENUITEM "Low",                         ID_PAGEPRIORITY_LOW
-                MENUITEM "Very low",                    ID_PAGEPRIORITY_VERYLOW
+                MENUITEM "&Normal",                     ID_PAGEPRIORITY_NORMAL
+                MENUITEM "&Below normal",               ID_PAGEPRIORITY_BELOWNORMAL
+                MENUITEM "&Medium",                     ID_PAGEPRIORITY_MEDIUM
+                MENUITEM "&Low",                        ID_PAGEPRIORITY_LOW
+                MENUITEM "&Very low",                   ID_PAGEPRIORITY_VERYLOW
             END
             MENUITEM "Reduce working &set",         ID_MISCELLANEOUS_REDUCEWORKINGSET
             MENUITEM "&Run as...",                  ID_MISCELLANEOUS_RUNAS
@@ -307,15 +307,15 @@ BEGIN
         END
         POPUP "&Window"
         BEGIN
-            MENUITEM "Bring to front",              ID_WINDOW_BRINGTOFRONT
-            MENUITEM "Restore",                     ID_WINDOW_RESTORE
-            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
-            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
+            MENUITEM "Bring to &front",             ID_WINDOW_BRINGTOFRONT
+            MENUITEM "&Restore",                    ID_WINDOW_RESTORE
+            MENUITEM "M&inimize",                   ID_WINDOW_MINIMIZE
+            MENUITEM "M&aximize",                   ID_WINDOW_MAXIMIZE
             MENUITEM SEPARATOR
-            MENUITEM "Close",                       ID_WINDOW_CLOSE
+            MENUITEM "&Close",                      ID_WINDOW_CLOSE
         END
         MENUITEM SEPARATOR
-        MENUITEM "Search online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
+        MENUITEM "Search &online\aCtrl+M",      ID_PROCESS_SEARCHONLINE
         MENUITEM "Open &file location\aCtrl+Enter", ID_PROCESS_OPENFILELOCATION
         MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM "&Copy\aCtrl+C",               ID_PROCESS_COPY
@@ -398,15 +398,15 @@ BEGIN
         MENUITEM "System &information",         ID_ICON_SYSTEMINFORMATION
         POPUP "N&otifications"
         BEGIN
-            MENUITEM "Enable all",                  ID_NOTIFICATIONS_ENABLEALL
-            MENUITEM "Disable all",                 ID_NOTIFICATIONS_DISABLEALL
+            MENUITEM "&Enable all",                 ID_NOTIFICATIONS_ENABLEALL
+            MENUITEM "&Disable all",                ID_NOTIFICATIONS_DISABLEALL
             MENUITEM SEPARATOR
-            MENUITEM "New processes",               ID_NOTIFICATIONS_NEWPROCESSES
-            MENUITEM "Terminated processes",        ID_NOTIFICATIONS_TERMINATEDPROCESSES
-            MENUITEM "New services",                ID_NOTIFICATIONS_NEWSERVICES
-            MENUITEM "Started services",            ID_NOTIFICATIONS_STARTEDSERVICES
-            MENUITEM "Stopped services",            ID_NOTIFICATIONS_STOPPEDSERVICES
-            MENUITEM "Deleted services",            ID_NOTIFICATIONS_DELETEDSERVICES
+            MENUITEM "New &processes",              ID_NOTIFICATIONS_NEWPROCESSES
+            MENUITEM "T&erminated processes",       ID_NOTIFICATIONS_TERMINATEDPROCESSES
+            MENUITEM "New &services",               ID_NOTIFICATIONS_NEWSERVICES
+            MENUITEM "St&arted services",           ID_NOTIFICATIONS_STARTEDSERVICES
+            MENUITEM "St&opped services",           ID_NOTIFICATIONS_STOPPEDSERVICES
+            MENUITEM "&Deleted services",           ID_NOTIFICATIONS_DELETEDSERVICES
         END
         POPUP "&Processes"
         BEGIN
@@ -422,7 +422,7 @@ BEGIN
             MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
             MENUITEM SEPARATOR
             MENUITEM "R&estart",                    ID_COMPUTER_RESTART
-            MENUITEM "Restart to boot options",     ID_COMPUTER_RESTARTBOOTOPTIONS
+            MENUITEM "Restart to boot &options",    ID_COMPUTER_RESTARTBOOTOPTIONS
             MENUITEM "Shu&t down",                  ID_COMPUTER_SHUTDOWN
             MENUITEM "H&ybrid shut down",           ID_COMPUTER_SHUTDOWNHYBRID
         END
@@ -459,11 +459,11 @@ IDR_EMPTYMEMLISTS MENU
 BEGIN
     POPUP "Empty"
     BEGIN
-        MENUITEM "Combine memory lists",        ID_EMPTY_COMBINEMEMORYLISTS
-        MENUITEM "Empty working sets",          ID_EMPTY_EMPTYWORKINGSETS
-        MENUITEM "Empty modified page list",    ID_EMPTY_EMPTYMODIFIEDPAGELIST
-        MENUITEM "Empty standby list",          ID_EMPTY_EMPTYSTANDBYLIST
-        MENUITEM "Empty priority 0 standby list", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
+        MENUITEM "&Combine memory lists",       ID_EMPTY_COMBINEMEMORYLISTS
+        MENUITEM "Empty &working sets",         ID_EMPTY_EMPTYWORKINGSETS
+        MENUITEM "Empty &modified page list",   ID_EMPTY_EMPTYMODIFIEDPAGELIST
+        MENUITEM "Empty &standby list",         ID_EMPTY_EMPTYSTANDBYLIST
+        MENUITEM "Empty &priority 0 standby list", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
     END
 END
 

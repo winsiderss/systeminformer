@@ -677,10 +677,10 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                     menu = PhCreateEMenu();
                     if (PhGetIntegerSetting(L"WmiProviderEnableHiddenMenu"))
                     {
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Suspend", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Resume", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Unload", NULL, NULL), -1);
-                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Suspend", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Res&ume", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Un&load", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                     }
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 4, L"Open &file location", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 5, L"&Copy", NULL, NULL), -1);

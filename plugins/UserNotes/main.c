@@ -912,7 +912,7 @@ VOID AddSavePriorityMenuItemsAndHook(
         //PhRemoveEMenuItem(affinityMenuItem, affinityMenuItem, 0);
 
         // Insert standard menu-items
-        PhInsertEMenuItem(affinityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(affinityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(affinityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), -1);
 
@@ -932,7 +932,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     // Priority
     if (priorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"Priority", 0))
     {
-        PhInsertEMenuItem(priorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenuItem, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(priorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(priorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), -1);
 
@@ -952,7 +952,7 @@ VOID AddSavePriorityMenuItemsAndHook(
     // I/O Priority
     if (ioPriorityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, L"I/O Priority", 0))
     {
-        PhInsertEMenuItem(ioPriorityMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), -1);
+        PhInsertEMenuItem(ioPriorityMenuItem, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(ioPriorityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), -1);
         PhInsertEMenuItem(ioPriorityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_IO_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), -1);
 
@@ -1001,9 +1001,9 @@ VOID ProcessMenuInitializingCallback(
         highlightPresent = TRUE;
     UnlockDb();
 
-    PhInsertEMenuItem(miscMenuItem, collapseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_COLLAPSE_ID, L"Collapse by default", NULL), 0);
-    PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_HIGHLIGHT_ID, L"Highlight", UlongToPtr(highlightPresent)), 1);
-    PhInsertEMenuItem(miscMenuItem, PhPluginCreateEMenuItem(PluginInstance, PH_EMENU_SEPARATOR, 0, NULL, NULL), 2);
+    PhInsertEMenuItem(miscMenuItem, collapseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_COLLAPSE_ID, L"Col&lapse by default", NULL), 0);
+    PhInsertEMenuItem(miscMenuItem, highlightMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_HIGHLIGHT_ID, L"Highligh&t", UlongToPtr(highlightPresent)), 1);
+    PhInsertEMenuItem(miscMenuItem, PhCreateEMenuSeparator(), 2);
 
     LockDb();
 
