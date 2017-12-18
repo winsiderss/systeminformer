@@ -60,6 +60,7 @@
 
 PHAPPAPI HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
+BOOLEAN PhMainWndEarlyExit = FALSE;
 HMENU PhMainWndMenuHandle;
 
 PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
@@ -493,6 +494,8 @@ VOID PhMwpOnDestroy(
     VOID
     )
 {
+    PhMainWndExiting = TRUE;
+
     PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
 
     // Notify pages and plugins that we are shutting down.
@@ -502,8 +505,8 @@ VOID PhMwpOnDestroy(
     if (PhPluginsEnabled)
         PhUnloadPlugins();
 
-    if (!PhMainWndExiting)
-        ProcessHacker_SaveAllSettings(PhMainWndHandle);
+    if (!PhMainWndEarlyExit)
+        PhMwpSaveSettings();
 
     PhNfUninitialization();
 
@@ -1836,7 +1839,7 @@ ULONG_PTR PhMwpOnUserMessage(
     {
     case WM_PH_ACTIVATE:
         {
-            if (!PhMainWndExiting)
+            if (!PhMainWndEarlyExit && !PhMainWndExiting)
             {
                 if (WParam != 0)
                 {
@@ -1882,12 +1885,12 @@ ULONG_PTR PhMwpOnUserMessage(
     case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
         {
             PhMwpSaveSettings();
-            PhMainWndExiting = TRUE;
+            PhMainWndEarlyExit = TRUE;
         }
         break;
     case WM_PH_CANCEL_EARLY_SHUTDOWN:
         {
-            PhMainWndExiting = FALSE;
+            PhMainWndEarlyExit = FALSE;
         }
         break;
     case WM_PH_DELAYED_LOAD_COMPLETED:
