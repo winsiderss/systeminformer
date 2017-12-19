@@ -716,7 +716,13 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                             {
                                 if (!PhIsNullOrEmptyString(entry->FileName) && RtlDoesFileExists_U(entry->FileName->Buffer))
                                 {
-                                    PhShellExploreFile(hwndDlg, entry->FileName->Buffer);
+                                    PhShellExecuteUserString(
+                                        hwndDlg,
+                                        L"FileBrowseExecutable",
+                                        processItem->FileName->Buffer,
+                                        FALSE,
+                                        L"Make sure the Explorer executable file is present."
+                                        );
                                 }
                             }
                             break;
