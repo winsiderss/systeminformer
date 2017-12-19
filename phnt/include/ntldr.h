@@ -583,6 +583,50 @@ LdrAccessResource(
     _Out_opt_ ULONG *ResourceLength
     );
 
+typedef struct _LDR_RESOURCE_INFO
+{
+    ULONG_PTR Type;
+    ULONG_PTR Name;
+    ULONG_PTR Language;
+} LDR_RESOURCE_INFO, *PLDR_RESOURCE_INFO;
+
+#define RESOURCE_TYPE_LEVEL 0
+#define RESOURCE_NAME_LEVEL 1
+#define RESOURCE_LANGUAGE_LEVEL 2
+#define RESOURCE_DATA_LEVEL 3
+
+NTSTATUS
+NTAPI
+LdrFindResource_U(
+    _In_ PVOID BaseAddress,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
+    );
+
+typedef struct _LDR_ENUM_RESOURCE_INFO
+{
+    ULONG_PTR Type;
+    ULONG_PTR Name;
+    ULONG_PTR Language;
+    PVOID Data;
+    SIZE_T Size;
+    ULONG_PTR Reserved;
+} LDR_ENUM_RESOURCE_INFO, *PLDR_ENUM_RESOURCE_INFO;
+
+#define NAME_FROM_RESOURCE_ENTRY(RootDirectory, Entry) \
+    ((Entry)->NameIsString ? (ULONG_PTR)PTR_ADD_OFFSET((RootDirectory), (Entry)->NameOffset) : (Entry)->Id)
+
+NTSTATUS
+NTAPI
+LdrEnumResources(
+    _In_ PVOID BaseAddress,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Inout_ ULONG *ResourceCount,
+    _Out_writes_to_(*ResourceCount,*ResourceCount) LDR_ENUM_RESOURCE_INFO *Resources
+    );
+
 NTSYSAPI
 NTSTATUS
 NTAPI
