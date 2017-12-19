@@ -2592,7 +2592,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             LocalFree(cmdlineArgList);
         }
 
-        if (!RtlDoesFileExists_U(fileName->Buffer))
+        if (fileName && !RtlDoesFileExists_U(fileName->Buffer))
         {
             WCHAR buffer[MAX_PATH];
 
@@ -2600,10 +2600,8 @@ NTSTATUS PhCreateProcessWin32Ex(
             if (PhSearchFilePath(fileName->Buffer, L".exe", buffer))
                 PhMoveReference(&fileName, PhCreateString(buffer));
             else
-                fileName = NULL;
+                PhClearReference(&fileName);
         }
-        else
-            fileName = NULL;
     }
 
     newFlags = 0;
