@@ -5237,22 +5237,19 @@ BOOLEAN PhLoadResource(
     _Out_ PVOID *ResourceBuffer
     )
 {
+    LDR_RESOURCE_INFO resourceInfo;
+    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
     ULONG resourceLength;
-    PVOID resourceInfo;
     PVOID resourceBuffer;
 
-    resourceInfo = FindResource(DllBase, Name, Type);
+    resourceInfo.Type = (ULONG_PTR)Type;
+    resourceInfo.Name = (ULONG_PTR)Name;
+    resourceInfo.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
 
-    if (!resourceInfo)
+    if (!NT_SUCCESS(LdrFindResource_U(DllBase, &resourceInfo, RESOURCE_DATA_LEVEL, &resourceData)))
         return FALSE;
 
-    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceInfo, &resourceBuffer, &resourceLength)))
-        return FALSE;
-
-    if (!resourceBuffer)
-        return FALSE;
-
-    if (resourceLength == 0)
+    if (!NT_SUCCESS(LdrAccessResource(DllBase, resourceData, &resourceBuffer, &resourceLength)))
         return FALSE;
 
     if (ResourceLength)
