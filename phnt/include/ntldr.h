@@ -604,15 +604,23 @@ LdrFindResource_U(
     _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
     );
 
-typedef struct _LDR_ENUM_RESOURCE_INFO
+// private 
+typedef struct _LDR_ENUM_RESOURCE_ENTRY
 {
-    ULONG_PTR Type;
-    ULONG_PTR Name;
-    ULONG_PTR Language;
+    union
+    {
+        ULONG_PTR NameOrId;
+        PIMAGE_RESOURCE_DIRECTORY_STRING Name;
+        struct
+        {
+            USHORT Id;
+            USHORT NameIsPresent;
+        };
+    } Path[3];
     PVOID Data;
-    SIZE_T Size;
-    ULONG_PTR Reserved;
-} LDR_ENUM_RESOURCE_INFO, *PLDR_ENUM_RESOURCE_INFO;
+    ULONG Size;
+    ULONG Reserved;
+} LDR_ENUM_RESOURCE_ENTRY, *PLDR_ENUM_RESOURCE_ENTRY;
 
 #define NAME_FROM_RESOURCE_ENTRY(RootDirectory, Entry) \
     ((Entry)->NameIsString ? (ULONG_PTR)PTR_ADD_OFFSET((RootDirectory), (Entry)->NameOffset) : (Entry)->Id)
@@ -624,7 +632,7 @@ LdrEnumResources(
     _In_ PLDR_RESOURCE_INFO ResourceInfo,
     _In_ ULONG Level,
     _Inout_ ULONG *ResourceCount,
-    _Out_writes_to_(*ResourceCount,*ResourceCount) LDR_ENUM_RESOURCE_INFO *Resources
+    _Out_writes_to_opt_(*ResourceCount, *ResourceCount) PLDR_ENUM_RESOURCE_ENTRY Resources
     );
 
 NTSYSAPI
