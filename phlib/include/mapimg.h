@@ -454,6 +454,33 @@ PhGetMappedImageCfgEntry(
     _Out_ PIMAGE_CFG_ENTRY Entry
     );
 
+typedef struct _PH_IMAGE_RESOURCE_ENTRY
+{
+    ULONG_PTR Type;
+    ULONG_PTR Name;
+    ULONG_PTR Language;
+    ULONG Size;
+    PVOID Data;
+} PH_IMAGE_RESOURCE_ENTRY, *PPH_IMAGE_RESOURCE_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_RESOURCES
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DATA_DIRECTORY DataDirectory;
+    PIMAGE_RESOURCE_DIRECTORY ResourceDirectory;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_RESOURCE_ENTRY ResourceEntries;
+} PH_MAPPED_IMAGE_RESOURCES, *PPH_MAPPED_IMAGE_RESOURCES;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageResources(
+    _Out_ PPH_MAPPED_IMAGE_RESOURCES Resources,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
 #ifdef __cplusplus
 }
 #endif

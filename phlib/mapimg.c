@@ -1497,3 +1497,141 @@ NTSTATUS PhGetMappedImageCfgEntry(
 
     return STATUS_SUCCESS;
 }
+
+NTSTATUS PhGetMappedImageResources(
+    _Out_ PPH_MAPPED_IMAGE_RESOURCES Resources,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
+    PIMAGE_RESOURCE_DIRECTORY nameDirectory;
+    PIMAGE_RESOURCE_DIRECTORY languageDirectory;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
+    ULONG resourceCount = 0;
+    ULONG resourceIndex = 0;
+    ULONG resourceTypeCount;
+    ULONG resourceNameCount;
+    ULONG resourceLanguageCount;
+
+    // Get a pointer to the resource directory.
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_RESOURCE,
+        &Resources->DataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    resourceDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        Resources->DataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!resourceDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    Resources->ResourceDirectory = resourceDirectory;
+
+    // NOTE: We can't use LdrEnumResources here because we're using an image mapped with SEC_COMMIT.
+
+    // Do a scan to determine how many resources there are.
+
+    resourceType = PTR_ADD_OFFSET(resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    resourceTypeCount = resourceDirectory->NumberOfNamedEntries + resourceDirectory->NumberOfIdEntries;
+
+    for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
+    {
+        if (!resourceType->DataIsDirectory)
+            return STATUS_RESOURCE_TYPE_NOT_FOUND;
+
+        nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
+        resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+        resourceNameCount = nameDirectory->NumberOfNamedEntries + nameDirectory->NumberOfIdEntries;
+
+        for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
+        {
+            if (!resourceName->DataIsDirectory)
+                return STATUS_RESOURCE_NAME_NOT_FOUND;
+
+            languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
+            resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+            resourceLanguageCount = languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries;
+
+            for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
+            {
+                if (resourceLanguage->DataIsDirectory)
+                    return STATUS_RESOURCE_DATA_NOT_FOUND;
+
+                resourceCount++;
+            }
+        }
+    }
+
+    if (resourceCount == 0)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    // Allocate the number of resources.
+
+    Resources->NumberOfEntries = resourceCount;
+    Resources->ResourceEntries = PhAllocate(sizeof(PH_IMAGE_RESOURCE_ENTRY) * resourceCount);
+    memset(Resources->ResourceEntries, 0, sizeof(PH_IMAGE_RESOURCE_ENTRY) * resourceCount);
+
+    // Enumerate the resources adding them into our buffer.
+
+    resourceType = PTR_ADD_OFFSET(resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    resourceTypeCount = resourceDirectory->NumberOfNamedEntries + resourceDirectory->NumberOfIdEntries;
+
+    for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
+    {
+        if (!resourceType->DataIsDirectory)
+            goto CleanupExit;
+
+        nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
+        resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+        resourceNameCount = nameDirectory->NumberOfNamedEntries + nameDirectory->NumberOfIdEntries;
+
+        for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
+        {
+            if (!resourceName->DataIsDirectory)
+                goto CleanupExit;
+
+            languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
+            resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+            resourceLanguageCount = languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries;
+
+            for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
+            {
+                PIMAGE_RESOURCE_DATA_ENTRY resourceData;
+
+                if (resourceLanguage->DataIsDirectory)
+                    goto CleanupExit;
+
+                resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
+
+                Resources->ResourceEntries[resourceIndex].Type = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceType);
+                Resources->ResourceEntries[resourceIndex].Name = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceName);
+                Resources->ResourceEntries[resourceIndex].Language = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceLanguage);
+                Resources->ResourceEntries[resourceIndex].Data = PTR_ADD_OFFSET(MappedImage->ViewBase, resourceData->OffsetToData);
+                Resources->ResourceEntries[resourceIndex++].Size = resourceData->Size;
+            }
+        }
+    }
+
+CleanupExit:
+    return status;
+}
