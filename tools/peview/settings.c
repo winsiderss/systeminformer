@@ -35,10 +35,11 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MainWindowPage", L"General");
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"150,150");
     PhpAddScalableIntegerPairSetting(L"MainWindowSize", L"@96|550,580");
-    PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExportsListViewColumns", L"");
     PhpAddStringSetting(L"ImageImportsListViewColumns", L"");
-    PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageCfgListViewColumns", L"");
+    PhpAddStringSetting(L"ImageResourcesListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
 }

@@ -10,6 +10,7 @@
 #define IDD_PELOADCONFIG                106
 #define IDD_PECFG                       107
 #define IDD_PESYMBOLS                   108
+#define IDD_PERESOURCES                 109
 #define IDB_SEARCH_ACTIVE               110
 #define IDB_SEARCH_INACTIVE             111
 #define IDB_SEARCH_ACTIVE_BMP           112
@@ -35,7 +36,6 @@
 #define IDC_SYMSEARCH                   1017
 #define IDC_NAME                        1019
 #define IDC_COMPANYNAME_LINK            1020
-#define IDC_BUTTON1                     1021
 #define IDC_STOP                        1021
 #define IDC_PROGRESS                    1022
 

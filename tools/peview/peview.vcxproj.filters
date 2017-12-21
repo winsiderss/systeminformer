@@ -60,6 +60,9 @@
     <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="resprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
