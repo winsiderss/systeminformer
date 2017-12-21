@@ -222,6 +222,7 @@
     <ClCompile Include="pdbprp.c" />
     <ClCompile Include="peprp.c" />
     <ClCompile Include="prpsh.c" />
+    <ClCompile Include="resprp.c" />
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="settings.c" />
   </ItemGroup>
