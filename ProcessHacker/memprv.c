@@ -534,6 +534,31 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     }
 #endif
 
+
+    // ApiSet schema map
+    {
+		PVOID peb;
+		PVOID apiSetMap;
+		PROCESS_BASIC_INFORMATION basicInfo;
+
+
+		if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
+		{
+			peb = basicInfo.PebBaseAddress;
+
+			if (NT_SUCCESS(NtReadVirtualMemory(
+				ProcessHandle,
+				PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB, ApiSetMap)),
+				&apiSetMap,
+				sizeof(PVOID),
+				NULL
+			)))
+			{
+				PhpSetMemoryRegionType(List, apiSetMap, TRUE, ApiSetMapRegion);
+			}
+		}
+	}
+
     PhFree(processes);
 
     return STATUS_SUCCESS;
