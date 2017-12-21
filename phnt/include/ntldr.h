@@ -677,6 +677,8 @@ typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX
     PVOID DefaultBase;
 } RTL_PROCESS_MODULE_INFORMATION_EX, *PRTL_PROCESS_MODULE_INFORMATION_EX;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -730,5 +732,7 @@ LdrQueryImageFileExecutionOptions(
     _In_ ULONG BufferSize,
     _Out_opt_ PULONG RetunedLength
     );
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif
