@@ -1635,3 +1635,4 @@ NTSTATUS PhGetMappedImageResources(
 CleanupExit:
     return status;
 }
+    
