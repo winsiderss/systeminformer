@@ -1120,15 +1120,15 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
 
-            PhCreateSearchControl(hwndDlg, GetDlgItem(hwndDlg, IDC_FILTER), L"Search Handles or DLLs");
+            PhCreateSearchControl(hwndDlg, GetDlgItem(hwndDlg, IDC_FILTER), L"Find Handles or DLLs");
 
             PhpPopulateObjectTypes(GetDlgItem(hwndDlg, IDC_FILTERTYPE));
 
             InitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTERTYPE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTER), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTERTYPE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REGEX), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
@@ -1160,10 +1160,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     );
             }
 
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
-
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hwndDlg, IDC_FILTER), TRUE);
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_FILTER), 0, -1);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_DESTROY:
