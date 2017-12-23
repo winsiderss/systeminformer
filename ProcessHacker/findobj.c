@@ -769,15 +769,10 @@ static BOOLEAN MatchTypeString(
     _In_ PPH_STRINGREF Input
     )
 {
-    if (Context->SearchRegexCompiledExpression && Context->SearchRegexMatchData)
+    if (PhEqualString2(Context->SearchTypeString, L"Everything", FALSE))
         return TRUE;
-    else
-    {
-        if (PhEqualString2(Context->SearchTypeString, L"Everything", FALSE))
-            return TRUE;
 
-        return PhFindStringInStringRef(Input, &Context->SearchTypeString->sr, TRUE) != -1;
-    }
+    return PhFindStringInStringRef(Input, &Context->SearchTypeString->sr, TRUE) != -1;
 }
 
 typedef struct _SEARCH_HANDLE_CONTEXT
