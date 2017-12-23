@@ -463,7 +463,7 @@ PPH_STRING PhGetMemoryRegionUseText(
         return PhFormatString(L"CFG Bitmap%s",
             type == CfgBitmap32Region ? L" 32-bit" : L"");
     case ApiSetMapRegion:
-		return PhFormatString(L"API Set schema");
+		return PhFormatString(L"ApiSetMap");
     default:
         return PhReferenceEmptyString();
     }
