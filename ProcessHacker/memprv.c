@@ -275,11 +275,13 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG numberOfHeaps;
         PVOID processHeapsPtr;
         PVOID *processHeaps;
+        PVOID apiSetMap;
         ULONG i;
 #ifdef _WIN64
         PVOID peb32;
         ULONG processHeapsPtr32;
         ULONG *processHeaps32;
+        ULONG apiSetMap32;
 #endif
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
@@ -307,6 +309,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps);
+            }
+
+            // ApiSet schema map
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ApiSetMap)),
+                &apiSetMap,
+                sizeof(PVOID),
+                NULL
+                )))
+            {
+                PhpSetMemoryRegionType(List, apiSetMap, TRUE, ApiSetMapRegion);
             }
         }
 #ifdef _WIN64
@@ -337,6 +351,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 }
 
                 PhFree(processHeaps32);
+            }
+
+            // ApiSet schema map
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ApiSetMap)),
+                &apiSetMap32,
+                sizeof(ULONG),
+                NULL
+                )))
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(apiSetMap32), TRUE, ApiSetMapRegion);
             }
         }
 #endif
@@ -533,31 +559,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         }
     }
 #endif
-
-
-    // ApiSet schema map
-    {
-		PVOID peb;
-		PVOID apiSetMap;
-		PROCESS_BASIC_INFORMATION basicInfo;
-
-
-		if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
-		{
-			peb = basicInfo.PebBaseAddress;
-
-			if (NT_SUCCESS(NtReadVirtualMemory(
-				ProcessHandle,
-				PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB, ApiSetMap)),
-				&apiSetMap,
-				sizeof(PVOID),
-				NULL
-			)))
-			{
-				PhpSetMemoryRegionType(List, apiSetMap, TRUE, ApiSetMapRegion);
-			}
-		}
-	}
 
     PhFree(processes);
 
