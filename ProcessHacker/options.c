@@ -1532,6 +1532,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             PhSetExtendedListView(listviewHandle);
 
             PhEnumSettings(PhpOptionsSettingsCallback, listviewHandle);
+            ExtendedListView_SortItems(listviewHandle);
         }
         break;
     case WM_DESTROY:
