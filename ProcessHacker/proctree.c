@@ -2152,8 +2152,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = node->PeakWorkingSetText->sr;
                 break;
             case PHPRTLC_PRIVATEWS:
-                PhMoveReference(&node->PrivateWsText, PhFormatSize(processItem->WorkingSetPrivateSize, -1));
-                getCellText->Text = node->PrivateWsText->sr;
+                {
+                    SIZE_T value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &value);
+                    PhMoveReference(&node->PrivateWsText, PhFormatSize(value, -1));
+                    getCellText->Text = node->PrivateWsText->sr;
+                }
                 break;
             case PHPRTLC_SHAREDWS:
                 PhpUpdateProcessNodeWsCounters(node);
@@ -2166,16 +2170,24 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = node->ShareableWsText->sr;
                 break;
             case PHPRTLC_VIRTUALSIZE:
-                PhMoveReference(&node->VirtualSizeText, PhFormatSize(processItem->VmCounters.VirtualSize, -1));
-                getCellText->Text = node->VirtualSizeText->sr;
+                {
+                    SIZE_T value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.VirtualSize), &value);
+                    PhMoveReference(&node->VirtualSizeText, PhFormatSize(value, -1));
+                    getCellText->Text = node->VirtualSizeText->sr;
+                }
                 break;
             case PHPRTLC_PEAKVIRTUALSIZE:
                 PhMoveReference(&node->PeakVirtualSizeText, PhFormatSize(processItem->VmCounters.PeakVirtualSize, -1));
                 getCellText->Text = node->PeakVirtualSizeText->sr;
                 break;
             case PHPRTLC_PAGEFAULTS:
-                PhMoveReference(&node->PageFaultsText, PhFormatUInt64(processItem->VmCounters.PageFaultCount, TRUE));
-                getCellText->Text = node->PageFaultsText->sr;
+                {
+                    ULONG value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PageFaultCount), &value);
+                    PhMoveReference(&node->PageFaultsText, PhFormatUInt64(value, TRUE));
+                    getCellText->Text = node->PageFaultsText->sr;
+                }
                 break;
             case PHPRTLC_SESSIONID:
                 PhInitializeStringRefLongHint(&getCellText->Text, processItem->SessionIdString);
@@ -2202,12 +2214,22 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_GDIHANDLES:
-                PhpUpdateProcessNodeGdiUserHandles(node);
-                PhpFormatInt32GroupDigits(node->GdiHandles, node->GdiHandlesText, sizeof(node->GdiHandlesText), &getCellText->Text);
+                {
+                    PhpUpdateProcessNodeGdiUserHandles(node);
+
+                    ULONG value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &value);
+                    PhpFormatInt32GroupDigits(value, node->GdiHandlesText, sizeof(node->GdiHandlesText), &getCellText->Text);
+                }
                 break;
             case PHPRTLC_USERHANDLES:
-                PhpUpdateProcessNodeGdiUserHandles(node);
-                PhpFormatInt32GroupDigits(node->UserHandles, node->UserHandlesText, sizeof(node->UserHandlesText), &getCellText->Text);
+                {
+                    PhpUpdateProcessNodeGdiUserHandles(node);
+
+                    ULONG value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &value);
+                    PhpFormatInt32GroupDigits(value, node->UserHandlesText, sizeof(node->UserHandlesText), &getCellText->Text);
+                }
                 break;
             case PHPRTLC_IORORATE:
                 {
@@ -2413,87 +2435,148 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 break;
             case PHPRTLC_CONTEXTSWITCHES:
-                if (processItem->ContextSwitchesDelta.Value != 0)
                 {
-                    PhMoveReference(&node->ContextSwitchesText, PhFormatUInt64(processItem->ContextSwitchesDelta.Value, TRUE));
-                    getCellText->Text = node->ContextSwitchesText->sr;
+                    ULONG value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->ContextSwitchesText, PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->ContextSwitchesText->sr;
+                    }
                 }
                 break;
             case PHPRTLC_CONTEXTSWITCHESDELTA:
-                if ((LONG)processItem->ContextSwitchesDelta.Delta > 0) // the delta may be negative if a thread exits - just don't show anything
+                if ((LONG)processItem->ContextSwitchesDelta.Delta >= 0) // the delta may be negative if a thread exits - just don't show anything
                 {
-                    PhMoveReference(&node->ContextSwitchesDeltaText, PhFormatUInt64(processItem->ContextSwitchesDelta.Delta, TRUE));
-                    getCellText->Text = node->ContextSwitchesDeltaText->sr;
+                    ULONG value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Delta), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->ContextSwitchesDeltaText, PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->ContextSwitchesDeltaText->sr;
+                    }
                 }
                 break;
             case PHPRTLC_PAGEFAULTSDELTA:
-                if (processItem->PageFaultsDelta.Delta != 0)
                 {
-                    PhMoveReference(&node->PageFaultsDeltaText, PhFormatUInt64(processItem->PageFaultsDelta.Delta, TRUE));
-                    getCellText->Text = node->PageFaultsDeltaText->sr;
+                    ULONG value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PageFaultsDelta.Delta), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->PageFaultsDeltaText, PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->PageFaultsDeltaText->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOREADS:
-                if (processItem->IoReadCountDelta.Value != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[0], PhFormatUInt64(processItem->IoReadCountDelta.Value, TRUE));
-                    getCellText->Text = node->IoGroupText[0]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[0], PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->IoGroupText[0]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOWRITES:
-                if (processItem->IoWriteCountDelta.Value != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[1], PhFormatUInt64(processItem->IoWriteCountDelta.Value, TRUE));
-                    getCellText->Text = node->IoGroupText[1]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[1], PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->IoGroupText[1]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOOTHER:
-                if (processItem->IoOtherCountDelta.Value != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[2], PhFormatUInt64(processItem->IoOtherCountDelta.Value, TRUE));
-                    getCellText->Text = node->IoGroupText[2]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[2], PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->IoGroupText[2]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOREADBYTES:
-                if (processItem->IoReadDelta.Value != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[3], PhFormatSize(processItem->IoReadDelta.Value, -1));
-                    getCellText->Text = node->IoGroupText[3]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[3], PhFormatSize(value, -1));
+                        getCellText->Text = node->IoGroupText[3]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOWRITEBYTES:
-                if (processItem->IoWriteDelta.Value != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[4], PhFormatSize(processItem->IoWriteDelta.Value, -1));
-                    getCellText->Text = node->IoGroupText[4]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[4], PhFormatSize(value, -1));
+                        getCellText->Text = node->IoGroupText[4]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOOTHERBYTES:
-                if (processItem->IoOtherDelta.Value != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[5], PhFormatSize(processItem->IoOtherDelta.Value, -1));
-                    getCellText->Text = node->IoGroupText[5]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[5], PhFormatSize(value, -1));
+                        getCellText->Text = node->IoGroupText[5]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOREADSDELTA:
-                if (processItem->IoReadCountDelta.Delta != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[6], PhFormatUInt64(processItem->IoReadCountDelta.Delta, TRUE));
-                    getCellText->Text = node->IoGroupText[6]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[6], PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->IoGroupText[6]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOWRITESDELTA:
-                if (processItem->IoWriteCountDelta.Delta != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[7], PhFormatUInt64(processItem->IoWriteCountDelta.Delta, TRUE));
-                    getCellText->Text = node->IoGroupText[7]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[7], PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->IoGroupText[7]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_IOOTHERDELTA:
-                if (processItem->IoOtherCountDelta.Delta != 0)
                 {
-                    PhMoveReference(&node->IoGroupText[8], PhFormatUInt64(processItem->IoOtherCountDelta.Delta, TRUE));
-                    getCellText->Text = node->IoGroupText[8]->sr;
+                    ULONG64 value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &value);
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->IoGroupText[8], PhFormatUInt64(value, TRUE));
+                        getCellText->Text = node->IoGroupText[8]->sr;
+                    }
                 }
                 break;
             case PHPRTLC_OSCONTEXT:
@@ -2521,36 +2604,52 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_PAGEDPOOL:
-                PhMoveReference(&node->PagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPagedPoolUsage, -1));
-                getCellText->Text = node->PagedPoolText->sr;
+                {
+                    SIZE_T value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPagedPoolUsage), &value);
+                    PhMoveReference(&node->PagedPoolText, PhFormatSize(value, -1));
+                    getCellText->Text = node->PagedPoolText->sr;
+                }
                 break;
             case PHPRTLC_PEAKPAGEDPOOL:
                 PhMoveReference(&node->PeakPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakPagedPoolUsage, -1));
                 getCellText->Text = node->PeakPagedPoolText->sr;
                 break;
             case PHPRTLC_NONPAGEDPOOL:
-                PhMoveReference(&node->NonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaNonPagedPoolUsage, -1));
-                getCellText->Text = node->NonPagedPoolText->sr;
+                {
+                    SIZE_T value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaNonPagedPoolUsage), &value);
+                    PhMoveReference(&node->NonPagedPoolText, PhFormatSize(value, -1));
+                    getCellText->Text = node->NonPagedPoolText->sr;
+                }
                 break;
             case PHPRTLC_PEAKNONPAGEDPOOL:
                 PhMoveReference(&node->PeakNonPagedPoolText, PhFormatSize(processItem->VmCounters.QuotaPeakNonPagedPoolUsage, -1));
                 getCellText->Text = node->PeakNonPagedPoolText->sr;
                 break;
             case PHPRTLC_MINIMUMWORKINGSET:
-                PhpUpdateProcessNodeQuotaLimits(node);
-                PhMoveReference(&node->MinimumWorkingSetText, PhFormatSize(node->MinimumWorkingSetSize, -1));
-                getCellText->Text = node->MinimumWorkingSetText->sr;
+                {
+                    PhpUpdateProcessNodeQuotaLimits(node);
+                    SIZE_T value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &value);
+                    PhMoveReference(&node->MinimumWorkingSetText, PhFormatSize(value, -1));
+                    getCellText->Text = node->MinimumWorkingSetText->sr;
+                }
                 break;
             case PHPRTLC_MAXIMUMWORKINGSET:
-                PhpUpdateProcessNodeQuotaLimits(node);
-                PhMoveReference(&node->MaximumWorkingSetText, PhFormatSize(node->MaximumWorkingSetSize, -1));
-                getCellText->Text = node->MaximumWorkingSetText->sr;
+                {
+                    PhpUpdateProcessNodeQuotaLimits(node);
+                    SIZE_T value = 0;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &value);
+                    PhMoveReference(&node->MaximumWorkingSetText, PhFormatSize(value, -1));
+                    getCellText->Text = node->MaximumWorkingSetText->sr;
+                }
                 break;
             case PHPRTLC_PRIVATEBYTESDELTA:
                 {
-                    LONG_PTR delta;
+                    LONG_PTR delta = 0;
 
-                    delta = processItem->PrivateBytesDelta.Delta;
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &delta);
 
                     if (delta != 0)
                     {
