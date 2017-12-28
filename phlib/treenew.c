@@ -5012,6 +5012,14 @@ VOID PhTnpPaint(
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
+		int backgroundIndentationAmmount = node->Level * SmallIconWidth;			// amount to indent by level
+		//backgroundIndentationAmmount += (node->s.IsLeaf) * SmallIconWidth;		// if there is a twirldown, indent for that arrow
+		backgroundIndentationAmmount += SmallIconWidth + TNP_CELL_LEFT_MARGIN - 1;  // indent for the icon and margin.
+		int backgroundIndentationTemp = rowRect.right;								// we still need to paint the background color over this indented area, hold the value temporarily
+		rowRect.right = backgroundIndentationAmmount;   
+		FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));					// paint the indented region with window color so we don't leak previous frames
+		rowRect.right = backgroundIndentationTemp;									// restore the row rectangle
+
         if (node->Selected && !Context->ThemeHasItemBackground)
         {
             // Non-themed background
@@ -5033,7 +5041,10 @@ VOID PhTnpPaint(
             backBrush = GetStockObject(DC_BRUSH);
         }
 
-        FillRect(hdc, &rowRect, backBrush);
+		backgroundIndentationTemp = rowRect.left;		// store the original left
+		rowRect.left = backgroundIndentationAmmount;	// indent our row background rect
+        FillRect(hdc, &rowRect, backBrush);				// fill the row background
+		rowRect.left = backgroundIndentationTemp;		// restore the rowRect
 
         if (Context->ThemeHasItemBackground)
         {
