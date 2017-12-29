@@ -416,7 +416,7 @@ VOID PhMwpInitializeControls(
     PhMwpProcessTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows,
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows,
         0,
         0,
         3,
@@ -431,7 +431,7 @@ VOID PhMwpInitializeControls(
     PhMwpServiceTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
         0,
         0,
         3,
@@ -446,7 +446,7 @@ VOID PhMwpInitializeControls(
     PhMwpNetworkTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
         0,
         0,
         3,
