@@ -22,7 +22,9 @@
 
 #include <peview.h>
 
-PWSTR PvpGetResourceTypeString(ULONG_PTR Type)
+static PWSTR PvpGetResourceTypeString(
+    _In_ ULONG_PTR Type
+    )
 {
     switch (Type)
     {
@@ -63,6 +65,15 @@ PWSTR PvpGetResourceTypeString(ULONG_PTR Type)
     return L"ERROR";
 }
 
+typedef enum _PVE_RESOURCES_COLUMN_INDEX
+{
+    PVE_RESOURCES_COLUMN_INDEX_COUNT,
+    PVE_RESOURCES_COLUMN_INDEX_TYPE,
+    PVE_RESOURCES_COLUMN_INDEX_NAME,
+    PVE_RESOURCES_COLUMN_INDEX_SIZE,
+    PVE_RESOURCES_COLUMN_INDEX_LCID
+} PVE_RESOURCES_COLUMN_INDEX;
+
 INT_PTR CALLBACK PvpPeResourcesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -80,7 +91,6 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            NTSTATUS status;
             HWND lvHandle;
             PH_MAPPED_IMAGE_RESOURCES resources;
             PH_IMAGE_RESOURCE_ENTRY entry;
@@ -92,20 +102,18 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Name");
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Type");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Language");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Type");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Name");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Size");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Language");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageResourcesListViewColumns", lvHandle);
 
-            status = PhGetMappedImageResources(&resources, &PvMappedImage);
-
-            if (NT_SUCCESS(status))
+            if (NT_SUCCESS(PhGetMappedImageResources(&resources, &PvMappedImage)))
             {
                 for (i = 0; i < resources.NumberOfEntries; i++)
                 {
-                    PPH_STRING string;
+                    PVOID string;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
                     entry = resources.ResourceEntries[i];
@@ -113,62 +121,60 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                     PhPrintUInt64(number, ++count);
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
 
-                    if (IS_INTRESOURCE(entry.Name))
-                    {
-                        PhPrintUInt32(number, (ULONG)entry.Name);
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, number);
-                    }
-                    else
-                    {
-                        PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Name;
-
-                        string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, string->Buffer);
-                        PhDereferenceObject(string);
-                    }
-
                     if (IS_INTRESOURCE(entry.Type))
                     {
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PvpGetResourceTypeString(entry.Type));
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_TYPE, PvpGetResourceTypeString(entry.Type));
                     }
                     else
                     {
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Type;
 
-                        string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, string->Buffer);
-                        PhDereferenceObject(string);
+                        string = PhAllocateCopy(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
+
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_TYPE, string);
+                        PhFree(string);
+                    }
+
+                    if (IS_INTRESOURCE(entry.Name))
+                    {
+                        PhPrintUInt32(number, (ULONG)entry.Name);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, number);
+                    }
+                    else
+                    {
+                        PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Name;
+
+                        string = PhAllocateCopy(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
+
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, string);
+                        PhFree(string);
                     }
 
                     if (IS_INTRESOURCE(entry.Language))
                     {
-                        WCHAR localeName[LOCALE_NAME_MAX_LENGTH];
+                        WCHAR name[LOCALE_NAME_MAX_LENGTH];
 
                         PhPrintUInt32(number, (ULONG)entry.Language);
 
-                        if (LCIDToLocaleName((ULONG)entry.Language, localeName, LOCALE_NAME_MAX_LENGTH, LOCALE_ALLOW_NEUTRAL_NAMES))
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhaFormatString(L"%s (%s)", number, localeName)->Buffer);
+                        if (LCIDToLocaleName((ULONG)entry.Language, name, LOCALE_NAME_MAX_LENGTH, LOCALE_ALLOW_NEUTRAL_NAMES))
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, PhaFormatString(L"%s (%s)", number, name)->Buffer);
                         else
-                            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
+                            PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, number);
                     }
                     else
                     {
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Language;
 
-                        string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, 3, string->Buffer);
-                        PhDereferenceObject(string);
+                        string = PhAllocateCopy(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
+
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, string);
+                        PhFree(string);
                     }
 
-                    PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PhaFormatSize(entry.Size, -1)->Buffer);
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_SIZE, PhaFormatSize(entry.Size, -1)->Buffer);
                 }
 
-                if (resources.ResourceEntries)
-                    PhFree(resources.ResourceEntries);
-            }
-            else
-            {
-                PhShowStatus(hwndDlg, L"Unable to enumerate module resources.", status, 0);
+                PhFree(resources.ResourceEntries);
             }
 
             ExtendedListView_SortItems(lvHandle);
