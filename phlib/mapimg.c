@@ -130,26 +130,88 @@ NTSTATUS PhLoadMappedImage(
     )
 {
     NTSTATUS status;
+    PVOID viewBase;
+    SIZE_T size;
 
     status = PhMapViewOfEntireFile(
         FileName,
         FileHandle,
         ReadOnly,
-        &MappedImage->ViewBase,
-        &MappedImage->Size
+        &viewBase,
+        &size
         );
 
     if (NT_SUCCESS(status))
     {
         status = PhInitializeMappedImage(
             MappedImage,
-            MappedImage->ViewBase,
-            MappedImage->Size
+            viewBase,
+            size
             );
 
         if (!NT_SUCCESS(status))
         {
             PhUnloadMappedImage(MappedImage);
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhLoadMappedImageEx(
+    _In_opt_ PWSTR FileName,
+    _In_opt_ HANDLE FileHandle,
+    _In_ BOOLEAN ReadOnly,
+    _Out_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    PVOID viewBase;
+    SIZE_T size;
+
+    status = PhMapViewOfEntireFile(
+        FileName,
+        FileHandle,
+        ReadOnly,
+        &viewBase,
+        &size
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PUSHORT imageHeaderSignature = viewBase;
+
+        __try
+        {
+            PhProbeAddress(imageHeaderSignature, sizeof(USHORT), viewBase, size, 1);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        MappedImage->Signature = *imageHeaderSignature;
+
+        switch (MappedImage->Signature)
+        {
+        case IMAGE_DOS_SIGNATURE:
+            {
+                status = PhInitializeMappedImage(
+                    MappedImage,
+                    viewBase,
+                    size
+                    );
+            }
+            break;
+        case IMAGE_ELF_SIGNATURE:
+            {
+                status = PhInitializeMappedWslImage(
+                    MappedImage,
+                    viewBase,
+                    size
+                    );
+            }
+            break;
         }
     }
 

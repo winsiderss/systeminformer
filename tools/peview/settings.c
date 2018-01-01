@@ -42,6 +42,9 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageResourcesListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
+
+    // Wsl properties
+    PhpAddStringSetting(L"GeneralWslTreeListColumns", L"");
 }
 
 VOID PhUpdateCachedSettings(

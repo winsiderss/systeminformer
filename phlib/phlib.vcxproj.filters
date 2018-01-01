@@ -218,6 +218,9 @@
     <ClCompile Include="jsonc\printbuf.c">
       <Filter>Json-C</Filter>
     </ClCompile>
+    <ClCompile Include="mapexlf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -458,6 +461,9 @@
       <Filter>Json-C\Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\exlf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

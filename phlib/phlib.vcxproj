@@ -176,6 +176,7 @@
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphdata.c" />
     <ClCompile Include="lsasup.c" />
+    <ClCompile Include="mapexlf.c" />
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="md5.c" />
@@ -208,6 +209,7 @@
   <ItemGroup>
     <ClInclude Include="include\apiimport.h" />
     <ClInclude Include="include\cpysave.h" />
+    <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\filepool.h" />
     <ClInclude Include="include\filepoolp.h" />
     <ClInclude Include="include\filestream.h" />
