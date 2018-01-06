@@ -1320,6 +1320,15 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
                     LVHITTESTINFO lvHitInfo;
 
+                    // HACK: Don't change the checkbox state for the 'Start hidden' item when the 'Start at logon' item hasn't been enabled.
+                    if (
+                        itemActivate->iItem == PHP_OPTIONS_INDEX_START_HIDDEN &&
+                        ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), PHP_OPTIONS_INDEX_START_ATLOGON) != BST_CHECKED
+                        )
+                    {
+                        break;
+                    }
+
                     lvHitInfo.pt = itemActivate->ptAction;
 
                     if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
