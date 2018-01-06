@@ -1318,10 +1318,22 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             case NM_CLICK:
                 {
                     LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
-                    BOOLEAN itemChecked;
-                    
-                    itemChecked = ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem) == BST_CHECKED;
-                    ListView_SetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem, !itemChecked);
+                    LVHITTESTINFO lvHitInfo;
+
+                    lvHitInfo.pt = itemActivate->ptAction;
+
+                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
+                    {
+                        // Ignore click notifications for the listview checkbox region.
+                        if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))
+                        {
+                            BOOLEAN itemChecked;
+
+                            // Emulate the checkbox control label click behavior and check/uncheck the checkbox when the listview item is clicked.
+                            itemChecked = ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem) == BST_CHECKED;
+                            ListView_SetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem, !itemChecked);
+                        }
+                    }
                 }
                 break;
             case LVN_ITEMCHANGED:
