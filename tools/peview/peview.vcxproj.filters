@@ -13,15 +13,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Source Files\Pages">
+      <UniqueIdentifier>{227fbc2c-1da0-44f4-95c8-47aca5abb52a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Windows">
+      <UniqueIdentifier>{d170a140-b947-49a4-87e8-e1d35b1024c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Pages\Linux">
+      <UniqueIdentifier>{3213da7e-9e01-48a4-8895-c4dd1499b2fa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="libprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="peprp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="misc.c">
@@ -36,32 +39,47 @@
     <ClCompile Include="pdb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="clrprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="expprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="impprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cfgprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ldprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pdbprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="colmgr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="searchbox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cfgprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="clrprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="expprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="impprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="ldprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="pdbprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="peprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="resprp.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="libprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="exlfprp.c">
+      <Filter>Source Files\Pages\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="exlfimports.c">
+      <Filter>Source Files\Pages\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="exlfexports.c">
+      <Filter>Source Files\Pages\Linux</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
