@@ -334,25 +334,20 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 #ifdef _WIN64
                 }
 #endif
+                NtClose(processHandle);
+                processHandle = NULL;
             }
 
             // Protection
 
             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"N/A");
 
-            if (processHandle)
+            if (processItem->Protection.Level != (UCHAR)-1)
             {
                 if (WindowsVersion >= WINDOWS_8_1)
                 {
-                    PS_PROTECTION protection;
+                    PS_PROTECTION protection = processItem->Protection;
 
-                    if (NT_SUCCESS(NtQueryInformationProcess(
-                        processHandle,
-                        ProcessProtectionInformation,
-                        &protection,
-                        sizeof(PS_PROTECTION),
-                        NULL
-                        )))
                     {
                         PWSTR type;
                         PWSTR signer;
@@ -386,9 +381,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     SetDlgItemText(hwndDlg, IDC_PROTECTION, processItem->IsProtectedProcess ? L"Yes" : L"None");
                 }
             }
-
-            if (processHandle)
-                NtClose(processHandle);
 
 #ifdef _WIN64
             if (processItem->IsWow64Valid)
