@@ -38,6 +38,47 @@
 static PWSTR ProtectedSignerStrings[] =
     { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
 
+PPH_STRING PhpFormatProcessProtection(_In_ PPH_PROCESS_ITEM ProcessItem)
+{
+    if (ProcessItem->Protection.Level != (UCHAR)-1)
+    {
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            PWSTR type;
+            PWSTR signer;
+
+            switch (ProcessItem->Protection.Type)
+            {
+                case PsProtectedTypeNone:
+                    type = L"None";
+                    break;
+                case PsProtectedTypeProtectedLight:
+                    type = L"Light";
+                    break;
+                case PsProtectedTypeProtected:
+                    type = L"Full";
+                    break;
+                default:
+                    type = L"Unknown";
+                    break;
+            }
+
+            if (ProcessItem->Protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
+                signer = ProtectedSignerStrings[ProcessItem->Protection.Signer];
+            else
+                signer = L"";
+
+            return PhConcatStrings2(type, signer);
+        }
+        else
+        {
+            return PhCreateString(ProcessItem->IsProtectedProcess ? L"Yes" : L"None");
+        }
+    }
+
+    return PhCreateString(L"N/A");
+}
+
 NTSTATUS PhpProcessGeneralOpenProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -340,47 +381,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"N/A");
-
-            if (processItem->Protection.Level != (UCHAR)-1)
-            {
-                if (WindowsVersion >= WINDOWS_8_1)
-                {
-                    PS_PROTECTION protection = processItem->Protection;
-
-                    {
-                        PWSTR type;
-                        PWSTR signer;
-
-                        switch (protection.Type)
-                        {
-                        case PsProtectedTypeNone:
-                            type = L"None";
-                            break;
-                        case PsProtectedTypeProtectedLight:
-                            type = L"Light";
-                            break;
-                        case PsProtectedTypeProtected:
-                            type = L"Full";
-                            break;
-                        default:
-                            type = L"Unknown";
-                            break;
-                        }
-
-                        if (protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
-                            signer = ProtectedSignerStrings[protection.Signer];
-                        else
-                            signer = L"";
-
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION, PhaConcatStrings2(type, signer)->Buffer);
-                    }
-                }
-                else
-                { 
-                    SetDlgItemText(hwndDlg, IDC_PROTECTION, processItem->IsProtectedProcess ? L"Yes" : L"None");
-                }
-            }
+            SetDlgItemText(hwndDlg, IDC_PROTECTION, PH_AUTO_T(PH_STRING, PhpFormatProcessProtection(processItem))->Buffer);
 
 #ifdef _WIN64
             if (processItem->IsWow64Valid)
