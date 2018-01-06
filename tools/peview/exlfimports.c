@@ -45,9 +45,8 @@ VOID PvpProcessElfImports(
 
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, import->Module);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, import->Name);
-        //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(import->Size, -1)->Buffer);
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolTypeName(import->TypeInfo));
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PvpGetSymbolBindingName(import->TypeInfo));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PvpGetSymbolTypeName(import->TypeInfo));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolBindingName(import->TypeInfo));
     }
 
     PhFreeMappedWslImageSymbols(imports);
