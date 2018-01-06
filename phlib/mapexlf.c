@@ -211,7 +211,7 @@ PELF64_IMAGE_SECTION_HEADER PhGetMappedWslImageSectionByType(
     return NULL;
 }
 
-// TODO: Check this is actually correct using test binaries.
+// TODO: Check this is actually correct.
 // https://stackoverflow.com/questions/18296276/base-address-of-elf
 ULONG64 PhGetMappedWslImageBaseAddress(
     _In_ PPH_MAPPED_IMAGE MappedWslImage
@@ -370,9 +370,10 @@ static PSTR PhpFindWslImageVersionRecordName(
     return NULL;
 }
 
-BOOLEAN PhGetMappedWslImageImportExport(
+// TODO: Optimize this function.
+BOOLEAN PhGetMappedWslImageSymbols(
     _In_ PPH_MAPPED_IMAGE MappedWslImage,
-    _Out_ PPH_LIST *ImageImportsExports
+    _Out_ PPH_LIST *ImageSymbols
     )
 {
     PELF64_IMAGE_SECTION_HEADER section;
@@ -380,28 +381,8 @@ BOOLEAN PhGetMappedWslImageImportExport(
 
     if (section = PhGetMappedWslImageSectionByType(MappedWslImage, SHT_SYMTAB))
     {
-        //ULONGLONG count;
-        //PELF_IMAGE_SYMBOL_ENTRY entry;
-        //PVOID stringTable;
-        //
-        //if (section->sh_entsize != sizeof(ELF_IMAGE_SYMBOL_ENTRY))
-        //    return FALSE;
-        //
-        //count = section->sh_size / sizeof(ELF_IMAGE_SYMBOL_ENTRY);
-        //entry = PTR_ADD_OFFSET(MappedWslImage->Header, section->sh_offset);
-        //stringTable = PhGetMappedWslImageSectionData(MappedWslImage, NULL, section->sh_link);
-        //
-        //for (ULONGLONG i = 0; i < count; i++)
-        //{
-        //    OutputDebugString(PhFormatString(
-        //        L"name: %S, addr: %x, size: %x\n", 
-        //        PTR_ADD_OFFSET(stringTable, entry[i].st_name), 
-        //        entry[i].st_value, 
-        //        entry[i].st_size
-        //        )->Buffer);
-        //}
-
-        PhShowInformation(NULL, L"SHT_SYMTAB");
+        // TODO: Need to find a WSL binary with a symbol table.
+        // SHT_SYMTAB should be parsed idential to SHT_DYNSYM?
     }
     
     if (section = PhGetMappedWslImageSectionByType(MappedWslImage, SHT_DYNSYM))
@@ -425,10 +406,6 @@ BOOLEAN PhGetMappedWslImageImportExport(
 
         for (i = 1; i < count; i++)
         {
-            // The ELF specification does not have a concept of imports or exports and yet the implementation does this.
-            // Imports are based on an undefined symbol with an RVA value of zero.
-            // Exports are based on defined symbols with a non-zero RVA. 
-
             if (entry[i].st_shndx == SHN_UNDEF)
             {
                 PPH_ELF_IMAGE_SYMBOL_ENTRY import;
@@ -437,7 +414,7 @@ BOOLEAN PhGetMappedWslImageImportExport(
                 memset(import, 0, sizeof(PH_ELF_IMAGE_SYMBOL_ENTRY));
 
                 import->ImportSymbol = TRUE;
-                //import->Address = entry[i].st_value; // Imports don't have a symbol address.
+                import->Address = entry[i].st_value;
                 import->Size = entry[i].st_size;
                 import->TypeInfo = entry[i].st_info;
 
@@ -524,7 +501,17 @@ BOOLEAN PhGetMappedWslImageImportExport(
             PhpFreeMappedWslImageVersionRecords(versionRecords);
     }
 
-    *ImageImportsExports = symbols;
+    *ImageSymbols = symbols;
 
     return TRUE;
+}
+
+VOID PhFreeMappedWslImageSymbols(
+    _In_ PPH_LIST ImageSymbols
+    )
+{
+    for (ULONG i = 0; i < ImageSymbols->Count; i++)
+        PhFree(ImageSymbols->Items[i]);
+
+    PhDereferenceObject(ImageSymbols);
 }

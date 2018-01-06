@@ -22,109 +22,35 @@
 
 #include <peview.h>
 
-//VOID PvpProcessImports(
-//    _In_ HWND ListViewHandle,
-//    _In_ PPH_MAPPED_IMAGE_IMPORTS Imports,
-//    _In_ BOOLEAN DelayImports,
-//    _Inout_ ULONG *Count
-//    )
-//{
-//    PH_MAPPED_IMAGE_IMPORT_DLL importDll;
-//    PH_MAPPED_IMAGE_IMPORT_ENTRY importEntry;
-//    ULONG i;
-//    ULONG j;
-//
-//    for (i = 0; i < Imports->NumberOfDlls; i++)
-//    {
-//        if (NT_SUCCESS(PhGetMappedImageImportDll(Imports, i, &importDll)))
-//        {
-//            for (j = 0; j < importDll.NumberOfEntries; j++)
-//            {
-//                if (NT_SUCCESS(PhGetMappedImageImportEntry(&importDll, j, &importEntry)))
-//                {
-//                    INT lvItemIndex;
-//                    PPH_STRING name;
-//                    WCHAR number[PH_INT32_STR_LEN_1];
-//
-//                    if (DelayImports)
-//                        name = PhFormatString(L"%S (Delay)", importDll.Name);
-//                    else
-//                        name = PhZeroExtendToUtf16(importDll.Name);
-//
-//                    PhPrintUInt64(number, ++(*Count)); // HACK
-//                    lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
-//
-//                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, name->Buffer);
-//                    PhDereferenceObject(name);
-//
-//                    if (importEntry.Name)
-//                    {
-//                        PPH_STRING importName = NULL;
-//
-//                        if (importEntry.Name[0] == '?')
-//                            importName = PhUndecorateName(PvSymbolProvider, importEntry.Name);
-//                        else
-//                            importName = PhZeroExtendToUtf16(importEntry.Name);
-//
-//                        if (!importName)
-//                            importName = PhZeroExtendToUtf16(importEntry.Name);
-//
-//                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, importName->Buffer);
-//                        PhDereferenceObject(importName);
-//
-//                        PhPrintUInt32(number, importEntry.NameHint);
-//                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, number);
-//                    }
-//                    else
-//                    {
-//                        name = PhFormatString(L"(Ordinal %u)", importEntry.Ordinal);
-//                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, name->Buffer);
-//                        PhDereferenceObject(name);
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
-
-PWSTR PvpGetSymbolTypeName(UCHAR TypeInfo)
+VOID PvpProcessElfImports(
+    _In_ HWND ListViewHandle
+    )
 {
-    switch (ELF_ST_TYPE(TypeInfo))
+    PPH_LIST imports;
+    ULONG count = 0;
+
+    PhGetMappedWslImageSymbols(&PvMappedImage, &imports);
+
+    for (ULONG i = 0; i < imports->Count; i++)
     {
-    case STT_NOTYPE:
-        return L"NOTYPE";
-    case STT_OBJECT:
-        return L"OBJECT";
-    case STT_FUNC:
-        return L"FUNC";
-    case STT_SECTION:
-        return L"SECTION";
-    case STT_FILE:
-        return L"FILE";
-    case STT_COMMON:
-        return L"COMMON";
-    case STT_TLS:
-        return L"TLS";
-    case STT_GNU_IFUNC:
-        return L"IFUNC";
+        PPH_ELF_IMAGE_SYMBOL_ENTRY import = imports->Items[i];
+        INT lvItemIndex;
+        WCHAR number[PH_INT32_STR_LEN_1];
+
+        if (!import->ImportSymbol)
+            continue;
+
+        PhPrintUInt64(number, count++);
+        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, import->Module);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, import->Name);
+        //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(import->Size, -1)->Buffer);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolTypeName(import->TypeInfo));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PvpGetSymbolBindingName(import->TypeInfo));
     }
 
-    return L"***ERROR***";
-}
-
-PWSTR PvpGetSymbolBindingName(UCHAR TypeInfo)
-{
-    switch (ELF_ST_BIND(TypeInfo))
-    {
-    case STB_LOCAL:
-        return L"LOCAL";
-    case STB_GLOBAL:
-        return L"GLOBAL";
-    case STB_WEAK:
-        return L"WEAK";
-    }
-
-    return L"***ERROR***";
+    PhFreeMappedWslImageSymbols(imports);
 }
 
 INT_PTR CALLBACK PvpExlfImportsDlgProc(
@@ -144,10 +70,7 @@ INT_PTR CALLBACK PvpExlfImportsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG count = 0;
-            ULONG fallbackColumns[] = { 0, 1, 2 };
             HWND lvHandle;
-            PPH_LIST imports;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -155,46 +78,12 @@ INT_PTR CALLBACK PvpExlfImportsDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 130, L"Module");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 210, L"Name");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Size");
-            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(lvHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Binding");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Type");
+            PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Binding");
             PhSetExtendedListView(lvHandle);
-            ExtendedListView_AddFallbackColumns(lvHandle, 3, fallbackColumns);
             PhLoadListViewColumnsFromSetting(L"ImageImportsListViewColumns", lvHandle);
 
-
-
-            PhGetMappedWslImageImportExport(&PvMappedImage, &imports);
-
-            for (ULONG i = 0; i < imports->Count; i++)
-            {
-                PPH_ELF_IMAGE_SYMBOL_ENTRY import = imports->Items[i];
-                INT lvItemIndex;
-                WCHAR number[PH_INT32_STR_LEN_1];
-                
-                if (!import->ImportSymbol)
-                    continue;
-
-                PhPrintUInt64(number, count++);
-                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
-
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, import->Module);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, import->Name);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhaFormatSize(import->Size, -1)->Buffer);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PvpGetSymbolTypeName(import->TypeInfo));
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 5, PvpGetSymbolBindingName(import->TypeInfo));
-            }
-
-            /*if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
-            {
-                PvpProcessImports(lvHandle, &imports, FALSE, &count);
-            }
-
-            if (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, &PvMappedImage)))
-            {
-                PvpProcessImports(lvHandle, &imports, TRUE, &count);
-            }*/
-
+            PvpProcessElfImports(lvHandle);
             ExtendedListView_SortItems(lvHandle);
 
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);

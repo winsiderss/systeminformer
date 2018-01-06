@@ -558,9 +558,13 @@ typedef struct _PH_ELF_IMAGE_SYMBOL_ENTRY
     WCHAR Module[0x80];
 } PH_ELF_IMAGE_SYMBOL_ENTRY, *PPH_ELF_IMAGE_SYMBOL_ENTRY;
 
-BOOLEAN PhGetMappedWslImageImportExport(
+BOOLEAN PhGetMappedWslImageSymbols(
     _In_ PPH_MAPPED_IMAGE MappedWslImage,
-    _Out_ PPH_LIST *ImageImportsExports
+    _Out_ PPH_LIST *ImageSymbols
+    );
+
+VOID PhFreeMappedWslImageSymbols(
+    _In_ PPH_LIST ImageSymbols
     );
 
 #ifdef __cplusplus

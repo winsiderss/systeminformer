@@ -22,31 +22,39 @@
 
 #include <peview.h>
 
-static PWSTR PvpGetSymbolTypeName(UCHAR TypeInfo)
+VOID PvpProcessElfExports(
+    _In_ HWND ListViewHandle
+    )
 {
-    switch (ELF_ST_TYPE(TypeInfo))
+    PPH_LIST exports;
+    ULONG count = 0;
+
+    PhGetMappedWslImageSymbols(&PvMappedImage, &exports);
+
+    for (ULONG i = 0; i < exports->Count; i++)
     {
-    case STT_NOTYPE:
-        return L"NOTYPE";
-    case STT_OBJECT:
-        return L"OBJECT";
-    case STT_FUNC:
-        return L"FUNC";
-    case STT_SECTION:
-        return L"SECTION";
-    case STT_FILE:
-        return L"FILE";
-    case STT_COMMON:
-        return L"COMMON";
-    case STT_TLS:
-        return L"TLS";
-    case STT_GNU_IFUNC:
-        return L"IFUNC";
+        PPH_ELF_IMAGE_SYMBOL_ENTRY export = exports->Items[i];
+        INT lvItemIndex;
+        WCHAR number[PH_INT32_STR_LEN_1];
+        WCHAR pointer[PH_PTR_STR_LEN_1];
+
+        if (!export->ExportSymbol)
+            continue;
+
+        PhPrintUInt64(number, count++);
+        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
+
+        PhPrintPointer(pointer, (PVOID)export->Address);
+
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, pointer);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, export->Name);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhaFormatSize(export->Size, -1)->Buffer);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PvpGetSymbolTypeName(export->TypeInfo));
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PvpGetSymbolBindingName(export->TypeInfo));
     }
 
-    return L"***ERROR***";
+    PhFreeMappedWslImageSymbols(exports);
 }
-
 
 INT_PTR CALLBACK PvpExlfExportsDlgProc(
     _In_ HWND hwndDlg,
@@ -66,8 +74,6 @@ INT_PTR CALLBACK PvpExlfExportsDlgProc(
     case WM_INITDIALOG:
         {
             HWND lvHandle;
-            PPH_LIST exports;
-            ULONG count = 0;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -81,129 +87,7 @@ INT_PTR CALLBACK PvpExlfExportsDlgProc(
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ImageExportsListViewColumns", lvHandle);
 
-            PhGetMappedWslImageImportExport(&PvMappedImage, &exports);
-
-            for (ULONG i = 0; i < exports->Count; i++)
-            {
-                PPH_ELF_IMAGE_SYMBOL_ENTRY export = exports->Items[i];
-                INT lvItemIndex;
-                WCHAR number[PH_INT32_STR_LEN_1];
-                WCHAR pointer[PH_PTR_STR_LEN_1];
-
-                if (!export->ExportSymbol)
-                    continue;
-
-                PhPrintUInt64(number, count++);
-                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
-
-                PhPrintPointer(pointer, (PVOID)export->Address);
-
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, export->Name);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhaFormatSize(export->Size, -1)->Buffer);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PvpGetSymbolTypeName(export->TypeInfo));
-            }
-
-            //if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
-            //{
-            //    for (i = 0; i < exports.NumberOfEntries; i++)
-            //    {
-            //        if (
-            //            NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)) &&
-            //            NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction))
-            //            )
-            //        {
-            //            INT lvItemIndex;
-            //            WCHAR number[PH_INT32_STR_LEN_1];
-            //            WCHAR pointer[PH_PTR_STR_LEN_1];
-
-            //            PhPrintUInt64(number, i + 1);
-            //            lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, number, NULL);
-
-            //            if (exportFunction.ForwardedName)
-            //            {
-            //                PPH_STRING forwardName = NULL;
-
-            //                if (exportFunction.ForwardedName[0] == '?')
-            //                    forwardName = PhUndecorateName(PvSymbolProvider, exportFunction.ForwardedName);
-            //                else
-            //                    forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-
-            //                if (!forwardName)
-            //                    forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
-
-            //                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, forwardName->Buffer);
-            //                PhDereferenceObject(forwardName);
-            //            }
-            //            else
-            //            {
-            //                PhPrintPointer(pointer, exportFunction.Function);
-            //                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, pointer);
-            //            }
-
-            //            if (exportEntry.Name)
-            //            {
-            //                PPH_STRING exportName = NULL;
-
-            //                if (exportEntry.Name[0] == '?')
-            //                    exportName = PhUndecorateName(PvSymbolProvider, exportEntry.Name);
-            //                else
-            //                    exportName = PhZeroExtendToUtf16(exportEntry.Name);
-
-            //                if (!exportName)
-            //                    exportName = PhZeroExtendToUtf16(exportEntry.Name);
-
-            //                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, exportName->Buffer);
-            //                PhDereferenceObject(exportName);
-            //            }
-            //            else
-            //            {
-            //                if (exportFunction.Function)
-            //                {
-            //                    PPH_STRING exportName;
-            //                    
-            //                    // Try find the export name using symbols.
-            //                    exportName = PhGetSymbolFromAddress(
-            //                        PvSymbolProvider,
-            //                        (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, exportFunction.Function),
-            //                        NULL,
-            //                        NULL,
-            //                        NULL,
-            //                        NULL
-            //                        );
-
-            //                    if (exportName)
-            //                    {
-            //                        static PH_STRINGREF unnamedText = PH_STRINGREF_INIT(L" (unnamed)");
-            //                        PH_STRINGREF exportNameText;
-            //                        PH_STRINGREF firstPart;
-            //                        PH_STRINGREF secondPart;
-
-            //                        if (PhSplitStringRefAtLastChar(&exportName->sr, L'!', &firstPart, &secondPart))
-            //                            exportNameText = secondPart;
-            //                        else
-            //                            exportNameText = exportName->sr;
-
-            //                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PH_AUTO_T(PH_STRING, PhConcatStringRef2(&exportNameText, &unnamedText))->Buffer);
-            //                        PhDereferenceObject(exportName);
-            //                    }
-            //                    else
-            //                    {
-            //                        PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
-            //                    }
-            //                }
-            //                else
-            //                {
-            //                    PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"(unnamed)");
-            //                }
-            //            }
-
-            //            PhPrintUInt32(number, exportEntry.Ordinal);
-            //            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, number);
-            //        }
-            //    }
-            //}
-
+            PvpProcessElfExports(lvHandle);
             ExtendedListView_SortItems(lvHandle);
             
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);

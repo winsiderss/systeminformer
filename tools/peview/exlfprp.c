@@ -24,6 +24,50 @@
 #include <mapimg.h>
 #include <uxtheme.h>
 
+PWSTR PvpGetSymbolTypeName(
+    _In_ UCHAR TypeInfo
+    )
+{
+    switch (ELF_ST_TYPE(TypeInfo))
+    {
+    case STT_NOTYPE:
+        return L"No type";
+    case STT_OBJECT:
+        return L"Object";
+    case STT_FUNC:
+        return L"Function";
+    case STT_SECTION:
+        return L"Section";
+    case STT_FILE:
+        return L"File";
+    case STT_COMMON:
+        return L"Common";
+    case STT_TLS:
+        return L"TLS";
+    case STT_GNU_IFUNC:
+        return L"IFUNC";
+    }
+
+    return L"***ERROR***";
+}
+
+PWSTR PvpGetSymbolBindingName(
+    _In_ UCHAR TypeInfo
+    )
+{
+    switch (ELF_ST_BIND(TypeInfo))
+    {
+    case STB_LOCAL:
+        return L"Local";
+    case STB_GLOBAL:
+        return L"Global";
+    case STB_WEAK:
+        return L"Weak";
+    }
+
+    return L"***ERROR***";
+}
+
 VOID PvExlfProperties(
     VOID
     )

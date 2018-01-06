@@ -330,6 +330,14 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
 
 // ELF
 
+PWSTR PvpGetSymbolTypeName(
+    _In_ UCHAR TypeInfo
+    );
+
+PWSTR PvpGetSymbolBindingName(
+    _In_ UCHAR TypeInfo
+    );
+
 INT_PTR CALLBACK PvpExlfGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
