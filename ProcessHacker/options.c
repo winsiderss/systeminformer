@@ -1313,50 +1313,63 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             //    }
             //}
 
-            if (header->code == LVN_ITEMCHANGED)
+            switch (header->code)
             {
-                LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
-
-                if (listView->uChanged & LVIF_STATE)
+            case NM_CLICK:
                 {
-                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                    BOOLEAN itemChecked;
+                    
+                    itemChecked = ListView_GetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem) == BST_CHECKED;
+                    ListView_SetCheckState(GetDlgItem(hwndDlg, IDC_SETTINGS), itemActivate->iItem, !itemChecked);
+                }
+                break;
+            case LVN_ITEMCHANGED:
+                {
+                    LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
+
+                    if (listView->uChanged & LVIF_STATE)
                     {
-                    case INDEXTOSTATEIMAGEMASK(2): // checked
+                        switch (listView->uNewState & LVIS_STATEIMAGEMASK)
                         {
-                            switch (listView->iItem)
+                        case INDEXTOSTATEIMAGEMASK(2): // checked
                             {
-                            case PHP_OPTIONS_INDEX_START_ATLOGON:
+                                switch (listView->iItem)
                                 {
-                                    PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, FALSE);
+                                case PHP_OPTIONS_INDEX_START_ATLOGON:
+                                    {
+                                        PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, FALSE);
+                                    }
+                                    break;
+                                case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
+                                    {
+                                        PhpOptionsShowHideTreeViewItem(FALSE);
+                                    }
+                                    break;
                                 }
-                                break;
-                            case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
-                                {
-                                    PhpOptionsShowHideTreeViewItem(FALSE);
-                                }
-                                break;
                             }
-                        }
-                        break;
-                    case INDEXTOSTATEIMAGEMASK(1): // unchecked
-                        {
-                            switch (listView->iItem)
+                            break;
+                        case INDEXTOSTATEIMAGEMASK(1): // unchecked
                             {
-                            case PHP_OPTIONS_INDEX_START_ATLOGON:
+                                switch (listView->iItem)
                                 {
-                                    PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
+                                case PHP_OPTIONS_INDEX_START_ATLOGON:
+                                    {
+                                        PhpSetListViewItemState(listView->hdr.hwndFrom, PHP_OPTIONS_INDEX_START_HIDDEN, TRUE);
+                                    }
+                                    break;
+                                case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
+                                    {
+                                        PhpOptionsShowHideTreeViewItem(TRUE);
+                                    }
+                                    break;
                                 }
-                                break;
-                            case PHP_OPTIONS_INDEX_SHOW_ADVANCED_OPTIONS:
-                                {
-                                    PhpOptionsShowHideTreeViewItem(TRUE);
-                                }
-                                break;
                             }
+                            break;
                         }
-                        break;
                     }
                 }
+                break;
             }
         }
         break;
