@@ -88,7 +88,7 @@ INT WINAPI wWinMain(
         CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
         fileDialog = PhCreateOpenFileDialog();
-        PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+        PhSetFileDialogFilter(fileDialog, filters, ARRAYSIZE(filters));
 
         if (PhShowFileDialog(NULL, fileDialog))
         {
@@ -116,7 +116,37 @@ INT WINAPI wWinMain(
     else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
         PvPdbProperties();
     else
-        PvPeProperties();
+    {
+        NTSTATUS status;
+
+        status = PhLoadMappedImageEx(
+            PvFileName->Buffer, 
+            NULL, 
+            TRUE,
+            &PvMappedImage
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            switch (PvMappedImage.Signature)
+            {
+            case IMAGE_DOS_SIGNATURE:
+                PvPeProperties();
+                break;
+            case IMAGE_ELF_SIGNATURE:
+                PvExlfProperties();
+                break;
+            default:
+                status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
+                break;
+            }
+        }
+
+        if (NT_SUCCESS(status))
+            PhUnloadMappedImage(&PvMappedImage);
+        else
+            PhShowStatus(NULL, L"Unable to load the file.", status, 0);
+    }
 
     PeSaveSettings();
 

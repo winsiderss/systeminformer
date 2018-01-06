@@ -54,22 +54,10 @@ VOID PvPeProperties(
     VOID
     )
 {
-    NTSTATUS status;
     PPV_PROPCONTEXT propContext;
     PH_MAPPED_IMAGE_IMPORTS imports;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PIMAGE_DATA_DIRECTORY entry;
-
-    if (!NT_SUCCESS(status = PhLoadMappedImage(
-        PvFileName->Buffer, 
-        NULL, 
-        TRUE, 
-        &PvMappedImage
-        )))
-    {
-        PhShowStatus(NULL, L"Unable to load the PE file", status, 0);
-        return;
-    }
 
     if (PvpLoadDbgHelp(&PvSymbolProvider))
     {
@@ -145,7 +133,7 @@ VOID PvPeProperties(
             entry->VirtualAddress &&
             (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
         {
-            status = STATUS_SUCCESS;
+            NTSTATUS status = STATUS_SUCCESS;
 
             __try
             {
@@ -199,8 +187,6 @@ VOID PvPeProperties(
 
         PhDereferenceObject(propContext);
     }
-
-    PhUnloadMappedImage(&PvMappedImage);
 }
 
 static NTSTATUS CheckSumImageThreadStart(

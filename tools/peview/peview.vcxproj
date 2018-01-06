@@ -94,6 +94,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>true</StringPooling>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -123,6 +124,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>true</StringPooling>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <AdditionalDependencies>noarg.obj;noenv.obj;phlib.lib;ntdll.lib;uxtheme.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -212,6 +214,9 @@
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="colmgr.c" />
+    <ClCompile Include="exlfexports.c" />
+    <ClCompile Include="exlfimports.c" />
+    <ClCompile Include="exlfprp.c" />
     <ClCompile Include="ldprp.c" />
     <ClCompile Include="expprp.c" />
     <ClCompile Include="impprp.c" />
