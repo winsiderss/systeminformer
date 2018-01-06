@@ -1393,6 +1393,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorIdleMaskInformation, // since REDSTONE3
     SystemSecureDumpEncryptionInformation,
     SystemWriteConstraintInformation, // SYSTEM_WRITE_CONSTRAINT_INFORMATION
+    SystemKernelVaShadowInformation, // SYSTEM_KERNEL_VA_SHADOW_INFORMATION
+    SystemSpeculationControlInformation = 201, // SYSTEM_SPECULATION_CONTROL_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -3077,6 +3079,44 @@ typedef struct _SYSTEM_WRITE_CONSTRAINT_INFORMATION
     ULONG WriteConstraintPolicy;
     ULONG Reserved;
 } SYSTEM_WRITE_CONSTRAINT_INFORMATION, *PSYSTEM_WRITE_CONSTRAINT_INFORMATION;
+
+// private
+typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG KvaShadowEnabled : 1;
+            ULONG KvaShadowUserGlobal : 1;
+            ULONG KvaShadowPcid : 1;
+            ULONG KvaShadowInvpcid : 1;
+            ULONG Reserved : 28;
+        };
+    };
+} SYSTEM_KERNEL_VA_SHADOW_INFORMATION, *PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
+
+// private
+typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
+{
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG BpbEnabled : 1;
+            ULONG BpbDisabledSystemPolicy : 1;
+            ULONG BpbDisabledNoHardwareSupport : 1;
+            ULONG SpecCtrlEnumerated : 1;
+            ULONG SpecCmdEnumerated : 1;
+            ULONG IbrsPresent : 1;
+            ULONG StibpPresent : 1;
+            ULONG SmepPresent : 1;
+            ULONG Reserved : 24;
+        };
+    };
+} SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
