@@ -210,6 +210,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_SUBPROCESSCOUNT, FALSE, L"Subprocesses", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_JOBOBJECTID, FALSE, L"Job Object ID", 50, PH_ALIGN_LEFT, -1, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PROTECTION, FALSE, L"Protection", 105, PH_ALIGN_LEFT, -1, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -599,6 +600,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileModifiedTimeText);
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
+    PhClearReference(&ProcessNode->ProtectionText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1869,6 +1871,12 @@ BEGIN_SORT_FUNCTION(JobObjectId)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Protection)
+{
+    sortResult = intcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1989,7 +1997,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(FileModifiedTime),
                         SORT_FUNCTION(FileSize),
                         SORT_FUNCTION(Subprocesses),
-                        SORT_FUNCTION(JobObjectId)
+                        SORT_FUNCTION(JobObjectId),
+                        SORT_FUNCTION(Protection),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2788,6 +2797,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhPrintInt32(node->JobObjectIdText, processItem->JobObjectId);
                         PhInitializeStringRefLongHint(&getCellText->Text, node->JobObjectIdText);
                     }
+                }
+                break;
+            case PHPRTLC_PROTECTION:
+                {
+                    extern PPH_STRING PhpFormatProcessProtection(_In_ PPH_PROCESS_ITEM ProcessItem);
+
+                    PhMoveReference(&node->ProtectionText, PhpFormatProcessProtection(processItem));
+                    getCellText->Text = node->ProtectionText->sr;
                 }
                 break;
             default:
