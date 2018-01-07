@@ -273,15 +273,6 @@ PhGetProcessWsCounters(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhInjectDllProcess(
-    _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhUnloadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,

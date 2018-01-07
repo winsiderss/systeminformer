@@ -1663,62 +1663,6 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
     return TRUE;
 }
 
-BOOLEAN PhUiInjectDllProcess(
-    _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process
-    )
-{
-    static PH_FILETYPE_FILTER filters[] =
-    {
-        { L"DLL files (*.dll)", L"*.dll" },
-        { L"All files (*.*)", L"*.*" }
-    };
-
-    NTSTATUS status;
-    PVOID fileDialog;
-    PPH_STRING fileName;
-    HANDLE processHandle;
-
-    fileDialog = PhCreateOpenFileDialog();
-    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-
-    if (!PhShowFileDialog(hWnd, fileDialog))
-    {
-        PhFreeFileDialog(fileDialog);
-        return FALSE;
-    }
-
-    fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-    PhFreeFileDialog(fileDialog);
-
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-        PROCESS_VM_READ | PROCESS_VM_WRITE,
-        Process->ProcessId
-        )))
-    {
-        LARGE_INTEGER timeout;
-
-        timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
-        status = PhInjectDllProcess(
-            processHandle,
-            fileName->Buffer,
-            &timeout
-            );
-
-        NtClose(processHandle);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhpShowErrorProcess(hWnd, L"inject the DLL into", Process, status, 0);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 BOOLEAN PhUiSetIoPriorityProcesses(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM *Processes,

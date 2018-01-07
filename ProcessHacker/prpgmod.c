@@ -690,8 +690,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, relocatedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_RELOCATED_OPTION, L"Highlight relocated modules", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, untrustedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION, L"Highlight untrusted modules", NULL, NULL), -1);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module", NULL, NULL), -1);
-                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                     PhInsertEMenuItem(menu, stringsItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_MODULE_STRINGS_OPTION, L"Strings...", NULL, NULL), -1);
 
                     if (modulesContext->ListContext.HideDynamicModules)
@@ -724,20 +722,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (selectedItem && selectedItem->Id)
                     {
-                        if (selectedItem->Id == PH_MODULE_FLAGS_LOAD_MODULE_OPTION)
-                        {
-                            PhReferenceObject(processItem);
-                            PhUiInjectDllProcess(hwndDlg, processItem);
-                            PhDereferenceObject(processItem);
-                        }
-                        else
-                        {
-                            PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
+                        PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
+                        PhSaveSettingsModuleList(&modulesContext->ListContext);
 
-                            PhSaveSettingsModuleList(&modulesContext->ListContext);
-
-                            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
-                        }
+                        PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
                     }
 
                     PhDestroyEMenu(menu);

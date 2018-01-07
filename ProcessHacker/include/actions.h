@@ -191,14 +191,6 @@ PhUiDetachFromDebuggerProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhUiInjectDllProcess(
-    _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process
-    );
-
-PHAPPAPI
-BOOLEAN
-NTAPI
 PhUiSetIoPriorityProcesses(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM *Processes,
