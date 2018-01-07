@@ -810,4 +810,10 @@ HPROPSHEETPAGE PhCreateTokenPage(
     _In_opt_ DLGPROC HookProc
     );
 
+// prpggen
+
+PPH_STRING PhGetProcessItemProtectionText(
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 #endif

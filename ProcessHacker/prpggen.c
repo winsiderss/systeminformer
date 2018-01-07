@@ -38,11 +38,13 @@
 static PWSTR ProtectedSignerStrings[] =
     { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
 
-PPH_STRING PhpFormatProcessProtection(_In_ PPH_PROCESS_ITEM ProcessItem)
+PPH_STRING PhGetProcessItemProtectionText(
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
 {
-    if (ProcessItem->Protection.Level != (UCHAR)-1)
+    if (WindowsVersion >= WINDOWS_8_1)
     {
-        if (WindowsVersion >= WINDOWS_8_1)
+        if (ProcessItem->Protection.Level != 0)
         {
             PWSTR type;
             PWSTR signer;
@@ -350,13 +352,11 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PEBADDRESS, L"N/A");
 
-            PhOpenProcess(
+            if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
                 ProcessQueryAccess,
                 processItem->ProcessId
-                );
-
-            if (processHandle)
+                )))
             {
                 PhGetProcessBasicInformation(processHandle, &basicInfo);
 #ifdef _WIN64
@@ -381,7 +381,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Protection
 
-            SetDlgItemText(hwndDlg, IDC_PROTECTION, PH_AUTO_T(PH_STRING, PhpFormatProcessProtection(processItem))->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PROTECTION, PH_AUTO_T(PH_STRING, PhGetProcessItemProtectionText(processItem))->Buffer);
 
 #ifdef _WIN64
             if (processItem->IsWow64Valid)

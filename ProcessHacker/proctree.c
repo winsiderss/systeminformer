@@ -2801,10 +2801,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_PROTECTION:
                 {
-                    extern PPH_STRING PhpFormatProcessProtection(_In_ PPH_PROCESS_ITEM ProcessItem);
-
-                    PhMoveReference(&node->ProtectionText, PhpFormatProcessProtection(processItem));
-                    getCellText->Text = node->ProtectionText->sr;
+                    if (processItem->Protection.Level != 0)
+                    {
+                        PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
+                        getCellText->Text = node->ProtectionText->sr;
+                    }
                 }
                 break;
             default:
