@@ -292,7 +292,6 @@ BEGIN
         BEGIN
             MENUITEM "&Detach from debugger",       ID_MISCELLANEOUS_DETACHFROMDEBUGGER
             MENUITEM "GDI &handles",                ID_MISCELLANEOUS_GDIHANDLES
-            MENUITEM "&Inject DLL...",              ID_MISCELLANEOUS_INJECTDLL
             POPUP "Pa&ge priority"
             BEGIN
                 MENUITEM "&Normal",                     ID_PAGEPRIORITY_NORMAL
