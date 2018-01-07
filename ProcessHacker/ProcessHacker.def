@@ -283,7 +283,6 @@ EXPORTS
 	PhGetTokenPrivileges
 	PhGetTokenUser
 	PhImpersonateClientOfNamedPipe
-	PhInjectDllProcess
 	PhListenNamedPipe
 	PhOpenKey
 	PhLoadAppKey
