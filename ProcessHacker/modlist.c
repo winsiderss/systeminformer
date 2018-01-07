@@ -779,10 +779,6 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
                         PhInitializeStringRef(&getCellText->Text, L"CF Guard");
                 }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
-                }
                 break;
             case PHMOTLC_LOADTIME:
                 {

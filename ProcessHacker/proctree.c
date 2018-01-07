@@ -2743,10 +2743,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
                         PhInitializeStringRef(&getCellText->Text, L"CF Guard");
                 }
-                else
-                {
-                    PhInitializeStringRef(&getCellText->Text, L"N/A");
-                }
                 break;
             case PHPRTLC_TIMESTAMP:
                 PhpUpdateProcessNodeImage(node);
