@@ -231,6 +231,7 @@ typedef struct _PH_PROCESS_ITEM
 
     ULONGLONG ProcessSequenceNumber;
     PH_KNOWN_PROCESS_TYPE KnownProcessType;
+    PS_PROTECTION Protection;
     ULONG JobObjectId;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub

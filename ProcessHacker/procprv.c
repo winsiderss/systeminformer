@@ -1453,6 +1453,24 @@ VOID PhpFillProcessItem(
             );
     }
 
+    // Protection
+    if (ProcessItem->QueryHandle)
+    {
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            NtQueryInformationProcess(
+                ProcessItem->QueryHandle,
+                ProcessProtectionInformation,
+                &ProcessItem->Protection,
+                sizeof(ProcessItem->Protection),
+                NULL);
+        }
+    }
+    else
+    {
+        ProcessItem->Protection.Level = (UCHAR)-1;
+    }
+
     // On Windows 8.1 and above, processes without threads are reflected processes 
     // which will not terminate if we have a handle open.
     if (Process->NumberOfThreads == 0)
