@@ -1316,6 +1316,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             switch (header->code)
             {
             case NM_CLICK:
+            case NM_DBLCLK:
                 {
                     LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
                     LVHITTESTINFO lvHitInfo;
