@@ -42,27 +42,27 @@ PPH_STRING PhGetProcessItemProtectionText(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    if (WindowsVersion >= WINDOWS_8_1)
+    if (ProcessItem->Protection.Level != UCHAR_MAX)
     {
-        if (ProcessItem->Protection.Level != 0)
+        if (WindowsVersion >= WINDOWS_8_1)
         {
             PWSTR type;
             PWSTR signer;
 
             switch (ProcessItem->Protection.Type)
             {
-                case PsProtectedTypeNone:
-                    type = L"None";
-                    break;
-                case PsProtectedTypeProtectedLight:
-                    type = L"Light";
-                    break;
-                case PsProtectedTypeProtected:
-                    type = L"Full";
-                    break;
-                default:
-                    type = L"Unknown";
-                    break;
+            case PsProtectedTypeNone:
+                type = L"None";
+                break;
+            case PsProtectedTypeProtectedLight:
+                type = L"Light";
+                break;
+            case PsProtectedTypeProtected:
+                type = L"Full";
+                break;
+            default:
+                type = L"Unknown";
+                break;
             }
 
             if (ProcessItem->Protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
