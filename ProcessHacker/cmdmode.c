@@ -226,28 +226,6 @@ NTSTATUS PhCommandModeStart(
                 NtClose(processHandle);
             }
         }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"injectdll", TRUE))
-        {
-            if (!PhStartupParameters.CommandValue)
-                return STATUS_INVALID_PARAMETER;
-
-            if (NT_SUCCESS(status = PhOpenProcessPublic(
-                &processHandle,
-                ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE,
-                processId
-                )))
-            {
-                LARGE_INTEGER timeout;
-
-                timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
-                status = PhInjectDllProcess(
-                    processHandle,
-                    PhStartupParameters.CommandValue->Buffer,
-                    &timeout
-                    );
-                NtClose(processHandle);
-            }
-        }
         else if (PhEqualString2(PhStartupParameters.CommandAction, L"unloaddll", TRUE))
         {
             if (!PhStartupParameters.CommandValue)
