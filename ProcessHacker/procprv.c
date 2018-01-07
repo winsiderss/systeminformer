@@ -1454,20 +1454,27 @@ VOID PhpFillProcessItem(
     }
 
     // Protection
-    if (WindowsVersion >= WINDOWS_8_1 && ProcessItem->QueryHandle)
+    if (ProcessItem->QueryHandle)
     {
-        PS_PROTECTION protection;
-
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            ProcessItem->QueryHandle,
-            ProcessProtectionInformation,
-            &protection,
-            sizeof(PS_PROTECTION),
-            NULL
-            )))
+        if (WindowsVersion >= WINDOWS_8_1)
         {
-            ProcessItem->Protection.Level = protection.Level;
+            PS_PROTECTION protection;
+
+            if (NT_SUCCESS(NtQueryInformationProcess(
+                ProcessItem->QueryHandle,
+                ProcessProtectionInformation,
+                &protection,
+                sizeof(PS_PROTECTION),
+                NULL
+                )))
+            {
+                ProcessItem->Protection.Level = protection.Level;
+            }
         }
+    }
+    else
+    {
+        ProcessItem->Protection.Level = UCHAR_MAX;
     }
 
     // On Windows 8.1 and above, processes without threads are reflected processes 
