@@ -774,11 +774,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_CFGUARD:
-                if (WindowsVersion >= WINDOWS_8_1)
-                {
-                    if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
-                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
-                }
+                if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
+                    PhInitializeStringRef(&getCellText->Text, L"CF Guard");
                 break;
             case PHMOTLC_LOADTIME:
                 {

@@ -1826,11 +1826,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CfGuard)
 {
-    PhpUpdateProcessNodeImage(node1);
-    PhpUpdateProcessNodeImage(node2);
     sortResult = intcmp(
-        node1->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF,
-        node2->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF
+        node1->ProcessItem->IsControlFlowGuardEnabled,
+        node2->ProcessItem->IsControlFlowGuardEnabled
         );
 }
 END_SORT_FUNCTION
@@ -2736,13 +2734,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_CFGUARD:
-                PhpUpdateProcessNodeImage(node);
-
-                if (WindowsVersion >= WINDOWS_8_1)
-                {
-                    if (node->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
-                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
-                }
+                if (processItem->IsControlFlowGuardEnabled)
+                    PhInitializeStringRef(&getCellText->Text, L"CF Guard");
                 break;
             case PHPRTLC_TIMESTAMP:
                 PhpUpdateProcessNodeImage(node);
