@@ -113,7 +113,7 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
             {
                 for (i = 0; i < resources.NumberOfEntries; i++)
                 {
-                    PVOID string;
+                    PPH_STRING string;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
                     entry = resources.ResourceEntries[i];
@@ -129,10 +129,10 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                     {
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Type;
 
-                        string = PhAllocateCopy(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
+                        string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
 
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_TYPE, string);
-                        PhFree(string);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_TYPE, string->Buffer);
+                        PhDereferenceObject(string);
                     }
 
                     if (IS_INTRESOURCE(entry.Name))
@@ -144,10 +144,10 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                     {
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Name;
 
-                        string = PhAllocateCopy(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
+                        string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
 
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, string);
-                        PhFree(string);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_NAME, string->Buffer);
+                        PhDereferenceObject(string);
                     }
 
                     if (IS_INTRESOURCE(entry.Language))
@@ -165,10 +165,10 @@ INT_PTR CALLBACK PvpPeResourcesDlgProc(
                     {
                         PIMAGE_RESOURCE_DIR_STRING_U resourceString = (PIMAGE_RESOURCE_DIR_STRING_U)entry.Language;
 
-                        string = PhAllocateCopy(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
+                        string = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
 
-                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, string);
-                        PhFree(string);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_LCID, string->Buffer);
+                        PhDereferenceObject(string);
                     }
 
                     PhSetListViewSubItem(lvHandle, lvItemIndex, PVE_RESOURCES_COLUMN_INDEX_SIZE, PhaFormatSize(entry.Size, -1)->Buffer);
