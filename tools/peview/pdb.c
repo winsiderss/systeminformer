@@ -59,6 +59,18 @@ typedef BOOL (WINAPI *_SymEnumTypesW)(
     _In_opt_ PVOID UserContext
     );
 
+typedef BOOL (WINAPI *_SymSearchW)(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 BaseOfDll,
+    _In_opt_ DWORD Index,
+    _In_opt_ DWORD SymTag,
+    _In_opt_ PCWSTR Mask,
+    _In_opt_ DWORD64 Address,
+    _In_ PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
+    _In_opt_ PVOID UserContext,
+    _In_ DWORD Options
+    );
+
 typedef BOOL (WINAPI *_SymSetSearchPathW)(
     _In_ HANDLE hProcess,
     _In_opt_ PCWSTR SearchPath
@@ -112,6 +124,7 @@ _SymGetModuleInfoW64 SymGetModuleInfoW64_I = NULL;
 _SymGetTypeFromNameW SymGetTypeFromNameW_I = NULL;
 _SymGetTypeInfo SymGetTypeInfo_I = NULL;
 _SymSetContext SymSetContext_I = NULL;
+_SymSearchW SymSearchW_I = NULL;
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;
@@ -1932,9 +1945,8 @@ BOOL CALLBACK EnumCallbackProc(
                 PPDB_SYMBOL_CONTEXT context = Context;
                 PPV_SYMBOL_NODE symbol;
 
-                // TODO: Remove filter 
-                //if (SymbolInfo->Tag != SymTagPublicSymbol)
-                //    break;
+                if (SymbolInfo->Address == 0)
+                    break;
 
                 symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
                 memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
@@ -1942,9 +1954,16 @@ BOOL CALLBACK EnumCallbackProc(
                 symbol->Type = PV_SYMBOL_TYPE_SYMBOL;
                 symbol->Address = SymbolInfo->Address;
                 symbol->Size = SymbolInfo->Size;
-                symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
                 symbol->Data = SymbolInfo_GetTypeName(context, SymbolInfo->TypeIndex, SymbolInfo->Name);
                 SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
+
+                if (SymbolInfo->Name[0]) // HACK
+                {
+                    if (SymbolInfo->NameLen)
+                        symbol->Name = PhCreateStringEx(SymbolInfo->Name, SymbolInfo->NameLen * sizeof(WCHAR));
+                    else
+                        symbol->Name = PhCreateString(SymbolInfo->Name);
+                }
 
                 PhAcquireQueuedLockExclusive(&SearchResultsLock);
                 PhAddItemList(SearchResults, symbol);
@@ -2327,6 +2346,7 @@ NTSTATUS PeDumpFileSymbols(
     SymGetTypeFromNameW_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeFromNameW", 0);
     SymGetTypeInfo_I = PhGetProcedureAddress(dbghelpHandle, "SymGetTypeInfo", 0);
     SymSetContext_I = PhGetProcedureAddress(dbghelpHandle, "SymSetContext", 0);
+    SymSearchW_I = PhGetProcedureAddress(dbghelpHandle, "SymSearchW", 0);
 
     SymSetOptions_I(
         SymGetOptions_I() |
@@ -2372,9 +2392,25 @@ NTSTATUS PeDumpFileSymbols(
         //ShowModuleSymbolInfo(symbolBaseAddress);
         SymEnumSymbolsW_I(NtCurrentProcess(), Context->BaseAddress, NULL, EnumCallbackProc, Context);
 
-        // Enumerate user defined types 
-        //PrintUserDefinedTypes(Context);
+        // Enumerate user defined types.
         SymEnumTypesW_I(NtCurrentProcess(), Context->BaseAddress, EnumCallbackProc, Context);
+        //PrintUserDefinedTypes(Context); // Commented out due to verbosity.
+
+        // NOTE: The SymEnumSymbolsW and SymEnumTypesW functions don't enumerate exported DATA symbols such as 
+        // as PsActiveProcessHead and PsLoadedModuleList from ntoskrnl.exe??
+        // TODO: SymSearchW does enumerate those symbols but we'll need to filter out duplicate symbol entries properly or
+        // find out why the SymEnumSymbolsW and SymEnumTypesW functions can't enumerate those symbols.
+        SymSearchW_I(
+            NtCurrentProcess(), 
+            Context->BaseAddress, 
+            0,
+            0, 
+            NULL, 
+            0, 
+            EnumCallbackProc, 
+            Context, 
+            SYMSEARCH_RECURSE | SYMSEARCH_ALLITEMS
+            );
     }
 
 CleanupExit:
