@@ -406,7 +406,7 @@ ULONG SymbolNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashInt64((*(PPV_SYMBOL_NODE*)Entry)->Index);
+    return PhHashStringRef(&(*(PPV_SYMBOL_NODE*)Entry)->Name->sr, TRUE);
 }
 
 VOID PvSymbolAddTreeNode(
@@ -414,21 +414,20 @@ VOID PvSymbolAddTreeNode(
     _In_ PPV_SYMBOL_NODE Entry
     )
 {
-    static ULONG64 index = 0;
-
     PhInitializeTreeNewNode(&Entry->Node);
 
-    Entry->Index = index++;
     memset(Entry->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
     Entry->Node.TextCache = Entry->TextCache;
     Entry->Node.TextCacheSize = TREE_COLUMN_ITEM_MAXIMUM;
 
-    PhAddEntryHashtable(Context->NodeHashtable, &Entry);
-    PhAddItemList(Context->NodeList, Entry);
-
-    if (Context->FilterSupport.NodeList)
+    if (PhAddEntryHashtable(Context->NodeHashtable, &Entry)) // HACK
     {
-        Entry->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &Entry->Node);
+        PhAddItemList(Context->NodeList, Entry);
+
+        if (Context->FilterSupport.NodeList)
+        {
+            Entry->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &Entry->Node);
+        }
     }
 }
 
@@ -437,15 +436,21 @@ PPV_SYMBOL_NODE PvFindSymbolNode(
     _In_ PPH_STRING Name
     )
 {
-    for (ULONG i = 0; i < Context->NodeList->Count; i++)
-    {
-        PPV_SYMBOL_NODE entry = Context->NodeList->Items[i];
+    PV_SYMBOL_NODE lookupSymbolNode;
+    PPV_SYMBOL_NODE lookupSymbolNodePtr = &lookupSymbolNode;
+    PPV_SYMBOL_NODE *threadNode;
 
-        if (PhEqualString(entry->Name, Name, TRUE))
-            return entry;
-    }
+    lookupSymbolNode.Name = Name;
 
-    return NULL;
+    threadNode = (PPV_SYMBOL_NODE *)PhFindEntryHashtable(
+        Context->NodeHashtable,
+        &lookupSymbolNodePtr
+        );
+
+    if (threadNode)
+        return *threadNode;
+    else
+        return NULL;
 }
 
 VOID PvRemoveSymbolNode(
@@ -482,36 +487,51 @@ VOID PvDestroySymbolNode(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    if (sortResult == 0) \
-        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
-    \
+    /*if (sortResult == 0) \
+    //    sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+    */\
     return PhModifySort(sortResult, ((PPDB_SYMBOL_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
-BEGIN_SORT_FUNCTION(Symbol)
+BEGIN_SORT_FUNCTION(Type)
 {
-    sortResult = PhCompareString(node1->Name, node2->Name, FALSE);
+    sortResult = uintptrcmp((ULONG_PTR)node1->Type, (ULONG_PTR)node2->Type);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VA)
 {
     sortResult = uintptrcmp((ULONG_PTR)node1->Address, (ULONG_PTR)node2->Address);
+
+    if (sortResult == 0)
+        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index);
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Name)
+BEGIN_SORT_FUNCTION(Symbol)
 {
-    sortResult = PhCompareString(node1->Name, node2->Name, FALSE);
+    sortResult = PhCompareStringWithNull(node1->Name, node2->Name, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Data)
+{
+    sortResult = PhCompareStringWithNull(node1->Data, node2->Data, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Size)
+{
+    sortResult = uintcmp(node1->Size, node2->Size);
 }
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PvSymbolTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
     )
 {
     PPDB_SYMBOL_CONTEXT context;
@@ -530,9 +550,11 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             {
                 static PVOID sortFunctions[] =
                 {
-                    SORT_FUNCTION(Name),
+                    SORT_FUNCTION(Type),
                     SORT_FUNCTION(VA),
-                    SORT_FUNCTION(Symbol)
+                    SORT_FUNCTION(Symbol),
+                    SORT_FUNCTION(Data),
+                    SORT_FUNCTION(Size)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -765,7 +787,7 @@ VOID PvInitializeSymbolTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SYMBOL, TRUE, L"Data", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SYMBOL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SIZE, TRUE, L"Size", 40, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SIZE, 0, 0);
 
-    TreeNew_SetSort(TreeNewHandle, 0, NoSortOrder);
+    TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_VA, AscendingSortOrder);
 
     PPH_STRING settings = PhGetStringSetting(L"PdbTreeListColumns");
     PhCmLoadSettings(TreeNewHandle, &settings->sr);
@@ -1043,6 +1065,18 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
 
             //NtWaitForSingleObject(context->SearchThreadHandle, FALSE, NULL);
             //SearchStop = FALSE;
+
+            //if (context->UpdateTimerHandle)
+            //{
+            //    RtlDeleteTimer(context->TimerQueueHandle, context->UpdateTimerHandle, NULL);
+            //    context->UpdateTimerHandle = NULL;
+            //}
+
+            //if (context->TimerQueueHandle)
+            //{
+            //    RtlDeleteTimerQueue(context->TimerQueueHandle);
+            //    context->TimerQueueHandle = NULL;
+            //}
         }
         break;
     case WM_NOTIFY:

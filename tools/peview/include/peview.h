@@ -134,7 +134,6 @@ typedef struct _PV_SYMBOL_NODE
 {
     PH_TREENEW_NODE Node;
 
-    ULONG64 Index;
     PV_SYMBOL_TYPE Type;
     ULONG Size;
     ULONG64 Address;    
