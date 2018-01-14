@@ -105,16 +105,10 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsElevated : 1;
             ULONG IsInJob : 1;
             ULONG IsInSignificantJob : 1;
-            ULONG IsWow64 : 1;
-            ULONG IsWow64Valid : 1;       
-            ULONG IsProtectedProcess : 1;
-            ULONG IsSecureProcess : 1;
-            ULONG IsSubsystemProcess : 1;
-
             ULONG IsBeingDebugged : 1;
             ULONG IsImmersive : 1;
 
-            ULONG Spare : 21;
+            ULONG Spare : 26;
         };
     };
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -991,21 +985,6 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-    // Process flags
-    if (processHandleLimited)
-    {
-        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandleLimited, &basicInfo)))
-        {
-            Data->IsProtectedProcess = basicInfo.IsProtectedProcess;
-            Data->IsSecureProcess = basicInfo.IsSecureProcess;
-            Data->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
-            Data->IsWow64 = basicInfo.IsWow64Process;
-            Data->IsWow64Valid = TRUE;
-        }
-    }
-
     // Debugged
     if (processHandleLimited)
     {
@@ -1046,7 +1025,7 @@ VOID PhpProcessQueryStage1(
                 processId,
                 processHandle,
 #ifdef _WIN64
-                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (Data->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
+                processQueryFlags | PH_CLR_NO_WOW64_CHECK | (processItem->IsWow64 ? PH_CLR_KNOWN_IS_WOW64 : 0),
 #else
                 processQueryFlags,
 #endif
@@ -1309,11 +1288,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
-    processItem->IsWow64 = Data->IsWow64;
-    processItem->IsWow64Valid = Data->IsWow64Valid;
-    processItem->IsProtectedProcess = Data->IsProtectedProcess;
-    processItem->IsSecureProcess = Data->IsSecureProcess;
-    processItem->IsSubsystemProcess = Data->IsSubsystemProcess;
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
 
@@ -1375,6 +1349,21 @@ VOID PhpFillProcessItem(
 
         if (!ProcessItem->QueryHandle)
             PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
+    }
+
+    // Process flags
+    if (ProcessItem->QueryHandle)
+    {
+        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(ProcessItem->QueryHandle, &basicInfo)))
+        {
+            ProcessItem->IsProtectedProcess = basicInfo.IsProtectedProcess;
+            ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
+            ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
+            ProcessItem->IsWow64 = basicInfo.IsWow64Process;
+            ProcessItem->IsWow64Valid = TRUE;
+        }
     }
 
     // Process information
