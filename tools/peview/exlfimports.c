@@ -40,7 +40,7 @@ VOID PvpProcessElfImports(
         if (!import->ImportSymbol)
             continue;
 
-        PhPrintUInt64(number, count++);
+        PhPrintUInt64(number, ++count);
         lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, number, NULL);
 
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, import->Module);
