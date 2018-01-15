@@ -1305,8 +1305,13 @@ BOOLEAN SymbolInfo_GetTypeNameHelper(
         switch (Info.Tag)
         {
         case SymTagBaseType:
-            PhAppendStringBuilder2(TypeName, SymbolInfo_BaseTypeStr(Info.BaseTypeInfo.BaseType, Info.BaseTypeInfo.Length));
-            PhAppendStringBuilder2(TypeName, L" ");
+            {
+                if (Info.BaseTypeInfo.Length == 0)
+                    break;
+
+                PhAppendStringBuilder2(TypeName, SymbolInfo_BaseTypeStr(Info.BaseTypeInfo.BaseType, Info.BaseTypeInfo.Length));
+                PhAppendStringBuilder2(TypeName, L" ");
+            }
             break;
         case SymTagTypedef:
             PhAppendStringBuilder2(TypeName, Info.TypedefInfo.Name);
@@ -1435,7 +1440,10 @@ PPH_STRING SymbolInfo_GetTypeName(
         typeVarName = VarName;
 
     if (!SymbolInfo_GetTypeNameHelper(Index, Context, &typeVarName, &typeNamesb))
+    {
+        PhDeleteStringBuilder(&typeNamesb);
         return NULL;
+    }
 
     return PhFinalStringBuilderString(&typeNamesb);
 }
