@@ -2801,8 +2801,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_PROTECTION:
                 {
-                    PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
-                    getCellText->Text = node->ProtectionText->sr;
+                    if (processItem->Protection.Level != 0 && processItem->Protection.Level != UCHAR_MAX)
+                    {
+                        PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
+                        getCellText->Text = node->ProtectionText->sr;
+                    }
                 }
                 break;
             default:
