@@ -92,6 +92,7 @@ VOID PeSaveSettings(
 // symbols
 
 #define WM_PV_SEARCH_FINISHED (WM_APP + 701)
+#define WM_PV_SEARCH_SHOWMENU (WM_APP + 702)
 
 extern ULONG SearchResultsAddIndex;
 extern PPH_LIST SearchResults;

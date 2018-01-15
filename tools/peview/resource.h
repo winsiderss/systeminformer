@@ -24,7 +24,6 @@
 #define IDC_CHARACTERISTICS             1007
 #define IDC_LIST                        1008
 #define IDC_FILEICON                    1009
-#define IDC_SECTION                     1009
 #define IDC_TIMESTAMP                   1010
 #define IDC_RUNTIMEVERSION              1011
 #define IDC_FILE                        1011
@@ -35,12 +34,9 @@
 #define IDC_IMAGEBASE                   1015
 #define IDC_ENTRYPOINT                  1016
 #define IDC_SYMSEARCH                   1017
-#define IDC_IMAGEBASE2                  1017
 #define IDC_IMAGETYPE                   1017
 #define IDC_NAME                        1019
 #define IDC_COMPANYNAME_LINK            1020
-#define IDC_STOP                        1021
-#define IDC_PROGRESS                    1022
 
 // Next default values for new objects
 // 
