@@ -1460,9 +1460,17 @@ VOID PhpFillProcessItem(
                 ProcessItem->Protection.Level = protection.Level;
             }
         }
+        else
+        {
+            // "emulate" PS_PROTECTION info for older OSes
+            if (ProcessItem->IsProtectedProcess)
+                ProcessItem->Protection.Type = PsProtectedTypeProtected;
+        }
     }
     else
     {
+        // we weren't able to get protection info
+        // lets signalize that with special value
         ProcessItem->Protection.Level = UCHAR_MAX;
     }
 
