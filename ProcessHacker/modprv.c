@@ -24,6 +24,7 @@
 #include <modprv.h>
 
 #include <mapimg.h>
+#include <kphuser.h>
 #include <verify.h>
 #include <workqueue.h>
 
@@ -486,7 +487,6 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileName = module->FileName;
 
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
-            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
 
             PhInitializeImageVersionInfo(&moduleItem->VersionInfo, moduleItem->FileName->Buffer);
 
@@ -502,9 +502,16 @@ VOID PhModuleProviderUpdate(
 
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
-                moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE)
+                moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+                moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
+                PPH_READ_VIRTUAL_MEMORY readVirtualMemory;
+
+                if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
+                    readVirtualMemory = KphReadVirtualMemoryUnsafe;
+                else
+                    readVirtualMemory = NtReadVirtualMemory;
 
                 // Note:
                 // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used
@@ -516,29 +523,42 @@ VOID PhModuleProviderUpdate(
 
                 moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
 
-                if (NT_SUCCESS(PhLoadRemoteMappedImage(moduleProvider->ProcessHandle, moduleItem->BaseAddress, &remoteMappedImage)))
+                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemory, &remoteMappedImage)))
                 {
+                    ULONG_PTR imageBase = 0;
+                    DWORD entryPoint = 0;
+
                     moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;
                     moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders->FileHeader.Characteristics;
 
                     if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     {
-                        if ((ULONG_PTR)((PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader)->ImageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                            moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader;
 
-                        moduleItem->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        imageBase = (ULONG_PTR)optionalHeader->ImageBase;
+                        entryPoint = optionalHeader->AddressOfEntryPoint;
+                        moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
                     }
                     else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                     {
-                        if ((ULONG_PTR)((PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader)->ImageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                            moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader;
 
-                        moduleItem->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        imageBase = (ULONG_PTR)optionalHeader->ImageBase;
+                        entryPoint = optionalHeader->AddressOfEntryPoint;
+                        moduleItem->ImageDllCharacteristics = optionalHeader->DllCharacteristics;
                     }
+
+                    if (imageBase != (ULONG_PTR)moduleItem->BaseAddress)
+                        moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+
+                    if (entryPoint != 0)
+                        moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
 
                     PhUnloadRemoteMappedImage(&remoteMappedImage);
                 }
             }
+
+            PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
 
             // remove CF Guard flag if CFG mitigation is not enabled for the process
             if (!moduleProvider->ControlFlowGuardEnabled)
