@@ -394,6 +394,7 @@ VOID PhMwpInitializeControls(
     )
 {
     ULONG thinRows;
+    ULONG treelistBorder;
 
     TabControlHandle = CreateWindow(
         WC_TABCONTROL,
@@ -412,11 +413,12 @@ VOID PhMwpInitializeControls(
     BringWindowToTop(TabControlHandle);
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
+    treelistBorder = PhGetIntegerSetting(L"TreeListBorderEnable") ? WS_BORDER : 0;
 
     PhMwpProcessTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows,
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder,
         0,
         0,
         3,
@@ -431,7 +433,7 @@ VOID PhMwpInitializeControls(
     PhMwpServiceTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder,
         0,
         0,
         3,
@@ -446,7 +448,7 @@ VOID PhMwpInitializeControls(
     PhMwpNetworkTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder,
         0,
         0,
         3,
