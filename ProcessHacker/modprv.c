@@ -84,6 +84,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         PhEmGetObjectSize(EmModuleProviderType, sizeof(PH_MODULE_PROVIDER)),
         PhModuleProviderType
         );
+    memset(moduleProvider, 0, sizeof(PH_MODULE_PROVIDER));
 
     moduleProvider->ModuleHashtable = PhCreateHashtable(
         sizeof(PPH_MODULE_ITEM),
@@ -122,8 +123,20 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         moduleProvider->RunStatus = status;
     }
 
-    if (moduleProvider->ProcessHandle)
+    if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
+    {
         moduleProvider->PackageFullName = PhGetProcessPackageFullName(moduleProvider->ProcessHandle);
+
+        if (WindowsVersion >= WINDOWS_8_1)
+        {
+            BOOLEAN cfguardEnabled;
+
+            if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(moduleProvider->ProcessHandle, &cfguardEnabled)))
+            {
+                moduleProvider->ControlFlowGuardEnabled = cfguardEnabled;
+            }
+        }
+    }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
 
@@ -354,7 +367,6 @@ VOID PhModuleProviderUpdate(
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;
     PPH_LIST modules;
     ULONG i;
-    BOOLEAN cfGuardEnabled = FALSE;
 
     // If we didn't get a handle when we created the provider,
     // abort (unless this is the System process - in that case
@@ -445,8 +457,6 @@ VOID PhModuleProviderUpdate(
         }
     }
 
-    cfGuardEnabled = PhProcessIsCFGuardEnabled(moduleProvider->ProcessHandle);
-
     // Look for new modules.
     for (i = 0; i < modules->Count; i++)
     {
@@ -531,7 +541,7 @@ VOID PhModuleProviderUpdate(
             }
 
             // remove CF Guard flag if CFG mitigation is not enabled for the process
-            if (!cfGuardEnabled)
+            if (!moduleProvider->ControlFlowGuardEnabled)
                 moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
 
             if (NT_SUCCESS(PhQueryFullAttributesFileWin32(moduleItem->FileName->Buffer, &networkOpenInfo)))
