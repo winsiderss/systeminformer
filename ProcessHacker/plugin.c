@@ -3,6 +3,7 @@
  *   plugin support
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -910,39 +911,6 @@ PVOID PhPluginGetObjectExtension(
         &Plugin->AppContext,
         ObjectType,
         Object
-        );
-}
-
-/**
- * Creates a notification icon.
- *
- * \param Plugin A plugin instance structure.
- * \param SubId An identifier for the column. This should be unique within the
- * plugin.
- * \param Context A user-defined value.
- * \param Text A string describing the notification icon.
- * \param Flags A combination of flags.
- * \li \c PH_NF_ICON_UNAVAILABLE The notification icon is currently unavailable.
- * \param RegistrationData A \ref PH_NF_ICON_REGISTRATION_DATA structure that
- * contains registration information.
- */
-struct _PH_NF_ICON *PhPluginRegisterIcon(
-    _In_ PPH_PLUGIN Plugin,
-    _In_ ULONG SubId,
-    _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
-    )
-{
-    return PhNfRegisterIcon(
-        Plugin,
-        SubId,
-        Context,
-        Text,
-        Flags,
-        RegistrationData->UpdateCallback,
-        RegistrationData->MessageCallback
         );
 }
 

@@ -3,6 +3,7 @@
  *   graph control
  *
  * Copyright (C) 2010-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -630,6 +631,103 @@ VOID PhSetGraphText(
     // Save the rectangles.
     DrawInfo->TextRect = PhRectangleToRect(textRectangle);
     DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
+}
+
+
+static HFONT PhpTrayIconFont(
+    VOID
+    )
+{
+    static HFONT iconTextFont = NULL;
+
+    if (!iconTextFont)
+    {
+        iconTextFont = CreateFont(
+            PhMultiplyDivideSigned(-11, PhGlobalDpi, 96),
+            0,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            ANTIALIASED_QUALITY,
+            DEFAULT_PITCH,
+            L"Tahoma"
+            );
+    }
+
+    return iconTextFont;
+}
+
+VOID PhDrawTrayIconText(
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PULONG bits = Bits;
+    LONG width = DrawInfo->Width;
+    LONG height = DrawInfo->Height;
+    LONG numberOfPixels = width * height;
+    ULONG flags = DrawInfo->Flags;
+    HFONT oldFont = NULL;
+    SIZE textSize;
+    PH_RECTANGLE boxRectangle;
+    PH_RECTANGLE textRectangle;
+
+    if (DrawInfo->BackColor == 0)
+    {
+        memset(bits, 0, numberOfPixels * 4);
+    }
+    else
+    {
+        PhFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
+    }
+
+    if (!DrawInfo->TextFont) // HACK: default font for plugins.
+        DrawInfo->TextFont = PhpTrayIconFont();
+
+    if (DrawInfo->TextFont)
+        oldFont = SelectObject(hdc, DrawInfo->TextFont);
+
+    DrawInfo->Text = *Text;
+    GetTextExtentPoint32(hdc, Text->Buffer, (ULONG)Text->Length / 2, &textSize);
+
+    // Calculate the box rectangle.
+
+    boxRectangle.Width = textSize.cx;
+    boxRectangle.Height = textSize.cy;
+    boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / 2;
+    boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / 2;
+
+    // Calculate the text rectangle.
+
+    textRectangle.Left = boxRectangle.Left;
+    textRectangle.Top = boxRectangle.Top;
+    textRectangle.Width = textSize.cx;
+    textRectangle.Height = textSize.cy;
+
+    // Save the rectangles.
+    DrawInfo->TextRect = PhRectangleToRect(textRectangle);
+    DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
+
+    // Fill in the text box.
+    //SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
+    //FillRect(hdc, &DrawInfo->TextBoxRect, GetStockObject(DC_BRUSH));
+
+    // Draw the text.
+    SetTextColor(hdc, DrawInfo->TextColor);
+    SetBkMode(hdc, TRANSPARENT);
+
+    DrawText(hdc, DrawInfo->Text.Buffer, (ULONG)DrawInfo->Text.Length / 2, &DrawInfo->TextRect, DT_NOCLIP | DT_SINGLELINE);
+
+    if (oldFont)
+        SelectObject(hdc, oldFont);
 }
 
 VOID PhpCreateGraphContext(

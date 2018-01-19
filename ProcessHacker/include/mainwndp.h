@@ -185,10 +185,6 @@ VOID PhMwpInitializeSubMenu(
     _In_ ULONG Index
     );
 
-PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
-    _In_ PPH_EMENU Menu
-    );
-
 VOID PhMwpInitializeSectionMenuItems(
     _In_ PPH_EMENU Menu,
     _In_ ULONG StartIndex
