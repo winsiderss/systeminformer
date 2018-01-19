@@ -221,6 +221,9 @@
     <ClCompile Include="mapexlf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="appresolver.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -464,6 +467,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\exlf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\appresolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\appresolverp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

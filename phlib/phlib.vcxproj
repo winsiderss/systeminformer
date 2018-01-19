@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="apiimport.c" />
+    <ClCompile Include="appresolver.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="circbuf.c" />
@@ -208,6 +209,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\apiimport.h" />
+    <ClInclude Include="include\appresolver.h" />
+    <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\filepool.h" />
