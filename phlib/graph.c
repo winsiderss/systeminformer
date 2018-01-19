@@ -1281,7 +1281,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 context->TooltipHandle = CreateWindow(
                     TOOLTIPS_CLASS,
                     NULL,
-                    WS_POPUP | WS_EX_TRANSPARENT | TTS_NOPREFIX,
+                    WS_POPUP | WS_EX_TRANSPARENT | TTS_NOPREFIX | TTS_ALWAYSTIP,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
