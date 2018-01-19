@@ -571,12 +571,6 @@
     <None Include="resources\cog.ico">
       <Filter>Resources</Filter>
     </None>
-    <None Include="resources\application_go.ico">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="resources\cog_go.ico">
-      <Filter>Resources</Filter>
-    </None>
     <None Include="ProcessHacker.def">
       <Filter>Module</Filter>
     </None>
