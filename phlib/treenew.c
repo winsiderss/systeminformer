@@ -5735,7 +5735,7 @@ VOID PhTnpInitializeTooltips(
         WS_EX_TRANSPARENT, // solves double-click problem
         TOOLTIPS_CLASS,
         NULL,
-        WS_POPUP | TTS_NOPREFIX,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
         0,
         0,
         0,
