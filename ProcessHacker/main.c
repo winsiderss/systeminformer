@@ -222,6 +222,7 @@ INT WINAPI wWinMain(
             L"Most features will not work correctly.\n\n"
             L"Please run the 64-bit version of Process Hacker instead."
             );
+        RtlExitUserProcess(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
     }
 #endif
 
