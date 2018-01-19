@@ -1889,12 +1889,14 @@ BOOL CALLBACK EnumCallbackProc(
 
                 symDataKind = SymbolInfo_DataKindStr(dataKindType);
 
-                //if (dataKindType == DataIsLocal ||
-                //    dataKindType == DataIsParam ||
-                //    dataKindType == DataIsObjectPtr)
-                //{
-                //    break;
-                //}
+                if (
+                    dataKindType == DataIsLocal ||
+                    dataKindType == DataIsParam ||
+                    dataKindType == DataIsObjectPtr
+                    )
+                {
+                    break;
+                }
 
                 symbol = PhAllocate(sizeof(PV_SYMBOL_NODE));
                 memset(symbol, 0, sizeof(PV_SYMBOL_NODE));
@@ -2404,21 +2406,27 @@ NTSTATUS PeDumpFileSymbols(
         SymEnumTypesW_I(NtCurrentProcess(), Context->BaseAddress, EnumCallbackProc, Context);
         //PrintUserDefinedTypes(Context); // Commented out due to verbosity.
 
-        // NOTE: The SymEnumSymbolsW and SymEnumTypesW functions don't enumerate exported DATA symbols such as 
-        // as PsActiveProcessHead and PsLoadedModuleList from ntoskrnl.exe??
-        // TODO: SymSearchW does enumerate those symbols but we'll need to filter out duplicate symbol entries properly or
-        // find out why the SymEnumSymbolsW and SymEnumTypesW functions can't enumerate those symbols.
-        SymSearchW_I(
-            NtCurrentProcess(), 
-            Context->BaseAddress, 
-            0,
-            0, 
-            NULL, 
-            0, 
-            EnumCallbackProc, 
-            Context, 
-            SYMSEARCH_RECURSE | SYMSEARCH_ALLITEMS
-            );
+        if (
+            PhFindStringInString(PvFileName, 0, L"ntkrnlmp.pdb") != -1 || 
+            PhFindStringInString(PvFileName, 0, L"ntoskrnl.exe") != -1 // HACK: SymSearchW crashes for ole32.dll
+            )
+        {
+            // NOTE: The SymEnumSymbolsW and SymEnumTypesW functions don't enumerate exported DATA symbols such as 
+            // as PsActiveProcessHead and PsLoadedModuleList from ntoskrnl.exe??
+            // TODO: SymSearchW does enumerate those symbols but we'll need to filter out duplicate symbol entries properly or
+            // find out why the SymEnumSymbolsW and SymEnumTypesW functions can't enumerate those symbols.
+            SymSearchW_I(
+                NtCurrentProcess(),
+                Context->BaseAddress,
+                0,
+                0,
+                NULL,
+                0,
+                EnumCallbackProc,
+                Context,
+                SYMSEARCH_RECURSE | SYMSEARCH_ALLITEMS
+                );
+        }
     }
 
 CleanupExit:
