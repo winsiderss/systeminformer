@@ -376,6 +376,34 @@ PhGetProcessConsoleHostProcessId(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessIsCFGuardEnabled(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsControlFlowGuardEnabled
+    )
+{
+    NTSTATUS status;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+    policyInfo.Policy = ProcessControlFlowGuardPolicy;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMitigationPolicy,
+        &policyInfo,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsControlFlowGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard;
+
+    return status;
+}
+
 /**
  * Sets a process' affinity mask.
  *
