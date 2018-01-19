@@ -160,6 +160,15 @@ PhHttpSocketGetErrorMessage(
     _In_ ULONG ErrorCode
     );
 
+_Check_return_
+BOOLEAN 
+NTAPI
+PhHttpSocketSetCredentials(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Value
+    );
+
 #ifdef __cplusplus
 }
 #endif
