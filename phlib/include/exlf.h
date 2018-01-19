@@ -185,9 +185,15 @@
 #define DT_HIPROC	0x7fffffff
 
 // symbol table section
-#define STB_LOCAL  0
-#define STB_GLOBAL 1
-#define STB_WEAK   2
+#define STB_LOCAL 0 /* Local symbol */
+#define STB_GLOBAL 1 /* Global symbol */
+#define STB_WEAK 2 /* Weak symbol */
+#define STB_NUM 3 /* Number of defined types.  */
+#define STB_LOOS 10 /* Start of OS-specific */
+#define STB_GNU_UNIQUE 10 /* Unique symbol.  */
+#define STB_HIOS 12 /* End of OS-specific */
+#define STB_LOPROC 13 /* Start of processor-specific */
+#define STB_HIPROC 15 /* End of processor-specific */
 
 #define STT_NOTYPE  0
 #define STT_OBJECT  1
