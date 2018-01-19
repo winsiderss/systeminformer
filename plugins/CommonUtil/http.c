@@ -493,3 +493,20 @@ PPH_STRING PhHttpSocketGetErrorMessage(
 
     return message;
 }
+
+BOOLEAN PhHttpSocketSetCredentials(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Value
+    )
+{
+    return WinHttpSetCredentials(
+        HttpContext->RequestHandle, 
+        WINHTTP_AUTH_TARGET_SERVER, 
+        WINHTTP_AUTH_SCHEME_BASIC, 
+        Name,
+        Value,
+        NULL
+        );
+}
+
