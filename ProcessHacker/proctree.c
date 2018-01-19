@@ -1664,7 +1664,7 @@ BEGIN_SORT_FUNCTION(Virtualized)
 {
     PhpUpdateProcessNodeToken(node1);
     PhpUpdateProcessNodeToken(node2);
-    sortResult = intcmp(node1->VirtualizationEnabled, node2->VirtualizationEnabled);
+    sortResult = ucharcmp(node1->VirtualizationEnabled, node2->VirtualizationEnabled);
 }
 END_SORT_FUNCTION
 
@@ -1798,7 +1798,7 @@ BEGIN_SORT_FUNCTION(Subsystem)
 {
     PhpUpdateProcessNodeImage(node1);
     PhpUpdateProcessNodeImage(node2);
-    sortResult = intcmp(node1->ImageSubsystem, node2->ImageSubsystem);
+    sortResult = ushortcmp(node1->ImageSubsystem, node2->ImageSubsystem);
 }
 END_SORT_FUNCTION
 
@@ -1826,10 +1826,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CfGuard)
 {
-    sortResult = intcmp(
-        node1->ProcessItem->IsControlFlowGuardEnabled,
-        node2->ProcessItem->IsControlFlowGuardEnabled
-        );
+    sortResult = uintcmp(node1->ProcessItem->IsControlFlowGuardEnabled, node2->ProcessItem->IsControlFlowGuardEnabled);
 }
 END_SORT_FUNCTION
 
@@ -1871,7 +1868,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Protection)
 {
-    sortResult = intcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX) 
+    // are placed below processes we are able to query (e.g. 0 and above).
+    sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
 }
 END_SORT_FUNCTION
 
