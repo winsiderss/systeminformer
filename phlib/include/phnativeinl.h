@@ -378,6 +378,22 @@ PhGetProcessConsoleHostProcessId(
 
 FORCEINLINE
 NTSTATUS
+PhGetProcessProtection(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_PROTECTION Protection
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessProtectionInformation,
+        Protection,
+        sizeof(PS_PROTECTION),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetProcessIsCFGuardEnabled(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsControlFlowGuardEnabled
