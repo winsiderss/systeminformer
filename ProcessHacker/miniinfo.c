@@ -25,7 +25,7 @@
 #include <miniinfo.h>
 #include <miniinfop.h>
 
-#include <emenu.h>
+#include <shellapi.h>
 #include <uxtheme.h>
 #include <windowsx.h>
 
@@ -35,6 +35,8 @@
 #include <phplug.h>
 #include <procprv.h>
 #include <proctree.h>
+
+#include <emenu.h>
 #include <settings.h>
 
 static HWND PhMipContainerWindow = NULL;
@@ -699,38 +701,43 @@ VOID PhMipCalculateWindowRectangle(
     {
         PH_RECTANGLE bounds;
 
-        if (memcmp(&monitorInfo.rcWork, &monitorInfo.rcMonitor, sizeof(RECT)) == 0)
+        if (RtlEqualMemory(&monitorInfo.rcWork, &monitorInfo.rcMonitor, sizeof(RECT)))
         {
-            HWND trayWindow;
-            RECT taskbarRect;
+            APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
+
+            // dmex: FindWindow + Shell_TrayWnd causes a lot of FPs by security software (malware uses this string to inject code into Explorer)... 
+            // TODO: This comment block should be removed if the SHAppBarMessage function is more reliable.
+            //HWND trayWindow;
+            //RECT taskbarRect;
+            //if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
+            //    GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
+            //    GetWindowRect(trayWindow, &taskbarRect))
 
             // The taskbar probably has auto-hide enabled. We need to adjust for that.
-            if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
-                GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
-                GetWindowRect(trayWindow, &taskbarRect))
+            if (SHAppBarMessage(ABM_GETTASKBARPOS, &taskbarRect))
             {
                 LONG monitorMidX = (monitorInfo.rcMonitor.left + monitorInfo.rcMonitor.right) / 2;
                 LONG monitorMidY = (monitorInfo.rcMonitor.top + monitorInfo.rcMonitor.bottom) / 2;
 
-                if (taskbarRect.right < monitorMidX)
+                if (taskbarRect.rc.right < monitorMidX)
                 {
                     // Left
-                    monitorInfo.rcWork.left += taskbarRect.right - taskbarRect.left;
+                    monitorInfo.rcWork.left += taskbarRect.rc.right - taskbarRect.rc.left;
                 }
-                else if (taskbarRect.bottom < monitorMidY)
+                else if (taskbarRect.rc.bottom < monitorMidY)
                 {
                     // Top
-                    monitorInfo.rcWork.top += taskbarRect.bottom - taskbarRect.top;
+                    monitorInfo.rcWork.top += taskbarRect.rc.bottom - taskbarRect.rc.top;
                 }
-                else if (taskbarRect.left > monitorMidX)
+                else if (taskbarRect.rc.left > monitorMidX)
                 {
                     // Right
-                    monitorInfo.rcWork.right -= taskbarRect.right - taskbarRect.left;
+                    monitorInfo.rcWork.right -= taskbarRect.rc.right - taskbarRect.rc.left;
                 }
-                else if (taskbarRect.top > monitorMidY)
+                else if (taskbarRect.rc.top > monitorMidY)
                 {
                     // Bottom
-                    monitorInfo.rcWork.bottom -= taskbarRect.bottom - taskbarRect.top;
+                    monitorInfo.rcWork.bottom -= taskbarRect.rc.bottom - taskbarRect.rc.top;
                 }
             }
         }
