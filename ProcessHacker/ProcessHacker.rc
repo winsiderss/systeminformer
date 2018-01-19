@@ -58,10 +58,6 @@ IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
 
 IDI_COG                 ICON                    "resources\\cog.ico"
 
-IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
-
-IDI_COGGO               ICON                    "resources\\cog_go.ico"
-
 IDI_PIN                 ICON                    "resources\\pin.ico"
 
 IDI_FOLDER              ICON                    "resources\\folder.ico"

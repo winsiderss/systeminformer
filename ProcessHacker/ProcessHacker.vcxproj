@@ -404,9 +404,7 @@
   <ItemGroup>
     <None Include="ProcessHacker.def" />
     <None Include="resources\application.ico" />
-    <None Include="resources\application_go.ico" />
     <None Include="resources\cog.ico" />
-    <None Include="resources\cog_go.ico" />
     <None Include="resources\cross.bmp" />
     <None Include="ProcessHacker.ico" />
     <None Include="resources\ProcessHacker.png" />
