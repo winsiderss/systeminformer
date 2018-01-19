@@ -51,6 +51,16 @@ typedef struct _PH_MODULE_PROVIDER
     PPH_STRING PackageFullName;
     SLIST_HEADER QueryListHead;
     NTSTATUS RunStatus;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN ControlFlowGuardEnabled : 1;
+            BOOLEAN Spare : 7;
+        };
+    };
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 // end_phapppub
 
