@@ -63,6 +63,8 @@ PWSTR PvpGetSymbolBindingName(
         return L"Global";
     case STB_WEAK:
         return L"Weak";
+    case STB_GNU_UNIQUE:
+        return L"Unique";
     }
 
     return L"***ERROR***";
