@@ -3,7 +3,7 @@
  *   plugins
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -782,9 +782,8 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
 
                                 PhSetPluginDisabled(&baseNameRef, TRUE);
 
-                                ClearPluginsTree(context);
-                                PhpEnumerateLoadedPlugins(context);
-                                TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
+                                RemovePluginsNode(context, selectedNode);
+
                                 SetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
                             }
                             break;
