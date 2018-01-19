@@ -1474,6 +1474,10 @@ VOID PhpFillProcessItem(
         ProcessItem->Protection.Level = UCHAR_MAX;
     }
 
+    // Control Flow Guard
+    if (ProcessItem->QueryHandle)
+        ProcessItem->IsControlFlowGuardEnabled = PhProcessIsCFGuardEnabled(ProcessItem->QueryHandle);
+
     // On Windows 8.1 and above, processes without threads are reflected processes 
     // which will not terminate if we have a handle open.
     if (Process->NumberOfThreads == 0)
@@ -2983,4 +2987,31 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
     PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
     return processItem;
+}
+
+BOOLEAN PhProcessIsCFGuardEnabled(
+    _In_ HANDLE ProcessHandle
+)
+{
+    BOOLEAN cfgEnabled = FALSE;
+
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+
+        policyInfo.Policy = ProcessControlFlowGuardPolicy;
+
+        if (NT_SUCCESS(NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessMitigationPolicy,
+            &policyInfo,
+            sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+            NULL
+        )))
+        {
+            cfgEnabled = (policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard != 0);
+        }
+    }
+
+    return cfgEnabled;
 }

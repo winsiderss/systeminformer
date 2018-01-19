@@ -354,6 +354,7 @@ VOID PhModuleProviderUpdate(
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;
     PPH_LIST modules;
     ULONG i;
+    BOOLEAN cfGuardEnabled = FALSE;
 
     // If we didn't get a handle when we created the provider,
     // abort (unless this is the System process - in that case
@@ -444,6 +445,8 @@ VOID PhModuleProviderUpdate(
         }
     }
 
+    cfGuardEnabled = PhProcessIsCFGuardEnabled(moduleProvider->ProcessHandle);
+
     // Look for new modules.
     for (i = 0; i < modules->Count; i++)
     {
@@ -526,6 +529,10 @@ VOID PhModuleProviderUpdate(
                     PhUnloadRemoteMappedImage(&remoteMappedImage);
                 }
             }
+
+            // remove CF Guard flag if CFG mitigation is not enabled for the process
+            if (!cfGuardEnabled)
+                moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
 
             if (NT_SUCCESS(PhQueryFullAttributesFileWin32(moduleItem->FileName->Buffer, &networkOpenInfo)))
             {
