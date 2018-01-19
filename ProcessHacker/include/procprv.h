@@ -412,8 +412,4 @@ PhReferenceProcessItemForRecord(
     );
 // end_phapppub
 
-BOOLEAN PhProcessIsCFGuardEnabled(
-    _In_ HANDLE ProcessHandle
-);
-
 #endif

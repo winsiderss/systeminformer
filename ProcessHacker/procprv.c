@@ -1449,34 +1449,35 @@ VOID PhpFillProcessItem(
         {
             PS_PROTECTION protection;
 
-            if (NT_SUCCESS(NtQueryInformationProcess(
-                ProcessItem->QueryHandle,
-                ProcessProtectionInformation,
-                &protection,
-                sizeof(PS_PROTECTION),
-                NULL
-                )))
+            if (NT_SUCCESS(PhGetProcessProtection(ProcessItem->QueryHandle, &protection)))
             {
                 ProcessItem->Protection.Level = protection.Level;
             }
         }
         else
         {
-            // "emulate" PS_PROTECTION info for older OSes
+            // HACK: 'emulate' the PS_PROTECTION info for older OSes.
             if (ProcessItem->IsProtectedProcess)
                 ProcessItem->Protection.Type = PsProtectedTypeProtected;
         }
     }
     else
     {
-        // we weren't able to get protection info
-        // lets signalize that with special value
+        // Signalize that we weren't able to get protection info with a special value.
+        // Note: We use this value to determine if we should show protection information.
         ProcessItem->Protection.Level = UCHAR_MAX;
     }
 
     // Control Flow Guard
-    if (ProcessItem->QueryHandle)
-        ProcessItem->IsControlFlowGuardEnabled = PhProcessIsCFGuardEnabled(ProcessItem->QueryHandle);
+    if (WindowsVersion >= WINDOWS_8_1 && ProcessItem->QueryHandle)
+    {
+        BOOLEAN cfguardEnabled;
+
+        if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(ProcessItem->QueryHandle, &cfguardEnabled)))
+        {
+            ProcessItem->IsControlFlowGuardEnabled = cfguardEnabled;
+        }
+    }
 
     // On Windows 8.1 and above, processes without threads are reflected processes 
     // which will not terminate if we have a handle open.
@@ -2989,29 +2990,3 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
     return processItem;
 }
 
-BOOLEAN PhProcessIsCFGuardEnabled(
-    _In_ HANDLE ProcessHandle
-)
-{
-    BOOLEAN cfgEnabled = FALSE;
-
-    if (WindowsVersion >= WINDOWS_8_1)
-    {
-        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-
-        policyInfo.Policy = ProcessControlFlowGuardPolicy;
-
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            ProcessHandle,
-            ProcessMitigationPolicy,
-            &policyInfo,
-            sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
-            NULL
-        )))
-        {
-            cfgEnabled = (policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard != 0);
-        }
-    }
-
-    return cfgEnabled;
-}
