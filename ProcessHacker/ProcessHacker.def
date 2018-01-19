@@ -466,6 +466,7 @@ EXPORTS
 ; graph
 	PhDeleteGraphState
 	PhDrawGraphDirect
+	PhDrawTrayIconText
 	PhGetDrawInfoGraphBuffers
 	PhGraphStateGetDrawInfo
 	PhInitializeGraphState

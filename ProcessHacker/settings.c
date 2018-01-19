@@ -3,7 +3,7 @@
  *   program settings cache
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -76,8 +76,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
-    PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
-    PhpAddStringSetting(L"IconMaskList", L"");
+    PhpAddStringSetting(L"IconSettings", L"1|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");

@@ -3,6 +3,7 @@
  *   notification icon manager
  *
  * Copyright (C) 2011-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,12 +37,6 @@
 #include <mainwndp.h>
 #include <notificop.h>
 
-BOOLEAN PhNfTerminating = FALSE;
-ULONG PhNfIconMask;
-ULONG PhNfIconNotifyMask;
-ULONG PhNfMaximumIconId = PH_ICON_DEFAULT_MAXIMUM;
-PPH_NF_ICON PhNfRegisteredIcons[32] = { 0 };
-PPH_STRING PhNfIconTextCache[32] = { 0 };
 BOOLEAN PhNfMiniInfoEnabled;
 BOOLEAN PhNfMiniInfoPinned;
 
@@ -57,58 +52,140 @@ static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
 static BOOLEAN IconClickUpDueToDown;
 static BOOLEAN IconDisableHover;
 
+// Note: no lock is needed because we only ever modify the list on this same thread.
+PPH_LIST PhTrayIconItemList = NULL;
+
 VOID PhNfLoadStage1(
     VOID
     )
 {
-    PPH_STRING iconList;
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
+    PhTrayIconItemList = PhCreateList(20);
 
-    PhNfpPointers.UpdateRegisteredIcon = PhNfpUpdateRegisteredIcon;
     PhNfpPointers.BeginBitmap = PhNfpBeginBitmap;
+}
 
-    // Load settings for default icons.
-    PhNfIconMask = PhGetIntegerSetting(L"IconMask");
+VOID PhNfLoadSettings(
+    VOID
+    )
+{
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
 
-    // Load settings for registered icons.
+    settingsString = PhGetStringSetting(L"IconSettings");
+    remaining = settingsString->sr;
 
-    iconList = PhGetStringSetting(L"IconMaskList");
-    remainingPart = iconList->sr;
-
-    while (remainingPart.Length != 0)
+    if (remaining.Length == 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
+        PPH_NF_ICON icon;
 
-        if (part.Length != 0)
+        // Load default settings.
+        if (icon = PhNfGetIconById(PH_TRAY_ICON_ID_CPU_USAGE))
+            icon->Flags |= PH_NF_ICON_ENABLED;
+
+        PhDereferenceObject(settingsString);
+        return;
+    }
+
+    while (remaining.Length != 0)
+    {
+        PH_STRINGREF idPart;
+        PH_STRINGREF flagsPart;
+        PH_STRINGREF pluginNamePart;
+        ULONG64 idInteger;
+        ULONG64 flagsInteger;
+
+        PhSplitStringRefAtChar(&remaining, '|', &idPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &flagsPart, &remaining);
+        PhSplitStringRefAtChar(&remaining, '|', &pluginNamePart, &remaining);
+
+        if (!PhStringToInteger64(&idPart, 10, &idInteger))
+            break;
+        if (!PhStringToInteger64(&flagsPart, 10, &flagsInteger))
+            break;
+
+        if (flagsInteger)
         {
-            PH_STRINGREF pluginName;
-            ULONG subId;
             PPH_NF_ICON icon;
 
-            if (PhEmParseCompoundId(&part, &pluginName, &subId) &&
-                (icon = PhNfFindIcon(&pluginName, subId)))
+            if (icon = PhNfFindIcon(&pluginNamePart, (ULONG)idInteger))
             {
-                PhNfIconMask |= icon->IconId;
+                icon->Flags |= PH_NF_ICON_ENABLED;
             }
         }
     }
 
-    PhDereferenceObject(iconList);
+    PhDereferenceObject(settingsString);
+}
+
+VOID PhNfSaveSettings(
+    VOID
+    )
+{
+    PPH_STRING settingsString;
+    PH_STRING_BUILDER iconListBuilder;
+
+    PhInitializeStringBuilder(&iconListBuilder, 100);
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+
+        PhAppendFormatStringBuilder(
+            &iconListBuilder,
+            L"%lu|%lu|%s|",
+            icon->SubId,
+            icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0,
+            icon->Plugin ? icon->Plugin->Name.Buffer : L""
+            );
+    }
+
+    if (iconListBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&iconListBuilder, 1);
+
+    settingsString = PhFinalStringBuilderString(&iconListBuilder);
+    PhSetStringSetting2(L"IconSettings", &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID PhNfLoadStage2(
     VOID
     )
 {
-    ULONG i;
-
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
 
-    for (i = PH_ICON_MINIMUM; i != PhNfMaximumIconId; i <<= 1)
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_HISTORY, NULL, L"CPU &history", 0, PhNfpCpuHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_HISTORY, NULL, L"&I/O history", 0, PhNfpIoHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_HISTORY, NULL, L"&Commit charge history", 0, PhNfpCommitHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_HISTORY, NULL, L"&Physical memory history", 0, PhNfpPhysicalHistoryIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEXT, NULL, L"CPU usage (text)", 0, PhNfpCpuUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_IO_TEXT, NULL, L"IO usage (text)", 0, PhNfpIoUsageTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_COMMIT_TEXT, NULL, L"Commit usage (text)", 0, PhNfpCommitTextIconUpdateCallback, NULL);
+    PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_PHYSICAL_TEXT, NULL, L"Physical usage (text)", 0, PhNfpPhysicalUsageTextIconUpdateCallback, NULL);
+
+    if (PhPluginsEnabled)
     {
-        if (PhNfIconMask & i)
-            PhNfpAddNotifyIcon(i);
+        PH_TRAY_ICON_POINTERS pointers;
+
+        pointers.RegisterTrayIcon = PhNfPluginRegisterIcon;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackTrayIconsInitializing), &pointers);
+    }
+
+    // Load tray icon settings.
+    PhNfLoadSettings();
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+
+        PhNfpAddNotifyIcon(icon);
     }
 
     PhRegisterCallback(
@@ -119,65 +196,20 @@ VOID PhNfLoadStage2(
         );
 }
 
-VOID PhNfSaveSettings(
-    VOID
-    )
-{
-    ULONG registeredIconMask;
-
-    PhSetIntegerSetting(L"IconMask", PhNfIconMask & PH_ICON_DEFAULT_ALL);
-
-    registeredIconMask = PhNfIconMask & ~PH_ICON_DEFAULT_ALL;
-
-    if (registeredIconMask != 0)
-    {
-        PH_STRING_BUILDER iconListBuilder;
-        ULONG i;
-
-        PhInitializeStringBuilder(&iconListBuilder, 60);
-
-        for (i = 0; i < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON); i++)
-        {
-            if (PhNfRegisteredIcons[i])
-            {
-                if (registeredIconMask & PhNfRegisteredIcons[i]->IconId)
-                {
-                    PhAppendFormatStringBuilder(
-                        &iconListBuilder,
-                        L"+%s+%u|",
-                        PhNfRegisteredIcons[i]->Plugin->Name.Buffer,
-                        PhNfRegisteredIcons[i]->SubId
-                        );
-                }
-            }
-        }
-
-        if (iconListBuilder.String->Length != 0)
-            PhRemoveEndStringBuilder(&iconListBuilder, 1);
-
-        PhSetStringSetting2(L"IconMaskList", &iconListBuilder.String->sr);
-        PhDeleteStringBuilder(&iconListBuilder);
-    }
-    else
-    {
-        PhSetStringSetting(L"IconMaskList", L"");
-    }
-}
-
 VOID PhNfUninitialization(
     VOID
     )
 {
-    ULONG i;
-
     // Remove all icons to prevent them hanging around after we exit.
 
-    PhNfTerminating = TRUE; // prevent further icon updating
-
-    for (i = PH_ICON_MINIMUM; i != PhNfMaximumIconId; i <<= 1)
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
-        if (PhNfIconMask & i)
-            PhNfpRemoveNotifyIcon(i);
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+
+        PhNfpRemoveNotifyIcon(icon);
     }
 }
 
@@ -189,21 +221,33 @@ VOID PhNfForwardMessage(
     ULONG iconIndex = HIWORD(LParam);
     PPH_NF_ICON registeredIcon = NULL;
 
-    if (iconIndex < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON) && PhNfRegisteredIcons[iconIndex])
-    {
-        registeredIcon = PhNfRegisteredIcons[iconIndex];
+    if (iconIndex == 0)
+        return;
 
-        if (registeredIcon->MessageCallback)
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (icon->IconId == iconIndex)
         {
-            if (registeredIcon->MessageCallback(
-                registeredIcon,
-                WParam,
-                LParam,
-                registeredIcon->Context
-                ))
-            {
-                return;
-            }
+            registeredIcon = icon;
+            break;
+        }
+    }
+
+    if (!registeredIcon)
+        return;
+
+    if (registeredIcon->MessageCallback)
+    {
+        if (registeredIcon->MessageCallback(
+            registeredIcon,
+            WParam,
+            LParam,
+            registeredIcon->Context
+            ))
+        {
+            return;
         }
     }
 
@@ -309,34 +353,20 @@ VOID PhNfForwardMessage(
     }
 }
 
-ULONG PhNfGetMaximumIconId(
-    VOID
-    )
-{
-    return PhNfMaximumIconId;
-}
-
-ULONG PhNfTestIconMask(
-    _In_ ULONG Id
-    )
-{
-    return PhNfIconMask & Id;
-}
-
 VOID PhNfSetVisibleIcon(
-    _In_ ULONG Id,
+    _In_ PPH_NF_ICON Icon,
     _In_ BOOLEAN Visible
     )
 {
     if (Visible)
     {
-        PhNfIconMask |= Id;
-        PhNfpAddNotifyIcon(Id);
+        Icon->Flags |= PH_NF_ICON_ENABLED;
+        PhNfpAddNotifyIcon(Icon);
     }
     else
     {
-        PhNfIconMask &= ~Id;
-        PhNfpRemoveNotifyIcon(Id);
+        Icon->Flags &= ~PH_NF_ICON_ENABLED;
+        PhNfpRemoveNotifyIcon(Icon);
     }
 }
 
@@ -348,22 +378,32 @@ BOOLEAN PhNfShowBalloonTip(
     _In_ ULONG Flags
     )
 {
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
+    PPH_NF_ICON registeredIcon = NULL;
+    ULONG iconID = Id;
 
-    if (Id == 0)
+    if (iconID == 0)
     {
-        // Choose the first visible icon.
-        Id = PhNfIconMask;
+        for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+        {
+            PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+            if (!(icon->Flags & PH_NF_ICON_ENABLED))
+                continue;
+
+            iconID = icon->IconId;
+            break;
+        }
+
+        if (iconID == 0)
+            return FALSE;
     }
 
-    if (!_BitScanForward(&Id, Id))
-        return FALSE;
-
     notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Id;
+    notifyIcon.uID = iconID;
     notifyIcon.uFlags = NIF_INFO;
-    wcsncpy_s(notifyIcon.szInfoTitle, sizeof(notifyIcon.szInfoTitle) / sizeof(WCHAR), Title, _TRUNCATE);
-    wcsncpy_s(notifyIcon.szInfo, sizeof(notifyIcon.szInfo) / sizeof(WCHAR), Text, _TRUNCATE);
+    wcsncpy_s(notifyIcon.szInfoTitle, ARRAYSIZE(notifyIcon.szInfoTitle), Title, _TRUNCATE);
+    wcsncpy_s(notifyIcon.szInfo, ARRAYSIZE(notifyIcon.szInfo), Text, _TRUNCATE);
     notifyIcon.uTimeout = Timeout;
     notifyIcon.dwInfoFlags = Flags;
 
@@ -391,7 +431,7 @@ HICON PhNfBitmapToIcon(
 
 PPH_NF_ICON PhNfRegisterIcon(
     _In_ struct _PH_PLUGIN *Plugin,
-    _In_ ULONG SubId,
+    _In_ ULONG Id,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
@@ -400,83 +440,112 @@ PPH_NF_ICON PhNfRegisterIcon(
     )
 {
     PPH_NF_ICON icon;
-    ULONG iconId;
-    ULONG iconIndex;
-
-    if (PhNfMaximumIconId == PH_ICON_LIMIT)
-    {
-        // No room for any more icons.
-        return NULL;
-    }
-
-    iconId = PhNfMaximumIconId;
-
-    if (!_BitScanReverse(&iconIndex, iconId) ||
-        iconIndex >= sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON))
-    {
-        // Should never happen.
-        return NULL;
-    }
-
-    PhNfMaximumIconId <<= 1;
 
     icon = PhAllocate(sizeof(PH_NF_ICON));
     icon->Plugin = Plugin;
-    icon->SubId = SubId;
+    icon->SubId = Id;
     icon->Context = Context;
     icon->Pointers = &PhNfpPointers;
     icon->Text = Text;
     icon->Flags = Flags;
-    icon->IconId = iconId;
     icon->UpdateCallback = UpdateCallback;
     icon->MessageCallback = MessageCallback;
+    icon->TextCache = PhReferenceEmptyString();
+    icon->IconId = PhTrayIconItemList->Count + 1; // HACK
 
-    PhNfRegisteredIcons[iconIndex] = icon;
+    PhAddItemList(PhTrayIconItemList, icon);
 
     return icon;
 }
 
-PPH_NF_ICON PhNfGetIconById(
-    _In_ ULONG Id
+struct _PH_NF_ICON *PhNfPluginRegisterIcon(
+    _In_ struct _PH_PLUGIN * Plugin,
+    _In_ ULONG Id,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
     )
 {
-    ULONG iconIndex;
-
-    if (!_BitScanReverse(&iconIndex, Id))
-        return NULL;
-
-    return PhNfRegisteredIcons[iconIndex];
+    return PhNfRegisterIcon(
+        Plugin,
+        Id,
+        Context,
+        Text,
+        Flags,
+        RegistrationData->UpdateCallback,
+        RegistrationData->MessageCallback
+        );
 }
 
-PPH_NF_ICON PhNfFindIcon(
-    _In_ PPH_STRINGREF PluginName,
+PPH_NF_ICON PhNfGetIconById(
     _In_ ULONG SubId
     )
 {
-    ULONG i;
-
-    for (i = 0; i < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON); i++)
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
-        if (PhNfRegisteredIcons[i])
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (icon->SubId == SubId)
+            return icon;
+    }
+
+    return NULL;
+}
+
+PPH_NF_ICON PhNfFindIcon(
+    _In_opt_ PPH_STRINGREF PluginName,
+    _In_ ULONG SubId
+    )
+{
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (PluginName)
         {
-            if (PhNfRegisteredIcons[i]->SubId == SubId &&
-                PhEqualStringRef(PluginName, &PhNfRegisteredIcons[i]->Plugin->AppContext.AppName, FALSE))
+            if (
+                icon->SubId == SubId &&
+                (icon->Plugin ? PhEqualStringRef(PluginName, &icon->Plugin->AppContext.AppName, TRUE) : TRUE)
+                )
             {
-                return PhNfRegisteredIcons[i];
+                return icon;
             }
+        }
+        else
+        {
+            if (icon->SubId == SubId)
+                return icon;
         }
     }
 
     return NULL;
 }
 
+BOOLEAN PhNfIconsEnabled(
+    VOID
+    )
+{
+    BOOLEAN enabled = FALSE;
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (icon->Flags & PH_NF_ICON_ENABLED)
+        {
+            enabled = TRUE;
+            break;
+        }
+    }
+
+    return enabled;
+}
+
 VOID PhNfNotifyMiniInfoPinned(
     _In_ BOOLEAN Pinned
     )
 {
-    ULONG i;
-    ULONG id;
-
     if (PhNfMiniInfoPinned != Pinned)
     {
         PhNfMiniInfoPinned = Pinned;
@@ -484,14 +553,15 @@ VOID PhNfNotifyMiniInfoPinned(
         // Go through every icon and set/clear the NIF_SHOWTIP flag depending on whether the mini info window is
         // pinned. If it's pinned then we want to show normal tooltips, because the section doesn't change
         // automatically when the cursor hovers over an icon.
-        for (i = 0; i < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON); i++)
-        {
-            id = 1 << i;
 
-            if (PhNfIconMask & id)
-            {
-                PhNfpModifyNotifyIcon(id, NIF_TIP, PhNfIconTextCache[i], NULL);
-            }
+        for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+        {
+            PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+            if (!(icon->Flags & PH_NF_ICON_ENABLED))
+                continue;
+
+            PhNfpModifyNotifyIcon(icon, NIF_TIP, icon->TextCache, NULL);
         }
     }
 }
@@ -526,34 +596,26 @@ HICON PhNfpGetBlackIcon(
 }
 
 BOOLEAN PhNfpAddNotifyIcon(
-    _In_ ULONG Id
+    _In_ PPH_NF_ICON Icon
     )
 {
     NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-    PPH_NF_ICON icon;
 
-    if (PhNfTerminating)
-        return FALSE;
-    if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
-        return FALSE;
-
-    // The IDs we pass to explorer are bit indicies, not the normal mask values.
-
-    if (!_BitScanForward(&Id, Id))
+    if (PhMainWndExiting)
         return FALSE;
 
     notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Id;
+    notifyIcon.uID = Icon->IconId;
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
     wcsncpy_s(
         notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR),
-        PhGetStringOrDefault(PhNfIconTextCache[Id], PhApplicationName),
+        PhGetStringOrDefault(Icon->TextCache, PhApplicationName),
         _TRUNCATE
         );
     notifyIcon.hIcon = PhNfpGetBlackIcon();
 
-    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
@@ -565,20 +627,13 @@ BOOLEAN PhNfpAddNotifyIcon(
 }
 
 BOOLEAN PhNfpRemoveNotifyIcon(
-    _In_ ULONG Id
+    _In_ PPH_NF_ICON Icon
     )
 {
     NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-    PPH_NF_ICON icon;
-
-    if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
-        return FALSE;
-
-    if (!_BitScanForward(&Id, Id))
-        return FALSE;
 
     notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Id;
+    notifyIcon.uID = Icon->IconId;
 
     Shell_NotifyIcon(NIM_DELETE, &notifyIcon);
 
@@ -586,88 +641,90 @@ BOOLEAN PhNfpRemoveNotifyIcon(
 }
 
 BOOLEAN PhNfpModifyNotifyIcon(
-    _In_ ULONG Id,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG Flags,
     _In_opt_ PPH_STRING Text,
-    _In_opt_ HICON Icon
+    _In_opt_ HICON IconHandle
     )
 {
     NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-    PPH_NF_ICON icon;
-    ULONG notifyId;
 
-    if (PhNfTerminating)
+    if (PhMainWndExiting)
         return FALSE;
-    if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
-        return FALSE;
-
-    if (!_BitScanForward(&notifyId, Id))
+    if (Icon->Flags & PH_NF_ICON_UNAVAILABLE)
         return FALSE;
 
     notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = notifyId;
+    notifyIcon.uID = Icon->IconId;
     notifyIcon.uFlags = Flags;
+    notifyIcon.hIcon = IconHandle;
+
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
+        notifyIcon.uFlags |= NIF_SHOWTIP;
 
     if (Flags & NIF_TIP)
     {
-        PhSwapReference(&PhNfIconTextCache[notifyId], Text);
+        PhSwapReference(&Icon->TextCache, Text);
         wcsncpy_s(
             notifyIcon.szTip,
-            sizeof(notifyIcon.szTip) / sizeof(WCHAR),
+            ARRAYSIZE(notifyIcon.szTip),
             PhGetStringOrDefault(Text, PhApplicationName),
             _TRUNCATE
             );
     }
 
-    notifyIcon.hIcon = Icon;
-
-    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (icon && !(icon->Flags & PH_NF_ICON_SHOW_MINIINFO)))
-        notifyIcon.uFlags |= NIF_SHOWTIP;
-
     if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIcon))
     {
         // Explorer probably died and we lost our icon. Try to add the icon, and try again.
-        PhNfpAddNotifyIcon(Id);
+        PhNfpAddNotifyIcon(Icon);
         Shell_NotifyIcon(NIM_MODIFY, &notifyIcon);
     }
 
     return TRUE;
 }
 
+//BOOLEAN PhNfpGetNotifyIconRect(
+//    _In_ ULONG Id,
+//    _In_opt_ PPH_RECTANGLE IconRectangle
+//    )
+//{
+//    NOTIFYICONIDENTIFIER notifyIconId = { sizeof(NOTIFYICONIDENTIFIER) };
+//    PPH_NF_ICON icon;
+//    RECT notifyRect;
+//
+//    if (PhMainWndExiting)
+//        return FALSE;
+//    if ((icon = PhNfGetIconById(Id)) && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
+//        return FALSE;
+//
+//    notifyIconId.hWnd = PhMainWndHandle;
+//    notifyIconId.uID = Id;
+//
+//    if (SUCCEEDED(Shell_NotifyIconGetRect(&notifyIconId, &notifyRect)))
+//    {
+//        *IconRectangle = PhRectToRectangle(notifyRect);
+//        return TRUE;
+//    }
+//
+//    return FALSE;
+//}
+
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    ULONG registeredIconMask;
-
     // We do icon updating on the provider thread so we don't block the main GUI when
     // explorer is not responding.
 
-    if (PhNfIconMask & PH_ICON_CPU_HISTORY)
-        PhNfpUpdateIconCpuHistory();
-    if (PhNfIconMask & PH_ICON_IO_HISTORY)
-        PhNfpUpdateIconIoHistory();
-    if (PhNfIconMask & PH_ICON_COMMIT_HISTORY)
-        PhNfpUpdateIconCommitHistory();
-    if (PhNfIconMask & PH_ICON_PHYSICAL_HISTORY)
-        PhNfpUpdateIconPhysicalHistory();
-    if (PhNfIconMask & PH_ICON_CPU_USAGE)
-        PhNfpUpdateIconCpuUsage();
-
-    registeredIconMask = PhNfIconMask & ~PH_ICON_DEFAULT_ALL;
-
-    if (registeredIconMask != 0)
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
-        ULONG i;
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        for (i = 0; i < sizeof(PhNfRegisteredIcons) / sizeof(PPH_NF_ICON); i++)
-        {
-            if (PhNfRegisteredIcons[i] && (registeredIconMask & PhNfRegisteredIcons[i]->IconId))
-            {
-                PhNfpUpdateRegisteredIcon(PhNfRegisteredIcons[i]);
-            }
-        }
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+
+        PhNfpUpdateRegisteredIcon(icon);
     }
 }
 
@@ -711,7 +768,7 @@ VOID PhNfpUpdateRegisteredIcon(
         flags |= NIF_TIP;
 
     if (flags != 0)
-        PhNfpModifyNotifyIcon(Icon->IconId, flags, newText, newIcon);
+        PhNfpModifyNotifyIcon(Icon, flags, newText, newIcon);
 
     if (newIcon && (updateFlags & PH_NF_UPDATE_IS_BITMAP))
         DestroyIcon(newIcon);
@@ -778,8 +835,12 @@ VOID PhNfpBeginBitmap2(
     *OldBitmap = SelectObject(Context->Hdc, Context->Bitmap);
 }
 
-VOID PhNfpUpdateIconCpuHistory(
-    VOID
+VOID PhNfpCpuHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -789,7 +850,6 @@ VOID PhNfpUpdateIconCpuHistory(
         PH_GRAPH_USE_LINE_2,
         2,
         RGB(0x00, 0x00, 0x00),
-
         16,
         NULL,
         NULL,
@@ -806,15 +866,13 @@ VOID PhNfpUpdateIconCpuHistory(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    HICON icon;
     HANDLE maxCpuProcessId;
     PPH_PROCESS_ITEM maxCpuProcessItem;
     PH_FORMAT format[8];
-    PPH_STRING text;
 
     // Icon
 
-    PhNfpBeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
@@ -835,7 +893,8 @@ VOID PhNfpUpdateIconCpuHistory(
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    icon = PhNfBitmapToIcon(bitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
 
     // Text
 
@@ -862,17 +921,16 @@ VOID PhNfpUpdateIconCpuHistory(
         PhInitFormatC(&format[7], '%');
     }
 
-    text = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
+    *NewText = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
     if (maxCpuProcessItem) PhDereferenceObject(maxCpuProcessItem);
-
-    PhNfpModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text, icon);
-
-    DestroyIcon(icon);
-    PhDereferenceObject(text);
 }
 
-VOID PhNfpUpdateIconIoHistory(
-    VOID
+VOID PhNfpIoHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -882,7 +940,6 @@ VOID PhNfpUpdateIconIoHistory(
         PH_GRAPH_USE_LINE_2,
         2,
         RGB(0x00, 0x00, 0x00),
-
         16,
         NULL,
         NULL,
@@ -901,15 +958,13 @@ VOID PhNfpUpdateIconIoHistory(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    HICON icon;
     HANDLE maxIoProcessId;
     PPH_PROCESS_ITEM maxIoProcessItem;
     PH_FORMAT format[8];
-    PPH_STRING text;
 
     // Icon
 
-    PhNfpBeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
@@ -944,7 +999,8 @@ VOID PhNfpUpdateIconIoHistory(
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    icon = PhNfBitmapToIcon(bitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
 
     // Text
 
@@ -971,17 +1027,16 @@ VOID PhNfpUpdateIconIoHistory(
         PhInitFormatSR(&format[7], maxIoProcessItem->ProcessName->sr);
     }
 
-    text = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
+    *NewText = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
     if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
-
-    PhNfpModifyNotifyIcon(PH_ICON_IO_HISTORY, NIF_TIP | NIF_ICON, text, icon);
-
-    DestroyIcon(icon);
-    PhDereferenceObject(text);
 }
 
-VOID PhNfpUpdateIconCommitHistory(
-    VOID
+VOID PhNfpCommitHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -991,7 +1046,6 @@ VOID PhNfpUpdateIconCommitHistory(
         0,
         2,
         RGB(0x00, 0x00, 0x00),
-
         16,
         NULL,
         NULL,
@@ -1008,14 +1062,12 @@ VOID PhNfpUpdateIconCommitHistory(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    HICON icon;
     DOUBLE commitFraction;
     PH_FORMAT format[5];
-    PPH_STRING text;
 
     // Icon
 
-    PhNfpBeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
 
@@ -1035,7 +1087,8 @@ VOID PhNfpUpdateIconCommitHistory(
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    icon = PhNfBitmapToIcon(bitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
 
     // Text
 
@@ -1047,16 +1100,15 @@ VOID PhNfpUpdateIconCommitHistory(
     PhInitFormatF(&format[3], commitFraction * 100, 2);
     PhInitFormatS(&format[4], L"%)");
 
-    text = PhFormat(format, 5, 96);
-
-    PhNfpModifyNotifyIcon(PH_ICON_COMMIT_HISTORY, NIF_TIP | NIF_ICON, text, icon);
-
-    DestroyIcon(icon);
-    PhDereferenceObject(text);
+    *NewText = PhFormat(format, 5, 96);
 }
 
-VOID PhNfpUpdateIconPhysicalHistory(
-    VOID
+VOID PhNfpPhysicalHistoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     static PH_GRAPH_DRAW_INFO drawInfo =
@@ -1066,7 +1118,6 @@ VOID PhNfpUpdateIconPhysicalHistory(
         0,
         2,
         RGB(0x00, 0x00, 0x00),
-
         16,
         NULL,
         NULL,
@@ -1083,19 +1134,17 @@ VOID PhNfpUpdateIconPhysicalHistory(
     PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
-    HICON icon;
     ULONG physicalUsage;
     FLOAT physicalFraction;
     PH_FORMAT format[5];
-    PPH_STRING text;
 
     // Icon
 
-    PhNfpBeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
 
-    lineDataCount = min(maxDataCount, PhCommitHistory.Count);
+    lineDataCount = min(maxDataCount, PhPhysicalHistory.Count);
 
     for (i = 0; i < lineDataCount; i++)
         lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
@@ -1111,7 +1160,8 @@ VOID PhNfpUpdateIconPhysicalHistory(
         PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    icon = PhNfBitmapToIcon(bitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
 
     // Text
 
@@ -1124,16 +1174,15 @@ VOID PhNfpUpdateIconPhysicalHistory(
     PhInitFormatF(&format[3], physicalFraction * 100, 2);
     PhInitFormatS(&format[4], L"%)");
 
-    text = PhFormat(format, 5, 96);
-
-    PhNfpModifyNotifyIcon(PH_ICON_PHYSICAL_HISTORY, NIF_TIP | NIF_ICON, text, icon);
-
-    DestroyIcon(icon);
-    PhDereferenceObject(text);
+    *NewText = PhFormat(format, 5, 96);
 }
 
-VOID PhNfpUpdateIconCpuUsage(
-    VOID
+VOID PhNfpCpuUsageIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
     )
 {
     ULONG width;
@@ -1141,15 +1190,13 @@ VOID PhNfpUpdateIconCpuUsage(
     HBITMAP bitmap;
     HDC hdc;
     HBITMAP oldBitmap;
-    HICON icon;
     HANDLE maxCpuProcessId;
     PPH_PROCESS_ITEM maxCpuProcessItem;
     PPH_STRING maxCpuText = NULL;
-    PPH_STRING text;
 
     // Icon
 
-    PhNfpBeginBitmap(&width, &height, &bitmap, NULL, &hdc, &oldBitmap);
+    Icon->Pointers->BeginBitmap(&width, &height, &bitmap, NULL, &hdc, &oldBitmap);
 
     // This stuff is copied from CpuUsageIcon.cs (PH 1.x).
     {
@@ -1226,7 +1273,8 @@ VOID PhNfpUpdateIconCpuUsage(
     }
 
     SelectObject(hdc, oldBitmap);
-    icon = PhNfBitmapToIcon(bitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
 
     // Text
 
@@ -1248,13 +1296,289 @@ VOID PhNfpUpdateIconCpuUsage(
         }
     }
 
-    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    *NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     if (maxCpuText) PhDereferenceObject(maxCpuText);
+}
 
-    PhNfpModifyNotifyIcon(PH_ICON_CPU_USAGE, NIF_TIP | NIF_ICON, text, icon);
+// Text icons
 
-    DestroyIcon(icon);
+VOID PhNfpCpuUsageTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[5];
+    HANDLE maxCpuProcessId;
+    PPH_PROCESS_ITEM maxCpuProcessItem;
+    PPH_STRING maxCpuText = NULL;
+    PPH_STRING text;
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    PhInitFormatF(&format[0], (PhCpuKernelUsage + PhCpuUserUsage) * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhCsColorCpuKernel;
+    if (bits)
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (PhMaxCpuHistory.Count != 0)
+        maxCpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
+    else
+        maxCpuProcessId = NULL;
+
+    if (maxCpuProcessId)
+    {
+        if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
+        {
+            maxCpuText = PhFormatString(
+                L"\n%s: %.2f%%",
+                maxCpuProcessItem->ProcessName->Buffer,
+                maxCpuProcessItem->CpuUsage * 100
+                );
+            PhDereferenceObject(maxCpuProcessItem);
+        }
+    }
+
+    *NewText = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    if (maxCpuText) PhDereferenceObject(maxCpuText);
+}
+
+VOID PhNfpIoUsageTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HANDLE maxIoProcessId;
+    PPH_PROCESS_ITEM maxIoProcessItem;
+    PH_FORMAT format[8];
+    PPH_STRING text;
+    static ULONG64 maxValue = 100000 * 1024; // minimum scaling of 100 MB.
+    
+    // TODO: Reset maxValue every X amount of time.
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (maxValue < (PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta))
+        maxValue = (PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta);
+
+    PhInitFormatF(&format[0], (FLOAT)(PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta) / maxValue * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhCsColorIoReadOther;
+    if (bits)
+        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (PhMaxIoHistory.Count != 0)
+        maxIoProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
+    else
+        maxIoProcessId = NULL;
+
+    if (maxIoProcessId)
+        maxIoProcessItem = PhReferenceProcessItem(maxIoProcessId);
+    else
+        maxIoProcessItem = NULL;
+
+    PhInitFormatS(&format[0], L"I/O\nR: ");
+    PhInitFormatSize(&format[1], PhIoReadDelta.Delta);
+    PhInitFormatS(&format[2], L"\nW: ");
+    PhInitFormatSize(&format[3], PhIoWriteDelta.Delta);
+    PhInitFormatS(&format[4], L"\nO: ");
+    PhInitFormatSize(&format[5], PhIoOtherDelta.Delta);
+
+    if (maxIoProcessItem)
+    {
+        PhInitFormatC(&format[6], '\n');
+        PhInitFormatSR(&format[7], maxIoProcessItem->ProcessName->sr);
+    }
+
+    *NewText = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
+    if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
+}
+
+VOID PhNfpCommitTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    DOUBLE commitFraction;
+    PH_FORMAT format[5];
+    PPH_STRING text;
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    PhInitFormatF(&format[0], (FLOAT)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhCsColorPrivate;
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
+
+    PhInitFormatS(&format[0], L"Commit: ");
+    PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
+    PhInitFormatS(&format[2], L" (");
+    PhInitFormatF(&format[3], commitFraction * 100, 2);
+    PhInitFormatS(&format[4], L"%)");
+
+    *NewText = PhFormat(format, 5, 96);
+}
+
+VOID PhNfpPhysicalUsageTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    ULONG physicalUsage;
+    FLOAT physicalFraction;
+    PH_FORMAT format[5];
+    PPH_STRING text;
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+    physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
+
+    PhInitFormatF(&format[0], (FLOAT)physicalFraction * 100, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextColor = PhCsColorPhysical;
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    SelectObject(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+    physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
+
+    PhInitFormatS(&format[0], L"Physical memory: ");
+    PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
+    PhInitFormatS(&format[2], L" (");
+    PhInitFormatF(&format[3], physicalFraction * 100, 2);
+    PhInitFormatS(&format[4], L"%)");
+
+    *NewText = PhFormat(format, 5, 96);
 }
 
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
@@ -1265,11 +1589,11 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
 {
     BOOLEAN showMiniInfo = FALSE;
 
-    if (RegisteredIcon)
+    if (RegisteredIcon && RegisteredIcon->MessageCallback)
     {
         Data->SectionName = NULL;
 
-        if (RegisteredIcon->Flags & PH_NF_ICON_SHOW_MINIINFO)
+        if (!(RegisteredIcon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
         {
             if (RegisteredIcon->MessageCallback)
             {
@@ -1286,19 +1610,23 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
     }
     else
     {
-        switch (1 << IconIndex)
+        switch (IconIndex)
         {
-        case PH_ICON_CPU_HISTORY:
-        case PH_ICON_CPU_USAGE:
+        case PH_TRAY_ICON_ID_CPU_HISTORY:
+        case PH_TRAY_ICON_ID_CPU_USAGE:
+        case PH_TRAY_ICON_ID_CPU_TEXT:
             Data->SectionName = L"CPU";
             break;
-        case PH_ICON_IO_HISTORY:
+        case PH_TRAY_ICON_ID_IO_HISTORY:
+        case PH_TRAY_ICON_ID_IO_TEXT:
             Data->SectionName = L"I/O";
             break;
-        case PH_ICON_COMMIT_HISTORY:
+        case PH_TRAY_ICON_ID_COMMIT_HISTORY:
+        case PH_TRAY_ICON_ID_COMMIT_TEXT:
             Data->SectionName = L"Commit charge";
             break;
-        case PH_ICON_PHYSICAL_HISTORY:
+        case PH_TRAY_ICON_ID_PHYSICAL_HISTORY:
+        case PH_TRAY_ICON_ID_PHYSICAL_TEXT:
             Data->SectionName = L"Physical memory";
             break;
         }

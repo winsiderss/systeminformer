@@ -129,6 +129,7 @@
 #define IDD_PLUGINSDISABLED             241
 #define IDD_PROCWMIPROVIDERS            242
 #define IDD_COLUMNSETS                  243
+#define ID_VIEW_TRAYICONS               244
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -738,7 +739,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        244
+#define _APS_NEXT_RESOURCE_VALUE        245
 #define _APS_NEXT_COMMAND_VALUE         40297
 #define _APS_NEXT_CONTROL_VALUE         1404
 #define _APS_NEXT_SYMED_VALUE           170

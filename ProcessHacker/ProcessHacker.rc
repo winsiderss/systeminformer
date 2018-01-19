@@ -109,14 +109,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "System &information\aCtrl+I", ID_VIEW_SYSTEMINFORMATION
-        POPUP "&Tray icons"
-        BEGIN
-            MENUITEM "CPU &history",                ID_TRAYICONS_CPUHISTORY
-            MENUITEM "CPU &usage",                  ID_TRAYICONS_CPUUSAGE
-            MENUITEM "&I/O history",                ID_TRAYICONS_IOHISTORY
-            MENUITEM "&Commit charge history",      ID_TRAYICONS_COMMITHISTORY
-            MENUITEM "&Physical memory history",    ID_TRAYICONS_PHYSICALMEMORYHISTORY
-        END
+        MENUITEM "&Tray icons",                 ID_VIEW_TRAYICONS
         MENUITEM SEPARATOR
         MENUITEM "<section placeholder>",       ID_VIEW_SECTIONPLACEHOLDER
         MENUITEM SEPARATOR

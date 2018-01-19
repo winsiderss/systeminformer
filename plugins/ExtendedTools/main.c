@@ -42,6 +42,7 @@ PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MiniInformationInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 
@@ -54,8 +55,6 @@ VOID NTAPI LoadCallback(
 {
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
-
-    EtRegisterNotifyIcons();
 }
 
 VOID NTAPI UnloadCallback(
@@ -297,6 +296,14 @@ VOID NTAPI MiniInformationInitializingCallback(
         EtGpuMiniInformationInitializing(Parameter);
     if (EtEtwEnabled)
         EtEtwMiniInformationInitializing(Parameter);
+}
+
+VOID NTAPI TrayIconsInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    EtRegisterNotifyIcons(Parameter);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
@@ -569,6 +576,13 @@ LOGICAL DllMain(
                 MiniInformationInitializingCallback,
                 NULL,
                 &MiniInformationInitializingCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackTrayIconsInitializing),
+                TrayIconsInitializingCallback,
+                NULL,
+                &TrayIconsInitializingCallbackRegistration
                 );
 
             PhRegisterCallback(

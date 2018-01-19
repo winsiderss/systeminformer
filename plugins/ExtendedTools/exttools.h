@@ -505,7 +505,7 @@ VOID EtGpuMiniInformationInitializing(
 // iconext
 
 VOID EtRegisterNotifyIcons(
-    VOID
+    _In_ PPH_TRAY_ICON_POINTERS Pointers
     );
 
 // modsrv

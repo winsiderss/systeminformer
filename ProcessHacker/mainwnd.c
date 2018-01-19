@@ -3,7 +3,7 @@
  *   Main window
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -199,7 +199,7 @@ BOOLEAN PhMainWndInitialization(
 
     UpdateWindow(PhMainWndHandle);
 
-    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfTestIconMask(PH_ICON_ALL))
+    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
         ShowCommand = SW_HIDE;
     if (PhStartupParameters.ShowVisible)
         ShowCommand = SW_SHOW;
@@ -544,7 +544,7 @@ VOID PhMwpOnCommand(
         {
             if (PhGetIntegerSetting(L"HideOnClose"))
             {
-                if (PhNfTestIconMask(PH_ICON_ALL))
+                if (PhNfIconsEnabled())
                     ShowWindow(PhMainWndHandle, SW_HIDE);
             }
             else if (PhGetIntegerSetting(L"CloseOnEscape"))
@@ -713,36 +713,6 @@ VOID PhMwpOnCommand(
         break;
     case ID_VIEW_SYSTEMINFORMATION:
         PhShowSystemInformationDialog(NULL);
-        break;
-    case ID_TRAYICONS_CPUHISTORY:
-    case ID_TRAYICONS_CPUUSAGE:
-    case ID_TRAYICONS_IOHISTORY:
-    case ID_TRAYICONS_COMMITHISTORY:
-    case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
-        {
-            ULONG i;
-
-            switch (Id)
-            {
-            case ID_TRAYICONS_CPUHISTORY:
-                i = PH_ICON_CPU_HISTORY;
-                break;
-            case ID_TRAYICONS_CPUUSAGE:
-                i = PH_ICON_CPU_USAGE;
-                break;
-            case ID_TRAYICONS_IOHISTORY:
-                i = PH_ICON_IO_HISTORY;
-                break;
-            case ID_TRAYICONS_COMMITHISTORY:
-                i = PH_ICON_COMMIT_HISTORY;
-                break;
-            case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
-                i = PH_ICON_PHYSICAL_HISTORY;
-                break;
-            }
-
-            PhNfSetVisibleIcon(i, !PhNfTestIconMask(i));
-        }
         break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
         {
@@ -1544,7 +1514,7 @@ BOOLEAN PhMwpOnSysCommand(
     {
     case SC_CLOSE:
         {
-            if (PhGetIntegerSetting(L"HideOnClose") && PhNfTestIconMask(PH_ICON_ALL))
+            if (PhGetIntegerSetting(L"HideOnClose") && PhNfIconsEnabled())
             {
                 ShowWindow(PhMainWndHandle, SW_HIDE);
                 return TRUE;
@@ -1556,7 +1526,7 @@ BOOLEAN PhMwpOnSysCommand(
             // Save the current window state because we may not have a chance to later.
             PhMwpSaveWindowState();
 
-            if (PhGetIntegerSetting(L"HideOnMinimize") && PhNfTestIconMask(PH_ICON_ALL))
+            if (PhGetIntegerSetting(L"HideOnMinimize") && PhNfIconsEnabled())
             {
                 ShowWindow(PhMainWndHandle, SW_HIDE);
                 return TRUE;
@@ -2325,7 +2295,7 @@ VOID PhMwpDispatchMenuCommand(
                 PPH_NF_ICON icon;
 
                 icon = menuItem->Context;
-                PhNfSetVisibleIcon(icon->IconId, !PhNfTestIconMask(icon->IconId));
+                PhNfSetVisibleIcon(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
             }
 
             return;
@@ -2459,71 +2429,31 @@ VOID PhMwpInitializeSubMenu(
         ULONG id;
         ULONG placeholderIndex;
 
-        trayIconsMenuItem = PhMwpFindTrayIconsMenuItem(Menu);
-
-        if (trayIconsMenuItem)
+        if (trayIconsMenuItem = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, NULL, ID_VIEW_TRAYICONS))
         {
-            ULONG maximum;
-            PPH_NF_ICON icon;
-
             // Add menu items for the registered tray icons.
 
-            id = PH_ICON_DEFAULT_MAXIMUM;
-            maximum = PhNfGetMaximumIconId();
-
-            for (; id != maximum; id <<= 1)
+            for (i = 0; i < PhTrayIconItemList->Count; i++)
             {
-                if (icon = PhNfGetIconById(id))
+                PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+                menuItem = PhCreateEMenuItem(0, ID_TRAYICONS_REGISTERED, icon->Text, NULL, icon);
+                PhInsertEMenuItem(trayIconsMenuItem, menuItem, -1);
+
+                // Update the text and check marks on the menu items.
+
+                if (icon->Flags & PH_NF_ICON_ENABLED)
                 {
-                    PhInsertEMenuItem(trayIconsMenuItem, PhCreateEMenuItem(0, ID_TRAYICONS_REGISTERED, icon->Text, NULL, icon), -1);
-                }
-            }
-
-            // Update the text and check marks on the menu items.
-
-            for (i = 0; i < trayIconsMenuItem->Items->Count; i++)
-            {
-                menuItem = trayIconsMenuItem->Items->Items[i];
-
-                id = -1;
-                icon = NULL;
-
-                switch (menuItem->Id)
-                {
-                case ID_TRAYICONS_CPUHISTORY:
-                    id = PH_ICON_CPU_HISTORY;
-                    break;
-                case ID_TRAYICONS_IOHISTORY:
-                    id = PH_ICON_IO_HISTORY;
-                    break;
-                case ID_TRAYICONS_COMMITHISTORY:
-                    id = PH_ICON_COMMIT_HISTORY;
-                    break;
-                case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
-                    id = PH_ICON_PHYSICAL_HISTORY;
-                    break;
-                case ID_TRAYICONS_CPUUSAGE:
-                    id = PH_ICON_CPU_USAGE;
-                    break;
-                case ID_TRAYICONS_REGISTERED:
-                    icon = menuItem->Context;
-                    id = icon->IconId;
-                    break;
+                    menuItem->Flags |= PH_EMENU_CHECKED;
                 }
 
-                if (id != -1)
+                if (icon->Flags & PH_NF_ICON_UNAVAILABLE)
                 {
-                    if (PhNfTestIconMask(id))
-                        menuItem->Flags |= PH_EMENU_CHECKED;
+                    PPH_STRING newText;
 
-                    if (icon && (icon->Flags & PH_NF_ICON_UNAVAILABLE))
-                    {
-                        PPH_STRING newText;
-
-                        newText = PhaConcatStrings2(icon->Text, L" (Unavailable)");
-                        PhModifyEMenuItem(menuItem, PH_EMENU_MODIFY_TEXT, PH_EMENU_TEXT_OWNED,
-                            PhAllocateCopy(newText->Buffer, newText->Length + sizeof(WCHAR)), NULL);
-                    }
+                    newText = PhaConcatStrings2(icon->Text, L" (Unavailable)");
+                    PhModifyEMenuItem(menuItem, PH_EMENU_MODIFY_TEXT, PH_EMENU_TEXT_OWNED,
+                        PhAllocateCopy(newText->Buffer, newText->Length + sizeof(WCHAR)), NULL);
                 }
             }
         }
@@ -2590,24 +2520,6 @@ VOID PhMwpInitializeSubMenu(
             }
         }
     }
-}
-
-PPH_EMENU_ITEM PhMwpFindTrayIconsMenuItem(
-    _In_ PPH_EMENU Menu
-    )
-{
-    ULONG i;
-    PPH_EMENU_ITEM menuItem;
-
-    for (i = 0; i < Menu->Items->Count; i++)
-    {
-        menuItem = Menu->Items->Items[i];
-
-        if (PhFindEMenuItem(menuItem, 0, NULL, ID_TRAYICONS_CPUHISTORY))
-            return menuItem;
-    }
-
-    return NULL;
 }
 
 VOID PhMwpInitializeSectionMenuItems(

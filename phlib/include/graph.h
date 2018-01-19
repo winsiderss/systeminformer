@@ -92,6 +92,15 @@ VOID PhSetGraphText(
     _In_ ULONG Align
     );
 
+PHLIBAPI
+VOID PhDrawTrayIconText(
+    _In_ HDC hdc,
+    _In_ PVOID Bits,
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ PPH_STRINGREF Text
+    );
+
+
 // Configuration
 
 typedef struct _PH_GRAPH_OPTIONS
