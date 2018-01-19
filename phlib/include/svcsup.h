@@ -123,6 +123,14 @@ PhGetServiceNameFromTag(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServiceNameForModuleReference(
+    _In_ HANDLE ProcessId,
+    _In_ PWSTR ModuleName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetThreadServiceTag(

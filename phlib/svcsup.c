@@ -50,7 +50,7 @@ static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
     SIP(L"User own process", SERVICE_USER_OWN_PROCESS),
     SIP(L"User own process (instance)", SERVICE_USER_OWN_PROCESS | SERVICE_USERSERVICE_INSTANCE),
     SIP(L"User share process", SERVICE_USER_SHARE_PROCESS),
-    SIP(L"User share process (instance)", SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE),
+    SIP(L"User share process (instance)", SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE)
 };
 
 static PH_KEY_VALUE_PAIR PhpServiceStartTypePairs[] =
@@ -458,6 +458,49 @@ PPH_STRING PhGetServiceNameFromTag(
     }
 
     return serviceName;
+}
+
+PPH_STRING PhGetServiceNameForModuleReference(
+    _In_ HANDLE ProcessId,
+    _In_ PWSTR ModuleName
+    )
+{
+    static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
+    PPH_STRING serviceNames = NULL;
+    TAG_INFO_NAMES_REFERENCING_MODULE moduleNameRef;
+
+    if (!I_QueryTagInformation)
+    {
+        I_QueryTagInformation = PhGetModuleProcAddress(L"advapi32.dll", "I_QueryTagInformation");
+
+        if (!I_QueryTagInformation)
+            return NULL;
+    }
+
+    memset(&moduleNameRef, 0, sizeof(TAG_INFO_NAMES_REFERENCING_MODULE));
+    moduleNameRef.InParams.dwPid = HandleToUlong(ProcessId);
+    moduleNameRef.InParams.pszModule = ModuleName;
+
+    I_QueryTagInformation(NULL, eTagInfoLevelNamesReferencingModule, &moduleNameRef);
+
+    if (moduleNameRef.OutParams.pmszNames)
+    {
+        PH_STRING_BUILDER sb;
+        PWSTR serviceName;
+
+        PhInitializeStringBuilder(&sb, 0x40);
+
+        for (serviceName = moduleNameRef.OutParams.pmszNames; *serviceName; serviceName += PhCountStringZ(serviceName) + 1)
+            PhAppendFormatStringBuilder(&sb, L"%s, ", serviceName);
+
+        if (sb.String->Length != 0)
+            PhRemoveEndStringBuilder(&sb, 2);
+
+        serviceNames = PhFinalStringBuilderString(&sb);
+        LocalFree(moduleNameRef.OutParams.pmszNames);
+    }
+
+    return serviceNames;
 }
 
 NTSTATUS PhGetThreadServiceTag(
