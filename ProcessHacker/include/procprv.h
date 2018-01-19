@@ -168,8 +168,9 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
+            ULONG IsControlFlowGuardEnabled : 1;
 
-            ULONG Spare : 15;
+            ULONG Spare : 14;
         };
     };
 
@@ -410,5 +411,9 @@ PhReferenceProcessItemForRecord(
     _In_ PPH_PROCESS_RECORD Record
     );
 // end_phapppub
+
+BOOLEAN PhProcessIsCFGuardEnabled(
+    _In_ HANDLE ProcessHandle
+);
 
 #endif
