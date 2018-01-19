@@ -142,9 +142,6 @@ VOID PhNfSaveSettings(
             );
     }
 
-    if (iconListBuilder.String->Length != 0)
-        PhRemoveEndStringBuilder(&iconListBuilder, 1);
-
     settingsString = PhFinalStringBuilderString(&iconListBuilder);
     PhSetStringSetting2(L"IconSettings", &settingsString->sr);
     PhDereferenceObject(settingsString);
