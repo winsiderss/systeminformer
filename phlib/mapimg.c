@@ -1688,7 +1688,7 @@ NTSTATUS PhGetMappedImageResources(
                 Resources->ResourceEntries[resourceIndex].Type = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceType);
                 Resources->ResourceEntries[resourceIndex].Name = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceName);
                 Resources->ResourceEntries[resourceIndex].Language = NAME_FROM_RESOURCE_ENTRY(resourceDirectory, resourceLanguage);
-                Resources->ResourceEntries[resourceIndex].Data = PTR_ADD_OFFSET(MappedImage->ViewBase, resourceData->OffsetToData);
+                Resources->ResourceEntries[resourceIndex].Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
                 Resources->ResourceEntries[resourceIndex++].Size = resourceData->Size;
             }
         }
