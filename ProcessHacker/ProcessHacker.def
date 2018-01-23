@@ -534,6 +534,7 @@ EXPORTS
 	PhGetMappedImageLoadConfig64
 	PhInitializeMappedImage
 	PhLoadMappedImage
+	PhUnloadMappedImage
 
 ; settings
 	PhAddSetting
