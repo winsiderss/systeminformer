@@ -104,6 +104,8 @@ VOID PhPinMiniInformation(
         if (!PhMipContainerWindow)
         {
             WNDCLASSEX wcex;
+            RTL_ATOM windowAtom;
+            PPH_STRING className;
 
             memset(&wcex, 0, sizeof(WNDCLASSEX));
             wcex.cbSize = sizeof(WNDCLASSEX);
@@ -115,13 +117,14 @@ VOID PhPinMiniInformation(
             wcex.hIcon = PH_LOAD_SHARED_ICON_LARGE(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
             wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
             wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
-            wcex.lpszClassName = MIP_CONTAINER_CLASSNAME;
+            className = PhaGetStringSetting(L"MiniInfoWindowClassName");
+            wcex.lpszClassName = PhGetStringOrDefault(className, L"MiniInfoWindowClassName");
             wcex.hIconSm = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
-            RegisterClassEx(&wcex);
+            windowAtom = RegisterClassEx(&wcex);
 
             PhMipContainerWindow = CreateWindow(
-                MIP_CONTAINER_CLASSNAME,
-                L"Process Hacker",
+                MAKEINTATOM(windowAtom),
+                PhGetIntegerSetting(L"EnableWindowText") ? L"Process Hacker" : NULL,
                 WS_BORDER | WS_THICKFRAME | WS_POPUP,
                 0,
                 0,
