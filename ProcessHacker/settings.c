@@ -164,7 +164,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"TokenSplitterEnable", L"0");
     PhpAddIntegerSetting(L"TokenSplitterPosition", L"150");
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
-    PhpAddIntegerSetting(L"TreeListBorderEnable", L"1");
+    PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
     PhpAddStringSetting(L"WmiProviderListViewColumns", L"");
