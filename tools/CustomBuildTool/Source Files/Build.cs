@@ -2,7 +2,7 @@
  * Process Hacker Toolchain - 
  *   Build script
  * 
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  * 
  * This file is part of Process Hacker.
  * 
@@ -118,6 +118,7 @@ namespace CustomBuildTool
             "dltmgr.h",
             "dspick.h",
             "emenu.h",
+            "exlf.h",
             "fastlock.h",
             "filestream.h",
             "graph.h",
