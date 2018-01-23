@@ -37,7 +37,7 @@ CommonBitmapToIcon(
     HBITMAP screenBitmap;
     ICONINFO iconInfo = { 0 };
 
-    screenDc = CreateIC(L"DISPLAY", NULL, NULL, NULL);
+    screenDc = GetDC(NULL);
     screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
 
     iconInfo.fIcon = TRUE;
@@ -47,7 +47,7 @@ CommonBitmapToIcon(
     icon = CreateIconIndirect(&iconInfo);
 
     DeleteObject(screenBitmap);
-    DeleteDC(screenDc);
+    ReleaseDC(NULL, screenDc);
 
     return icon;
 }
