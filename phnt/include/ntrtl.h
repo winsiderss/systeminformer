@@ -1,6 +1,9 @@
 #ifndef _NTRTL_H
 #define _NTRTL_H
 
+#define RtlOffsetToPointer(Base, Offset) ((PCHAR)(((PCHAR)(Base)) + ((ULONG_PTR)(Offset))))
+#define RtlPointerToOffset(Base, Pointer) ((ULONG)(((PCHAR)(Pointer)) - ((PCHAR)(Base))))
+
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
