@@ -3,8 +3,6 @@
 
 // Constants
 
-#define MIP_CONTAINER_CLASSNAME L"ProcessHackerMiniInfo"
-
 #define MIP_TIMER_PIN_FIRST 1
 #define MIP_TIMER_PIN_LAST (MIP_TIMER_PIN_FIRST + MaxMiniInfoPinType - 1)
 
