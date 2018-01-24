@@ -183,7 +183,11 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_KILLFOCUS:
         {
+            if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
+                PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, NULL, NULL);
+
             context->HasFocus = FALSE;
+
             InvalidateRect(context->Handle, NULL, FALSE);
         }
         return 0;
@@ -208,6 +212,20 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     case WM_MOUSELEAVE:
         {
+            if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
+            {
+                ULONG changedStart;
+                ULONG changedEnd;
+                RECT rect;
+
+                PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+
+                if (PhTnpGetRowRects(context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(context->Handle, &rect, FALSE);
+                }
+            }
+
             if (!context->SuspendUpdateStructure)
                 PhTnpOnMouseLeave(hwnd, context);
         }
@@ -386,6 +404,14 @@ VOID PhTnpDestroyTreeNewContext(
     if (Context->SuspendUpdateRegion)
         DeleteObject(Context->SuspendUpdateRegion);
 
+    if (Context->CustomColors)
+    {
+        if (Context->CustomFocusBrush)
+            DeleteObject(Context->CustomFocusBrush);
+        if (Context->CustomSelectedBrush)
+            DeleteObject(Context->CustomSelectedBrush);
+    }
+
     PhFree(Context);
 }
 
@@ -396,11 +422,13 @@ BOOLEAN PhTnpOnCreate(
     )
 {
     ULONG headerStyle;
+    PPH_TREENEW_CREATEPARAMS createParamaters;
 
     Context->Handle = hwnd;
     Context->InstanceHandle = CreateStruct->hInstance;
     Context->Style = CreateStruct->style;
     Context->ExtendedStyle = CreateStruct->dwExStyle;
+    createParamaters = CreateStruct->lpCreateParams;
 
     if (Context->Style & TN_STYLE_DOUBLE_BUFFERED)
         Context->DoubleBuffered = TRUE;
@@ -413,6 +441,26 @@ BOOLEAN PhTnpOnCreate(
         headerStyle |= HDS_BUTTONS;
     if (!(Context->Style & TN_STYLE_NO_COLUMN_HEADER))
         headerStyle |= WS_VISIBLE;
+
+    if (Context->Style & TN_STYLE_CUSTOM_COLORS)
+    {
+        Context->CustomColors = TRUE;
+
+        if (createParamaters->FocusColor)
+            Context->CustomFocusBrush = CreateSolidBrush(createParamaters->FocusColor);
+        else
+            Context->CustomFocusBrush = CreateSolidBrush(RGB(0, 0, 0xff));
+
+        if (createParamaters->SelectionColor)
+            Context->CustomSelectedBrush = CreateSolidBrush(createParamaters->FocusColor);
+        else
+            Context->CustomSelectedBrush = CreateSolidBrush(RGB(0, 0, 0x80));
+    }
+    else
+    {
+        Context->CustomFocusBrush = GetSysColorBrush(COLOR_HOTLIGHT);
+        Context->CustomSelectedBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
+    }
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
@@ -1295,7 +1343,9 @@ VOID PhTnpOnContextMenu(
     contextMenu.Node = hitTest.Node;
     contextMenu.Column = hitTest.Column;
     contextMenu.KeyboardInvoked = keyboardInvoked;
+    Context->ContextMenuActive = TRUE;
     Context->Callback(hwnd, TreeNewContextMenu, &contextMenu, NULL, Context->CallbackContext);
+    Context->ContextMenuActive = FALSE;
 }
 
 VOID PhTnpOnVScroll(
@@ -3085,6 +3135,31 @@ VOID PhTnpAutoSizeColumnHeader(
 
         if (Column->Fixed)
             newWidth++;
+
+        // Check the column header text width.
+        if (Column->Text)
+        {
+            PWSTR text;
+            SIZE_T textCount;
+            HDC hdc;
+            SIZE textSize;
+
+            text = Column->Text;
+            textCount = PhCountStringZ(text);
+
+            if (hdc = GetDC(Context->Handle))
+            {
+                SelectObject(hdc, Context->Font);
+
+                if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
+                {
+                    if (newWidth < textSize.cx + 6 + 6) // HACK: Magic values (same as our cell margins?)
+                        newWidth = textSize.cx + 6 + 6;
+                }
+
+                ReleaseDC(Context->Handle, hdc);
+            }
+        }
     }
 
     item.mask = HDI_WIDTH;
@@ -5006,26 +5081,59 @@ VOID PhTnpPaint(
 
     for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
     {
+        INT stateId;
+
         node = Context->FlatList->Items[i];
 
         // Prepare the row for drawing.
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
-        if (node->Selected && !Context->ThemeHasItemBackground)
+        
+        if (node->Selected)
         {
-            // Non-themed background
-            if (Context->HasFocus)
-            {
-                SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                backBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
-            }
+            if (i == Context->HotNodeIndex)
+                stateId = TREIS_HOTSELECTED;
+            else if (!Context->HasFocus)
+                stateId = TREIS_SELECTEDNOTFOCUS;
             else
-            {
-                SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
-                backBrush = GetSysColorBrush(COLOR_BTNFACE);
-            }
+                stateId = TREIS_SELECTED;
         }
+        else
+        {
+            if (i == Context->HotNodeIndex)
+                stateId = TREIS_HOT;
+            else
+                stateId = -1;
+        }
+
+        if (Context->CustomColors || !Context->ThemeHasItemBackground)
+        {
+            switch (stateId)
+            {
+            case TREIS_SELECTED:
+            case TREIS_SELECTEDNOTFOCUS:
+                {
+                    SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+                    backBrush = Context->CustomSelectedBrush;
+                }
+                break;
+            case TREIS_HOT:
+            case TREIS_HOTSELECTED:
+                {
+                    SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
+                    backBrush = Context->CustomFocusBrush;
+                }
+                break;
+            default:
+                {
+                    SetTextColor(hdc, node->s.DrawForeColor);
+                    SetDCBrushColor(hdc, node->s.DrawBackColor);
+                    backBrush = GetStockObject(DC_BRUSH);
+                }
+                break;
+            }
+        }     
         else
         {
             SetTextColor(hdc, node->s.DrawForeColor);
@@ -5035,28 +5143,9 @@ VOID PhTnpPaint(
 
         FillRect(hdc, &rowRect, backBrush);
 
-        if (Context->ThemeHasItemBackground)
+        if (!Context->CustomColors && Context->ThemeHasItemBackground)
         {
-            INT stateId;
-
             // Themed background
-
-            if (node->Selected)
-            {
-                if (i == Context->HotNodeIndex)
-                    stateId = TREIS_HOTSELECTED;
-                else if (!Context->HasFocus)
-                    stateId = TREIS_SELECTEDNOTFOCUS;
-                else
-                    stateId = TREIS_SELECTED;
-            }
-            else
-            {
-                if (i == Context->HotNodeIndex)
-                    stateId = TREIS_HOT;
-                else
-                    stateId = -1;
-            }
 
             if (stateId != -1)
             {
