@@ -57,7 +57,9 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG DragSelectionActive : 1;
             ULONG SelectionRectangleAlpha : 1; // use alpha blending for the selection rectangle
             ULONG CustomRowHeight : 1;
-            ULONG Spare : 4;
+            ULONG CustomColors : 1;
+            ULONG ContextMenuActive : 1;
+            ULONG Spare : 2;
         };
         ULONG Flags;
     };
@@ -134,6 +136,9 @@ typedef struct _PH_TREENEW_CONTEXT
     HTHEME ThemeData;
     COLORREF DefaultBackColor;
     COLORREF DefaultForeColor;
+    HBRUSH CustomFocusBrush;
+    HBRUSH CustomSelectedBrush;
+
     LONG SystemBorderX;
     LONG SystemBorderY;
     LONG SystemEdgeX;

@@ -10,6 +10,13 @@ extern "C" {
 #define PH_TREENEW_SEARCH_TIMEOUT 1000
 #define PH_TREENEW_SEARCH_MAXIMUM_LENGTH 1023
 
+typedef struct _PH_TREENEW_CREATEPARAMS
+{
+    COLORREF FocusColor;
+    COLORREF SelectionColor;
+    // Add new fields here.
+} PH_TREENEW_CREATEPARAMS, *PPH_TREENEW_CREATEPARAMS;
+
 typedef struct _PH_TREENEW_COLUMN
 {
     union
@@ -101,6 +108,8 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_NO_COLUMN_REORDER 0x20
 #define TN_STYLE_THIN_ROWS 0x40
 #define TN_STYLE_NO_COLUMN_HEADER 0x80
+#define TN_STYLE_CUSTOM_COLORS 0x100
+#define TN_STYLE_ALWAYS_SHOW_SELECTION 0x200
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
