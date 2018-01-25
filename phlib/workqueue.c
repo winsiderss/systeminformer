@@ -24,6 +24,7 @@
 #include <workqueue.h>
 
 #include <phintrnl.h>
+#include <phnativeinl.h>
 
 #include <workqueuep.h>
 
@@ -260,8 +261,7 @@ VOID PhpUpdateWorkQueueEnvironment(
 
         increment = NewEnvironment->BasePriority;
 
-        if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadBasePriority,
-            &increment, sizeof(LONG))))
+        if (NT_SUCCESS(PhSetThreadBasePriority(NtCurrentThread(), increment)))
         {
             CurrentEnvironment->BasePriority = NewEnvironment->BasePriority;
         }
@@ -273,8 +273,7 @@ VOID PhpUpdateWorkQueueEnvironment(
 
         ioPriority = NewEnvironment->IoPriority;
 
-        if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadIoPriority,
-            &ioPriority, sizeof(IO_PRIORITY_HINT))))
+        if (NT_SUCCESS(PhSetThreadIoPriority(NtCurrentThread(), ioPriority)))
         {
             CurrentEnvironment->IoPriority = NewEnvironment->IoPriority;
         }
@@ -286,8 +285,7 @@ VOID PhpUpdateWorkQueueEnvironment(
 
         pagePriority = NewEnvironment->PagePriority;
 
-        if (NT_SUCCESS(NtSetInformationThread(NtCurrentThread(), ThreadPagePriority,
-            &pagePriority, sizeof(ULONG))))
+        if (NT_SUCCESS(PhSetThreadPagePriority(NtCurrentThread(), pagePriority)))
         {
             CurrentEnvironment->PagePriority = NewEnvironment->PagePriority;
         }

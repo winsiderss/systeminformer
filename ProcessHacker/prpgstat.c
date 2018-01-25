@@ -105,13 +105,7 @@ VOID PhpUpdateProcessStatistics(
             ULONG64 cycleTime;
             PROCESS_HANDLE_INFORMATION handleInfo;
 
-            if (NT_SUCCESS(NtQueryInformationProcess(
-                ProcessItem->QueryHandle,
-                ProcessHandleCount,
-                &handleInfo,
-                sizeof(PROCESS_HANDLE_INFORMATION),
-                NULL
-                )))
+            if (NT_SUCCESS(PhGetProcessHandleCount(ProcessItem->QueryHandle, &handleInfo)))
             {
                 peakHandles = PhaFormatUInt64(handleInfo.HandleCountHighWatermark, TRUE);
             }

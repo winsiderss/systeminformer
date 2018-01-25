@@ -399,13 +399,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     {
         if (SetPriority)
         {
-            NtQueryInformationProcess(
-                processHandle, 
-                ProcessPriorityClass, 
-                &priorityClass, 
-                sizeof(PROCESS_PRIORITY_CLASS),
-                NULL
-                );
+            PhGetProcessPriority(processHandle, &priorityClass);
         }
 
         if (SetIoPriority)

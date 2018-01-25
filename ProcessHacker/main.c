@@ -75,6 +75,14 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
+BOOLEAN PhInitializeMitigationPolicy(
+    VOID
+    );
+
+VOID PhInitializeRestartPolicy(
+    VOID
+    );
+
 PPH_STRING PhApplicationDirectory = NULL;
 PPH_STRING PhApplicationFileName = NULL;
 PHAPPAPI HFONT PhApplicationFont = NULL;
@@ -113,6 +121,8 @@ INT WINAPI wWinMain(
 
     if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
         return 1;
+    if (PhInitializeMitigationPolicy())
+        return 0;
     if (!PhInitializeAppSystem())
         return 1;
 
@@ -234,6 +244,7 @@ INT WINAPI wWinMain(
         PhLoadPlugins();
     }
 
+#ifndef DEBUG
     if (WindowsVersion >= WINDOWS_10)
     {
         PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
@@ -246,6 +257,7 @@ INT WINAPI wWinMain(
 
         NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
     }
+#endif
 
     if (PhStartupParameters.PhSvc)
     {
@@ -285,7 +297,7 @@ INT WINAPI wWinMain(
         PhDereferenceObject(objectName);
     }
 
-    // Set priority.
+    // Set the default priority.
     {
         PROCESS_PRIORITY_CLASS priorityClass;
 
@@ -295,8 +307,11 @@ INT WINAPI wWinMain(
         if (PhStartupParameters.PriorityClass != 0)
             priorityClass.PriorityClass = (UCHAR)PhStartupParameters.PriorityClass;
 
-        NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+        PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
+
+    // Create the restart policy.
+    PhInitializeRestartPolicy();
 
     if (!PhMainWndInitialization(CmdShow))
     {
@@ -517,19 +532,13 @@ VOID PhInitializeFont(
     }
 }
 
-VOID PhInitializeMitigationPolicy(
+BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
 {
-    static PH_STRINGREF policyKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\ProcessHacker.exe");
-    static UNICODE_STRING policyKeyValue = RTL_CONSTANT_STRING(L"MitigationOptions");
-    BOOLEAN policyKeyValid = FALSE;
-    HANDLE keyReadHandle;
-    HANDLE keyWriteHandle;
-
-    if (WindowsVersion < WINDOWS_10 || !PhGetOwnTokenAttributes().Elevated)
-        return;
-
+#ifdef DEBUG
+    return FALSE;
+#else
 #define DEFAULT_MITIGATION_POLICY_FLAGS \
     (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
@@ -540,43 +549,113 @@ VOID PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyReadHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &policyKeyName,
-        0
+    BOOLEAN success = FALSE;
+    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I);
+    HANDLE jobObjectHandle;
+    SIZE_T attributeListLength = 0;
+    PROCESS_INFORMATION processInfo = { 0 };
+    STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedInfo = { 0 };
+
+    if (WindowsVersion < WINDOWS_10_RS2)
+        return FALSE;
+
+    LdrSystemDllInitBlock_I = PhGetModuleProcAddress(L"ntdll.dll", "LdrSystemDllInitBlock");
+
+    if (!LdrSystemDllInitBlock_I)
+        return FALSE;
+
+    if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
+        return FALSE;
+
+    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        return FALSE;
+
+    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 2, 0, &attributeListLength))
+        goto CleanupExit;
+
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(NtCreateJobObject(&jobObjectHandle, JOB_OBJECT_ALL_ACCESS, NULL)))
+        goto CleanupExit;
+
+    extendedInfo.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+    extendedInfo.BasicLimitInformation.ActiveProcessLimit = 1;
+
+    if (!NT_SUCCESS(NtSetInformationJobObject(
+        jobObjectHandle,
+        JobObjectExtendedLimitInformation,
+        &extendedInfo,
+        sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)
         )))
-    {
-        if (PhQueryRegistryUlong64(keyReadHandle, L"MitigationOptions") == DEFAULT_MITIGATION_POLICY_FLAGS)
-            policyKeyValid = TRUE;
+        goto CleanupExit;
 
-        NtClose(keyReadHandle);
-    }
+    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &(HANDLE){ jobObjectHandle }, sizeof(HANDLE), NULL, NULL))
+        goto CleanupExit;
 
-    if (policyKeyValid)
-        return;
-
-    if (NT_SUCCESS(PhCreateKey(
-        &keyWriteHandle,
-        KEY_WRITE | DELETE,
-        PH_KEY_LOCAL_MACHINE,
-        &policyKeyName,
-        OBJ_OPENIF,
-        0,
+    if (NT_SUCCESS(PhCreateProcessWin32Ex(
+        NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer,
+        NtCurrentPeb()->ProcessParameters->CommandLine.Buffer, 
+        NULL,
+        NULL,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
+        NULL,
+        NULL, 
+        NULL,
         NULL
         )))
     {
-        NtSetValueKey(
-            keyWriteHandle,
-            &policyKeyValue,
-            0,
-            REG_QWORD,
-            &(ULONG64) { DEFAULT_MITIGATION_POLICY_FLAGS },
-            sizeof(ULONG64)
-            );
-        NtClose(keyWriteHandle);
+        success = TRUE;
     }
+
+CleanupExit:
+
+    if (processInfo.hProcess)
+        NtClose(processInfo.hProcess);
+
+    if (processInfo.hThread)
+        NtClose(processInfo.hThread);
+
+    if (jobObjectHandle)
+        NtClose(jobObjectHandle);
+
+    if (startupInfo.lpAttributeList)
+    {
+        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhFree(startupInfo.lpAttributeList);
+    }
+
+    return success;
+#endif
+}
+
+VOID PhInitializeRestartPolicy(
+    VOID
+    )
+{
+    PH_STRINGREF commandLine;
+    PH_STRINGREF fileName;
+    PH_STRINGREF arguments;
+    PPH_STRING argumentsString = NULL;
+
+    // dmex: Restart process after a crash, hang, patch installation or 
+    // after Windows 10 auto-restarts the machine due to an update.
+
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
+    PhParseCommandLineFuzzy(&commandLine, &fileName, &arguments, NULL);
+
+    if (arguments.Length > 0)
+        argumentsString = PhCreateString2(&arguments);
+
+    // Note: Do not include the file name in the command line.
+    RegisterApplicationRestart(PhGetString(argumentsString), 0);
+
+    if (argumentsString)
+        PhDereferenceObject(argumentsString);
 }
 
 NTSTATUS PhpReadSignature(

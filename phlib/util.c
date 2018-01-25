@@ -2512,7 +2512,8 @@ static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
     { PH_CREATE_PROCESS_UNICODE_ENVIRONMENT, CREATE_UNICODE_ENVIRONMENT },
     { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED },
     { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
-    { PH_CREATE_PROCESS_NEW_CONSOLE, CREATE_NEW_CONSOLE }
+    { PH_CREATE_PROCESS_NEW_CONSOLE, CREATE_NEW_CONSOLE },
+    { PH_CREATE_PROCESS_EXTENDED_STARTUPINFO, EXTENDED_STARTUPINFO_PRESENT }
 };
 
 FORCEINLINE VOID PhpConvertProcessInformation(
@@ -2607,35 +2608,13 @@ NTSTATUS PhCreateProcessWin32Ex(
     newFlags = 0;
     PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
 
-    if (StartupInfo)
-    {
-        startupInfo = *StartupInfo;
-    }
-    else
+    if (!StartupInfo)
     {
         memset(&startupInfo, 0, sizeof(STARTUPINFO));
         startupInfo.cb = sizeof(STARTUPINFO);
     }
 
-    if (!TokenHandle)
-    {
-        if (CreateProcess(
-            PhGetString(fileName),
-            PhGetString(commandLine),
-            NULL,
-            NULL,
-            !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
-            newFlags,
-            Environment,
-            CurrentDirectory,
-            &startupInfo,
-            &processInfo
-            ))
-            status = STATUS_SUCCESS;
-        else
-            status = PhGetLastWin32ErrorAsNtStatus();
-    }
-    else
+    if (TokenHandle)
     {
         if (CreateProcessAsUser(
             TokenHandle,
@@ -2647,7 +2626,25 @@ NTSTATUS PhCreateProcessWin32Ex(
             newFlags,
             Environment,
             CurrentDirectory,
-            &startupInfo,
+            StartupInfo ? StartupInfo : &startupInfo,
+            &processInfo
+            ))
+            status = STATUS_SUCCESS;
+        else
+            status = PhGetLastWin32ErrorAsNtStatus();
+    }
+    else
+    {
+        if (CreateProcess(
+            PhGetString(fileName),
+            PhGetString(commandLine),
+            NULL,
+            NULL,
+            !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
+            newFlags,
+            Environment,
+            CurrentDirectory,
+            StartupInfo ? StartupInfo : &startupInfo,
             &processInfo
             ))
             status = STATUS_SUCCESS;
