@@ -543,6 +543,22 @@ PhGetProcessIsCFGuardEnabled(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessHandleCount(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_HANDLE_INFORMATION HandleInfo
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessHandleCount,
+        HandleInfo,
+        sizeof(PROCESS_HANDLE_INFORMATION),
+        NULL
+        );
+}
+
 /**
  * Gets basic information for a thread.
  *
@@ -592,6 +608,22 @@ PhGetThreadBasePriority(
     //    sizeof(LONG),
     //    NULL
     //    );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadStartAddress(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PVOID *StartAddress
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadQuerySetWin32StartAddress,
+        StartAddress,
+        sizeof(PVOID),
+        NULL
+        );
 }
 
 FORCEINLINE
@@ -706,7 +738,6 @@ PhSetThreadPagePriority(
         );
 }
 
-
 /**
  * Gets a thread's cycle count.
  *
@@ -738,6 +769,70 @@ PhGetThreadCycleTime(
     *CycleTime = cycleTimeInfo.AccumulatedCycles;
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIdealProcessorEx,
+        ProcessorNumber,
+        sizeof(PROCESSOR_NUMBER),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadSuspendCount(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG SuspendCount
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadSuspendCount,
+        SuspendCount,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadLastSystemCall(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadLastSystemCall,
+        LastSystemCall,
+        RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad), // HACK: Win7 requires exact size.
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadWow64Context(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PWOW64_CONTEXT Context
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadWow64Context,
+        Context,
+        sizeof(WOW64_CONTEXT),
+        NULL
+        );
 }
 
 /**
