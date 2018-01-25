@@ -180,19 +180,19 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResultFromHash(
 }
 
 PPH_BYTES VirusTotalGetCachedDbHash(
-    VOID
+    _In_ PPH_STRINGREF CachedHash
     )
 {
     ULONG length;
     PUCHAR buffer;
     PPH_BYTES string;
 
-    length = (ULONG)ProcessObjectDbHash.Length / sizeof(WCHAR) / 2;
+    length = (ULONG)CachedHash->Length / sizeof(WCHAR) / 2;
 
     buffer = PhAllocate(length + 1);
     memset(buffer, 0, length + 1);
 
-    PhHexStringToBuffer(&ProcessObjectDbHash, buffer);
+    PhHexStringToBuffer(CachedHash, buffer);
 
     string = PhCreateBytes(buffer);
 
@@ -310,7 +310,7 @@ PPH_BYTES VirusTotalSendHttpRequest(
         goto CleanupExit;
 
     {
-        PPH_BYTES resourceString = VirusTotalGetCachedDbHash();
+        PPH_BYTES resourceString = VirusTotalGetCachedDbHash(&ProcessObjectDbHash);
 
         urlPathString = PhFormatString(
             L"%s%s%s%s%S",
@@ -395,7 +395,7 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
     }
 
     {
-        PPH_BYTES resourceString = VirusTotalGetCachedDbHash();
+        PPH_BYTES resourceString = VirusTotalGetCachedDbHash(&ProcessObjectDbHash);
 
         urlPathString = PhFormatString(
             L"%s%s%s%s%s%S%s%s",
@@ -529,7 +529,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     }
 
     {
-        PPH_BYTES resourceString = VirusTotalGetCachedDbHash();
+        PPH_BYTES resourceString = VirusTotalGetCachedDbHash(&ProcessObjectDbHash);
 
         urlPathString = PhFormatString(
             L"%s%s%s%s%s%S%s%s",
@@ -627,7 +627,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestIpAddressReport(
     }
 
     {
-        PPH_BYTES resourceString = VirusTotalGetCachedDbHash();
+        PPH_BYTES resourceString = VirusTotalGetCachedDbHash(&ProcessObjectDbHash);
 
         urlPathString = PhFormatString(
             L"%s%s%s%s%s%S%s%s",

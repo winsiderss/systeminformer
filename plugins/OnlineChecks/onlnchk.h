@@ -33,6 +33,7 @@
 #include <json.h>
 #include <commonutil.h>
 #include <workqueue.h>
+#include <mapimg.h>
 
 #include <shlobj.h>
 #include <windowsx.h>
@@ -57,8 +58,6 @@ typedef struct _SERVICE_INFO
 {
     ULONG Id;
     PWSTR HostName;
-    USHORT HostPort;
-    ULONG HostFlags;
     PWSTR UploadObjectName;
     PWSTR FileNameFieldName;
 } SERVICE_INFO, *PSERVICE_INFO;
@@ -186,13 +185,20 @@ VOID VirusTotalShowErrorDialog(
     );
 
 // upload
-#define ENABLE_SERVICE_VIRUSTOTAL 100
-#define MENUITEM_VIRUSTOTAL_QUEUE 101
-#define MENUITEM_VIRUSTOTAL_UPLOAD 102
-#define MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE 103
-#define MENUITEM_VIRUSTOTAL_UPLOAD_FILE 104
-#define MENUITEM_JOTTI_UPLOAD 105
-#define MENUITEM_JOTTI_UPLOAD_SERVICE 106
+#define ENABLE_SERVICE_FALCON 100
+#define MENUITEM_FALCON_QUEUE 101
+#define MENUITEM_FALCON_UPLOAD 102
+#define MENUITEM_FALCON_UPLOAD_SERVICE 103
+#define MENUITEM_FALCON_UPLOAD_FILE 104
+
+#define ENABLE_SERVICE_VIRUSTOTAL 110
+#define MENUITEM_VIRUSTOTAL_QUEUE 111
+#define MENUITEM_VIRUSTOTAL_UPLOAD 112
+#define MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE 113
+#define MENUITEM_VIRUSTOTAL_UPLOAD_FILE 114
+
+#define MENUITEM_JOTTI_UPLOAD 120
+#define MENUITEM_JOTTI_UPLOAD_SERVICE 121
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,
@@ -239,7 +245,7 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResult(
     );
 
 PPH_BYTES VirusTotalGetCachedDbHash(
-    VOID
+    _In_ PPH_STRINGREF CachedHash
     );
 
 typedef struct _VT_SYSINT_FILE_REPORT_RESULT
@@ -262,7 +268,7 @@ typedef struct _VT_SYSINT_FILE_REPORT_RESULT
 
 PPH_STRING VirusTotalStringToTime(
     _In_ PPH_STRING Time
-);
+    );
 
 typedef struct _VIRUSTOTAL_API_RESPONSE
 {
@@ -302,7 +308,6 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     _In_ PPH_STRING FileHash
     );
-
 
 VOID InitializeVirusTotalProcessMonitor(
     VOID
