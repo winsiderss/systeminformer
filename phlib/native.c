@@ -6933,3 +6933,49 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
         0
         );
 }
+
+NTSTATUS PhGetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPH_STRING *ThreadName
+    )
+{
+    NTSTATUS status;
+    PTHREAD_NAME_INFORMATION buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadNameInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQueryInformationThread(
+            ThreadHandle,
+            ThreadNameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ThreadName = PhCreateStringFromUnicodeString(&buffer->ThreadName);
+    }
+
+    PhFree(buffer);
+
+    return status;
+}

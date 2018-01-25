@@ -1087,6 +1087,14 @@ PhImpersonateClientOfNamedPipe(
     _In_ HANDLE PipeHandle
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPH_STRING *ThreadName
+    );
+
 #ifdef __cplusplus
 }
 #endif
