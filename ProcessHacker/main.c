@@ -564,6 +564,9 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (!LdrSystemDllInitBlock_I)
         return FALSE;
 
+    if (!RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
+        return FALSE;
+
     if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
         return FALSE;
 
@@ -595,8 +598,8 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &(HANDLE){ jobObjectHandle }, sizeof(HANDLE), NULL, NULL))
         goto CleanupExit;
 
-    if (NT_SUCCESS(PhCreateProcessWin32Ex(
-        NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer,
+    if (NT_SUCCESS(status = PhCreateProcessWin32Ex(
+        NULL,
         NtCurrentPeb()->ProcessParameters->CommandLine.Buffer, 
         NULL,
         NULL,
