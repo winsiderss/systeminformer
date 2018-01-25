@@ -161,7 +161,7 @@ VOID EtRegisterNotifyIcons(
         &data
         );
 
-    data.UpdateCallback = EtpNetworkIconUpdateCallback;
+    data.UpdateCallback = EtpNetworkTextIconUpdateCallback;
     data.MessageCallback = EtpNetworkIconMessageCallback;
     Pointers->RegisterTrayIcon(
         PluginInstance,
