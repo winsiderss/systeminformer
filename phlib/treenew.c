@@ -404,14 +404,6 @@ VOID PhTnpDestroyTreeNewContext(
     if (Context->SuspendUpdateRegion)
         DeleteObject(Context->SuspendUpdateRegion);
 
-    if (Context->CustomColors)
-    {
-        if (Context->CustomFocusBrush)
-            DeleteObject(Context->CustomFocusBrush);
-        if (Context->CustomSelectedBrush)
-            DeleteObject(Context->CustomSelectedBrush);
-    }
-
     PhFree(Context);
 }
 
@@ -444,22 +436,15 @@ BOOLEAN PhTnpOnCreate(
 
     if (Context->Style & TN_STYLE_CUSTOM_COLORS)
     {
+        Context->CustomTextColor = createParamaters->TextColor ? createParamaters->TextColor : RGB(0xff, 0xff, 0xff);
+        Context->CustomFocusColor = createParamaters->FocusColor ? createParamaters->FocusColor : RGB(0x0, 0x0, 0xff);
+        Context->CustomSelectedColor = createParamaters->SelectionColor ? createParamaters->SelectionColor : RGB(0x0, 0x0, 0x80);
         Context->CustomColors = TRUE;
-
-        if (createParamaters->FocusColor)
-            Context->CustomFocusBrush = CreateSolidBrush(createParamaters->FocusColor);
-        else
-            Context->CustomFocusBrush = CreateSolidBrush(RGB(0, 0, 0xff));
-
-        if (createParamaters->SelectionColor)
-            Context->CustomSelectedBrush = CreateSolidBrush(createParamaters->FocusColor);
-        else
-            Context->CustomSelectedBrush = CreateSolidBrush(RGB(0, 0, 0x80));
     }
     else
     {
-        Context->CustomFocusBrush = GetSysColorBrush(COLOR_HOTLIGHT);
-        Context->CustomSelectedBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
+        Context->CustomFocusColor = GetSysColor(COLOR_HOTLIGHT);
+        Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
     }
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
@@ -5114,15 +5099,17 @@ VOID PhTnpPaint(
             case TREIS_SELECTED:
             case TREIS_SELECTEDNOTFOCUS:
                 {
-                    SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
-                    backBrush = Context->CustomSelectedBrush;
+                    SetTextColor(hdc, Context->CustomTextColor);
+                    SetDCBrushColor(hdc, Context->CustomSelectedColor);
+                    backBrush = GetStockObject(DC_BRUSH);
                 }
                 break;
             case TREIS_HOT:
             case TREIS_HOTSELECTED:
                 {
-                    SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
-                    backBrush = Context->CustomFocusBrush;
+                    SetTextColor(hdc, Context->CustomTextColor);
+                    SetDCBrushColor(hdc, Context->CustomFocusColor);
+                    backBrush = GetStockObject(DC_BRUSH);
                 }
                 break;
             default:

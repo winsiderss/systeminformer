@@ -136,8 +136,11 @@ typedef struct _PH_TREENEW_CONTEXT
     HTHEME ThemeData;
     COLORREF DefaultBackColor;
     COLORREF DefaultForeColor;
-    HBRUSH CustomFocusBrush;
-    HBRUSH CustomSelectedBrush;
+
+    // User configurable colors.
+    COLORREF CustomTextColor;
+    COLORREF CustomFocusColor;
+    COLORREF CustomSelectedColor;
 
     LONG SystemBorderX;
     LONG SystemBorderY;

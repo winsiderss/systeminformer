@@ -420,6 +420,7 @@ VOID PhMwpInitializeControls(
 
     if (treelistCustomColors)
     {
+        treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
         treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
         treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
     }
