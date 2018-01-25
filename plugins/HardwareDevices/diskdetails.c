@@ -169,20 +169,20 @@ VOID DiskDriveQuerySmart(
                     MAXINT,
                     SmartAttributeGetText(attribute->AttributeId),
                     IntToPtr(attribute->AttributeId)
-                );
+                    );
 
                 PhSetListViewSubItem(
                     Context->ListViewHandle,
                     lvItemIndex,
                     1,
                     PhaFormatString(L"%lu", attribute->CurrentValue)->Buffer
-                );
+                    );
                 PhSetListViewSubItem(
                     Context->ListViewHandle,
                     lvItemIndex,
                     2,
                     PhaFormatString(L"%lu", attribute->WorstValue)->Buffer
-                );
+                    );
 
                 if (attribute->RawValue)
                 {
@@ -191,7 +191,7 @@ VOID DiskDriveQuerySmart(
                         lvItemIndex,
                         3,
                         PhaFormatString(L"%lu", attribute->RawValue)->Buffer
-                    );
+                        );
                 }
 
                 PhFree(attribute);
