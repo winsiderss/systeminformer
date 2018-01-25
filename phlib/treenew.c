@@ -183,8 +183,8 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_KILLFOCUS:
         {
-            if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
-                PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, NULL, NULL);
+            //if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
+            //    PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, NULL, NULL);
 
             context->HasFocus = FALSE;
 
@@ -212,19 +212,19 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     case WM_MOUSELEAVE:
         {
-            if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
-            {
-                ULONG changedStart;
-                ULONG changedEnd;
-                RECT rect;
-
-                PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
-
-                if (PhTnpGetRowRects(context, changedStart, changedEnd, TRUE, &rect))
-                {
-                    InvalidateRect(context->Handle, &rect, FALSE);
-                }
-            }
+            //if (!context->ContextMenuActive && !(context->Style & TN_STYLE_ALWAYS_SHOW_SELECTION))
+            //{
+            //    ULONG changedStart;
+            //    ULONG changedEnd;
+            //    RECT rect;
+            //
+            //    PhTnpSelectRange(context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+            //
+            //    if (PhTnpGetRowRects(context, changedStart, changedEnd, TRUE, &rect))
+            //    {
+            //        InvalidateRect(context->Handle, &rect, FALSE);
+            //    }
+            //}
 
             if (!context->SuspendUpdateStructure)
                 PhTnpOnMouseLeave(hwnd, context);
