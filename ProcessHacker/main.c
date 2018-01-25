@@ -553,7 +553,6 @@ BOOLEAN PhInitializeMitigationPolicy(
     PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I);
     HANDLE jobObjectHandle;
     SIZE_T attributeListLength = 0;
-    PROCESS_INFORMATION processInfo = { 0 };
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedInfo = { 0 };
 
@@ -613,12 +612,6 @@ BOOLEAN PhInitializeMitigationPolicy(
     }
 
 CleanupExit:
-
-    if (processInfo.hProcess)
-        NtClose(processInfo.hProcess);
-
-    if (processInfo.hThread)
-        NtClose(processInfo.hThread);
 
     if (jobObjectHandle)
         NtClose(jobObjectHandle);
