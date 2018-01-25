@@ -3,7 +3,7 @@
  *   tree new (tree list control)
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -4984,7 +4984,6 @@ VOID PhTnpPaint(
     LONG normalUpdateRightIndex;
     LONG normalTotalX;
     RECT cellRect;
-    HBRUSH backBrush;
     HRGN oldClipRegion;
 
     PhTnpInitializeThemeData(Context);
@@ -5074,7 +5073,6 @@ VOID PhTnpPaint(
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
-        
         if (node->Selected)
         {
             if (i == Context->HotNodeIndex)
@@ -5101,7 +5099,6 @@ VOID PhTnpPaint(
                 {
                     SetTextColor(hdc, Context->CustomTextColor);
                     SetDCBrushColor(hdc, Context->CustomSelectedColor);
-                    backBrush = GetStockObject(DC_BRUSH);
                 }
                 break;
             case TREIS_HOT:
@@ -5109,14 +5106,12 @@ VOID PhTnpPaint(
                 {
                     SetTextColor(hdc, Context->CustomTextColor);
                     SetDCBrushColor(hdc, Context->CustomFocusColor);
-                    backBrush = GetStockObject(DC_BRUSH);
                 }
                 break;
             default:
                 {
                     SetTextColor(hdc, node->s.DrawForeColor);
                     SetDCBrushColor(hdc, node->s.DrawBackColor);
-                    backBrush = GetStockObject(DC_BRUSH);
                 }
                 break;
             }
@@ -5125,10 +5120,9 @@ VOID PhTnpPaint(
         {
             SetTextColor(hdc, node->s.DrawForeColor);
             SetDCBrushColor(hdc, node->s.DrawBackColor);
-            backBrush = GetStockObject(DC_BRUSH);
         }
 
-        FillRect(hdc, &rowRect, backBrush);
+        FillRect(hdc, &rowRect, GetStockObject(DC_BRUSH));
 
         if (!Context->CustomColors && Context->ThemeHasItemBackground)
         {
