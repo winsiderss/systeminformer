@@ -608,7 +608,7 @@ BOOLEAN PhShowConfirmMessage(
     config.hInstance = PhInstanceHandle;
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;
+    config.pszMainIcon = Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
     config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
 
     if (Message)
