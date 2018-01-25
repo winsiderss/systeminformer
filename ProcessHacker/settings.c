@@ -166,6 +166,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
     PhpAddIntegerSetting(L"TreeListCustomColorsEnable", L"0");
+    PhpAddIntegerSetting(L"TreeListCustomColorText", L"0");
     PhpAddIntegerSetting(L"TreeListCustomColorFocus", L"0");
     PhpAddIntegerSetting(L"TreeListCustomColorSelection", L"0");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms

@@ -12,6 +12,7 @@ extern "C" {
 
 typedef struct _PH_TREENEW_CREATEPARAMS
 {
+    COLORREF TextColor;
     COLORREF FocusColor;
     COLORREF SelectionColor;
     // Add new fields here.
