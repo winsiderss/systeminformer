@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Online Checks Plugin
  *
- * Copyright (C) 2016 dmex
+ * Copyright (C) 2016-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,16 +21,17 @@
  */
 
 #include "onlnchk.h"
-#include <shlobj.h>
 
 PPH_OBJECT_TYPE UploadContextType = NULL;
 PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
 SERVICE_INFO UploadServiceInfo[] =
-{
-    { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT, PH_HTTP_FLAG_SECURE, L"???", L"file" },
-    { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", PH_HTTP_DEFAULT_HTTPS_PORT, PH_HTTP_FLAG_SECURE, L"???", L"file" },
-    { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", PH_HTTP_DEFAULT_HTTPS_PORT, PH_HTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
-    { MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", PH_HTTP_DEFAULT_HTTPS_PORT, PH_HTTP_FLAG_SECURE, L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
+{ 
+    { MENUITEM_FALCON_UPLOAD, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
+    { MENUITEM_FALCON_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
+    { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", L"???", L"file" },
+    { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", L"???", L"file" },
+    { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
+    { MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
 };
 
 VOID RaiseUploadError(
@@ -254,34 +255,24 @@ NTSTATUS HashFileAndResetPosition(
 PPH_BYTES PerformSubRequest(
     _In_ PUPLOAD_CONTEXT Context,
     _In_ PWSTR HostName,
-    _In_ USHORT HostPort,
-    _In_ ULONG HostFlags,
     _In_ PWSTR ObjectName
     )
 {
     PPH_BYTES result = NULL;
     PPH_HTTP_CONTEXT httpContext = NULL;
-    PPH_STRING phVersion = NULL;
-    PPH_STRING userAgent = NULL;
+    PPH_STRING phVersion;
+    PPH_STRING userAgent;
 
-    // Create a user agent string.
     phVersion = PhGetPhVersion();
     userAgent = PhConcatStrings2(L"ProcessHacker_", phVersion->Buffer);
 
-    if (!PhHttpSocketCreate(
-        &httpContext, 
-        PhGetString(userAgent)
-        ))
+    if (!PhHttpSocketCreate(&httpContext, userAgent->Buffer))
     {
         RaiseUploadError(Context, L"Unable to create the http socket.", GetLastError());
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketConnect(
-        httpContext,
-        HostName,
-        HostPort
-        ))
+    if (!PhHttpSocketConnect(httpContext, HostName, PH_HTTP_DEFAULT_HTTPS_PORT))
     {
         RaiseUploadError(Context, L"Unable to connect to the service.", GetLastError());
         goto CleanupExit;
@@ -291,7 +282,7 @@ PPH_BYTES PerformSubRequest(
         httpContext,
         NULL,
         ObjectName,
-        PH_HTTP_FLAG_REFRESH | HostFlags
+        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
         ))
     {
         RaiseUploadError(Context, L"Unable to create the request.", GetLastError());
@@ -309,7 +300,7 @@ PPH_BYTES PerformSubRequest(
         RaiseUploadError(Context, L"Unable to receive the request.", GetLastError());
         goto CleanupExit;
     }
-    
+
     if (!(result = PhHttpSocketDownloadString(httpContext, FALSE)))
     {
         RaiseUploadError(Context, L"Unable to download the response.", GetLastError());
@@ -325,6 +316,24 @@ CleanupExit:
     PhClearReference(&userAgent);
 
     return result;
+}
+
+BOOLEAN UploadGetFileArchitecture(
+    _In_ HANDLE FileHandle, 
+    _Out_ PUSHORT FileArchitecture
+    )
+{
+    NTSTATUS status;
+    PH_MAPPED_IMAGE mappedImage;
+
+    if (!NT_SUCCESS(status = PhLoadMappedImage(NULL, FileHandle, TRUE, &mappedImage)))
+        return FALSE;
+
+    *FileArchitecture = mappedImage.NtHeaders->FileHeader.Machine;
+
+    PhUnloadMappedImage(&mappedImage);
+
+    return TRUE;
 }
 
 NTSTATUS UploadFileThreadStart(
@@ -426,22 +435,92 @@ NTSTATUS UploadFileThreadStart(
     PhInitializeStringBuilder(&httpPostHeader, DOS_MAX_PATH_LENGTH);
     PhInitializeStringBuilder(&httpPostFooter, DOS_MAX_PATH_LENGTH);
 
-    // build request boundary string
+    // HTTP request boundary string.
     postBoundary = PhFormatString(
-        L"------------------------%I64u",
+        L"--%I64u",
         (ULONG64)RtlRandomEx(&httpPostSeed) | ((ULONG64)RtlRandomEx(&httpPostSeed) << 31)
         );
 
-    // build request header string
+    // HTTP request header string.
     PhAppendFormatStringBuilder(
         &httpRequestHeaders,
         L"Content-Type: multipart/form-data; boundary=%s\r\n",
         postBoundary->Buffer
         );
 
-    if (context->Service == MENUITEM_JOTTI_UPLOAD)
+    if (context->Service == MENUITEM_FALCON_UPLOAD || context->Service == MENUITEM_FALCON_UPLOAD_SERVICE)
     {
-        // POST boundary header
+        USHORT machineType;
+        USHORT environmentId;
+
+        if (!UploadGetFileArchitecture(fileHandle, &machineType))
+        {
+            RaiseUploadError(context, L"Unable to create the request.", GetLastError());
+            goto CleanupExit;
+        }
+
+        switch (machineType)
+        {
+        case IMAGE_FILE_MACHINE_I386:
+            environmentId = 100;
+            break;
+        case IMAGE_FILE_MACHINE_AMD64:
+            environmentId = 120;
+            break;
+        default:
+            {
+                RaiseUploadError(context, L"File architecture not supported.", GetLastError());
+                goto CleanupExit;
+            }
+        }
+
+        {
+            PPH_BYTES serviceHash;
+            PPH_BYTES networkHash;
+            PPH_STRING resourceNameString;
+            PPH_STRING resourceHashString;
+
+            serviceHash = VirusTotalGetCachedDbHash(&ServiceObjectDbHash);
+            networkHash = VirusTotalGetCachedDbHash(&NetworkObjectDbHash);
+
+            resourceNameString = PhZeroExtendToUtf16(serviceHash->Buffer);
+            resourceHashString = PhZeroExtendToUtf16(networkHash->Buffer);
+            PhHttpSocketSetCredentials(httpContext, PhGetString(resourceHashString), PhGetString(resourceNameString));
+            PhClearReference(&resourceHashString);
+            PhClearReference(&resourceNameString);
+            PhClearReference(&networkHash);
+            PhClearReference(&serviceHash);
+        }
+
+        // POST boundary header.
+        PhAppendFormatStringBuilder(
+            &httpPostHeader,
+            L"--%s\r\nContent-Disposition: form-data; name=\"environmentId\"\r\n\r\n%hu\r\n",
+            postBoundary->Buffer,
+            environmentId
+            );
+        PhAppendFormatStringBuilder(
+            &httpPostHeader,
+            L"--%s\r\nContent-Disposition: form-data; name=\"nosharevt\"\r\n\r\n1\r\n",
+            postBoundary->Buffer
+            );
+        PhAppendFormatStringBuilder(
+            &httpPostHeader,
+            L"--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\n\r\n",
+            postBoundary->Buffer,
+            PhGetStringOrEmpty(context->BaseFileName)
+            );
+
+        // POST boundary footer.
+        PhAppendFormatStringBuilder(
+            &httpPostFooter,
+            L"\r\n--%s--\r\n",
+            postBoundary->Buffer
+            );
+    }
+    else if (context->Service == MENUITEM_JOTTI_UPLOAD)
+    {
+        // POST boundary header.
         PhAppendFormatStringBuilder(
             &httpPostHeader,
             L"\r\n--%s\r\n",
@@ -467,7 +546,7 @@ NTSTATUS UploadFileThreadStart(
             L"Content-Type: application/x-msdownload\r\n\r\n"
             );
 
-        // POST boundary footer
+        // POST boundary footer.
         PhAppendFormatStringBuilder(
             &httpPostFooter,
             L"\r\n--%s--\r\n",
@@ -667,6 +746,58 @@ NTSTATUS UploadFileThreadStart(
     {
         switch (context->Service)
         {
+        case MENUITEM_FALCON_UPLOAD:
+        case MENUITEM_FALCON_UPLOAD_SERVICE:
+            {
+                PPH_BYTES jsonString;
+                PVOID jsonRootObject;
+
+                if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
+                {
+                    RaiseUploadError(context, L"Unable to download the response.", GetLastError());
+                    goto CleanupExit;
+                }
+
+                if (jsonRootObject = PhCreateJsonParser(jsonString->Buffer))
+                {
+                    INT64 errorCode = PhGetJsonValueAsLong64(jsonRootObject, "response_code");
+
+                    if (errorCode == 0)
+                    {
+                        PVOID jsonResponse;
+                        PPH_STRING jsonHashString = NULL;
+ 
+                        if (jsonResponse = PhGetJsonObject(jsonRootObject, "response"))
+                            jsonHashString = PhGetJsonValueAsString(jsonResponse, "sha256");
+
+                        if (jsonHashString)
+                        {
+                            PhMoveReference(&context->LaunchCommand, PhFormatString(
+                                L"https://www.hybrid-analysis.com/sample/%s",
+                                context->FileHash ? PhGetString(context->FileHash) : PhGetString(jsonHashString)
+                                ));
+
+                            PhDereferenceObject(jsonHashString);
+                        }
+                    }
+                    else
+                    {
+                        RaiseUploadError(context, L"Hybrid Analysis API error.", (ULONG)errorCode);
+                        PhDereferenceObject(jsonString);
+                        goto CleanupExit;
+                    }
+
+                    PhFreeJsonParser(jsonRootObject);
+                }
+                else
+                {
+                    RaiseUploadError(context, L"Unable to complete the request.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                    goto CleanupExit;
+                }
+
+                PhDereferenceObject(jsonString);
+            }
+            break;
         case MENUITEM_VIRUSTOTAL_UPLOAD:
         case MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE:
             {
@@ -756,6 +887,9 @@ NTSTATUS UploadFileThreadStart(
     }
 
 CleanupExit:
+
+    if (httpContext)
+        PhHttpSocketDestroy(httpContext);
 
     // Reset Taskbar progress state(s)
     if (context->TaskbarListClass)
@@ -876,8 +1010,6 @@ NTSTATUS UploadCheckThreadStart(
             if (!(subRequestBuffer = PerformSubRequest(
                 context,
                 serviceInfo->HostName,
-                serviceInfo->HostPort,
-                serviceInfo->HostFlags,
                 subObjectName->Buffer
                 )))
             {
@@ -921,7 +1053,7 @@ NTSTATUS UploadCheckThreadStart(
 
                     if (context->VtApiUpload)
                     {
-                        PPH_BYTES resource = VirusTotalGetCachedDbHash();
+                        PPH_BYTES resource = VirusTotalGetCachedDbHash(&ProcessObjectDbHash);
 
                         PhMoveReference(&context->UploadUrl, PhFormatString(
                             L"%s%s?\x0061\x0070\x0069\x006B\x0065\x0079=%S&resource=%s",
@@ -969,20 +1101,21 @@ NTSTATUS UploadCheckThreadStart(
     case MENUITEM_JOTTI_UPLOAD:
     case MENUITEM_JOTTI_UPLOAD_SERVICE:
         {
-            // Create the default upload URL
-            context->UploadUrl = PhFormatString(L"https://virusscan.jotti.org%s", serviceInfo->UploadObjectName);
+            // Create the default upload URL.
+            context->UploadUrl = PhFormatString(L"https://%s%s", serviceInfo->HostName, serviceInfo->UploadObjectName);
 
-            // No file found... Start the upload.
-            if (!PhIsNullOrEmptyString(context->UploadUrl))
-            {
-                PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
-            }
-            else
-            {
-                RaiseUploadError(context, L"Unable to parse the response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
-            }
+            // Start the upload.
+            PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
         }
         break;
+    case MENUITEM_FALCON_UPLOAD:
+    case MENUITEM_FALCON_UPLOAD_SERVICE:
+        {
+            // Create the default upload URL.
+            context->UploadUrl = PhFormatString(L"https://%s%s", serviceInfo->HostName, serviceInfo->UploadObjectName);
+
+            PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
+        }
     }
 
 CleanupExit:
@@ -1155,6 +1288,7 @@ NTSTATUS ShowUpdateDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
+    config.hInstance = PluginInstance->DllBase;
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
