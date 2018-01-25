@@ -598,7 +598,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &(HANDLE){ jobObjectHandle }, sizeof(HANDLE), NULL, NULL))
         goto CleanupExit;
 
-    if (NT_SUCCESS(status = PhCreateProcessWin32Ex(
+    if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
         NtCurrentPeb()->ProcessParameters->CommandLine.Buffer, 
         NULL,
