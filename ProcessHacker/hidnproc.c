@@ -551,7 +551,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     PROCESS_BASIC_INFORMATION basicInfo;
     KERNEL_USER_TIMES times;
     PROCESS_PRIORITY_CLASS priorityClass;
-    ULONG handleCount;
+    PROCESS_HANDLE_INFORMATION handleInfo;
     HANDLE processHandle2;
 
     if (Entry->Type == NormalProcess)
@@ -636,26 +636,14 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
         // TODO: Token information?
 
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            processHandle,
-            ProcessPriorityClass,
-            &priorityClass,
-            sizeof(PROCESS_PRIORITY_CLASS),
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetProcessPriority(processHandle, &priorityClass)))
         {
             processItem->PriorityClass = priorityClass.PriorityClass;
         }
 
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            processHandle,
-            ProcessHandleCount,
-            &handleCount,
-            sizeof(ULONG),
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetProcessHandleCount(processHandle, &handleInfo)))
         {
-            processItem->NumberOfHandles = handleCount;
+            processItem->NumberOfHandles = handleInfo.HandleCount;
         }
     }
 

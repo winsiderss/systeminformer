@@ -1579,8 +1579,7 @@ NTSTATUS PhWalkThreadStack(
     {
         PVOID startAddress;
 
-        if (NT_SUCCESS(NtQueryInformationThread(ThreadHandle, ThreadQuerySetWin32StartAddress,
-            &startAddress, sizeof(PVOID), NULL)))
+        if (NT_SUCCESS(PhGetThreadStartAddress(ThreadHandle, &startAddress)))
         {
             if ((ULONG_PTR)startAddress > PhSystemBasicInformation.MaximumUserModeAddress)
                 isSystemThread = TRUE;
@@ -1637,10 +1636,7 @@ NTSTATUS PhWalkThreadStack(
 
         context.ContextFlags = CONTEXT_ALL;
 
-        if (!NT_SUCCESS(status = NtGetContextThread(
-            ThreadHandle,
-            &context
-            )))
+        if (!NT_SUCCESS(status = NtGetContextThread(ThreadHandle, &context)))
             goto SkipAmd64Stack;
 
         memset(&stackFrame, 0, sizeof(STACKFRAME64));
@@ -1693,23 +1689,14 @@ SkipAmd64Stack:
 
         context.ContextFlags = CONTEXT_ALL;
 
-        if (!NT_SUCCESS(status = NtGetContextThread(
-            ThreadHandle,
-            &context
-            )))
+        if (!NT_SUCCESS(status = NtGetContextThread(ThreadHandle, &context)))
             goto SkipI386Stack;
 #else
         WOW64_CONTEXT context;
 
         context.ContextFlags = WOW64_CONTEXT_ALL;
 
-        if (!NT_SUCCESS(status = NtQueryInformationThread(
-            ThreadHandle,
-            ThreadWow64Context,
-            &context,
-            sizeof(WOW64_CONTEXT),
-            NULL
-            )))
+        if (!NT_SUCCESS(status = PhGetThreadWow64Context(ThreadHandle, &context)))
             goto SkipI386Stack;
 #endif
 

@@ -809,8 +809,12 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
     PVOID FirstArgument;
     USHORT SystemCallNumber;
-    //USHORT Reserved; // since REDSTONE2
-    //ULONG64 WaitTime;
+#ifdef WIN64
+    USHORT Pad[0x3]; // since REDSTONE2
+#else
+    USHORT Pad[0x1]; // since REDSTONE2
+#endif
+    ULONG64 WaitTime;
 } THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
 // private

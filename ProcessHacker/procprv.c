@@ -1499,13 +1499,7 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     {
         PROCESS_PRIORITY_CLASS priorityClass;
 
-        if (NT_SUCCESS(NtQueryInformationProcess(
-            ProcessItem->QueryHandle,
-            ProcessPriorityClass,
-            &priorityClass,
-            sizeof(PROCESS_PRIORITY_CLASS),
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetProcessPriority(ProcessItem->QueryHandle, &priorityClass)))
         {
             ProcessItem->PriorityClass = priorityClass.PriorityClass;
         }

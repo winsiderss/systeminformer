@@ -912,13 +912,7 @@ VOID PhpThreadProviderUpdate(
 
             if (threadItem->ThreadHandle)
             {
-                NtQueryInformationThread(
-                    threadItem->ThreadHandle,
-                    ThreadQuerySetWin32StartAddress,
-                    &startAddress,
-                    sizeof(PVOID),
-                    NULL
-                    );
+                PhGetThreadStartAddress(threadItem->ThreadHandle, &startAddress);
             }
 
             if (!startAddress)

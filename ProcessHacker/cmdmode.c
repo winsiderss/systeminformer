@@ -174,9 +174,12 @@ NTSTATUS PhCommandModeStart(
             if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
                 PROCESS_PRIORITY_CLASS priorityClass;
+
                 priorityClass.Foreground = FALSE;
                 priorityClass.PriorityClass = priority;
-                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+                status = PhSetProcessPriority(processHandle, priorityClass);
+
                 NtClose(processHandle);
             }
         }
@@ -217,12 +220,8 @@ NTSTATUS PhCommandModeStart(
 
             if (NT_SUCCESS(status = PhOpenProcessPublic(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
-                status = NtSetInformationProcess(
-                    processHandle,
-                    ProcessPagePriority,
-                    &pagePriority,
-                    sizeof(ULONG)
-                    );
+                status = PhSetProcessPagePriority(processHandle, pagePriority);
+
                 NtClose(processHandle);
             }
         }

@@ -1040,12 +1040,9 @@ static VOID PhpUpdateProcessNodeQuotaLimits(
     {
         QUOTA_LIMITS quotaLimits;
 
-        if (ProcessNode->ProcessItem->QueryHandle && NT_SUCCESS(NtQueryInformationProcess(
+        if (ProcessNode->ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessQuotaLimits(
             ProcessNode->ProcessItem->QueryHandle,
-            ProcessQuotaLimits,
-            &quotaLimits,
-            sizeof(QUOTA_LIMITS),
-            NULL
+            &quotaLimits
             )))
         {
             ProcessNode->MinimumWorkingSetSize = quotaLimits.MinimumWorkingSetSize;

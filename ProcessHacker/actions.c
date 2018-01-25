@@ -1528,12 +1528,7 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             quotaLimits.MinimumWorkingSetSize = -1;
             quotaLimits.MaximumWorkingSetSize = -1;
 
-            status = NtSetInformationProcess(
-                processHandle,
-                ProcessQuotaLimits,
-                &quotaLimits,
-                sizeof(QUOTA_LIMITS)
-                );
+            status = PhSetProcessQuotaLimits(processHandle, quotaLimits);
 
             NtClose(processHandle);
         }
@@ -1754,12 +1749,7 @@ BOOLEAN PhUiSetPagePriorityProcess(
     {
         if (Process->ProcessId != SYSTEM_PROCESS_ID)
         {
-            status = NtSetInformationProcess(
-                processHandle,
-                ProcessPagePriority,
-                &PagePriority,
-                sizeof(ULONG)
-                );
+            status = PhSetProcessPagePriority(processHandle, PagePriority);
         }
         else
         {
@@ -1794,7 +1784,6 @@ BOOLEAN PhUiSetPriorityProcesses(
     {
         NTSTATUS status;
         HANDLE processHandle;
-        PROCESS_PRIORITY_CLASS priorityClass;
 
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
@@ -1804,9 +1793,12 @@ BOOLEAN PhUiSetPriorityProcesses(
         {
             if (Processes[i]->ProcessId != SYSTEM_PROCESS_ID)
             {
+                PROCESS_PRIORITY_CLASS priorityClass;
+
                 priorityClass.Foreground = FALSE;
                 priorityClass.PriorityClass = (UCHAR)PriorityClass;
-                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+                status = PhSetProcessPriority(processHandle, priorityClass);
             }
             else
             {
@@ -2519,7 +2511,7 @@ BOOLEAN PhUiSetPriorityThread(
         Thread->ThreadId
         )))
     {
-        status = NtSetInformationThread(threadHandle, ThreadBasePriority, &Increment, sizeof(LONG));
+        status = PhSetThreadBasePriority(threadHandle, Increment);
         NtClose(threadHandle);
     }
 
@@ -2600,12 +2592,8 @@ BOOLEAN PhUiSetPagePriorityThread(
         Thread->ThreadId
         )))
     {
-        status = NtSetInformationThread(
-            threadHandle,
-            ThreadPagePriority,
-            &PagePriority,
-            sizeof(ULONG)
-            );
+        status = PhSetThreadPagePriority(threadHandle, PagePriority);
+
         NtClose(threadHandle);
     }
 

@@ -213,13 +213,7 @@ VOID PhpAnalyzeWaitPassive(
         return;
     }
 
-    if (!NT_SUCCESS(status = NtQueryInformationThread(
-        threadHandle,
-        ThreadLastSystemCall,
-        &lastSystemCall,
-        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
-        NULL
-        )))
+    if (!NT_SUCCESS(status = PhGetThreadLastSystemCall(threadHandle, &lastSystemCall)))
     {
         NtClose(threadHandle);
         PhShowStatus(hWnd, L"Unable to determine whether the thread is waiting.", status, 0);
@@ -715,13 +709,7 @@ static VOID PhpGetThreadLastSystemCallNumber(
 {
     THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
 
-    if (NT_SUCCESS(NtQueryInformationThread(
-        ThreadHandle,
-        ThreadLastSystemCall,
-        &lastSystemCall,
-        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
-        NULL
-        )))
+    if (NT_SUCCESS(PhGetThreadLastSystemCall(ThreadHandle, &lastSystemCall)))
     {
         *LastSystemCallNumber = lastSystemCall.SystemCallNumber;
     }

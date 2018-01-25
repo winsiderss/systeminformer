@@ -148,14 +148,9 @@ VOID PhpInitializeThreadMenu(
             Threads[0]->ThreadId
             )))
         {
-            THREAD_BASIC_INFORMATION basicInfo;
             HANDLE tokenHandle;
 
-            if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
-            {
-                threadPriority = basicInfo.BasePriority;
-            }
-
+            PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
 
@@ -376,7 +371,7 @@ VOID PhpUpdateThreadDetails(
                 pagePriority = PhPagePriorityNames[pagePriorityInteger];
             }
 
-            if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadIdealProcessorEx, &idealProcessorNumber, sizeof(PROCESSOR_NUMBER), NULL)))
+            if (NT_SUCCESS(PhGetThreadIdealProcessor(threadHandle, &idealProcessorNumber)))
             {
                 PH_FORMAT format[3];
 
@@ -386,7 +381,7 @@ VOID PhpUpdateThreadDetails(
                 PhFormatToBuffer(format, 3, idealProcessor, sizeof(idealProcessor), NULL);
             }
 
-            if (threadItem->WaitReason == Suspended && NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadSuspendCount, &suspendCount, sizeof(ULONG), NULL)))
+            if (threadItem->WaitReason == Suspended && NT_SUCCESS(PhGetThreadSuspendCount(threadHandle, &suspendCount)))
             {
                 PH_FORMAT format[4];
 
