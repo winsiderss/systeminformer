@@ -584,46 +584,12 @@ NTSTATUS PhpThreadQueryWorker(
 
     if (data->ThreadItem->ThreadHandle && WindowsVersion >= WINDOWS_10_RS1)
     {
-        NTSTATUS status;
-        PVOID buffer;
-        ULONG bufferSize;
-        ULONG returnLength;
-        PTHREAD_NAME_INFORMATION threadNameInfo;
+        PPH_STRING threadName;
 
-        bufferSize = 0x100;
-        buffer = PhAllocate(bufferSize);
-
-        status = NtQueryInformationThread(
-            data->ThreadItem->ThreadHandle,
-            ThreadNameInformation,
-            buffer,
-            bufferSize,
-            &returnLength
-            );
-
-        if (status == STATUS_BUFFER_OVERFLOW)
+        if (NT_SUCCESS(PhGetThreadName(data->ThreadItem->ThreadHandle, &threadName)))
         {
-            PhFree(buffer);
-            bufferSize = returnLength;
-            buffer = PhAllocate(bufferSize);
-
-            status = NtQueryInformationThread(
-                data->ThreadItem->ThreadHandle,
-                ThreadNameInformation,
-                buffer,
-                bufferSize,
-                &returnLength
-                );
+            data->ThreadName = threadName;
         }
-
-        if (NT_SUCCESS(status))
-        {
-            threadNameInfo = (PTHREAD_NAME_INFORMATION)buffer;
-
-            data->ThreadName = PhCreateStringFromUnicodeString(&threadNameInfo->ThreadName);
-        }
-
-        PhFree(buffer);
     }
 
 Done:
