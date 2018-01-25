@@ -107,9 +107,15 @@ VOID PhNfLoadSettings(
         {
             PPH_NF_ICON icon;
 
-            if (icon = PhNfFindIcon(&pluginNamePart, (ULONG)idInteger))
+            if (pluginNamePart.Length)
             {
-                icon->Flags |= PH_NF_ICON_ENABLED;
+                if (icon = PhNfFindIcon(&pluginNamePart, (ULONG)idInteger))
+                    icon->Flags |= PH_NF_ICON_ENABLED;
+            }
+            else
+            {
+                if (icon = PhNfGetIconById((ULONG)idInteger))
+                    icon->Flags |= PH_NF_ICON_ENABLED;
             }
         }
     }
@@ -141,6 +147,9 @@ VOID PhNfSaveSettings(
             icon->Plugin ? icon->Plugin->Name.Buffer : L""
             );
     }
+
+    if (iconListBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&iconListBuilder, 1);
 
     settingsString = PhFinalStringBuilderString(&iconListBuilder);
     PhSetStringSetting2(L"IconSettings", &settingsString->sr);
@@ -491,7 +500,7 @@ PPH_NF_ICON PhNfGetIconById(
 }
 
 PPH_NF_ICON PhNfFindIcon(
-    _In_opt_ PPH_STRINGREF PluginName,
+    _In_ PPH_STRINGREF PluginName,
     _In_ ULONG SubId
     )
 {
@@ -499,20 +508,13 @@ PPH_NF_ICON PhNfFindIcon(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (PluginName)
+        if (icon->Plugin)
         {
-            if (
-                icon->SubId == SubId &&
-                (icon->Plugin ? PhEqualStringRef(PluginName, &icon->Plugin->AppContext.AppName, TRUE) : TRUE)
-                )
+            if (icon->SubId == SubId &&
+                PhEqualStringRef(PluginName, &icon->Plugin->Name, TRUE))
             {
                 return icon;
             }
-        }
-        else
-        {
-            if (icon->SubId == SubId)
-                return icon;
         }
     }
 
