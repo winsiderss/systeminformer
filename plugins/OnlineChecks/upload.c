@@ -26,8 +26,8 @@ PPH_OBJECT_TYPE UploadContextType = NULL;
 PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
 SERVICE_INFO UploadServiceInfo[] =
 { 
-    { MENUITEM_FALCON_UPLOAD, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
-    { MENUITEM_FALCON_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
+    { MENUITEM_HYBRIDANALYSIS_UPLOAD, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
+    { MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"www.hybrid-analysis.com", L"/api/submit", L"file" },
     { MENUITEM_VIRUSTOTAL_UPLOAD, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
@@ -448,7 +448,7 @@ NTSTATUS UploadFileThreadStart(
         postBoundary->Buffer
         );
 
-    if (context->Service == MENUITEM_FALCON_UPLOAD || context->Service == MENUITEM_FALCON_UPLOAD_SERVICE)
+    if (context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD || context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE)
     {
         USHORT machineType;
         USHORT environmentId;
@@ -746,8 +746,8 @@ NTSTATUS UploadFileThreadStart(
     {
         switch (context->Service)
         {
-        case MENUITEM_FALCON_UPLOAD:
-        case MENUITEM_FALCON_UPLOAD_SERVICE:
+        case MENUITEM_HYBRIDANALYSIS_UPLOAD:
+        case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
             {
                 PPH_BYTES jsonString;
                 PVOID jsonRootObject;
@@ -1108,8 +1108,8 @@ NTSTATUS UploadCheckThreadStart(
             PostMessage(context->DialogHandle, UM_UPLOAD, 0, 0);
         }
         break;
-    case MENUITEM_FALCON_UPLOAD:
-    case MENUITEM_FALCON_UPLOAD_SERVICE:
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD:
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
         {
             // Create the default upload URL.
             context->UploadUrl = PhFormatString(L"https://%s%s", serviceInfo->HostName, serviceInfo->UploadObjectName);
