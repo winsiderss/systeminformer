@@ -532,6 +532,36 @@ VOID PhInitializeFont(
     }
 }
 
+VOID PhInitializeRestartPolicy(
+    VOID
+    )
+{
+    PH_STRINGREF commandLineSr;
+    PH_STRINGREF fileNameSr;
+    PH_STRINGREF argumentsSr;
+    PPH_STRING argumentsString = NULL;
+
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLineSr);
+
+    if (!PhParseCommandLineFuzzy(&commandLineSr, &fileNameSr, &argumentsSr, NULL))
+        return;
+
+    if (argumentsSr.Length)
+    {
+        static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L"-nomp");
+
+        if (PhEndsWithStringRef(&argumentsSr, &commandlinePart, FALSE))
+            PhTrimStringRef(&argumentsSr, &commandlinePart, PH_TRIM_END_ONLY);
+
+        argumentsString = PhCreateString2(&argumentsSr);
+    }
+
+    // MSDN: Do not include the file name in the command line.
+    RegisterApplicationRestart(PhGetString(argumentsString), 0);
+
+    PhClearReference(&argumentsString);
+}
+
 BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
@@ -549,75 +579,57 @@ BOOLEAN PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
 
+    static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L" -nomp");
     BOOLEAN success = FALSE;
-    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I);
-    HANDLE jobObjectHandle;
-    SIZE_T attributeListLength = 0;
+    PH_STRINGREF commandlineSr;
+    PPH_STRING commandline = NULL;
+    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedInfo = { 0 };
+    SIZE_T attributeListLength;
 
-    if (WindowsVersion < WINDOWS_10_RS2)
-        return FALSE;
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
 
-    LdrSystemDllInitBlock_I = PhGetModuleProcAddress(L"ntdll.dll", "LdrSystemDllInitBlock");
+    if (PhEndsWithStringRef(&commandlineSr, &commandlinePart, FALSE))
+        goto CleanupExit;
 
-    if (!LdrSystemDllInitBlock_I)
-        return FALSE;
+    if (!(LdrSystemDllInitBlock_I = PhGetModuleProcAddress(L"ntdll.dll", "LdrSystemDllInitBlock")))
+        goto CleanupExit;
 
     if (!RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
-        return FALSE;
+        goto CleanupExit;
 
     if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
-        return FALSE;
+        goto CleanupExit;
 
-    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-        return FALSE;
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        goto CleanupExit;
 
     startupInfo.lpAttributeList = PhAllocate(attributeListLength);
 
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 2, 0, &attributeListLength))
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
         goto CleanupExit;
 
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(NtCreateJobObject(&jobObjectHandle, JOB_OBJECT_ALL_ACCESS, NULL)))
-        goto CleanupExit;
-
-    extendedInfo.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
-    extendedInfo.BasicLimitInformation.ActiveProcessLimit = 1;
-
-    if (!NT_SUCCESS(NtSetInformationJobObject(
-        jobObjectHandle,
-        JobObjectExtendedLimitInformation,
-        &extendedInfo,
-        sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)
-        )))
-        goto CleanupExit;
-
-    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &(HANDLE){ jobObjectHandle }, sizeof(HANDLE), NULL, NULL))
-        goto CleanupExit;
-
-    if (NT_SUCCESS(PhCreateProcessWin32Ex(
+    commandline = PhConcatStringRef2(&commandlineSr, &commandlinePart);
+    success = NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
-        NtCurrentPeb()->ProcessParameters->CommandLine.Buffer, 
+        PhGetString(commandline),
         NULL,
         NULL,
         &startupInfo.StartupInfo,
         PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
         NULL,
-        NULL, 
+        NULL,
         NULL,
         NULL
-        )))
-    {
-        success = TRUE;
-    }
+        ));
 
 CleanupExit:
 
-    if (jobObjectHandle)
-        NtClose(jobObjectHandle);
+    if (commandline)
+        PhDereferenceObject(commandline);
 
     if (startupInfo.lpAttributeList)
     {
@@ -627,31 +639,6 @@ CleanupExit:
 
     return success;
 #endif
-}
-
-VOID PhInitializeRestartPolicy(
-    VOID
-    )
-{
-    PH_STRINGREF commandLine;
-    PH_STRINGREF fileName;
-    PH_STRINGREF arguments;
-    PPH_STRING argumentsString = NULL;
-
-    // dmex: Restart process after a crash, hang, patch installation or 
-    // after Windows 10 auto-restarts the machine due to an update.
-
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
-    PhParseCommandLineFuzzy(&commandLine, &fileName, &arguments, NULL);
-
-    if (arguments.Length > 0)
-        argumentsString = PhCreateString2(&arguments);
-
-    // Note: Do not include the file name in the command line.
-    RegisterApplicationRestart(PhGetString(argumentsString), 0);
-
-    if (argumentsString)
-        PhDereferenceObject(argumentsString);
 }
 
 NTSTATUS PhpReadSignature(
