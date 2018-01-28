@@ -156,6 +156,23 @@ PhLoadRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
 
+typedef NTSTATUS (NTAPI *PPH_READ_VIRTUAL_MEMORY)(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
+    );
+
+NTSTATUS
+NTAPI
+PhLoadRemoteMappedImageEx(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID ViewBase,
+    _In_ PPH_READ_VIRTUAL_MEMORY ReadVirtualMemory,
+    _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    );
+
 NTSTATUS
 NTAPI
 PhUnloadRemoteMappedImage(
