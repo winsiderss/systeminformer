@@ -228,8 +228,9 @@ VOID NTAPI MenuItemCallback(
         break;
     case MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE:
         UploadServiceToOnlineService(menuItem->Context, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE);
-        break; 
+        break;
     case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
+    case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
         {
             static PH_FILETYPE_FILTER filters[] =
             {
@@ -245,7 +246,15 @@ VOID NTAPI MenuItemCallback(
             {
                 fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
-                UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+                switch (menuItem->Id)
+                {
+                case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
+                    UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+                    break;
+                case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
+                    UploadToOnlineService(fileName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
+                    break;
+                }
             }
 
             PhFreeFileDialog(fileDialog);
@@ -269,7 +278,7 @@ VOID NTAPI MainMenuInitializingCallback(
     onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Online Checks", NULL);
     PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"&Enable VirusTotal scanning", NULL), -1);
     PhInsertEMenuItem(onlineMenuItem, PhCreateEMenuSeparator(), -1);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD, L"Upload file to &hybrid-analysis", NULL), -1);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE, L"Upload file to &Hybrid-Analysis...", NULL), -1);
     PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"&Upload file to VirusTotal...", NULL), -1);
     //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), -1);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, -1);
