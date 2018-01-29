@@ -457,6 +457,30 @@ VOID PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     );
 
+#define PH_WINDOW_CONTEXT_DEFAULT 0xFFFF
+
+PHLIBAPI
+PVOID 
+PhGetWindowContext(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG PropertyHash
+    );
+
+PHLIBAPI
+VOID 
+PhSetWindowContext(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG PropertyHash,
+    _In_ PVOID Context
+    );
+
+PHLIBAPI
+VOID 
+PhRemoveWindowContext(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG PropertyHash
+    );
+
 FORCEINLINE VOID PhResizingMinimumSize(
     _Inout_ PRECT Rect,
     _In_ WPARAM Edge,
