@@ -246,8 +246,8 @@ NTSTATUS HashFileAndResetPosition(
             );
     }
 
-    NtSetInformationThread(NtCurrentThread(), ThreadBasePriority, &priority, sizeof(LONG));
-    NtSetInformationThread(NtCurrentThread(), ThreadIoPriority, &ioPriority, sizeof(IO_PRIORITY_HINT));
+    PhSetThreadBasePriority(NtCurrentThread(), priority);
+    PhSetThreadIoPriority(NtCurrentThread(), ioPriority);
 
     return status;
 }
@@ -964,6 +964,17 @@ NTSTATUS UploadCheckThreadStart(
                 context->VtApiUpload = TRUE;
             }
             
+            if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
+            {
+                RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
+                goto CleanupExit;
+            }
+        }
+        else if (
+            context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD ||
+            context->Service == MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE
+            )
+        {
             if (fileSize64.QuadPart > 128 * 1024 * 1024) // 128 MB
             {
                 RaiseUploadError(context, L"The file is too large (over 128 MB)", ERROR_FILE_TOO_LARGE);
