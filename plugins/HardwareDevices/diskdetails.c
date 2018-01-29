@@ -568,15 +568,15 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
         context->PageContext = (PCOMMON_PAGE_CONTEXT)propPageContext->Context;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_PAGE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhSaveListViewColumnsToSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
 
             PhFree(context);
@@ -648,15 +648,15 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
 
         context->PageContext = (PCOMMON_PAGE_CONTEXT)propPageContext->Context;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_PAGE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhSaveListViewColumnsToSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
 
             PhFree(context);

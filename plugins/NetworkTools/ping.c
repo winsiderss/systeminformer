@@ -269,11 +269,11 @@ INT_PTR CALLBACK NetworkPingWndProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PNETWORK_PING_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PNETWORK_PING_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
@@ -385,7 +385,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhDeleteGraphState(&context->PingGraphState);
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
 
             PostQuitMessage(0);

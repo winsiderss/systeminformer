@@ -60,14 +60,14 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
         context = PhAllocate(sizeof(SERVICE_TRIGGERS_CONTEXT));
         memset(context, 0, sizeof(SERVICE_TRIGGERS_CONTEXT));
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PSERVICE_TRIGGERS_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)

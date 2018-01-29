@@ -1803,14 +1803,14 @@ INT_PTR CALLBACK ServiceCommentPageDlgProc(
         context = PhAllocate(sizeof(SERVICE_COMMENT_PAGE_CONTEXT));
         memset(context, 0, sizeof(SERVICE_COMMENT_PAGE_CONTEXT));
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PSERVICE_COMMENT_PAGE_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)

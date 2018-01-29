@@ -362,7 +362,7 @@ static INT CALLBACK WepPropSheetProc(
 
             oldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)WepPropSheetWndProc);
-            SetProp(hwndDlg, L"OldWndProc", (HANDLE)oldWndProc);
+            PhSetWindowContext(hwndDlg, 1, (HANDLE)oldWndProc);
 
             // Hide the Cancel button.
             ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
@@ -386,20 +386,20 @@ LRESULT CALLBACK WepPropSheetWndProc(
     _In_ LPARAM lParam
     )
 {
-    WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, L"OldWndProc");
+    WNDPROC oldWndProc = PhGetWindowContext(hwnd, 1);
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            RemoveProp(hwnd, L"OldWndProc");
-            RemoveProp(hwnd, L"Moved");
+            PhRemoveWindowContext(hwnd, 1);
+            PhRemoveWindowContext(hwnd, 2);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!GetProp(hwnd, L"Moved"))
+            if (!PhGetWindowContext(hwnd, 2))
             {
                 // Move the Refresh button to where the OK button is, and move the OK button to
                 // where the Cancel button is.
@@ -407,7 +407,7 @@ LRESULT CALLBACK WepPropSheetWndProc(
                 // in the right places.
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDOK), GetDlgItem(hwnd, IDC_REFRESH));
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDCANCEL), GetDlgItem(hwnd, IDOK));
-                SetProp(hwnd, L"Moved", (HANDLE)1);
+                PhSetWindowContext(hwnd, 2, UlongToPtr(1));
             }
         }
         break;
@@ -568,15 +568,15 @@ FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
     if (uMsg == WM_INITDIALOG)
     {
         propSheetPage = (LPPROPSHEETPAGE)lParam;
-        // Save the context.
-        SetProp(hwndDlg, L"PropSheetPage", (HANDLE)lParam);
+
+        PhSetWindowContext(hwndDlg, ULONG_MAX, (HANDLE)lParam);
     }
     else
     {
-        propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PropSheetPage");
+        propSheetPage = PhGetWindowContext(hwndDlg, ULONG_MAX);
 
         if (uMsg == WM_DESTROY)
-            RemoveProp(hwndDlg, L"PropSheetPage");
+            PhRemoveWindowContext(hwndDlg, ULONG_MAX);
     }
 
     if (!propSheetPage)
