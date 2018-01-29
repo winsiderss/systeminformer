@@ -509,6 +509,9 @@ EXPORTS
 	PhSetListViewItemImageIndex
 	PhSetListViewSubItem
 	PhSetStateAllListViewItems
+	PhGetWindowContext
+	PhSetWindowContext
+	PhRemoveWindowContext
 
 ; hndlinfo
 	PhEnumObjectTypes
