@@ -167,7 +167,7 @@ INT CALLBACK PhpPropSheetProc(
 
             PhInitializeLayoutManager(&propSheetContext->LayoutManager, hwndDlg);
 
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)propSheetContext);
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, propSheetContext);
             SetWindowSubclass(hwndDlg, PhpPropSheetWndProc, 0, (ULONG_PTR)propSheetContext);
 
             if (MinimumSize.left == -1)
@@ -193,7 +193,7 @@ PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
     _In_ HWND hwnd
     )
 {
-    return (PPH_PROCESS_PROPSHEETCONTEXT)GetProp(hwnd, PhMakeContextAtom());
+    return PhGetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
 }
 
 LRESULT CALLBACK PhpPropSheetWndProc(
@@ -236,7 +236,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     case WM_NCDESTROY:
         {
             RemoveWindowSubclass(hwnd, PhpPropSheetWndProc, uIdSubclass);
-            RemoveProp(hwnd, PhMakeContextAtom());
+            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
             PhFree(propSheetContext);

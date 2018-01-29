@@ -377,11 +377,11 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
 
         context->SettingName = PhCreateString((PWSTR)lParam);
 
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PCOLUMNSET_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -424,7 +424,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
         {
             PhDeleteColumnSetList(context->ColumnSetList);
 
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

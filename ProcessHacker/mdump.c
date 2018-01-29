@@ -362,14 +362,27 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPROCESS_MINIDUMP_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PPROCESS_MINIDUMP_CONTEXT)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PPROCESS_MINIDUMP_CONTEXT context = (PPROCESS_MINIDUMP_CONTEXT)lParam;
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
 
@@ -385,7 +398,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -394,9 +407,6 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             {
             case IDCANCEL:
                 {
-                    PPROCESS_MINIDUMP_CONTEXT context =
-                        (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
                     context->Stop = TRUE;
                 }
@@ -408,8 +418,6 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         {
             if (wParam == 1)
             {
-                PPROCESS_MINIDUMP_CONTEXT context =
-                    (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                 ULONG64 currentTickCount;
 
                 currentTickCount = NtGetTickCount64();
@@ -429,10 +437,6 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         break;
     case WM_PH_MINIDUMP_STATUS_UPDATE:
         {
-            PPROCESS_MINIDUMP_CONTEXT context;
-
-            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
             switch (wParam)
             {
             case PH_MINIDUMP_STATUS_UPDATE:

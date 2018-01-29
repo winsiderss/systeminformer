@@ -70,7 +70,8 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
         {
             HWND iconComboBox;
 
-            SetProp(hwndDlg, L"SessionId", UlongToHandle((ULONG)lParam));
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, UlongToPtr((ULONG)lParam));
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             iconComboBox = GetDlgItem(hwndDlg, IDC_TYPE);
@@ -96,7 +97,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"SessionId");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -108,7 +109,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
                 break;
             case IDOK:
                 {
-                    ULONG sessionId = HandleToUlong(GetProp(hwndDlg, L"SessionId"));
+                    ULONG sessionId = PtrToUlong(PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT));
                     PPH_STRING title;
                     PPH_STRING text;
                     ULONG icon = 0;

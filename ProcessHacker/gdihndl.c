@@ -320,16 +320,29 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PGDI_HANDLES_CONTEXT context = NULL;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PGDI_HANDLES_CONTEXT)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PGDI_HANDLES_CONTEXT context = (PGDI_HANDLES_CONTEXT)lParam;
             HWND lvHandle;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -351,7 +364,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -364,7 +377,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-                    PhpRefreshGdiHandles(hwndDlg, (PGDI_HANDLES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom()));
+                    PhpRefreshGdiHandles(hwndDlg, context);
                 }
                 break;
             }

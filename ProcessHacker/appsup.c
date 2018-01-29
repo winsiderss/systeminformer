@@ -1109,13 +1109,6 @@ VOID PhLoadSymbolProviderOptions(
     PhDereferenceObject(searchPath);
 }
 
-PWSTR PhMakeContextAtom(
-    VOID
-    )
-{
-    PH_DEFINE_MAKE_ATOM(L"PH2_Context");
-}
-
 /**
  * Copies a string into a NMLVGETINFOTIP structure.
  *

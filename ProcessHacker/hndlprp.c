@@ -220,12 +220,27 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PHANDLE_PROPERTIES_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
             PPH_ACCESS_ENTRY accessEntries;
             ULONG numberOfAccessEntries;
             HANDLE processHandle;
@@ -234,8 +249,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
-
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
             SetDlgItemText(hwndDlg, IDC_TYPE, context->HandleItem->TypeName->Buffer);
@@ -315,7 +328,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_NOTIFY:

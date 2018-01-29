@@ -1472,7 +1472,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             SetWindowText(hwndDlg, L"Setting Editor");
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SetProp(hwndDlg, PhMakeContextAtom(), setting);
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, setting);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1490,7 +1490,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDeleteLayoutManager(&LayoutManager);
         }
@@ -1509,7 +1509,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                 break;
             case IDOK:
                 {
-                    PPH_SETTING setting = (PPH_SETTING)GetProp(hwndDlg, PhMakeContextAtom());
+                    PPH_SETTING setting = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING settingValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
 
                     if (!PhSettingFromString(

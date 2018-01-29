@@ -1278,16 +1278,26 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_MINIINFO_LIST_SECTION listSection = (PPH_MINIINFO_LIST_SECTION)GetProp(hwndDlg, PhMakeContextAtom());
+    PPH_MINIINFO_LIST_SECTION listSection;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        listSection = (PPH_MINIINFO_LIST_SECTION)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, listSection);
+    }
+    else
+    {
+        listSection = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!listSection)
+        return FALSE;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             PPH_LAYOUT_ITEM layoutItem;
-
-            listSection = (PPH_MINIINFO_LIST_SECTION)lParam;
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)listSection);
 
             listSection->DialogHandle = hwndDlg;
             listSection->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -1313,7 +1323,7 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&listSection->LayoutManager);
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_SIZE:

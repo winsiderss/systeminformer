@@ -738,11 +738,11 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PPH_THREAD_STACK_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_THREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -835,7 +835,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             PhSaveWindowPlacementToSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
 
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -1147,11 +1147,11 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PPH_THREAD_STACK_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_THREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -1185,7 +1185,7 @@ static INT_PTR CALLBACK PhpThreadStackProgressDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
