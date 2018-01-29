@@ -31,6 +31,22 @@
 
 #define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
 
+BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+
+ULONG NTAPI PhpWindowContextHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+
+typedef struct _PH_WINDOW_PROPERTY_CONTEXT
+{
+    ULONG PropertyHash;
+    HWND WindowHandle;
+    PVOID Context;
+} PH_WINDOW_PROPERTY_CONTEXT, *PPH_WINDOW_PROPERTY_CONTEXT;
+
 _IsImmersiveProcess IsImmersiveProcess_I;
 _RunFileDlg RunFileDlg;
 _SHAutoComplete SHAutoComplete_I;
@@ -39,6 +55,9 @@ static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
 static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 
+static PPH_HASHTABLE WindowContextHashTable = NULL;
+static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
+
 VOID PhGuiSupportInitialization(
     VOID
     )
@@ -46,6 +65,13 @@ VOID PhGuiSupportInitialization(
     HDC hdc;
     PVOID shell32Handle;
     PVOID shlwapiHandle;
+
+    WindowContextHashTable = PhCreateHashtable(
+        sizeof(PH_WINDOW_PROPERTY_CONTEXT),
+        PhpWindowContextHashtableEqualFunction,
+        PhpWindowContextHashtableHashFunction,
+        10
+        );
 
     if (hdc = GetDC(NULL))
     {
@@ -1207,4 +1233,79 @@ VOID PhLayoutManagerLayout(
         EndDeferWindowPos(Manager->RootItem.DeferHandle);
         Manager->RootItem.DeferHandle = NULL;
     }
+}
+
+static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_WINDOW_PROPERTY_CONTEXT entry1 = Entry1;
+    PPH_WINDOW_PROPERTY_CONTEXT entry2 = Entry2;
+
+    return 
+        entry1->WindowHandle == entry2->WindowHandle &&
+        entry1->PropertyHash == entry2->PropertyHash;
+}
+
+static ULONG NTAPI PhpWindowContextHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_WINDOW_PROPERTY_CONTEXT entry = Entry;
+
+    return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ PhHashInt32(entry->PropertyHash);
+}
+
+PVOID PhGetWindowContext(
+    _In_ HWND WindowHandle,
+    _In_ ULONG PropertyHash
+    )
+{
+    PH_WINDOW_PROPERTY_CONTEXT lookupEntry;
+    PPH_WINDOW_PROPERTY_CONTEXT entry;
+
+    lookupEntry.WindowHandle = WindowHandle;
+    lookupEntry.PropertyHash = PropertyHash;
+
+    PhAcquireQueuedLockShared(&WindowContextListLock);
+    entry = PhFindEntryHashtable(WindowContextHashTable, &lookupEntry);
+    PhReleaseQueuedLockShared(&WindowContextListLock);
+
+    if (entry)
+        return entry->Context;
+    else
+        return NULL;
+}
+
+VOID PhSetWindowContext(
+    _In_ HWND WindowHandle,
+    _In_ ULONG PropertyHash,
+    _In_ PVOID Context
+    )
+{
+    PH_WINDOW_PROPERTY_CONTEXT entry;
+
+    entry.WindowHandle = WindowHandle;
+    entry.PropertyHash = PropertyHash;
+    entry.Context = Context;
+
+    PhAcquireQueuedLockExclusive(&WindowContextListLock);
+    PhAddEntryHashtable(WindowContextHashTable, &entry);
+    PhReleaseQueuedLockExclusive(&WindowContextListLock);
+}
+
+VOID PhRemoveWindowContext(
+    _In_ HWND WindowHandle,
+    _In_ ULONG PropertyHash
+    )
+{
+    PH_WINDOW_PROPERTY_CONTEXT lookupEntry;
+
+    lookupEntry.WindowHandle = WindowHandle;
+    lookupEntry.PropertyHash = PropertyHash;
+
+    PhAcquireQueuedLockExclusive(&WindowContextListLock);
+    PhRemoveEntryHashtable(WindowContextHashTable, &lookupEntry);
+    PhReleaseQueuedLockExclusive(&WindowContextListLock);
 }
