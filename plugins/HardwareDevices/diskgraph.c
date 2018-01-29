@@ -115,15 +115,15 @@ INT_PTR CALLBACK DiskDrivePanelDialogProc(
     {
         context = (PDV_DISK_SYSINFO_CONTEXT)lParam;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_NCDESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
@@ -160,11 +160,11 @@ INT_PTR CALLBACK DiskDriveDialogProc(
     {
         context = (PDV_DISK_SYSINFO_CONTEXT)lParam;
 
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PDV_DISK_SYSINFO_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -177,7 +177,7 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             if (context->PanelWindowHandle)
                 DestroyWindow(context->PanelWindowHandle);
 
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 

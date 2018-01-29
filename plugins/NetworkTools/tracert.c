@@ -585,11 +585,11 @@ INT_PTR CALLBACK TracertDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PNETWORK_TRACERT_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PNETWORK_TRACERT_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
@@ -604,7 +604,7 @@ INT_PTR CALLBACK TracertDlgProc(
 
             PhDeleteWorkQueue(&context->WorkQueue);
             PhDeleteLayoutManager(&context->LayoutManager);
-            RemoveProp(hwndDlg, L"Context");
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhDereferenceObject(context);
 
             PostQuitMessage(0);
