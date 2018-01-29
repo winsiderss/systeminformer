@@ -209,12 +209,27 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PSERVICE_PROPERTIES_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        context = (PSERVICE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            PSERVICE_PROPERTIES_CONTEXT context = (PSERVICE_PROPERTIES_CONTEXT)propSheetPage->lParam;
             PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
             SC_HANDLE serviceHandle;
             ULONG startType;
@@ -223,8 +238,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
-
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings,
                 sizeof(PhServiceTypeStrings) / sizeof(WCHAR *));
@@ -305,14 +318,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
         {
-            PSERVICE_PROPERTIES_CONTEXT context =
-                (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
-
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
@@ -415,8 +425,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             case PSN_APPLY:
                 {
                     NTSTATUS status;
-                    PSERVICE_PROPERTIES_CONTEXT context =
-                        (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
                     SC_HANDLE serviceHandle;
                     PPH_STRING newServiceTypeString;

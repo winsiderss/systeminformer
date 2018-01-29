@@ -110,11 +110,16 @@ LRESULT CALLBACK HSplitterWindowProc(
     {
         LPCREATESTRUCT cs = (LPCREATESTRUCT)lParam;
         context = cs->lpCreateParams;
-        SetProp(hwnd, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_HSPLITTER_CONTEXT)GetProp(hwnd, PhMakeContextAtom());
+        context = PhGetWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (uMsg == WM_DESTROY)
+        {
+            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+        }
     }
 
     if (!context)

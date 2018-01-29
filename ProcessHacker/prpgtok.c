@@ -59,12 +59,12 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
     {
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!GetProp(hwndDlg, PhMakeContextAtom())) // LayoutInitialized
+            if (!PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT)) // LayoutInitialized
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
@@ -97,7 +97,7 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
 
                 PhDoPropPageLayout(hwndDlg);
 
-                SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)TRUE);
+                PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, UlongToPtr(TRUE));
             }
         }
         break;

@@ -147,8 +147,7 @@ FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
     _In_ LPARAM lParam
     )
 {
-    return (PJOB_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
-        hwndDlg, uMsg, wParam, lParam, L"JobPageContext");
+    return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 1);
 }
 
 static VOID PhpAddLimit(

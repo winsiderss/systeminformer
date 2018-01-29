@@ -540,12 +540,27 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PMEMORY_STRING_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PMEMORY_STRING_CONTEXT)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
 
             SetDlgItemText(hwndDlg, IDC_MINIMUMLENGTH, L"10");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
@@ -554,7 +569,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -566,7 +581,6 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
                 break;
             case IDOK:
                 {
-                    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     ULONG64 minimumLength = 10;
 
                     PhStringToInteger64(&PhaGetDlgItemText(hwndDlg, IDC_MINIMUMLENGTH)->sr, 0, &minimumLength);

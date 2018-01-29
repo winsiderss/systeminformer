@@ -108,7 +108,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             RECT rect;
             ULONG diff;
 
-            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetWindowText(hwndDlg, context->Title);
@@ -267,7 +267,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -279,7 +279,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 break;
             case IDOK:
                 {
-                    PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+                    PCHOICE_DIALOG_CONTEXT context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING selectedChoice;
 
                     if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)

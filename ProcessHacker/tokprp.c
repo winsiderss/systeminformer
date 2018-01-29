@@ -474,8 +474,7 @@ FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     _In_ LPARAM lParam
     )
 {
-    return (PTOKEN_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
-        hwndDlg, uMsg, wParam, lParam, L"TokenPageContext");
+    return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 }
 
 INT_PTR CALLBACK PhpTokenPageProc(

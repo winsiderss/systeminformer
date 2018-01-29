@@ -628,11 +628,11 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
         context = PhAllocate(sizeof(PH_PLUGMAN_CONTEXT));
         memset(context, 0, sizeof(PH_PLUGMAN_CONTEXT));
 
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_PLUGMAN_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -678,6 +678,8 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             PhDeleteLayoutManager(&context->LayoutManager);
 
             DeletePluginsTree(context);
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhFree(context);
 
@@ -955,15 +957,15 @@ INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         selectedPlugin = (PPH_PLUGIN)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)selectedPlugin);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, selectedPlugin);
     }
     else
     {
-        selectedPlugin = (PPH_PLUGIN)GetProp(hwndDlg, PhMakeContextAtom());
+        selectedPlugin = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
@@ -1097,15 +1099,15 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
         context = PhAllocate(sizeof(PLUGIN_DISABLED_CONTEXT));
         memset(context, 0, sizeof(PLUGIN_DISABLED_CONTEXT));
 
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPLUGIN_DISABLED_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
     }

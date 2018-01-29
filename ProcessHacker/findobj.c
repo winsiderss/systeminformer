@@ -1100,11 +1100,11 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         context = PhCreateAlloc(sizeof(PH_HANDLE_SEARCH_CONTEXT));
         memset(context, 0, sizeof(PH_HANDLE_SEARCH_CONTEXT));
 
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PPH_HANDLE_SEARCH_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -1216,6 +1216,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                 PhClearList(context->SearchResults);
             }
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhDereferenceObject(context);
 

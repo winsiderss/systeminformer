@@ -63,11 +63,10 @@ FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
 
     if (uMsg == WM_INITDIALOG)
     {
-        // Save the context.
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, (PVOID)lParam);
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, PhMakeContextAtom());
+    propSheetPage = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
     if (!propSheetPage)
         return FALSE;
@@ -83,7 +82,7 @@ FORCEINLINE VOID PhpPropPageDlgProcDestroy(
     _In_ HWND hwndDlg
     )
 {
-    RemoveProp(hwndDlg, PhMakeContextAtom());
+    PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 }
 
 #define SET_BUTTON_ICON(Id, Icon) \

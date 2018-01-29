@@ -179,13 +179,7 @@ NTAPI
 PhLoadSymbolProviderOptions(
     _Inout_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
-// end_phapppub
 
-PWSTR PhMakeContextAtom(
-    VOID
-    );
-
-// begin_phapppub
 PHAPPAPI
 VOID
 NTAPI
@@ -458,7 +452,7 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ PWSTR ContextName
+    _In_ ULONG ContextHash
     )
 {
     PVOID context;
@@ -470,18 +464,18 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
 
             context = (PVOID)propSheetPage->lParam;
-            SetProp(hwndDlg, ContextName, (HANDLE)context);
+            PhSetWindowContext(hwndDlg, ContextHash, context);
         }
         break;
     case WM_DESTROY:
         {
-            context = (PVOID)GetProp(hwndDlg, ContextName);
-            RemoveProp(hwndDlg, ContextName);
+            context = PhGetWindowContext(hwndDlg, ContextHash);
+            PhRemoveWindowContext(hwndDlg, ContextHash);
         }
         break;
     default:
         {
-            context = (PVOID)GetProp(hwndDlg, ContextName);
+            context = PhGetWindowContext(hwndDlg, ContextHash);
         }
         break;
     }

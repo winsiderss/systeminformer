@@ -150,8 +150,7 @@ FORCEINLINE PCOMMON_PAGE_CONTEXT PhpCommonPageHeader(
     _In_ LPARAM lParam
     )
 {
-    return (PCOMMON_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
-        hwndDlg, uMsg, wParam, lParam, L"PageContext");
+    return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 2);
 }
 
 HPROPSHEETPAGE PhCreateEventPage(

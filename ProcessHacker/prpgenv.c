@@ -442,15 +442,15 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PEDIT_ENV_DIALOG_CONTEXT)lParam;
-        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = (PEDIT_ENV_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, PhMakeContextAtom());
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
 
