@@ -506,12 +506,12 @@ VOID PhModuleProviderUpdate(
                 moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
-                PPH_READ_VIRTUAL_MEMORY readVirtualMemory;
+                PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;
 
                 if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
-                    readVirtualMemory = KphReadVirtualMemoryUnsafe;
+                    readVirtualMemoryCallback = KphReadVirtualMemoryUnsafe;
                 else
-                    readVirtualMemory = NtReadVirtualMemory;
+                    readVirtualMemoryCallback = NtReadVirtualMemory;
 
                 // Note:
                 // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used
@@ -523,7 +523,7 @@ VOID PhModuleProviderUpdate(
 
                 moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
 
-                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemory, &remoteMappedImage)))
+                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
                 {
                     ULONG_PTR imageBase = 0;
                     DWORD entryPoint = 0;
