@@ -546,7 +546,7 @@ namespace CustomBuildTool
             if (!File.Exists("build\\kph.key"))
                 return true;
 
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
                 if (File.Exists("bin\\Debug32\\ProcessHacker.exe"))
                 {
@@ -572,7 +572,8 @@ namespace CustomBuildTool
                     }
                 }
             }
-            else
+
+            if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
             {
                 if (File.Exists("bin\\Release32\\ProcessHacker.exe"))
                 {
