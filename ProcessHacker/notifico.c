@@ -75,16 +75,7 @@ VOID PhNfLoadSettings(
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
-    {
-        PPH_NF_ICON icon;
-
-        // Load default settings.
-        if (icon = PhNfGetIconById(PH_TRAY_ICON_ID_CPU_USAGE))
-            icon->Flags |= PH_NF_ICON_ENABLED;
-
-        PhDereferenceObject(settingsString);
         return;
-    }
 
     while (remaining.Length != 0)
     {
