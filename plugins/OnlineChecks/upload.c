@@ -462,7 +462,7 @@ NTSTATUS UploadFileThreadStart(
         switch (machineType)
         {
         case IMAGE_FILE_MACHINE_I386:
-            environmentId = 100;
+            environmentId = 110;
             break;
         case IMAGE_FILE_MACHINE_AMD64:
             environmentId = 120;
