@@ -246,6 +246,51 @@ VOID PhSetListViewSubItem(
     ListView_SetItem(ListViewHandle, &item);
 }
 
+INT PhAddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ PWSTR Text
+    )
+{
+    LVGROUP group;
+
+    memset(&group, 0, sizeof(LVGROUP));
+    group.cbSize = sizeof(LVGROUP);
+    group.mask = LVGF_HEADER | LVGF_ALIGN | LVGF_STATE | LVGF_GROUPID;
+    group.uAlign = LVGA_HEADER_LEFT;
+    group.state = LVGS_COLLAPSIBLE;
+    group.iGroupId = GroupId;
+    group.pszHeader = Text;
+
+    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
+}
+
+INT PhAddListViewGroupItem(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_TEXT | LVIF_GROUPID;
+    item.iItem = Index;
+    item.iSubItem = 0;
+    item.pszText = Text;
+    item.iGroupId = GroupId;
+
+    if (Param)
+    {
+        item.mask |= LVIF_PARAM;
+        item.lParam = (LPARAM)Param;
+    }
+
+    return ListView_InsertItem(ListViewHandle, &item);
+}
+
+
 INT PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ INT Index,
