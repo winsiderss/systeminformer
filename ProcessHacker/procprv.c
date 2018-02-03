@@ -1344,11 +1344,52 @@ VOID PhpFillProcessItem(
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
     // Open a handle to the process for later usage.
+
+    if (
+        ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID &&
+        ProcessItem->ProcessId != DPCS_PROCESS_ID &&
+        ProcessItem->ProcessId != INTERRUPTS_PROCESS_ID
+        )
     {
-        PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId);
+        PhOpenProcess(
+            &ProcessItem->QueryHandle,
+            PROCESS_QUERY_INFORMATION,
+            ProcessItem->ProcessId
+            );
 
         if (!ProcessItem->QueryHandle)
-            PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
+        {
+            PhOpenProcess(
+                &ProcessItem->QueryHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                ProcessItem->ProcessId
+                );
+        }
+        else
+        {
+            OBJECT_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(PhGetHandleInformationEx(
+                NtCurrentProcess(),
+                ProcessItem->QueryHandle,
+                -1,
+                0,
+                NULL,
+                &basicInfo,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+                )))
+            {
+                if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
+                    ProcessItem->IsProtectedHandle = TRUE;
+            }
+            else
+            {
+                ProcessItem->IsProtectedHandle = TRUE;
+            }
+        }
     }
 
     // Process flags

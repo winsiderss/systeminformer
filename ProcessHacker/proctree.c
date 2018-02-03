@@ -2844,6 +2844,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorDebuggedProcesses;
             else if (PhCsUseColorSuspended && processItem->IsSuspended)
                 getNodeColor->BackColor = PhCsColorSuspended;
+            else if (PhCsUseColorHandleProtected && processItem->IsProtectedHandle)
+                getNodeColor->BackColor = PhCsColorHandleProtected;
             else if (PhCsUseColorElevatedProcesses && processItem->IsElevated)
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhCsUseColorPicoProcesses && processItem->IsSubsystemProcess)
