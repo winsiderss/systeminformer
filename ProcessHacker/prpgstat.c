@@ -3,6 +3,7 @@
  *   Process properties: Statistics page
  *
  * Copyright (C) 2009-2016 wj32
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,67 +24,142 @@
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
-
 #include <procprv.h>
+#include <uxtheme.h>
 
-static VOID NTAPI StatisticsUpdateHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+typedef enum _PH_PROCESS_STATISTICS_CATEGORY
+{
+    PH_PROCESS_STATISTICS_CATEGORY_CPU,
+    PH_PROCESS_STATISTICS_CATEGORY_MEMORY,
+    PH_PROCESS_STATISTICS_CATEGORY_IO,
+    PH_PROCESS_STATISTICS_CATEGORY_OTHER,
+    PH_PROCESS_STATISTICS_CATEGORY_EXTENSION
+} PH_PROCESS_STATISTICS_CATEGORY;
+
+typedef enum _PH_PROCESS_STATISTICS_INDEX
+{
+    PH_PROCESS_STATISTICS_INDEX_PRIORITY,
+    PH_PROCESS_STATISTICS_INDEX_CYCLES,
+    PH_PROCESS_STATISTICS_INDEX_KERNELTIME,
+    PH_PROCESS_STATISTICS_INDEX_USERTIME,
+    PH_PROCESS_STATISTICS_INDEX_TOTALTIME,
+
+    PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES,
+    PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES,
+    PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE,
+    PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE,
+    PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS,
+    PH_PROCESS_STATISTICS_INDEX_WORKINGSET,
+    PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET,
+    PH_PROCESS_STATISTICS_INDEX_PRIVATEWS,
+    PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS,
+    PH_PROCESS_STATISTICS_INDEX_SHAREDWS,
+    PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY,
+
+    PH_PROCESS_STATISTICS_INDEX_READS,
+    PH_PROCESS_STATISTICS_INDEX_READBYTES,
+    PH_PROCESS_STATISTICS_INDEX_WRITES,
+    PH_PROCESS_STATISTICS_INDEX_WRITEBYTES,
+    PH_PROCESS_STATISTICS_INDEX_OTHER,
+    PH_PROCESS_STATISTICS_INDEX_OTHERBYTES,
+    PH_PROCESS_STATISTICS_INDEX_IOPRIORITY,
+
+    PH_PROCESS_STATISTICS_INDEX_HANDLES,
+    PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES,
+    PH_PROCESS_STATISTICS_INDEX_GDIHANDLES,
+    PH_PROCESS_STATISTICS_INDEX_USERHANDLES,
+
+    PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES,
+    PH_PROCESS_STATISTICS_INDEX_DISKENERGY,
+    PH_PROCESS_STATISTICS_INDEX_NETWORKTAILENERGY,
+    PH_PROCESS_STATISTICS_INDEX_MBBTAILENERGY,
+    PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES,
+    PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES,
+    PH_PROCESS_STATISTICS_INDEX_FOREGROUNDDURATION
+} PH_PROCESS_STATISTICS_INDEX;
+
+VOID PhpUpdateStatisticsAddListViewGroups(
+    _In_ HWND ListViewHandle
     )
 {
-    PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
+    ListView_EnableGroupView(ListViewHandle, TRUE);
 
-    if (statisticsContext->Enabled)
-        PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
+    PhAddListViewGroup(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_CPU, L"CPU");
+    PhAddListViewGroup(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, L"Memory");
+    PhAddListViewGroup(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, L"I/O");
+    PhAddListViewGroup(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, L"Other");
+    PhAddListViewGroup(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, L"Extension");
+
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_CPU, PH_PROCESS_STATISTICS_INDEX_PRIORITY, L"Priority", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_CPU, PH_PROCESS_STATISTICS_INDEX_CYCLES, L"Cycles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_CPU, PH_PROCESS_STATISTICS_INDEX_KERNELTIME, L"Kernel time", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_CPU, PH_PROCESS_STATISTICS_INDEX_USERTIME, L"User time", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_CPU, PH_PROCESS_STATISTICS_INDEX_TOTALTIME, L"Total time", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES, L"Private bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES, L"Peak private bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE, L"Virtual size", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE, L"Peak virtual size", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS, L"Page faults", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_WORKINGSET, L"Working set", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET, L"Peak working set", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PRIVATEWS, L"Private WS", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS, L"Shareable WS", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_SHAREDWS, L"Shared WS", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY, L"Page priority", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_READS, L"Reads", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_READBYTES, L"Read bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_WRITES, L"Writes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_WRITEBYTES, L"Write bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_OTHER, L"Other", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_OTHERBYTES, L"Other bytes", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_IO, PH_PROCESS_STATISTICS_INDEX_IOPRIORITY, L"I/O priority", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_HANDLES, L"Handles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES, L"Peak handles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_GDIHANDLES, L"GDI handles", NULL);
+    PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, L"USER handles", NULL);
+
+    if (WindowsVersion >= WINDOWS_10_RS3 || !PhIsExecutingInWow64())
+    {
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, L"ContextSwitches", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKENERGY, L"DiskEnergy", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_NETWORKTAILENERGY, L"NetworkTailEnergy", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_MBBTAILENERGY, L"MBBTailEnergy", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, L"NetworkTxRxBytes", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, L"MBBTxRxBytes", NULL);
+        PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDDURATION, L"ForegroundDuration", NULL);
+    }
 }
 
 VOID PhpUpdateProcessStatistics(
-    _In_ HWND hwndDlg,
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PPH_STATISTICS_CONTEXT Context
     )
 {
-    WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1];
+    WCHAR priority[PH_INT32_STR_LEN_1] = L"";
+    WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
 
-    SetDlgItemInt(hwndDlg, IDC_ZPRIORITY_V, ProcessItem->BasePriority, TRUE); // priority
-    PhPrintTimeSpan(timeSpan, ProcessItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM); // kernel time
-    SetDlgItemText(hwndDlg, IDC_ZKERNELTIME_V, timeSpan);
-    PhPrintTimeSpan(timeSpan, ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM); // user time
-    SetDlgItemText(hwndDlg, IDC_ZUSERTIME_V, timeSpan);
-    PhPrintTimeSpan(timeSpan,
-        ProcessItem->KernelTime.QuadPart + ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM); // total time
-    SetDlgItemText(hwndDlg, IDC_ZTOTALTIME_V, timeSpan);
-
-    SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V,
-        PhaFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)->Buffer); // private bytes (same as PrivateUsage)
-    SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V,
-        PhaFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)->Buffer); // peak private bytes
-    SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V,
-        PhaFormatSize(ProcessItem->VmCounters.VirtualSize, -1)->Buffer); // virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V,
-        PhaFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)->Buffer); // peak virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V,
-        PhaFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)->Buffer); // page faults
-    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V,
-        PhaFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)->Buffer); // working set
-    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V,
-        PhaFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)->Buffer); // peak working set
-
-    SetDlgItemText(hwndDlg, IDC_ZIOREADS_V,
-        PhaFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)->Buffer); // reads
-    SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V,
-        PhaFormatSize(ProcessItem->IoCounters.ReadTransferCount, -1)->Buffer); // read bytes
-    SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V,
-        PhaFormatUInt64(ProcessItem->IoCounters.WriteOperationCount, TRUE)->Buffer); // writes
-    SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V,
-        PhaFormatSize(ProcessItem->IoCounters.WriteTransferCount, -1)->Buffer); // write bytes
-    SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V,
-        PhaFormatUInt64(ProcessItem->IoCounters.OtherOperationCount, TRUE)->Buffer); // other
-    SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V,
-        PhaFormatSize(ProcessItem->IoCounters.OtherTransferCount, -1)->Buffer); // read bytes
-
-    SetDlgItemText(hwndDlg, IDC_ZHANDLES_V,
-        PhaFormatUInt64(ProcessItem->NumberOfHandles, TRUE)->Buffer); // handles
+    PhPrintInt32(priority, ProcessItem->BasePriority);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PRIORITY, 1, priority);
+    PhPrintTimeSpan(timeSpan, ProcessItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_KERNELTIME, 1, timeSpan);
+    PhPrintTimeSpan(timeSpan, ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_USERTIME, 1, timeSpan);
+    PhPrintTimeSpan(timeSpan, ProcessItem->KernelTime.QuadPart + ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_TOTALTIME, 1, timeSpan);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES, 1, PhaFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES, 1, PhaFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE, 1, PhaFormatSize(ProcessItem->VmCounters.VirtualSize, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE, 1, PhaFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS, 1, PhaFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_WORKINGSET, 1, PhaFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET, 1, PhaFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_READS, 1, PhaFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_READBYTES, 1, PhaFormatSize(ProcessItem->IoCounters.ReadTransferCount, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_WRITES, 1, PhaFormatUInt64(ProcessItem->IoCounters.WriteOperationCount, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_WRITEBYTES, 1, PhaFormatSize(ProcessItem->IoCounters.WriteTransferCount, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_OTHER, 1, PhaFormatUInt64(ProcessItem->IoCounters.OtherOperationCount, TRUE)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_OTHERBYTES, 1, PhaFormatSize(ProcessItem->IoCounters.OtherTransferCount, -1)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_HANDLES, 1, PhaFormatUInt64(ProcessItem->NumberOfHandles, TRUE)->Buffer);
 
     // Optional information
     if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
@@ -141,37 +217,62 @@ VOID PhpUpdateProcessStatistics(
         if (!gotWsCounters)
             privateWs = PhaFormatSize(ProcessItem->WorkingSetPrivateSize, -1);
 
-        SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, PhGetStringOrDefault(peakHandles, L"Unknown"));
-        SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, PhGetStringOrDefault(gdiHandles, L"Unknown"));
-        SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, PhGetStringOrDefault(userHandles, L"Unknown"));
-        SetDlgItemText(hwndDlg, IDC_ZCYCLES_V, PhGetStringOrDefault(cycles, L"Unknown"));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_CYCLES, 1, PhGetStringOrEmpty(cycles));
 
         if (pagePriority != -1 && pagePriority <= MEMORY_PRIORITY_NORMAL)
-            SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, PhPagePriorityNames[pagePriority]);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY, 1, PhPagePriorityNames[pagePriority]);
         else
-            SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"Unknown");
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY, 1, L"");
 
         if (ioPriority != -1 && ioPriority < MaxIoPriorityTypes)
-            SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, PhIoPriorityHintNames[ioPriority]);
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_IOPRIORITY, 1, PhIoPriorityHintNames[ioPriority]);
         else
-            SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"Unknown");
+            PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_IOPRIORITY, 1, L"");
 
-        SetDlgItemText(hwndDlg, IDC_ZPRIVATEWS_V, PhGetStringOrDefault(privateWs, L"Unknown"));
-        SetDlgItemText(hwndDlg, IDC_ZSHAREABLEWS_V, PhGetStringOrDefault(shareableWs, L"Unknown"));
-        SetDlgItemText(hwndDlg, IDC_ZSHAREDWS_V, PhGetStringOrDefault(sharedWs, L"Unknown"));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PRIVATEWS, 1, PhGetStringOrEmpty(privateWs));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_SHAREABLEWS, 1, PhGetStringOrEmpty(shareableWs));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_SHAREDWS, 1, PhGetStringOrEmpty(sharedWs));
+
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES, 1, PhGetStringOrEmpty(peakHandles));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_GDIHANDLES, 1, PhGetStringOrEmpty(gdiHandles));
+        PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, 1, PhGetStringOrEmpty(userHandles));
     }
-    else
+
+    if (WindowsVersion >= WINDOWS_10_RS3 || !PhIsExecutingInWow64())
     {
-        SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZCYCLES_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZPRIVATEWS_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZSHAREABLEWS_V, L"N/A");
-        SetDlgItemText(hwndDlg, IDC_ZSHAREDWS_V, L"N/A");
+        PVOID processes;
+        PSYSTEM_PROCESS_INFORMATION processInfo;
+        PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
+
+        if (NT_SUCCESS(PhEnumProcesses(&processes)))
+        {
+            processInfo = PhFindProcessInformation(processes, ProcessItem->ProcessId);
+
+            if (processInfo && (processExtension = PH_PROCESS_EXTENSION(processInfo)))
+            {
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, 1, PhaFormatUInt64(processExtension->ContextSwitches, TRUE)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_DISKENERGY, 1, PhaFormatUInt64(processExtension->EnergyValues.DiskEnergy, TRUE)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_NETWORKTAILENERGY, 1, PhaFormatSize(processExtension->EnergyValues.NetworkTailEnergy, -1)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTAILENERGY, 1, PhaFormatSize(processExtension->EnergyValues.MBBTailEnergy, -1)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.NetworkTxRxBytes, -1)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES, 1, PhaFormatSize(processExtension->EnergyValues.MBBTxRxBytes, -1)->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_FOREGROUNDDURATION, 1, PhaFormatUInt64(processExtension->EnergyValues.ForegroundDuration.Value, TRUE)->Buffer);
+            }
+
+            PhFree(processes);
+        }
     }
+}
+
+static VOID NTAPI StatisticsUpdateHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
+
+    if (statisticsContext->Enabled)
+        PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
 }
 
 INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
@@ -186,8 +287,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     PPH_PROCESS_ITEM processItem;
     PPH_STATISTICS_CONTEXT statisticsContext;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         statisticsContext = (PPH_STATISTICS_CONTEXT)propPageContext->Context;
     }
@@ -200,20 +300,31 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            statisticsContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
+            propPageContext->Context = statisticsContext = PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
+            memset(statisticsContext, 0, sizeof(PH_STATISTICS_CONTEXT));
 
             statisticsContext->WindowHandle = hwndDlg;
+            statisticsContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_STATISTICS_LIST);
             statisticsContext->Enabled = TRUE;
             statisticsContext->ProcessHandle = NULL;
 
-            // Try to open a process handle with PROCESS_QUERY_INFORMATION access for
-            // WS information.
-            PhOpenProcess(
-                &statisticsContext->ProcessHandle,
-                PROCESS_QUERY_INFORMATION,
-                processItem->ProcessId
-                );
+            // Try to open a process handle with PROCESS_QUERY_INFORMATION access for WS information.
+            if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+            {
+                PhOpenProcess(
+                    &statisticsContext->ProcessHandle,
+                    PROCESS_QUERY_INFORMATION,
+                    processItem->ProcessId
+                    );
+            }
+
+            PhSetListViewStyle(statisticsContext->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(statisticsContext->ListViewHandle, L"explorer");
+            PhAddListViewColumn(statisticsContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
+            PhAddListViewColumn(statisticsContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
+            PhSetExtendedListView(statisticsContext->ListViewHandle);
+
+            PhpUpdateStatisticsAddListViewGroups(statisticsContext->ListViewHandle);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -222,7 +333,9 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
 
-            PhpUpdateProcessStatistics(hwndDlg, processItem, statisticsContext);
+            PhpUpdateProcessStatistics(processItem, statisticsContext);
+
+            EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
         }
         break;
     case WM_DESTROY:
@@ -246,24 +359,14 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PhAddPropPageLayoutItem(hwndDlg, statisticsContext->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
 
+                ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+
                 propPageContext->LayoutInitialized = TRUE;
-            }
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDC_DETAILS:
-                {
-                    PhShowHandleStatisticsDialog(hwndDlg, processItem->ProcessId);
-                }
-                break;
             }
         }
         break;
@@ -284,7 +387,12 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_PH_STATISTICS_UPDATE:
         {
-            PhpUpdateProcessStatistics(hwndDlg, processItem, statisticsContext);
+            PhpUpdateProcessStatistics(processItem, statisticsContext);
+        }
+        break;
+    case WM_SIZE:
+        {
+            ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     }

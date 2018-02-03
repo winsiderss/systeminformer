@@ -533,6 +533,7 @@
 #define IDC_DISABLED                    1401
 #define IDC_LIST_DISABLED               1402
 #define IDC_COLUMNSETLIST               1403
+#define IDC_STATISTICS_LIST             1404
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
@@ -739,9 +740,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        245
+#define _APS_NEXT_RESOURCE_VALUE        246
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1404
+#define _APS_NEXT_CONTROL_VALUE         1405
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
