@@ -5070,7 +5070,6 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 {
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
     PH_MODULE_INFO moduleInfo;
-    PPH_STRING fileName;
     BOOLEAN cont;
 
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
@@ -5085,18 +5084,17 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
-    fileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
-
     moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
     moduleInfo.Flags = Module->Flags;
-    moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
-    moduleInfo.FileName = PhGetFileName(fileName);
-    moduleInfo.OriginalFileName = fileName;
     moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
     moduleInfo.LoadCount = Module->ObsoleteLoadCount;
+
+    moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
+    moduleInfo.OriginalFileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
+    moduleInfo.FileName = PhGetFileName(moduleInfo.OriginalFileName);
 
     if (WindowsVersion >= WINDOWS_8)
     {
