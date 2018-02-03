@@ -37,6 +37,8 @@ EXT ULONG PhCsUseColorWow64Processes;
 EXT ULONG PhCsColorWow64Processes;
 EXT ULONG PhCsUseColorDebuggedProcesses;
 EXT ULONG PhCsColorDebuggedProcesses;
+EXT ULONG PhCsUseColorHandleProtected;
+EXT ULONG PhCsColorHandleProtected;
 EXT ULONG PhCsUseColorElevatedProcesses;
 EXT ULONG PhCsColorElevatedProcesses;
 EXT ULONG PhCsUseColorPicoProcesses;

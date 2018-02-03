@@ -164,7 +164,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsImmersive : 1;
             ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
-            ULONG Unused : 1;
+            ULONG IsProtectedHandle : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;

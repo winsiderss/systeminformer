@@ -188,6 +188,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorWow64Processes", L"8f8fbc"); // Rosy Brown
     PhpAddIntegerSetting(L"UseColorDebuggedProcesses", L"1");
     PhpAddIntegerSetting(L"ColorDebuggedProcesses", L"ffbbcc");
+    PhpAddIntegerSetting(L"UseColorHandleProtected", L"1");
+    PhpAddIntegerSetting(L"ColorHandleProtected", L"000000"); // Black
     PhpAddIntegerSetting(L"UseColorElevatedProcesses", L"1");
     PhpAddIntegerSetting(L"ColorElevatedProcesses", L"00aaff");
     PhpAddIntegerSetting(L"UseColorPicoProcesses", L"1");
@@ -250,6 +252,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorWow64Processes);
     PH_UPDATE_SETTING(UseColorDebuggedProcesses);
     PH_UPDATE_SETTING(ColorDebuggedProcesses);
+    PH_UPDATE_SETTING(UseColorHandleProtected);
+    PH_UPDATE_SETTING(ColorHandleProtected);
     PH_UPDATE_SETTING(UseColorElevatedProcesses);
     PH_UPDATE_SETTING(ColorElevatedProcesses);
     PH_UPDATE_SETTING(UseColorPicoProcesses);
