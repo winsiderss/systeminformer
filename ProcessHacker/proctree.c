@@ -838,19 +838,15 @@ static VOID PhpUpdateProcessNodeWsCounters(
         BOOLEAN success = FALSE;
         HANDLE processHandle;
 
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION,
-            ProcessNode->ProcessItem->ProcessId
-            )))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         {
-            if (NT_SUCCESS(PhGetProcessWsCounters(
-                processHandle,
-                &ProcessNode->WsCounters
-                )))
-                success = TRUE;
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessNode->ProcessItem->ProcessId)))
+            {
+                if (NT_SUCCESS(PhGetProcessWsCounters(processHandle, &ProcessNode->WsCounters)))
+                    success = TRUE;
 
-            NtClose(processHandle);
+                NtClose(processHandle);
+            }
         }
 
         if (!success)
