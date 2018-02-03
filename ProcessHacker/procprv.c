@@ -1000,7 +1000,7 @@ VOID PhpProcessQueryStage1(
     if (processHandleLimited)
     {
         BOOLEAN isDotNet = FALSE;
-        PPH_STRING commandLine;
+        PPH_STRING commandLine = NULL;
         HANDLE processHandle = NULL;
         ULONG processQueryFlags = 0;
 
@@ -1040,7 +1040,7 @@ VOID PhpProcessQueryStage1(
             status = PhGetProcessCommandLine(processHandle, &commandLine);
         }
 
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(status) && commandLine)
         {
             // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
             // can't display them, we'll replace them with spaces.
@@ -1373,11 +1373,10 @@ VOID PhpFillProcessItem(
     // Open a handle to the process for later usage.
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
-        ProcessItem->IsValidHandle = NT_SUCCESS(PhOpenProcess(
-            &ProcessItem->QueryHandle,
-            PROCESS_QUERY_INFORMATION,
-            ProcessItem->ProcessId
-            ));
+        if (NT_SUCCESS(PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId)))
+        {
+            ProcessItem->IsValidHandle = TRUE;
+        }
 
         if (!ProcessItem->QueryHandle)
         {
