@@ -299,25 +299,11 @@ VOID PhLoadPlugins(
             PhDereferenceObject(baseName);
         }
 
-        PhAppendStringBuilder2(&sb, L"\nDo you want to disable the above plugin(s)?");
-
-        if (PhShowMessage2(
-            NULL,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-            TD_ERROR_ICON,
+        PhShowError2(
+            NULL, 
             L"Unable to load the following plugin(s)",
-            L"%s",
             sb.String->Buffer
-            ) == IDYES)
-        {
-            for (i = 0; i < LoadErrors->Count; i++)
-            {
-                loadError = LoadErrors->Items[i];
-                baseName = PhGetBaseName(loadError->FileName);
-                PhSetPluginDisabled(&baseName->sr, TRUE);
-                PhDereferenceObject(baseName);
-            }
-        }
+            );
 
         PhDeleteStringBuilder(&sb);
     }
