@@ -289,7 +289,15 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
-        statisticsContext = (PPH_STATISTICS_CONTEXT)propPageContext->Context;
+        if (propPageContext->Context)
+        {
+            statisticsContext = propPageContext->Context;
+        }
+        else
+        {
+            statisticsContext = propPageContext->Context = PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
+            memset(propPageContext->Context, 0, sizeof(PH_STATISTICS_CONTEXT));
+        }
     }
     else
     {
@@ -300,9 +308,6 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            propPageContext->Context = statisticsContext = PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
-            memset(statisticsContext, 0, sizeof(PH_STATISTICS_CONTEXT));
-
             statisticsContext->WindowHandle = hwndDlg;
             statisticsContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_STATISTICS_LIST);
             statisticsContext->Enabled = TRUE;
