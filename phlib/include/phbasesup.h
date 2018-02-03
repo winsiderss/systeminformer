@@ -826,7 +826,7 @@ PhStringRefToUnicodeString(
     )
 {
     UnicodeString->Length = (USHORT)String->Length;
-    UnicodeString->MaximumLength = (USHORT)String->Length;
+    UnicodeString->MaximumLength = (USHORT)String->Length + sizeof(UNICODE_NULL);
     UnicodeString->Buffer = String->Buffer;
 
     return String->Length <= UNICODE_STRING_MAX_BYTES;
