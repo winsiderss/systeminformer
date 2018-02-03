@@ -290,7 +290,6 @@ INT PhAddListViewGroupItem(
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
-
 INT PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ INT Index,

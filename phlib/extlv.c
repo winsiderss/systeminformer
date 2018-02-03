@@ -113,7 +113,6 @@ VOID PhSetExtendedListView(
     context = PhAllocate(sizeof(PH_EXTLV_CONTEXT));
 
     context->Handle = hWnd;
-    context->OldWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
     context->Context = NULL;
     context->TriState = FALSE;
     context->SortColumn = 0;
@@ -127,7 +126,9 @@ VOID PhSetExtendedListView(
     context->EnableRedraw = 1;
     context->Cursor = NULL;
 
-    PhSetWindowContext(hWnd, 5, context);
+    PhSetWindowContext(hWnd, MAXBYTE, context);
+
+    context->OldWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
     SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)PhpExtendedListViewWndProc);
 
     ExtendedListView_Init(hWnd);
@@ -140,14 +141,14 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_EXTLV_CONTEXT context = PhGetWindowContext(hwnd, 5);
+    PPH_EXTLV_CONTEXT context = PhGetWindowContext(hwnd, MAXBYTE);
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)context->OldWndProc);
-            PhRemoveWindowContext(hwnd, 5);
+            PhRemoveWindowContext(hwnd, MAXBYTE);
             PhFree(context);
         }
         break;
