@@ -248,6 +248,25 @@ VOID PhSetListViewSubItem(
     );
 
 PHLIBAPI
+INT
+NTAPI
+PhAddListViewGroup(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ PWSTR Text
+    );
+
+PHLIBAPI
+INT
+NTAPI PhAddListViewGroupItem(
+    _In_ HWND ListViewHandle,
+    _In_ INT GroupId,
+    _In_ INT Index,
+    _In_ PWSTR Text,
+    _In_opt_ PVOID Param
+    );
+
+PHLIBAPI
 INT PhAddTabControlTab(
     _In_ HWND TabControlHandle,
     _In_ INT Index,
