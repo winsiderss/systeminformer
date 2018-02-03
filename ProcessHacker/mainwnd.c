@@ -2172,7 +2172,6 @@ VOID PhMwpLoadSettings(
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
 
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
-    PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
 
     PhNfLoadStage1();
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");

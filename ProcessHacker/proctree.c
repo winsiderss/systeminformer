@@ -2829,7 +2829,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 if (getHighlightingColor.Handled)
                 {
                     getNodeColor->BackColor = getHighlightingColor.BackColor;
-                    getNodeColor->Flags = TN_AUTO_FORECOLOR;
+                    getNodeColor->ForeColor = getHighlightingColor.ForeColor;
+
+                    if (!getNodeColor->ForeColor)
+                        getNodeColor->Flags |= TN_AUTO_FORECOLOR;
 
                     if (getHighlightingColor.Cache)
                         getNodeColor->Flags |= TN_CACHE;
@@ -2837,6 +2840,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     return TRUE;
                 }
             }
+
+            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
 
             if (!processItem)
                 ; // Dummy
@@ -2875,8 +2880,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhEqualString(processItem->UserName, PhCurrentUserName, TRUE)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
-
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewGetNodeIcon:

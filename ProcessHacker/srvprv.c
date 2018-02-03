@@ -616,7 +616,7 @@ VOID PhpQueueServiceQueryStage2(
 {
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
-    if (!PhEnableServiceQueryStage2)
+    if (!PhEnableProcessQueryStage2)
         return;
 
     PhReferenceObject(ServiceItem);
