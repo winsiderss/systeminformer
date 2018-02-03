@@ -481,6 +481,45 @@ PhRemoveWindowContext(
     _In_ ULONG PropertyHash
     );
 
+typedef BOOLEAN (NTAPI *PPH_WINDOW_SUBCLASS_CALLBACK)(
+    _In_ HWND hWnd,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ PVOID Context
+    );
+
+typedef struct _PH_WINDOW_SUBCLASS_ENTRY
+{
+    PPH_WINDOW_SUBCLASS_CALLBACK SubclassCallback;
+    PVOID Context;
+} PH_WINDOW_SUBCLASS_ENTRY, *PPH_WINDOW_SUBCLASS_ENTRY;
+
+typedef struct _PH_WINDOW_SUBCLASS
+{
+    WNDPROC DefaultWindowProc;
+    PH_ARRAY WindowCallbackArray;
+} PH_WINDOW_SUBCLASS, *PPH_WINDOW_SUBCLASS;
+
+#define PH_WINDOW_SUBCLASS_CONTEXT 0xFFFFFF
+
+PHLIBAPI
+VOID
+NTAPI
+PhRegisterWindowSubclass(
+    _In_ HWND WindowHandle,
+    _In_ PPH_WINDOW_SUBCLASS_CALLBACK SubclassWindowProc,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhUnregisterWindowSubclass(
+    _In_ HWND WindowHandle,
+    _In_ PPH_WINDOW_SUBCLASS_CALLBACK SubclassWindowProc
+    );
+
 FORCEINLINE VOID PhResizingMinimumSize(
     _Inout_ PRECT Rect,
     _In_ WPARAM Edge,
