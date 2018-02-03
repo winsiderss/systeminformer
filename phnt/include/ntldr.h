@@ -5,6 +5,12 @@
 
 // DLLs
 
+typedef BOOLEAN (NTAPI *PLDR_INIT_ROUTINE)(
+    _In_ PVOID DllHandle,
+    _In_ ULONG Reason,
+    _In_opt_ PVOID Context
+    );
+
 // symbols
 typedef struct _LDR_SERVICE_TAG_RECORD
 {
@@ -98,6 +104,7 @@ typedef enum _LDR_DLL_LOAD_REASON
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN7 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN8 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ImplicitPathOptions)
+#define LDR_DATA_TABLE_ENTRY_SIZE sizeof(LDR_DATA_TABLE_ENTRY)
 
 // symbols
 typedef struct _LDR_DATA_TABLE_ENTRY
@@ -110,7 +117,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
         LIST_ENTRY InProgressLinks;
     };
     PVOID DllBase;
-    PVOID EntryPoint;
+    PLDR_INIT_ROUTINE EntryPoint;
     ULONG SizeOfImage;
     UNICODE_STRING FullDllName;
     UNICODE_STRING BaseDllName;
@@ -171,12 +178,6 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     ULONG DependentLoadFlags;
     UCHAR SigningLevel; // since REDSTONE2
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
-
-typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(
-    _In_ PVOID DllHandle,
-    _In_ ULONG Reason,
-    _In_opt_ PCONTEXT Context
-    );
 
 NTSYSAPI
 NTSTATUS
