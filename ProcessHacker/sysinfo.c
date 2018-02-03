@@ -417,7 +417,7 @@ VOID PhSipOnShowWindow(
         NULL
         );
 
-    SetWindowSubclass(RestoreSummaryControl, PhSipPanelHookWndProc, 0, 0);
+    PhRegisterWindowSubclass(RestoreSummaryControl, PhSipPanelHookWndProc, NULL);
     RestoreSummaryControlHot = FALSE;
 
     EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
@@ -1155,8 +1155,8 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         NULL
         );
 
-    SetWindowSubclass(section->GraphHandle, PhSipGraphHookWndProc, 0, (ULONG_PTR)section);
-    SetWindowSubclass(section->PanelHandle, PhSipPanelHookWndProc, 0, (ULONG_PTR)section);
+    PhRegisterWindowSubclass(section->GraphHandle, PhSipGraphHookWndProc, section);
+    PhRegisterWindowSubclass(section->PanelHandle, PhSipPanelHookWndProc, section);
 
     PhAddItemList(SectionList, section);
 
@@ -1715,21 +1715,20 @@ VOID PhSipCreateSectionDialog(
     }
 }
 
-LRESULT CALLBACK PhSipGraphHookWndProc(
+BOOLEAN CALLBACK PhSipGraphHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
-    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)dwRefData;
+    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhSipGraphHookWndProc, uIdSubclass);
+        PhUnregisterWindowSubclass(hwnd, PhSipGraphHookWndProc);
         break;
     case WM_SETFOCUS:
         section->HasFocus = TRUE;
@@ -1865,24 +1864,23 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return FALSE;
 }
 
-LRESULT CALLBACK PhSipPanelHookWndProc(
+BOOLEAN CALLBACK PhSipPanelHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
-    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)dwRefData;
+    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhSipPanelHookWndProc, uIdSubclass);
+        PhUnregisterWindowSubclass(hwnd, PhSipPanelHookWndProc);
         break;
     case WM_SETFOCUS:
         {
@@ -1986,7 +1984,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 VOID PhSipUpdateThemeData(

@@ -620,13 +620,12 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
-LRESULT CALLBACK MainWndSubclassProc(
+BOOLEAN CALLBACK MainWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
     switch (uMsg)
@@ -1306,10 +1305,10 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return FALSE;
 
 DefaultWndProc:
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    return TRUE;
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -1324,7 +1323,7 @@ VOID NTAPI MainWindowShowingCallback(
         NULL,
         &LayoutPaddingCallbackRegistration
         );
-    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+    PhRegisterWindowSubclass(PhMainWndHandle, MainWndSubclassProc, NULL);
 
     ToolbarLoadSettings();
     ReBarLoadLayoutSettings();

@@ -5845,10 +5845,9 @@ VOID PhTnpInitializeTooltips(
     toolInfo.lParam = TNP_TOOLTIPS_HEADER;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
-    // Hook the header control window procedures so we can forward mouse messages to the tooltip
-    // control.
-    SetWindowSubclass(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc, 0, (ULONG_PTR)Context);
-    SetWindowSubclass(Context->HeaderHandle, PhTnpHeaderHookWndProc, 0, (ULONG_PTR)Context);
+    // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
+    PhRegisterWindowSubclass(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc, Context);
+    PhRegisterWindowSubclass(Context->HeaderHandle, PhTnpHeaderHookWndProc, Context);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
@@ -6135,21 +6134,20 @@ VOID PhTnpGetHeaderTooltipText(
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
 }
 
-LRESULT CALLBACK PhTnpHeaderHookWndProc(
+BOOLEAN CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
-    PPH_TREENEW_CONTEXT context = (PPH_TREENEW_CONTEXT)dwRefData;
+    PPH_TREENEW_CONTEXT context = (PPH_TREENEW_CONTEXT)Context;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhTnpHeaderHookWndProc, uIdSubclass);
+        PhUnregisterWindowSubclass(hwnd, PhTnpHeaderHookWndProc);
         break;
     case WM_MOUSEMOVE:
         {
@@ -6235,7 +6233,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
         break;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 BOOLEAN PhTnpDetectDrag(

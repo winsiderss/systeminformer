@@ -48,6 +48,7 @@ typedef struct _EDIT_CONTEXT
     INT ImageWidth;
     INT ImageHeight;
     HWND WindowHandle;
+    WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HICON BitmapActive;
     HICON BitmapInactive;
@@ -249,12 +250,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
-    PEDIT_CONTEXT context = (PEDIT_CONTEXT)dwRefData;
+    PEDIT_CONTEXT context;
+
+    if (!(context = PhGetWindowContext(hWnd, 10)))
+        return 0;
 
     switch (uMsg)
     {
@@ -265,7 +267,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (context->WindowFont)
                 DeleteObject(context->WindowFont);
 
-            RemoveWindowSubclass(hWnd, PhpSearchWndSubclassProc, uIdSubclass);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            PhRemoveWindowContext(hWnd, 10);
             PhFree(context);
         }
         break;
@@ -276,7 +279,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
             ncCalcSize->rgrc[0].right -= context->CXWidth;
@@ -287,7 +290,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RECT windowRect;
 
             // Let Windows handle the non-client defaults.
-            DefSubclassProc(hWnd, uMsg, wParam, lParam);
+            CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
@@ -479,7 +482,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
 }
 
 HICON PhpSearchBitmapToIcon(
@@ -520,19 +523,21 @@ VOID PhCreateSearchControl(
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->WindowHandle = WindowHandle;
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
 
     //PhpSearchInitializeTheme(context);
     PhpSearchInitializeImages(context);
 
     // Set initial text
     if (BannerText)
-        Edit_SetCueBannerText(context->WindowHandle, BannerText);
+        Edit_SetCueBannerText(WindowHandle, BannerText);
 
     // Subclass the Edit control window procedure.
-    SetWindowSubclass(context->WindowHandle, PhpSearchWndSubclassProc, 0, (ULONG_PTR)context);
+    PhSetWindowContext(WindowHandle, 10, context);
+    SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpSearchWndSubclassProc);
 
     // Initialize the theme parameters.
-    SendMessage(context->WindowHandle, WM_THEMECHANGED, 0, 0);
+    SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
 }
 
 HBITMAP PhLoadPngImageFromResource(

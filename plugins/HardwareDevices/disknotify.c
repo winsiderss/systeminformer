@@ -25,13 +25,12 @@
 
 static BOOLEAN SubclassActive = FALSE;
 
-LRESULT CALLBACK MainWndDevicesSubclassProc(
+BOOLEAN CALLBACK MainWndDevicesSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
     // Subclassing the main window just to process drive letter notifications
@@ -81,7 +80,7 @@ LRESULT CALLBACK MainWndDevicesSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 VOID AddRemoveDeviceChangeCallback(
@@ -98,7 +97,7 @@ VOID AddRemoveDeviceChangeCallback(
         if (!SubclassActive)
         {
             // We have a disk device, subclass the main window to detect drive letter changes.
-            SetWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, 0, 0);
+            PhRegisterWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, NULL);
             SubclassActive = TRUE;
         }
     }
@@ -107,7 +106,7 @@ VOID AddRemoveDeviceChangeCallback(
         if (SubclassActive)
         {
             // The user has removed the last disk device, remove the subclass.
-            RemoveWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc, 0);
+            PhUnregisterWindowSubclass(PhMainWndHandle, MainWndDevicesSubclassProc);
             SubclassActive = FALSE;
         }
     }
