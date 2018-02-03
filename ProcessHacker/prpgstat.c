@@ -348,9 +348,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             if (statisticsContext->ProcessHandle)
                 NtClose(statisticsContext->ProcessHandle);
 
-            PhFree(statisticsContext);
-
             PhpPropPageDlgProcDestroy(hwndDlg);
+            PhFree(statisticsContext);
         }
         break;
     case WM_SHOWWINDOW:
