@@ -326,6 +326,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+    HWND ListViewHandle;
     BOOLEAN Enabled;
     HANDLE ProcessHandle;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
