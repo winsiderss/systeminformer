@@ -1373,6 +1373,7 @@ VOID PhpFillProcessItem(
     // Open a handle to the process for later usage.
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
+        ProcessItem->IsValidHandle = NT_SUCCESS(PhOpenProcess(
             &ProcessItem->QueryHandle,
             PROCESS_QUERY_INFORMATION,
             ProcessItem->ProcessId
