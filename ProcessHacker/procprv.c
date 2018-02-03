@@ -107,8 +107,8 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsInSignificantJob : 1;
             ULONG IsBeingDebugged : 1;
             ULONG IsImmersive : 1;
-
-            ULONG Spare : 26;
+            ULONG IsProtectedHandle : 1;
+            ULONG Spare : 25;
         };
     };
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -1155,6 +1155,32 @@ VOID PhpProcessQueryStage1(
     {
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
+
+    if (processHandleLimited && processItem->IsValidHandle)
+    {
+        OBJECT_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetHandleInformationEx(
+            NtCurrentProcess(),
+            processHandleLimited,
+            -1,
+            0,
+            NULL,
+            &basicInfo,
+            NULL,
+            NULL,
+            NULL,
+            NULL
+            )))
+        {
+            if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
+                Data->IsProtectedHandle = TRUE;
+        }
+        else
+        {
+            Data->IsProtectedHandle = TRUE;
+        }
+    }
 }
 
 VOID PhpProcessQueryStage2(
@@ -1290,6 +1316,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
+    processItem->IsProtectedHandle = Data->IsProtectedHandle;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
@@ -1344,51 +1371,16 @@ VOID PhpFillProcessItem(
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
     // Open a handle to the process for later usage.
-
-    if (
-        ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID &&
-        ProcessItem->ProcessId != DPCS_PROCESS_ID &&
-        ProcessItem->ProcessId != INTERRUPTS_PROCESS_ID
-        )
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
-        PhOpenProcess(
             &ProcessItem->QueryHandle,
             PROCESS_QUERY_INFORMATION,
             ProcessItem->ProcessId
-            );
+            ));
 
         if (!ProcessItem->QueryHandle)
         {
-            PhOpenProcess(
-                &ProcessItem->QueryHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                ProcessItem->ProcessId
-                );
-        }
-        else
-        {
-            OBJECT_BASIC_INFORMATION basicInfo;
-
-            if (NT_SUCCESS(PhGetHandleInformationEx(
-                NtCurrentProcess(),
-                ProcessItem->QueryHandle,
-                -1,
-                0,
-                NULL,
-                &basicInfo,
-                NULL,
-                NULL,
-                NULL,
-                NULL
-                )))
-            {
-                if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
-                    ProcessItem->IsProtectedHandle = TRUE;
-            }
-            else
-            {
-                ProcessItem->IsProtectedHandle = TRUE;
-            }
+            PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
         }
     }
 
