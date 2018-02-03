@@ -289,15 +289,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
     {
-        if (propPageContext->Context)
-        {
-            statisticsContext = propPageContext->Context;
-        }
-        else
-        {
-            statisticsContext = propPageContext->Context = PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
-            memset(propPageContext->Context, 0, sizeof(PH_STATISTICS_CONTEXT));
-        }
+        statisticsContext = (PPH_STATISTICS_CONTEXT)propPageContext->Context;
     }
     else
     {
@@ -308,6 +300,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            statisticsContext = propPageContext->Context = PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
+
             statisticsContext->WindowHandle = hwndDlg;
             statisticsContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_STATISTICS_LIST);
             statisticsContext->Enabled = TRUE;
@@ -368,10 +362,10 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                 PhDoPropPageLayout(hwndDlg);
 
-                ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
-
                 propPageContext->LayoutInitialized = TRUE;
             }
+
+            ExtendedListView_SetColumnWidth(statisticsContext->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         }
         break;
     case WM_NOTIFY:

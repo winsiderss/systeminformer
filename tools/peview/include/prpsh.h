@@ -116,10 +116,10 @@ FORCEINLINE BOOLEAN PvPropPageDlgProcHeader(
     if (uMsg == WM_INITDIALOG)
     {
         // Save the context.
-        SetProp(hwndDlg, L"PvContext", (HANDLE)lParam);
+        PhSetWindowContext(hwndDlg, ULONG_MAX, (PVOID)lParam);
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PvContext");
+    propSheetPage = PhGetWindowContext(hwndDlg, ULONG_MAX);
 
     if (!propSheetPage)
         return FALSE;

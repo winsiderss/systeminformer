@@ -508,6 +508,8 @@ EXPORTS
 	PhSetImageListBitmap
 	PhSetListViewItemImageIndex
 	PhSetListViewSubItem
+	PhAddListViewGroup
+	PhAddListViewGroupItem
 	PhSetStateAllListViewItems
 	PhGetWindowContext
 	PhSetWindowContext
