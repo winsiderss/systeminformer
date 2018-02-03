@@ -29,13 +29,12 @@ PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
     _In_ HWND hwnd
     );
 
-LRESULT CALLBACK PhpPropSheetWndProc(
+BOOLEAN CALLBACK PhpPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(

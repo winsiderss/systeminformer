@@ -755,16 +755,15 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
-LRESULT CALLBACK TaskDialogSubclassProc(
+BOOLEAN NTAPI TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Context;
 
     switch (uMsg)
     {
@@ -778,9 +777,9 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+            PhUnregisterWindowSubclass(hwndDlg, TaskDialogSubclassProc);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -825,7 +824,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    break;
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -851,7 +850,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             TaskDialogCreateIcons(context);
 
             // Subclass the Taskdialog
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
+            PhRegisterWindowSubclass(hwndDlg, TaskDialogSubclassProc, context);
 
             if (context->StartupCheck)
                 ShowAvailableDialog(context);

@@ -94,11 +94,12 @@ INT CALLBACK WepPropSheetProc(
     _In_ LPARAM lParam
     );
 
-LRESULT CALLBACK WepPropSheetWndProc(
+BOOLEAN CALLBACK WepPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ PVOID Context
     );
 
 HPROPSHEETPAGE WepCommonCreatePage(
@@ -357,12 +358,9 @@ static INT CALLBACK WepPropSheetProc(
     {
     case PSCB_INITIALIZED:
         {
-            WNDPROC oldWndProc;
             HWND refreshButtonHandle;
 
-            oldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)WepPropSheetWndProc);
-            PhSetWindowContext(hwndDlg, 1, (HANDLE)oldWndProc);
+            PhRegisterWindowSubclass(hwndDlg, WepPropSheetWndProc, NULL);
 
             // Hide the Cancel button.
             ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
@@ -379,27 +377,24 @@ static INT CALLBACK WepPropSheetProc(
     return 0;
 }
 
-LRESULT CALLBACK WepPropSheetWndProc(
+BOOLEAN CALLBACK WepPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+    _In_ LPARAM lParam,
+    _In_ PVOID Context
     )
 {
-    WNDPROC oldWndProc = PhGetWindowContext(hwnd, 1);
-
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 1);
-            PhRemoveWindowContext(hwnd, 2);
         }
         break;
     case WM_SHOWWINDOW:
         {
-            if (!PhGetWindowContext(hwnd, 2))
+            if (!PhGetWindowContext(hwnd, 1))
             {
                 // Move the Refresh button to where the OK button is, and move the OK button to
                 // where the Cancel button is.
@@ -407,7 +402,8 @@ LRESULT CALLBACK WepPropSheetWndProc(
                 // in the right places.
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDOK), GetDlgItem(hwnd, IDC_REFRESH));
                 PhCopyControlRectangle(hwnd, GetDlgItem(hwnd, IDCANCEL), GetDlgItem(hwnd, IDOK));
-                PhSetWindowContext(hwnd, 2, UlongToPtr(1));
+
+                PhSetWindowContext(hwnd, 1, UlongToPtr(1));
             }
         }
         break;
@@ -433,7 +429,7 @@ LRESULT CALLBACK WepPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 static HPROPSHEETPAGE WepCommonCreatePage(

@@ -1169,25 +1169,22 @@ NTSTATUS UploadRecheckThreadStart(
     return STATUS_SUCCESS;
 }
 
-
-LRESULT CALLBACK TaskDialogSubclassProc(
+BOOLEAN CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
-    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)dwRefData;
+    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Context;
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             TaskDialogFreeContext(context);
-
-            RemoveWindowSubclass(hwndDlg, TaskDialogSubclassProc, uIdSubclass);
+            PhUnregisterWindowSubclass(hwndDlg, TaskDialogSubclassProc);
         }
         break;
     case UM_UPLOAD:
@@ -1243,7 +1240,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -1277,8 +1274,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                 }
             }
 
-            // Subclass the Taskdialog
-            SetWindowSubclass(hwndDlg, TaskDialogSubclassProc, 0, (ULONG_PTR)context);
+            PhRegisterWindowSubclass(hwndDlg, TaskDialogSubclassProc, context);
 
             ShowVirusTotalUploadDialog(context);
         }

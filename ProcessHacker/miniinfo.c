@@ -452,6 +452,7 @@ VOID PhMipOnInitDialog(
 {
     HICON cog;
     HICON pin;
+    WNDPROC oldWndProc;
 
     cog = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
     SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
@@ -460,18 +461,17 @@ VOID PhMipOnInitDialog(
     SET_BUTTON_ICON(PhMipWindow, IDC_PINWINDOW, pin);
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL,
-        PH_ANCHOR_ALL);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL,
-        PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PINWINDOW), NULL,
-        PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-    SetWindowSubclass(GetDlgItem(PhMipWindow, IDC_SECTION), PhMipSectionControlHookWndProc, 0, 0);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL, PH_ANCHOR_ALL);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PINWINDOW), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
     Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
+
+    // Subclass the window procedure.
+    oldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
+    PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 10, oldWndProc);
+    SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
 }
 
 VOID PhMipOnShowWindow(
@@ -1154,15 +1154,21 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(hwnd, 10)))
+        return 0;
+
     switch (uMsg)
     {
     case WM_DESTROY:
-        RemoveWindowSubclass(hwnd, PhMipSectionControlHookWndProc, uIdSubclass);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 10);
+        }
         break;
     case WM_SETCURSOR:
         {
@@ -1171,7 +1177,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
         return TRUE;
     }
 
-    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(

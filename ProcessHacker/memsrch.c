@@ -650,21 +650,20 @@ NTSTATUS PhpMemoryStringThreadStart(
     return STATUS_SUCCESS;
 }
 
-LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
+BOOLEAN CALLBACK PhpMemoryStringTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ PVOID Context
     )
 {
-    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)dwRefData;
+    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)Context;
 
     switch (uMsg)
     {
     case WM_NCDESTROY:
-        RemoveWindowSubclass(hwndDlg, PhpMemoryStringTaskDialogSubclassProc, uIdSubclass);
+        PhUnregisterWindowSubclass(hwndDlg, PhpMemoryStringTaskDialogSubclassProc);
         break;
     case WM_PH_MEMORY_STATUS_UPDATE:
         {
@@ -681,7 +680,7 @@ LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hwndDlg, uMsg, wParam, lParam);
+    return FALSE;
 }
 
 HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
@@ -715,7 +714,7 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             // Subclass the Taskdialog.
-            SetWindowSubclass(hwndDlg, PhpMemoryStringTaskDialogSubclassProc, 0, (ULONG_PTR)context);
+            PhRegisterWindowSubclass(hwndDlg, PhpMemoryStringTaskDialogSubclassProc, context);
 
             // Create the search thread.
             PhCreateThread2(PhpMemoryStringThreadStart, context);
