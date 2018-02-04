@@ -228,6 +228,8 @@ namespace CustomBuildTool
                     return;
                 //if (!Build.BuildWebSetupExe())
                 //    return;
+                if (!Build.BuildPdbZip())
+                    return;
                 if (!Build.BuildSetupExe())
                     return;
                 if (!Build.BuildChecksumsFile())

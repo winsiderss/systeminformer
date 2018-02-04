@@ -257,11 +257,6 @@ namespace CustomBuildTool
                 BuildBranch = Win32.ShellExecute(GitExePath, "rev-parse --abbrev-ref HEAD").Trim();
                 BuildCommit = Win32.ShellExecute(GitExePath, "rev-parse HEAD").Trim();
 
-                Program.PrintColorMessage("Branch: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildBranch, ConsoleColor.White);
-                Program.PrintColorMessage("Commit: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.White);
-
                 string currentGitTag = Win32.ShellExecute(GitExePath, "describe --abbrev=0 --tags --always").Trim();
                 BuildRevision = Win32.ShellExecute(GitExePath, "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
                 BuildCount = Win32.ShellExecute(GitExePath, "rev-list --count " + BuildBranch).Trim();
@@ -277,8 +272,13 @@ namespace CustomBuildTool
 
             if (ShowBuildInfo && !GitExportBuild)
             {
-                Program.PrintColorMessage("Version: ", ConsoleColor.Cyan, false);
-                Program.PrintColorMessage(BuildVersion + Environment.NewLine, ConsoleColor.White);
+                Program.PrintColorMessage("Branch: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage(BuildBranch, ConsoleColor.Green, true);
+                Program.PrintColorMessage("Version: ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage(BuildVersion, ConsoleColor.Green, false);
+                Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.DarkYellow, false);
+                Program.PrintColorMessage(")" + Environment.NewLine, ConsoleColor.DarkGray, true);
 
                 if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
                 {
@@ -292,6 +292,7 @@ namespace CustomBuildTool
                     //BuildMessage = Win32.ShellExecute(GitExePath, "log -n 1 --date=format:%Y-%m-%d --pretty=format:\"[%cd] %an: %<(65,trunc)%s (%h)\" --abbrev-commit");
                     //Console.WriteLine(BuildMessage + Environment.NewLine);
                 }
+
             }
         }
 
@@ -299,10 +300,11 @@ namespace CustomBuildTool
         {
             TimeSpan buildTime = DateTime.Now - TimeStart;
 
-            Console.WriteLine(
-                Environment.NewLine + "Build Time: " + 
-                buildTime.Minutes + " minute(s), " + 
-                buildTime.Seconds + " second(s)");
+            Program.PrintColorMessage(Environment.NewLine + "Build Time: ", ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(buildTime.Minutes.ToString(), ConsoleColor.Green, false);
+            Program.PrintColorMessage(" minute(s), ", ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(buildTime.Seconds.ToString(), ConsoleColor.Green, false);
+            Program.PrintColorMessage(" second(s) " + Environment.NewLine, ConsoleColor.DarkGray, true);
         }
 
         public static bool CopyTextFiles()
@@ -1040,14 +1042,16 @@ namespace CustomBuildTool
                 //BuildOutputFolder + "\\processhacker-build-websetup.exe",
                 BuildOutputFolder + "\\processhacker-build-setup.exe",
                 BuildOutputFolder + "\\processhacker-build-bin.zip",
-                BuildOutputFolder + "\\processhacker-build-checksums.txt"
+                BuildOutputFolder + "\\processhacker-build-checksums.txt",
+                BuildOutputFolder + "\\processhacker-build-pdb.zip"
             };
             string[] releaseFileArray =
             {
                 //BuildOutputFolder + "\\processhacker-websetup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-setup.exe",
                 BuildOutputFolder + "\\processhacker-" + BuildVersion + "-bin.zip",
-                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt"
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-checksums.txt",
+                BuildOutputFolder + "\\processhacker-" + BuildVersion + "-pdb.zip"
             };
 
             if (!BuildNightly)
