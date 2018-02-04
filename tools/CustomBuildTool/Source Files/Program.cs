@@ -32,7 +32,7 @@ namespace CustomBuildTool
 
         private static bool BuildSdk(BuildFlags Flags)
         {
-            PrintColorMessage("Copying Plugin SDK...", ConsoleColor.Cyan);
+            //PrintColorMessage("Copying Plugin SDK...", ConsoleColor.Cyan);
 
             if (!Build.CopyTextFiles())
                 return false;
@@ -228,8 +228,8 @@ namespace CustomBuildTool
                     return;
                 //if (!Build.BuildWebSetupExe())
                 //    return;
-                if (!Build.BuildPdbZip())
-                    return;
+                //if (!Build.BuildPdbZip())
+                //    return;
                 if (!Build.BuildSetupExe())
                     return;
                 if (!Build.BuildChecksumsFile())
