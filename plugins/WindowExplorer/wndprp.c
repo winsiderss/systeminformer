@@ -384,16 +384,16 @@ LRESULT CALLBACK WepPropSheetWndProc(
     _In_ LPARAM lParam
     )
 {
-    WNDPROC defaultPropSheetWindowProc = PhGetWindowContext(hwnd, 0xF);
+    WNDPROC oldWndProc;
 
-    if (!defaultPropSheetWindowProc)
+    if (!(oldWndProc = PhGetWindowContext(hwnd, 0xF)))
         return 0;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)defaultPropSheetWindowProc);
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
 
             if (PhGetWindowContext(hwnd, 1))
@@ -437,7 +437,7 @@ LRESULT CALLBACK WepPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(defaultPropSheetWindowProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 static HPROPSHEETPAGE WepCommonCreatePage(

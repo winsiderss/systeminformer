@@ -762,16 +762,19 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_UPDATER_CONTEXT context = PhGetWindowContext(hwndDlg, UCHAR_MAX);
+    PPH_UPDATER_CONTEXT context;
+    WNDPROC oldWndProc;
 
-    if (!context)
+    if (!(context = PhGetWindowContext(hwndDlg, UCHAR_MAX)))
         return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
         }
         break;
@@ -826,8 +829,8 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    }
     //    break;
     }
-    
-    return CallWindowProc(context->DefaultWindowProc, hwndDlg, uMsg, wParam, lParam);
+
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(

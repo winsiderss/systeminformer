@@ -1731,17 +1731,18 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
     )
 {
     PPH_SYSINFO_SECTION section;
+    WNDPROC oldWndProc;
 
-    section = PhGetWindowContext(hwnd, 0xF);
-
-    if (!section)
+    if (!(section = PhGetWindowContext(hwnd, 0xF)))
         return 0;
+
+    oldWndProc = section->GraphWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)section->GraphWindowProc);
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
@@ -1879,7 +1880,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
         break;
     }
 
-    return CallWindowProc(section->GraphWindowProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 LRESULT CALLBACK PhSipPanelHookWndProc(

@@ -272,18 +272,22 @@ LRESULT CALLBACK HSplitterParentWindowProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_HSPLITTER_CONTEXT context = PhGetWindowContext(hwnd, 0x200);
+    PPH_HSPLITTER_CONTEXT context;
+    WNDPROC oldWndProc;
 
-    if (!context)
+    if (!(context = PhGetWindowContext(hwnd, 0x200)))
         return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
-            PhDeleteHSplitter(context);
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0x200);
+
+            PhDeleteHSplitter(context);
         }
         break;
     case WM_SIZE:
@@ -293,7 +297,7 @@ LRESULT CALLBACK HSplitterParentWindowProc(
         break;
     }
 
-    return CallWindowProc(context->DefaultWindowProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 VOID PhInitializeHSplitter(
