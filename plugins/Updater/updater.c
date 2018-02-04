@@ -216,7 +216,7 @@ ULONG64 ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    PhInitializeStringRef(&remaining, PhGetString(VersionString));
+    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
 
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -880,6 +880,7 @@ NTSTATUS ShowUpdateDialogThread(
 
     // Start TaskDialog bootstrap
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.hInstance = PluginInstance->DllBase;
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
