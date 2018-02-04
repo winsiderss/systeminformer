@@ -39,7 +39,6 @@
 #define IDD_FINDOBJECTS                 130
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
-#define IDR_PRIVILEGE                   133
 #define IDC_SEPARATOR                   133
 #define IDR_FINDOBJ                     134
 #define IDD_HIDDENPROCESSES             135
@@ -188,7 +187,6 @@
 #define IDC_OWNER                       1054
 #define IDC_GROUPS                      1055
 #define IDC_PRIMARYGROUP                1055
-#define IDC_PRIVILEGES                  1056
 #define IDC_VIRTUALIZATION              1056
 #define IDC_SESSIONID                   1057
 #define IDC_ELEVATED                    1058
