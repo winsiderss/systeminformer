@@ -225,11 +225,6 @@ NTSTATUS PhSvcApiSetServiceSecurity(
     _Inout_ PPHSVC_API_PAYLOAD Payload
     );
 
-NTSTATUS PhSvcApiLoadDbgHelp(
-    _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_PAYLOAD Payload
-    );
-
 NTSTATUS PhSvcApiWriteMiniDumpProcess(
     _In_ PPHSVC_CLIENT Client,
     _Inout_ PPHSVC_API_PAYLOAD Payload

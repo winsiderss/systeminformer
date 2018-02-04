@@ -234,11 +234,6 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         if (PhUiConnectToPhSvcEx(NULL, Wow64PhSvcMode, FALSE))
         {
             NTSTATUS status;
-            PPH_STRING dbgHelpPath;
-
-            dbgHelpPath = PhGetStringSetting(L"DbgHelpPath");
-            PhSvcCallLoadDbgHelp(dbgHelpPath->Buffer);
-            PhDereferenceObject(dbgHelpPath);
 
             if (NT_SUCCESS(status = PhSvcCallWriteMiniDumpProcess(
                 context->ProcessHandle,

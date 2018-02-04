@@ -63,7 +63,6 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiSendMessage,
     PhSvcApiCreateProcessIgnoreIfeoDebugger,
     PhSvcApiSetServiceSecurity,
-    PhSvcApiLoadDbgHelp,
     PhSvcApiWriteMiniDumpProcess
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
@@ -1387,29 +1386,6 @@ NTSTATUS PhSvcApiSetServiceSecurity(
 
             PhFree(securityDescriptor);
         }
-    }
-
-    return status;
-}
-
-NTSTATUS PhSvcApiLoadDbgHelp(
-    _In_ PPHSVC_CLIENT Client,
-    _Inout_ PPHSVC_API_PAYLOAD Payload
-    )
-{
-    static BOOLEAN alreadyLoaded;
-
-    NTSTATUS status;
-    PPH_STRING dbgHelpPath;
-
-    if (alreadyLoaded)
-        return STATUS_SOME_NOT_MAPPED;
-
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.LoadDbgHelp.i.DbgHelpPath, FALSE, &dbgHelpPath)))
-    {
-        PH_AUTO(dbgHelpPath);
-        PhLoadSymbolProviderDbgHelpFromPath(dbgHelpPath->Buffer);
-        alreadyLoaded = TRUE;
     }
 
     return status;

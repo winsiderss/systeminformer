@@ -1128,33 +1128,6 @@ CleanupExit:
     return status;
 }
 
-NTSTATUS PhSvcCallLoadDbgHelp(
-    _In_ PWSTR DbgHelpPath
-    )
-{
-    NTSTATUS status;
-    PHSVC_API_MSG m;
-    PVOID dbgHelpPath = NULL;
-
-    memset(&m, 0, sizeof(PHSVC_API_MSG));
-
-    if (!PhSvcClPortHandle)
-        return STATUS_PORT_DISCONNECTED;
-
-    m.p.ApiNumber = PhSvcLoadDbgHelpApiNumber;
-    dbgHelpPath = PhSvcpCreateString(DbgHelpPath, -1, &m.p.u.LoadDbgHelp.i.DbgHelpPath);
-
-    if (!dbgHelpPath)
-        return STATUS_NO_MEMORY;
-
-    status = PhSvcpCallServer(&m);
-
-    if (dbgHelpPath)
-        PhSvcpFreeHeap(dbgHelpPath);
-
-    return status;
-}
-
 NTSTATUS PhSvcCallWriteMiniDumpProcess(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
@@ -1178,22 +1151,40 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
 
     m.p.ApiNumber = PhSvcWriteMiniDumpProcessApiNumber;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(&serverHandle, PROCESS_DUP_HANDLE, PhSvcClServerProcessId)))
-    {
-        goto CleanupExit;
-    }
+    status = PhOpenProcess(
+        &serverHandle, 
+        PROCESS_DUP_HANDLE, 
+        PhSvcClServerProcessId
+        );
 
-    if (!NT_SUCCESS(status = NtDuplicateObject(NtCurrentProcess(), ProcessHandle, serverHandle, &remoteProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, 0)))
-    {
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
-    if (!NT_SUCCESS(status = NtDuplicateObject(NtCurrentProcess(), FileHandle, serverHandle, &remoteFileHandle,
-        FILE_GENERIC_WRITE, 0, 0)))
-    {
+    status = NtDuplicateObject(
+        NtCurrentProcess(), 
+        ProcessHandle,
+        serverHandle, 
+        &remoteProcessHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 
+        0, 
+        0
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
+
+    status = NtDuplicateObject(
+        NtCurrentProcess(),
+        FileHandle,
+        serverHandle, 
+        &remoteFileHandle, 
+        FILE_GENERIC_WRITE,
+        0, 
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     m.p.u.WriteMiniDumpProcess.i.LocalProcessHandle = HandleToUlong(remoteProcessHandle);
     m.p.u.WriteMiniDumpProcess.i.ProcessId = HandleToUlong(ProcessId);

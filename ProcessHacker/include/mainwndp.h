@@ -137,11 +137,6 @@ VOID PhMwpSaveWindowState(
 
 // Misc.
 
-VOID PhMwpSymInitHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
 VOID PhMwpUpdateLayoutPadding(
     VOID
     );

@@ -655,98 +655,12 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
     return FALSE;
 }
 
-VOID PvpLoadDbgHelpFromPath(
-    _In_ PWSTR DbgHelpPath
-    )
-{
-    HMODULE dbghelpModule;
-
-    if (DbgHelpPath && (dbghelpModule = LoadLibrary(DbgHelpPath)))
-    {
-        PPH_STRING fullDbghelpPath;
-        ULONG indexOfFileName;
-        PH_STRINGREF dbghelpFolder;
-        PPH_STRING symsrvPath;
-
-        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
-
-        if (fullDbghelpPath)
-        {
-            if (indexOfFileName != 0)
-            {
-                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
-
-                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
-                dbghelpFolder.Length = indexOfFileName * sizeof(WCHAR);
-
-                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
-
-                LoadLibrary(symsrvPath->Buffer);
-
-                PhDereferenceObject(symsrvPath);
-            }
-
-            PhDereferenceObject(fullDbghelpPath);
-        }
-    }
-    else
-    {
-        dbghelpModule = LoadLibrary(L"dbghelp.dll");
-    }
-
-    PhSymbolProviderCompleteInitialization(dbghelpModule);
-}
-
-PPH_STRING PhFindDbghelpPath(
-    VOID
-    )
-{
-    static struct
-    {
-        ULONG Folder;
-        PWSTR AppendPath;
-    } locations[] =
-    {
-#ifdef _WIN64
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\10\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.1\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILESX86, L"\\Windows Kits\\8.0\\Debuggers\\x64\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x64)\\dbghelp.dll" }
-#else
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\10\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.1\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Windows Kits\\8.0\\Debuggers\\x86\\dbghelp.dll" },
-        { CSIDL_PROGRAM_FILES, L"\\Debugging Tools for Windows (x86)\\dbghelp.dll" }
-#endif
-    };
-
-    PPH_STRING path;
-    ULONG i;
-
-    for (i = 0; i < sizeof(locations) / sizeof(locations[0]); i++)
-    {
-        path = PhGetKnownLocation(locations[i].Folder, locations[i].AppendPath);
-
-        if (path)
-        {
-            if (RtlDoesFileExists_U(path->Buffer))
-                return path;
-
-            PhDereferenceObject(path);
-        }
-    }
-
-    return NULL;
-}
-
-
 BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER *SymbolProvider
     )
 {
     static UNICODE_STRING symbolPathVarName = RTL_CONSTANT_STRING(L"_NT_SYMBOL_PATH");
     PPH_STRING symbolSearchPath;
-    PPH_STRING dbgHelpPath;
     PPH_SYMBOL_PROVIDER symbolProvider;
     UNICODE_STRING symbolPathUs;
     WCHAR buffer[512];
@@ -756,8 +670,6 @@ BOOLEAN PvpLoadDbgHelp(
     if (!PhSymbolProviderInitialization())
         return FALSE;
 
-    dbgHelpPath = PhFindDbghelpPath();
-    PvpLoadDbgHelpFromPath(PhGetString(dbgHelpPath));
     symbolProvider = PhCreateSymbolProvider(NULL);
 
     // Load symbol path from _NT_SYMBOL_PATH if configured by the user.    
@@ -773,9 +685,6 @@ BOOLEAN PvpLoadDbgHelp(
 
     PhSetSearchPathSymbolProvider(symbolProvider, symbolSearchPath->Buffer);
     PhDereferenceObject(symbolSearchPath);
-
-    if (dbgHelpPath)
-        PhDereferenceObject(dbgHelpPath);
 
     *SymbolProvider = symbolProvider;
     return TRUE;
