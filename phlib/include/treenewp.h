@@ -160,6 +160,9 @@ typedef struct _PH_TREENEW_CONTEXT
     HRGN SuspendUpdateRegion;
 
     PH_STRINGREF EmptyText;
+
+    WNDPROC HeaderWindowProc;
+    WNDPROC FixedHeaderWindowProc;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -730,12 +733,11 @@ VOID PhTnpGetHeaderTooltipText(
     _Out_ PWSTR *Text
     );
 
-BOOLEAN CALLBACK PhTnpHeaderHookWndProc(
+LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     );
 
 // Drag selection

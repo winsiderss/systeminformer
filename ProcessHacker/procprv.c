@@ -107,7 +107,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsInSignificantJob : 1;
             ULONG IsBeingDebugged : 1;
             ULONG IsImmersive : 1;
-            ULONG IsProtectedHandle : 1;
+            ULONG IsFilteredHandle : 1;
             ULONG Spare : 25;
         };
     };
@@ -1000,7 +1000,6 @@ VOID PhpProcessQueryStage1(
     if (processHandleLimited)
     {
         BOOLEAN isDotNet = FALSE;
-        PPH_STRING commandLine = NULL;
         HANDLE processHandle = NULL;
         ULONG processQueryFlags = 0;
 
@@ -1021,6 +1020,24 @@ VOID PhpProcessQueryStage1(
 
         if (NT_SUCCESS(status))
         {
+            PPH_STRING commandLine;
+
+            if (NT_SUCCESS(PhGetProcessCommandLine(processHandle, &commandLine)))
+            {
+                // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
+                // can't display them, we'll replace them with spaces.
+                for (ULONG i = 0; i < (ULONG)commandLine->Length / 2; i++)
+                {
+                    if (commandLine->Buffer[i] == 0)
+                        commandLine->Buffer[i] = ' ';
+                }
+
+                Data->CommandLine = commandLine;
+            }
+        }
+
+        if (NT_SUCCESS(status))
+        {
             PhGetProcessIsDotNetEx(
                 processId,
                 processHandle,
@@ -1035,24 +1052,6 @@ VOID PhpProcessQueryStage1(
             Data->IsDotNet = isDotNet;
         }
 
-        if (NT_SUCCESS(status))
-        {
-            status = PhGetProcessCommandLine(processHandle, &commandLine);
-        }
-
-        if (NT_SUCCESS(status) && commandLine)
-        {
-            // Some command lines (e.g. from taskeng.exe) have nulls in them. Since Windows
-            // can't display them, we'll replace them with spaces.
-            for (ULONG i = 0; i < (ULONG)commandLine->Length / 2; i++)
-            {
-                if (commandLine->Buffer[i] == 0)
-                    commandLine->Buffer[i] = ' ';
-            }
-
-            Data->CommandLine = commandLine;
-        }
-
         if (!(processQueryFlags & PH_CLR_USE_SECTION_CHECK) && processHandle)
             NtClose(processHandle);
     }
@@ -1062,9 +1061,7 @@ VOID PhpProcessQueryStage1(
     {
         HANDLE tokenHandle;
 
-        status = PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle);
-
-        if (NT_SUCCESS(status))
+        if (NT_SUCCESS(PhOpenProcessToken(processHandleLimited, TOKEN_QUERY, &tokenHandle)))
         {
             // Elevation
             if (NT_SUCCESS(PhGetTokenElevationType(
@@ -1156,14 +1153,14 @@ VOID PhpProcessQueryStage1(
         Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
     }
 
-    if (processHandleLimited && processItem->IsValidHandle)
+    if (processHandleLimited && processItem->IsHandleValid)
     {
         OBJECT_BASIC_INFORMATION basicInfo;
 
         if (NT_SUCCESS(PhGetHandleInformationEx(
             NtCurrentProcess(),
             processHandleLimited,
-            -1,
+            ULONG_MAX,
             0,
             NULL,
             &basicInfo,
@@ -1174,11 +1171,11 @@ VOID PhpProcessQueryStage1(
             )))
         {
             if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
-                Data->IsProtectedHandle = TRUE;
+                Data->IsFilteredHandle = TRUE;
         }
         else
         {
-            Data->IsProtectedHandle = TRUE;
+            Data->IsFilteredHandle = TRUE;
         }
     }
 }
@@ -1187,11 +1184,12 @@ VOID PhpProcessQueryStage2(
     _Inout_ PPH_PROCESS_QUERY_S2_DATA Data
     )
 {
-    NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
+        NTSTATUS status;
+
         Data->VerifyResult = PhVerifyFileCached(
             processItem->FileName,
             processItem->PackageFullName,
@@ -1316,7 +1314,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
-    processItem->IsProtectedHandle = Data->IsProtectedHandle;
+    processItem->IsProtectedHandle = Data->IsFilteredHandle;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
@@ -1375,7 +1373,7 @@ VOID PhpFillProcessItem(
     {
         if (NT_SUCCESS(PhOpenProcess(&ProcessItem->QueryHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId)))
         {
-            ProcessItem->IsValidHandle = TRUE;
+            ProcessItem->IsHandleValid = TRUE;
         }
 
         if (!ProcessItem->QueryHandle)
@@ -1514,7 +1512,7 @@ VOID PhpFillProcessItem(
 
     // On Windows 8.1 and above, processes without threads are reflected processes 
     // which will not terminate if we have a handle open.
-    if (Process->NumberOfThreads == 0)
+    if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
     {
         NtClose(ProcessItem->QueryHandle);
         ProcessItem->QueryHandle = NULL;

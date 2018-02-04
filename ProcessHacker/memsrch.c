@@ -56,6 +56,7 @@ typedef struct _MEMORY_STRING_CONTEXT
 
     HWND ParentWindowHandle;
     HWND WindowHandle;
+    WNDPROC DefaultWindowProc;
     PH_MEMORY_STRING_OPTIONS Options;
     PPH_LIST Results;
 } MEMORY_STRING_CONTEXT, *PMEMORY_STRING_CONTEXT;
@@ -650,20 +651,25 @@ NTSTATUS PhpMemoryStringThreadStart(
     return STATUS_SUCCESS;
 }
 
-BOOLEAN CALLBACK PhpMemoryStringTaskDialogSubclassProc(
+LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
-    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)Context;
+    PMEMORY_STRING_CONTEXT context = PhGetWindowContext(hwndDlg, 0xF);
+
+    if (!context)
+        return 0;
 
     switch (uMsg)
     {
-    case WM_NCDESTROY:
-        PhUnregisterWindowSubclass(hwndDlg, PhpMemoryStringTaskDialogSubclassProc);
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            PhRemoveWindowContext(hwndDlg, 0xF);
+        }
         break;
     case WM_PH_MEMORY_STATUS_UPDATE:
         {
@@ -680,7 +686,7 @@ BOOLEAN CALLBACK PhpMemoryStringTaskDialogSubclassProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(context->DefaultWindowProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
@@ -714,7 +720,9 @@ HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             // Subclass the Taskdialog.
-            PhRegisterWindowSubclass(hwndDlg, PhpMemoryStringTaskDialogSubclassProc, context);
+            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, 0xF, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpMemoryStringTaskDialogSubclassProc);
 
             // Create the search thread.
             PhCreateThread2(PhpMemoryStringThreadStart, context);

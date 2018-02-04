@@ -1040,6 +1040,9 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
 {
     ULONG i;
 
+    if (!Context->UpdateTimerHandle)
+        return;
+
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAcquireQueuedLockExclusive(&SearchResultsLock);
@@ -1121,10 +1124,16 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
     case WM_DESTROY:
         {
             if (context->UpdateTimerHandle)
+            {
                 RtlDeleteTimer(context->TimerQueueHandle, context->UpdateTimerHandle, NULL);
+                context->UpdateTimerHandle = NULL;
+            }
 
             if (context->TimerQueueHandle)
+            {
                 RtlDeleteTimerQueue(context->TimerQueueHandle);
+                context->TimerQueueHandle = NULL;
+            }
 
             PvDeleteSymbolTree(context);
         }

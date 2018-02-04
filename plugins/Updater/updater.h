@@ -85,6 +85,7 @@ typedef struct _PH_UPDATER_CONTEXT
     HICON IconLargeHandle;
 
     HWND DialogHandle;
+    WNDPROC DefaultWindowProc;
 
     ULONG ErrorCode;
     PPH_STRING SetupFilePath;

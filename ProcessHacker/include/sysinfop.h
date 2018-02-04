@@ -189,20 +189,18 @@ VOID PhSipCreateSectionDialog(
     _In_ PPH_SYSINFO_SECTION Section
     );
 
-BOOLEAN CALLBACK PhSipGraphHookWndProc(
+LRESULT CALLBACK PhSipGraphHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     );
 
-BOOLEAN CALLBACK PhSipPanelHookWndProc(
+LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     );
 
 // Misc.

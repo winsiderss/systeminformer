@@ -1169,22 +1169,28 @@ NTSTATUS UploadRecheckThreadStart(
     return STATUS_SUCCESS;
 }
 
-BOOLEAN CALLBACK TaskDialogSubclassProc(
+LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
-    PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)Context;
+    PUPLOAD_CONTEXT context;
+
+    context = PhGetWindowContext(hwndDlg, 0xF);
+
+    if (!context)
+        return 0;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)context->DialogWindowProc);
+            PhRemoveWindowContext(hwndDlg, 0xF);
+
             TaskDialogFreeContext(context);
-            PhUnregisterWindowSubclass(hwndDlg, TaskDialogSubclassProc);
         }
         break;
     case UM_UPLOAD:
@@ -1240,7 +1246,7 @@ BOOLEAN CALLBACK TaskDialogSubclassProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(context->DialogWindowProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -1274,7 +1280,9 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                 }
             }
 
-            PhRegisterWindowSubclass(hwndDlg, TaskDialogSubclassProc, context);
+            context->DialogWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, 0xF, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
 
             ShowVirusTotalUploadDialog(context);
         }

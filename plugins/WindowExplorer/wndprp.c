@@ -94,12 +94,11 @@ INT CALLBACK WepPropSheetProc(
     _In_ LPARAM lParam
     );
 
-BOOLEAN CALLBACK WepPropSheetWndProc(
+LRESULT CALLBACK WepPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     );
 
 HPROPSHEETPAGE WepCommonCreatePage(
@@ -360,7 +359,8 @@ static INT CALLBACK WepPropSheetProc(
         {
             HWND refreshButtonHandle;
 
-            PhRegisterWindowSubclass(hwndDlg, WepPropSheetWndProc, NULL);
+            PhSetWindowContext(hwndDlg, 0xF, (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC));
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)WepPropSheetWndProc);
 
             // Hide the Cancel button.
             ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
@@ -377,19 +377,27 @@ static INT CALLBACK WepPropSheetProc(
     return 0;
 }
 
-BOOLEAN CALLBACK WepPropSheetWndProc(
+LRESULT CALLBACK WepPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
+    WNDPROC defaultPropSheetWindowProc = PhGetWindowContext(hwnd, 0xF);
+
+    if (!defaultPropSheetWindowProc)
+        return 0;
+
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwnd, 1);
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)defaultPropSheetWindowProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+
+            if (PhGetWindowContext(hwnd, 1))
+                PhRemoveWindowContext(hwnd, 1);
         }
         break;
     case WM_SHOWWINDOW:
@@ -429,7 +437,7 @@ BOOLEAN CALLBACK WepPropSheetWndProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(defaultPropSheetWindowProc, hwnd, uMsg, wParam, lParam);
 }
 
 static HPROPSHEETPAGE WepCommonCreatePage(
