@@ -126,9 +126,8 @@ VOID PhSetExtendedListView(
     context->EnableRedraw = 1;
     context->Cursor = NULL;
 
-    PhSetWindowContext(hWnd, MAXBYTE, context);
-
     context->OldWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
+    PhSetWindowContext(hWnd, MAXCHAR, context);
     SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)PhpExtendedListViewWndProc);
 
     ExtendedListView_Init(hWnd);
@@ -141,14 +140,22 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_EXTLV_CONTEXT context = PhGetWindowContext(hwnd, MAXBYTE);
+    PPH_EXTLV_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    context = PhGetWindowContext(hwnd, MAXCHAR);
+
+    if (!context)
+        return 0;
+
+    oldWndProc = context->OldWndProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)context->OldWndProc);
-            PhRemoveWindowContext(hwnd, MAXBYTE);
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, MAXCHAR);
             PhFree(context);
         }
         break;
@@ -469,7 +476,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     }
 
-    return CallWindowProc(context->OldWndProc, hwnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 /**
