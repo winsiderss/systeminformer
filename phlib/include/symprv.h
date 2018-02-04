@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
-extern PH_CALLBACK PhSymInitCallback;
 
 #define PH_MAX_SYMBOL_NAME_LEN 128
 
@@ -70,13 +69,6 @@ BOOLEAN
 NTAPI
 PhSymbolProviderInitialization(
     VOID
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhSymbolProviderCompleteInitialization(
-    _In_opt_ PVOID DbgHelpBase
     );
 
 PHLIBAPI

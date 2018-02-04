@@ -55,6 +55,32 @@ INT WINAPI wWinMain(
     if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
 
+    // Create a mutant for the installer.
+    {
+        HANDLE mutantHandle;
+        OBJECT_ATTRIBUTES oa;
+        UNICODE_STRING mutantName;
+        PPH_STRING objectName;
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], L"PeViewer_");
+        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+        objectName = PhFormat(format, 2, 16);
+        PhStringRefToUnicodeString(&objectName->sr, &mutantName);
+
+        InitializeObjectAttributes(
+            &oa,
+            &mutantName,
+            OBJ_CASE_INSENSITIVE,
+            PhGetNamespaceHandle(),
+            NULL
+            );
+
+        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+        PhDereferenceObject(objectName);
+    }
+
     PhGuiSupportInitialization();
     PhSettingsInitialization();
     PeInitializeSettings();

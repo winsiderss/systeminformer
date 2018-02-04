@@ -160,20 +160,6 @@ PhShellExecuteUserString(
     );
 
 PHAPPAPI
-PPH_STRING
-NTAPI
-PhFindDbghelpPath(
-    VOID
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhLoadSymbolProviderDbgHelpFromPath(
-    _In_ PWSTR DbgHelpPath
-    );
-
-PHAPPAPI
 VOID
 NTAPI
 PhLoadSymbolProviderOptions(

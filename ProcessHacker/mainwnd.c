@@ -32,7 +32,6 @@
 #include <emenu.h>
 #include <kphuser.h>
 #include <svcsup.h>
-#include <symprv.h>
 #include <verify.h>
 #include <workqueue.h>
 #include <phsettings.h>
@@ -104,21 +103,16 @@ BOOLEAN PhMainWndInitialization(
     PH_STRING_BUILDER stringBuilder;
     PH_RECTANGLE windowRectangle;
 
+    // Set FirstRun default settings.
+
     if (PhGetIntegerSetting(L"FirstRun"))
-    {
-        PPH_STRING autoDbghelpPath;
-
-        // Try to set up the dbghelp path automatically if this is the first run.
-        if (autoDbghelpPath = PH_AUTO(PhFindDbghelpPath()))
-            PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
-
         PhSetIntegerSetting(L"FirstRun", FALSE);
-    }
 
-    // This was added to be able to delay-load dbghelp.dll and symsrv.dll.
-    PhRegisterCallback(&PhSymInitCallback, PhMwpSymInitHandler, NULL, &SymInitRegistration);
+    // Initialize the main providers.
 
     PhMwpInitializeProviders();
+
+    // Initialize the window.
 
     if ((windowAtom = PhMwpInitializeWindowClass()) == INVALID_ATOM)
         return FALSE;
@@ -2212,18 +2206,6 @@ VOID PhMwpSaveWindowState(
         PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
     else if (placement.showCmd == SW_MAXIMIZE)
         PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
-}
-
-VOID PhMwpSymInitHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_STRING dbghelpPath;
-
-    dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
-    PhLoadSymbolProviderDbgHelpFromPath(dbghelpPath->Buffer);
-    PhDereferenceObject(dbghelpPath);
 }
 
 VOID PhMwpUpdateLayoutPadding(

@@ -83,7 +83,7 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     );
 
-VOID PhInitializeRestartPolicy(
+BOOLEAN PhInitializeRestartPolicy(
     VOID
     );
 
@@ -125,6 +125,8 @@ INT WINAPI wWinMain(
     if (!PhInitializeExceptionPolicy())
         return 1;
     if (!PhInitializeMitigationPolicy())
+        return 1;
+    if (!PhInitializeRestartPolicy())
         return 1;
     if (!PhInitializeAppSystem())
         return 1;
@@ -312,9 +314,6 @@ INT WINAPI wWinMain(
 
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
-
-    // Create the restart policy.
-    PhInitializeRestartPolicy();
 
     if (!PhMainWndInitialization(CmdShow))
     {
@@ -535,10 +534,11 @@ VOID PhInitializeFont(
     }
 }
 
-VOID PhInitializeRestartPolicy(
+BOOLEAN PhInitializeRestartPolicy(
     VOID
     )
 {
+#ifndef DEBUG
     PH_STRINGREF commandLineSr;
     PH_STRINGREF fileNameSr;
     PH_STRINGREF argumentsSr;
@@ -547,7 +547,7 @@ VOID PhInitializeRestartPolicy(
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLineSr);
 
     if (!PhParseCommandLineFuzzy(&commandLineSr, &fileNameSr, &argumentsSr, NULL))
-        return;
+        return FALSE;
 
     if (argumentsSr.Length)
     {
@@ -562,7 +562,10 @@ VOID PhInitializeRestartPolicy(
     // MSDN: Do not include the file name in the command line.
     RegisterApplicationRestart(PhGetString(argumentsString), 0);
 
-    PhClearReference(&argumentsString);
+    if (argumentsString)
+        PhDereferenceObject(argumentsString);
+#endif
+    return TRUE;
 }
 
 BOOLEAN PhInitializeExceptionPolicy(

@@ -141,10 +141,6 @@ NTSTATUS PhSvcCallSetServiceSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
-NTSTATUS PhSvcCallLoadDbgHelp(
-    _In_ PWSTR DbgHelpPath
-    );
-
 NTSTATUS PhSvcCallWriteMiniDumpProcess(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
