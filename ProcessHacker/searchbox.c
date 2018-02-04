@@ -254,20 +254,23 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     )
 {
     PEDIT_CONTEXT context;
+    WNDPROC oldWndProc;
 
     if (!(context = PhGetWindowContext(hWnd, 10)))
         return 0;
 
+    oldWndProc = context->DefaultWindowProc;
+
     switch (uMsg)
     {
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             PhpSearchFreeTheme(context);
 
             if (context->WindowFont)
                 DeleteObject(context->WindowFont);
 
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hWnd, 10);
             PhFree(context);
         }
@@ -279,7 +282,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
 
             // Let Windows handle the non-client defaults.
-            CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Deflate the client area to accommodate the custom button.
             ncCalcSize->rgrc[0].right -= context->CXWidth;
@@ -290,7 +293,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RECT windowRect;
 
             // Let Windows handle the non-client defaults.
-            CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
+            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
             // Get the screen coordinates of the window.
             GetWindowRect(hWnd, &windowRect);
@@ -482,7 +485,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     }
 
-    return CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 HICON PhpSearchBitmapToIcon(

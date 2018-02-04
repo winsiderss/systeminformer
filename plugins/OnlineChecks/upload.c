@@ -1177,17 +1177,18 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     )
 {
     PUPLOAD_CONTEXT context;
+    WNDPROC oldWndProc;
 
-    context = PhGetWindowContext(hwndDlg, 0xF);
-
-    if (!context)
+    if (!(context = PhGetWindowContext(hwndDlg, 0xF)))
         return 0;
+
+    oldWndProc = context->DialogWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)context->DialogWindowProc);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
 
             TaskDialogFreeContext(context);
@@ -1246,7 +1247,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         break;
     }
 
-    return CallWindowProc(context->DialogWindowProc, hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(

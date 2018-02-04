@@ -179,16 +179,19 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ LPARAM lParam
     )
 {
-    PPV_PROPSHEETCONTEXT context = PhGetWindowContext(hWnd, ULONG_MAX);
+    PPV_PROPSHEETCONTEXT context;
+    WNDPROC oldWndProc;
 
-    if (!context)
+    if (!(context = PhGetWindowContext(hWnd, ULONG_MAX)))
         return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hWnd, ULONG_MAX);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hWnd);
@@ -224,7 +227,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(context->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(

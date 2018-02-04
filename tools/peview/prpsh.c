@@ -190,10 +190,13 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     _In_ LPARAM lParam
     )
 {
-    PPV_PROPSHEETCONTEXT propSheetContext = PhGetWindowContext(hWnd, UCHAR_MAX);
+    PPV_PROPSHEETCONTEXT propSheetContext;
+    WNDPROC oldWndProc;
 
-    if (!propSheetContext)
+    if (!(propSheetContext = PhGetWindowContext(hWnd, UCHAR_MAX)))
         return 0;
+
+    oldWndProc = propSheetContext->DefaultWindowProc;
 
     switch (uMsg)
     {
@@ -223,15 +226,11 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     case WM_NCDESTROY:
         {
-            LRESULT result;
-
-            result = CallWindowProc(propSheetContext->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)propSheetContext->DefaultWindowProc);
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hWnd, UCHAR_MAX);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
             PhFree(propSheetContext);
-            return result;
         }
         break;
     case WM_COMMAND:
@@ -261,7 +260,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
         break;
     }
 
-    return CallWindowProc(propSheetContext->DefaultWindowProc, hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 BOOLEAN PhpInitializePropSheetLayoutStage1(

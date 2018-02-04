@@ -658,16 +658,19 @@ LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
     _In_ LPARAM lParam
     )
 {
-    PMEMORY_STRING_CONTEXT context = PhGetWindowContext(hwndDlg, 0xF);
+    PMEMORY_STRING_CONTEXT context;
+    WNDPROC oldWndProc;
 
-    if (!context)
+    if (!(context = PhGetWindowContext(hwndDlg, 0xF)))
         return 0;
+
+    oldWndProc = context->DefaultWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, 0xF);
         }
         break;
@@ -686,7 +689,7 @@ LRESULT CALLBACK PhpMemoryStringTaskDialogSubclassProc(
         break;
     }
 
-    return CallWindowProc(context->DefaultWindowProc, hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK PhpMemoryStringTaskDialogCallback(
