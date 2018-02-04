@@ -238,6 +238,37 @@ PhGetProcessDebugObject(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ErrorMode
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDefaultHardErrorMode,
+        ErrorMode,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessErrorMode(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ErrorMode
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessDefaultHardErrorMode,
+        &ErrorMode,
+        sizeof(ULONG)
+        );
+}
+
 /**
  * Gets a process' no-execute status.
  *
