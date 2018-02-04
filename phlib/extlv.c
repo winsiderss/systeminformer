@@ -169,7 +169,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 {
                     HWND headerHandle;
 
-                    headerHandle = (HWND)CallWindowProc(context->OldWndProc, hwnd, LVM_GETHEADER, 0, 0);
+                    headerHandle = (HWND)CallWindowProc(oldWndProc, hwnd, LVM_GETHEADER, 0, 0);
 
                     if (header->hwndFrom == headerHandle)
                     {
@@ -357,7 +357,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 {
                     if (i != column)
                     {
-                        if (CallWindowProc(context->OldWndProc, hwnd, LVM_GETCOLUMN, i, (LPARAM)&lvColumn))
+                        if (CallWindowProc(oldWndProc, hwnd, LVM_GETCOLUMN, i, (LPARAM)&lvColumn))
                         {
                             availableWidth -= lvColumn.cx;
                         }
@@ -371,10 +371,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 }
 
                 if (availableWidth >= 40)
-                    return CallWindowProc(context->OldWndProc, hwnd, LVM_SETCOLUMNWIDTH, column, availableWidth);
+                    return CallWindowProc(oldWndProc, hwnd, LVM_SETCOLUMNWIDTH, column, availableWidth);
             }
 
-            return CallWindowProc(context->OldWndProc, hwnd, LVM_SETCOLUMNWIDTH, column, width);
+            return CallWindowProc(oldWndProc, hwnd, LVM_SETCOLUMNWIDTH, column, width);
         }
         break;
     case ELVM_SETCOMPAREFUNCTION:
