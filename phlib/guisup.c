@@ -1378,6 +1378,25 @@ static LRESULT CALLBACK PhWindowSubclassCallback(
         }
     }
 
+    if (uMsg == WM_DESTROY)
+    {
+        LRESULT result;
+
+        result = CallWindowProc(context->DefaultWindowProc, WindowHandle, uMsg, wParam, lParam);
+
+        if (context->WindowCallbackArray.Count == 0)
+        {
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_SUBCLASS_CONTEXT);
+
+            PhDeleteArray(&context->WindowCallbackArray);
+            PhFree(context);  
+        }
+
+        return result;
+    }
+
     return CallWindowProc(context->DefaultWindowProc, WindowHandle, uMsg, wParam, lParam);
 }
 
@@ -1431,15 +1450,5 @@ VOID PhUnregisterWindowSubclass(
 
         if (entry->SubclassCallback == SubclassCallback)
             PhRemoveItemArray(&context->WindowCallbackArray, i);
-    }
-    
-    if (context->WindowCallbackArray.Count == 0)
-    {
-        SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
-
-        PhRemoveWindowContext(WindowHandle, PH_WINDOW_SUBCLASS_CONTEXT);
-
-        PhDeleteArray(&context->WindowCallbackArray);
-        PhFree(context);
     }
 }
