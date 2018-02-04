@@ -75,6 +75,10 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
+BOOLEAN PhInitializeExceptionPolicy(
+    VOID
+    );
+
 BOOLEAN PhInitializeMitigationPolicy(
     VOID
     );
@@ -115,14 +119,13 @@ INT WINAPI wWinMain(
     HANDLE currentTokenHandle;
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-#ifndef DEBUG
-    SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-#endif
 
     if (!NT_SUCCESS(PhInitializePhLibEx(ULONG_MAX, Instance, 0, 0)))
         return 1;
-    if (PhInitializeMitigationPolicy())
-        return 0;
+    if (!PhInitializeExceptionPolicy())
+        return 1;
+    if (!PhInitializeMitigationPolicy())
+        return 1;
     if (!PhInitializeAppSystem())
         return 1;
 
@@ -562,13 +565,27 @@ VOID PhInitializeRestartPolicy(
     PhClearReference(&argumentsString);
 }
 
+BOOLEAN PhInitializeExceptionPolicy(
+    VOID
+    )
+{
+#ifndef DEBUG
+    ULONG errorMode;
+
+    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    {
+        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    }
+#endif
+    return TRUE;
+}   
+
 BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
 {
-#ifdef DEBUG
-    return FALSE;
-#else
+#ifndef DEBUG
 #define DEFAULT_MITIGATION_POLICY_FLAGS \
     (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
@@ -580,17 +597,20 @@ BOOLEAN PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
 
     static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L" -nomp");
-    BOOLEAN success = FALSE;
+    BOOLEAN success = TRUE;
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline = NULL;
     PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
     SIZE_T attributeListLength;
 
+    if (WindowsVersion < WINDOWS_10_RS3)
+        return TRUE;
+
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
 
     if (PhEndsWithStringRef(&commandlineSr, &commandlinePart, FALSE))
-        goto CleanupExit;
+        return TRUE;
 
     if (!(LdrSystemDllInitBlock_I = PhGetModuleProcAddress(L"ntdll.dll", "LdrSystemDllInitBlock")))
         goto CleanupExit;
@@ -613,7 +633,8 @@ BOOLEAN PhInitializeMitigationPolicy(
         goto CleanupExit;
 
     commandline = PhConcatStringRef2(&commandlineSr, &commandlinePart);
-    success = NT_SUCCESS(PhCreateProcessWin32Ex(
+
+    if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
         PhGetString(commandline),
         NULL,
@@ -624,7 +645,10 @@ BOOLEAN PhInitializeMitigationPolicy(
         NULL,
         NULL,
         NULL
-        ));
+        )))
+    {
+        success = FALSE;
+    }
 
 CleanupExit:
 
@@ -638,6 +662,8 @@ CleanupExit:
     }
 
     return success;
+#else
+    return TRUE;
 #endif
 }
 
