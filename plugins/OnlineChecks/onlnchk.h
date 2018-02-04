@@ -122,6 +122,7 @@ typedef struct _UPLOAD_CONTEXT
     ULONG TotalFileLength;
     
     HWND DialogHandle;
+    WNDPROC DialogWindowProc;
     HANDLE UploadThreadHandle;
     HICON IconLargeHandle;
     HICON IconSmallHandle;

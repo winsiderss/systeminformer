@@ -606,15 +606,21 @@ LRESULT CALLBACK TextBoxSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR uIdSubclass,
-    _In_ ULONG_PTR dwRefData
+    _In_ LPARAM lParam
     )
 {
+    WNDPROC oldWndProc = PhGetWindowContext(hWnd, UCHAR_MAX);
+
+    if (!oldWndProc)
+        return 0;
+
     switch (uMsg)
     {
-    case WM_NCDESTROY:
-        RemoveWindowSubclass(hWnd, TextBoxSubclassProc, uIdSubclass);
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hWnd, UCHAR_MAX);
+        }
         break;
     case WM_GETDLGCODE:
         {
@@ -633,7 +639,7 @@ LRESULT CALLBACK TextBoxSubclassProc(
         break;
     }
 
-    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
 VOID FixControlStates(
@@ -665,8 +671,14 @@ INT_PTR HandleCommonMessages(
     {
     case WM_INITDIALOG:
         {
-            SetWindowSubclass(GetDlgItem(hwndDlg, IDC_TEXT), TextBoxSubclassProc, 0, 0);
+            HWND textBoxHandle;
+            WNDPROC oldWndProc;
 
+            textBoxHandle = GetDlgItem(hwndDlg, IDC_TEXT);
+            oldWndProc = (WNDPROC)GetWindowLongPtr(textBoxHandle, GWLP_WNDPROC);
+            PhSetWindowContext(textBoxHandle, UCHAR_MAX, oldWndProc);
+            SetWindowLongPtr(textBoxHandle, GWLP_WNDPROC, (LONG_PTR)TextBoxSubclassProc);
+            
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE), BST_CHECKED);
 
             FixControlStates(hwndDlg, ListBox);

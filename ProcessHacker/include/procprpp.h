@@ -9,6 +9,7 @@
 
 typedef struct _PH_PROCESS_PROPSHEETCONTEXT
 {
+    WNDPROC PropSheetWindowHookProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
     BOOLEAN LayoutInitialized;
@@ -29,12 +30,11 @@ PPH_PROCESS_PROPSHEETCONTEXT PhpGetPropSheetContext(
     _In_ HWND hwnd
     );
 
-BOOLEAN CALLBACK PhpPropSheetWndProc(
+LRESULT CALLBACK PhpPropSheetWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     );
 
 VOID NTAPI PhpProcessPropPageContextDeleteProcedure(

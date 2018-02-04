@@ -523,7 +523,6 @@ VOID PhCreateSearchControl(
     memset(context, 0, sizeof(EDIT_CONTEXT));
 
     context->WindowHandle = WindowHandle;
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
 
     //PhpSearchInitializeTheme(context);
     PhpSearchInitializeImages(context);
@@ -533,6 +532,7 @@ VOID PhCreateSearchControl(
         Edit_SetCueBannerText(WindowHandle, BannerText);
 
     // Subclass the Edit control window procedure.
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
     PhSetWindowContext(WindowHandle, 10, context);
     SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpSearchWndSubclassProc);
 

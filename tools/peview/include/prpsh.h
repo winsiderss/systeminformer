@@ -29,9 +29,10 @@
 
 typedef struct _PV_PROPSHEETCONTEXT
 {
+    BOOLEAN LayoutInitialized;
+    WNDPROC DefaultWindowProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
-    BOOLEAN LayoutInitialized;
 } PV_PROPSHEETCONTEXT, *PPV_PROPSHEETCONTEXT;
 
 typedef struct _PV_PROPCONTEXT

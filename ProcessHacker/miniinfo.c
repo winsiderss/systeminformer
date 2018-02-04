@@ -470,7 +470,7 @@ VOID PhMipOnInitDialog(
 
     // Subclass the window procedure.
     oldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
-    PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 10, oldWndProc);
+    PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 0xF, oldWndProc);
     SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
 }
 
@@ -1159,7 +1159,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
 {
     WNDPROC oldWndProc;
 
-    if (!(oldWndProc = PhGetWindowContext(hwnd, 10)))
+    if (!(oldWndProc = PhGetWindowContext(hwnd, 0xF)))
         return 0;
 
     switch (uMsg)
@@ -1167,7 +1167,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     case WM_DESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(hwnd, 10);
+            PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
     case WM_SETCURSOR:

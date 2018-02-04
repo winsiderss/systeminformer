@@ -514,8 +514,6 @@ EXPORTS
 	PhGetWindowContext
 	PhSetWindowContext
 	PhRemoveWindowContext
-	PhRegisterWindowSubclass
-	PhUnregisterWindowSubclass
 
 ; hndlinfo
 	PhEnumObjectTypes

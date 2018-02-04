@@ -755,18 +755,26 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
-BOOLEAN NTAPI TaskDialogSubclassProc(
+LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Context;
+    PPH_UPDATER_CONTEXT context = PhGetWindowContext(hwndDlg, UCHAR_MAX);
+
+    if (!context)
+        return 0;
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)context->DefaultWindowProc);
+            PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
+        }
+        break;
     case PH_SHOWDIALOG:
         {
             if (IsMinimized(hwndDlg))
@@ -775,11 +783,6 @@ BOOLEAN NTAPI TaskDialogSubclassProc(
                 ShowWindow(hwndDlg, SW_SHOW);
 
             SetForegroundWindow(hwndDlg);
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhUnregisterWindowSubclass(hwndDlg, TaskDialogSubclassProc);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -823,8 +826,8 @@ BOOLEAN NTAPI TaskDialogSubclassProc(
     //    }
     //    break;
     }
-
-    return FALSE;
+    
+    return CallWindowProc(context->DefaultWindowProc, hwndDlg, uMsg, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
@@ -846,11 +849,13 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Center the update window on PH if it's visible else we center on the desktop.
             PhCenterWindow(hwndDlg, (IsWindowVisible(PhMainWndHandle) && !IsMinimized(PhMainWndHandle)) ? PhMainWndHandle : NULL);
 
-            // Create the Taskdialog icons
+            // Create the Taskdialog icons.
             TaskDialogCreateIcons(context);
 
-            // Subclass the Taskdialog
-            PhRegisterWindowSubclass(hwndDlg, TaskDialogSubclassProc, context);
+            // Subclass the Taskdialog.
+            context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
 
             if (context->StartupCheck)
                 ShowAvailableDialog(context);

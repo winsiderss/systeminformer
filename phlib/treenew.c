@@ -5846,8 +5846,14 @@ VOID PhTnpInitializeTooltips(
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
     // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
-    PhRegisterWindowSubclass(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc, Context);
-    PhRegisterWindowSubclass(Context->HeaderHandle, PhTnpHeaderHookWndProc, Context);
+    Context->HeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
+    Context->FixedHeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
+    
+    PhSetWindowContext(Context->HeaderHandle, 0xF, Context);
+    PhSetWindowContext(Context->FixedHeaderHandle, 0xF, Context);
+
+    SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
+    SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
@@ -6134,20 +6140,30 @@ VOID PhTnpGetHeaderTooltipText(
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
 }
 
-BOOLEAN CALLBACK PhTnpHeaderHookWndProc(
+LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
-    PPH_TREENEW_CONTEXT context = (PPH_TREENEW_CONTEXT)Context;
+    PPH_TREENEW_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    context = PhGetWindowContext(hwnd, 0xF);
+
+    if (hwnd == context->FixedHeaderHandle)
+        oldWndProc = context->FixedHeaderWindowProc;
+    else
+        oldWndProc = context->HeaderWindowProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        PhUnregisterWindowSubclass(hwnd, PhTnpHeaderHookWndProc);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_MOUSEMOVE:
         {
@@ -6233,7 +6249,7 @@ BOOLEAN CALLBACK PhTnpHeaderHookWndProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);;
 }
 
 BOOLEAN PhTnpDetectDrag(

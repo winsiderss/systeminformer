@@ -75,6 +75,7 @@ static PPH_SYSINFO_SECTION CurrentSection;
 static HWND ContainerControl;
 static HWND SeparatorControl;
 static HWND RestoreSummaryControl;
+static WNDPROC RestoreSummaryControlOldWndProc;
 static BOOLEAN RestoreSummaryControlHot;
 static BOOLEAN RestoreSummaryControlHasFocus;
 
@@ -417,7 +418,8 @@ VOID PhSipOnShowWindow(
         NULL
         );
 
-    PhRegisterWindowSubclass(RestoreSummaryControl, PhSipPanelHookWndProc, NULL);
+    RestoreSummaryControlOldWndProc = (WNDPROC)GetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC);
+    SetWindowLongPtr(RestoreSummaryControl, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
     RestoreSummaryControlHot = FALSE;
 
     EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
@@ -1150,13 +1152,19 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
         3,
         3,
         PhSipWindow,
-        (HMENU)(ULONG_PTR)section->PanelId,
+        UlongToHandle(section->PanelId),
         PhInstanceHandle,
         NULL
         );
 
-    PhRegisterWindowSubclass(section->GraphHandle, PhSipGraphHookWndProc, section);
-    PhRegisterWindowSubclass(section->PanelHandle, PhSipPanelHookWndProc, section);
+    section->GraphWindowProc = (WNDPROC)GetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC);
+    section->PanelWindowProc = (WNDPROC)GetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC);
+
+    PhSetWindowContext(section->GraphHandle, 0xF, section);
+    PhSetWindowContext(section->PanelHandle, 0xF, section);
+
+    SetWindowLongPtr(section->GraphHandle, GWLP_WNDPROC, (LONG_PTR)PhSipGraphHookWndProc);
+    SetWindowLongPtr(section->PanelHandle, GWLP_WNDPROC, (LONG_PTR)PhSipPanelHookWndProc);
 
     PhAddItemList(SectionList, section);
 
@@ -1715,20 +1723,27 @@ VOID PhSipCreateSectionDialog(
     }
 }
 
-BOOLEAN CALLBACK PhSipGraphHookWndProc(
+LRESULT CALLBACK PhSipGraphHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
-    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
+    PPH_SYSINFO_SECTION section;
+
+    section = PhGetWindowContext(hwnd, 0xF);
+
+    if (!section)
+        return 0;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        PhUnregisterWindowSubclass(hwnd, PhSipGraphHookWndProc);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)section->GraphWindowProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_SETFOCUS:
         section->HasFocus = TRUE;
@@ -1864,23 +1879,33 @@ BOOLEAN CALLBACK PhSipGraphHookWndProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(section->GraphWindowProc, hwnd, uMsg, wParam, lParam);
 }
 
-BOOLEAN CALLBACK PhSipPanelHookWndProc(
+LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
-    PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Context;
+    PPH_SYSINFO_SECTION section;
+    WNDPROC oldWndProc;
+
+    section = PhGetWindowContext(hwnd, 0xF);
+
+    if (section)
+        oldWndProc = section->PanelWindowProc;
+    else
+        oldWndProc = RestoreSummaryControlOldWndProc;
 
     switch (uMsg)
     {
     case WM_DESTROY:
-        PhUnregisterWindowSubclass(hwnd, PhSipPanelHookWndProc);
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
+        }
         break;
     case WM_SETFOCUS:
         {
@@ -1984,7 +2009,7 @@ BOOLEAN CALLBACK PhSipPanelHookWndProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 VOID PhSipUpdateThemeData(

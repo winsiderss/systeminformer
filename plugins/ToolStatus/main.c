@@ -49,6 +49,7 @@ REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
+WNDPROC MainWindowHookProc = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
@@ -620,16 +621,18 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
-BOOLEAN CALLBACK MainWndSubclassProc(
+LRESULT CALLBACK MainWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ PVOID Context
+    _In_ LPARAM lParam
     )
 {
     switch (uMsg)
     {
+    case WM_DESTROY:
+        SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_CMD(wParam, lParam))
@@ -721,7 +724,7 @@ BOOLEAN CALLBACK MainWndSubclassProc(
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Let Process Hacker perform the default processing.
-                    DefSubclassProc(hWnd, uMsg, wParam, lParam);
+                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     // Query the settings.
                     BOOLEAN isAlwaysOnTopEnabled = (BOOLEAN)PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
@@ -737,7 +740,7 @@ BOOLEAN CALLBACK MainWndSubclassProc(
             case PHAPP_ID_UPDATEINTERVAL_VERYSLOW:
                 {
                     // Let Process Hacker perform the default processing.
-                    DefSubclassProc(hWnd, uMsg, wParam, lParam);
+                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     StatusBarUpdate(TRUE);
                 }
@@ -1305,10 +1308,10 @@ BOOLEAN CALLBACK MainWndSubclassProc(
         break;
     }
 
-    return FALSE;
+    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
 DefaultWndProc:
-    return TRUE;
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -1323,7 +1326,9 @@ VOID NTAPI MainWindowShowingCallback(
         NULL,
         &LayoutPaddingCallbackRegistration
         );
-    PhRegisterWindowSubclass(PhMainWndHandle, MainWndSubclassProc, NULL);
+
+    MainWindowHookProc = (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
+    SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)MainWndSubclassProc);
 
     ToolbarLoadSettings();
     ReBarLoadLayoutSettings();
