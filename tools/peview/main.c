@@ -61,12 +61,14 @@ INT WINAPI wWinMain(
         OBJECT_ATTRIBUTES oa;
         UNICODE_STRING mutantName;
         PPH_STRING objectName;
-        PH_FORMAT format[2];
+        PH_FORMAT format[4];
 
-        PhInitFormatS(&format[0], L"PeViewer_");
-        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+        PhInitFormatS(&format[0], L"PeViewerWindow_");
+        PhInitFormatU(&format[1], NtCurrentPeb()->SessionId);
+        PhInitFormatS(&format[2], L"_");
+        PhInitFormatU(&format[3], HandleToUlong(NtCurrentProcessId()));
 
-        objectName = PhFormat(format, 2, 16);
+        objectName = PhFormat(format, 4, 16);
         PhStringRefToUnicodeString(&objectName->sr, &mutantName);
 
         InitializeObjectAttributes(
@@ -77,7 +79,8 @@ INT WINAPI wWinMain(
             NULL
             );
 
-        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, TRUE);
+
         PhDereferenceObject(objectName);
     }
 

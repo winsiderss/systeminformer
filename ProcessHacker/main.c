@@ -281,12 +281,14 @@ INT WINAPI wWinMain(
         OBJECT_ATTRIBUTES oa;
         UNICODE_STRING mutantName;
         PPH_STRING objectName;
-        PH_FORMAT format[2];
+        PH_FORMAT format[4];
 
-        PhInitFormatS(&format[0], L"PhMutant_");
-        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+        PhInitFormatS(&format[0], L"PhMainWindow_");
+        PhInitFormatU(&format[1], NtCurrentPeb()->SessionId);
+        PhInitFormatS(&format[2], L"_");
+        PhInitFormatU(&format[3], HandleToUlong(NtCurrentProcessId()));
 
-        objectName = PhFormat(format, 2, 16);
+        objectName = PhFormat(format, 4, 16);
         PhStringRefToUnicodeString(&objectName->sr, &mutantName);
 
         InitializeObjectAttributes(
@@ -297,7 +299,7 @@ INT WINAPI wWinMain(
             NULL
             );
 
-        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, TRUE);
 
         PhDereferenceObject(objectName);
     }
@@ -461,21 +463,27 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG64 processId64;
-    PH_STRINGREF firstPart;
-    PH_STRINGREF secondPart;
-
-    if (
-        PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) &&
-        PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
-        PhStringToInteger64(&secondPart, 10, &processId64)
-        )
+    if (PhStartsWithStringRef2(Name, L"PhMainWindow_", TRUE))
     {
         HWND hwnd;
+        ULONG64 sessionId64;
+        ULONG64 processId64;
+        PH_STRINGREF remaining;
+        PH_STRINGREF sessionIdPart;
+        PH_STRINGREF processIdPart;
 
-        hwnd = PhGetProcessMainWindowEx((HANDLE)processId64, NULL, FALSE);
+        if (!PhSplitStringRefAtChar(Name, L'_', &remaining, &remaining))
+            return TRUE;
+        if (!PhSplitStringRefAtChar(&remaining, L'_', &sessionIdPart, &processIdPart))
+            return TRUE;
+        if (!PhStringToInteger64(&sessionIdPart, 10, &sessionId64))
+            return TRUE;
+        if (!PhStringToInteger64(&processIdPart, 10, &processId64))
+            return TRUE;
+        if (NtCurrentPeb()->SessionId != sessionId64)
+            return TRUE;
 
-        if (hwnd)
+        if (hwnd = PhGetProcessMainWindowEx(UlongToHandle((ULONG)processId64), NULL, FALSE))
         {
             ULONG_PTR result;
 
