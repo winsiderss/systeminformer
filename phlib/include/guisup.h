@@ -500,6 +500,29 @@ PhRemoveWindowContext(
     _In_ ULONG PropertyHash
     );
 
+typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
+    _In_ HWND WindowHandle, 
+    _In_opt_ PVOID Context
+    );
+
+VOID PhEnumChildWindows(
+    _In_opt_ HWND WindowHandle,
+    _In_ ULONG Limit,
+    _In_ PH_CHILD_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    );
+
+HWND PhGetProcessMainWindow(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    );
+
+HWND PhGetProcessMainWindowEx(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ BOOLEAN SkipInvisible
+    );
+
 FORCEINLINE VOID PhResizingMinimumSize(
     _Inout_ PRECT Rect,
     _In_ WPARAM Edge,
