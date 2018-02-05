@@ -454,6 +454,8 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
             return TRUE;
         if (!PhStringToInteger64(&processIdPart, 10, &processId64))
             return TRUE;
+        if (UlongToHandle((ULONG)processId64) == NtCurrentProcessId())
+            return TRUE;
 
         PhOpenProcess(
             &processHandle,
