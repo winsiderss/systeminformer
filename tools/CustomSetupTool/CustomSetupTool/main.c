@@ -220,8 +220,17 @@ VOID SetupInitializeMutant(
     HANDLE mutantHandle;
     OBJECT_ATTRIBUTES oa;
     UNICODE_STRING mutantName;
+    PPH_STRING objectName;
+    PH_FORMAT format[4];
 
-    RtlInitUnicodeString(&mutantName, L"PhSetupMutant");
+    PhInitFormatS(&format[0], L"PhSetupWindow_");
+    PhInitFormatU(&format[1], NtCurrentPeb()->SessionId);
+    PhInitFormatS(&format[2], L"_");
+    PhInitFormatU(&format[3], HandleToUlong(NtCurrentProcessId()));
+
+    objectName = PhFormat(format, 4, 16);
+    PhStringRefToUnicodeString(&objectName->sr, &mutantName);
+
     InitializeObjectAttributes(
         &oa,
         &mutantName,
@@ -230,7 +239,9 @@ VOID SetupInitializeMutant(
         NULL
         );
 
-    NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+    NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, TRUE);
+
+    PhDereferenceObject(objectName);
 }
 
 INT WINAPI wWinMain(

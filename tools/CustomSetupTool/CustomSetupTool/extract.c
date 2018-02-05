@@ -19,35 +19,8 @@
  */
 
 #include <setup.h>
-#include <appsup.h>
+#include <setupsup.h>
 #include "miniz\miniz.h"
-
-PVOID GetZipResourceData(
-    _In_ PULONG resourceLength
-    )
-{
-    HRSRC resourceHandle = NULL;
-    HGLOBAL resourceData;
-    PVOID resourceBuffer = NULL;
-
-    if (!(resourceHandle = FindResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA)))
-        goto CleanupExit;
-
-    *resourceLength = SizeofResource(PhInstanceHandle, resourceHandle);
-
-    if (!(resourceData = LoadResource(PhInstanceHandle, resourceHandle)))
-        goto CleanupExit;
-
-    if (!(resourceBuffer = LockResource(resourceData)))
-        goto CleanupExit;
-
-CleanupExit:
-
-    if (resourceHandle)
-        FreeResource(resourceHandle);
-
-    return resourceBuffer;
-}
 
 BOOLEAN SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
@@ -58,16 +31,13 @@ BOOLEAN SetupExtractBuild(
     ULONG64 currentLength = 0;
     mz_zip_archive zip_archive = { 0 };
     PPH_STRING extractPath = NULL;
-    SYSTEM_INFO info;
-
-    GetNativeSystemInfo(&info);
 
 #ifdef PH_BUILD_API
     ULONG resourceLength;
-    PVOID resourceBuffer;
+    PVOID resourceBuffer = NULL;
 
-    if (!(resourceBuffer = GetZipResourceData(&resourceLength)))
-        goto CleanupExit;
+    if (!PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer))
+        return FALSE;
 
     if (!(status = mz_zip_reader_init_mem(&zip_archive, resourceBuffer, resourceLength, 0)))
         goto CleanupExit;
@@ -99,7 +69,7 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        if (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
             if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
@@ -145,7 +115,7 @@ BOOLEAN SetupExtractBuild(
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
             continue;
 
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        if (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
             if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
@@ -264,15 +234,29 @@ BOOLEAN SetupExtractBuild(
         mz_free(buffer);
     }
 
-    mz_zip_reader_end(&zip_archive);
-    if (extractPath)
-        PhDereferenceObject(extractPath);
+    {
+        mz_zip_reader_end(&zip_archive);
+
+#ifdef PH_BUILD_API
+        if (resourceBuffer)
+            PhFree(resourceBuffer);
+#endif
+        if (extractPath)
+            PhDereferenceObject(extractPath);
+    }
+
     return TRUE;
 
 CleanupExit:
 
     mz_zip_reader_end(&zip_archive);
+
+#ifdef PH_BUILD_API
+    if (resourceBuffer)
+        PhFree(resourceBuffer);
+#endif
     if (extractPath)
         PhDereferenceObject(extractPath);
+
     return FALSE;
 }

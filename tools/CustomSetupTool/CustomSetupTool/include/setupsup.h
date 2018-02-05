@@ -40,10 +40,6 @@ PPH_STRING SetupFindInstallDirectory(
     VOID
     );
 
-PVOID ExtractResourceToBuffer(
-    _In_ PWSTR Resource
-    );
-
 VOID SetupInitializeFont(
     _In_ HWND ControlHandle,
     _In_ LONG Height,
@@ -75,6 +71,12 @@ PPH_STRING GetProcessHackerInstallPath(
 
 BOOLEAN ShutdownProcessHacker(
     VOID
+    );
+
+NTSTATUS 
+QueryProcessesUsingVolumeOrFile(
+    _In_ HANDLE VolumeOrFileHandle,
+    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
     );
 
 #endif

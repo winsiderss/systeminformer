@@ -1,5 +1,5 @@
 #include <setup.h>
-#include <appsup.h>
+#include <setupsup.h>
 #include <workqueue.h>
 #include <winhttp.h>
 
@@ -79,8 +79,7 @@ ULONG64 ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
     
-    PhInitializeStringRef(&remaining, PhGetString(VersionString));
-
+    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &revisionPart, &remaining);

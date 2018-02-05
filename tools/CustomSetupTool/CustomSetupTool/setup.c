@@ -21,7 +21,7 @@
  */
 
 #include <setup.h>
-#include <appsup.h>
+#include <setupsup.h>
 #include <svcsup.h>
 
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");

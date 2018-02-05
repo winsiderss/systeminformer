@@ -126,7 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\setup.h" />
-    <ClInclude Include="include\appsup.h" />
+    <ClInclude Include="include\setupsup.h" />
     <ClInclude Include="miniz\miniz.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
