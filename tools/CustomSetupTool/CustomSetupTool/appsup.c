@@ -19,6 +19,7 @@
  */
 
 #include <setup.h>
+#include <setupsup.h>
 #include <io.h>
 #include <Netlistmgr.h>
 #include <propvarutil.h>
@@ -30,22 +31,19 @@ VOID ExtractResourceToFile(
     )
 {
     HANDLE fileHandle = NULL;
-    ULONG resourceLength;
-    HRSRC resourceHandle = NULL;
-    HGLOBAL resourceData;
     PVOID resourceBuffer;
+    ULONG resourceLength;
     IO_STATUS_BLOCK isb;
 
-    if (!(resourceHandle = FindResource(PhInstanceHandle, Resource, RT_RCDATA)))
+    if (!PhLoadResource(
+        PhInstanceHandle, 
+        Resource, RT_RCDATA, 
+        &resourceLength, 
+        &resourceBuffer
+        ))
+    {
         goto CleanupExit;
-
-    resourceLength = SizeofResource(PhInstanceHandle, resourceHandle);
-
-    if (!(resourceData = LoadResource(PhInstanceHandle, resourceHandle)))
-        goto CleanupExit;
-
-    if (!(resourceBuffer = LockResource(resourceData)))
-        goto CleanupExit;
+    }
 
     if (!NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
@@ -82,43 +80,6 @@ CleanupExit:
 
     if (fileHandle)
         NtClose(fileHandle);
-
-    if (resourceHandle)
-        FreeResource(resourceHandle);
-}
-
-PVOID ExtractResourceToBuffer(
-    _In_ PWSTR Resource
-    )
-{
-    ULONG resourceLength;
-    HRSRC resourceHandle = NULL;
-    HGLOBAL resourceData;
-    PVOID resourceBuffer;
-    PVOID buffer = NULL;
-
-    if (!(resourceHandle = FindResource(PhInstanceHandle, Resource, RT_RCDATA)))
-        goto CleanupExit;
-
-    resourceLength = SizeofResource(PhInstanceHandle, resourceHandle);
-
-    if (!(resourceData = LoadResource(PhInstanceHandle, resourceHandle)))
-        goto CleanupExit;
-
-    if (!(resourceBuffer = LockResource(resourceData)))
-        goto CleanupExit;
-
-    if (!(buffer = PhAllocate(resourceLength)))
-        goto CleanupExit;
-
-    memcpy(buffer, resourceBuffer, resourceLength);
-
-CleanupExit:
-
-    if (resourceHandle)
-        FreeResource(resourceHandle);
-
-    return buffer;
 }
 
 HBITMAP LoadPngImageFromResources(
@@ -127,10 +88,8 @@ HBITMAP LoadPngImageFromResources(
 {
     BOOLEAN success = FALSE;
     UINT frameCount = 0;
-    ULONG resourceLength = 0;
-    HGLOBAL resourceHandle = NULL;
-    HRSRC resourceHandleSource = NULL;
-    WICInProcPointer resourceBuffer = NULL;
+    ULONG resourceLength;
+    PVOID resourceBuffer = NULL;
     HDC screenHdc = NULL;
     HDC bufferDc = NULL;
     BITMAPINFO bitmapInfo = { 0 };
@@ -149,18 +108,8 @@ HBITMAP LoadPngImageFromResources(
     if (FAILED(CoCreateInstance(&CLSID_WICImagingFactory1, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, &wicFactory)))
         goto CleanupExit;
 
-    // Find the resource
-    if ((resourceHandleSource = FindResource(PhInstanceHandle, Name, L"PNG")) == NULL)
-        goto CleanupExit;
-
-    // Get the resource length
-    resourceLength = SizeofResource(PhInstanceHandle, resourceHandleSource);
-
     // Load the resource
-    if ((resourceHandle = LoadResource(PhInstanceHandle, resourceHandleSource)) == NULL)
-        goto CleanupExit;
-
-    if ((resourceBuffer = (WICInProcPointer)LockResource(resourceHandle)) == NULL)
+    if (!PhLoadResource(PhInstanceHandle, Name, L"PNG", &resourceLength, &resourceBuffer))
         goto CleanupExit;
 
     // Create the Stream
@@ -270,8 +219,8 @@ CleanupExit:
     if (wicFactory)
         IWICImagingFactory_Release(wicFactory);
 
-    if (resourceHandle)
-        FreeResource(resourceHandle);
+    if (resourceBuffer)
+        PhFree(resourceBuffer);
 
     if (success)
     {
@@ -483,26 +432,71 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG64 processId64;
-    PH_STRINGREF firstPart;
-    PH_STRINGREF secondPart;
-
     if (
-        PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) &&
-        PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
-        PhStringToInteger64(&secondPart, 10, &processId64)
+        PhStartsWithStringRef2(Name, L"PhMainWindow_", TRUE) ||
+        PhStartsWithStringRef2(Name, L"PhSetupWindow_", TRUE) || 
+        PhStartsWithStringRef2(Name, L"PeViewerWindow_", TRUE)
         )
     {
         HANDLE processHandle;
+        HWND hwnd;
+        ULONG64 sessionId64;
+        ULONG64 processId64;
+        PH_STRINGREF remaining;
+        PH_STRINGREF sessionIdPart;
+        PH_STRINGREF processIdPart;
 
-        if (NT_SUCCESS(PhOpenProcess(
+        if (!PhSplitStringRefAtChar(Name, L'_', &remaining, &remaining))
+            return TRUE;
+        if (!PhSplitStringRefAtChar(&remaining, L'_', &sessionIdPart, &processIdPart))
+            return TRUE;
+        if (!PhStringToInteger64(&sessionIdPart, 10, &sessionId64))
+            return TRUE;
+        if (!PhStringToInteger64(&processIdPart, 10, &processId64))
+            return TRUE;
+
+        PhOpenProcess(
             &processHandle,
-            SYNCHRONIZE | PROCESS_TERMINATE,
+            PROCESS_TERMINATE | SYNCHRONIZE,
             ULongToHandle((ULONG)processId64)
-            )))
+            );
+
+        if (sessionId64 == NtCurrentPeb()->SessionId)
+        {
+            if (hwnd = PhGetProcessMainWindowEx(UlongToHandle((ULONG)processId64), NULL, FALSE))
+            {
+                SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+            }
+        }
+
+        if (processHandle)
         {
             NtTerminateProcess(processHandle, 1);
             NtClose(processHandle);
+        }
+    }
+
+    {
+        ULONG64 processId64;
+        PH_STRINGREF firstPart;
+        PH_STRINGREF secondPart;
+
+        if ((
+            PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) ||
+            PhStartsWithStringRef2(Name, L"PhSetupMutant_", TRUE) ||
+            PhStartsWithStringRef2(Name, L"PeViewer_", TRUE)
+            ) &&
+            PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
+            PhStringToInteger64(&secondPart, 10, &processId64)
+            )
+        {
+            HANDLE processHandle;
+
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_TERMINATE | SYNCHRONIZE, ULongToHandle((ULONG)processId64))))
+            {
+                NtTerminateProcess(processHandle, 1);
+                NtClose(processHandle);
+            }
         }
     }
 
@@ -513,4 +507,48 @@ BOOLEAN ShutdownProcessHacker(VOID)
 {
     PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
     return TRUE;
+}
+
+NTSTATUS QueryProcessesUsingVolumeOrFile(
+    _In_ HANDLE VolumeOrFileHandle,
+    _Out_ PFILE_PROCESS_IDS_USING_FILE_INFORMATION *Information
+    )
+{
+    static ULONG initialBufferSize = 0x4000;
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    IO_STATUS_BLOCK isb;
+
+    bufferSize = initialBufferSize;
+    buffer = malloc(bufferSize);
+
+    while ((status = NtQueryInformationFile(
+        VolumeOrFileHandle,
+        &isb,
+        buffer,
+        bufferSize,
+        FileProcessIdsUsingFileInformation
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        free(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to something very large.
+        if (bufferSize > SIZE_MAX)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = malloc(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        free(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
+    *Information = (PFILE_PROCESS_IDS_USING_FILE_INFORMATION)buffer;
+
+    return status;
 }
