@@ -124,7 +124,7 @@ typedef struct _PEB
     ULONG NumberOfProcessors;
     ULONG NtGlobalFlag;
 
-    LARGE_INTEGER CriticalSectionTimeout;
+    ULARGE_INTEGER CriticalSectionTimeout;
     SIZE_T HeapSegmentReserve;
     SIZE_T HeapSegmentCommit;
     SIZE_T HeapDeCommitTotalFreeThreshold;
@@ -199,6 +199,14 @@ typedef struct _PEB
     PVOID TelemetryCoverageHeader; // REDSTONE3
     ULONG CloudFileFlags;
 } PEB, *PPEB;
+
+#ifdef _WIN64
+C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
+C_ASSERT(sizeof(PEB) == 0x7B0);
+#else
+C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
+C_ASSERT(sizeof(PEB) == 0x468);
+#endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
 
