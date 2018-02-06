@@ -31,6 +31,9 @@ BOOLEAN SetupExtractBuild(
     ULONG64 currentLength = 0;
     mz_zip_archive zip_archive = { 0 };
     PPH_STRING extractPath = NULL;
+    SYSTEM_INFO info;
+
+    GetNativeSystemInfo(&info);
 
 #ifdef PH_BUILD_API
     ULONG resourceLength;
@@ -69,7 +72,7 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
             if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
@@ -115,7 +118,7 @@ BOOLEAN SetupExtractBuild(
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
             continue;
 
-        if (USER_SHARED_DATA->NativeProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
             if (PhStartsWithString2(fileName, L"x32\\", TRUE))
                 continue;
