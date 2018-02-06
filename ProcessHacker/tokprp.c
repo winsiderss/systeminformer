@@ -302,7 +302,7 @@ COLORREF PhGetGroupAttributesColor(
     if (Attributes & SE_GROUP_INTEGRITY)
     {
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
-            return RGB(0xff, 0xf0, 0xc0);
+            return RGB(0xe0, 0xf0, 0xe0);
         else
             return GetSysColor(COLOR_WINDOW);
     }
@@ -310,7 +310,7 @@ COLORREF PhGetGroupAttributesColor(
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
         return RGB(0xc0, 0xf0, 0xc0);
     else if (Attributes & SE_GROUP_ENABLED)
-        return RGB(0x00, 0xff, 0x7f);
+        return GetSysColor(COLOR_WINDOW);
     else
         return RGB(0xf0, 0xe0, 0xe0);
 }
@@ -322,7 +322,7 @@ COLORREF PhGetPrivilegeAttributesColor(
     if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
         return RGB(0xc0, 0xf0, 0xc0);
     else if (Attributes & SE_PRIVILEGE_ENABLED)
-        return RGB(0x00, 0xff, 0x7f);
+        return RGB(0xe0, 0xf0, 0xe0);
     else
         return RGB(0xf0, 0xe0, 0xe0);
 }
@@ -581,7 +581,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
-            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle); 
 
             ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
