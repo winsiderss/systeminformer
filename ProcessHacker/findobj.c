@@ -3,7 +3,7 @@
  *   object search
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -651,11 +651,36 @@ VOID PhpPopulateObjectTypes(
     // Sort the object types.
     qsort(objectTypeList->Items, objectTypeList->Count, sizeof(PVOID), PhpStringObjectTypeCompare);
 
-    // Add the types to the object filter combobox.
-    for (ULONG i = 0; i < objectTypeList->Count; i++)
     {
-        ComboBox_AddString(FilterTypeCombo, PhGetString(objectTypeList->Items[i]));
-        PhDereferenceObject(objectTypeList->Items[i]);
+        LONG maxLength;
+        HDC screenDc;
+
+        maxLength = 0;
+        screenDc = GetDC(FilterTypeCombo);
+
+        SendMessage(FilterTypeCombo, WM_SETFONT, (WPARAM)PhApplicationFont, TRUE);
+
+        for (ULONG i = 0; i < objectTypeList->Count; i++)
+        {
+            PPH_STRING entry = objectTypeList->Items[i];
+            SIZE textSize;
+
+            if (GetTextExtentPoint32(screenDc, entry->Buffer, (ULONG)entry->Length / sizeof(WCHAR), &textSize))
+            {
+                if (textSize.cx > maxLength)
+                    maxLength = textSize.cx;
+            }
+
+            ComboBox_AddString(FilterTypeCombo, PhGetString(objectTypeList->Items[i]));
+            PhDereferenceObject(objectTypeList->Items[i]);
+        }
+
+        ReleaseDC(FilterTypeCombo, screenDc);
+
+        if (maxLength)
+        {
+            SendMessage(FilterTypeCombo, CB_SETDROPPEDWIDTH, maxLength, 0);
+        }
     }
 
     PhDereferenceObject(objectTypeList);
