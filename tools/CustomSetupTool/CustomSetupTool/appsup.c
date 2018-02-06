@@ -432,75 +432,79 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (
-        PhStartsWithStringRef2(Name, L"PhMainWindow_", TRUE) ||
-        PhStartsWithStringRef2(Name, L"PhSetupWindow_", TRUE) || 
-        PhStartsWithStringRef2(Name, L"PeViewerWindow_", TRUE)
-        )
-    {
-        HANDLE processHandle;
-        HWND hwnd;
-        ULONG64 sessionId64;
-        ULONG64 processId64;
-        PH_STRINGREF remaining;
-        PH_STRINGREF sessionIdPart;
-        PH_STRINGREF processIdPart;
+    HANDLE objectHandle;
+    UNICODE_STRING objectNameUs;
+    OBJECT_ATTRIBUTES objectAttributes;
+    MUTANT_OWNER_INFORMATION objectInfo;
 
-        if (!PhSplitStringRefAtChar(Name, L'_', &remaining, &remaining))
-            return TRUE;
-        if (!PhSplitStringRefAtChar(&remaining, L'_', &sessionIdPart, &processIdPart))
-            return TRUE;
-        if (!PhStringToInteger64(&sessionIdPart, 10, &sessionId64))
-            return TRUE;
-        if (!PhStringToInteger64(&processIdPart, 10, &processId64))
-            return TRUE;
-        if (UlongToHandle((ULONG)processId64) == NtCurrentProcessId())
-            return TRUE;
+    if (!PhEqualStringRef2(Name, L"PhMutant", TRUE) &&
+        !PhEqualStringRef2(Name, L"PhSetupMutant", TRUE) &&
+        !PhEqualStringRef2(Name, L"PeViewerMutant", TRUE))
+    {
+        return TRUE;
+    }
+
+    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+        return TRUE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenMutant(
+        &objectHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes
+        )))
+    {
+        return TRUE;
+    }
+
+    if (NT_SUCCESS(NtQueryMutant(
+        objectHandle,
+        MutantOwnerInformation,
+        &objectInfo,
+        sizeof(MUTANT_OWNER_INFORMATION),
+        NULL
+        )))
+    {
+        HWND hwnd;
+        HANDLE processHandle = NULL;
+
+        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
+            goto CleanupExit;
 
         PhOpenProcess(
-            &processHandle,
-            PROCESS_TERMINATE | SYNCHRONIZE,
-            ULongToHandle((ULONG)processId64)
+            &processHandle, 
+            ProcessQueryAccess, 
+            objectInfo.ClientId.UniqueProcess
+            );
+        
+        hwnd = PhGetProcessMainWindowEx(
+            objectInfo.ClientId.UniqueProcess,
+            processHandle,
+            FALSE
             );
 
-        if (sessionId64 == NtCurrentPeb()->SessionId)
+        if (hwnd)
         {
-            if (hwnd = PhGetProcessMainWindowEx(UlongToHandle((ULONG)processId64), NULL, FALSE))
-            {
-                SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
-            }
+            SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
         }
 
         if (processHandle)
         {
             NtTerminateProcess(processHandle, 1);
-            NtClose(processHandle);
         }
+
+    CleanupExit:
+        if (processHandle) NtClose(processHandle);
     }
 
-    {
-        ULONG64 processId64;
-        PH_STRINGREF firstPart;
-        PH_STRINGREF secondPart;
-
-        if ((
-            PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) ||
-            PhStartsWithStringRef2(Name, L"PhSetupMutant_", TRUE) ||
-            PhStartsWithStringRef2(Name, L"PeViewer_", TRUE)
-            ) &&
-            PhSplitStringRefAtChar(Name, L'_', &firstPart, &secondPart) &&
-            PhStringToInteger64(&secondPart, 10, &processId64)
-            )
-        {
-            HANDLE processHandle;
-
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_TERMINATE | SYNCHRONIZE, ULongToHandle((ULONG)processId64))))
-            {
-                NtTerminateProcess(processHandle, 1);
-                NtClose(processHandle);
-            }
-        }
-    }
+    NtClose(objectHandle);
 
     return TRUE;
 }

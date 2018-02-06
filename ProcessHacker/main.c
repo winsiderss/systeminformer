@@ -277,31 +277,19 @@ INT WINAPI wWinMain(
 
     // Create a mutant for the installer.
     {
-        HANDLE mutantHandle;
-        OBJECT_ATTRIBUTES oa;
-        UNICODE_STRING mutantName;
-        PPH_STRING objectName;
-        PH_FORMAT format[4];
-
-        PhInitFormatS(&format[0], L"PhMainWindow_");
-        PhInitFormatU(&format[1], NtCurrentPeb()->SessionId);
-        PhInitFormatS(&format[2], L"_");
-        PhInitFormatU(&format[3], HandleToUlong(NtCurrentProcessId()));
-
-        objectName = PhFormat(format, 4, 16);
-        PhStringRefToUnicodeString(&objectName->sr, &mutantName);
+        static UNICODE_STRING objectNameUs = RTL_CONSTANT_STRING(L"PhMutant");  
+        OBJECT_ATTRIBUTES objectAttributes;
+        HANDLE objectHandle;
 
         InitializeObjectAttributes(
-            &oa,
-            &mutantName,
+            &objectAttributes,
+            &objectNameUs,
             OBJ_CASE_INSENSITIVE,
             PhGetNamespaceHandle(),
             NULL
             );
 
-        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, TRUE);
-
-        PhDereferenceObject(objectName);
+        NtCreateMutant(&objectHandle, MUTANT_ALL_ACCESS, &objectAttributes, TRUE);
     }
 
     // Set the default priority.
@@ -463,27 +451,68 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (PhStartsWithStringRef2(Name, L"PhMainWindow_", TRUE))
+    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"PhMutant");
+    HANDLE objectHandle;
+    UNICODE_STRING objectNameUs;
+    OBJECT_ATTRIBUTES objectAttributes;
+    MUTANT_OWNER_INFORMATION objectInfo;
+
+    if (!PhEqualStringRef(Name, &objectNameSr, FALSE))
+        return TRUE;
+    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+        return TRUE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        PhGetNamespaceHandle(),
+        NULL
+        );
+
+    if (!NT_SUCCESS(NtOpenMutant(
+        &objectHandle,
+        MUTANT_QUERY_STATE,
+        &objectAttributes
+        )))
+    {
+        return TRUE;
+    }
+
+    if (NT_SUCCESS(NtQueryMutant(
+        objectHandle,
+        MutantOwnerInformation,
+        &objectInfo,
+        sizeof(MUTANT_OWNER_INFORMATION),
+        NULL
+        )))
     {
         HWND hwnd;
-        ULONG64 sessionId64;
-        ULONG64 processId64;
-        PH_STRINGREF remaining;
-        PH_STRINGREF sessionIdPart;
-        PH_STRINGREF processIdPart;
+        HANDLE processHandle = NULL;
+        HANDLE tokenHandle = NULL;
+        PTOKEN_USER tokenCurrent = NULL;
+        PTOKEN_USER tokenUser = NULL;
 
-        if (!PhSplitStringRefAtChar(Name, L'_', &remaining, &remaining))
-            return TRUE;
-        if (!PhSplitStringRefAtChar(&remaining, L'_', &sessionIdPart, &processIdPart))
-            return TRUE;
-        if (!PhStringToInteger64(&sessionIdPart, 10, &sessionId64))
-            return TRUE;
-        if (!PhStringToInteger64(&processIdPart, 10, &processId64))
-            return TRUE;
-        if (NtCurrentPeb()->SessionId != sessionId64)
-            return TRUE;
+        if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess, objectInfo.ClientId.UniqueProcess)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenCurrent)))
+            goto CleanupExit;
+        if (!RtlEqualSid(tokenUser->User.Sid, tokenCurrent->User.Sid))
+            goto CleanupExit;
 
-        if (hwnd = PhGetProcessMainWindowEx(UlongToHandle((ULONG)processId64), NULL, FALSE))
+        hwnd = PhGetProcessMainWindowEx(
+            objectInfo.ClientId.UniqueProcess,
+            processHandle,
+            FALSE
+            );
+
+        if (hwnd)
         {
             ULONG_PTR result;
 
@@ -495,8 +524,15 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
                 RtlExitUserProcess(STATUS_SUCCESS);
             }
         }
+
+    CleanupExit:
+        if (tokenUser) PhFree(tokenUser);
+        if (tokenCurrent) PhFree(tokenCurrent);
+        if (tokenHandle) NtClose(tokenHandle);
+        if (processHandle) NtClose(processHandle);
     }
 
+    NtClose(objectHandle);
     return TRUE;
 }
 
