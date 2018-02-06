@@ -175,7 +175,7 @@ VOID PhShowOptionsDialog(
         DialogBox(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_OPTIONS),
-            ParentWindowHandle,
+            NULL,
             PhOptionsDialogProc
             );
 
@@ -211,10 +211,10 @@ VOID PhShowOptionsDialog(
     }
 }
 
-static HTREEITEM PhpOptionsTreeViewAddItem(
+static HTREEITEM PhpTreeViewInsertItem(
+    _In_opt_ HTREEITEM HandleInsertAfter,
     _In_ PWSTR Text,
-    _In_ PVOID Context,
-    _In_ HTREEITEM InsertAfter
+    _In_ PVOID Context
     )
 {
     TV_INSERTSTRUCT insert;
@@ -222,7 +222,7 @@ static HTREEITEM PhpOptionsTreeViewAddItem(
     memset(&insert, 0, sizeof(TV_INSERTSTRUCT));
 
     insert.hParent = TVI_ROOT;
-    insert.hInsertAfter = InsertAfter;
+    insert.hInsertAfter = HandleInsertAfter;
     insert.item.mask = TVIF_TEXT | TVIF_PARAM;
     insert.item.pszText = Text;
     insert.item.lParam = (LPARAM)Context;
@@ -234,52 +234,36 @@ static VOID PhpOptionsShowHideTreeViewItem(
     _In_ BOOLEAN Hide
     )
 {
-    HTREEITEM tvItemGeneral = NULL;
-    HTREEITEM tvItemAdvanced = NULL;
-    HTREEITEM tvItemCurrent;
-    
-    tvItemCurrent = TreeView_GetRoot(OptionsTreeControl);
-
-    while (tvItemCurrent)
-    {
-        TVITEM tvItem;
-        WCHAR buffer[MAX_PATH];
-
-        tvItem.mask = TVIF_TEXT | TVIF_HANDLE;
-        tvItem.hItem = tvItemCurrent;
-        tvItem.cchTextMax = ARRAYSIZE(buffer);
-        tvItem.pszText = buffer;
-
-        if (TreeView_GetItem(OptionsTreeControl, &tvItem))
-        {
-            if (PhEqualStringZ(buffer, L"Advanced", TRUE))
-            {
-                tvItemAdvanced = tvItemCurrent;
-            }
-            else if (PhEqualStringZ(buffer, L"General", TRUE))
-            {
-                tvItemGeneral = tvItemCurrent;
-            }
-        }
-
-        tvItemCurrent = TreeView_GetNextSibling(OptionsTreeControl, tvItemCurrent);
-    }
+    static PH_STRINGREF generalName = PH_STRINGREF_INIT(L"General");
+    static PH_STRINGREF advancedName = PH_STRINGREF_INIT(L"Advanced");
 
     if (Hide)
     {
-        if (tvItemAdvanced)
-            TreeView_DeleteItem(OptionsTreeControl, tvItemAdvanced);
+        PPH_OPTIONS_SECTION advancedSection;
+
+        if (advancedSection = PhOptionsFindSection(&advancedName))
+        {
+            if (advancedSection->TreeItemHandle)
+            {
+                TreeView_DeleteItem(OptionsTreeControl, advancedSection->TreeItemHandle);
+                advancedSection->TreeItemHandle = NULL;
+            }
+        }
     }
     else
     {
-        static PH_STRINGREF sectionName = PH_STRINGREF_INIT(L"Advanced");
+        PPH_OPTIONS_SECTION generalSection;
+        PPH_OPTIONS_SECTION advancedSection;
 
-        if (tvItemGeneral)
+        generalSection = PhOptionsFindSection(&generalName);
+        advancedSection = PhOptionsFindSection(&advancedName);
+
+        if (generalSection && advancedSection)
         {
-            PhpOptionsTreeViewAddItem(
-                sectionName.Buffer, 
-                PhOptionsFindSection(&sectionName), 
-                tvItemGeneral
+            advancedSection->TreeItemHandle = PhpTreeViewInsertItem(
+                generalSection->TreeItemHandle,
+                advancedName.Buffer,
+                advancedSection
                 );
         }
     }
@@ -547,10 +531,9 @@ PPH_OPTIONS_SECTION PhOptionsCreateSection(
     section->Template = Template;
     section->DialogProc = DialogProc;
     section->Parameter = Parameter;
+    section->TreeItemHandle = PhpTreeViewInsertItem(TVI_LAST, Name, section);
 
     PhAddItemList(SectionList, section);
-
-    PhpOptionsTreeViewAddItem(Name, section, TVI_LAST);
 
     return section;
 }

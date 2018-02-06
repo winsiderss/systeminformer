@@ -370,6 +370,7 @@ typedef struct _PH_OPTIONS_SECTION
     PVOID Parameter;
 
     HWND DialogHandle;
+    HTREEITEM TreeItemHandle;
     // begin_phapppub
 } PH_OPTIONS_SECTION, *PPH_OPTIONS_SECTION;
 // end_phapppub
