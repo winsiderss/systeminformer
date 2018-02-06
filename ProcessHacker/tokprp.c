@@ -3,7 +3,7 @@
  *   token properties
  *
  * Copyright (C) 2010-2012 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -233,15 +233,47 @@ PPH_STRING PhGetGroupAttributesString(
     _In_ BOOLEAN Restricted
     )
 {
-    PWSTR baseString;
     PPH_STRING string;
 
     if (Attributes & SE_GROUP_INTEGRITY)
     {
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
-            string = PhCreateString(L"Integrity");
+            string = PhReferenceEmptyString();
         else
-            string = PhCreateString(L"Integrity (disabled)");
+            string = PhCreateString(L"Disabled");
+    }
+    else
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            string = PhCreateString(L"Default Enabled");
+        else if (Attributes & SE_GROUP_ENABLED)
+            string = PhReferenceEmptyString();
+        else
+            string = PhCreateString(L"Disabled");
+    }
+
+    if (Restricted)
+    {
+        PPH_STRING prefixString = string;
+        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
+        PhDereferenceObject(prefixString);
+    }
+
+    return string;
+}
+
+PWSTR PhGetGroupDescriptionString(
+    _In_ ULONG Attributes
+    )
+{
+    PWSTR baseString;
+
+    if (Attributes & SE_GROUP_INTEGRITY)
+    {
+        if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
+            baseString = L"Integrity";
+        else
+            baseString = NULL;
     }
     else
     {
@@ -257,36 +289,11 @@ PPH_STRING PhGetGroupAttributesString(
             baseString = L"Use for deny only";
         else
             baseString = NULL;
-
-        if (!baseString)
-        {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-                string = PhCreateString(L"Default enabled");
-            else if (Attributes & SE_GROUP_ENABLED)
-                string = PhReferenceEmptyString();
-            else
-                string = PhCreateString(L"Disabled");
-        }
-        else
-        {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-                string = PhConcatStrings2(baseString, L" (default enabled)");
-            else if (Attributes & SE_GROUP_ENABLED)
-                string = PhCreateString(baseString);
-            else
-                string = PhConcatStrings2(baseString, L" (disabled)");
-        }
     }
 
-    if (Restricted)
-    {
-        PPH_STRING prefixString = string;
-        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
-        PhDereferenceObject(prefixString);
-    }
-
-    return string;
+    return baseString;
 }
+
 
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
@@ -295,15 +302,15 @@ COLORREF PhGetGroupAttributesColor(
     if (Attributes & SE_GROUP_INTEGRITY)
     {
         if (Attributes & SE_GROUP_INTEGRITY_ENABLED)
-            return RGB(0xe0, 0xf0, 0xe0);
+            return RGB(0xff, 0xf0, 0xc0);
         else
             return GetSysColor(COLOR_WINDOW);
     }
 
     if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-        return RGB(0xe0, 0xf0, 0xe0);
+        return RGB(0xc0, 0xf0, 0xc0);
     else if (Attributes & SE_GROUP_ENABLED)
-        return GetSysColor(COLOR_WINDOW);
+        return RGB(0x00, 0xff, 0x7f);
     else
         return RGB(0xf0, 0xe0, 0xe0);
 }
@@ -315,7 +322,7 @@ COLORREF PhGetPrivilegeAttributesColor(
     if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
         return RGB(0xc0, 0xf0, 0xc0);
     else if (Attributes & SE_PRIVILEGE_ENABLED)
-        return RGB(0xe0, 0xf0, 0xe0);
+        return RGB(0x00, 0xff, 0x7f);
     else
         return RGB(0xf0, 0xe0, 0xe0);
 }
@@ -395,6 +402,7 @@ VOID PhpUpdateSidsFromTokenGroups(
         INT lvItemIndex;
         PPH_STRING fullName;
         PPH_STRING attributesString;
+        PWSTR descriptionString;
 
         if (!(fullName = PhGetSidFullName(Groups->Groups[i].Sid, TRUE, NULL)))
             fullName = PhSidToStringSid(Groups->Groups[i].Sid);
@@ -416,10 +424,18 @@ VOID PhpUpdateSidsFromTokenGroups(
                 fullName->Buffer, 
                 lvitem
                 );
-            attributesString = PhGetGroupAttributesString(Groups->Groups[i].Attributes, Restricted);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, attributesString->Buffer);
 
-            PhDereferenceObject(attributesString);
+            if (attributesString = PhGetGroupAttributesString(Groups->Groups[i].Attributes, Restricted))
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetString(attributesString));
+                PhDereferenceObject(attributesString);
+            }
+
+            if (descriptionString = PhGetGroupDescriptionString(Groups->Groups[i].Attributes))
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, descriptionString);
+            }
+      
             PhDereferenceObject(fullName);
         }
     }
