@@ -56,6 +56,9 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
 
     HWND WindowHandle;
     HWND TreeNewHandle;
+    HWND TypeWindowHandle;
+    HWND SearchWindowHandle;
+
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PPH_HASHTABLE NodeHashtable;
@@ -1144,16 +1147,21 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
+            context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
+            context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
 
-            PhCreateSearchControl(hwndDlg, GetDlgItem(hwndDlg, IDC_FILTER), L"Find Handles or DLLs");
+            PhCenterWindow(hwndDlg, NULL);
+            PhRegisterDialog(hwndDlg);
 
-            PhpPopulateObjectTypes(GetDlgItem(hwndDlg, IDC_FILTERTYPE));
+            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Find Handles or DLLs");
+
+            PhpPopulateObjectTypes(context->TypeWindowHandle);
 
             InitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTERTYPE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTER), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TypeWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REGEX), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
@@ -1164,9 +1172,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->MinimumSize.bottom = 100;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            PhRegisterDialog(hwndDlg);
-
-            PhCenterWindow(hwndDlg, NULL);
             PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
 
             context->SearchResults = PhCreateList(128);
@@ -1185,7 +1190,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     );
             }
 
-            Edit_SetSel(GetDlgItem(hwndDlg, IDC_FILTER), 0, -1);
+            Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
@@ -1271,6 +1276,19 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_COMMAND:
         {
+            if (GET_WM_COMMAND_HWND(wParam, lParam) == context->TypeWindowHandle)
+            {
+                switch (GET_WM_COMMAND_CMD(wParam, lParam))
+                {
+                case CBN_SELCHANGE:
+                    {
+                        // Change focus from the dropdown list to the searchbox.
+                        SetFocus(context->SearchWindowHandle);
+                    }
+                    break;
+                }
+            }
+
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDOK:
@@ -1281,8 +1299,8 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                     if (!context->SearchThreadHandle)
                     {
-                        PhMoveReference(&context->SearchString, PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTER)));
-                        PhMoveReference(&context->SearchTypeString, PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTERTYPE)));
+                        PhMoveReference(&context->SearchString, PhGetWindowText(context->SearchWindowHandle));
+                        PhMoveReference(&context->SearchTypeString, PhGetWindowText(context->TypeWindowHandle));
 
                         if (context->SearchRegexCompiledExpression)
                         {
