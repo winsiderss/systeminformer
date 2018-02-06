@@ -1857,7 +1857,7 @@ BOOLEAN PhMwpOnNotify(
                         else
                         {
                             // Create the escaped execute string.
-                            PhMoveReference(&executeString, fileName);
+                            executeString = PhReferenceObject(fileName);
                         }
 
                         PhDereferenceObject(fileName);
