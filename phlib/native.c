@@ -120,6 +120,14 @@ NTSTATUS PhOpenProcess(
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
 
+#ifdef _DEBUG
+    if (ProcessId == NtCurrentProcessId())
+    {
+        *ProcessHandle = NtCurrentProcess();
+        return STATUS_SUCCESS;
+    }
+#endif
+
     if (KphIsVerified() && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenProcess(
