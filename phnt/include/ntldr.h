@@ -574,6 +574,10 @@ LdrDisableThreadCalloutsForDll(
     
 // Resources
 
+#define LDR_IS_DATAFILE(BaseAddress)     (((ULONG_PTR)(BaseAddress)) & (ULONG_PTR)1)
+#define LDR_IS_IMAGEMAPPING(BaseAddress) (((ULONG_PTR)(BaseAddress)) & (ULONG_PTR)2)
+#define LDR_IS_RESOURCE(BaseAddress)     (LDR_IS_IMAGEMAPPING(BaseAddress) || LDR_IS_DATAFILE(BaseAddress))
+
 NTSYSAPI
 NTSTATUS
 NTAPI
