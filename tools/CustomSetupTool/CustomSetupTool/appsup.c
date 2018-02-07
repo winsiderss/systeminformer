@@ -437,9 +437,9 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
 
-    if (!PhEqualStringRef2(Name, L"PhMutant", TRUE) &&
-        !PhEqualStringRef2(Name, L"PhSetupMutant", TRUE) &&
-        !PhEqualStringRef2(Name, L"PeViewerMutant", TRUE))
+    if (!PhStartsWithStringRef2(Name, L"PhMutant_", TRUE) &&
+        !PhStartsWithStringRef2(Name, L"PhSetupMutant_", TRUE) &&
+        !PhStartsWithStringRef2(Name, L"PeViewerMutant_", TRUE))
     {
         return TRUE;
     }
