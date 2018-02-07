@@ -179,6 +179,10 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     UCHAR SigningLevel; // since REDSTONE2
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
+#define LDR_IS_DATAFILE(DllHandle)     (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
+#define LDR_IS_IMAGEMAPPING(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)2)
+#define LDR_IS_RESOURCE(DllHandle)     (LDR_IS_IMAGEMAPPING(DllHandle) || LDR_IS_DATAFILE(DllHandle))
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -573,10 +577,6 @@ LdrDisableThreadCalloutsForDll(
     );
     
 // Resources
-
-#define LDR_IS_DATAFILE(BaseAddress)     (((ULONG_PTR)(BaseAddress)) & (ULONG_PTR)1)
-#define LDR_IS_IMAGEMAPPING(BaseAddress) (((ULONG_PTR)(BaseAddress)) & (ULONG_PTR)2)
-#define LDR_IS_RESOURCE(BaseAddress)     (LDR_IS_IMAGEMAPPING(BaseAddress) || LDR_IS_DATAFILE(BaseAddress))
 
 NTSYSAPI
 NTSTATUS
