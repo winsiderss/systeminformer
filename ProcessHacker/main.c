@@ -277,9 +277,17 @@ INT WINAPI wWinMain(
 
     // Create a mutant for the installer.
     {
-        static UNICODE_STRING objectNameUs = RTL_CONSTANT_STRING(L"PhMutant");  
+        HANDLE mutantHandle;
+        PPH_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
-        HANDLE objectHandle;
+        UNICODE_STRING objectNameUs;
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], L"PhMutant_");
+        PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
+
+        objectName = PhFormat(format, 2, 16);
+        PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
 
         InitializeObjectAttributes(
             &objectAttributes,
@@ -289,7 +297,14 @@ INT WINAPI wWinMain(
             NULL
             );
 
-        NtCreateMutant(&objectHandle, MUTANT_ALL_ACCESS, &objectAttributes, TRUE);
+        NtCreateMutant(
+            &mutantHandle, 
+            MUTANT_QUERY_STATE,
+            &objectAttributes, 
+            TRUE
+            );
+
+        PhDereferenceObject(objectName);
     }
 
     // Set the default priority.
@@ -451,13 +466,13 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"PhMutant");
+    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"PhMutant_");
     HANDLE objectHandle;
     UNICODE_STRING objectNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
 
-    if (!PhEqualStringRef(Name, &objectNameSr, FALSE))
+    if (!PhStartsWithStringRef(Name, &objectNameSr, FALSE))
         return TRUE;
     if (!PhStringRefToUnicodeString(Name, &objectNameUs))
         return TRUE;
