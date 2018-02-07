@@ -2301,7 +2301,10 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
             QS_ALLEVENTS
             );
 
-        if (status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles))
+        if (
+            status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles) ||
+            status >= STATUS_ABANDONED_WAIT_0  && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
+            )
         {
             return status;
         }
