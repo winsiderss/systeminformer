@@ -1539,7 +1539,11 @@ PVOID PhGetFileVersionInfo(
     PVOID libraryModule;
     PVOID versionInfo;
 
-    libraryModule = LoadLibraryEx(FileName, NULL, LOAD_LIBRARY_AS_DATAFILE);
+    libraryModule = LoadLibraryEx(
+        FileName,
+        NULL, 
+        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
+        );
 
     if (!libraryModule)
         return NULL;
@@ -5339,7 +5343,7 @@ PPH_STRING PhLoadIndirectString(
                 PhMoveReference(&libraryString, expandedString);
         }
 
-        if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE))
+        if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE))
         { 
             indirectString = PhLoadString(libraryModule, -index);
             FreeLibrary(libraryModule);
