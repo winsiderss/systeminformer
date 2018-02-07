@@ -426,12 +426,15 @@ NTSTATUS UpdateCheckThread(
     _In_ PVOID Parameter
     )
 {
-    PPH_UPDATER_CONTEXT context = NULL;
+    PPH_UPDATER_CONTEXT context;
     ULONGLONG currentVersion = 0;
     ULONGLONG latestVersion = 0;
+    PH_AUTO_POOL autoPool;
 
     context = (PPH_UPDATER_CONTEXT)Parameter;
     context->ErrorCode = STATUS_SUCCESS;
+
+    PhInitializeAutoPool(&autoPool);
 
     // Check if we have cached update data
     if (!context->HaveData)
@@ -444,6 +447,7 @@ NTSTATUS UpdateCheckThread(
         ShowUpdateFailedDialog(context, FALSE, FALSE);
 
         PhDereferenceObject(context);
+        PhDeleteAutoPool(&autoPool);
         return STATUS_SUCCESS;
     }
 
@@ -477,6 +481,7 @@ NTSTATUS UpdateCheckThread(
     }
 
     PhDereferenceObject(context);
+    PhDeleteAutoPool(&autoPool);
     return STATUS_SUCCESS;
 }
 
