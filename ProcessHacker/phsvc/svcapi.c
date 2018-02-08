@@ -395,6 +395,7 @@ NTSTATUS PhSvcpCaptureRunAsServiceParameters(
     Parameters->DesktopName = PhGetString(CapturedParameters->DesktopName);
     Parameters->UseLinkedToken = Payload->u.ExecuteRunAsCommand.i.UseLinkedToken;
     Parameters->ServiceName = PhGetString(CapturedParameters->ServiceName);
+    Parameters->CreateSuspendedProcess = Payload->u.ExecuteRunAsCommand.i.CreateSuspendedProcess;
 
     return status;
 }

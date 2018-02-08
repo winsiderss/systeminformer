@@ -569,6 +569,7 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     PWSTR DesktopName;
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
+    BOOLEAN CreateSuspendedProcess;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
@@ -596,6 +597,22 @@ PhExecuteRunAsCommand2(
     _In_ BOOLEAN UseLinkedToken
     );
 // end_phapppub
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhExecuteRunAsCommand3(
+    _In_ HWND hWnd,
+    _In_ PWSTR Program,
+    _In_opt_ PWSTR UserName,
+    _In_opt_ PWSTR Password,
+    _In_opt_ ULONG LogonType,
+    _In_opt_ HANDLE ProcessIdWithToken,
+    _In_ ULONG SessionId,
+    _In_ PWSTR DesktopName,
+    _In_ BOOLEAN UseLinkedToken,
+    _In_ BOOLEAN CreateSuspendedProcess
+    );
 
 NTSTATUS PhRunAsServiceStart(
     _In_ PPH_STRING ServiceName
