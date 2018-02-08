@@ -283,6 +283,7 @@ NTSTATUS PhSvcpCallExecuteRunAsCommand(
     m.p.u.ExecuteRunAsCommand.i.LogonType = Parameters->LogonType;
     m.p.u.ExecuteRunAsCommand.i.SessionId = Parameters->SessionId;
     m.p.u.ExecuteRunAsCommand.i.UseLinkedToken = Parameters->UseLinkedToken;
+    m.p.u.ExecuteRunAsCommand.i.CreateSuspendedProcess = Parameters->CreateSuspendedProcess;
 
     status = STATUS_NO_MEMORY;
 

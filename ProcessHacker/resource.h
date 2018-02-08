@@ -204,7 +204,10 @@
 #define IDC_PROGRAM                     1069
 #define IDC_BROWSE                      1070
 #define IDC_USERNAME                    1071
+#define IDC_SESSIONCOMBO                1072
+#define IDC_DESKTOPCOMBO                1073
 #define IDC_SESSIONS                    1074
+#define IDC_PROGRAMCOMBO                1074
 #define IDC_DESKTOPS                    1075
 #define IDC_PROGRESS                    1076
 #define IDC_PROGRESSTEXT                1077
@@ -406,6 +409,7 @@
 #define IDC_ICONPROCESSES               1248
 #define IDC_CLEANUP                     1251
 #define IDC_TOGGLEELEVATION             1254
+#define IDC_TOGGLESUSPENDED             1255
 #define IDC_PARENT                      1263
 #define IDC_PROCESSNAME                 1264
 #define IDC_SERVICES_LAYOUT             1266
@@ -738,9 +742,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        246
+#define _APS_NEXT_RESOURCE_VALUE        247
 #define _APS_NEXT_COMMAND_VALUE         40297
-#define _APS_NEXT_CONTROL_VALUE         1405
+#define _APS_NEXT_CONTROL_VALUE         1406
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
