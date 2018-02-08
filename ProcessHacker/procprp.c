@@ -101,7 +101,6 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
 
     PhSetReference(&propContext->ProcessItem, ProcessItem);
-    PhInitializeEvent(&propContext->CreatedEvent);
 
     return propContext;
 }
@@ -549,9 +548,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
     PPH_PROCESS_PROPPAGECONTEXT newPage;
     PPH_STRING startPage;
-    HWND hwnd;
-    BOOL result;
-    MSG message;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -689,33 +685,9 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
     PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
 
-    hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
+    PhModalPropertySheet(&PropContext->PropSheetHeader);;
 
     PhDereferenceObject(startPage);
-
-    PropContext->WindowHandle = hwnd;
-    PhSetEvent(&PropContext->CreatedEvent);
-
-    // Main event loop
-
-    while (result = GetMessage(&message, NULL, 0, 0))
-    {
-        if (result == -1)
-            break;
-
-        if (!PropSheet_IsDialogMessage(hwnd, &message))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-        PhDrainAutoPool(&autoPool);
-
-        if (!PropSheet_GetCurrentPageHwnd(hwnd))
-            break;
-    }
-
-    DestroyWindow(hwnd);
     PhDereferenceObject(PropContext);
 
     PhDeleteAutoPool(&autoPool);
