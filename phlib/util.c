@@ -2602,11 +2602,11 @@ NTSTATUS PhCreateProcessWin32Ex(
 
         if (fileName && !RtlDoesFileExists_U(fileName->Buffer))
         {
-            WCHAR buffer[MAX_PATH];
+            PPH_STRING filePathSr;
 
             // The user typed a name without a path so attempt to locate the executable.
-            if (PhSearchFilePath(fileName->Buffer, L".exe", buffer))
-                PhMoveReference(&fileName, PhCreateString(buffer));
+            if (PhSearchFilePath(fileName->Buffer, L".exe", &filePathSr))
+                PhMoveReference(&fileName, filePathSr);
             else
                 PhClearReference(&fileName);
         }
@@ -4902,7 +4902,7 @@ BOOLEAN PhParseCommandLineFuzzy(
     PH_STRINGREF temp;
     PH_STRINGREF currentPart;
     PH_STRINGREF remainingPart;
-    WCHAR buffer[MAX_PATH];
+    PPH_STRING filePathSr;
     WCHAR originalChar;
 
     commandLine = *CommandLine;
@@ -4949,9 +4949,9 @@ BOOLEAN PhParseCommandLineFuzzy(
 
             tempCommandLine = PhCreateString2(&commandLine);
 
-            if (PhSearchFilePath(tempCommandLine->Buffer, L".exe", buffer))
+            if (PhSearchFilePath(tempCommandLine->Buffer, L".exe", &filePathSr))
             {
-                *FullFileName = PhCreateString(buffer);
+                *FullFileName = filePathSr;
             }
             else
             {
@@ -4995,7 +4995,7 @@ BOOLEAN PhParseCommandLineFuzzy(
             *(remainingPart.Buffer - 1) = 0;
         }
 
-        result = PhSearchFilePath(temp.Buffer, L".exe", buffer);
+        result = PhSearchFilePath(temp.Buffer, L".exe", &filePathSr);
 
         if (found)
         {
@@ -5011,7 +5011,9 @@ BOOLEAN PhParseCommandLineFuzzy(
             *Arguments = remainingPart;
 
             if (FullFileName)
-                *FullFileName = PhCreateString(buffer);
+                *FullFileName = filePathSr;
+            else
+                PhDereferenceObject(filePathSr);
 
             PhFree(temp.Buffer);
 
@@ -5019,6 +5021,7 @@ BOOLEAN PhParseCommandLineFuzzy(
         }
     }
 
+    PhDereferenceObject(filePathSr);
     PhFree(temp.Buffer);
 
     *FileName = *CommandLine;
@@ -5033,56 +5036,59 @@ BOOLEAN PhParseCommandLineFuzzy(
 BOOLEAN PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension,
-    _Out_writes_(MAX_PATH) PWSTR Buffer
+    _Out_ PPH_STRING *FilePath
     )
 {
     NTSTATUS status;
-    ULONG result;
-    UNICODE_STRING fileName;
+    ULONG bufferLength;
+    UNICODE_STRING fileNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     FILE_BASIC_INFORMATION basicInfo;
+    WCHAR buffer[MAX_PATH + 1] = L"";
 
-    result = SearchPath(
+    bufferLength = SearchPath(
         NULL,
         FileName,
         Extension,
         MAX_PATH,
-        Buffer,
+        buffer,
         NULL
         );
 
-    if (result == 0 || result >= MAX_PATH)
+    if (bufferLength == 0 && bufferLength <= MAX_PATH)
         return FALSE;
 
     // Make sure this is not a directory.
 
     if (!NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
-        Buffer,
-        &fileName,
+        buffer,
+        &fileNameUs,
         NULL,
         NULL
         )))
+    {
         return FALSE;
+    }
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &fileName,
+        &fileNameUs,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
         );
 
     status = NtQueryAttributesFile(&objectAttributes, &basicInfo);
-    RtlFreeUnicodeString(&fileName);
+    RtlFreeUnicodeString(&fileNameUs);
 
     if (!NT_SUCCESS(status))
         return FALSE;
     if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
         return FALSE;
 
+    *FilePath = PhCreateString(buffer);
     return TRUE;
 }
-
 
 PPH_STRING PhGetCacheDirectory(
     VOID

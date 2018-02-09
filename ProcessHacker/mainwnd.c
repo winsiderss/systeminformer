@@ -1827,11 +1827,11 @@ BOOLEAN PhMwpOnNotify(
 
                     if (fileName && !RtlDoesFileExists_U(fileName->Buffer))
                     {
-                        WCHAR buffer[MAX_PATH];
+                        PPH_STRING filePathString;
 
                         // The user typed a name without a path so attempt to locate the executable.
-                        if (PhSearchFilePath(fileName->Buffer, L".exe", buffer))
-                            PhMoveReference(&fileName, PhCreateString(buffer));
+                        if (PhSearchFilePath(fileName->Buffer, L".exe", &filePathString))
+                            PhMoveReference(&fileName, filePathString);
                         else
                             PhClearReference(&fileName);
                     }
