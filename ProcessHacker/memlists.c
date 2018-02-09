@@ -170,6 +170,12 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
+            {
+                PhSetTokenPrivilege(tokenHandle, L"SeProfileSingleProcessPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+                NtClose(tokenHandle);
+            }
+
             PhRegisterCallback(&PhProcessesUpdatedEvent, ProcessesUpdatedCallback, NULL, &ProcessesUpdatedRegistration);
             PhpUpdateMemoryListInfo(hwndDlg);
 
@@ -237,9 +243,9 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                 HANDLE tokenHandle;
                                 MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
 
-                                if (NT_SUCCESS(NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
+                                if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
                                 {
-                                    PhSetTokenPrivilege(tokenHandle, SE_PROF_SINGLE_PROCESS_NAME, NULL, SE_PRIVILEGE_ENABLED);
+                                    PhSetTokenPrivilege(tokenHandle, L"SeProfileSingleProcessPrivilege", NULL, SE_PRIVILEGE_ENABLED);
                                     NtClose(tokenHandle);
                                 }
 

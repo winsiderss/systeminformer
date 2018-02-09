@@ -167,7 +167,7 @@ PPH_STRING PhGetAppContainerPackageName(
 
     if (SUCCEEDED(AppContainerLookupMoniker_I(AppContainerSid, &packageMonikerName)))
     {
-        packageFamilyName = PhConcatStrings2(packageMonikerName, L" (APP_PACKAGE)");
+        packageFamilyName = PhCreateString(packageMonikerName);
         AppContainerFreeMemory_I(packageMonikerName);
     }
 

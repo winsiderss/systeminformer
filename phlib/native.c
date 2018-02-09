@@ -74,7 +74,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PH_TOKEN_ATTRIBUTES attributes;
+    static PH_TOKEN_ATTRIBUTES attributes = { 0 };
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -82,9 +82,16 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
         TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
 
         if (WindowsVersion >= WINDOWS_8)
-            attributes.TokenHandle = NtCurrentProcessToken();           
+        {
+            attributes.TokenHandle = NtCurrentProcessToken();
+        }
         else
-            PhOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &attributes.TokenHandle);
+        {
+            HANDLE tokenHandle;
+
+            if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &tokenHandle)))
+                attributes.TokenHandle = tokenHandle;
+        }
 
         if (attributes.TokenHandle)
         {
@@ -311,14 +318,6 @@ NTSTATUS PhOpenProcessToken(
     )
 {
     NTSTATUS status;
-
-#ifdef _DEBUG
-    if (WINDOWS_HAS_IMMERSIVE && ProcessHandle == NtCurrentProcess())
-    {
-        *TokenHandle = NtCurrentProcessToken();
-        return STATUS_SUCCESS;
-    }
-#endif
 
     if (KphIsVerified() && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
     {

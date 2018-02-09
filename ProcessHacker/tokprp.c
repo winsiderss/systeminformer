@@ -669,7 +669,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     if (appContainerName)
                     {
-                        SetDlgItemText(hwndDlg, IDC_USER, appContainerName->Buffer);
+                        PPH_STRING packageFamilyName;
+
+                        packageFamilyName = PhConcatStrings2(appContainerName->Buffer, L" (APP_PACKAGE)");
+                        SetDlgItemText(hwndDlg, IDC_USER, packageFamilyName->Buffer);
+
+                        PhDereferenceObject(packageFamilyName);
                         PhDereferenceObject(appContainerName);
                     }
 
