@@ -73,7 +73,7 @@ static PVOID PhpQueryStartMenuCacheInterface(
     return startMenuInterface;
 }
 
-static BOOLEAN PhpQueryKernelAppCoreInitialized(
+static BOOLEAN PhpKernelAppCoreInitialized(
     VOID
     )
 {
@@ -162,7 +162,7 @@ PPH_STRING PhGetAppContainerPackageName(
     PPH_STRING packageFamilyName = NULL;
     PWSTR packageMonikerName;
 
-    if (!PhpQueryKernelAppCoreInitialized())
+    if (!PhpKernelAppCoreInitialized())
         return NULL;
 
     if (SUCCEEDED(AppContainerLookupMoniker_I(AppContainerSid, &packageMonikerName)))
@@ -179,7 +179,7 @@ BOOLEAN PhGetAppWindowingModel(
     _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
     )
 {
-    if (!PhpQueryKernelAppCoreInitialized() && !AppPolicyGetWindowingModel_I)
+    if (!PhpKernelAppCoreInitialized() && !AppPolicyGetWindowingModel_I)
         return FALSE;
 
     return SUCCEEDED(AppPolicyGetWindowingModel_I(ProcessTokenHandle, ProcessWindowingModelPolicy));
