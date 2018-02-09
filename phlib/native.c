@@ -78,21 +78,22 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (NT_SUCCESS(NtOpenProcessToken(
-            NtCurrentProcess(),
-            TOKEN_QUERY,
-            &attributes.TokenHandle
-            )))
-        {
-            BOOLEAN elevated = TRUE;
-            TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
+        BOOLEAN elevated = TRUE;
+        TOKEN_ELEVATION_TYPE elevationType = TokenElevationTypeFull;
 
+        if (WindowsVersion >= WINDOWS_8)
+            attributes.TokenHandle = NtCurrentProcessToken();           
+        else
+            PhOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &attributes.TokenHandle);
+
+        if (attributes.TokenHandle)
+        {
             PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
             PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
-
-            attributes.Elevated = elevated;
-            attributes.ElevationType = elevationType;
         }
+
+        attributes.Elevated = elevated;
+        attributes.ElevationType = elevationType;
 
         PhEndInitOnce(&initOnce);
     }
@@ -201,6 +202,14 @@ NTSTATUS PhOpenThread(
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
 
+#ifdef _DEBUG
+    if (ThreadId == NtCurrentThreadId())
+    {
+        *ThreadHandle = NtCurrentThread();
+        return STATUS_SUCCESS;
+    }
+#endif
+
     if (KphIsVerified() && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenThread(
@@ -302,6 +311,14 @@ NTSTATUS PhOpenProcessToken(
     )
 {
     NTSTATUS status;
+
+#ifdef _DEBUG
+    if (WINDOWS_HAS_IMMERSIVE && ProcessHandle == NtCurrentProcess())
+    {
+        *TokenHandle = NtCurrentProcessToken();
+        return STATUS_SUCCESS;
+    }
+#endif
 
     if (KphIsVerified() && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
     {
@@ -5574,35 +5591,30 @@ VOID PhpInitializePredefineKeys(
     )
 {
     static UNICODE_STRING currentUserPrefix = RTL_CONSTANT_STRING(L"\\Registry\\User\\");
-
     NTSTATUS status;
-    HANDLE tokenHandle;
     PTOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
     WCHAR stringSidBuffer[SECURITY_MAX_SID_STRING_CHARACTERS];
     PUNICODE_STRING currentUserKeyName;
 
     // Get the string SID of the current user.
-    if (NT_SUCCESS(status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &tokenHandle)))
+
+    if (NT_SUCCESS(status = PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
     {
-        if (NT_SUCCESS(status = PhGetTokenUser(tokenHandle, &tokenUser)))
-        {
-            stringSid.Buffer = stringSidBuffer;
-            stringSid.MaximumLength = sizeof(stringSidBuffer);
+        stringSid.Buffer = stringSidBuffer;
+        stringSid.MaximumLength = sizeof(stringSidBuffer);
 
-            status = RtlConvertSidToUnicodeString(
-                &stringSid,
-                tokenUser->User.Sid,
-                FALSE
-                );
+        status = RtlConvertSidToUnicodeString(
+            &stringSid,
+            tokenUser->User.Sid,
+            FALSE
+            );
 
-            PhFree(tokenUser);
-        }
-
-        NtClose(tokenHandle);
+        PhFree(tokenUser);
     }
 
     // Construct the current user key name.
+
     if (NT_SUCCESS(status))
     {
         currentUserKeyName = &PhPredefineKeyNames[PH_KEY_CURRENT_USER_NUMBER];

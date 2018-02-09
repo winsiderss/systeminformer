@@ -81,6 +81,14 @@ PhSidToStringSid(
     _In_ PSID Sid
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTokenUserString(
+    _In_ HANDLE TokenHandle,
+    _In_ BOOLEAN IncludeDomain
+    );
+
 #ifdef __cplusplus
 }
 #endif
