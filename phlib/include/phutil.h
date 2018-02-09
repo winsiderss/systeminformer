@@ -1080,7 +1080,7 @@ NTAPI
 PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension,
-    _Out_writes_(MAX_PATH) PWSTR Buffer
+    _Out_ PPH_STRING *FilePath
     );
 
 PHLIBAPI
