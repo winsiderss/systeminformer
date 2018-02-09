@@ -282,6 +282,16 @@ PhUnloadDllProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessUnloadedDlls(
+    _In_ HANDLE ProcessId,
+    _Out_ PVOID *EventTrace,
+    _Out_ ULONG *EventTraceSize,
+    _Out_ ULONG *EventTraceCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetEnvironmentVariableRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF Name,
