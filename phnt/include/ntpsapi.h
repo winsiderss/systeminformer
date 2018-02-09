@@ -1004,6 +1004,11 @@ NtResumeProcess(
 #define ZwCurrentSession() NtCurrentSession()
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
 
+// Windows 8 and above
+#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4)
+#define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5)
+#define NtCurrentEffectiveToken() ((HANDLE)(LONG_PTR)-6)
+
 // Not NT, but useful.
 #define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
 #define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)

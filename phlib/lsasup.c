@@ -480,3 +480,20 @@ PPH_STRING PhSidToStringSid(
         return NULL;
     }
 }
+
+PPH_STRING PhGetTokenUserString(
+    _In_ HANDLE TokenHandle, 
+    _In_ BOOLEAN IncludeDomain
+    )
+{
+    PPH_STRING tokenUserString = NULL;
+    PTOKEN_USER tokenUser;
+
+    if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
+    {
+        tokenUserString = PhGetSidFullName(tokenUser->User.Sid, IncludeDomain, NULL);
+        PhFree(tokenUser);
+    }
+
+    return tokenUserString;
+}

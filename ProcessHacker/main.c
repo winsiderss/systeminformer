@@ -116,7 +116,6 @@ INT WINAPI wWinMain(
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
 #endif
-    HANDLE currentTokenHandle;
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
@@ -133,33 +132,14 @@ INT WINAPI wWinMain(
 
     PhInitializeCommonControls();
 
-    currentTokenHandle = PhGetOwnTokenAttributes().TokenHandle;
-
-    if (currentTokenHandle)
-    {
-        PTOKEN_USER tokenUser;
-
-        if (NT_SUCCESS(PhGetTokenUser(currentTokenHandle, &tokenUser)))
-        {
-            PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
-            PhFree(tokenUser);
-        }
-    }
-
-    PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL);
-
-    // There has been a report of the above call failing.
-    if (!PhLocalSystemName)
-        PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
-
-    PhApplicationFileName = PhGetApplicationFileName();
-    PhApplicationDirectory = PhGetApplicationDirectory();
-
-    // Just in case
-    if (!PhApplicationFileName)
+    if (!(PhApplicationFileName = PhGetApplicationFileName()))
         PhApplicationFileName = PhCreateString(L"ProcessHacker.exe");
-    if (!PhApplicationDirectory)
+    if (!(PhApplicationDirectory = PhGetApplicationDirectory()))
         PhApplicationDirectory = PhReferenceEmptyString();
+    if (!(PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL)))
+        PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
+    if (!(PhCurrentUserName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE)))
+        PhLocalSystemName = PhReferenceEmptyString();
 
     PhpProcessStartupParameters();
     PhSettingsInitialization();
@@ -1324,7 +1304,7 @@ VOID PhpEnablePrivileges(
 {
     HANDLE tokenHandle;
 
-    if (NT_SUCCESS(NtOpenProcessToken(
+    if (NT_SUCCESS(PhOpenProcessToken(
         NtCurrentProcess(),
         TOKEN_ADJUST_PRIVILEGES,
         &tokenHandle

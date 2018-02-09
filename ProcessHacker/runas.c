@@ -220,24 +220,17 @@ BOOLEAN IsCurrentUserAccount(
     _In_ PPH_STRING UserName
     )
 {
-    PTOKEN_USER userToken;
     PPH_STRING userName;
 
-    if (NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &userToken)))
+    if (userName = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE))
     {
-        if (userName = PhGetSidFullName(userToken->User.Sid, TRUE, NULL))
+        if (PhEndsWithString(userName, UserName, TRUE))
         {
-            if (PhEndsWithString(userName, UserName, TRUE))
-            {
-                PhDereferenceObject(userName);
-                PhFree(userToken);
-                return TRUE;
-            }
-
             PhDereferenceObject(userName);
+            return TRUE;
         }
 
-        PhFree(userToken);
+        PhDereferenceObject(userName);
     }
 
     return FALSE;
@@ -271,42 +264,60 @@ PPH_STRING GetCurrentWinStaName(
 
 BOOLEAN PhpInitializeNetApi(VOID)
 {
-    PVOID netapiModuleHandle;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID netapiModuleHandle = NULL;
 
-    if (!(netapiModuleHandle = LoadLibrary(L"netapi32.dll")))
-        return FALSE;
-
-    NetUserEnum_I = PhGetProcedureAddress(netapiModuleHandle, "NetUserEnum", 0);
-    NetApiBufferFree_I = PhGetProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
-
-    if (!NetUserEnum_I && !NetApiBufferFree_I)
+    if (PhBeginInitOnce(&initOnce))
     {
-        FreeLibrary(netapiModuleHandle);
-        return FALSE;
+        if (netapiModuleHandle = LoadLibrary(L"netapi32.dll"))
+        {
+            NetUserEnum_I = PhGetProcedureAddress(netapiModuleHandle, "NetUserEnum", 0);
+            NetApiBufferFree_I = PhGetProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
+        }
+
+        if (!NetUserEnum_I && !NetApiBufferFree_I)
+        {
+            FreeLibrary(netapiModuleHandle);
+            netapiModuleHandle = NULL;
+        }
+
+        PhEndInitOnce(&initOnce);
     }
 
-    return TRUE;
+    if (netapiModuleHandle)
+        return TRUE;
+
+    return FALSE;
 }
 
 BOOLEAN PhpInitializeMRUList(VOID)
 {
-    PVOID comctl32ModuleHandle;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID comctl32ModuleHandle = NULL;
 
-    if (!(comctl32ModuleHandle = LoadLibrary(L"comctl32.dll")))
-        return FALSE;
-
-    CreateMRUList_I = PhGetProcedureAddress(comctl32ModuleHandle, "CreateMRUListW", 0);
-    AddMRUString_I = PhGetProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
-    EnumMRUList_I = PhGetProcedureAddress(comctl32ModuleHandle, "EnumMRUListW", 0);
-    FreeMRUList_I = PhGetProcedureAddress(comctl32ModuleHandle, "FreeMRUList", 0);
-
-    if (!CreateMRUList_I && !AddMRUString_I && !EnumMRUList_I && !FreeMRUList_I)
+    if (PhBeginInitOnce(&initOnce))
     {
-        FreeLibrary(comctl32ModuleHandle);
-        return FALSE;
+        if (comctl32ModuleHandle = LoadLibrary(L"comctl32.dll"))
+        {
+            CreateMRUList_I = PhGetProcedureAddress(comctl32ModuleHandle, "CreateMRUListW", 0);
+            AddMRUString_I = PhGetProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
+            EnumMRUList_I = PhGetProcedureAddress(comctl32ModuleHandle, "EnumMRUListW", 0);
+            FreeMRUList_I = PhGetProcedureAddress(comctl32ModuleHandle, "FreeMRUList", 0);
+        }
+
+        if (!CreateMRUList_I && !AddMRUString_I && !EnumMRUList_I && !FreeMRUList_I)
+        {
+            FreeLibrary(comctl32ModuleHandle);
+            comctl32ModuleHandle = NULL;
+        }
+
+        PhEndInitOnce(&initOnce);
     }
 
-    return TRUE;
+    if (comctl32ModuleHandle)
+        return TRUE;
+
+    return FALSE;
 }
 
 static HANDLE PhpCreateRunMRUList(
@@ -328,19 +339,21 @@ static HANDLE PhpCreateRunMRUList(
 }
 
 static VOID PhpAddRunMRUListEntry(
-    _In_ PWSTR CommandLine
+    _In_ PPH_STRING CommandLine
     )
 {
+    static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
     HANDLE listHandle;
     PPH_STRING commandString;
 
     if (!(listHandle = PhpCreateRunMRUList()))
         return;
 
-    commandString = PhConcatStrings2(CommandLine, L"\\1");
-    AddMRUString_I(listHandle, commandString->Buffer);
-    PhDereferenceObject(commandString);
+    commandString = PhConcatStringRef2(&CommandLine->sr, &prefixSr);
 
+    AddMRUString_I(listHandle, commandString->Buffer);
+
+    PhDereferenceObject(commandString);
     FreeMRUList_I(listHandle);
 }
 
@@ -366,7 +379,6 @@ static VOID PhpAddProgramsToComboBox(
 
     for (INT i = 0; i < listCount; i++)
     {
-        static PH_STRINGREF keyNamePlusEquals = PH_STRINGREF_INIT(L"\\1");
         PPH_STRING programName;
         PH_STRINGREF nameSr;
         PH_STRINGREF firstPart;
@@ -385,7 +397,7 @@ static VOID PhpAddProgramsToComboBox(
 
         PhInitializeStringRefLongHint(&nameSr, entry);
 
-        if (!PhSplitStringRefAtString(&nameSr, &keyNamePlusEquals, TRUE, &firstPart, &remainingPart))
+        if (!PhSplitStringRefAtString(&nameSr, &prefixSr, TRUE, &firstPart, &remainingPart))
         {
             ComboBox_AddString(ComboBoxHandle, entry);
             continue;
@@ -448,20 +460,13 @@ static VOID PhpAddAccountsToComboBox(
 
     if (status == NERR_Success)
     {
-        PTOKEN_USER userToken;
+        PPH_STRING username;
         PPH_STRING userDomainName = NULL;
 
-        if (NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &userToken)))
+        if (username = PhGetTokenUserString(PhGetOwnTokenAttributes().TokenHandle, TRUE))
         {
-            PPH_STRING username;
-
-            if (username = PhGetSidFullName(userToken->User.Sid, TRUE, NULL))
-            {
-                PhpSplitUserName(username->Buffer, &userDomainName, NULL);
-                PhDereferenceObject(username);
-            }
-
-            PhFree(userToken);
+            PhpSplitUserName(username->Buffer, &userDomainName, NULL);
+            PhDereferenceObject(username);
         }
 
         for (ULONG i = 0; i < userinfoEntriesRead; i++)
@@ -802,7 +807,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             {
                 HANDLE processHandle;
                 HANDLE tokenHandle;
-                PTOKEN_USER user;
                 PPH_STRING userName;
 
                 if (NT_SUCCESS(PhOpenProcess(
@@ -817,15 +821,10 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         &tokenHandle
                         )))
                     {
-                        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
+                        if (userName = PhGetTokenUserString(tokenHandle, TRUE))
                         {
-                            if (userName = PhGetSidFullName(user->User.Sid, TRUE, NULL))
-                            {
-                                SetWindowText(context->UserComboBoxWindowHandle, userName->Buffer);
-                                PhDereferenceObject(userName);
-                            }
-
-                            PhFree(user);
+                            SetWindowText(context->UserComboBoxWindowHandle, userName->Buffer);
+                            PhDereferenceObject(userName);
                         }
 
                         NtClose(tokenHandle);
@@ -1052,7 +1051,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
                     else if (status != STATUS_TIMEOUT)
                     {
-                        PhpAddRunMRUListEntry(program->Buffer);
+                        PhpAddRunMRUListEntry(program);
 
                         //PhSetStringSetting2(L"RunAsProgram", &program->sr);
                         PhSetStringSetting2(L"RunAsUserName", &username->sr);
@@ -1503,7 +1502,7 @@ NTSTATUS PhRunAsServiceStart(
 
     // Enable some required privileges.
 
-    if (NT_SUCCESS(NtOpenProcessToken(
+    if (NT_SUCCESS(PhOpenProcessToken(
         NtCurrentProcess(),
         TOKEN_ADJUST_PRIVILEGES,
         &tokenHandle
