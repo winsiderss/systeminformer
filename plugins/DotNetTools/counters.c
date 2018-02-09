@@ -557,7 +557,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 
     if (WINDOWS_HAS_IMMERSIVE && IsImmersive)
     {
-        if (NT_SUCCESS(NtOpenProcessToken(&tokenHandle, TOKEN_QUERY, ProcessHandle)))
+        if (NT_SUCCESS(NtOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
         {
             ULONG returnLength = 0;
 

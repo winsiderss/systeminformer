@@ -371,16 +371,10 @@ PPH_STRING PhFormatNativeKeyName(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        HANDLE currentTokenHandle;
         PTOKEN_USER tokenUser;
         PPH_STRING stringSid = NULL;
 
-        currentTokenHandle = PhGetOwnTokenAttributes().TokenHandle;
-
-        if (currentTokenHandle && NT_SUCCESS(PhGetTokenUser(
-            currentTokenHandle,
-            &tokenUser
-            )))
+        if (NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
         {
             stringSid = PhSidToStringSid(tokenUser->User.Sid);
             PhFree(tokenUser);
