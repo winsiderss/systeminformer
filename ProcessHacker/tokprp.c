@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <appresolver.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <lsasup.h>
@@ -590,7 +591,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
             SetDlgItemText(hwndDlg, IDC_USER, L"Unknown");
             SetDlgItemText(hwndDlg, IDC_USERSID, L"Unknown");
-            SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"Unknown");
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
@@ -606,6 +606,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PPH_STRING appContainerName;
                 PPH_STRING appContainerSid;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
@@ -652,29 +653,31 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 if (WINDOWS_HAS_IMMERSIVE)
                 {
+                    appContainerName = NULL;
                     appContainerSid = NULL;
 
                     if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
                     {
                         if (appContainerInfo->TokenAppContainer)
-                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
+                        {
+                            appContainerName = PhGetAppContainerPackageName(appContainerInfo->TokenAppContainer);
+                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);    
+                        }
 
                         PhFree(appContainerInfo);
                     }
 
+                    if (appContainerName)
+                    {
+                        SetDlgItemText(hwndDlg, IDC_USER, appContainerName->Buffer);
+                        PhDereferenceObject(appContainerName);
+                    }
+
                     if (appContainerSid)
                     {
-                        SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, appContainerSid->Buffer);
+                        SetDlgItemText(hwndDlg, IDC_USERSID, appContainerSid->Buffer);
                         PhDereferenceObject(appContainerSid);
                     }
-                    else
-                    {
-                        SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"N/A");
-                    }
-                }
-                else
-                {
-                    SetDlgItemText(hwndDlg, IDC_APPCONTAINERSID, L"N/A");
                 }
 
                 ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, FALSE);
