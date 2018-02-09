@@ -64,87 +64,31 @@ BOOLEAN EtpRefreshUnloadedDlls(
     )
 {
     NTSTATUS status;
-    PULONG elementSize;
-    PULONG elementCount;
-    PVOID eventTrace;
-    HANDLE processHandle = NULL;
-    ULONG eventTraceSize;
     ULONG capturedElementSize;
     ULONG capturedElementCount;
-    PVOID capturedEventTracePointer;
     PVOID capturedEventTrace = NULL;
     ULONG i;
     PVOID currentEvent;
     HWND lvHandle;
 
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-
-    RtlGetUnloadEventTraceEx(&elementSize, &elementCount, &eventTrace);
-
-    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_VM_READ, Context->ProcessItem->ProcessId)))
-        goto CleanupExit;
-
-    // We have the pointers for the unload event trace information.
-    // Since ntdll is loaded at the same base address across all processes,
-    // we can read the information in.
-
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
-        processHandle,
-        elementSize,
+    status = PhGetProcessUnloadedDlls(
+        Context->ProcessItem->ProcessId, 
+        &capturedEventTrace,
         &capturedElementSize,
-        sizeof(ULONG),
-        NULL
-        )))
-        goto CleanupExit;
+        &capturedElementCount
+        );
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
-        processHandle,
-        elementCount,
-        &capturedElementCount,
-        sizeof(ULONG),
-        NULL
-        )))
-        goto CleanupExit;
-
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
-        processHandle,
-        eventTrace,
-        &capturedEventTracePointer,
-        sizeof(PVOID),
-        NULL
-        )))
-        goto CleanupExit;
-
-    if (!capturedEventTracePointer)
-        goto CleanupExit; // no events
-
-    if (capturedElementCount > 0x4000)
-        capturedElementCount = 0x4000;
-
-    eventTraceSize = capturedElementSize * capturedElementCount;
-
-    capturedEventTrace = PhAllocateSafe(eventTraceSize);
-
-    if (!capturedEventTrace)
+    if (!NT_SUCCESS(status))
     {
-        status = STATUS_NO_MEMORY;
-        goto CleanupExit;
+        PhShowStatus(NULL, L"Unable to retrieve unload event trace information.", status, 0);
+        return FALSE;
     }
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
-        processHandle,
-        capturedEventTracePointer,
-        capturedEventTrace,
-        eventTraceSize,
-        NULL
-        )))
-        goto CleanupExit;
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+    ExtendedListView_SetRedraw(lvHandle, FALSE);
+    ListView_DeleteAllItems(lvHandle);
 
     currentEvent = capturedEventTrace;
-
-    ExtendedListView_SetRedraw(lvHandle, FALSE);
-
-    ListView_DeleteAllItems(lvHandle);
 
     for (i = 0; i < capturedElementCount; i++)
     {
@@ -199,20 +143,7 @@ BOOLEAN EtpRefreshUnloadedDlls(
 
     Context->CapturedEventTrace = capturedEventTrace;
 
-CleanupExit:
-
-    if (processHandle)
-        NtClose(processHandle);
-
-    if (NT_SUCCESS(status))
-    {
-        return TRUE;
-    }
-    else
-    {
-        PhShowStatus(hwndDlg, L"Unable to retrieve unload event trace information", status, 0);
-        return FALSE;
-    }
+    return NT_SUCCESS(status);
 }
 
 static INT NTAPI EtpNumberCompareFunction(
