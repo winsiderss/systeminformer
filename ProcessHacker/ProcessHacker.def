@@ -273,6 +273,7 @@ EXPORTS
 	PhGetProcessIsDotNetEx
 	PhGetProcessMappedFileName
 	PhGetProcessPebString
+	PhGetProcessUnloadedDlls
 	PhGetProcessWindowTitle
 	PhGetProcessWorkingSetInformation
 	PhGetProcessWsCounters

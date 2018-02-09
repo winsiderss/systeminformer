@@ -1233,6 +1233,102 @@ NTSTATUS PhGetProcessWsCounters(
     return status;
 }
 
+NTSTATUS PhGetProcessUnloadedDlls(
+    _In_ HANDLE ProcessId,
+    _Out_ PVOID *EventTrace,
+    _Out_ ULONG *EventTraceSize,
+    _Out_ ULONG *EventTraceCount
+    )
+{
+    NTSTATUS status;
+    PULONG elementSize;
+    PULONG elementCount;
+    PVOID eventTrace;
+    HANDLE processHandle = NULL;
+    ULONG eventTraceSize;
+    ULONG capturedElementSize;
+    ULONG capturedElementCount;
+    PVOID capturedEventTracePointer;
+    PVOID capturedEventTrace = NULL;
+
+    RtlGetUnloadEventTraceEx(&elementSize, &elementCount, &eventTrace);
+
+    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_VM_READ, ProcessId)))
+        goto CleanupExit;
+
+    // We have the pointers for the unload event trace information.
+    // Since ntdll is loaded at the same base address across all processes,
+    // we can read the information in.
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        elementSize,
+        &capturedElementSize,
+        sizeof(ULONG),
+        NULL
+        )))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        elementCount,
+        &capturedElementCount,
+        sizeof(ULONG),
+        NULL
+        )))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        eventTrace,
+        &capturedEventTracePointer,
+        sizeof(PVOID),
+        NULL
+        )))
+        goto CleanupExit;
+
+    if (!capturedEventTracePointer)
+    {
+        status = STATUS_NOT_FOUND; // no events
+        goto CleanupExit;
+    }
+
+    if (capturedElementCount > 0x4000)
+        capturedElementCount = 0x4000;
+
+    eventTraceSize = capturedElementSize * capturedElementCount;
+    capturedEventTrace = PhAllocateSafe(eventTraceSize);
+
+    if (!capturedEventTrace)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        processHandle,
+        capturedEventTracePointer,
+        capturedEventTrace,
+        eventTraceSize,
+        NULL
+        )))
+        goto CleanupExit;
+
+CleanupExit:
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *EventTrace = capturedEventTrace;
+        *EventTraceSize = capturedElementSize;
+        *EventTraceCount = capturedElementCount;
+    }
+
+    return status;
+}
+
 /**
  * Causes a process to unload a DLL.
  *
