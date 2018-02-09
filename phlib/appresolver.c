@@ -24,6 +24,8 @@
 #define CINTERFACE
 #include <phbase.h>
 
+#include <minappmodel.h>
+#include <appmodel.h>
 #include <combaseapi.h>
 #include <propsys.h>
 #include <shobjidl.h>
@@ -71,6 +73,45 @@ static PVOID PhpQueryStartMenuCacheInterface(
     return startMenuInterface;
 }
 
+static BOOLEAN PhpQueryKernelAppCoreInitialized(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN kernelAppCoreInitialized = FALSE;
+    
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+        {
+            PVOID kernelAppBaseAddress;
+
+            if (kernelAppBaseAddress = LoadLibrary(L"kernel.appcore.dll"))
+            {
+                AppContainerLookupMoniker_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerLookupMoniker", 0);
+                AppContainerFreeMemory_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerFreeMemory", 0);
+                AppContainerRegisterSid_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerRegisterSid", 0);
+                AppContainerUnregisterSid_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerUnregisterSid", 0);
+                AppPolicyGetWindowingModel_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppPolicyGetWindowingModel", 0);
+            }
+
+            if (
+                AppContainerLookupMoniker_I && 
+                AppContainerFreeMemory_I && 
+                AppContainerRegisterSid_I && 
+                AppContainerUnregisterSid_I
+                )
+            {
+                kernelAppCoreInitialized = TRUE;
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return kernelAppCoreInitialized;
+}
+
 BOOLEAN PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
@@ -112,6 +153,36 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     }
 
     return FALSE;
+}
+
+PPH_STRING PhGetAppContainerPackageName(
+    _In_ PSID AppContainerSid
+    )
+{   
+    PPH_STRING packageFamilyName = NULL;
+    PWSTR packageMonikerName;
+
+    if (!PhpQueryKernelAppCoreInitialized())
+        return NULL;
+
+    if (SUCCEEDED(AppContainerLookupMoniker_I(AppContainerSid, &packageMonikerName)))
+    {
+        packageFamilyName = PhConcatStrings2(packageMonikerName, L" (APP_PACKAGE)");
+        AppContainerFreeMemory_I(packageMonikerName);
+    }
+
+    return packageFamilyName;
+}
+
+BOOLEAN PhGetAppWindowingModel(
+    _In_ HANDLE ProcessTokenHandle,
+    _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
+    )
+{
+    if (!PhpQueryKernelAppCoreInitialized() && !AppPolicyGetWindowingModel_I)
+        return FALSE;
+
+    return SUCCEEDED(AppPolicyGetWindowingModel_I(ProcessTokenHandle, ProcessWindowingModelPolicy));
 }
 
 PPH_LIST PhGetPackageAssetsFromResourceFile(
