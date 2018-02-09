@@ -242,14 +242,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                         case ID_EMPTY_COMBINEMEMORYLISTS:
                             {
                                 NTSTATUS status;
-                                HANDLE tokenHandle;
                                 MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
-
-                                if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
-                                {
-                                    PhSetTokenPrivilege(tokenHandle, L"SeProfileSingleProcessPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-                                    NtClose(tokenHandle);
-                                }
 
                                 status = NtSetSystemInformation(
                                     SystemCombinePhysicalMemoryInformation, 
