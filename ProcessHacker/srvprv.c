@@ -610,7 +610,7 @@ VOID PhpQueueServiceQueryStage1(
     PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryStage1Worker, ServiceItem, NULL, &environment);
 }
 
-VOID PhpQueueServiceQueryStage2(
+VOID PhQueueServiceQueryStage2(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
@@ -639,9 +639,10 @@ VOID PhpFillServiceItemStage1(
     serviceItem->SmallIcon = Data->SmallIcon;
     serviceItem->LargeIcon = Data->LargeIcon;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
-   
-    // Note: Queue stage 2 processing after filling stage1 process data. 
-    PhpQueueServiceQueryStage2(serviceItem);
+
+    // Note: Queue stage 2 processing after filling stage1 process data.
+    // HACK: We delay-load stage processing for services from the TreeNewGetNodeIcon callback in srvlist.c.
+    //PhQueueServiceQueryStage2(serviceItem);
 }
 
 VOID PhpFillServiceItemStage2(

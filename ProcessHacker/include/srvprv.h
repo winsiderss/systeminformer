@@ -106,6 +106,10 @@ VOID PhUpdateProcessItemServices(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhQueueServiceQueryStage2( // HACK
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    );
+
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     );

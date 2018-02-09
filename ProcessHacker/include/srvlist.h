@@ -49,10 +49,9 @@ typedef struct _PH_SERVICE_NODE
     PPH_STRING Description;
     // Key
     LARGE_INTEGER KeyLastWriteTime;
-
     PPH_STRING TooltipText;
-
     PPH_STRING KeyModifiedTimeText;
+    BOOLEAN ServiceQueryStage2;
 // begin_phapppub
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 // end_phapppub
