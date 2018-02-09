@@ -106,9 +106,6 @@ VOID PhShowServiceProperties(
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[32];
     SERVICE_PROPERTIES_CONTEXT context;
-    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -135,25 +132,6 @@ VOID PhShowServiceProperties(
     propSheetPage.pfnDlgProc = PhpServiceGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-
-    // Security
-
-    stdObjectSecurity.OpenObject = PhpOpenService;
-    stdObjectSecurity.ObjectType = L"Service";
-    stdObjectSecurity.Context = ServiceItem;
-
-    if (PhGetAccessEntries(L"Service", &accessEntries, &numberOfAccessEntries))
-    {
-        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
-            ServiceItem->Name->Buffer,
-            PhStdGetObjectSecurity,
-            PhpSetServiceSecurity,
-            &stdObjectSecurity,
-            accessEntries,
-            numberOfAccessEntries
-            );
-        PhFree(accessEntries);
-    }
 
     if (PhPluginsEnabled)
     {
@@ -323,12 +301,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 {
                     // Workaround for property sheet + multiline edit: http://support.microsoft.com/kb/130765
-
                     SendMessage(GetParent(hwndDlg), uMsg, wParam, lParam);
                 }
                 break;
@@ -390,9 +367,34 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PhFreeFileDialog(fileDialog);
                 }
                 break;
+            case IDC_PERMISSIONS:
+                {
+                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+                    PPH_ACCESS_ENTRY accessEntries;
+                    ULONG numberOfAccessEntries;
+
+                    stdObjectSecurity.OpenObject = PhpOpenService;
+                    stdObjectSecurity.ObjectType = L"Service";
+                    stdObjectSecurity.Context = context->ServiceItem;
+
+                    if (PhGetAccessEntries(L"Service", &accessEntries, &numberOfAccessEntries))
+                    {
+                        PhEditSecurity(
+                            hwndDlg,
+                            context->ServiceItem->DisplayName->Buffer,
+                            PhStdGetObjectSecurity,
+                            PhStdSetObjectSecurity,
+                            &stdObjectSecurity,
+                            accessEntries,
+                            numberOfAccessEntries
+                            );
+                        PhFree(accessEntries);
+                    }
+                }
+                break;
             }
 
-            switch (HIWORD(wParam))
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case EN_CHANGE:
             case CBN_SELCHANGE:

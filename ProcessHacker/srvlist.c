@@ -383,45 +383,19 @@ static VOID PhpUpdateServiceNodeDescription(
             0
             )))
         {
-            LSTATUS result;
-            PWSTR buffer;
-            ULONG bufferSize;
-            ULONG returnLength = 0;
+            PPH_STRING descriptionString;
+            PPH_STRING serviceDescriptionString;
 
-            bufferSize = 0x100;
-            buffer = PhAllocate(bufferSize);
-
-            if ((result = RegLoadMUIString(
-                keyHandle,
-                L"Description",
-                buffer,
-                bufferSize,
-                &returnLength,
-                0,
-                NULL
-                )) == ERROR_MORE_DATA)
+            if (descriptionString = PhQueryRegistryString(keyHandle, L"Description"))
             {
-                PhFree(buffer);
-                bufferSize = returnLength;
-                buffer = PhAllocate(bufferSize);
+                if (serviceDescriptionString = PhLoadIndirectString(descriptionString->Buffer))
+                    PhMoveReference(&ServiceNode->Description, serviceDescriptionString);
+                else
+                    PhSwapReference(&ServiceNode->Description, descriptionString);
 
-                result = RegLoadMUIString(
-                    keyHandle,
-                    L"Description",
-                    buffer,
-                    bufferSize,
-                    &returnLength,
-                    0,
-                    NULL
-                    );
+                PhDereferenceObject(descriptionString);
             }
 
-            if (result == ERROR_SUCCESS)
-            {
-                PhMoveReference(&ServiceNode->Description, PhCreateStringEx(buffer, returnLength));
-            }
-
-            PhFree(buffer);
             NtClose(keyHandle);
         }
 
@@ -795,6 +769,12 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 ServiceCogIcon = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
 
                 ServiceIconsLoaded = TRUE;
+            }
+
+            if (!node->ServiceQueryStage2)
+            {
+                PhQueueServiceQueryStage2(node->ServiceItem);
+                node->ServiceQueryStage2 = TRUE;
             }
 
             if (node->ServiceItem->SmallIcon)
