@@ -37,6 +37,7 @@
 #include <phsettings.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)
+#define WM_PH_SHOWDIALOG (WM_APP + 302)
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -134,6 +135,8 @@ VOID PhpSetDefaultTaskManager(
     );
 
 static HWND PhOptionsWindowHandle = NULL;
+static HANDLE PhOptionsWindowThreadHandle = NULL;
+static PH_EVENT PhOptionsWindowInitializedEvent = PH_EVENT_INIT;
 static PPH_LIST PhOptionsDialogList = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 
@@ -148,19 +151,71 @@ static BOOLEAN RestartRequired = FALSE;
 
 // General
 static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-static BOOLEAN CurrentUserRunPresent;
-static BOOLEAN CurrentUserRunStartHidden;
-static HFONT CurrentFontInstance;
-static PPH_STRING NewFontSelection;
+static BOOLEAN CurrentUserRunPresent = FALSE;
+static BOOLEAN CurrentUserRunStartHidden = FALSE;
+static HFONT CurrentFontInstance = NULL;
+static PPH_STRING NewFontSelection = NULL;
 static HIMAGELIST GeneralListviewImageList = NULL;
 
 // Advanced
 static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
-static PPH_STRING OldTaskMgrDebugger;
-static HWND WindowHandleForElevate;
+static PPH_STRING OldTaskMgrDebugger = NULL;
+static HWND WindowHandleForElevate = NULL;
 
 // Highlighting
-static HWND HighlightingListViewHandle;
+static HWND HighlightingListViewHandle = NULL;
+
+NTSTATUS ShowUpdateDialogThread(
+    _In_ PVOID Parameter
+    )
+{
+    PH_AUTO_POOL autoPool;
+  
+    PhInitializeAutoPool(&autoPool);
+
+    DialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_OPTIONS),
+        NULL,
+        PhOptionsDialogProc
+        );
+
+    PhUpdateCachedSettings();
+    ProcessHacker_SaveAllSettings(PhMainWndHandle);
+    PhInvalidateAllProcessNodes();
+    PhReloadSettingsProcessTreeList();
+    PhSiNotifyChangeSettings();
+
+    if (RestartRequired)
+    {
+        if (PhShowMessage2(
+            PhMainWndHandle,
+            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_INFORMATION_ICON,
+            L"One or more options you have changed requires a restart of Process Hacker.",
+            L"Do you want to restart Process Hacker now?"
+            ) == IDYES)
+        {
+            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+            PhShellProcessHacker(
+                PhMainWndHandle,
+                L"-v",
+                SW_SHOW,
+                0,
+                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                0,
+                NULL
+                );
+            ProcessHacker_Destroy(PhMainWndHandle);
+        }
+    }
+
+    PhDeleteAutoPool(&autoPool);
+
+    PhResetEvent(&PhOptionsWindowInitializedEvent);
+
+    return STATUS_SUCCESS;
+}
 
 VOID PhShowOptionsDialog(
     _In_ HWND ParentWindowHandle
@@ -172,42 +227,14 @@ VOID PhShowOptionsDialog(
     }
     else
     {
-        DialogBox(
-            PhInstanceHandle,
-            MAKEINTRESOURCE(IDD_OPTIONS),
-            NULL,
-            PhOptionsDialogProc
-            );
-
-        PhUpdateCachedSettings();
-        ProcessHacker_SaveAllSettings(PhMainWndHandle);
-        PhInvalidateAllProcessNodes();
-        PhReloadSettingsProcessTreeList();
-        PhSiNotifyChangeSettings();
-
-        if (RestartRequired)
+        if (!PhTestEvent(&PhOptionsWindowInitializedEvent))
         {
-            if (PhShowMessage2(
-                PhMainWndHandle,
-                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                TD_INFORMATION_ICON,
-                L"One or more options you have changed requires a restart of Process Hacker.",
-                L"Do you want to restart Process Hacker now?"
-                ) == IDYES)
-            {
-                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-                PhShellProcessHacker(
-                    PhMainWndHandle,
-                    L"-v",
-                    SW_SHOW,
-                    0,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                    0,
-                    NULL
-                    );
-                ProcessHacker_Destroy(PhMainWndHandle);
-            }
+            PhCreateThread2(ShowUpdateDialogThread, NULL);
+
+            PhWaitForEvent(&PhOptionsWindowInitializedEvent, NULL);
         }
+
+        PostMessage(PhOptionsWindowHandle, WM_PH_SHOWDIALOG, 0, 0);
     }
 }
 
@@ -354,6 +381,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
             }
+
+            PhSetEvent(&PhOptionsWindowInitializedEvent);
         }
         break;
     case WM_NCDESTROY:
@@ -373,6 +402,16 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             ImageList_Destroy(OptionsTreeImageList);
 
             PhDeleteLayoutManager(&WindowLayoutManager);
+        }
+        break;
+    case WM_PH_SHOWDIALOG:
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
         }
         break;
     case WM_SIZE:
