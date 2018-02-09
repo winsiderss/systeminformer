@@ -170,6 +170,8 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HANDLE tokenHandle;
+
             if (NT_SUCCESS(PhOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
             {
                 PhSetTokenPrivilege(tokenHandle, L"SeProfileSingleProcessPrivilege", NULL, SE_PRIVILEGE_ENABLED);
