@@ -122,7 +122,10 @@ NTSTATUS PhpGetObjectBasicInformation(
 {
     NTSTATUS status;
 
-    if (KphIsConnected())
+    // TODO: KphIsVerified() fixes a bug on Windows 10 but this should be removed
+    // since KphQueryInformationObject doesn't require verification. (dmex)
+
+    if (KphIsConnected() && KphIsVerified())
     {
         status = KphQueryInformationObject(
             ProcessHandle,
