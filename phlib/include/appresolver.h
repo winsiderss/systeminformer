@@ -32,8 +32,12 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
-PPH_STRING PhGetAppContainerPackageName(
+PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
+    );
+
+PPH_STRING PhGetAppContainerPackageName(
+    _In_ PSID Sid
     );
 
 PPH_LIST PhGetPackageAssetsFromResourceFile(
