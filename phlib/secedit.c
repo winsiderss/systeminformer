@@ -3,7 +3,7 @@
  *   object security editor
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2018 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,6 +22,7 @@
  */
 
 #include <ph.h>
+#include <appresolver.h>
 #include <secedit.h>
 #include <lsasup.h>
 
@@ -560,46 +561,17 @@ HRESULT STDMETHODCALLTYPE PhSecurityDataObject_GetData(
             sidInfo.pwzCommonName = PhGetString(sidString);
             PhAddItemList(this->NameCache, sidString);
         }
-        else if (sidString = PhSidToStringSid(sidInfo.pSid))
+        else if (sidString = PhGetAppContainerPackageName(sidInfo.pSid))
         {
-            static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
-            HANDLE keyHandle;
-            PPH_STRING keyPath;
-            PPH_STRING packageName = NULL;
-
-            if (PhEqualString2(sidString, L"S-1-15-3-4096", FALSE))
-            {
-                // Special case for Edge and Internet Explorer objects.
-                packageName = PhCreateString(L"InternetExplorer (APP_PACKAGE)");
-                sidInfo.pwzCommonName = PhGetString(packageName);;
-                PhAddItemList(this->NameCache, packageName);
-                sidInfoList->aSidInfo[i] = sidInfo;
-                continue;
-            }
-
-            keyPath = PhConcatStringRef2(&appcontainerMappings, &sidString->sr);
-
-            if (NT_SUCCESS(PhOpenKey(
-                &keyHandle,
-                KEY_READ,
-                PH_KEY_CURRENT_USER,
-                &keyPath->sr,
-                0
-                )))
-            {
-                packageName = PhQueryRegistryString(keyHandle, L"Moniker");
-                NtClose(keyHandle);
-            }
-
-            if (packageName)
-            {
-                PhMoveReference(&packageName, PhFormatString(L"%s (APP_PACKAGE)", PhGetString(packageName)));
-                sidInfo.pwzCommonName = PhGetString(packageName);
-                PhAddItemList(this->NameCache, packageName);
-            }
-
-            PhDereferenceObject(keyPath);
-            PhDereferenceObject(sidString);
+            PhMoveReference(&sidString, PhFormatString(L"%s (APP_PACKAGE)", PhGetString(sidString)));
+            sidInfo.pwzCommonName = PhGetString(sidString);
+            PhAddItemList(this->NameCache, sidString);
+        }
+        else if (sidString = PhGetAppContainerName(sidInfo.pSid))
+        {
+            PhMoveReference(&sidString, PhFormatString(L"%s (APP_CONTAINER)", PhGetString(sidString)));
+            sidInfo.pwzCommonName = PhGetString(sidString);
+            PhAddItemList(this->NameCache, sidString);
         }
 
         sidInfoList->aSidInfo[i] = sidInfo;

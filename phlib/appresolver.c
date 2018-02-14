@@ -22,7 +22,8 @@
 
 #define COBJMACROS
 #define CINTERFACE
-#include <phbase.h>
+#include <ph.h>
+#include <lsasup.h>
 
 #include <minappmodel.h>
 #include <appmodel.h>
@@ -155,7 +156,7 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     return FALSE;
 }
 
-PPH_STRING PhGetAppContainerPackageName(
+PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     )
 {   
@@ -172,6 +173,44 @@ PPH_STRING PhGetAppContainerPackageName(
     }
 
     return packageFamilyName;
+}
+
+PPH_STRING PhGetAppContainerPackageName(
+    _In_ PSID Sid
+    )
+{   
+    static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+    HANDLE keyHandle;
+    PPH_STRING sidString;
+    PPH_STRING keyPath;
+    PPH_STRING packageName = NULL;
+
+    sidString = PhSidToStringSid(Sid);
+
+    if (PhEqualString2(sidString, L"S-1-15-3-4096", FALSE)) // HACK
+    {
+        PhDereferenceObject(sidString);
+        return PhCreateString(L"InternetExplorer");
+    }
+
+    keyPath = PhConcatStringRef2(&appcontainerMappings, &sidString->sr);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyPath->sr,
+        0
+        )))
+    {
+        PhMoveReference(&packageName, PhQueryRegistryString(keyHandle, L"Moniker"));
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyPath);
+    PhDereferenceObject(sidString);
+
+    return packageName;
 }
 
 BOOLEAN PhGetAppWindowingModel(

@@ -660,7 +660,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         if (appContainerInfo->TokenAppContainer)
                         {
-                            appContainerName = PhGetAppContainerPackageName(appContainerInfo->TokenAppContainer);
+                            appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
                             appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);    
                         }
 
@@ -671,7 +671,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         PPH_STRING packageFamilyName;
 
-                        packageFamilyName = PhConcatStrings2(appContainerName->Buffer, L" (APP_PACKAGE)");
+                        packageFamilyName = PhConcatStrings2(appContainerName->Buffer, L" (APP_CONTAINER)");
                         SetDlgItemText(hwndDlg, IDC_USER, packageFamilyName->Buffer);
 
                         PhDereferenceObject(packageFamilyName);
