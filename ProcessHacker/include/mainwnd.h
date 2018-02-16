@@ -207,6 +207,10 @@ BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     );
 
+BOOLEAN PhInitializeRestartPolicy(
+    VOID
+    );
+
 VOID PhAddMiniProcessMenuItems(
     _Inout_ struct _PH_EMENU_ITEM *Menu,
     _In_ HANDLE ProcessId
