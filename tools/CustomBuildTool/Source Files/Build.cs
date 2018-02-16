@@ -160,8 +160,8 @@ namespace CustomBuildTool
             BuildOutputFolder = "build\\output";
             MSBuildExePath = VisualStudio.GetMsbuildFilePath();
             CustomSignToolPath = "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
-            GitExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles%\\Git\\cmd\\git.exe");
-            CertUtilExePath = Environment.ExpandEnvironmentVariables("%SystemRoot%\\system32\\Certutil.exe");
+            GitExePath = VisualStudio.GetFilePathFromPath("git.exe");
+            CertUtilExePath = VisualStudio.GetFilePathFromPath("certutil.exe");
             MakeAppxExePath = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin\\x64\\MakeAppx.exe");
             BuildNightly = !string.Equals(Environment.ExpandEnvironmentVariables("%APPVEYOR_BUILD_API%"), "%APPVEYOR_BUILD_API%", StringComparison.OrdinalIgnoreCase);
 
@@ -207,7 +207,7 @@ namespace CustomBuildTool
             {
                 if (CheckDependencies)
                 {
-                    Program.PrintColorMessage("[Warning] Git not installed...", ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[Warning] Git not installed.", ConsoleColor.Yellow);
                 }
             }
 
@@ -272,13 +272,22 @@ namespace CustomBuildTool
 
             if (ShowBuildInfo && !GitExportBuild)
             {
-                Program.PrintColorMessage("Branch: ", ConsoleColor.DarkGray, false);
-                Program.PrintColorMessage(BuildBranch, ConsoleColor.Green, true);
+                if (!string.IsNullOrEmpty(BuildBranch))
+                {
+                    Program.PrintColorMessage("Branch: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(BuildBranch, ConsoleColor.Green, true);
+                }
+
                 Program.PrintColorMessage("Version: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(BuildVersion, ConsoleColor.Green, false);
-                Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.DarkYellow, false);
-                Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
+
+                if (!string.IsNullOrEmpty(BuildCommit))
+                {
+                    Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(BuildCommit.Substring(0, 8), ConsoleColor.DarkYellow, false);
+                    Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
+                }
+
                 Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray, true);
 
                 if (!BuildNightly && ShowLogInfo && File.Exists(GitExePath))
