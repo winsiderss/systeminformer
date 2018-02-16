@@ -205,6 +205,21 @@ namespace CustomBuildTool
 
     public static class VisualStudio
     {
+        public static string GetFilePathFromPath(string FileName)
+        {
+            string where = Environment.ExpandEnvironmentVariables("%windir%\\System32\\where.exe");
+
+            if (File.Exists(where))
+            {
+                string whereResult = Win32.ShellExecute(where, FileName);
+
+                if (!string.IsNullOrEmpty(whereResult))
+                    return whereResult;
+            }
+
+            return null;
+        }
+
         public static string GetMsbuildFilePath()
         {
             string vswhere = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe");
