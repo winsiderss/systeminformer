@@ -795,12 +795,24 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             if (!context->ProcessId)
             {
-                SetWindowText(
-                    context->UserComboBoxWindowHandle, 
-                    PH_AUTO_T(PH_STRING, PhGetStringSetting(L"RunAsUserName"))->Buffer
-                    );
+                PPH_STRING runAsUserName = PhaGetStringSetting(L"RunAsUserName");
+                INT runAsUserNameIndex = CB_ERR;
 
                 // Fire the user name changed event so we can fix the logon type.
+                if (!PhIsNullOrEmptyString(runAsUserName))
+                {
+                    runAsUserNameIndex = ComboBox_FindString(
+                        context->UserComboBoxWindowHandle, 
+                        0, 
+                        PhGetString(runAsUserName)
+                        );
+                }
+
+                if (runAsUserNameIndex != CB_ERR)
+                    ComboBox_SetCurSel(context->UserComboBoxWindowHandle, runAsUserNameIndex);
+                else
+                    ComboBox_SetCurSel(context->UserComboBoxWindowHandle, 0);
+
                 SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
             }
             else
