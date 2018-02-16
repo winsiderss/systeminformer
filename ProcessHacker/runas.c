@@ -192,7 +192,7 @@ VOID PhShowRunAsDialog(
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_RUNAS),
-        NULL,
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
         PhpRunAsDlgProc,
         (LPARAM)ProcessId
         );
@@ -1213,7 +1213,6 @@ NTSTATUS PhExecuteRunAsCommand(
     PPH_STRING portName;
     UNICODE_STRING portNameUs;
     ULONG attempts;
-    LARGE_INTEGER interval;
 
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
@@ -1264,8 +1263,7 @@ NTSTATUS PhExecuteRunAsCommand(
         if (NT_SUCCESS(status))
             break;
 
-        interval.QuadPart = -50 * PH_TIMEOUT_MS;
-        NtDelayExecution(FALSE, &interval);
+        PhDelayExecution(50);
     } while (--attempts != 0);
 
     PhDereferenceObject(portName);
