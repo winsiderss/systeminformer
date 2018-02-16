@@ -83,10 +83,6 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     );
 
-BOOLEAN PhInitializeRestartPolicy(
-    VOID
-    );
-
 PPH_STRING PhApplicationDirectory = NULL;
 PPH_STRING PhApplicationFileName = NULL;
 PHAPPAPI HFONT PhApplicationFont = NULL;
@@ -546,10 +542,14 @@ VOID PhInitializeCommonControls(
 
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
     icex.dwICC =
-        ICC_LINK_CLASS |
         ICC_LISTVIEW_CLASSES |
+        ICC_TREEVIEW_CLASSES |
+        ICC_BAR_CLASSES |
+        ICC_TAB_CLASSES |
         ICC_PROGRESS_CLASS |
-        ICC_TAB_CLASSES
+        ICC_COOL_CLASSES |
+        ICC_STANDARD_CLASSES |
+        ICC_LINK_CLASS
         ;
 
     InitCommonControlsEx(&icex);
@@ -937,7 +937,7 @@ VOID PhpInitializeSettings(
             if (status == STATUS_FILE_CORRUPT_ERROR)
             {
                 if (PhShowMessage2(
-                    PhMainWndHandle,
+                    NULL,
                     TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                     TD_WARNING_ICON,
                     L"Process Hacker's settings file is corrupt. Do you want to reset it?",

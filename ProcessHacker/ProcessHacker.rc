@@ -165,13 +165,10 @@ BEGIN
         MENUITEM "&Suspend",                    ID_THREAD_SUSPEND
         MENUITEM "Res&ume",                     ID_THREAD_RESUME
         MENUITEM SEPARATOR
+        MENUITEM "Analy&ze",                    ID_ANALYZE_WAIT
         MENUITEM "&Affinity",                   ID_THREAD_AFFINITY
         MENUITEM "Per&missions",                ID_THREAD_PERMISSIONS
         MENUITEM "&Token",                      ID_THREAD_TOKEN
-        POPUP "Analy&ze"
-        BEGIN
-            MENUITEM "&Wait",                       ID_ANALYZE_WAIT
-        END
         POPUP "&Priority"
         BEGIN
             MENUITEM "Time &critical",              ID_PRIORITY_TIMECRITICAL
@@ -1271,12 +1268,9 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Symbols"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Dbghelp.dll path:",IDC_STATIC,7,9,56,8
-    EDITTEXT        IDC_DBGHELPPATH,66,8,123,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BROWSE,193,7,50,14
-    LTEXT           "Search path:",IDC_STATIC,7,24,42,8
-    EDITTEXT        IDC_DBGHELPSEARCHPATH,66,23,177,12,ES_AUTOHSCROLL
-    CONTROL         "Undecorate symbols",IDC_UNDECORATESYMBOLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,38,81,10
+    LTEXT           "Search path:",IDC_STATIC,7,8,42,8
+    EDITTEXT        IDC_DBGHELPSEARCHPATH,66,7,177,12,ES_AUTOHSCROLL
+    CONTROL         "Undecorate symbols",IDC_UNDECORATESYMBOLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,81,10
 END
 
 IDD_MEMEDIT DIALOGEX 0, 0, 441, 269

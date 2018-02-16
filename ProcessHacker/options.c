@@ -37,7 +37,6 @@
 #include <phsettings.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)
-#define WM_PH_SHOWDIALOG (WM_APP + 302)
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     _In_ HWND hwndDlg,
@@ -135,7 +134,6 @@ VOID PhpSetDefaultTaskManager(
     );
 
 static HWND PhOptionsWindowHandle = NULL;
-static HANDLE PhOptionsWindowThreadHandle = NULL;
 static PH_EVENT PhOptionsWindowInitializedEvent = PH_EVENT_INIT;
 static PPH_LIST PhOptionsDialogList = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
@@ -155,7 +153,6 @@ static BOOLEAN CurrentUserRunPresent = FALSE;
 static BOOLEAN CurrentUserRunStartHidden = FALSE;
 static HFONT CurrentFontInstance = NULL;
 static PPH_STRING NewFontSelection = NULL;
-static HIMAGELIST GeneralListviewImageList = NULL;
 
 // Advanced
 static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
@@ -164,58 +161,6 @@ static HWND WindowHandleForElevate = NULL;
 
 // Highlighting
 static HWND HighlightingListViewHandle = NULL;
-
-NTSTATUS ShowUpdateDialogThread(
-    _In_ PVOID Parameter
-    )
-{
-    PH_AUTO_POOL autoPool;
-  
-    PhInitializeAutoPool(&autoPool);
-
-    DialogBox(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_OPTIONS),
-        NULL,
-        PhOptionsDialogProc
-        );
-
-    PhUpdateCachedSettings();
-    ProcessHacker_SaveAllSettings(PhMainWndHandle);
-    PhInvalidateAllProcessNodes();
-    PhReloadSettingsProcessTreeList();
-    PhSiNotifyChangeSettings();
-
-    if (RestartRequired)
-    {
-        if (PhShowMessage2(
-            PhMainWndHandle,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-            TD_INFORMATION_ICON,
-            L"One or more options you have changed requires a restart of Process Hacker.",
-            L"Do you want to restart Process Hacker now?"
-            ) == IDYES)
-        {
-            ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
-            PhShellProcessHacker(
-                PhMainWndHandle,
-                L"-v",
-                SW_SHOW,
-                0,
-                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                0,
-                NULL
-                );
-            ProcessHacker_Destroy(PhMainWndHandle);
-        }
-    }
-
-    PhDeleteAutoPool(&autoPool);
-
-    PhResetEvent(&PhOptionsWindowInitializedEvent);
-
-    return STATUS_SUCCESS;
-}
 
 VOID PhShowOptionsDialog(
     _In_ HWND ParentWindowHandle
@@ -227,14 +172,42 @@ VOID PhShowOptionsDialog(
     }
     else
     {
-        if (!PhTestEvent(&PhOptionsWindowInitializedEvent))
+        DialogBox(
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_OPTIONS),
+            !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
+            PhOptionsDialogProc
+            );
+
+        PhUpdateCachedSettings();
+        ProcessHacker_SaveAllSettings(PhMainWndHandle);
+        PhInvalidateAllProcessNodes();
+        PhReloadSettingsProcessTreeList();
+        PhSiNotifyChangeSettings();
+
+        if (RestartRequired)
         {
-            PhCreateThread2(ShowUpdateDialogThread, NULL);
-
-            PhWaitForEvent(&PhOptionsWindowInitializedEvent, NULL);
+            if (PhShowMessage2(
+                PhMainWndHandle,
+                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_INFORMATION_ICON,
+                L"One or more options you have changed requires a restart of Process Hacker.",
+                L"Do you want to restart Process Hacker now?"
+                ) == IDYES)
+            {
+                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
+                PhShellProcessHacker(
+                    PhMainWndHandle,
+                    L"-v",
+                    SW_SHOW,
+                    0,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                    0,
+                    NULL
+                    );
+                ProcessHacker_Destroy(PhMainWndHandle);
+            }
         }
-
-        PostMessage(PhOptionsWindowHandle, WM_PH_SHOWDIALOG, 0, 0);
     }
 }
 
@@ -352,8 +325,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             //PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDC_APPLY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(PhOptionsWindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
-
             {
                 PPH_OPTIONS_SECTION section;
 
@@ -380,9 +351,9 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                 PhOptionsEnterSectionView(section);
                 PhOptionsOnSize();
-            }
 
-            PhSetEvent(&PhOptionsWindowInitializedEvent);
+                EnableThemeDialogTexture(ContainerControl, ETDT_ENABLETAB);
+            }
         }
         break;
     case WM_NCDESTROY:
@@ -402,16 +373,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             ImageList_Destroy(OptionsTreeImageList);
 
             PhDeleteLayoutManager(&WindowLayoutManager);
-        }
-        break;
-    case WM_PH_SHOWDIALOG:
-        {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
-            else
-                ShowWindow(hwndDlg, SW_SHOW);
-
-            SetForegroundWindow(hwndDlg);
         }
         break;
     case WM_SIZE:
@@ -1162,7 +1123,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             ULONG i;
             LOGFONT font;
 
-            GeneralListviewImageList = ImageList_Create(2, 20, ILC_COLOR, 1, 1);
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
             listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
 
@@ -1173,7 +1133,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             PhSetListViewStyle(listviewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(listviewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
-            ListView_SetImageList(listviewHandle, GeneralListviewImageList, LVSIL_SMALL);
+            //ListView_SetImageList(listviewHandle, GeneralListviewImageList, LVSIL_SMALL);
             PhSetControlTheme(listviewHandle, L"explorer");
             PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
             PhSetExtendedListView(listviewHandle);
@@ -1221,8 +1181,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             PhClearReference(&NewFontSelection);
             PhClearReference(&OldTaskMgrDebugger);
-
-            ImageList_Destroy(GeneralListviewImageList);
 
             PhDeleteLayoutManager(&LayoutManager);
         }
@@ -1654,47 +1612,11 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, PhaGetStringSetting(L"DbgHelpPath")->Buffer);
             SetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PhaGetStringSetting(L"DbgHelpSearchPath")->Buffer);
-
             SetDlgItemCheckForSetting(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPSEARCHPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDC_BROWSE:
-                {
-                    static PH_FILETYPE_FILTER filters[] =
-                    {
-                        { L"dbghelp.dll", L"dbghelp.dll" },
-                        { L"All files (*.*)", L"*.*" }
-                    };
-                    PVOID fileDialog;
-                    PPH_STRING fileName;
-
-                    fileDialog = PhCreateOpenFileDialog();
-                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-
-                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH)));
-                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-
-                    if (PhShowFileDialog(hwndDlg, fileDialog))
-                    {
-                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, fileName->Buffer);
-                    }
-
-                    PhFreeFileDialog(fileDialog);
-                }
-                break;
-            }
         }
         break;
     case WM_SIZE:
@@ -1704,13 +1626,12 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PPH_STRING dbgHelpPath = PhaGetDlgItemText(hwndDlg, IDC_DBGHELPPATH);
-
-            if (!PhEqualString(dbgHelpPath, PhaGetStringSetting(L"DbgHelpPath"), TRUE))
+            if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
+            {
                 RestartRequired = TRUE;
+                PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+            }
 
-            PhSetStringSetting2(L"DbgHelpPath", &dbgHelpPath->sr);
-            PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
             SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
 
             PhDeleteLayoutManager(&LayoutManager);
