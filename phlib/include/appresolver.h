@@ -32,6 +32,12 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
+HRESULT PhAppResolverActivateAppId(
+    _In_ PPH_STRING AppUserModelId,
+    _In_opt_ PWSTR CommandLine,
+    _Out_opt_ HANDLE *ProcessId
+    );
+
 PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     );
