@@ -156,17 +156,22 @@ BOOLEAN PhMainWndInitialization(
         NULL
         );
     PhDeleteStringBuilder(&stringBuilder);
-    PhMainWndMenuHandle = GetMenu(PhMainWndHandle);
 
     if (!PhMainWndHandle)
         return FALSE;
 
+    PhMainWndMenuHandle = GetMenu(PhMainWndHandle);
     PhMwpInitializeMainMenu(PhMainWndMenuHandle);
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
-    MoveWindow(PhMainWndHandle, windowRectangle.Left, windowRectangle.Top,
-        windowRectangle.Width, windowRectangle.Height, FALSE);
+    MoveWindow(
+        PhMainWndHandle, 
+        windowRectangle.Left, windowRectangle.Top,
+        windowRectangle.Width, windowRectangle.Height,
+        FALSE
+        );
+    UpdateWindow(PhMainWndHandle);
 
     // Allow WM_PH_ACTIVATE to pass through UIPI.
     ChangeWindowMessageFilter(WM_PH_ACTIVATE, MSGFLT_ADD);
@@ -178,21 +183,17 @@ BOOLEAN PhMainWndInitialization(
 
     PhMwpLoadSettings();
     PhLogInitialization();
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpDelayedLoadFunction, NULL);
 
-    PhMwpSelectionChangedTabControl(-1);
-
-    // Perform a layout.
-    PhMwpOnSize();
-
+    // Start the main providers.
     PhStartProviderThread(&PhPrimaryProviderThread);
     PhStartProviderThread(&PhSecondaryProviderThread);
 
-    // See PhMwpOnTimer for more details.
-    if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1)
-        SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1, NULL);
+    // Queue delayed init functions.
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, NULL);
 
-    UpdateWindow(PhMainWndHandle);
+    // Perform a layout.
+    PhMwpSelectionChangedTabControl(-1);
+    PhMwpOnSize();
 
     if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
         ShowCommand = SW_HIDE;
@@ -305,11 +306,6 @@ LRESULT CALLBACK PhMwpWndProc(
             PhMwpOnSetFocus();
         }
         break;
-    case WM_TIMER:
-        {
-            PhMwpOnTimer((ULONG)wParam);
-        }
-        break;
     case WM_NOTIFY:
         {
             LRESULT result;
@@ -362,18 +358,23 @@ VOID PhMwpInitializeProviders(
 
     if (interval == 0)
     {
-        interval = 1000;
+        interval = PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM;
         PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
     }
+
+    // See PhMwpLoadStage1Worker for more details.
+    if (interval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
+        interval = 1000;
 
     PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
     PhInitializeProviderThread(&PhSecondaryProviderThread, interval);
 
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &PhMwpProcessProviderRegistration);
-    PhSetEnabledProvider(&PhMwpProcessProviderRegistration, TRUE);
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &PhMwpServiceProviderRegistration);
-    PhSetEnabledProvider(&PhMwpServiceProviderRegistration, TRUE);
     PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &PhMwpNetworkProviderRegistration);
+
+    PhSetEnabledProvider(&PhMwpProcessProviderRegistration, TRUE);
+    PhSetEnabledProvider(&PhMwpServiceProviderRegistration, TRUE);
 }
 
 VOID PhMwpApplyUpdateInterval(
@@ -482,14 +483,32 @@ VOID PhMwpInitializeControls(
     CurrentPage = PageList->Items[0];
 }
 
-NTSTATUS PhMwpDelayedLoadFunction(
+NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     )
 {
+    // If the update interval is too large, the user might have to wait a while before seeing some types of
+    // process-related data. We force an update by boosting the provider shortly after the program 
+    // starts up to either make things appear more quickly or delay the .
+
+    if (PhCsUpdateInterval >= PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
+    {
+        PhDelayExecution(PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1);
+    }
+
+    PhMwpApplyUpdateInterval(PhCsUpdateInterval);
+
+    if (PhCsUpdateInterval >= PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
+    {
+        PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
+        PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
+    }
+
     PhNfLoadStage2();
 
     // Make sure we get closed late in the shutdown process.
-    SetProcessShutdownParameters(0x100, 0);
+    SetProcessShutdownParameters(0x100, 0);  
+    PhInitializeRestartPolicy();
 
     DelayedLoadCompleted = TRUE;
     //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
@@ -1653,51 +1672,6 @@ VOID PhMwpOnSetFocus(
         SetFocus(CurrentPage->WindowHandle);
 }
 
-VOID PhMwpOnTimer(
-    _In_ ULONG Id
-    )
-{
-    if (Id == TIMER_FLUSH_PROCESS_QUERY_DATA)
-    {
-        static ULONG state = 1;
-
-        // If the update interval is too large, the user might have to wait a while before seeing some types of
-        // process-related data. Here we force an update.
-        //
-        // In addition, we force updates shortly after the program starts up to make things appear more quickly.
-
-        switch (state)
-        {
-        case 1:
-            state = 2;
-
-            if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_2)
-                SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_2, NULL);
-            else
-                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
-
-            break;
-        case 2:
-            state = 3;
-
-            if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
-                SetTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM, NULL);
-            else
-                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
-
-            break;
-        case 3:
-            {
-                KillTimer(PhMainWndHandle, TIMER_FLUSH_PROCESS_QUERY_DATA);
-            }
-            break;
-        }
-
-        PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
-        PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
-    }
-}
-
 BOOLEAN PhMwpOnNotify(
     _In_ NMHDR *Header,
     _Out_ LRESULT *Result
@@ -2147,6 +2121,16 @@ VOID PhMwpLoadSettings(
     ULONG opacity;
     PPH_STRING customFont;
 
+    customFont = PhaGetStringSetting(L"Font");
+    opacity = PhGetIntegerSetting(L"MainWindowOpacity");
+    PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
+    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
+    PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
+    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
+    PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
+    
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
         AlwaysOnTop = TRUE;
@@ -2154,23 +2138,10 @@ VOID PhMwpLoadSettings(
             SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
     }
 
-    opacity = PhGetIntegerSetting(L"MainWindowOpacity");
-
     if (opacity != 0)
         PhSetWindowOpacity(PhMainWndHandle, opacity);
 
-    PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
-    PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
-    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
-    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
-    PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
-
-    PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
-
     PhNfLoadStage1();
-    PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
-
-    customFont = PhaGetStringSetting(L"Font");
 
     if (customFont->Length / 2 / 2 == sizeof(LOGFONT))
         SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);

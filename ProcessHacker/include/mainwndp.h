@@ -49,7 +49,7 @@ VOID PhMwpInitializeControls(
     VOID
     );
 
-NTSTATUS PhMwpDelayedLoadFunction(
+NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     );
 
@@ -104,10 +104,6 @@ VOID PhMwpOnSizing(
 
 VOID PhMwpOnSetFocus(
     VOID
-    );
-
-VOID PhMwpOnTimer(
-    _In_ ULONG Id
     );
 
 BOOLEAN PhMwpOnNotify(
