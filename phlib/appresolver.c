@@ -93,6 +93,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
                 AppContainerFreeMemory_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerFreeMemory", 0);
                 AppContainerRegisterSid_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerRegisterSid", 0);
                 AppContainerUnregisterSid_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppContainerUnregisterSid", 0);
+
                 AppPolicyGetWindowingModel_I = PhGetProcedureAddress(kernelAppBaseAddress, "AppPolicyGetWindowingModel", 0);
             }
 
@@ -156,11 +157,52 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     return FALSE;
 }
 
+HRESULT PhAppResolverActivateAppId(
+    _In_ PPH_STRING AppUserModelId,
+    _In_opt_ PWSTR CommandLine,
+    _Out_opt_ HANDLE *ProcessId
+    )
+{
+    HRESULT status;
+    ULONG processId = 0;
+    IApplicationActivationManager* applicationActivationManager;
+
+    status = CoCreateInstance(
+        &CLSID_ApplicationActivationManager,
+        NULL,
+        CLSCTX_LOCAL_SERVER,
+        &IID_IApplicationActivationManager,
+        &applicationActivationManager
+        );
+
+    if (SUCCEEDED(status))
+    {
+        CoAllowSetForegroundWindow((IUnknown*)applicationActivationManager, NULL);
+
+        status = IApplicationActivationManager_ActivateApplication(
+            applicationActivationManager,
+            PhGetString(AppUserModelId),
+            CommandLine,
+            AO_NONE,
+            &processId
+            );
+
+        IApplicationActivationManager_Release(applicationActivationManager);
+    }
+
+    if (SUCCEEDED(status))
+    {
+        if (ProcessId) *ProcessId = UlongToHandle(processId);
+    }
+
+    return status;
+}
+
 PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     )
-{   
-    PPH_STRING packageFamilyName = NULL;
+{
+    PPH_STRING appContainerName = NULL;
     PWSTR packageMonikerName;
 
     if (!PhpKernelAppCoreInitialized())
@@ -168,11 +210,11 @@ PPH_STRING PhGetAppContainerName(
 
     if (SUCCEEDED(AppContainerLookupMoniker_I(AppContainerSid, &packageMonikerName)))
     {
-        packageFamilyName = PhCreateString(packageMonikerName);
+        appContainerName = PhCreateString(packageMonikerName);
         AppContainerFreeMemory_I(packageMonikerName);
     }
 
-    return packageFamilyName;
+    return appContainerName;
 }
 
 PPH_STRING PhGetAppContainerPackageName(
