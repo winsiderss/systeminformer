@@ -154,6 +154,20 @@ PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhDelayExecution(
+    _In_ LONGLONG Interval
+    )
+{
+    LARGE_INTEGER interval;
+
+    interval.QuadPart = -Interval * PH_TIMEOUT_MS;
+
+    return NtDelayExecution(FALSE, &interval);
+}
+
 // Heap
 
 _May_raise_
