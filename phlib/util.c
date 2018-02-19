@@ -418,10 +418,9 @@ INT PhShowMessage2(
     if (!message)
         return -1;
 
-    config.hwndParent = hWnd;
-    config.hInstance = PhInstanceHandle;
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | (IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = Buttons;
+    config.hwndParent = hWnd;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = Icon;
     config.pszMainInstruction = Title;
@@ -540,30 +539,16 @@ BOOLEAN PhShowContinueStatus(
 
     statusMessage = PhGetStatusMessage(Status, Win32Result);
 
-    if (!statusMessage)
-    {
-        if (Message)
-        {
-            result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"%s.", Message);
-        }
-        else
-        {
-            result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"Unable to perform the operation.");
-        }
-
-        return result == IDOK;
-    }
-
-    if (Message)
-    {
-        result = PhShowError2(hWnd, Message, statusMessage->Buffer);
-    }
+    if (Message && statusMessage)
+        result = PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", statusMessage->Buffer);
+    else if (Message)
+        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", Message);
+    else if (statusMessage)
+        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", statusMessage->Buffer);
     else
-    {
-        result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"%s", statusMessage->Buffer);
-    }
+        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"Unable to perform the operation.", L"%s", L"");
 
-    PhDereferenceObject(statusMessage);
+    if (statusMessage) PhDereferenceObject(statusMessage);
 
     return result == IDOK;
 }
