@@ -108,10 +108,6 @@ BOOLEAN PhMainWndInitialization(
     if (PhGetIntegerSetting(L"FirstRun"))
         PhSetIntegerSetting(L"FirstRun", FALSE);
 
-    // Initialize the main providers.
-
-    PhMwpInitializeProviders();
-
     // Initialize the window.
 
     if ((windowAtom = PhMwpInitializeWindowClass()) == INVALID_ATOM)
@@ -184,9 +180,8 @@ BOOLEAN PhMainWndInitialization(
     PhMwpLoadSettings();
     PhLogInitialization();
 
-    // Start the main providers.
-    PhStartProviderThread(&PhPrimaryProviderThread);
-    PhStartProviderThread(&PhSecondaryProviderThread);
+    // Initialize the main providers.
+    PhMwpInitializeProviders();
 
     // Queue delayed init functions.
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, NULL);
@@ -352,22 +347,15 @@ VOID PhMwpInitializeProviders(
     VOID
     )
 {
-    ULONG interval;
-
-    interval = PhGetIntegerSetting(L"UpdateInterval");
-
-    if (interval == 0)
+    if (PhCsUpdateInterval == 0)
     {
-        interval = PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM;
-        PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
+        PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM);
     }
 
     // See PhMwpLoadStage1Worker for more details.
-    if (interval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
-        interval = 1000;
 
-    PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
-    PhInitializeProviderThread(&PhSecondaryProviderThread, interval);
+    PhInitializeProviderThread(&PhPrimaryProviderThread, PhCsUpdateInterval);
+    PhInitializeProviderThread(&PhSecondaryProviderThread, PhCsUpdateInterval);
 
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &PhMwpProcessProviderRegistration);
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &PhMwpServiceProviderRegistration);
@@ -375,6 +363,9 @@ VOID PhMwpInitializeProviders(
 
     PhSetEnabledProvider(&PhMwpProcessProviderRegistration, TRUE);
     PhSetEnabledProvider(&PhMwpServiceProviderRegistration, TRUE);
+
+    PhStartProviderThread(&PhPrimaryProviderThread);
+    PhStartProviderThread(&PhSecondaryProviderThread);
 }
 
 VOID PhMwpApplyUpdateInterval(
@@ -489,16 +480,9 @@ NTSTATUS PhMwpLoadStage1Worker(
 {
     // If the update interval is too large, the user might have to wait a while before seeing some types of
     // process-related data. We force an update by boosting the provider shortly after the program 
-    // starts up to either make things appear more quickly or delay the .
+    // starts up to either make things appear more quickly.
 
-    if (PhCsUpdateInterval >= PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
-    {
-        PhDelayExecution(PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_1);
-    }
-
-    PhMwpApplyUpdateInterval(PhCsUpdateInterval);
-
-    if (PhCsUpdateInterval >= PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
+    if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
     {
         PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
         PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
