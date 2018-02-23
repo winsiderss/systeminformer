@@ -891,6 +891,31 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     PhCopyListView(tokenPageContext->ListViewHandle);
                 }
                 break;
+            case IDC_PERMISSIONS:
+                {
+                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+                    PPH_ACCESS_ENTRY accessEntries;
+                    ULONG numberOfAccessEntries;
+
+                    stdObjectSecurity.OpenObject = tokenPageContext->OpenObject;
+                    stdObjectSecurity.ObjectType = L"Token";
+                    stdObjectSecurity.Context = tokenPageContext->Context;
+
+                    if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
+                    {
+                        PhEditSecurity(
+                            hwndDlg,
+                            L"Token",
+                            PhStdGetObjectSecurity,
+                            PhStdSetObjectSecurity,
+                            &stdObjectSecurity,
+                            accessEntries,
+                            numberOfAccessEntries
+                            );
+                        PhFree(accessEntries);
+                    }
+                }
+                break;
             case IDC_INTEGRITY:
                 {
                     NTSTATUS status;
@@ -1117,12 +1142,9 @@ VOID PhpShowTokenAdvancedProperties(
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    HPROPSHEETPAGE pages[6];
+    HPROPSHEETPAGE pages[5];
     PROPSHEETPAGE page;
     ULONG numberOfPages;
-    PH_STD_OBJECT_SECURITY stdObjectSecurity;
-    PPH_ACCESS_ENTRY accessEntries;
-    ULONG numberOfAccessEntries;
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -1191,25 +1213,6 @@ VOID PhpShowTokenAdvancedProperties(
         page.pfnDlgProc = PhpTokenAttributesPageProc;
         page.lParam = (LPARAM)Context;
         pages[numberOfPages++] = CreatePropertySheetPage(&page);
-    }
-
-    // Security
-
-    stdObjectSecurity.OpenObject = Context->OpenObject;
-    stdObjectSecurity.ObjectType = L"Token";
-    stdObjectSecurity.Context = Context->Context;
-
-    if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
-    {
-        pages[numberOfPages++] = PhCreateSecurityPage(
-            L"Token",
-            PhStdGetObjectSecurity,
-            PhStdSetObjectSecurity,
-            &stdObjectSecurity,
-            accessEntries,
-            numberOfAccessEntries
-            );
-        PhFree(accessEntries);
     }
 
     propSheetHeader.nPages = numberOfPages;
