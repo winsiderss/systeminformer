@@ -506,7 +506,7 @@ VOID PhShowStatus(
 
     if (Message)
     {
-        PhShowError2(hWnd, Message, statusMessage->Buffer);
+        PhShowError2(hWnd, Message, L"%s", statusMessage->Buffer);
     }
     else
     {
