@@ -1394,7 +1394,13 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSecureDumpEncryptionInformation,
     SystemWriteConstraintInformation, // SYSTEM_WRITE_CONSTRAINT_INFORMATION
     SystemKernelVaShadowInformation, // SYSTEM_KERNEL_VA_SHADOW_INFORMATION
-    SystemSpeculationControlInformation = 201, // SYSTEM_SPECULATION_CONTROL_INFORMATION
+    SystemHypervisorSharedPageInformation, // REDSTONE4
+    SystemFirmwareBootPerformanceInformation,
+    SystemCodeIntegrityVerificationInformation,
+    SystemFirmwarePartitionInformation, // 200
+    SystemSpeculationControlInformation, // SYSTEM_SPECULATION_CONTROL_INFORMATION // (CVE-2017-5715) REDSTONE3 and above.
+    SystemDmaGuardPolicyInformation,
+    SystemEnclaveLaunchControlInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
