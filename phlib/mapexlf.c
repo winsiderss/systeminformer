@@ -137,7 +137,7 @@ PVOID PhGetMappedWslImageSectionData(
         {
             section = IMAGE_ELF64_SECTION_BY_INDEX(sectionHeader, i);
 
-            if (strcmp(Name, PTR_ADD_OFFSET(stringTable, section->sh_name)) == 0)
+            if (PhEqualBytesZ(Name, PTR_ADD_OFFSET(stringTable, section->sh_name), FALSE))
             {
                 return PTR_ADD_OFFSET(MappedWslImage->Header, section->sh_offset);
             }
