@@ -5006,7 +5006,6 @@ BOOLEAN PhParseCommandLineFuzzy(
         }
     }
 
-    PhDereferenceObject(filePathSr);
     PhFree(temp.Buffer);
 
     *FileName = *CommandLine;
