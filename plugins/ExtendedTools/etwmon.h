@@ -24,6 +24,12 @@ typedef struct
 
 typedef struct
 {
+    ULONGLONG FileObject;
+    WCHAR FileName[1];
+} FileIo_Name_Wow64;
+
+typedef struct
+{
     ULONG PID;
     ULONG size;
     ULONG daddr;
