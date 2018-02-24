@@ -118,7 +118,7 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_GDIHANDLES, L"GDI handles", NULL);
     PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, L"USER handles", NULL);
 
-    if (WindowsVersion >= WINDOWS_10_RS3 || !PhIsExecutingInWow64())
+    if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
     {
         PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES, L"ContextSwitches", NULL);
         PhAddListViewGroupItem(ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_EXTENSION, PH_PROCESS_STATISTICS_INDEX_DISKENERGY, L"DiskEnergy", NULL);
@@ -238,7 +238,7 @@ VOID PhpUpdateProcessStatistics(
         PhSetListViewSubItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, 1, PhGetStringOrEmpty(userHandles));
     }
 
-    if (WindowsVersion >= WINDOWS_10_RS3 || !PhIsExecutingInWow64())
+    if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
     {
         PVOID processes;
         PSYSTEM_PROCESS_INFORMATION processInfo;
