@@ -302,6 +302,7 @@ VOID PhLoadPlugins(
         PhShowError2(
             NULL, 
             L"Unable to load the following plugin(s)",
+            L"%s",
             sb.String->Buffer
             );
 
